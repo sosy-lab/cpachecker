@@ -277,7 +277,10 @@ public class TigerAlgorithm implements Algorithm {
       str.append("infeasible:\n");
 
       for (Goal goal : infeasibleGoals) {
+        str.append("Goal ");
         str.append(goal.getIndex());
+        str.append(" with PC ");
+        str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
         str.append("\n");
       }
 
@@ -424,12 +427,12 @@ public class TigerAlgorithm implements Algorithm {
     for (Pair<ElementaryCoveragePattern, Region> testGoalToCover : pGoalsToCover) {
       goalIndex++;
       ElementaryCoveragePattern lTestGoalPattern = testGoalToCover.getFirst();
-      Region testGoalPCtoCover = testGoalToCover.getSecond();
+      Region remainingPCforGoalCoverage = testGoalToCover.getSecond();
 
-      while (! testGoalPCtoCover.isFalse()) {
-        logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, pGoalsToCover.length, bddCpaNamedRegionManager.dumpRegion(testGoalPCtoCover));
+      while (! remainingPCforGoalCoverage.isFalse()) {
+        logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, pGoalsToCover.length, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
-        Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, testGoalPCtoCover);
+        Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
 
         NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = lGoal.getAutomaton();
 
@@ -445,18 +448,18 @@ public class TigerAlgorithm implements Algorithm {
           for (TestCase testcase : testsuite.getTestCases()) {
             ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.getPath());
             if (isCovered.equals(ThreeValuedAnswer.ACCEPT) &&
-                !bddCpaNamedRegionManager.makeAnd(testGoalPCtoCover, testcase.pc).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+                !bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, testcase.pc).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
               // test goal is already (at least for some PCs) covered by an existing test case
               // remove those PCs from todo
-              testGoalPCtoCover = bddCpaNamedRegionManager.makeAnd(testGoalPCtoCover, bddCpaNamedRegionManager.makeNot(testcase.pc));
+              remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testcase.pc));
 
-              if (testGoalPCtoCover.isFalse()) {
+              if (remainingPCforGoalCoverage.isFalse()) {
                 logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
                 testsuite.addTestCase(testcase, lGoal);
                 wasCovered = true;
                 break;
               } else {
-                logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex , " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(testGoalPCtoCover));
+                logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex , " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
                 testsuite.addTestCase(testcase, lGoal);
               }
             }
@@ -468,10 +471,9 @@ public class TigerAlgorithm implements Algorithm {
           if (wasCovered) {
             continue;
           }
-          lGoal.setPresenceCondition(testGoalPCtoCover); // might have been changed during coverage checking
         }
         // goal is uncovered so far; run CPAchecker to cover it
-        if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
+        if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, remainingPCforGoalCoverage)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
         }
@@ -479,13 +481,13 @@ public class TigerAlgorithm implements Algorithm {
 
         // update PC coverage todo
         if (testsuite.infeasibleGoals.contains(lGoal)) {
-          logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(testGoalPCtoCover));
-          testGoalPCtoCover = bddCpaNamedRegionManager.makeFalse();
+          logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
         } else {
           // now we need to cover all remaining configurations
           // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
-          testGoalPCtoCover = bddCpaNamedRegionManager.makeAnd(testGoalPCtoCover, bddCpaNamedRegionManager.makeNot(getGoalCoverage(lGoal)));
-          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(testGoalPCtoCover));
+          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(getGoalCoverage(lGoal)));
+          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         }
 
       }
@@ -504,7 +506,7 @@ public class TigerAlgorithm implements Algorithm {
     return totalCoverage;
   }
 
-  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
+  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton, Region remainingPCforGoalCoverage) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
@@ -610,7 +612,7 @@ public class TigerAlgorithm implements Algorithm {
     } else if (cpa instanceof BDDCPA) {
       bddcpa = (BDDCPA)cpa;
     }
-    bddcpa.getTransferRelation().setGlobalConstraint(pGoal.getPresenceCondition());
+    bddcpa.getTransferRelation().setGlobalConstraint(remainingPCforGoalCoverage);
 
     // start CPAchecker to find a path to the test goal
     boolean analysisWasSound = cegarAlg.run(reachedSet);
@@ -629,14 +631,14 @@ public class TigerAlgorithm implements Algorithm {
 
     if (counterexamples.isEmpty()) {
       // test goal is not feasible
-      logger.logf(Level.INFO, "Test goal infeasible with PC " + bddCpaNamedRegionManager.dumpRegion(pGoal.getPresenceCondition())+ ".");
+      logger.logf(Level.INFO, "Test goal infeasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+ ".");
 
       testsuite.addInfeasibleGoal(pGoal);
       // TODO add missing soundness checks!
     }
     else {
       // test goal is feasible
-      logger.logf(Level.INFO, "Test goal is feasible with PC " + bddCpaNamedRegionManager.dumpRegion(pGoal.getPresenceCondition())+".");
+      logger.logf(Level.INFO, "Test goal is feasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+".");
 
       // TODO add missing soundness checks!
 
