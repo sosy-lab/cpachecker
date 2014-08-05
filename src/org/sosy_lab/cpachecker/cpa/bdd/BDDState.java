@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -47,6 +49,10 @@ public class BDDState implements AbstractQueryableState {
   public Region getRegion() {
     return currentState;
   }
+  public NamedRegionManager getNamedRegionManager() {
+    return manager;
+  }
+
 
   public boolean isLessOrEqual(BDDState other) throws InterruptedException {
     return manager.entails(this.currentState, other.currentState);
@@ -70,8 +76,16 @@ public class BDDState implements AbstractQueryableState {
 
   @Override
   public String toString() {
-    return //manager.dumpRegion(currentState) + "\n" +
-        manager.regionToDot(currentState);
+    StringBuilder sb = new StringBuilder();
+    //manager.dumpRegion(currentState) + "\n" +
+        try {
+          manager.dumpRegion(currentState).appendTo(sb);
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+        //manager.regionToDot(currentState);
+        return sb.toString();
   }
 
   public String toCompactString() {
