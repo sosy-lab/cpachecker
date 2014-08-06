@@ -8,7 +8,9 @@ int globalVar;
 
 void main()
 {
-	setFeatures();
+	__SELECTED_FEATURE_A= __VERIFIER_nondet_int();
+	__SELECTED_FEATURE_B= __VERIFIER_nondet_int();
+	
 	globalVar = input();
 	if (globalVar<1)
 		globalVar = 1;
@@ -17,15 +19,8 @@ void main()
 		globalVar++;
 	
 	if (globalVar>0) {
-		goal3();
-	}
-}
-void setFeatures() {
-	__SELECTED_FEATURE_A= __VERIFIER_nondet_int();
-	__SELECTED_FEATURE_B= __VERIFIER_nondet_int();
-}
-void goal3() {
-	if (globalVar>0) {
-		globalVar++;
+		if (globalVar>0) {
+			globalVar++;
+		}
 	}
 }

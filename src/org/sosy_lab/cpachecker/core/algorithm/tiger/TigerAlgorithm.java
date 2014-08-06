@@ -223,15 +223,22 @@ public class TigerAlgorithm implements Algorithm {
 
   class TestSuite {
     private Map<TestCase, List<Goal>> mapping;
-    private List<Goal> infeasibleGoals;
+    private Map<Goal, Region> infeasibleGoals;
 
     public TestSuite() {
       mapping = new HashMap<>();
-      infeasibleGoals = new LinkedList<>();
+      infeasibleGoals = new HashMap<>();
     }
 
-    public void addInfeasibleGoal(Goal goal) {
-      infeasibleGoals.add(goal);
+    /** States that the goal is infeasible when enforcing the given constraints
+     */
+    public void addInfeasibleGoal(Goal goal, Region pForConstraints) {
+      if (infeasibleGoals.containsKey(goal)) {
+        Region constraints = infeasibleGoals.get(goal);
+        infeasibleGoals.put(goal, bddCpaNamedRegionManager.makeOr(constraints, pForConstraints));
+      } else {
+        infeasibleGoals.put(goal, pForConstraints);
+      }
     }
 
     public boolean addTestCase(TestCase testcase, Goal goal) {
@@ -268,7 +275,7 @@ public class TigerAlgorithm implements Algorithm {
           str.append(goal.getIndex());
           str.append(" ");
           str.append(goal.toSkeleton());
-          str.append(" with PC ");
+          str.append(" with targetPC ");
           str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
           str.append("\n");
         }
@@ -278,13 +285,15 @@ public class TigerAlgorithm implements Algorithm {
 
       str.append("infeasible:\n");
 
-      for (Goal goal : infeasibleGoals) {
+      for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) {
         str.append("Goal ");
-        str.append(goal.getIndex());
+        str.append(entry.getKey().getIndex());
         str.append(" ");
-        str.append(goal.toSkeleton());
-        str.append(" with PC ");
-        str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
+        str.append(entry.getKey().toSkeleton());
+        str.append(" with targetPC ");
+        str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
+        str.append("\n\tcannot be covered with PC ");
+        str.append(bddCpaNamedRegionManager.dumpRegion(entry.getValue()));
         str.append("\n");
       }
 
@@ -484,7 +493,10 @@ public class TigerAlgorithm implements Algorithm {
         previousAutomaton = currentAutomaton;
 
         // update PC coverage todo
-        if (testsuite.infeasibleGoals.contains(lGoal)) {
+        if (testsuite.infeasibleGoals.containsKey(lGoal) &&
+            bddCpaNamedRegionManager.entails(testsuite.infeasibleGoals.get(lGoal), remainingPCforGoalCoverage)) {
+          // 1st condition: this goal is infeasible for some constraint
+          // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
           logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
           remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
         } else {
@@ -637,7 +649,7 @@ public class TigerAlgorithm implements Algorithm {
       // test goal is not feasible
       logger.logf(Level.INFO, "Test goal infeasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+ ".");
 
-      testsuite.addInfeasibleGoal(pGoal);
+      testsuite.addInfeasibleGoal(pGoal, remainingPCforGoalCoverage);
       // TODO add missing soundness checks!
     }
     else {
