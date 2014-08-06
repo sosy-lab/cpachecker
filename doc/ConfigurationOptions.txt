@@ -1558,13 +1558,14 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# whether or not to interpolate the heuristically best infeasible prefix
-# rather than the whole error path
-cpa.value.refiner.interpolateInfeasiblePrefix = true
-
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performInitialStaticRefinement = false
+
+# which prefix of an actual counterexample trace should be used for
+# interpolation
+cpa.value.refiner.prefixPreference = BEST
+  enum:     [DEFAULT, SHORTEST, LONGEST, MEDIAN, MIDDLE, BEST, WORST]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
