@@ -248,7 +248,8 @@ public class TigerAlgorithm implements Algorithm {
         str.append("\n");
 
         for (Goal goal : entry.getValue()) {
-          str.append(goal.getIndex());
+          //str.append(goal.getIndex());
+          str.append(goal.toSkeleton());
           str.append("\n");
         }
 
@@ -258,7 +259,8 @@ public class TigerAlgorithm implements Algorithm {
       str.append("infeasible:\n");
 
       for (Goal goal : infeasibleGoals) {
-        str.append(goal.getIndex());
+        //str.append(goal.getIndex());
+        str.append(goal.toSkeleton());
         str.append("\n");
       }
 
