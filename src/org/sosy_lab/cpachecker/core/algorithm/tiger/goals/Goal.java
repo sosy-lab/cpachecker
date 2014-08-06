@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPRepetition;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
@@ -71,4 +78,176 @@ public class Goal {
     mPresenceCondition = pPresenceCondition;
   }
 
+  public String toSkeleton() {
+    final ECPVisitor<Boolean> booleanVisitor = new ECPVisitor<Boolean>() {
+
+      @Override
+      public Boolean visit(ECPEdgeSet pEdgeSet) {
+        if (pEdgeSet.size() <= 1) {
+          return true;
+        }
+
+        return false;
+      }
+
+      @Override
+      public Boolean visit(ECPNodeSet pNodeSet) {
+        throw new RuntimeException("Unsupported Function");
+      }
+
+      @Override
+      public Boolean visit(ECPPredicate pPredicate) {
+        throw new RuntimeException("Unsupported Function");
+      }
+
+      @Override
+      public Boolean visit(ECPConcatenation pConcatenation) {
+        for (int i = 0; i < pConcatenation.size(); i++) {
+          ElementaryCoveragePattern ecp = pConcatenation.get(i);
+
+          if (ecp.accept(this)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      @Override
+      public Boolean visit(ECPUnion pUnion) {
+        for (int i = 0; i < pUnion.size(); i++) {
+          ElementaryCoveragePattern ecp = pUnion.get(i);
+
+          if (ecp.accept(this)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      @Override
+      public Boolean visit(ECPRepetition pRepetition) {
+        if (pRepetition.getSubpattern().accept(this)) {
+          return true;
+        }
+
+        return false;
+      }
+
+    };
+
+    ECPVisitor<String> visitor = new ECPVisitor<String>() {
+
+      @Override
+      public String visit(ECPEdgeSet pEdgeSet) {
+        if (pEdgeSet.size() == 1) {
+          return "[" + pEdgeSet.toString() + "]";
+        }
+        else if (pEdgeSet.size() == 0) {
+          return "{}";
+        }
+        else {
+          return "E";
+        }
+      }
+
+      @Override
+      public String visit(ECPNodeSet pNodeSet) {
+        throw new RuntimeException("Unsupported Function");
+      }
+
+      @Override
+      public String visit(ECPPredicate pPredicate) {
+        throw new RuntimeException("Unsupported Function");
+      }
+
+      @Override
+      public String visit(ECPConcatenation pConcatenation) {
+        boolean b = false;
+        StringBuffer str = new StringBuffer();
+
+        boolean a = false;
+        for (int i = 0; i < pConcatenation.size(); i++) {
+          ElementaryCoveragePattern ecp = pConcatenation.get(i);
+
+          if (ecp.accept(booleanVisitor)) {
+            b = true;
+
+            if (a) {
+              str.append(".");
+            }
+            else if (i > 0) {
+              str.append("E.");
+            }
+            str.append(ecp.accept(this));
+
+            a = true;
+          }
+          else if (b) {
+            b = false;
+
+            if (a) {
+              str.append(".");
+            }
+            str.append("E");
+
+            a = true;
+          }
+        }
+
+        return str.toString();
+      }
+
+      @Override
+      public String visit(ECPUnion pUnion) {
+        boolean b = false;
+        StringBuffer str = new StringBuffer();
+
+        boolean a = false;
+        for (int i = 0; i < pUnion.size(); i++) {
+          ElementaryCoveragePattern ecp = pUnion.get(i);
+
+          if (ecp.accept(booleanVisitor)) {
+            b = true;
+
+            if (a) {
+              str.append("+");
+            }
+            else if (i > 0) {
+              str.append("E+");
+            }
+            str.append(ecp.accept(this));
+
+            a = true;
+          }
+          else if (b) {
+            b = false;
+
+            if (a) {
+              str.append("+");
+            }
+            str.append("E");
+
+            a = true;
+          }
+        }
+
+        return str.toString();
+      }
+
+      @Override
+      public String visit(ECPRepetition pRepetition) {
+        if (pRepetition.getSubpattern().accept(booleanVisitor)) {
+          return "(" + pRepetition.getSubpattern().accept(this) + "*)";
+        }
+        else {
+          return "E";
+        }
+      }
+
+    };
+
+    return getPattern().accept(visitor);
+  }
 }

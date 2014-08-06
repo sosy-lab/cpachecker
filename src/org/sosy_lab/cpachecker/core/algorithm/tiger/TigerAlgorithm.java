@@ -266,6 +266,8 @@ public class TigerAlgorithm implements Algorithm {
         for (Goal goal : entry.getValue()) {
           str.append("Goal ");
           str.append(goal.getIndex());
+          str.append(" ");
+          str.append(goal.toSkeleton());
           str.append(" with PC ");
           str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
           str.append("\n");
@@ -279,6 +281,8 @@ public class TigerAlgorithm implements Algorithm {
       for (Goal goal : infeasibleGoals) {
         str.append("Goal ");
         str.append(goal.getIndex());
+        str.append(" ");
+        str.append(goal.toSkeleton());
         str.append(" with PC ");
         str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
         str.append("\n");
