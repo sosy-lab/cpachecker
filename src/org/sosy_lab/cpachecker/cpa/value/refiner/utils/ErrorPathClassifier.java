@@ -45,23 +45,90 @@ import com.google.common.base.Optional;
 
 public class ErrorPathClassifier {
 
-  public static final int BOOLEAN_VAR   = 2;
-  public static final int INTEQUAL_VAR  = 4;
-  public static final int UNKNOWN_VAR   = 16;
+  private static final int BOOLEAN_VAR   = 2;
+  private static final int INTEQUAL_VAR  = 4;
+  private static final int UNKNOWN_VAR   = 16;
 
-  public static final int MAX_LENGTH    = 1000;
+  private static final int MAX_PREFIX_LENGTH = 1000;
 
   private final Optional<VariableClassification> classification;
 
+  public static enum ErrorPathPrefixPreference {
+    DEFAULT,
+    SHORTEST,
+    LONGEST,
+    MEDIAN,
+    MIDDLE,
+    BEST,
+    WORST
+  }
+
   public ErrorPathClassifier(Optional<VariableClassification> pClassification) throws InvalidConfigurationException {
     classification = pClassification;
+  }
+
+  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference, List<ARGPath> pPrefixes) {
+    switch (preference) {
+    case SHORTEST:
+      return obtainShortestPrefix(pPrefixes);
+
+    case LONGEST:
+      return obtainLongestPrefix(pPrefixes);
+
+    case MEDIAN:
+      return obtainMedianPrefix(pPrefixes);
+
+    case MIDDLE:
+      return obtainMiddlePrefix(pPrefixes);
+
+    case BEST:
+      return obtainBestPrefix(pPrefixes);
+
+    case WORST:
+      return obtainWorstPrefix(pPrefixes);
+
+    default:
+      ARGPath errorPath = new ARGPath();
+      for (ARGPath prefix : pPrefixes) {
+        errorPath.addAll(prefix);
+      }
+
+      return errorPath;
+    }
   }
 
   public ARGPath obtainShortestPrefix(List<ARGPath> pPrefixes) {
     return buildPath(0, pPrefixes);
   }
 
-  public ARGPath obtainPrefixWithLowestScore(List<ARGPath> pPrefixes) {
+  public ARGPath obtainLongestPrefix(List<ARGPath> pPrefixes) {
+    return buildPath(pPrefixes.size() - 1, pPrefixes);
+  }
+
+  public ARGPath obtainMedianPrefix(List<ARGPath> pPrefixes) {
+    return buildPath(pPrefixes.size() / 2, pPrefixes);
+  }
+
+  public ARGPath obtainMiddlePrefix(List<ARGPath> pPrefixes) {
+    int totalLength = 0;
+    for(ARGPath p : pPrefixes) {
+      totalLength += p.size();
+    }
+
+    int length = 0;
+    int index = 0;
+    for(ARGPath p : pPrefixes) {
+      length += p.size();
+      if(length > totalLength / 2) {
+        break;
+      }
+      index++;
+    }
+
+    return buildPath(index, pPrefixes);
+  }
+
+  public ARGPath obtainBestPrefix(List<ARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
@@ -91,11 +158,39 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
+  public ARGPath obtainWorstPrefix(List<ARGPath> pPrefixes) {
+
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    ARGPath currentErrorPath  = new ARGPath();
+    Long bestScore            = null;
+    int bestIndex             = 0;
+
+    for (ARGPath currentPrefix : pPrefixes) {
+      assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(currentPrefix);
+
+      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+
+      Long score = obtainScoreForVariables(useDefinitionInformation);
+
+      if (bestScore == null || isWorstScore(score, bestScore)) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+    }
+
+    return buildPath(bestIndex, pPrefixes);
+  }
+
   /**
    * This method checks if the currentScore is better then the current optimum.
    *
    * A lower score is always favored. In case of a draw, the later, deeper score
-   * is favored, unless the error path exceeds the {@link #MAX_LENGTH} limit,
+   * is favored, unless the error path exceeds the {@link #MAX_PREFIX_LENGTH} limit,
    * then the earlier, more shallow score is favored. This avoids extremely long
    * error traces (that take longer during interpolation).
    *
@@ -105,13 +200,17 @@ public class ErrorPathClassifier {
    * @return true, if the current score is a new optimum, else false
    */
   private boolean isBestScore(Long currentScore, Long currentBestScore, ARGPath currentErrorPath) {
-    if (currentErrorPath.size() < MAX_LENGTH) {
+    if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
       return currentScore <= currentBestScore;
     }
 
     else {
       return currentScore < currentBestScore;
     }
+  }
+
+  private boolean isWorstScore(Long currentScore, Long currentBestScore) {
+    return currentScore >= currentBestScore;
   }
 
   private Set<String> obtainUseDefInformationOfErrorPath(ARGPath currentErrorPath) {

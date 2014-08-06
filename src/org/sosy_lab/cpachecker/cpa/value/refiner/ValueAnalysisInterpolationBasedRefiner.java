@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -96,9 +97,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to interpolate the heuristically best infeasible prefix"
-      + " rather than the whole error path")
-  private boolean interpolateInfeasiblePrefix = true;
+  @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -276,17 +276,16 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    */
   private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
           throws CPAException, InterruptedException {
-    if(interpolateInfeasiblePrefix) {
-      try {
-        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
-        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+    try {
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
-        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-      }
+      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefix(prefixPreference, prefixes);
+
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
 
     return errorPath;
