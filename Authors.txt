@@ -18,7 +18,7 @@ Contributors:
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
   Petr Muller (since 2012), Brno University of Technology, Czech Republic
   Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
-  Andreas Stahlbauer (since 2011), University of Passau, Germany / GrammaTech, NY
+  Andreas Stahlbauer (since 2011), University of Passau, Germany / GrammaTech, USA
   Thomas Stieglmaier (since 2011), University of Passau, Germany
 
 Former Contributors:
