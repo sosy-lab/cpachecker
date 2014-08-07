@@ -7,6 +7,7 @@ Former Maintainers:
   Erkan Keremoglu (2008 - 2011), Simon Fraser University, Canada
 
 Contributors:
+  Pavel Andrianov (since 2014), Russian Academy of Sciences, Russia
   Christian Bielert (2013 - 2014), University of Passau, Germany
   Mike Czech (2013), University of Paderborn, Germany
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
@@ -19,11 +20,13 @@ Contributors:
   Karlheinz Friedberger (since 2011), University of Passau, Germany
   Tobias Friedl (2013 - 2014), University of Passau, Germany
   Alberto Griggio (2008 - 2009), Simon Fraser University, Canada / University of Trento, Italy
-  Peter Häring (since 2011), University of Passau, Germany
+  Peter Häring (2011 - 2014), University of Passau, Germany
   Andreas Holzer (2008 - 2013), University of Darmstadt, Germany / TU Vienna, Austria
   Marie-Christine Jakobs (since 2012), University of Paderborn, Germany
   Michael Käufl (2011), University of Passau, Germany
+  George Karpenkov (since 2014), Verimag, Grenoble
   Steven Kieffer (2011 - 2012), Simon Fraser University, Canada
+  Thomas Lemberger (since 2014), University of Passau, Germany
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
   Petr Muller (since 2012), Brno University of Technology, Czech Republic
   Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
@@ -31,7 +34,7 @@ Contributors:
   Florian Quadt (2013 - 2014), University of Passau, Germany
   Alexander von Rhein (2010), University of Passau, Germany
   Alexander Schremmer (2012 - 2013), University of Paderborn, Germany
-  Andreas Stahlbauer (since 2011), University of Passau, Germany
+  Andreas Stahlbauer (since 2011), University of Passau, Germany / GrammaTech, NY
   Thomas Stieglmaier (since 2011), University of Passau, Germany
   Michael Tautschnig (2008 - 2009), University of Darmstadt, Germany
   Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
