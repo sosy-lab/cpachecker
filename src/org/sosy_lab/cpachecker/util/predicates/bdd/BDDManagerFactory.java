@@ -62,7 +62,7 @@ public class BDDManagerFactory {
   }
 
   public RegionManager createRegionManager() throws InvalidConfigurationException {
-    if (bddPackage.equals("sylvan")) {
+    if (bddPackage.equals("SYLVAN")) {
       return new SylvanBDDRegionManager(config, logger);
     } else {
       return new JavaBDDRegionManager(bddPackage, config, logger);
