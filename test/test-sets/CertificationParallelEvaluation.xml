@@ -7084,6 +7084,7 @@
 <column title="Transfer time">Time for abstract successor checks</column>
 <column title="Stop time">Time for covering checks</column>
 <column title="Property time">Time for checking property</column>
-<column title="#Elems">Number of iterations</column>
+<column title="#Iterations">Number of iterations</column>
+<column title="#Elems">Number of proof elements</column>
 </columns>
 </benchmark>

@@ -31,6 +31,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
@@ -61,6 +62,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
+  private Collection<Statistics> pccStats = new ArrayList<>();
 
   @Option(
       name = "proofFile",
@@ -80,6 +82,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     stats = new PCStrategyStatistics();
+    pccStats.add(stats);
   }
 
   @Override
@@ -217,9 +220,13 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
+  protected void addPCCStatistic(final Statistics pPCCStatistic){
+    pccStats.add(pPCCStatistic);
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(stats);
+    statsCollection.addAll(pccStats);
   }
 
   public static class PCStrategyStatistics implements Statistics {

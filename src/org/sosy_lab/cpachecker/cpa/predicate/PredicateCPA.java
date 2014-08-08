@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -81,7 +81,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
 
-  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "FORMULA"},
+  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "SYLVAN", "FORMULA"},
       description="What to use for storing abstractions")
   private String abstractionType = "BDD";
 
@@ -159,8 +159,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       regionManager = new SymbolicRegionManager(formulaManager, solver);
     } else {
       assert abstractionType.equals("BDD");
-      regionManager = BDDRegionManager.getInstance(config, logger);
-      libraries += " and " + ((BDDRegionManager)regionManager).getVersion();
+      regionManager = new BDDManagerFactory(config, logger).createRegionManager();
+      libraries += " and " + regionManager.getVersion();
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 

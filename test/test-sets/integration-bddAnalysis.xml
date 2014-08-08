@@ -10,7 +10,6 @@
 
   <option name="-noout"/>
   <option name="-heap">1800M</option>
-  <option name="-timelimit">1min</option>
 
   <rundefinition>
 

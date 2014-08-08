@@ -265,6 +265,11 @@ public class NamedRegionManager implements RegionManager {
     delegate.printStatistics(out);
   }
 
+  @Override
+  public String getVersion() {
+    return delegate.getVersion();
+  }
+
   public Set<String> getPredicates() {
     return this.regionMap.keySet();
   }

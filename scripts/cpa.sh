@@ -38,7 +38,7 @@ platform="`uname -s`"
 
 # where the project directory is, relative to the location of this script
 case "$platform" in
-  Linux)
+  Linux|CYGWIN*)
     SCRIPT="$(readlink -f "$0")"
     [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
     ;;
@@ -103,6 +103,12 @@ fi
 if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra arguments: $CPACHECKER_ARGUMENTS"
 fi
+
+case "$platform" in
+  CYGWIN*)
+    JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -classpath `cygpath -wp $CLASSPATH`"
+    ;;
+esac
 
 # run CPAchecker
 # stack size is set because on some systems it is too small for recursive algorithms and very large programs

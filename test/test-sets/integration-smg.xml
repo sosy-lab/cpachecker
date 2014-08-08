@@ -3,7 +3,6 @@
 <benchmark tool="cpalien" timelimit="60" hardtimelimit="90" memlimit="1000" cpuCores="1">
   <option name="-noout"/>
   <option name="-heap">512M</option>
-  <option name="-timelimit">1min</option>
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 

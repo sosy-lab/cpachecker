@@ -92,7 +92,7 @@ public class PredicateManager {
   }
 
 
-  /** The BDDRegionManager orders the variables as they are declared
+  /** The JavaBDDRegionManager orders the variables as they are declared
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */

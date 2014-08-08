@@ -2,7 +2,6 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
     <option name="-heap">2000M</option>
-    <option name="-setprop">limits.time.cpu=1min</option>
     <propertyfile>../programs/simple/octagon/ALL.prp</propertyfile>
 
 

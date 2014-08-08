@@ -54,7 +54,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -89,7 +90,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     cfa               = pCfa;
     shutdownNotifier  = pShutdownNotifier;
 
-    BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
+    RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
     abstractDomain    = new BDDDomain();
     stopOperator      = new StopSepOperator(abstractDomain);

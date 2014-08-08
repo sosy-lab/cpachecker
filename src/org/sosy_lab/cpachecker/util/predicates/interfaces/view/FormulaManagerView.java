@@ -151,8 +151,16 @@ public class FormulaManagerView {
       manager = pBaseManager;
     }
 
-    bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
-    bitvectorFormulaManager.couple(this);
+    try {
+      bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
+      bitvectorFormulaManager.couple(this);
+    } catch (UnsupportedOperationException e) {
+      throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
+          + "please choose another SMT solver "
+          + "or use the option cpa.predicate.encodeBitvectorAs "
+          + "to approximate bitvectors with another theory.",
+          e);
+    }
     integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
     integerFormulaManager.couple(this);
     rationalFormulaManager = loadManagers.wrapRationalManager(manager.getRationalFormulaManager());

@@ -9,7 +9,6 @@
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
   <option name="-heap">25000M</option>
-  <option name="-timelimit">15min</option>
   <option name="-ldv"/>
 
   <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
