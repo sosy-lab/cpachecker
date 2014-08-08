@@ -114,8 +114,9 @@
     </target>
 
     <target name="build-subprojects">
-            <echo message="Generate automaton parser if necessary" level="info"/>
+            <echo message="Generate parsers if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/build.xml" inheritAll="false"/>
     </target>
 
 

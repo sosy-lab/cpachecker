@@ -85,6 +85,11 @@ analysis.algorithm.propertyCheck = false
 # use the TestGen Algorithm
 analysis.algorithm.testGen = false
 
+# Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
+# Reachability Analyses, ESOP'13)
+# Use Tiger algorithm (test input generation)
+analysis.algorithm.tiger = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -1521,9 +1526,15 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# forceRestart
+cpa.value.refinement.forceRestart = 0
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
+
+# globalPrec
+cpa.value.refinement.useGlobalPrecision = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -1772,4 +1783,22 @@ testgen.stopOnError = false
 # Output file Template under which the testcase automatons will be stored.
 # Must include one %s somewhere.
 testgen.testcaseOutputFile = "testcase%s.spc"
+
+# Checks whether a test case for one goal covers another test goal
+tiger.checkCoverage = true
+
+# Coverage criterion given as an FQL query
+tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
+
+# Optimize the test goal automata
+tiger.optimizeGoalAutomata = true
+
+# Print the ARG for each test goal
+tiger.printARGperGoal = false
+
+# Reuse ARG across test goals
+tiger.reuseARG = true
+
+# Filename for output of generated test suite
+tiger.testsuiteFile = "output/teststuite.txt"
 
