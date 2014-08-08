@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
 
-  @Option(description = "If enabled uses the number of nodes saved in certificate size to compute partition number otherwise the size of certificate")
+  @Option(description = "If enabled uses the number of nodes saved in certificate to compute partition number otherwise the size of certificate")
   private boolean useGraphSizeToComputePartitionNumber = false;
   @Option(
       description = "Specifies the maximum size of the partition. This size is used to compute the number of partitions if a proof (reached set) should be written. Default value 0 means always a single partition.")
