@@ -5,7 +5,6 @@
   <option name="-noout"/>
   <option name="-heap">150M</option>
   <option name="-explicitAnalysis-java-with-RTT"/>
-  <option name="-timelimit">10s</option>
 
   <rundefinition/>
 

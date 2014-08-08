@@ -6,7 +6,6 @@
   <option name="-noout"/>
 
   <option name="-heap">2000M</option>
-  <option name="-timelimit">1min</option>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
