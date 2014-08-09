@@ -120,8 +120,8 @@ public class BlockToDotWriter {
       }
     }
 
-    assert hierarchy.values().size() == blockPartitioning.getBlocks().size() - 1 :
-            "all blocks except mainBlock must appear exact once as child.";
+    // assert hierarchy.values().size() == blockPartitioning.getBlocks().size() - 1 :
+    //         "all blocks except mainBlock must appear exact once as child.";
 
     return hierarchy;
   }
