@@ -34,7 +34,6 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -86,6 +85,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -151,124 +152,6 @@ public class TigerAlgorithm implements Algorithm {
   private GuardedEdgeLabel mAlphaLabel;
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
-
-  // TODO replace by a proper class
-  class TestCase {
-
-    private List<BigInteger> inputs;
-    private List<CFAEdge> path;
-
-    public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath) {
-      inputs = pInputs;
-      path = pPath;
-    }
-
-    public List<CFAEdge> getPath() {
-      return path;
-    }
-
-    public List<BigInteger> getInputs() {
-      return inputs;
-    }
-
-    public String toCode() {
-      String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
-
-      int index = 0;
-      for (BigInteger input : inputs) {
-        str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
-        index++;
-      }
-
-      str += "  default:\n    return 0;\n  }\n}\n";
-
-      return str;
-    }
-
-    @Override
-    public String toString() {
-      return inputs.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof TestCase) {
-        TestCase other = (TestCase)o;
-        return (inputs.equals(other.inputs) && path.equals(other.path));
-      }
-
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode();
-    }
-  }
-
-  class TestSuite {
-    private Map<TestCase, List<Goal>> mapping;
-    private List<Goal> infeasibleGoals;
-
-    public TestSuite() {
-      mapping = new HashMap<>();
-      infeasibleGoals = new LinkedList<>();
-    }
-
-    public void addInfeasibleGoal(Goal goal) {
-      infeasibleGoals.add(goal);
-    }
-
-    public boolean addTestCase(TestCase testcase, Goal goal) {
-      List<Goal> goals = mapping.get(testcase);
-
-      boolean testcaseExisted = true;
-
-      if (goals == null) {
-        goals = new LinkedList<>();
-        mapping.put(testcase, goals);
-        testcaseExisted = false;
-      }
-
-      goals.add(goal);
-
-      return testcaseExisted;
-    }
-
-    public Set<TestCase> getTestCases() {
-      return mapping.keySet();
-    }
-
-    @Override
-    public String toString() {
-      StringBuffer str = new StringBuffer();
-
-      for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-        str.append(entry.getKey().toString());
-        str.append("\n");
-
-        for (Goal goal : entry.getValue()) {
-          //str.append(goal.getIndex());
-          str.append(goal.toSkeleton());
-          str.append("\n");
-        }
-
-        str.append("\n");
-      }
-
-      str.append("infeasible:\n");
-
-      for (Goal goal : infeasibleGoals) {
-        //str.append(goal.getIndex());
-        str.append(goal.toSkeleton());
-        str.append("\n");
-      }
-
-      str.append("\n");
-
-      return str.toString();
-    }
-  }
 
   private TestSuite testsuite;
   ReachedSet reachedSet = null;
