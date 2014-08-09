@@ -139,7 +139,7 @@ public class BAMPredicateReducer implements Reducer {
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
-      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
+      //assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
@@ -543,9 +543,10 @@ public class BAMPredicateReducer implements Reducer {
 
           final int incrementedIndex = expandedIndex + 1;
 
-          //if (expandedIndex != SSAMap.INDEX_NOT_CONTAINED) { // if variable is used
+          if (expandedIndex != SSAMap.DEFAULT_DEFAULT_IDX) { // if variable is used in block
+            // TODO variable used before block, but index is DEFAULT_INDEX? How is that possible? bug in Reduce/Expand?
             builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
-          //}
+          }
 
           final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
           final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);

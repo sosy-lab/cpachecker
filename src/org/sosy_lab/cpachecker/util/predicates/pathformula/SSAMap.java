@@ -59,7 +59,7 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value :p
-  private static final int DEFAULT_DEFAULT_IDX = -1;
+  public static final int DEFAULT_DEFAULT_IDX = -1;
 
   private final int defaultValue;
 
@@ -120,7 +120,7 @@ public class SSAMap implements Serializable {
     }
 
     public void setIndex(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
 
