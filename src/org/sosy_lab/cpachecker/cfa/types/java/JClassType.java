@@ -81,8 +81,8 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     checkArgument(!pIsFinal || !pIsAbstract ,
         "Classes can't be abstract and final");
     checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
-        || (getVisibility() != VisibilityModifier.PROTECTED),
-        " Classes can't be private or protected");
+        && (getVisibility() != VisibilityModifier.PROTECTED),
+        "Classes that are not inner classes can't be private or protected");
 
     isFinal = pIsFinal;
     isAbstract = pIsAbstract;
@@ -108,9 +108,6 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
     checkArgument(!pIsFinal || !pIsAbstract,
         "Classes can't be abstract and final");
-    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
-        || (getVisibility() != VisibilityModifier.PROTECTED),
-        " Classes can't be private or protected");
 
     isFinal = pIsFinal;
     isAbstract = pIsAbstract;
