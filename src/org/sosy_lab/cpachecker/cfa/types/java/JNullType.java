@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-
+/**
+ * Special type for the Java value <code>null</code>.
+ */
 public class JNullType implements JReferenceType {
 
   @Override
@@ -38,6 +40,13 @@ public class JNullType implements JReferenceType {
       return prime * result;
   }
 
+  /**
+   * Returns whether a given object equals this object.
+   * All <code>JNullType</code> objects equal each other.
+   *
+   * @param obj the object to compare with this object
+   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
+   */
   @Override
   public boolean equals(Object obj) {
       return obj instanceof JNullType;

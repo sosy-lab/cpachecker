@@ -28,12 +28,22 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
-
+/**
+ * Description of a Java method through its return type and list of (possibly variable) parameters.
+ */
 public class JMethodType extends AFunctionType implements JType {
 
   private static final JMethodType UNRESOLVABLE_TYPE = new JMethodType(
      new JSimpleType(JBasicType.UNSPECIFIED), new ArrayList<JType>(), false);
 
+  /**
+   * Creates a new <code>JMethodType</code> object that stores the given information.
+   *
+   * @param pReturnType the return type of the method this object describes
+   * @param pParameters the list of parameters the described method takes
+   * @param pTakesVarArgs if <code>true</code>, the described method takes a variable amount of
+   *        arguments, otherwise not
+   */
   public JMethodType(JType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
   }
@@ -44,6 +54,11 @@ public class JMethodType extends AFunctionType implements JType {
     return (List<JType>) super.getParameters();
   }
 
+  /**
+   * Returns a {@link JMethodType} object that describes an unresolvable method.
+   *
+   * @return a {@link JMethodType} object that describes an unresolvable method
+   */
   public static JMethodType createUnresolvableType() {
     return UNRESOLVABLE_TYPE;
   }

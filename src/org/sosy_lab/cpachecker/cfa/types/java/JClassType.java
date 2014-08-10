@@ -34,6 +34,20 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 import com.google.common.collect.ImmutableSet;
 
+/**
+ * Description of a Java class through its properties.
+ *
+ * <p>
+ * Each description includes:
+ * <ul>
+ *  <li>the class's name</li>
+ *  <li>its visibility and other modifiers</li>
+ *  <li>its direct super class</li>
+ *  <li>the interfaces it implements and</li>
+ *  <li>its enclosing type, if one exists</li>
+ * </ul>
+ * </p>
+ */
 public class JClassType extends JClassOrInterfaceType implements JReferenceType {
 
   private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
@@ -122,9 +136,10 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     }
 
     checkArgument(found.contains(typeOfObject),
-        "Class " + getName() + " must be a super class of Object");
+        "Class " + getName() + " must be a sub class of Object");
   }
 
+  // Creates the object describing java.lang.Object
   private JClassType() {
     super(NAME_OF_CLASS_OBJECT, SIMPLE_NAME_OF_CLASS_OBJECT, VisibilityModifier.PUBLIC);
 
@@ -136,10 +151,60 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     isStrictFp = false;
   }
 
+  /**
+   * Returns a <code>JClassType</code> instance that describes the class
+   * <code>java.lang.Object</code>.
+   *
+   * @return a <code>JClassType</code> instance that describes the class
+   * <code>java.lang.Object</code>
+   */
   public static final JClassType getTypeOfObject() {
     return typeOfObject;
   }
 
+  /**
+   * Returns an instance of <code>JClassType</code> that describes a class with the given
+   * properties.
+   *
+   * <p>The fully qualified name, the simple name, possible modifiers, the super class and
+   * implemented interfaces of the class to describe have to be provided.
+   *
+   * <ul>
+   * <li>
+   * The fully qualified name consists of the full package name of the class and the name of the
+   * class itself.<br />
+   * Example: <code>java.lang.Object</code>
+   * </li>
+   *
+   * <li>The simple name only consists of the class's name.<br />
+   * Example: <code>Object</code>
+   * </li>
+   * <li>Each class has a super class. If a class does not explicitly extend another class, its
+   * super class is <code>java.lang.Object</code>.</li>
+   * </ul>
+   * </p>
+   *
+   * <p>
+   * No <code>null</code> values may be provided. In case the class doesn't implement any
+   * interfaces, an empty <code>Set</code> has to be provided.
+   * </p>
+   *
+   * @param fullyQualifiedName the fully qualified name of the class to describe, see above
+   * @param pSimpleName the simple name of the class to describe, see above
+   * @param pVisibility the visibility of the class
+   * @param pIsFinal if <code>true</code> the class is final, it's not otherwise
+   * @param pIsAbstract if <code>true</code> the class is abstract, it's not otherwise
+   * @param pStrictFp if <code>true</code> the class has a strict function pointer, it does not
+   *        otherwise
+   * @param pSuperClass the <code>JClassType</code> object describing the super class of the class
+   *        to describe
+   * @param pImplementedInterfaces the <code>JInterfaceType</code> objects describing the
+   *        interfaces directly implemented by the class to describe
+   *
+   * @return an instance of <code>JClassType</code> that describes a class with the given
+   * properties
+   */
+  // TODO check the concrete meaning of pStrictFp
   public static final JClassType valueOf(
       String fullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility, final boolean pIsFinal,
@@ -150,6 +215,49 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
         pIsFinal, pIsAbstract, pStrictFp, pSuperClass, pImplementedInterfaces);
   }
 
+  /**
+   * Returns an instance of <code>JClassType</code> that describes a class with the given
+   * properties.
+   *
+   * <p>The fully qualified name, the simple name, possible modifiers, the super class and
+   * implemented interfaces of the class to describe have to be provided.
+   *
+   * <ul>
+   * <li>
+   * The fully qualified name consists of the full package name of the class and the name of the
+   * class itself.<br />
+   * Example: <code>java.lang.Object</code>
+   * </li>
+   *
+   * <li>The simple name only consists of the class's name.<br />
+   * Example: <code>Object</code>
+   * </li>
+   * <li>Each class has a super class. If a class does not explicitly extend another class, its
+   * super class is <code>java.lang.Object</code>.</li>
+   * </ul>
+   * </p>
+   *
+   * <p>
+   * No <code>null</code> values may be provided. In case the class doesn't implement any
+   * interfaces, an empty <code>Set</code> has to be provided.
+   * </p>
+   *
+   * @param fullyQualifiedName the fully qualified name of the class to describe, see above
+   * @param pSimpleName the simple name of the class to describe, see above
+   * @param pVisibility the visibility of the class
+   * @param pIsFinal if <code>true</code> the class is final, it's not otherwise
+   * @param pIsAbstract if <code>true</code> the class is abstract, it's not otherwise
+   * @param pStrictFp if <code>true</code> the class has a strict function pointer, it does not
+   *        otherwise
+   * @param pSuperClass the <code>JClassType</code> object describing the super class of the class
+   *        to describe
+   * @param pImplementedInterfaces the <code>JInterfaceType</code> objects describing the
+   *        interfaces directly implemented by the class to describe
+   * @param pEnclosingType the description of the enclosing type of this class
+   *
+   * @return an instance of <code>JClassType</code> that describes a class with the given
+   * properties
+   */
   public static final JClassType valueOf(
       String fullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility, final boolean pIsFinal,
@@ -167,14 +275,29 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     }
   }
 
+  /**
+   * Returns whether the class is final.
+   *
+   * @return <code>true</code> if the class is final, <code>false</code> otherwise
+   */
   public final boolean isFinal() {
     return isFinal;
   }
 
+  /**
+   * Returns whether the class is abstract.
+   *
+   * @return <code>true</code> if the class is abstract, <code>false</code> otherwise
+   */
   public final boolean isAbstract() {
     return isAbstract;
   }
 
+  /**
+   * Returns whether the class has a strict function pointer.
+   *
+   * @return <code>true</code> if the class has a strict function pointer, <code>false</code> otherwise
+   */
   public final boolean isStrictFp() {
     return isStrictFp;
   }
@@ -182,18 +305,36 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   @Nullable
   /**
    * Returns the super type of this class type.
-   * The Super Type of the class Object is null.
+   * The Super Type of the class Object is <code>null</code>.
    *
-   * @return the super Type of this class type.
+   * @return the super type of this class type
    */
   public final JClassType getParentClass() {
     return superClass;
   }
 
+  /**
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * directly extends the described class.
+   *
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * directly extends the described class
+   */
   public final Set<JClassType> getDirectSubClasses() {
      return ImmutableSet.copyOf(directSubClasses);
   }
 
+  /**
+   * Returns a <code>Set</code> containing a {@link JInterfaceType} for each interface
+   * directly implemented by the described class.
+   *
+   * <p>The returned <code>Set</code> does not contain descriptions for interfaces that are
+   * extended by implemented interfaces, but solely descriptions for the implemented interfaces.
+   * </p>
+   *
+   * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface
+   * directly implemented by the described class
+   */
   public final Set<JInterfaceType> getImplementedInterfaces() {
     return implementedInterfaces;
   }
@@ -203,6 +344,19 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
       directSubClasses.add(pChild);
   }
 
+  /**
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each super class
+   * of the described class.
+   *
+   * This includes direct and indirect super classes.
+   *
+   * <p>For <code>JClassType</code> objects describing a consistent class, this method at least
+   * returns a <code>Set</code> containing the description for <code>java.lang.Object</code>.
+   *</p>
+   *
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each super class
+   * of the described class
+   */
   public final Set<JClassType> getAllSuperClasses() {
 
     Set<JClassType> result = new HashSet<>();
@@ -218,6 +372,17 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return result;
   }
 
+  /**
+   * Returns a <code>Set</code> containing a {@link JInterfaceType} for each interface
+   * implemented by the described class.
+   *
+   * <p>
+   * This includes all implemented interfaces, directly and indirectly.
+   * </p>
+   *
+   * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface
+   * implemented by the described class
+   */
   public final Set<JInterfaceType> getAllImplementedInterfaces() {
 
     // First, get all super classes of this class,
@@ -241,6 +406,15 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return result;
   }
 
+  /**
+   * Returns a <code>Set</code> containing a {@link JClassOrInterfaceType}
+   * for each super type (interface or class) of the described class.
+   *
+   * <p>This includes direct and indirect super types.</p>
+   *
+   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code>
+   * for each super type of the described class
+   */
   public final Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
 
     Set<JClassOrInterfaceType> result = new HashSet<>();
@@ -249,6 +423,15 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return result;
   }
 
+  /**
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * extends the described class.
+   *
+   * <p>This includes direct and indirect sub classes.</p>
+   *
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * extends the described class
+   */
   public final Set<JClassType> getAllSubTypesOfClass() {
 
     Set<JClassType> result = new HashSet<>();
@@ -263,6 +446,13 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return result;
   }
 
+  /**
+   * Returns a <code>JClassType</code> instance that describes an unresolvable
+   * class.
+   *
+   * @return a <code>JClassType</code> instance that describes an unresolvable
+   * class
+   */
   public static JClassType createUnresolvableType() {
     return UNRESOLVABLE_TYPE;
   }
