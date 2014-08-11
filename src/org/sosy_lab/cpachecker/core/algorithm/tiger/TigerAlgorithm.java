@@ -46,6 +46,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import javax.management.JMException;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -112,6 +115,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -138,6 +144,15 @@ public class TigerAlgorithm implements Algorithm {
 
   @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
   private String testsuiteFile = "output/teststuite.txt";
+
+  /*@Option(name = "globalCoverageCheckBeforeTimeout", description = "Perform a coverage check on all remaining coverage goals before the global time out happens.")
+  private boolean globalCoverageCheckBeforeTimeout = false;
+
+  @Option(name = "timeForGlobalCoverageCheck", description = "Time budget for coverage check before global time out.")
+  private String timeForGlobalCoverageCheck = "0s";*/
+
+  @Option(name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
+  private long cpuTimelimitPerGoal = -1;
 
   private LogManager logger;
   private StartupConfig startupConfig;
@@ -319,6 +334,72 @@ public class TigerAlgorithm implements Algorithm {
     return wasSound;
   }
 
+  class WorkerRunnable implements Runnable, ShutdownRequestListener {
+
+    private Algorithm algorithm;
+    private ReachedSet localReachedSet;
+    private boolean soundAnalysis = true;
+    private Exception caughtException = null;
+    private ResourceLimitChecker limitChecker;
+    private boolean timeoutOccured = false;
+
+    public WorkerRunnable(Algorithm pAlgorithm, ReachedSet pReachedSet, long pTimelimitInSeconds, ShutdownNotifier pShutdownNotifier) {
+      algorithm = pAlgorithm;
+      localReachedSet = pReachedSet;
+
+      List<ResourceLimit> limits = new LinkedList<>();
+      ProcessCpuTimeLimit limit;
+      try {
+        limit = ProcessCpuTimeLimit.fromNowOn(pTimelimitInSeconds, java.util.concurrent.TimeUnit.SECONDS);
+      } catch (JMException e) {
+        throw new RuntimeException(e);
+      }
+      limits.add(limit);
+
+      pShutdownNotifier.register(this);
+
+      limitChecker = new ResourceLimitChecker(pShutdownNotifier, limits);
+    }
+
+    @Override
+    public void run() {
+      try {
+        limitChecker.start();
+        soundAnalysis = algorithm.run(localReachedSet);
+        limitChecker.cancel();
+      } catch (InterruptedException e) {
+        soundAnalysis = false;
+        timeoutOccured = true;
+      } catch (CPAException e) {
+        caughtException = e;
+        // TODO replace by proper handling
+        throw new RuntimeException(e);
+      }
+    }
+
+    public boolean exceptionWasCaught() {
+      return (caughtException != null);
+    }
+
+    public Exception getCaughtException() {
+      return caughtException;
+    }
+
+    public boolean analysisWasSound() {
+      return soundAnalysis;
+    }
+
+    public boolean hasTimeout() {
+      return timeoutOccured;
+    }
+
+    @Override
+    public void shutdownRequested(String pReason) {
+      Thread.currentThread().interrupt();
+    }
+
+  }
+
   private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
@@ -420,8 +501,33 @@ public class TigerAlgorithm implements Algorithm {
     lStatistics.add(lARTStatistics);
     cegarAlg.collectStatistics(lStatistics);
 
+    boolean analysisWasSound = false;
 
-    boolean analysisWasSound = cegarAlg.run(reachedSet);
+    if (cpuTimelimitPerGoal < 0) {
+      // run algorithm without time limit
+      analysisWasSound = cegarAlg.run(reachedSet);
+    }
+    else {
+      // run algorithm with time limit
+      WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, 5, algNotifier);
+
+      Thread workerThread = new Thread(workerRunnable);
+
+      workerThread.start();
+      workerThread.join();
+
+      if (workerRunnable.exceptionWasCaught()) {
+        throw new RuntimeException("Handle!");
+      }
+      else {
+        analysisWasSound = workerRunnable.analysisWasSound();
+
+        if (workerRunnable.timeoutOccured) {
+          // TODO implement special handling
+          logger.logf(Level.INFO, "Timeout occured (per goal)!");
+        }
+      }
+    }
 
     if (printARGperGoal) {
       Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
