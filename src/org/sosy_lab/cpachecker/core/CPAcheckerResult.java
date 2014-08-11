@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -48,7 +49,7 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final String violatedPropertyDescription;
+  private final Set<String> violatedPropertyDescription;
 
   private final @Nullable ReachedSet reached;
 
@@ -57,7 +58,7 @@ public class CPAcheckerResult {
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(Result result,
-        String violatedPropertyDescription,
+        Set<String> violatedPropertyDescription,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
@@ -111,11 +112,10 @@ public class CPAcheckerResult {
         return "UNKNOWN, incomplete analysis.";
       case FALSE:
         StringBuilder sb = new StringBuilder();
-        sb.append("FALSE. Property violation");
-        if (!violatedPropertyDescription.isEmpty()) {
-          sb.append(" (").append(violatedPropertyDescription).append(")");
+        sb.append("FALSE. Specification violated!").append("\n");
+        for(String v: violatedPropertyDescription) {
+          sb.append("\t").append("Violation: ").append(v).append("\n");
         }
-        sb.append(" found by chosen configuration.");
         return sb.toString();
       case TRUE:
         return "TRUE. No property violation found by chosen configuration.";

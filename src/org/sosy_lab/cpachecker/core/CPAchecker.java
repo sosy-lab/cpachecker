@@ -31,11 +31,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,11 +62,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -170,7 +168,7 @@ public class CPAchecker {
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
+    Set<String> violatedPropertyDescriptions = Collections.emptySet();
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -215,7 +213,7 @@ public class CPAchecker {
 
       if (disableAnalysis) {
         return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            violatedPropertyDescription, null, stats);
+            violatedPropertyDescriptions, null, stats);
       }
 
       // run analysis
@@ -223,11 +221,10 @@ public class CPAchecker {
 
       boolean isComplete = runAlgorithm(algorithm, reached, stats);
 
-      violatedPropertyDescription = findViolatedProperties(reached);
-      if (violatedPropertyDescription != null) {
+      violatedPropertyDescriptions = findViolatedProperties(reached);
+      if (!violatedPropertyDescriptions.isEmpty()) {
         result = Result.FALSE;
       } else {
-        violatedPropertyDescription = "";
         result = analyzeResult(reached, isComplete);
         if (unknownAsTrue && result == Result.UNKNOWN) {
           result = Result.TRUE;
@@ -265,7 +262,7 @@ public class CPAchecker {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result,
-        violatedPropertyDescription, reached, stats);
+        violatedPropertyDescriptions, reached, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
@@ -344,21 +341,23 @@ public class CPAchecker {
     }
   }
 
-  private @Nullable String findViolatedProperties(final ReachedSet reached) {
-    Set<String> descriptions = from(reached).filter(IS_TARGET_STATE)
-                        .transform(new Function<AbstractState, String>() {
-                                    @Override
-                                    public String apply(AbstractState s) {
-                                      return  ((Targetable)s).getViolatedPropertyDescription();
-                                    }
-                                  })
-                        .copyInto(new HashSet<String>());
-    if (descriptions.isEmpty()) {
-      // signal no target state -> result safe
-      return null;
+  /**
+   * Get one string for each target state that describes the violated property.
+   * An empty result (empty set) would mean that no property is violated.
+   * We assume that different properties have different descriptions.
+   * @param reached
+   * @return
+   */
+  private Set<String> findViolatedProperties(final ReachedSet reached) {
+    Set<String> descriptions = Sets.newHashSet();
+    for (AbstractState s:  from(reached).filter(IS_TARGET_STATE)) {
+      String propertyDescription = ((Targetable)s).getViolatedPropertyDescription();
+      if (propertyDescription == null || propertyDescription.trim().isEmpty()) {
+        logger.log(Level.WARNING, "Target state did not provide a meaningful description of the violated property!");
+      }
+      descriptions.add(propertyDescription);
     }
-    descriptions.remove("");
-    return Joiner.on(", ").join(descriptions);
+    return descriptions;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
