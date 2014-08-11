@@ -420,7 +420,7 @@ public class TigerAlgorithm implements Algorithm {
     }
     else {
       // run algorithm with time limit
-      WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, 5, algNotifier);
+      WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, cpuTimelimitPerGoal, algNotifier);
 
       Thread workerThread = new Thread(workerRunnable);
 
