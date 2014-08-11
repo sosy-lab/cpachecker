@@ -619,6 +619,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     declareSharedBase(declaration, false, constraints, pts);
 
+    if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
+      globalDeclarations.add(declaration);
+    }
+
     final CIdExpression lhs =
         new CIdExpression(declaration.getFileLocation(), declaration);
     final AssignmentHandler assignmentHandler = new AssignmentHandler(this, declarationEdge, function, ssa, pts, constraints, errorConditions);
