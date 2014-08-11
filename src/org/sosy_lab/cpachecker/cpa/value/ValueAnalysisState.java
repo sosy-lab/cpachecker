@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -828,11 +828,9 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    if(isTarget()){
-      return ViolatedProperty.OTHER;
-    }
-    return null;
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    checkState(isTarget());
+    return "";
   }
 
   @Override

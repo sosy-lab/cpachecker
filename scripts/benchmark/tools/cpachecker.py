@@ -197,8 +197,8 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
                     newStatus = result.STATUS_FALSE_REACH
-                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
-                    if match:
+                    match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                    if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
                     newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
