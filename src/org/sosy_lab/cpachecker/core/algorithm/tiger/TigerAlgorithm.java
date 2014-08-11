@@ -121,6 +121,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
+/**
+ *
+ */
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
 
@@ -383,6 +386,7 @@ public class TigerAlgorithm implements Algorithm {
 
     // each test goal needs to be covered in all (if possible) products.
     // Therefore we add a "todo" presence-condition TRUE to each test goal
+    // it is the "maximum" set of products for which we try to cover this goal (could be useful to limit this set if we have feature models?)
     Pair<ElementaryCoveragePattern, Region>[] goalsToCover = new Pair[lGoalPatterns.length];
     for (int i = 0; i < lGoalPatterns.length; i++) {
       goalsToCover[i] = Pair.of(lGoalPatterns[i], bddCpaNamedRegionManager.makeTrue());
@@ -430,16 +434,28 @@ public class TigerAlgorithm implements Algorithm {
     return lGoalPatterns;
   }
 
+
+  /** reverts the order of the array elements. The array is modified! */
+  private <T> void revertInSitu(T[] in) {
+    T tmp = null;
+    for (int i = 0; i < in.length/2; i++) {
+      tmp = in[i];
+      in[i] = in[in.length-1-i];
+      in[in.length-1-i] = tmp;
+    }
+  }
   private boolean testGeneration(Pair<ElementaryCoveragePattern, Region>[] pGoalsToCover) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
     int goalIndex = 0;
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
-
+    // revert to try a different order -> did not help
+    // revertInSitu(pGoalsToCover);
     for (Pair<ElementaryCoveragePattern, Region> testGoalToCover : pGoalsToCover) {
       goalIndex++;
       ElementaryCoveragePattern lTestGoalPattern = testGoalToCover.getFirst();
+      // the condition identifying configurations that we want to cover (gets reduced in due process until only an infeasible/non-coverable condition remains)
       Region remainingPCforGoalCoverage = testGoalToCover.getSecond();
 
       while (! remainingPCforGoalCoverage.isFalse()) {
@@ -456,6 +472,7 @@ public class TigerAlgorithm implements Algorithm {
         }
 
         if (checkCoverage) {
+          // find out if the testgoal is already covered or partly covered by other testcases
           boolean wasCovered = false;
 
           for (TestCase testcase : testsuite.getTestCases()) {
@@ -467,7 +484,7 @@ public class TigerAlgorithm implements Algorithm {
               remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testcase.pc));
 
               if (remainingPCforGoalCoverage.isFalse()) {
-                logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+                logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
                 testsuite.addTestCase(testcase, lGoal);
                 wasCovered = true;
                 break;
