@@ -5,8 +5,8 @@ OBSERVER AUTOMATON AssertionAutomaton
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-   // matches if assert_fail is called with any number of parameters
-   MATCH {__assert_fail($?)}
+   // matches if assert_fail or assert_funct is called with any number of parameters
+   MATCH {__assert_fail($?)} || MATCH {__assert_func($?)}
    -> ERROR("assertion in $location");
 
 
