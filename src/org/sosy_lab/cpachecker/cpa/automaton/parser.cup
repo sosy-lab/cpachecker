@@ -216,11 +216,13 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
 Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, a, acts, follow.toString()); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR); :}
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression("")); :}
+               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(property.toString())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM); :}
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM, null); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BREAK); :}
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BREAK, null); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

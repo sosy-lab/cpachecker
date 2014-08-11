@@ -71,7 +71,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
-            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0);
+            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0, null);
     }
 
     @Override
@@ -91,7 +91,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
-            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0);
+            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0, null);
     }
 
     @Override
@@ -112,22 +112,28 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
+  private final String violatedPropertyDescription;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<IAStatement> pAssumptions, int successfulMatches, int failedMatches) {
+      ImmutableList<IAStatement> pAssumptions, int successfulMatches, int failedMatches,
+      String violatedPropertyDescription) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
-      return new AutomatonState(pVars, pInternalState, pAutomatonCPA, pAssumptions, successfulMatches, failedMatches);
+      return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
+          pAssumptions, successfulMatches, failedMatches,
+          violatedPropertyDescription);
     }
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      int successfulMatches, int failedMatches) {
-    return automatonStateFactory(pVars, pInternalState, pAutomatonCPA, ImmutableList.<IAStatement>of(), successfulMatches, failedMatches);
+      int successfulMatches, int failedMatches, String violatedPropertyDescription) {
+    return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
+        ImmutableList.<IAStatement>of(), successfulMatches, failedMatches,
+        violatedPropertyDescription);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
@@ -135,7 +141,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<IAStatement> pAssumptions,
       int successfulMatches,
-      int failedMatches) {
+      int failedMatches,
+      String pViolatedPropertyDescription) {
 
     this.vars = checkNotNull(pVars);
     this.internalState = checkNotNull(pInternalState);
@@ -143,6 +150,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
     assumptions = pAssumptions;
+    violatedPropertyDescription = pViolatedPropertyDescription;
+    if (isTarget()) {
+      checkNotNull(violatedPropertyDescription);
+    }
   }
 
   @Override
@@ -153,7 +164,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    return "";
+    return checkNotNull(violatedPropertyDescription);
   }
 
   @Override
@@ -262,7 +273,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
-      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA, pPreviousState.getAssumptions(), -1, -1);
+      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA, pPreviousState.getAssumptions(), -1, -1, null);
       previousState = pPreviousState;
     }
 

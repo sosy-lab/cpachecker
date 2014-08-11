@@ -7,7 +7,7 @@ INITIAL STATE Init;
 STATE USEFIRST Init :
    // matches if assert_fail is called with any number of parameters
    MATCH {__assert_fail($?)}
-   -> ERROR;
+   -> ERROR("assertion in $location");
 
 
    MATCH {assert($?)} && !CHECK(location, "functionName==assert")

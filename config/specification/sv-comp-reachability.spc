@@ -7,7 +7,7 @@ CONTROL AUTOMATON SVCOMP
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH {__VERIFIER_error()} -> ERROR;
+  MATCH {__VERIFIER_error()} -> ERROR("__VERIFIER_error called in $location");
   MATCH {__assert_fail($?)} || MATCH {abort($?)} || MATCH {exit($?)} -> STOP;
 
 END AUTOMATON
