@@ -954,12 +954,6 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
-# Check whether all pointer dereferences are valid.
-cpa.predicate.checkValidDeref = false
-
-# Check whether all calls to free() are valid.
-cpa.predicate.checkValidFree = false
-
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
@@ -1695,7 +1689,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 pcc.partitioning.partitioningStrategy = RANDOM
   enum:     [RANDOM, OPTIMAL]
 
-# If enabled uses the number of nodes saved in certificate size to compute
+# If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the size of certificate
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 

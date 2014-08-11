@@ -202,7 +202,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
                   PredicateAbstractState.class);
 
           errorPred = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(errorPred.getAbstractionFormula()
-              .getBlockFormula(), errorPred.getViolatedProperty(), prevErrorState);
+              .getBlockFormula(), prevErrorState);
 
           // build new composite state
           ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
@@ -254,7 +254,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       // create fake predicate state
       PredicateAbstractState fakePred =
           PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
-              abstractionLocations, errorPred.getViolatedProperty());
+              abstractionLocations);
 
       // build composite state
       ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();

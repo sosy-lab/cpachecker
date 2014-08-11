@@ -28,14 +28,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -46,7 +43,7 @@ import com.google.common.base.Predicate;
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractState implements AbstractState, Partitionable, Targetable, Serializable {
+public abstract class PredicateAbstractState implements AbstractState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -70,9 +67,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private static final long serialVersionUID = 8341054099315063986L;
 
     private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
-        AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations,
-        @Nullable ViolatedProperty pViolatedProperty) {
-      super(pf, pA, pAbstractionLocations, pViolatedProperty);
+        AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
       //Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
@@ -113,9 +109,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private transient PredicateAbstractState mergedInto = null;
 
     private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
-        PersistentMap<CFANode, Integer> pAbstractionLocations,
-        @Nullable ViolatedProperty pViolatedProperty) {
-      super(pF, pA, pAbstractionLocations, pViolatedProperty);
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pF, pA, pAbstractionLocations);
     }
 
     @Override
@@ -151,9 +146,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private transient final CFANode location;
 
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations,
-        @Nullable ViolatedProperty pViolatedProperty) {
-      super(pf, pA, pAbstractionLocations, pViolatedProperty);
+        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       location = pLoc;
     }
 
@@ -179,16 +173,14 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   public static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
       PathFormula pF, AbstractionFormula pA,
-      PersistentMap<CFANode, Integer> pAbstractionLocations,
-      @Nullable ViolatedProperty pViolatedProperty) {
-    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations, pViolatedProperty);
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
   }
 
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
-      @Nullable ViolatedProperty pViolatedProperty, PredicateAbstractState oldState) {
+      PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
-                                        oldState.getAbstractionLocationsOnPath(),
-                                        pViolatedProperty);
+                                        oldState.getAbstractionLocationsOnPath());
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -202,15 +194,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   /** How often each abstraction location was visited on the path to the current state. */
   private final PersistentMap<CFANode, Integer> abstractionLocations;
 
-  private final @Nullable ViolatedProperty violatedProperty;
-
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
-      PersistentMap<CFANode, Integer> pAbstractionLocations,
-      @Nullable ViolatedProperty pViolatedProperty) {
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.abstractionLocations = pAbstractionLocations;
-    this.violatedProperty = pViolatedProperty;
   }
 
   public abstract boolean isAbstractionState();
@@ -223,23 +211,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     throw new UnsupportedOperationException("Merging wrong PredicateAbstractStates!");
   }
 
-  @Override
-  public boolean isTarget() {
-    return violatedProperty != null;
-  }
-
-  @Override
-  public @Nullable ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    // for simplicity, a violation of the contract of this method:
-    // may return null
-    return violatedProperty;
-  }
-
   public PersistentMap<CFANode, Integer> getAbstractionLocationsOnPath() {
     return abstractionLocations;
   }
-
-
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
