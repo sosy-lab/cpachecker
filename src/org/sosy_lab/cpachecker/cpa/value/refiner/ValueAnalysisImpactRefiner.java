@@ -173,7 +173,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     // stop once any feasible counterexample is found
     if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
-      System.out.println("path is feasible !!!");
       totalTime.stop();
       return false;
     }

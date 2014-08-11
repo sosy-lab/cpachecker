@@ -279,10 +279,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      List<ARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
-
-      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefix(prefixPreference, prefixes);
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);

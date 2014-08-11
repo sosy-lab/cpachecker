@@ -151,8 +151,10 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
-      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainBestPrefix(prefixes);
+      List<ARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
+
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      errorPath                               = classifier.obtainBestPrefix(prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }

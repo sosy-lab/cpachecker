@@ -67,7 +67,7 @@ public class ErrorPathClassifier {
     classification = pClassification;
   }
 
-  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference, List<ARGPath> pPrefixes) {
+  public ARGPath obtainPrefix(ErrorPathPrefixPreference preference, ARGPath errorPath, List<ARGPath> pPrefixes) {
     switch (preference) {
     case SHORTEST:
       return obtainShortestPrefix(pPrefixes);
@@ -88,11 +88,6 @@ public class ErrorPathClassifier {
       return obtainWorstPrefix(pPrefixes);
 
     default:
-      ARGPath errorPath = new ARGPath();
-      for (ARGPath prefix : pPrefixes) {
-        errorPath.addAll(prefix);
-      }
-
       return errorPath;
     }
   }
