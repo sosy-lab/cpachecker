@@ -24,12 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -41,14 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import javax.management.JMException;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -58,19 +50,9 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -91,7 +73,9 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -112,15 +96,8 @@ import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.Product
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm {
@@ -334,72 +311,6 @@ public class TigerAlgorithm implements Algorithm {
     return wasSound;
   }
 
-  class WorkerRunnable implements Runnable, ShutdownRequestListener {
-
-    private Algorithm algorithm;
-    private ReachedSet localReachedSet;
-    private boolean soundAnalysis = true;
-    private Exception caughtException = null;
-    private ResourceLimitChecker limitChecker;
-    private boolean timeoutOccured = false;
-
-    public WorkerRunnable(Algorithm pAlgorithm, ReachedSet pReachedSet, long pTimelimitInSeconds, ShutdownNotifier pShutdownNotifier) {
-      algorithm = pAlgorithm;
-      localReachedSet = pReachedSet;
-
-      List<ResourceLimit> limits = new LinkedList<>();
-      ProcessCpuTimeLimit limit;
-      try {
-        limit = ProcessCpuTimeLimit.fromNowOn(pTimelimitInSeconds, java.util.concurrent.TimeUnit.SECONDS);
-      } catch (JMException e) {
-        throw new RuntimeException(e);
-      }
-      limits.add(limit);
-
-      pShutdownNotifier.register(this);
-
-      limitChecker = new ResourceLimitChecker(pShutdownNotifier, limits);
-    }
-
-    @Override
-    public void run() {
-      try {
-        limitChecker.start();
-        soundAnalysis = algorithm.run(localReachedSet);
-        limitChecker.cancel();
-      } catch (InterruptedException e) {
-        soundAnalysis = false;
-        timeoutOccured = true;
-      } catch (CPAException e) {
-        caughtException = e;
-        // TODO replace by proper handling
-        throw new RuntimeException(e);
-      }
-    }
-
-    public boolean exceptionWasCaught() {
-      return (caughtException != null);
-    }
-
-    public Exception getCaughtException() {
-      return caughtException;
-    }
-
-    public boolean analysisWasSound() {
-      return soundAnalysis;
-    }
-
-    public boolean hasTimeout() {
-      return timeoutOccured;
-    }
-
-    @Override
-    public void shutdownRequested(String pReason) {
-      Thread.currentThread().interrupt();
-    }
-
-  }
-
   private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
@@ -522,7 +433,7 @@ public class TigerAlgorithm implements Algorithm {
       else {
         analysisWasSound = workerRunnable.analysisWasSound();
 
-        if (workerRunnable.timeoutOccured) {
+        if (workerRunnable.hasTimeout()) {
           // TODO implement special handling
           logger.logf(Level.INFO, "Timeout occured (per goal)!");
         }
@@ -588,7 +499,7 @@ public class TigerAlgorithm implements Algorithm {
             if (e.getKey() instanceof Model.Variable) {
               Model.Variable v = (Model.Variable)e.getKey();
 
-              if (v.getName().equals(TigerAlgorithm.CPAtiger_INPUT + "::__retval__")) {
+              if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
                 inputs.add(e);
               }
             }
@@ -679,101 +590,6 @@ public class TigerAlgorithm implements Algorithm {
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
     return lGoal;
-  }
-
-  // TODO move all these wrapper related code into TigerAlgorithmUtil class
-  public static final String CPAtiger_MAIN = "__CPAtiger__main";
-  public static final String CPAtiger_INPUT = "input";
-
-  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
-
-    StringWriter lWrapperFunction = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
-
-    // TODO interpreter is not capable of handling initialization of global declarations
-
-    lWriter.println(pMainFunction.getFunctionDefinition().toASTString());
-    lWriter.println();
-    lWriter.println("extern int __VERIFIER_nondet_int();");
-    lWriter.println();
-    lWriter.println("int " +  CPAtiger_INPUT + "() {");
-    lWriter.println("  return __VERIFIER_nondet_int();");
-    lWriter.println("}");
-    lWriter.println();
-    lWriter.println("void " + CPAtiger_MAIN + "()");
-    lWriter.println("{");
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.toASTString() + ";");
-    }
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getName() + " = " +  CPAtiger_INPUT + "();");
-    }
-
-    lWriter.println();
-    lWriter.print("  " + pMainFunction.getFunctionName() + "(");
-
-    boolean isFirst = true;
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      if (isFirst) {
-        isFirst = false;
-      }
-      else {
-        lWriter.print(", ");
-      }
-
-      lWriter.print(lDeclaration.getName());
-    }
-
-    lWriter.println(");");
-    lWriter.println("  return;");
-    lWriter.println("}");
-    lWriter.println();
-
-    File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
-    f.deleteOnExit();
-
-    Writer writer = null;
-
-    try {
-        writer = new BufferedWriter(new OutputStreamWriter(
-              new FileOutputStream(f), "utf-8"));
-        writer.write(lWrapperFunction.toString());
-    } catch (IOException ex) {
-      // TODO report
-    } finally {
-       try {writer.close();} catch (Exception ex) {}
-    }
-
-    return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
-  }
-
-  public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
-    // create wrapper code
-    CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
-
-    List<FileToParse> tmpList = new ArrayList<>();
-    tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));
-
-    ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
-
-    // TODO add checks for consistency
-    SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
-    mergedFunctions.putAll(tmpParseResult.getFunctions());
-    mergedFunctions.putAll(wrapperParseResult.getFunctions());
-
-    SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
-    mergedCFANodes.putAll(tmpParseResult.getCFANodes());
-    mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
-
-    List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
-    mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
-    mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
-
-    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
   }
 
 }

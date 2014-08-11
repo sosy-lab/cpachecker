@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 
 public class Wrapper {
 
@@ -45,7 +44,7 @@ public class Wrapper {
 
     mCFA = pCFA;
 
-    determineAlphaAndOmegaEdges(mCFA.getFunctionHead(TigerAlgorithm.CPAtiger_MAIN), mCFA.getFunctionHead(pOriginalEntryFunction));
+    determineAlphaAndOmegaEdges(mCFA.getFunctionHead(WrapperUtil.CPAtiger_MAIN), mCFA.getFunctionHead(pOriginalEntryFunction));
   }
 
   private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
