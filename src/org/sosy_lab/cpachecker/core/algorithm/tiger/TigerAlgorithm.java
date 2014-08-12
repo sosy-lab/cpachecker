@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
@@ -94,14 +95,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm {
+public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision> {
 
   public static String originalMainFunction = null;
 
@@ -119,6 +125,9 @@ public class TigerAlgorithm implements Algorithm {
 
   @Option(name = "reuseARG", description = "Reuse ARG across test goals")
   private boolean reuseARG = true;
+
+  @Option(name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
+  private boolean reusePredicates = true;
 
   @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
   private String testsuiteFile = "output/teststuite.txt";
@@ -149,6 +158,8 @@ public class TigerAlgorithm implements Algorithm {
   private TestSuite testsuite;
   private ReachedSet reachedSet = null;
   private ReachedSet outsideReachedSet = null;
+
+  private PredicatePrecision reusedPrecision = null;
 
   private Map<Integer, Goal> timedOutGoals;
 
@@ -378,6 +389,15 @@ public class TigerAlgorithm implements Algorithm {
 
     if (reuseARG && (reachedSet != null)) {
       ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoal.getAutomaton());
+
+      if (reusePredicates) {
+        for (AbstractState lWaitlistElement : reachedSet.getWaitlist()) {
+          Precision lOldPrecision = reachedSet.getPrecision(lWaitlistElement);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, reusedPrecision, PredicatePrecision.class);
+
+          reachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
+        }
+      }
     }
     else {
       reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
@@ -388,6 +408,14 @@ public class TigerAlgorithm implements Algorithm {
       reachedSet.add(lInitialElement, lInitialPrecision);
 
       outsideReachedSet.add(lInitialElement, lInitialPrecision);
+
+      if (reusePredicates) {
+        // initialize reused predicate precision
+        PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
+        assert(predicateCPA != null);
+
+        reusedPrecision = (PredicatePrecision)predicateCPA.getInitialPrecision(cfa.getMainFunction());
+      }
     }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
@@ -405,6 +433,14 @@ public class TigerAlgorithm implements Algorithm {
     try {
       //lRefiner = PredicateRefiner.cpatiger_create(lARTCPA, this);
       lRefiner = PredicateRefiner.create(lARTCPA);
+
+      if (reusePredicates) {
+        RefinementStrategy strategy = lRefiner.getRefinementStrategy();
+        assert(strategy instanceof PredicateAbstractionRefinementStrategy);
+
+        PredicateAbstractionRefinementStrategy refinementStrategy = (PredicateAbstractionRefinementStrategy)strategy;
+        refinementStrategy.setPrecisionCallback(this);
+      }
     } catch (CPAException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
@@ -611,6 +647,16 @@ public class TigerAlgorithm implements Algorithm {
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
     return lGoal;
+  }
+
+  @Override
+  public PredicatePrecision getPrecision() {
+    return reusedPrecision;
+  }
+
+  @Override
+  public void setPrecision(PredicatePrecision pNewPrec) {
+    reusedPrecision = pNewPrec;
   }
 
 }

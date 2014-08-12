@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,6 +78,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -180,6 +180,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
+  }
+
+  public RefinementStrategy getRefinementStrategy() {
+    return strategy;
   }
 
   @Override
