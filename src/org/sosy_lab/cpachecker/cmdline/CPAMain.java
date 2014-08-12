@@ -187,9 +187,6 @@ public class CPAMain {
 
     @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
-
-    @Option(name = "analysis.algorithm.tiger", description = "Use Tiger algorithm (test input generation)")
-    private boolean useTigerAlgorithm = false;
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,
