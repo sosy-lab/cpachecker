@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -146,7 +147,9 @@ public class TigerAlgorithm implements Algorithm {
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
   private TestSuite testsuite;
-  ReachedSet reachedSet = null;
+  private ReachedSet reachedSet = null;
+
+  private Map<Integer, Goal> timedOutGoals;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -193,6 +196,8 @@ public class TigerAlgorithm implements Algorithm {
 
       throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
     }
+
+    timedOutGoals = new HashMap<>();
   }
 
   @Override
@@ -216,6 +221,11 @@ public class TigerAlgorithm implements Algorithm {
     if (!testGeneration(lGoalPatterns)) {
       logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
       wasSound = false;
+    }
+
+    // process timed out goals
+    for (Entry<Integer, Goal> entry : timedOutGoals.entrySet()) {
+      testsuite.addTimedOutGoal(entry.getValue());
     }
 
     // write generated test suite and mapping to file system
@@ -413,6 +423,7 @@ public class TigerAlgorithm implements Algorithm {
     cegarAlg.collectStatistics(lStatistics);
 
     boolean analysisWasSound = false;
+    boolean hasTimedOut = false;
 
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
@@ -435,7 +446,11 @@ public class TigerAlgorithm implements Algorithm {
 
         if (workerRunnable.hasTimeout()) {
           // TODO implement special handling
-          logger.logf(Level.INFO, "Timeout occured (per goal)!");
+          logger.logf(Level.INFO, "Test goal timed out!");
+
+          timedOutGoals.put(goalIndex, pGoal);
+
+          hasTimedOut = true;
         }
       }
     }
@@ -452,68 +467,70 @@ public class TigerAlgorithm implements Algorithm {
 
     Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
-    if (counterexamples.isEmpty()) {
-      // test goal is not feasible
-      logger.logf(Level.INFO, "Test goal infeasible.");
+    if (!hasTimedOut) {
+      if (counterexamples.isEmpty()) {
+        // test goal is not feasible
+        logger.logf(Level.INFO, "Test goal infeasible.");
 
-      testsuite.addInfeasibleGoal(pGoal);
-      // TODO add missing soundness checks!
-    }
-    else {
-      // test goal is feasible
-      logger.logf(Level.INFO, "Test goal is feasible.");
+        testsuite.addInfeasibleGoal(pGoal);
+        // TODO add missing soundness checks!
+      }
+      else {
+        // test goal is feasible
+        logger.logf(Level.INFO, "Test goal is feasible.");
 
-      // TODO add missing soundness checks!
+        // TODO add missing soundness checks!
 
-      assert counterexamples.size() == 1;
+        assert counterexamples.size() == 1;
 
-      for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-        //ARGState state = lEntry.getKey();
-        CounterexampleInfo cex = lEntry.getValue();
+        for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+          //ARGState state = lEntry.getKey();
+          CounterexampleInfo cex = lEntry.getValue();
 
-        if (cex.isSpurious()) {
-          logger.logf(Level.WARNING, "Counterexample is spurious!");
-        }
-        else {
-          Model model = cex.getTargetPathModel();
+          if (cex.isSpurious()) {
+            logger.logf(Level.WARNING, "Counterexample is spurious!");
+          }
+          else {
+            Model model = cex.getTargetPathModel();
 
-          Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
+            Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
 
-            @Override
-            public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-              assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
-              assert pArg0.getKey() instanceof Model.Variable;
-              assert pArg1.getKey() instanceof Model.Variable;
+              @Override
+              public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+                assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+                assert pArg0.getKey() instanceof Model.Variable;
+                assert pArg1.getKey() instanceof Model.Variable;
 
-              Model.Variable v0 = (Model.Variable)pArg0.getKey();
-              Model.Variable v1 = (Model.Variable)pArg1.getKey();
+                Model.Variable v0 = (Model.Variable)pArg0.getKey();
+                Model.Variable v1 = (Model.Variable)pArg1.getKey();
 
-              return (v0.getSSAIndex() - v1.getSSAIndex());
-            }
+                return (v0.getSSAIndex() - v1.getSSAIndex());
+              }
 
-          };
+            };
 
-          TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+            TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
 
-          for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
-            if (e.getKey() instanceof Model.Variable) {
-              Model.Variable v = (Model.Variable)e.getKey();
+            for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
+              if (e.getKey() instanceof Model.Variable) {
+                Model.Variable v = (Model.Variable)e.getKey();
 
-              if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
-                inputs.add(e);
+                if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
+                  inputs.add(e);
+                }
               }
             }
+
+            List<BigInteger> inputValues = new ArrayList<>(inputs.size());
+
+            for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
+              assert e.getValue() instanceof BigInteger;
+              inputValues.add((BigInteger)e.getValue());
+            }
+
+            TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
+            testsuite.addTestCase(testcase, pGoal);
           }
-
-          List<BigInteger> inputValues = new ArrayList<>(inputs.size());
-
-          for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
-            assert e.getValue() instanceof BigInteger;
-            inputValues.add((BigInteger)e.getValue());
-          }
-
-          TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
-          testsuite.addTestCase(testcase, pGoal);
         }
       }
     }

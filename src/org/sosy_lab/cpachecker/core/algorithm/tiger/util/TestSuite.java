@@ -35,10 +35,16 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 public class TestSuite {
   private Map<TestCase, List<Goal>> mapping;
   private List<Goal> infeasibleGoals;
+  private List<Goal> timedOutGoals;
 
   public TestSuite() {
     mapping = new HashMap<>();
     infeasibleGoals = new LinkedList<>();
+    timedOutGoals = new LinkedList<>();
+  }
+
+  public void addTimedOutGoal(Goal goal) {
+    timedOutGoals.add(goal);
   }
 
   public void addInfeasibleGoal(Goal goal) {
@@ -82,15 +88,29 @@ public class TestSuite {
       str.append("\n");
     }
 
-    str.append("infeasible:\n");
+    if (!infeasibleGoals.isEmpty()) {
+      str.append("infeasible:\n");
 
-    for (Goal goal : infeasibleGoals) {
-      //str.append(goal.getIndex());
-      str.append(goal.toSkeleton());
+      for (Goal goal : infeasibleGoals) {
+        //str.append(goal.getIndex());
+        str.append(goal.toSkeleton());
+        str.append("\n");
+      }
+
       str.append("\n");
     }
 
-    str.append("\n");
+    if (!timedOutGoals.isEmpty()) {
+      str.append("timed out:\n");
+
+      for (Goal goal : timedOutGoals) {
+        //str.append(goal.getIndex());
+        str.append(goal.toSkeleton());
+        str.append("\n");
+      }
+
+      str.append("\n");
+    }
 
     return str.toString();
   }
