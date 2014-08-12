@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,7 +53,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision oldPrecision,
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
@@ -63,7 +62,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // we can't call prec() in this case because we don't have an element of the CPA
-      return Triple.of(pElement, oldPrecision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(pElement, oldPrecision, Action.CONTINUE);
     }
 
     UnmodifiableReachedSet elements = new UnmodifiableReachedSetView(
@@ -73,7 +72,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     AbstractState oldElement = element.getWrappedState();
 
     totalTimeOfPrecAdj.start();
-    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();
     // add total execution time to the total time of the previous element
@@ -87,15 +86,11 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 //      }
 //    }
 
-    AbstractState newElement = unwrappedResult.getFirst();
-    Precision newPrecision = unwrappedResult.getSecond();
-    Action action = unwrappedResult.getThird();
-
-      // no. of nodes and no. of branches on the path does not change, just update the
+    // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time
     MonitorState resultElement =
-      new MonitorState(newElement, updatedTotalTime, preventingCondition);
+      new MonitorState(unwrappedResult.abstractState(), updatedTotalTime, preventingCondition);
 
-    return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
+    return unwrappedResult.withAbstractState(resultElement);
   }
 }

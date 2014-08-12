@@ -34,7 +34,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -88,7 +87,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
@@ -102,7 +101,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         element = computeAbstraction((ComputeAbstractionState)element, precision);
       }
 
-      return Triple.<AbstractState, Precision, Action>of(element, pPrecision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(element, pPrecision, Action.CONTINUE);
 
     } finally {
       totalPrecTime.stop();

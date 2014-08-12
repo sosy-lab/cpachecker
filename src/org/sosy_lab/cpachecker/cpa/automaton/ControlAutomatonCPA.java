@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -132,13 +131,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
 
       @Override
-      public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+      public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
           UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
 
-        Triple<AbstractState, Precision, Action> wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-        return Triple.of(wrappedPrec.getFirst(), wrappedPrec.getSecond(), Action.BREAK);
+          return wrappedPrec.withAction(Action.BREAK);
         }
 
         return wrappedPrec;
