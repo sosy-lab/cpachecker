@@ -65,6 +65,9 @@
              Mocking framework for tests. -->
         <dependency org="org.mockito" name="mockito-core" rev="1.9.5" conf="test->default"/>
 
+        <!--  Guava-testlib contains many useful testing utilities -->
+        <dependency org="com.google.guava" name="guava-testlib" rev="17.0" conf="test->default; contrib->sources"/>
+
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
         <dependency org="org.eclipse.cdt" name="core" rev="5.6.0.201402142303" conf="runtime->default; contrib->sources"/>
