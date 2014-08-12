@@ -64,7 +64,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   private final BAMTransferRelation transfer;
   private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
-  private final static ARGPath DUMMY_PATH_FOR_MISSING_BLOCK = new ARGPath();
   final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
@@ -84,9 +83,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
   @Override
   protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
-    assert pPath == DUMMY_PATH_FOR_MISSING_BLOCK || pPath.size() > 0;
+    assert pPath == null || pPath.size() > 0;
 
-    if (pPath == DUMMY_PATH_FOR_MISSING_BLOCK) {
+    if (pPath == null) {
       // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
       // We directly return SPURIOUS and let the CPA-algorithm run again.
       // During the counter-example-path-building we already re-added the start-states of all blocks,
@@ -111,7 +110,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       try {
         subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, pathStateToReachedState);
         if (subgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
-          return DUMMY_PATH_FOR_MISSING_BLOCK;
+          return null;
         }
       } finally {
         computeSubtreeTimer.stop();

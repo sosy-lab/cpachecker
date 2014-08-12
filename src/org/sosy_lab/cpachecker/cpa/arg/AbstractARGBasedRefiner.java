@@ -93,7 +93,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    final ARGPath path = computePath(lastElement, reached);
+    final @Nullable ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
