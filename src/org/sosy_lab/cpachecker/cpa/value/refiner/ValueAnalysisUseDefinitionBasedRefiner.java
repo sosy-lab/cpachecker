@@ -30,7 +30,10 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -53,7 +56,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -67,6 +72,7 @@ import com.google.common.collect.Multimap;
 /**
  * Refiner implementation that extracts a precision increment solely based on syntactical information from error traces.
  */
+@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   // statistics
   private int numberOfRefinements           = 0;
@@ -76,6 +82,9 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+
+  @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
 
   public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -97,21 +106,24 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
       ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
           throws InvalidConfigurationException {
-    LogManager logger = pValueAnalysisCpa.getLogger();
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
-        logger,
+        pValueAnalysisCpa.getConfiguration(),
+        pValueAnalysisCpa.getLogger(),
         pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
         pValueAnalysisCpa.getCFA());
   }
 
   protected ValueAnalysisUseDefinitionBasedRefiner(
+      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
       final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
+
+    pConfig.inject(this);
 
     cfa               = pCfa;
     logger            = pLogger;
@@ -154,13 +166,12 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       List<ARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
 
       ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
-      errorPath                               = classifier.obtainBestPrefix(prefixes);
+      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
 
     Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
-
     // no increment - refinement was not successful
     if(increment.isEmpty()) {
       return false;
@@ -182,9 +193,15 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    // just add each variable referenced in the use-def set to a BOGUS PROGRAM LOCATION (i.e., initial location)
-    for(String referencedVariable : new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(cfaTrace)) {
-      increment.put(cfaTrace.get(0).getSuccessor(), MemoryLocation.valueOf(referencedVariable));
+    // is the prefixPreference not the default, we know the final assumption is the failing one,
+    // and we can use the InitialAssumptionUseDefinitionCollector to obtain the def-use-information
+    // from that specific assumption
+    AssumptionUseDefinitionCollector useDefinitionCollector = prefixPreference == ErrorPathPrefixPreference.DEFAULT ?
+        new AssumptionUseDefinitionCollector() :
+        new InitialAssumptionUseDefinitionCollector();
+
+    for(String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
+      increment.put(new CFANode("BOGUS_NODE"), MemoryLocation.valueOf(referencedVariable));
     }
 
     return increment;
