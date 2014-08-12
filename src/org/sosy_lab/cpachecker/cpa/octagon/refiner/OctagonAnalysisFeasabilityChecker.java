@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
@@ -58,11 +58,11 @@ public class OctagonAnalysisFeasabilityChecker {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ARGPath checkedPath;
-  private final ARGPath foundPath;
+  private final MutableARGPath checkedPath;
+  private final MutableARGPath foundPath;
   private boolean wasInterrupted = false;
 
-  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, MutableARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
@@ -122,12 +122,12 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final IOctagonPrecision pPrecision, final OctagonState pInitial)
+  private MutableARGPath getInfeasiblePrefix(final IOctagonPrecision pPrecision, final OctagonState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<OctagonState> next = Lists.newArrayList(pInitial);
 
-      ARGPath prefix = new ARGPath();
+      MutableARGPath prefix = new MutableARGPath();
 
       Collection<OctagonState> successors = new HashSet<>();
 

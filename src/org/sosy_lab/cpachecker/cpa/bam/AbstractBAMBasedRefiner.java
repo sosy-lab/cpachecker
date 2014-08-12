@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -42,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
- * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, ARGPath)}.
+ * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, MutableARGPath)}.
  *
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
@@ -128,18 +128,23 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   private ARGPath computeCounterexample(ARGState root) {
-    ARGPath path = new ARGPath();
+    // TODO: move to ARGUtils?
+    List<ARGState> states = new ArrayList<>();
+    List<CFAEdge> edges = new ArrayList<>();
+
     ARGState currentElement = root;
     while (currentElement.getChildren().size() > 0) {
       ARGState child = currentElement.getChildren().iterator().next();
 
       CFAEdge edge = currentElement.getEdgeToChild(child);
-      path.add(Pair.of(currentElement, edge));
+      states.add(currentElement);
+      edges.add(edge);
 
       currentElement = child;
     }
-    path.add(Pair.of(currentElement, extractLocation(currentElement).getLeavingEdge(0)));
-    return path;
+    states.add(currentElement);
+    edges.add(extractLocation(currentElement).getLeavingEdge(0));
+    return new ARGPath(states, edges);
   }
 
   private static class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
@@ -210,7 +210,7 @@ public class ValueAnalysisInterpolator {
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
 
-    ARGPath argErrorPath = new ARGPath();
+    MutableARGPath argErrorPath = new MutableARGPath();
 
     for(CFAEdge edge : remainingErrorPath) {
       argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));

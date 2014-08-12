@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
@@ -131,8 +132,10 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
+
+    MutableARGPath errorPath = pErrorPath.mutableCopy();
 
     // if path is infeasible, try to refine the precision
     if (isPathFeasable(errorPath)) {
@@ -140,14 +143,14 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 
-      return CounterexampleInfo.feasible(errorPath, model);
+      return CounterexampleInfo.feasible(pErrorPath, model);
     }
 
     else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 
-    throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
+    throw new RefinementFailedException(Reason.RepeatedCounterexample, pErrorPath);
   }
 
   /**
@@ -158,12 +161,12 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, MutableARGPath errorPath) throws CPAException, InterruptedException {
     numberOfRefinements++;
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-      List<ARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
+      List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
 
       ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
       errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
@@ -189,7 +192,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     return true;
   }
 
-  private Multimap<CFANode, MemoryLocation> obtainPrecisionIncrement(ARGPath errorPath) {
+  private Multimap<CFANode, MemoryLocation> obtainPrecisionIncrement(MutableARGPath errorPath) {
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
@@ -230,7 +233,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
+  boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
       return new ValueAnalysisFeasibilityChecker(logger, cfa).isFeasible(path);
     }

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -70,8 +71,7 @@ public class BasicPathSelector implements PathSelector {
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    ARGPath newARGPath = new ARGPath();
-    newARGPath.addAll(pExecutedPath);
+    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
     PathInfo pathInfo = new PathInfo(newARGPath.size());
     //    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
     /*
@@ -176,7 +176,7 @@ public class BasicPathSelector implements PathSelector {
       {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
-        PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+        PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
         pathValidator.handleValidPath(result);
         return result;
       }

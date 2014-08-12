@@ -58,7 +58,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
@@ -226,7 +225,7 @@ public class ARGStatistics implements Statistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-        if (Lists.transform(path, Pair.getProjectionToSecond()).contains(null)) {
+        if (path.asEdgesList().contains(null)) {
           // path is invalid,
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.

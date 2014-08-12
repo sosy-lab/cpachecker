@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,6 +78,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -334,7 +334,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
     pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());
     ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
-    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subList(1, pAllStatesTrace.size()-1)) {
+    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subPath(1, pAllStatesTrace.size()-1)) {
       if (PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
         list.add(pathFormula.getFormula());
         pathFormula = pfmgr.makeEmptyPathFormula(pathFormula);

@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.refiner.util.ApronInterpolator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
@@ -125,7 +125,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
     interpolator     = new ApronInterpolator(config, logger, shutdownNotifier, cfa);
   }
 
-  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
+  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(MutableARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations++;
     timerInterpolation.start();
@@ -163,7 +163,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
     return pathInterpolants;
   }
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -206,11 +206,11 @@ public class ApronInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
@@ -265,7 +265,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
    * @param errorPath the error path
    * @return true, if the current cut-off point is at an assume edge, else false
    */
-  private boolean cutOffIsAssumeEdge(ARGPath errorPath) {
+  private boolean cutOffIsAssumeEdge(MutableARGPath errorPath) {
     return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
   }
 

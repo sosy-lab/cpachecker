@@ -27,7 +27,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -69,13 +68,13 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     return argCpa;
   }
 
-  private static final Function<Pair<ARGState, CFAEdge>, String> pathToFunctionCalls
-        = new Function<Pair<ARGState, CFAEdge>, String>() {
+  private static final Function<CFAEdge, String> pathToFunctionCalls
+        = new Function<CFAEdge, String>() {
     @Override
-    public String apply(Pair<ARGState, CFAEdge> arg) {
+    public String apply(CFAEdge arg) {
 
-      if (arg.getSecond() instanceof CFunctionCallEdge) {
-        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg.getSecond();
+      if (arg instanceof CFunctionCallEdge) {
+        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
         return funcEdge.toString();
       } else {
         return null;
@@ -98,7 +97,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
+          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.asEdgesList(), pathToFunctionCalls)));
     }
 
     final CounterexampleInfo counterexample;

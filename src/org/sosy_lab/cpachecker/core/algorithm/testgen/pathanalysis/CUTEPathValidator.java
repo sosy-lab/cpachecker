@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -71,13 +72,13 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public boolean isVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
+  public boolean isVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
       CFAEdge pOtherEdge) {
     return isVisited(pCurrentElement, pOtherEdge);
   }
 
   @Override
-  public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
     // nothing to to
 
   }

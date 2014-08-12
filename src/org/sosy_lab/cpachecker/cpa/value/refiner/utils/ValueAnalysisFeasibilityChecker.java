@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -74,7 +74,7 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException {
+  public boolean isFeasible(final MutableARGPath path) throws CPAException, InterruptedException {
     return isFeasible(path, new ValueAnalysisState());
   }
 
@@ -87,7 +87,7 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(final ARGPath path, final ValueAnalysisState pInitial)
+  public boolean isFeasible(final MutableARGPath path, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
 
     return path.size() == getInfeasilbePrefix(path, pInitial).size();
@@ -103,7 +103,7 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public ARGPath getInfeasilbePrefix(final ARGPath path, final ValueAnalysisState pInitial)
+  public MutableARGPath getInfeasilbePrefix(final MutableARGPath path, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
     return getInfeasilbePrefixes(path, pInitial).get(0);
   }
@@ -118,13 +118,13 @@ public class ValueAnalysisFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public List<ARGPath> getInfeasilbePrefixes(final ARGPath path, final ValueAnalysisState pInitial)
+  public List<MutableARGPath> getInfeasilbePrefixes(final MutableARGPath path, final ValueAnalysisState pInitial)
       throws CPAException, InterruptedException {
 
-    List<ARGPath> prefixes = new ArrayList<>();
+    List<MutableARGPath> prefixes = new ArrayList<>();
 
     try {
-      ARGPath currentPrefix   = new ARGPath();
+      MutableARGPath currentPrefix   = new MutableARGPath();
       ValueAnalysisState next = pInitial;
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
@@ -140,7 +140,7 @@ public class ValueAnalysisFeasibilityChecker {
           logger.log(Level.FINE, "found infeasible prefix: ", pathElement.getSecond(), " did not yield a successor");
           prefixes.add(currentPrefix);
 
-          currentPrefix = new ARGPath();
+          currentPrefix = new MutableARGPath();
           successors    = Sets.newHashSet(next);
         }
 

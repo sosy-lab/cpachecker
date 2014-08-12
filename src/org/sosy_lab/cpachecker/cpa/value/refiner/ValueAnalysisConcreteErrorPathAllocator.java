@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -79,7 +79,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public Model allocateAssignmentsToPath(ARGPath pPath, MachineModel pMachineModel)
+  public Model allocateAssignmentsToPath(MutableARGPath pPath, MachineModel pMachineModel)
       throws InterruptedException {
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
@@ -97,7 +97,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return model.withAssignmentInformation(pathWithAssignments);
   }
 
-  private ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
+  private ConcreteStatePath createConcreteStatePath(MutableARGPath pPath) {
 
     List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
 
@@ -127,7 +127,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private Map<LeftHandSide, Address> generateVariableAddresses(ARGPath pPath) {
+  private Map<LeftHandSide, Address> generateVariableAddresses(MutableARGPath pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
     Multimap<IDExpression, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
@@ -173,7 +173,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return pNextAddressToBeAssigned.addOffset(offset);
   }
 
-  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(ARGPath pPath) {
+  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(MutableARGPath pPath) {
 
     Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
 

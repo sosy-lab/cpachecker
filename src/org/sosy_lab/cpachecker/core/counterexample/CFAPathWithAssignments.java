@@ -145,7 +145,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
 
-    if (pPath.isEmpty() || pPath.size() != (pathWithAssignments.size() + 1)) {
+    if (pPath.size() != (pathWithAssignments.size() + 1)) {
       return null;
     }
 

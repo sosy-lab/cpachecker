@@ -82,10 +82,10 @@ public final class ErrorPathShrinker {
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public ARGPath shrinkErrorPath(ARGPath targetPath) {
+  public ARGPath shrinkErrorPath(ARGPath pTargetPath) {
 
     // first remove all elements after the target-element from path
-    targetPath = removeAllElemsAfterTarget(targetPath);
+    MutableARGPath targetPath = removeAllElemsAfterTarget(pTargetPath);
 
     // first collect all global variables
     findGlobalVarsInPath(targetPath);
@@ -102,10 +102,10 @@ public final class ErrorPathShrinker {
     Set<String> importantVarsForGlobalVars = new LinkedHashSet<>();
 
     // Path for storing changings of globalVars
-    final ARGPath globalVarsPath = new ARGPath();
+    final MutableARGPath globalVarsPath = new MutableARGPath();
 
     // the short Path, the result
-    final ARGPath shortErrorPath = new ARGPath();
+    final MutableARGPath shortErrorPath = new MutableARGPath();
 
     // the errorNode is important, add both the edge before and after it
     final Pair<ARGState, CFAEdge> lastElem = revIterator.next();
@@ -151,7 +151,7 @@ public final class ErrorPathShrinker {
             importantVarsForGlobalVars);
       }
     }
-    return shortErrorPath;
+    return shortErrorPath.immutableCopy();
   }
 
   /** This method iterates a Path and removes all elements
@@ -160,8 +160,8 @@ public final class ErrorPathShrinker {
    * example: [1, 2, 3, TARGET, 4, 5] --> [1, 2, 3, TARGET]
    *
    * @param path the Path to iterate */
-  private ARGPath removeAllElemsAfterTarget(final ARGPath path) {
-    final ARGPath targetPath = new ARGPath();
+  private MutableARGPath removeAllElemsAfterTarget(final ARGPath path) {
+    final MutableARGPath targetPath = new MutableARGPath();
     final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
     Pair<ARGState, CFAEdge> it;
 
@@ -180,7 +180,7 @@ public final class ErrorPathShrinker {
    * of global variables.
    *
    * @param path the Path to iterate */
-  private void findGlobalVarsInPath(final ARGPath path) {
+  private void findGlobalVarsInPath(final MutableARGPath path) {
 
     // iterate through the Path and collect all important variables
     final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
@@ -300,7 +300,7 @@ public final class ErrorPathShrinker {
   private final class PathHandler {
 
     /** The short Path stores the result of PathHandler.handlePath(). */
-    private final ARGPath                                shortPath;
+    private final MutableARGPath                                shortPath;
 
     /** The reverse iterator runs from lastNode to firstNode. */
     private final Iterator<Pair<ARGState, CFAEdge>> reverseIterator;
@@ -314,7 +314,7 @@ public final class ErrorPathShrinker {
 
     /** This Path stores CFAEdges, where globalVars or
      * importantVarsForGlobalVars are assigned.*/
-    private final ARGPath                                globalVarsPath;
+    private final MutableARGPath                                globalVarsPath;
 
     /** This is the currently handled CFAEdgePair. */
     private Pair<ARGState, CFAEdge>                 currentCFAEdgePair;
@@ -331,11 +331,11 @@ public final class ErrorPathShrinker {
      *  @param globalVarsPathOut the Path of the callerFunction, storing the
      *         CFAEdgePairs, where globalVars or importantVarsForGlobalVars
      *         are assigned */
-    private PathHandler(final ARGPath shortPathOut,
+    private PathHandler(final MutableARGPath shortPathOut,
         final Iterator<Pair<ARGState, CFAEdge>> revIteratorOut,
         final Set<String> importantVarsOut,
         final Set<String> importantVarsForGlobalVarsOut,
-        final ARGPath globalVarsPathOut) {
+        final MutableARGPath globalVarsPathOut) {
       shortPath = shortPathOut;
       reverseIterator = revIteratorOut;
       importantVars = importantVarsOut;
@@ -428,10 +428,10 @@ public final class ErrorPathShrinker {
       final Pair<ARGState, CFAEdge> returnEdgePair = currentCFAEdgePair;
 
       // Path for storing changings of variables of importantVarsForGlobalVars
-      final ARGPath functionGlobalVarsPath = new ARGPath();
+      final MutableARGPath functionGlobalVarsPath = new MutableARGPath();
 
       // the short Path is the result, the last element is the "return"-Node
-      final ARGPath shortFunctionPath = new ARGPath();
+      final MutableARGPath shortFunctionPath = new MutableARGPath();
 
       // Set for storing the global variables, that are possibly important
       // in the function. copy all global variables in another Set,
@@ -469,11 +469,11 @@ public final class ErrorPathShrinker {
      *          variables, that are important for global vars in the function
      * @param functionGlobalVarsPath
      *          Path with Edges that influence global vars */
-    private void mergeResultsOfFunctionCall(final ARGPath shortFunctionPath,
+    private void mergeResultsOfFunctionCall(final MutableARGPath shortFunctionPath,
         final Pair<ARGState, CFAEdge> returnEdgePair,
         final Set<String> possibleVars,
         final Set<String> possibleImportantVarsForGlobalVars,
-        final ARGPath functionGlobalVarsPath) {
+        final MutableARGPath functionGlobalVarsPath) {
 
       // the recursive call stops at the functionStart,
       // so the lastEdge is the functionCall and there exist a
