@@ -137,12 +137,10 @@ public class CPAMain {
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
 
-    if (!options.useTigerAlgorithm) {
-      try {
-        printResultAndStatistics(result, outputDirectory, options, logManager);
-      } catch (IOException e) {
-        logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
-      }
+    try {
+      printResultAndStatistics(result, outputDirectory, options, logManager);
+    } catch (IOException e) {
+      logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
 
     System.out.flush();

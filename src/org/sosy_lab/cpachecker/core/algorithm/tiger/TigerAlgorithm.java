@@ -148,6 +148,7 @@ public class TigerAlgorithm implements Algorithm {
 
   private TestSuite testsuite;
   private ReachedSet reachedSet = null;
+  private ReachedSet outsideReachedSet = null;
 
   private Map<Integer, Goal> timedOutGoals;
 
@@ -208,7 +209,8 @@ public class TigerAlgorithm implements Algorithm {
     // Problem: pReachedSet does not match the internal CPA structure!
     logger.logf(Level.INFO, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
-    pReachedSet.clear();
+    outsideReachedSet = pReachedSet;
+    outsideReachedSet.clear();
 
 
     // (ii) translate query into set of test goals
@@ -384,6 +386,8 @@ public class TigerAlgorithm implements Algorithm {
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
 
       reachedSet.add(lInitialElement, lInitialPrecision);
+
+      outsideReachedSet.add(lInitialElement, lInitialPrecision);
     }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
