@@ -21,6 +21,8 @@
       <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--mtd--ubi--ubi.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--net2272.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--pxa27x_udc.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ceph--ceph.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-fs--ceph--ceph.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--ethernet--chelsio--cxgb3--cxgb3.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/68_1/linux-3.12-rc1/linux-3.12-rc1.tar.xz-68_1-drivers--staging--winbond--w35und.ko-ldv_main7_false-unreach-label.cil.out.c</exclude>
     </sourcefiles>
