@@ -24,12 +24,13 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -61,9 +62,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -85,16 +89,13 @@ public final class ErrorPathShrinker {
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
   public List<CFAEdge> shrinkErrorPath(ARGPath pTargetPath) {
-
-    // first remove all elements after the target-element from path
-    MutableARGPath targetPath = removeAllElemsAfterTarget(pTargetPath);
+    List<CFAEdge> targetPath = getEdgesUntilTarget(pTargetPath);
 
     // first collect all global variables
     findGlobalVarsInPath(targetPath);
 
     // create reverse iterator, from lastNode to firstNode
-    final Iterator<Pair<ARGState, CFAEdge>> revIterator =
-        targetPath.descendingIterator();
+    final Iterator<CFAEdge> revIterator = Lists.reverse(targetPath).iterator();
 
     // Set for storing the important variables
     Set<String> importantVars = new LinkedHashSet<>();
@@ -104,16 +105,13 @@ public final class ErrorPathShrinker {
     Set<String> importantVarsForGlobalVars = new LinkedHashSet<>();
 
     // Path for storing changings of globalVars
-    final MutableARGPath globalVarsPath = new MutableARGPath();
+    final LinkedList<CFAEdge> globalVarsPath = new LinkedList<>();
 
     // the short Path, the result
-    final MutableARGPath shortErrorPath = new MutableARGPath();
+    final LinkedList<CFAEdge> shortErrorPath = new LinkedList<>();
 
     // the errorNode is important, add both the edge before and after it
-    final Pair<ARGState, CFAEdge> lastElem = revIterator.next();
-    assert lastElem.getFirst().isTarget()
-            : "Last Element of ErrorPath must be a targetElement.";
-    shortErrorPath.addFirst(lastElem);
+    shortErrorPath.addFirst(revIterator.next());
     if (revIterator.hasNext()) {
       shortErrorPath.addFirst(revIterator.next());
     }
@@ -131,7 +129,7 @@ public final class ErrorPathShrinker {
 
       // the pathHandler stops at a functionStart or at the start of program.
       // so if the lastEdge is a functionCall, the path is not finished.
-      final CFAEdge lastEdge = shortErrorPath.getFirst().getSecond();
+      final CFAEdge lastEdge = shortErrorPath.getFirst();
       if (lastEdge instanceof CFunctionCallEdge) {
         final CFunctionCallEdge funcEdge = (CFunctionCallEdge) lastEdge;
 
@@ -153,31 +151,36 @@ public final class ErrorPathShrinker {
             importantVarsForGlobalVars);
       }
     }
-    return ImmutableList.copyOf(shortErrorPath.asEdgesList());
+    return ImmutableList.copyOf(shortErrorPath);
   }
 
-  /** This method iterates a Path and removes all elements
-   * after the first target-element.
-   *
-   * example: [1, 2, 3, TARGET, 4, 5] --> [1, 2, 3, TARGET]
+  /** This method iterates a path and copies all the edges until
+   * the target state into the result.
+   * One edge after the target state is also added.
    *
    * @param path the Path to iterate */
-  private MutableARGPath removeAllElemsAfterTarget(final ARGPath path) {
-    final MutableARGPath targetPath = path.mutableCopy();
-    final Iterator<Pair<ARGState, CFAEdge>> iterator = targetPath.iterator();
-
+  private List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
+    List<CFAEdge> targetPath = new ArrayList<>(path.size());
+    PathIterator iterator = path.pathIterator();
     // iterate through the Path and find the first target-element
     while (iterator.hasNext()) {
-      if (iterator.next().getFirst().isTarget()) {
+      iterator.advance();
+      targetPath.add(iterator.getIncomingEdge());
+      if (iterator.getAbstractState().isTarget()) {
+
+        // We still want one edge after the target state
+        // TODO: probably this should be globally removed
+        if (iterator.hasNext()) {
+          targetPath.add(iterator.getOutgoingEdge());
+        } else {
+          // if the target state is the last state, we cannot get this edge from the iterator
+          targetPath.add(Iterables.getLast(path.asEdgesList()));
+        }
+
         break;
       }
     }
 
-    // remove remaining elements
-    while (iterator.hasNext()) {
-      iterator.next();
-      iterator.remove();
-    }
     return targetPath;
   }
 
@@ -185,13 +188,10 @@ public final class ErrorPathShrinker {
    * of global variables.
    *
    * @param path the Path to iterate */
-  private void findGlobalVarsInPath(final MutableARGPath path) {
+  private void findGlobalVarsInPath(final List<CFAEdge> path) {
 
     // iterate through the Path and collect all important variables
-    final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
-    while (iterator.hasNext()) {
-      CFAEdge cfaEdge = iterator.next().getSecond();
-
+    for (CFAEdge cfaEdge : path) {
       if (cfaEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) cfaEdge).getDeclaration();
 
@@ -305,10 +305,10 @@ public final class ErrorPathShrinker {
   private final class PathHandler {
 
     /** The short Path stores the result of PathHandler.handlePath(). */
-    private final MutableARGPath                                shortPath;
+    private final LinkedList<CFAEdge> shortPath;
 
     /** The reverse iterator runs from lastNode to firstNode. */
-    private final Iterator<Pair<ARGState, CFAEdge>> reverseIterator;
+    private final Iterator<CFAEdge> reverseIterator;
 
     /** This Set stores the important variables of the Path. */
     private final Set<String>                         importantVars;
@@ -319,28 +319,28 @@ public final class ErrorPathShrinker {
 
     /** This Path stores CFAEdges, where globalVars or
      * importantVarsForGlobalVars are assigned.*/
-    private final MutableARGPath                                globalVarsPath;
+    private final LinkedList<CFAEdge> globalVarsPath;
 
-    /** This is the currently handled CFAEdgePair. */
-    private Pair<ARGState, CFAEdge>                 currentCFAEdgePair;
+    /** This is the currently handled CFAEdge. */
+    private CFAEdge currentCFAEdge;
 
     /** The Constructor of this Class gets some references (pointers) from the
      * callerFunction, all of them may be changed during 'handlePath()'.
      *
      *  @param shortPathOut the shortErrorPath of the callerFunction
      *  @param revIteratorOut the reverse iterator of the callerFunction,
-     *         storing the current CFAEdgePair of the longErrorPath
+     *         storing the current CFAEdge of the longErrorPath
      *  @param importantVarsOut a Set with important variables
      *  @param importantVarsForGlobalVarsOut a Set with important variables,
      *         that influence globalVars
      *  @param globalVarsPathOut the Path of the callerFunction, storing the
-     *         CFAEdgePairs, where globalVars or importantVarsForGlobalVars
+     *         CFAEdges, where globalVars or importantVarsForGlobalVars
      *         are assigned */
-    private PathHandler(final MutableARGPath shortPathOut,
-        final Iterator<Pair<ARGState, CFAEdge>> revIteratorOut,
+    private PathHandler(final LinkedList<CFAEdge> shortPathOut,
+        final Iterator<CFAEdge> revIteratorOut,
         final Set<String> importantVarsOut,
         final Set<String> importantVarsForGlobalVarsOut,
-        final MutableARGPath globalVarsPathOut) {
+        final LinkedList<CFAEdge> globalVarsPathOut) {
       shortPath = shortPathOut;
       reverseIterator = revIteratorOut;
       importantVars = importantVarsOut;
@@ -354,11 +354,10 @@ public final class ErrorPathShrinker {
 
       // iterate the Path (backwards) and collect all important variables
       while (reverseIterator.hasNext()) {
-        currentCFAEdgePair = reverseIterator.next();
-        CFAEdge cfaEdge = currentCFAEdgePair.getSecond();
+        currentCFAEdge = reverseIterator.next();
 
         // check the type of the edge
-        switch (cfaEdge.getEdgeType()) {
+        switch (currentCFAEdge.getEdgeType()) {
 
         // if edge is a statement edge, e.g. a = b + c
         case StatementEdge:
@@ -387,16 +386,16 @@ public final class ErrorPathShrinker {
          * a labelEdge and a really blank edge are not important.
          * TODO are there more types? */
         case BlankEdge:
-          if (cfaEdge.getSuccessor().isLoopStart()) {
-            addCurrentCFAEdgePairToShortPath();
+          if (currentCFAEdge.getSuccessor().isLoopStart()) {
+            addCurrentCFAEdgeToShortPath();
           }
           break;
 
         // start of a function, so "return" to the higher recursive call
         case FunctionCallEdge:
-          addCurrentCFAEdgePairToShortPath();
+          addCurrentCFAEdgeToShortPath();
           if (!globalVarsPath.isEmpty()) {
-            globalVarsPath.addFirst(currentCFAEdgePair);
+            globalVarsPath.addFirst(currentCFAEdge);
           }
           return;
 
@@ -408,7 +407,7 @@ public final class ErrorPathShrinker {
 
         // if edge cannot be handled, it could be important
         default:
-          addCurrentCFAEdgePairToShortPath();
+          addCurrentCFAEdgeToShortPath();
         }
       }
     }
@@ -424,19 +423,19 @@ public final class ErrorPathShrinker {
 
       // in the expression "return r" the value "r" is possibly important.
       final Optional<? extends IAExpression> returnExp =
-          ((AReturnStatementEdge) currentCFAEdgePair.getSecond()).getExpression();
+          ((AReturnStatementEdge) currentCFAEdge).getExpression();
       if (returnExp.isPresent()) {
         addAllVarsInExpToSet(returnExp.get(), possibleVars,
             importantVarsForGlobalVars);
       }
 
-      final Pair<ARGState, CFAEdge> returnEdgePair = currentCFAEdgePair;
+      final CFAEdge returnEdge = currentCFAEdge;
 
       // Path for storing changings of variables of importantVarsForGlobalVars
-      final MutableARGPath functionGlobalVarsPath = new MutableARGPath();
+      final LinkedList<CFAEdge> functionGlobalVarsPath = new LinkedList<>();
 
       // the short Path is the result, the last element is the "return"-Node
-      final MutableARGPath shortFunctionPath = new MutableARGPath();
+      final LinkedList<CFAEdge> shortFunctionPath = new LinkedList<>();
 
       // Set for storing the global variables, that are possibly important
       // in the function. copy all global variables in another Set,
@@ -458,7 +457,7 @@ public final class ErrorPathShrinker {
       System.out.println("globPath:\n" + functionGlobalVarsPath);
       */
 
-      mergeResultsOfFunctionCall(shortFunctionPath, returnEdgePair,
+      mergeResultsOfFunctionCall(shortFunctionPath, returnEdge,
           possibleVars, possibleImportantVarsForGlobalVars,
           functionGlobalVarsPath);
     }
@@ -467,23 +466,23 @@ public final class ErrorPathShrinker {
      * calling program. It also merges the Sets of Variables of the
      * functionCall with the Set from the calling program.
      * @param shortFunctionPath the short Path of the function
-     * @param returnEdgePair the last CFAEdgePair of the function
+     * @param returnEdge the last CFAEdge of the function
      * @param possibleVars
      *          variables, that are important for the result of the function
      * @param possibleImportantVarsForGlobalVars
      *          variables, that are important for global vars in the function
      * @param functionGlobalVarsPath
      *          Path with Edges that influence global vars */
-    private void mergeResultsOfFunctionCall(final MutableARGPath shortFunctionPath,
-        final Pair<ARGState, CFAEdge> returnEdgePair,
+    private void mergeResultsOfFunctionCall(final List<CFAEdge> shortFunctionPath,
+        final CFAEdge returnEdge,
         final Set<String> possibleVars,
         final Set<String> possibleImportantVarsForGlobalVars,
-        final MutableARGPath functionGlobalVarsPath) {
+        final List<CFAEdge> functionGlobalVarsPath) {
 
       // the recursive call stops at the functionStart,
       // so the lastEdge is the functionCall and there exist a
       // CFunctionSummaryEdge, that jumps over the hole function
-      final CFAEdge lastEdge = shortFunctionPath.getFirst().getSecond();
+      final CFAEdge lastEdge = shortFunctionPath.get(0);
       assert (lastEdge instanceof FunctionCallEdge);
       final FunctionCallEdge funcEdge = (FunctionCallEdge) lastEdge;
       final FunctionSummaryEdge funcSummaryEdge = funcEdge.getSummaryEdge();
@@ -500,8 +499,8 @@ public final class ErrorPathShrinker {
             importantVarsForGlobalVars);
 
         // add the important edges in front of the shortPath
-        shortPath.addFirst(returnEdgePair);
-        globalVarsPath.addFirst(returnEdgePair);
+        shortPath.addFirst(returnEdge);
+        globalVarsPath.addFirst(returnEdge);
         shortPath.addAll(0, functionGlobalVarsPath);
         globalVarsPath.addAll(0, functionGlobalVarsPath);
       }
@@ -521,8 +520,8 @@ public final class ErrorPathShrinker {
               importantVarsForGlobalVars);
 
           // add the returnEdge in front of the shortPath
-          shortPath.addFirst(returnEdgePair);
-          globalVarsPath.addFirst(returnEdgePair);
+          shortPath.addFirst(returnEdge);
+          globalVarsPath.addFirst(returnEdge);
           globalVarsPath.addAll(0, functionGlobalVarsPath);
         }
 
@@ -569,7 +568,7 @@ public final class ErrorPathShrinker {
     private void handleStatement() {
 
       IAStatement statementExp =
-          ((AStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
+          ((AStatementEdge) currentCFAEdge).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
       if (statementExp instanceof IAssignment) {
@@ -578,7 +577,7 @@ public final class ErrorPathShrinker {
 
       // ext();
       else if (statementExp instanceof AFunctionCall) {
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
       }
     }
 
@@ -599,7 +598,7 @@ public final class ErrorPathShrinker {
 
       // TODO: assignment to pointer, *a = ?
       else if (lParam instanceof APointerExpression) {
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
       }
 
       // "a->b = ?", assignment to field is handled as assignment to variable.
@@ -609,12 +608,12 @@ public final class ErrorPathShrinker {
 
       // TODO assignment to array cell, a[b] = ?
       else if (lParam instanceof CArraySubscriptExpression) {
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
       }
 
       // if the edge is not unimportant, this edge could be important.
       else {
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
       }
     }
 
@@ -629,7 +628,7 @@ public final class ErrorPathShrinker {
       // FIRST add edge to the Path, THEN remove lParam from Set
       if (importantVars.contains(lParam)
           || importantVarsForGlobalVars.contains(lParam)) {
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
       }
 
       // if lParam is important, the edge and rightExp are important.
@@ -647,7 +646,7 @@ public final class ErrorPathShrinker {
       // important for a global variable and the Edge is part of globalVarPath.
       if (importantVarsForGlobalVars.contains(lParam)) {
 
-        globalVarsPath.addFirst(currentCFAEdgePair);
+        globalVarsPath.addFirst(currentCFAEdge);
 
         // FIRST remove lParam, its history is unimportant.
         importantVarsForGlobalVars.remove(lParam);
@@ -667,20 +666,20 @@ public final class ErrorPathShrinker {
     private void handleDeclaration() {
 
       IADeclaration declaration =
-          ((ADeclarationEdge) currentCFAEdgePair.getSecond()).getDeclaration();
+          ((ADeclarationEdge) currentCFAEdge).getDeclaration();
 
       /* If the declared variable is important, the edge is important. */
       if (declaration.getName() != null) {
         final String varName = declaration.getName();
         if (importantVars.contains(varName)) {
-          addCurrentCFAEdgePairToShortPath();
+          addCurrentCFAEdgeToShortPath();
 
           // the variable is declared in this statement,
           // so it is not important in the CFA before. --> remove it.
           importantVars.remove(varName);
         }
         if (importantVarsForGlobalVars.contains(varName)) {
-          globalVarsPath.addFirst(currentCFAEdgePair);
+          globalVarsPath.addFirst(currentCFAEdge);
         }
       }
     }
@@ -691,17 +690,17 @@ public final class ErrorPathShrinker {
      * assumption (expression) to the important variables. */
     private void handleAssumption() {
       final IAExpression assumeExp =
-          ((AssumeEdge) currentCFAEdgePair.getSecond()).getExpression();
+          ((AssumeEdge) currentCFAEdge).getExpression();
 
       if (!isSwitchStatement(assumeExp)) {
         addAllVarsInExpToSet(assumeExp, importantVars,
             importantVarsForGlobalVars);
-        addCurrentCFAEdgePairToShortPath();
+        addCurrentCFAEdgeToShortPath();
 
         if (!globalVarsPath.isEmpty()) {
           addAllVarsInExpToSet(assumeExp, importantVarsForGlobalVars,
               importantVarsForGlobalVars);
-          globalVarsPath.addFirst(currentCFAEdgePair);
+          globalVarsPath.addFirst(currentCFAEdge);
         }
       }
     }
@@ -717,7 +716,7 @@ public final class ErrorPathShrinker {
 
       // Path can be empty at the end of a functionCall ("if (a) return b;")
       if (!shortPath.isEmpty()) {
-        final CFAEdge lastEdge = shortPath.getFirst().getSecond();
+        final CFAEdge lastEdge = shortPath.getFirst();
 
         //check, if the last edge was an assumption
         if (assumeExp instanceof ABinaryExpression
@@ -761,9 +760,9 @@ public final class ErrorPathShrinker {
       return false;
     }
 
-    /** This method adds the current CFAEdgePair in front of the shortPath. */
-    private void addCurrentCFAEdgePairToShortPath() {
-      shortPath.addFirst(currentCFAEdgePair);
+    /** This method adds the current CFAEdge in front of the shortPath. */
+    private void addCurrentCFAEdgeToShortPath() {
+      shortPath.addFirst(currentCFAEdge);
     }
   }
 }
