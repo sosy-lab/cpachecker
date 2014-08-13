@@ -68,6 +68,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -81,7 +82,7 @@ public final class ErrorPathShrinker {
   }
 
   /** Set<String> for storing the global variables. */
-  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<>();
+  private final Set<String> globalVars = new LinkedHashSet<>();
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
@@ -202,7 +203,7 @@ public final class ErrorPathShrinker {
             // if a variable (declarator) is no pointer variable,
             // it is added to the list of global variables
             if (!(type instanceof CPointerType)) {
-              GLOBAL_VARS.add(declaration.getName());
+              globalVars.add(declaration.getName());
             }
           }
         }
@@ -235,7 +236,7 @@ public final class ErrorPathShrinker {
     else if (exp instanceof AIdExpression) {
       final String varName = ((AIdExpression)exp).getName();
       importantVars.add(varName);
-      if (GLOBAL_VARS.contains(varName)) {
+      if (globalVars.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
       }
     }
@@ -265,7 +266,7 @@ public final class ErrorPathShrinker {
     else if (exp instanceof CFieldReference) {
       final String varName = exp.toASTString();
       importantVars.add(varName);
-      if (GLOBAL_VARS.contains(varName)) {
+      if (globalVars.contains(varName)) {
         importantVarsForGlobalVars.add(varName);
       }
     }
@@ -277,11 +278,7 @@ public final class ErrorPathShrinker {
    *  @param targetSet where to store the variables */
   private void addGlobalVarsFromSetToSet(final Set<String> sourceSet,
       final Set<String> targetSet) {
-    for (String varName : sourceSet) {
-      if (GLOBAL_VARS.contains(varName)) {
-        targetSet.add(varName);
-      }
-    }
+    targetSet.addAll(Sets.intersection(sourceSet, globalVars));
   }
 
   /** This method adds the variables in the Expression "x" and "y" from
@@ -552,8 +549,8 @@ public final class ErrorPathShrinker {
 
       // delete global variables assigned in the function,
       // delete all globalVars, the important ones will be added again later.
-      importantVarsForGlobalVars.removeAll(GLOBAL_VARS);
-      importantVars.removeAll(GLOBAL_VARS);
+      importantVarsForGlobalVars.removeAll(globalVars);
+      importantVars.removeAll(globalVars);
 
       // if global variables are used in the function and they have an effect
       // to the result or the globalPath of the function,
