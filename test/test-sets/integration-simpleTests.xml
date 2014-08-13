@@ -2,6 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="10" memlimit="100" cpuCores="1">
   <option name="-noout"/>
+  <option name="-heap">10M</option>
 
   <rundefinition>
     <sourcefiles>
