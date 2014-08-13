@@ -33,7 +33,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -167,7 +166,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private PredicatePrecision reusedPrecision = null;
 
-  private Map<Integer, Goal> timedOutGoals;
+  //private Map<Integer, Goal> timedOutGoals;
+
+  private int statistics_numberOfTestGoals;
+  private int statistics_numberOfProcessedTestGoals = 0;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -215,7 +217,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
     }
 
-    timedOutGoals = new HashMap<>();
+    //timedOutGoals = new HashMap<>();
   }
 
   @Override
@@ -232,13 +234,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     // (ii) translate query into set of test goals
     // I didn't move this operation to the constructor since it is a potentially expensive operation.
-    ElementaryCoveragePattern[] lGoalPatterns = extractTestGoalPatterns(fqlSpecification);
+    LinkedList<ElementaryCoveragePattern> goalPatterns = extractTestGoalPatterns(fqlSpecification);
 
-    // TODO integrate into extractTestGoalPatterns
-    LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
-    for (ElementaryCoveragePattern lGoalPattern : lGoalPatterns) {
-      goalPatterns.push(lGoalPattern);
-    }
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
@@ -248,14 +245,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }
 
     // process timed out goals
-    for (Entry<Integer, Goal> entry : timedOutGoals.entrySet()) {
+    /*for (Entry<Integer, Goal> entry : timedOutGoals.entrySet()) {
       testsuite.addTimedOutGoal(entry.getValue());
-    }
+    }*/
 
     return wasSound;
   }
 
-  private ElementaryCoveragePattern[] extractTestGoalPatterns(FQLSpecification pFQLQuery) {
+  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery) {
     logger.logf(Level.INFO, "Extracting test goals.");
 
 
@@ -266,14 +263,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", lNumberOfTestGoals);
+    statistics_numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
+    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
-    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+    LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
 
-    for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
-      lGoalPatterns[lGoalIndex] = lGoalIterator.next();
+    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
+      lGoalPatterns.add(lGoalIterator.next());
     }
 
     return lGoalPatterns;
@@ -289,6 +286,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     //for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
     while (!pTestGoalPatterns.isEmpty()) {
+      statistics_numberOfProcessedTestGoals++;
+
       ElementaryCoveragePattern lTestGoalPattern = pTestGoalPatterns.poll();
 
       goalIndex++;
@@ -302,6 +301,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
         // current goal is for sure infeasible
         logger.logf(Level.INFO, "Test goal infeasible.");
+
+        testsuite.addInfeasibleGoal(lGoal);
+
         continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
       }
 
@@ -495,7 +497,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           // TODO implement special handling
           logger.logf(Level.INFO, "Test goal timed out!");
 
-          timedOutGoals.put(goalIndex, pGoal);
+          //timedOutGoals.put(goalIndex, pGoal);
+          testsuite.addTimedOutGoal(pGoal);
 
           hasTimedOut = true;
         }
@@ -683,6 +686,16 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       } catch (IOException e){
         throw new RuntimeException(e);
       }
+    }
+
+    pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
+    pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
+    pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
+    pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
+    pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+
+    if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+      pOut.println("Timeout occured during processing of a test goal!");
     }
   }
 

@@ -36,11 +36,24 @@ public class TestSuite {
   private Map<TestCase, List<Goal>> mapping;
   private List<Goal> infeasibleGoals;
   private List<Goal> timedOutGoals;
+  private int numberOfFeasibleGoals = 0;
 
   public TestSuite() {
     mapping = new HashMap<>();
     infeasibleGoals = new LinkedList<>();
     timedOutGoals = new LinkedList<>();
+  }
+
+  public int getNumberOfFeasibleTestGoals() {
+    return numberOfFeasibleGoals;
+  }
+
+  public int getNumberOfInfeasibleTestGoals() {
+    return infeasibleGoals.size();
+  }
+
+  public int getNumberOfTimedoutTestGoals() {
+    return timedOutGoals.size();
   }
 
   public void addTimedOutGoal(Goal goal) {
@@ -52,6 +65,8 @@ public class TestSuite {
   }
 
   public boolean addTestCase(TestCase testcase, Goal goal) {
+    numberOfFeasibleGoals++;
+
     List<Goal> goals = mapping.get(testcase);
 
     boolean testcaseExisted = true;
