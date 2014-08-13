@@ -68,6 +68,9 @@ import com.google.common.collect.Iterables;
  *
  * The recommended way to iterate through an ARGPath if you need both states and edges
  * is to use {@link #pathIterator()}.
+ *
+ * The usual way to get an ARGPath instance is from methods in {@link ARGUtils}
+ * such as {@link ARGUtils#getOnePathTo(ARGState)} and {@link ARGUtils#getRandomPath(ARGState)}.
  */
 @Immutable
 public class ARGPath implements Appender {
@@ -96,7 +99,7 @@ public class ARGPath implements Appender {
     assert states.size() == edges.size();
   }
 
-  public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
+  ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     checkArgument(pStates.size() == pEdges.size(), "ARGPaths must have equal number of states and edges");
     CFAEdge lastEdge = pEdges.get(pEdges.size()-1);

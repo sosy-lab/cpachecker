@@ -183,6 +183,23 @@ public class ARGUtils {
     return path;
   }
 
+  /**
+   * Get one random path from the ARG root to an ARG leaf.
+   * @param root The root state of an ARG (may not have any parents)
+   */
+  public static ARGPath getRandomPath(final ARGState root) {
+    checkArgument(root.getParents().isEmpty());
+
+    List<ARGState> states = new ArrayList<>();
+    ARGState currentElement = root;
+    while (currentElement.getChildren().size() > 0) {
+      states.add(currentElement);
+      currentElement = currentElement.getChildren().iterator().next();
+    }
+    states.add(currentElement);
+    return new ARGPath(states);
+  }
+
   public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
         public Collection<ARGState> apply(ARGState pInput) {
