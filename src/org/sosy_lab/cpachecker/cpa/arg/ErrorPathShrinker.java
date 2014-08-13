@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -111,11 +110,8 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final LinkedList<CFAEdge> shortErrorPath = new LinkedList<>();
 
-    // the errorNode is important, add both the edge before and after it
+    // the errorNode is important, add the edge before it
     shortErrorPath.addFirst(revIterator.next());
-    if (revIterator.hasNext()) {
-      shortErrorPath.addFirst(revIterator.next());
-    }
 
     /* if the ErrorNode is inside of a function, the longPath is not handled
      * until the StartNode, but only until the functionCall.
@@ -157,8 +153,7 @@ public final class ErrorPathShrinker {
 
   /** This method iterates a path and copies all the edges until
    * the target state into the result.
-   * One edge after the target state is also added.
-   *
+´   *
    * @param path the Path to iterate */
   private List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
     List<CFAEdge> targetPath = new ArrayList<>(path.size());
@@ -168,16 +163,6 @@ public final class ErrorPathShrinker {
       iterator.advance();
       targetPath.add(iterator.getIncomingEdge());
       if (iterator.getAbstractState().isTarget()) {
-
-        // We still want one edge after the target state
-        // TODO: probably this should be globally removed
-        if (iterator.hasNext()) {
-          targetPath.add(iterator.getOutgoingEdge());
-        } else {
-          // if the target state is the last state, we cannot get this edge from the iterator
-          targetPath.add(Iterables.getLast(path.asEdgesList()));
-        }
-
         break;
       }
     }

@@ -380,7 +380,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // try to create a better satisfying assignment by replaying this single path
       CounterexampleTraceInfo info2;
       try {
-        info2 = pathChecker.checkPath(targetPath.asEdgesList());
+        info2 = pathChecker.checkPath(targetPath.getInnerEdges());
 
       } catch (CPATransferException e) {
         // path is now suddenly a problem

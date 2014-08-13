@@ -97,7 +97,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.asEdgesList(), pathToFunctionCalls)));
+          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getInnerEdges(), pathToFunctionCalls)));
     }
 
     final CounterexampleInfo counterexample;

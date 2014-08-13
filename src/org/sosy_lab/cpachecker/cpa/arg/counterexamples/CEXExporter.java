@@ -179,7 +179,7 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
-            createErrorPathWithVariableAssignmentInformation(targetPath.asEdgesList(), counterexample));
+            createErrorPathWithVariableAssignmentInformation(targetPath.getInnerEdges(), counterexample));
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,

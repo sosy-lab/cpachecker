@@ -183,7 +183,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // gather CFAEdges until hit location that is loopHead
     Vector<CFAEdge> edges = new Vector<>();
 
-    for (CFAEdge edge : pPath.asEdgesList()) {
+    for (CFAEdge edge : pPath.getInnerEdges()) {
       CFANode loc = edge.getPredecessor();
       if (loc == loopHead) {
         break;

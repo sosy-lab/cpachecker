@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.CFAUtils2;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -197,7 +197,7 @@ public class BasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
       InterruptedException {
-    return pathValidator.validatePath(pExecutedPath.asEdgesList()
+    return pathValidator.validatePath(pExecutedPath.getInnerEdges()
         );
   }
 
