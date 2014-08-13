@@ -33,6 +33,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -137,6 +138,17 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
 
+  enum TimeoutStrategy {
+    SKIP_AFTER_TIMEOUT,
+    RETRY_AFTER_TIMEOUT
+  }
+
+  @Option(name = "timeoutStrategy", description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
+  private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
+
+  @Option(name = "limitsPerGoal.time.cpu.increment", description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
+  private int timeoutIncrement = 0;
+
   /*@Option(name = "globalCoverageCheckBeforeTimeout", description = "Perform a coverage check on all remaining coverage goals before the global time out happens.")
   private boolean globalCoverageCheckBeforeTimeout = false;
 
@@ -165,8 +177,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private ReachedSet outsideReachedSet = null;
 
   private PredicatePrecision reusedPrecision = null;
-
-  //private Map<Integer, Goal> timedOutGoals;
 
   private int statistics_numberOfTestGoals;
   private int statistics_numberOfProcessedTestGoals = 0;
@@ -216,8 +226,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
       throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
     }
-
-    //timedOutGoals = new HashMap<>();
   }
 
   @Override
@@ -244,10 +252,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       wasSound = false;
     }
 
-    // process timed out goals
-    /*for (Entry<Integer, Goal> entry : timedOutGoals.entrySet()) {
-      testsuite.addTimedOutGoal(entry.getValue());
-    }*/
+    assert(goalPatterns.isEmpty());
 
     return wasSound;
   }
@@ -276,6 +281,25 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     return lGoalPatterns;
   }
 
+  private boolean isCovered(int goalIndex, Goal lGoal) {
+    for (TestCase testcase : testsuite.getTestCases()) {
+      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
+      if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
+        // test goal is already covered by an existing test case
+        logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+
+        testsuite.addTestCase(testcase, lGoal);
+
+        return true;
+      }
+      else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
+      }
+    }
+
+    return false;
+  }
+
   private boolean testGeneration(LinkedList<ElementaryCoveragePattern> pTestGoalPatterns) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
@@ -284,7 +308,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
 
-    //for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
     while (!pTestGoalPatterns.isEmpty()) {
       statistics_numberOfProcessedTestGoals++;
 
@@ -307,29 +330,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
       }
 
-      if (checkCoverage) {
-        boolean wasCovered = false;
-
-        for (TestCase testcase : testsuite.getTestCases()) {
-          ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.getPath());
-          if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
-            // test goal is already covered by an existing test case
-            logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
-
-            testsuite.addTestCase(testcase, lGoal);
-
-            wasCovered = true;
-
-            break;
-          }
-          else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-            logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
-          }
-        }
-
-        if (wasCovered) {
-          continue;
-        }
+      if (checkCoverage && isCovered(goalIndex, lGoal)) {
+        continue;
       }
 
       if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
@@ -338,6 +340,45 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
 
       previousAutomaton = currentAutomaton;
+    }
+
+    // reprocess timed-out goals
+    if (timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+      int previousNumberOfTestCases = 0;
+
+      do {
+        if (timeoutIncrement > 0) {
+          long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
+          cpuTimelimitPerGoal += timeoutIncrement;
+          logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal, cpuTimelimitPerGoal);
+        }
+
+        Map<Integer, Goal> timedoutGoals = new HashMap<>();
+        timedoutGoals.putAll(testsuite.getTimedOutGoals());
+        testsuite.getTimedOutGoals().clear();
+
+        for (Entry<Integer, Goal> entry : timedoutGoals.entrySet()) {
+          goalIndex = entry.getKey();
+          Goal lGoal = entry.getValue();
+
+          logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
+
+          // TODO optimization: do not check for coverage if no new testcases were generated.
+          if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
+            continue;
+          }
+
+          if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
+            logger.logf(Level.WARNING, "Analysis run was unsound!");
+            wasSound = false;
+          }
+
+          previousAutomaton = lGoal.getAutomaton();
+        }
+
+        previousNumberOfTestCases = testsuite.getNumberOfTestCases();
+      }
+      while (testsuite.hasTimedoutTestGoals());
     }
 
     return wasSound;
@@ -494,11 +535,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         analysisWasSound = workerRunnable.analysisWasSound();
 
         if (workerRunnable.hasTimeout()) {
-          // TODO implement special handling
           logger.logf(Level.INFO, "Test goal timed out!");
 
-          //timedOutGoals.put(goalIndex, pGoal);
-          testsuite.addTimedOutGoal(pGoal);
+          testsuite.addTimedOutGoal(goalIndex, pGoal);
 
           hasTimedOut = true;
         }
@@ -534,7 +573,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         assert counterexamples.size() == 1;
 
         for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-          //ARGState state = lEntry.getKey();
           CounterexampleInfo cex = lEntry.getValue();
 
           if (cex.isSpurious()) {

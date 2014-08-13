@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 public class TestSuite {
   private Map<TestCase, List<Goal>> mapping;
   private List<Goal> infeasibleGoals;
-  private List<Goal> timedOutGoals;
+  private Map<Integer, Goal> timedOutGoals;
   private int numberOfFeasibleGoals = 0;
 
   public TestSuite() {
     mapping = new HashMap<>();
     infeasibleGoals = new LinkedList<>();
-    timedOutGoals = new LinkedList<>();
+    timedOutGoals = new HashMap<>();
   }
 
   public int getNumberOfFeasibleTestGoals() {
@@ -56,8 +56,16 @@ public class TestSuite {
     return timedOutGoals.size();
   }
 
-  public void addTimedOutGoal(Goal goal) {
-    timedOutGoals.add(goal);
+  public boolean hasTimedoutTestGoals() {
+    return !timedOutGoals.isEmpty();
+  }
+
+  public void addTimedOutGoal(int index, Goal goal) {
+    timedOutGoals.put(index, goal);
+  }
+
+  public Map<Integer, Goal> getTimedOutGoals() {
+    return timedOutGoals;
   }
 
   public void addInfeasibleGoal(Goal goal) {
@@ -84,6 +92,10 @@ public class TestSuite {
 
   public Set<TestCase> getTestCases() {
     return mapping.keySet();
+  }
+
+  public int getNumberOfTestCases() {
+    return getTestCases().size();
   }
 
   @Override
@@ -118,7 +130,7 @@ public class TestSuite {
     if (!timedOutGoals.isEmpty()) {
       str.append("timed out:\n");
 
-      for (Goal goal : timedOutGoals) {
+      for (Goal goal : timedOutGoals.values()) {
         //str.append(goal.getIndex());
         str.append(goal.toSkeleton());
         str.append("\n");
