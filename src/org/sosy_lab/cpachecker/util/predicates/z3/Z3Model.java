@@ -78,7 +78,7 @@ public class Z3Model {
     long symbol = get_decl_name(z3context, decl);
 
     Preconditions.checkArgument(get_symbol_kind(z3context, symbol) == Z3_STRING_SYMBOL,
-        "Given symbol of expression is no stringSymbol! (" + ast_to_string(z3context, expr) + ")");
+        "Given symbol of expression is no stringSymbol! (%s)", new LazyString(expr));
 
     String lName = get_symbol_string(z3context, symbol);
     long sort = get_sort(z3context, expr);
@@ -98,7 +98,7 @@ public class Z3Model {
     long symbol = get_decl_name(z3context, decl);
 
     Preconditions.checkArgument(get_symbol_kind(z3context, symbol) == Z3_STRING_SYMBOL,
-        "Given symbol of expression is no stringSymbol! (" + ast_to_string(z3context, expr) + ")");
+        "Given symbol of expression is no stringSymbol! (%s)", new LazyString(expr));
 
     String lName = get_symbol_string(z3context, symbol);
     long sort = get_sort(z3context, expr);
@@ -152,7 +152,7 @@ public class Z3Model {
 
   private AssignableTerm toAssignable(long expr) {
     Preconditions.checkArgument(is_app(z3context, expr),
-        "Given expr is no application! (" + ast_to_string(z3context, expr) + ")");
+        "Given expr is no application! (%s)", new LazyString(expr));
 
     if (get_app_num_args(z3context, expr) == 0) {
       return toVariable(expr);
@@ -268,4 +268,19 @@ public class Z3Model {
     //    return p.value;
   }
 
+  /** just a wrapper around a value,
+   * this class allows to call the toString-method later. */
+  private class LazyString {
+
+    final long value;
+
+    LazyString(long v) {
+      value = v;
+    }
+
+    @Override
+    public String toString() {
+      return ast_to_string(z3context, value); // this could be an expensive operation!
+    }
+  }
 }
