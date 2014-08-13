@@ -7,7 +7,8 @@
 
   <rundefinition>
     <sourcefiles>
-      <includesfile>../programs/simple/tiger/products/email.set</includesfile>
+      <!-- includesfile>../programs/simple/tiger/products/email.set</includesfile -->
+      <includesfile>../programs/simple/tiger/products/minepump.set</includesfile>
     </sourcefiles>
   </rundefinition>
 
