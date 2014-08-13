@@ -179,14 +179,14 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
-            createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
+            createErrorPathWithVariableAssignmentInformation(targetPath.asEdgesList(), counterexample));
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
       // that are important for the error, it is not a complete path,
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
       writeErrorPathFile(errorPathCoreFile, cexIndex,
               createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
     }
@@ -268,13 +268,12 @@ public class CEXExporter {
   }
 
   private Appender createErrorPathWithVariableAssignmentInformation(
-          final ARGPath targetPath, final CounterexampleInfo counterexample) {
+          final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
     final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        List<CFAEdge> edgePath = targetPath.asEdgesList();
         CFAPathWithAssignments exactValuePath;
         exactValuePath = null;
 

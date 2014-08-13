@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -82,7 +84,7 @@ public final class ErrorPathShrinker {
    *
    * @param targetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public ARGPath shrinkErrorPath(ARGPath pTargetPath) {
+  public List<CFAEdge> shrinkErrorPath(ARGPath pTargetPath) {
 
     // first remove all elements after the target-element from path
     MutableARGPath targetPath = removeAllElemsAfterTarget(pTargetPath);
@@ -151,7 +153,7 @@ public final class ErrorPathShrinker {
             importantVarsForGlobalVars);
       }
     }
-    return shortErrorPath.immutableCopy();
+    return ImmutableList.copyOf(shortErrorPath.asEdgesList());
   }
 
   /** This method iterates a Path and removes all elements
