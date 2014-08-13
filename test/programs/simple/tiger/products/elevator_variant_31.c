@@ -1017,9 +1017,11 @@ void test() {
 int cleanupTimeShifts = 12;
 
 
+extern int input();
 
 int get_nondet() {
     int nd;
+    nd = input();
     return nd;
 }
 
@@ -1041,10 +1043,8 @@ int get_nondetMinMax07() {
  return 5;
     } else if (nd==6) {
  return 6;
-    } else if (nd==7) {
- return 7;
     } else {
-     exit(0);
+ return 7;
     }
 }
 

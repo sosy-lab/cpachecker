@@ -303,9 +303,7 @@ extern int input();
 
 int get_nondet() {
     int nd;
-
-    nd = input();
-
+    nd=input();
     return nd;
 }
 
@@ -319,7 +317,7 @@ void cleanup() {
   timeShift();
  }
 }
-# 54 "Test.c"
+# 57 "Test.c"
  void Specification2() {
   timeShift();printPump();
   timeShift();printPump();
