@@ -869,12 +869,17 @@ def getRegressionCount(rows, ignoreFlappingTimeouts): # for options.dumpCounts
             and oldResult.status != 'TIMEOUT' \
             and newResult.status == 'TIMEOUT'
 
+    def ignoreRegression(oldResult, newResult):
+        return oldResult.status == 'TIMEOUT' and newResult.status == 'OUT OF MEMORY' \
+            or oldResult.status == 'OUT OF MEMORY' and newResult.status == 'TIMEOUT'
+
     regressions = 0
     for index, (oldResult, newResult) in enumerate(zip(columns[-2], columns[-1])):
         # regression can be only if result is different and new result is not correct
         if oldResult.status != newResult.status and newResult.category != result.CATEGORY_CORRECT:
 
-            if not ignoreFlappingTimeouts or not isFlappingTimeout(index, oldResult, newResult):
+            if not (ignoreFlappingTimeouts and isFlappingTimeout(index, oldResult, newResult)) \
+                    and not ignoreRegression(oldResult, newResult):
                 regressions += 1
     return regressions
 
