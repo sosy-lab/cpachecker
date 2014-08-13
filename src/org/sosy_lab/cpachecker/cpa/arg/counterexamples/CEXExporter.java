@@ -176,7 +176,7 @@ public class CEXExporter {
                                     @Nonnull final ARGPath targetPath,
                                     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
-    final ARGState rootState = targetPath.getFirst().getFirst();
+    final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
             createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));

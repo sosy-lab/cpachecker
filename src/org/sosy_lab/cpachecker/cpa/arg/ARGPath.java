@@ -149,16 +149,12 @@ public class ARGPath implements Appender {
     return states.size();
   }
 
-  public Pair<ARGState, CFAEdge> get(int i) {
-    return Pair.of(states.get(i), edges.get(i));
+  public ARGState getFirstState() {
+    return states.get(0);
   }
 
-  public Pair<ARGState, CFAEdge> getFirst() {
-    return Pair.of(states.get(0), edges.get(0));
-  }
-
-  public Pair<ARGState, CFAEdge> getLast() {
-    return Pair.of(states.get(size()-1), edges.get(size()-1));
+  public ARGState getLastState() {
+    return Iterables.getLast(states);
   }
 
   @Override

@@ -137,7 +137,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
         ARGPath path = failedRefinement.getErrorPath();
-        ARGState errorState = path.getLast().getFirst();
+        ARGState errorState = path.getLastState();
         assert errorState == reached.getLastState();
 
         // old code, perhaps we can use the information from getFailurePoint()

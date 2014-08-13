@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -169,7 +170,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
       });
       pathDepths = argPath.size();
       currentDepths = pathDepths;
-      visitedEdges.put(argPath.getLast().getSecond(), true);
+      visitedEdges.put(Iterables.getLast(argPath.asEdgesList()), true);
     }
 
 

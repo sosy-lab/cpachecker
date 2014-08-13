@@ -550,7 +550,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         counterexample = CounterexampleInfo.feasible(targetPath, model);
       }
-      pCounterexampleStorage.addCounterexample(targetPath.getLast().getFirst(), counterexample);
+      pCounterexampleStorage.addCounterexample(targetPath.getLastState(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();

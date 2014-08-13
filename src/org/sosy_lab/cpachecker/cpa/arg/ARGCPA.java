@@ -236,7 +236,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     if (pCounterexample.getTargetPath() != null) {
       // With BAM, the targetState and the last state of the path
       // may actually be not identical.
-      checkArgument(pCounterexample.getTargetPath().getLast().getFirst().isTarget());
+      checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
     }
     counterexamples.put(targetState, pCounterexample);
   }

@@ -404,7 +404,7 @@ public class ARGUtils {
 
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
-    if (result.getLast().getFirst() != target) {
+    if (result.getLastState() != target) {
       throw new IllegalArgumentException("ARG target path reached the wrong target state!");
     }
 
@@ -576,7 +576,7 @@ public class ARGUtils {
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
     int multiEdgeCount = 0; // see below
-    Pair<ARGState,CFAEdge> lastElement = pCounterExample.getTargetPath().getLast();
+    final ARGState lastState = pCounterExample.getTargetPath().getLastState();
     for (ARGState s : pPathStates) {
 
       CFANode loc = AbstractStates.extractLocation(s);
@@ -642,16 +642,16 @@ public class ARGUtils {
           sb.append(";\n");
         }
       }
-      if(!s.equals(lastElement.getFirst())) {
+      if(!s.equals(lastState)) {
         sb.append("    TRUE -> STOP;\n\n");
       }
     }
 
-
-    if(lastElement.getSecond() != null)
+    CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
+    if(lastEdge != null)
     {
       sb.append("    MATCH \"");
-      escape(lastElement.getSecond().getRawStatement(), sb);
+      escape(lastEdge.getRawStatement(), sb);
       sb.append("\" -> ");
       sb.append("GOTO EndLoop");
       sb.append(";\n");

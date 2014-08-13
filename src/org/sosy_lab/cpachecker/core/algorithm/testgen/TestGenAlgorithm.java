@@ -223,7 +223,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     Path filePath = Paths.get(fileName);
 
     String automatonName = String.format("Testcase%s", testCaseCounter);
-    ARGState rootState = pExecutedPath.getFirst().getFirst();
+    ARGState rootState = pExecutedPath.getFirstState();
     CounterexampleInfo ceInfo = CounterexampleInfo.feasible(pExecutedPath, pTraceInfo.getModel());
 
     try (Writer w = Files.openOutputFile(filePath)) {

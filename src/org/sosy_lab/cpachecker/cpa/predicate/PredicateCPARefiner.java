@@ -187,7 +187,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLast().getFirst());
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
     assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
     assert elementsOnPath.size() >= allStatesTrace.size();
 
@@ -212,7 +212,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     if (recomputePathFormulae) {
       formulas = recomputeFormulasForPath(allStatesTrace, abstractionStatesTrace.size());
     } else {
-      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
+      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
     }
     assert abstractionStatesTrace.size() == formulas.size();
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
@@ -291,7 +291,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       }
     });
 
-    assert pPath.getLast().getFirst() == result.get(result.size()-1);
+    assert pPath.getLastState() == result.get(result.size()-1);
     return result;
   }
 
@@ -332,7 +332,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       throws CPATransferException, InterruptedException {
     ArrayList<BooleanFormula> list = new ArrayList<>(initialSize);
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
-    ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
+    ARGState last = pAllStatesTrace.asStatesList().get(pAllStatesTrace.size()-2);
 
     PathIterator iterator = pAllStatesTrace.pathIterator();
     pathFormula = pfmgr.makeAnd(pathFormula, iterator.getOutgoingEdge()); // handle first edge
@@ -365,8 +365,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // find correct path
       ARGPath targetPath;
       try {
-        ARGState root = pPath.getFirst().getFirst();
-        ARGState target = pPath.getLast().getFirst();
+        ARGState root = pPath.getFirstState();
+        ARGState target = pPath.getLastState();
         Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,

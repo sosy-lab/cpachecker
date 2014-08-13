@@ -169,7 +169,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       ARGPath argPath = pResult.getPath();
       CounterexampleInfo ci = CounterexampleInfo.feasible(argPath, pResult.getTrace().getModel());
 
-      ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirst().getFirst(), argPath.getStateSet(),
+      ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirstState(), argPath.getStateSet(),
           "nextPathAutomaton", ci, true);
     } catch (IOException e) {
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);
