@@ -32,7 +32,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -42,6 +41,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.MultiConcre
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 
@@ -151,20 +151,19 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
     Map<ARGState, CFAEdgeWithAssignments> result = new HashMap<>();
 
-    int index = 0;
+    PathIterator pathIterator = pPath.pathIterator();
+    while (pathIterator.hasNext()) {
 
-    for (CFAEdgeWithAssignments edgeWithAssignment : pathWithAssignments) {
-
-      Pair<ARGState, CFAEdge> argPair = pPath.get(index);
-
-      if (!edgeWithAssignment.getCFAEdge().equals(argPair.getSecond())) {
+      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
+      if (edgeWithAssignment.getCFAEdge().equals(pathIterator.getOutgoingEdge())) {
         // path is not equivalent
         return null;
       }
 
-      result.put(argPair.getFirst(), edgeWithAssignment);
-      index++;
+      result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+      pathIterator.advance();
     }
+    // last state is ignored
 
     return result;
   }

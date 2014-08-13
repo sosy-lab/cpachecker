@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -331,17 +332,21 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       throws CPATransferException, InterruptedException {
     ArrayList<BooleanFormula> list = new ArrayList<>(initialSize);
     PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
-    pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());
     ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
-    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subPath(1, pAllStatesTrace.size()-1)) {
-      if (PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
+
+    PathIterator iterator = pAllStatesTrace.pathIterator();
+    pathFormula = pfmgr.makeAnd(pathFormula, iterator.getOutgoingEdge()); // handle first edge
+    while (iterator.hasNext()) {
+      iterator.advance();
+      if (PredicateAbstractState.getPredicateState(iterator.getAbstractState()).isAbstractionState()) {
         list.add(pathFormula.getFormula());
         pathFormula = pfmgr.makeEmptyPathFormula(pathFormula);
       }
-      if (pair.getFirst() != last) {
-        pathFormula = pfmgr.makeAnd(pathFormula, pair.getSecond());
+      if (iterator.getAbstractState() != last) {
+        pathFormula = pfmgr.makeAnd(pathFormula, iterator.getOutgoingEdge());
       } else {
         pathFormula = pfmgr.makeAnd(pathFormula, last.getErrorCondition(fmgr));
+        break;
       }
     }
     list.add(pathFormula.getFormula());

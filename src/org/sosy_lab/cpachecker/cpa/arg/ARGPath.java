@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
@@ -46,8 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -62,9 +62,12 @@ import com.google.common.collect.Lists;
  * States on this path cannot be null.
  * Edges can be null,
  * if there is no corresponding CFAEdge between two consecutive abstract states.
+ *
+ * The recommended way to iterate through an ARGPath if you need both states and edges
+ * is to use {@link #pathIterator()}.
  */
 @Immutable
-public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
+public class ARGPath implements Appender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
@@ -103,13 +106,6 @@ public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
     edges = Collections.unmodifiableList(new ArrayList<>(pEdges));
   }
 
-  private ARGPath(ImmutableList<ARGState> pStates, List<CFAEdge> pEdges,
-      int fromIndex, int toIndex) {
-    states = pStates.subList(fromIndex, toIndex);
-    edges = pEdges.subList(fromIndex, toIndex);
-    checkArgument(!states.isEmpty(), "ARGPaths may not be empty");
-  }
-
   public ImmutableList<ARGState> asStatesList() {
     return states;
   }
@@ -124,17 +120,16 @@ public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
 
   public MutableARGPath mutableCopy() {
     MutableARGPath result = new MutableARGPath();
-    Iterators.addAll(result, iterator());
+    Iterables.addAll(result, Pair.zipWithPadding(states, edges));
     return result;
   }
 
-  @Override
-  public Iterator<Pair<ARGState, CFAEdge>> iterator() {
-    return Pair.zipWithPadding(states, edges).iterator();
-  }
-
-  public Iterator<Pair<ARGState, CFAEdge>> descendingIterator() {
-    return Pair.zipWithPadding(states.reverse(), Lists.reverse(edges)).iterator();
+  /**
+   * Create a fresh {@link PathIterator} for this path,
+   * with its position at the first state.
+   */
+  public PathIterator pathIterator() {
+    return new PathIterator();
   }
 
   public int size() {
@@ -153,17 +148,6 @@ public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
     return Pair.of(states.get(size()-1), edges.get(size()-1));
   }
 
-  /**
-   * Return a snippet of this path.
-   * @see List#subList(int, int)
-     * @param fromIndex low endpoint (inclusive) of the subPath
-     * @param toIndex high endpoint (exclusive) of the subPath
-   * @return
-   */
-  public ARGPath subPath(int fromIndex, int toIndex) {
-    return new ARGPath(states, edges, fromIndex, toIndex);
-  }
-
   @Override
   public void appendTo(Appendable appendable) throws IOException {
     Joiner.on('\n').skipNulls().appendTo(appendable, asEdgesList());
@@ -176,7 +160,7 @@ public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
 
   public void toJSON(Appendable sb) throws IOException {
     List<Map<?, ?>> path = new ArrayList<>(size());
-    for (Pair<ARGState, CFAEdge> pair : this) {
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
@@ -192,5 +176,93 @@ public class ARGPath implements Appender, Iterable<Pair<ARGState, CFAEdge>> {
       path.add(elem);
     }
     JSON.writeJSONString(path, sb);
+  }
+
+  /**
+   * An {@link Iterator}-like class for iterating through an {@link ARGPath}
+   * providing access to both the abstract states and the edges.
+   * The iterator's position is always at an abstract state,
+   * and from this position allows access to the abstract state
+   * and the edges before and after this state.
+   *
+   * A typical use case would look like this:
+   * <code>
+   * PathIterator it = path.pathIterator();
+   * while (it.hasNext()) {
+   *   handleState(it.getAbstractState());
+   *   if (it.hasNext()) {
+   *     handleEdge(it.getOutgoingEdge());
+   *   }
+   * }
+   * </code>
+   *
+   * or like this:
+   * <code>
+   * PathIterator it = path.pathIterator();
+   * handleFirstState(it.getAbstractState()); // safe because paths are never empty
+   * while (it.hasNext()) {
+   *   handleEdge(it.getIncomingEdge());
+   *   handleState(it.getAbstractState());
+   * }
+   * </code>
+   */
+  public class PathIterator {
+
+    private int pos = 0; // the index of the current stat
+
+    /**
+     * Check whether there is at least one more state in the path.
+     */
+    public boolean hasNext() {
+      return pos < states.size()-1;
+    }
+
+    /**
+     * Advance the iterator by one position.
+     * @throws IllegalStateException If {@link #hasNext()} would return false.
+     */
+    public void advance() throws IllegalStateException {
+      checkState(hasNext(), "No more states in PathIterator.");
+      pos++;
+    }
+
+    /**
+     * Get the current position of the iterator
+     * (first state is at position 0).
+     */
+    public int getIndex() {
+      return pos;
+    }
+
+    /**
+     * Get the abstract state at the current position.
+     * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
+     * @return A non-null {@link ARGState}.
+     */
+    public ARGState getAbstractState() {
+      return states.get(pos);
+    }
+
+    /**
+     * Get the edge before the current abstract state.
+     * May not be called before {@link #advance()} was called once
+     * (there is no edge before the first state).
+     * @return A {@link CFAEdge} or null, if there is no edge between these two states.
+     */
+    public @Nullable CFAEdge getIncomingEdge() {
+      checkState(pos > 0, "First state in ARGPath has no incoming edge.");
+      return edges.get(pos-1);
+    }
+
+    /**
+     * Get the edge after the current abstract state.
+     * May not be called when {@link #hasNext()} would return false
+     * (there is no edge after the last state).
+     * @return A {@link CFAEdge} or null, if there is no edge between these two states.
+     */
+    public @Nullable CFAEdge getOutgoingEdge() {
+      checkState(hasNext(), "Last state in ARGPath has no outgoing edge.");
+      return edges.get(pos);
+    }
   }
 }
