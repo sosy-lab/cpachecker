@@ -28,6 +28,7 @@ import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -105,13 +106,16 @@ public class ValueAnalysisInterpolator {
    * @param pErrorPath the path to check
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
+   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
+   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
   public ValueAnalysisInterpolant deriveInterpolant(
       final List<CFAEdge> pErrorPath,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant,
+      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
@@ -133,6 +137,11 @@ public class ValueAnalysisInterpolator {
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
       return initialSuccessor.createInterpolant();
+    }
+
+    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
+    if(!useDefRelation.isEmpty()) {
+      initialSuccessor.retainAll(useDefRelation);
     }
 
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);

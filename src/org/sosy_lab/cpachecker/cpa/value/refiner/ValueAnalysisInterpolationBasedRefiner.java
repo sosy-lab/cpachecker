@@ -66,8 +66,10 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.Un
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -143,13 +145,20 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
 
-    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
+    // obtain use-def relation, containing variables relevant to the "failing" assumption
+    Set<MemoryLocation> useDefRelation = new HashSet<>();
+    if(prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
+      AssumptionUseDefinitionCollector useDefinitionCollector = new InitialAssumptionUseDefinitionCollector();
+      useDefRelation = from(useDefinitionCollector.obtainUseDefInformation(errorTrace)).
+          transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet();
+    }
 
+    Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       if(!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
+        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, useDefRelation);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
@@ -158,13 +167,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolationOffset = i + 1;
       }
 
-      if(interpolant.isTrivial()) {
-        sizeOfInterpolant.setNextValue(0);
-      }
-
-      else {
-        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
-      }
+      sizeOfInterpolant.setNextValue(interpolant.isTrivial() ? 0 : interpolant.assignment.size());
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
 
