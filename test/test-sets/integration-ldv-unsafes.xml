@@ -16,6 +16,11 @@
   <rundefinition>
     <sourcefiles>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--md--md-mod.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--mtd--ubi--ubi.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--net2272.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--pxa27x_udc.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--ethernet--chelsio--cxgb3--cxgb3.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
     </sourcefiles>
   </rundefinition>
 </benchmark>
