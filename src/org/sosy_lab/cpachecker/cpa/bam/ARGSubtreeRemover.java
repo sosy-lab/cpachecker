@@ -42,7 +42,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -287,8 +286,7 @@ public class ARGSubtreeRemover {
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
-    for (Pair<ARGState, CFAEdge> currentElementPair : path) {
-      ARGState pathState = currentElementPair.getFirst();
+    for (ARGState pathState : path.asStatesList()) {
       CFANode node = extractLocation(pathState);
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.

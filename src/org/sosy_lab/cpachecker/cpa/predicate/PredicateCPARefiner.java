@@ -275,9 +275,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   static List<ARGState> transformPath(ARGPath pPath) {
-    List<ARGState> result = from(pPath)
+    List<ARGState> result = from(pPath.asStatesList())
       .skip(1)
-      .transform(Pair.<ARGState>getProjectionToFirst())
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                                  toState(PredicateAbstractState.class)))
       .toList();

@@ -28,6 +28,7 @@ import static com.google.common.base.Objects.firstNonNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 
@@ -341,10 +344,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // get CFA nodes and function names on failure path
     HashSet<String> funNames = new HashSet<>();
     HashSet<CFANode> nodesOnPath = new HashSet<>();
-    CFANode current;
 
-    for (int i = 0; i < pathToFailure.size() - 1; i++) {
-      current = pathToFailure.get(i).getSecond().getSuccessor();
+    for (CFAEdge edge : pathToFailure.asEdgesList().subList(0, pathToFailure.size()-1)) {
+      CFANode current = edge.getSuccessor();
       funNames.add(current.getFunctionName());
       nodesOnPath.add(current);
     }
@@ -396,14 +398,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
   private boolean isSamePathInCFA(ARGPath path1, ARGPath path2) {
-    if (path1.size() == path2.size()) {
-      for (int i = path1.size() - 1; i >= 0; i--) {
-        if (!AbstractStates.extractLocation(path1.get(i).getFirst()).equals(
-            AbstractStates.extractLocation(path2.get(i).getFirst()))) { return false; }
-      }
-      return true;
+    if (path1.size() != path2.size()) {
+      return false;
     }
-    return false;
+    // check lists in reverse order for short-circuiting
+    List<CFANode> edges1 = Lists.transform(path1.asStatesList().reverse(), AbstractStates.EXTRACT_LOCATION);
+    List<CFANode> edges2 = Lists.transform(path2.asStatesList().reverse(), AbstractStates.EXTRACT_LOCATION);
+    return edges1.equals(edges2);
   }
 
   @Override

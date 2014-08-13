@@ -374,11 +374,11 @@ public class CEXExporter {
 
   private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
     Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
-    Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
+    Iterator<ARGState> it = pPath.asStatesList().iterator();
     assert it.hasNext();
-    ARGState lastElement = it.next().getFirst();
+    ARGState lastElement = it.next();
     while (it.hasNext()) {
-      ARGState currentElement = it.next().getFirst();
+      ARGState currentElement = it.next();
       result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }

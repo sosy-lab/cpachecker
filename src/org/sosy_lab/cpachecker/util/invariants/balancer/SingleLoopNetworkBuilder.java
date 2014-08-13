@@ -181,13 +181,11 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   }
 
   private PathFormula buildEntryFormula(ARGPath pPath, CFANode loopHead) {
-    // gather CFAEdges until hit ARGState whose location is loopHead
+    // gather CFAEdges until hit location that is loopHead
     Vector<CFAEdge> edges = new Vector<>();
 
-    for (Pair<ARGState, CFAEdge> pair : pPath) {
-      ARGState ae = pair.getFirst();
-      CFAEdge edge = pair.getSecond();
-      CFANode loc = AbstractStates.extractLocation(ae);
+    for (CFAEdge edge : pPath.asEdgesList()) {
+      CFANode loc = edge.getPredecessor();
       if (loc == loopHead) {
         break;
       } else {

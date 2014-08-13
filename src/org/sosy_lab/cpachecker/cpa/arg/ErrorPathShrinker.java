@@ -161,17 +161,20 @@ public final class ErrorPathShrinker {
    *
    * @param path the Path to iterate */
   private MutableARGPath removeAllElemsAfterTarget(final ARGPath path) {
-    final MutableARGPath targetPath = new MutableARGPath();
-    final Iterator<Pair<ARGState, CFAEdge>> iterator = path.iterator();
-    Pair<ARGState, CFAEdge> it;
+    final MutableARGPath targetPath = path.mutableCopy();
+    final Iterator<Pair<ARGState, CFAEdge>> iterator = targetPath.iterator();
 
     // iterate through the Path and find the first target-element
     while (iterator.hasNext()) {
-      it = iterator.next();
-      targetPath.add(it);
-      if (it.getFirst().isTarget()) {
+      if (iterator.next().getFirst().isTarget()) {
         break;
       }
+    }
+
+    // remove remaining elements
+    while (iterator.hasNext()) {
+      iterator.next();
+      iterator.remove();
     }
     return targetPath;
   }
