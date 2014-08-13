@@ -27,9 +27,11 @@ import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +45,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -52,6 +55,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -85,6 +89,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -107,7 +112,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision> {
+public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
 
   public static String originalMainFunction = null;
 
@@ -130,7 +135,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private boolean reusePredicates = true;
 
   @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
-  private String testsuiteFile = "output/teststuite.txt";
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path testsuiteFile = Paths.get("testsuite.txt");
 
   /*@Option(name = "globalCoverageCheckBeforeTimeout", description = "Perform a coverage check on all remaining coverage goals before the global time out happens.")
   private boolean globalCoverageCheckBeforeTimeout = false;
@@ -228,10 +234,15 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     // I didn't move this operation to the constructor since it is a potentially expensive operation.
     ElementaryCoveragePattern[] lGoalPatterns = extractTestGoalPatterns(fqlSpecification);
 
+    // TODO integrate into extractTestGoalPatterns
+    LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
+    for (ElementaryCoveragePattern lGoalPattern : lGoalPatterns) {
+      goalPatterns.push(lGoalPattern);
+    }
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
-    if (!testGeneration(lGoalPatterns)) {
+    if (!testGeneration(goalPatterns)) {
       logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
       wasSound = false;
     }
@@ -239,14 +250,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     // process timed out goals
     for (Entry<Integer, Goal> entry : timedOutGoals.entrySet()) {
       testsuite.addTimedOutGoal(entry.getValue());
-    }
-
-    // write generated test suite and mapping to file system
-    try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile), "utf-8"))) {
-      writer.write(testsuite.toString());
-      writer.close();
-    } catch (IOException e){
-      throw new RuntimeException(e);
     }
 
     return wasSound;
@@ -276,17 +279,21 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     return lGoalPatterns;
   }
 
-  private boolean testGeneration(ElementaryCoveragePattern[] pTestGoalPatterns) throws CPAException, InterruptedException {
+  private boolean testGeneration(LinkedList<ElementaryCoveragePattern> pTestGoalPatterns) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
     int goalIndex = 0;
+    int numberOfTestGoals = pTestGoalPatterns.size();
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
 
-    for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
+    //for (ElementaryCoveragePattern lTestGoalPattern : pTestGoalPatterns) {
+    while (!pTestGoalPatterns.isEmpty()) {
+      ElementaryCoveragePattern lTestGoalPattern = pTestGoalPatterns.poll();
+
       goalIndex++;
 
-      logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, pTestGoalPatterns.length);
+      logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
       Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
@@ -657,6 +664,31 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Override
   public void setPrecision(PredicatePrecision pNewPrec) {
     reusedPrecision = pNewPrec;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    // TODO Print information about feasible, infeasible, timed-out, and unprocessed test goals.
+
+    if (testsuiteFile != null) {
+      // write generated test suite and mapping to file system
+      try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.toFile()), "utf-8"))) {
+        writer.write(testsuite.toString());
+        writer.close();
+      } catch (IOException e){
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  @Override
+  public String getName() {
+    return "TigerAlgorithm";
   }
 
 }
