@@ -182,7 +182,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
             elif 'Could not reserve enough space for object heap' in line:
                 status = 'JAVA HEAP ERROR'
-            elif line.startswith('Error: ') and status is None:
+            elif line.startswith('Error: ') and not status:
                 status = 'ERROR'
                 if 'Unsupported C feature (recursion)' in line:
                     status = 'ERROR (recursion)'
