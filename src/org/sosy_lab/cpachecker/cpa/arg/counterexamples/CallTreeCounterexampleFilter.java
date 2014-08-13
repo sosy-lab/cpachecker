@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -63,8 +63,8 @@ public class CallTreeCounterexampleFilter extends AbstractSetBasedCounterexample
   @Override
   protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
     return Optional.of(
-        from(counterexample.getTargetPath().asEdgesList())
-            .transform(CFAUtils.TO_PREDECESSOR)
+        from(counterexample.getTargetPath().asStatesList())
+            .transform(AbstractStates.EXTRACT_LOCATION)
             .filter(or(
                       instanceOf(FunctionEntryNode.class),
                       instanceOf(FunctionExitNode.class)))

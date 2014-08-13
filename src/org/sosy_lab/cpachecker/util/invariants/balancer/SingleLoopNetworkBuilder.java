@@ -111,10 +111,10 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     logger.log(Level.FINEST, "Constructing single loop network builder.");
 
     // Get root location.
-    root = AbstractStates.extractLocation(cePath.getFirst().getFirst());
+    root = AbstractStates.extractLocation(cePath.getFirstState());
 
     // Get error location
-    error = AbstractStates.extractLocation(cePath.getLast().getFirst());
+    error = AbstractStates.extractLocation(cePath.getLastState());
 
     // Get entry path formula, from root node up to loop head,
     // loop formula, from loop head back to loop head, and
@@ -174,8 +174,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   }
 
   private Set<CFANode> getAllNodes() {
-    Pair<ARGState, CFAEdge> rootPair = cePath.getFirst();
-    ARGState ae = rootPair.getFirst();
+    ARGState ae = cePath.getFirstState();
     CFANode root = AbstractStates.extractLocation(ae);
     return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
@@ -225,18 +224,12 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     Vector<CFAEdge> edges = new Vector<>();
 
     boolean begun = false;
-    int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
-    for (int i = 0; i < N; i++) {
-      Pair<ARGState, CFAEdge> pair = pPath.get(i);
+    for (CFAEdge edge : pPath.getInnerEdges()) {
       if (begun) {
-        CFAEdge edge = pair.getSecond();
         edges.add(edge);
       } else {
-        ARGState ae = pair.getFirst();
-        CFANode loc = AbstractStates.extractLocation(ae);
-        if (loc == loopHead) {
+        if (edge.getPredecessor() == loopHead) {
           begun = true;
-          CFAEdge edge = pair.getSecond();
           edges.add(edge);
         }
       }
@@ -253,18 +246,12 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     Vector<CFAEdge> tailEdges = new Vector<>();
 
     boolean begun = false;
-    int N = pPath.size() - 1; // we ignore last pair, since last edge is useless, hence " - 1"
-    for (int i = 0; i < N; i++) {
-      Pair<ARGState, CFAEdge> pair = pPath.get(i);
+    for (CFAEdge edge : pPath.getInnerEdges()) {
       if (begun) {
-        CFAEdge edge = pair.getSecond();
         tailEdges.add(edge);
       } else {
-        ARGState ae = pair.getFirst();
-        CFANode loc = AbstractStates.extractLocation(ae);
-        if (loc == loopHead) {
+        if (edge.getPredecessor() == loopHead) {
           begun = true;
-          CFAEdge edge = pair.getSecond();
           headEdge = edge;
         }
       }

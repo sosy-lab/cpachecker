@@ -403,9 +403,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
       final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
-    List<CFAEdge> edges = targetPath.asEdgesList();
-    // last edge in ARGPath is the one beyond target state, exclude it
-    edges = edges.subList(0, edges.size() - 1);
+    List<CFAEdge> edges = targetPath.getInnerEdges();
 
     List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
 

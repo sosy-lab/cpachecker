@@ -58,6 +58,9 @@ import com.google.common.collect.Iterables;
  *
  * The number of states and edges is currently always equal.
  * To achieve this, the last edge is an outgoing edge of the location of the last state.
+ * If you want only the edges up to the last state and not beyond,
+ * use {@link #getInnerEdges()} or {@link #pathIterator()}
+ * instead of {@link #asEdgesList()} (this is recommended).
  *
  * States on this path cannot be null.
  * Edges can be null,
@@ -114,6 +117,16 @@ public class ARGPath implements Appender {
     return edges;
   }
 
+  /**
+   * Only return the list of edges between the states,
+   * excluding the one edge after the last state.
+   * The result of this method is always one element shorter
+   * than {@link #asEdgesList()}.
+   */
+  public List<CFAEdge> getInnerEdges() {
+    return edges.subList(0, edges.size()-1);
+  }
+
   public ImmutableSet<ARGState> getStateSet() {
     return ImmutableSet.copyOf(states);
   }
@@ -150,12 +163,12 @@ public class ARGPath implements Appender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on('\n').skipNulls().appendTo(appendable, asEdgesList());
+    Joiner.on('\n').skipNulls().appendTo(appendable, getInnerEdges());
   }
 
   @Override
   public String toString() {
-    return Joiner.on('\n').skipNulls().join(asEdgesList());
+    return Joiner.on('\n').skipNulls().join(getInnerEdges());
   }
 
   public void toJSON(Appendable sb) throws IOException {

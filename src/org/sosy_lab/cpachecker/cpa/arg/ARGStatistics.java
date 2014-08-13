@@ -225,7 +225,7 @@ public class ARGStatistics implements Statistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-        if (path.asEdgesList().contains(null)) {
+        if (path.getInnerEdges().contains(null)) {
           // path is invalid,
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.

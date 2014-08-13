@@ -51,6 +51,6 @@ public class PathEdgesEqualityCounterexampleFilter extends AbstractSetBasedCount
 
   @Override
   protected Optional<ImmutableSet<CFAEdge>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
-    return Optional.of(ImmutableSet.copyOf(counterexample.getTargetPath().asEdgesList()));
+    return Optional.of(ImmutableSet.copyOf(counterexample.getTargetPath().getInnerEdges()));
   }
 }

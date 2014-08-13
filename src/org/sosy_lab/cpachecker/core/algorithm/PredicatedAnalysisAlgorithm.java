@@ -345,7 +345,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     HashSet<String> funNames = new HashSet<>();
     HashSet<CFANode> nodesOnPath = new HashSet<>();
 
-    for (CFAEdge edge : pathToFailure.asEdgesList().subList(0, pathToFailure.size()-1)) {
+    for (CFAEdge edge : pathToFailure.getInnerEdges()) {
       CFANode current = edge.getSuccessor();
       funNames.add(current.getFunctionName());
       nodesOnPath.add(current);
