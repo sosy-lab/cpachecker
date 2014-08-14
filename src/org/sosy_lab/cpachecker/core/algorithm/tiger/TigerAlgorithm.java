@@ -158,6 +158,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Option(name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
   private long cpuTimelimitPerGoal = -1;
 
+  @Option(name = "inverseOrder", description = "Inverses the order of test goals each time a new round for re-processing of timed-out goals begins.")
+  private boolean inverseOrder = true;
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -346,6 +349,26 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     if (timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
       int previousNumberOfTestCases = 0;
 
+      boolean order = true;
+
+      Comparator<Entry<Integer, Goal>> posComparator = new Comparator<Entry<Integer, Goal>>() {
+
+        @Override
+        public int compare(Entry<Integer, Goal> pArg0, Entry<Integer, Goal> pArg1) {
+          return (pArg0.getKey() - pArg1.getKey());
+        }
+
+      };
+
+      Comparator<Entry<Integer, Goal>> negComparator = new Comparator<Entry<Integer, Goal>>() {
+
+        @Override
+        public int compare(Entry<Integer, Goal> pArg0, Entry<Integer, Goal> pArg1) {
+          return (pArg1.getKey() - pArg0.getKey());
+        }
+
+      };
+
       do {
         if (timeoutIncrement > 0) {
           long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
@@ -357,7 +380,21 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         timedoutGoals.putAll(testsuite.getTimedOutGoals());
         testsuite.getTimedOutGoals().clear();
 
-        for (Entry<Integer, Goal> entry : timedoutGoals.entrySet()) {
+        if (inverseOrder) {
+          order = !order;
+        }
+
+        // keep original order of goals (or inverse of it)
+        TreeSet<Entry<Integer, Goal>> set;
+        if (order) {
+          set = new TreeSet<>(posComparator);
+        }
+        else {
+          set = new TreeSet<>(negComparator);
+        }
+        set.addAll(timedoutGoals.entrySet());
+
+        for (Entry<Integer, Goal> entry : set) {
           goalIndex = entry.getKey();
           Goal lGoal = entry.getValue();
 
@@ -726,11 +763,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
     }
 
+    int numberOfTimedoutTestGoals = statistics_numberOfProcessedTestGoals - (testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals());
+
     pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
     pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
     pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
     pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
-    pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+    //pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+    pOut.println("Number of timedout test goals:                     " + numberOfTimedoutTestGoals);
 
     if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
       pOut.println("Timeout occured during processing of a test goal!");
