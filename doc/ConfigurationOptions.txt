@@ -277,6 +277,7 @@ cbmc.options.unwindings = 0
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
 # maximum time limit for CBMC (0 is infinite)
+cbmc.timelimit = 0ms
 cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
@@ -1172,7 +1173,7 @@ cpa.predicate.refinement.splitItpAtoms = false
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
-cpa.predicate.refinement.timelimit = 0
+cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
@@ -1613,11 +1614,11 @@ language = C
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
-limits.time.cpu = -1
+limits.time.cpu = -1ns
 
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
-limits.time.wall = -1
+limits.time.wall = -1ns
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
