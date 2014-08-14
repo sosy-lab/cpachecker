@@ -24,7 +24,9 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.ArrayList;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -62,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -156,18 +157,12 @@ public final class ErrorPathShrinker {
 ´   *
    * @param path the Path to iterate */
   private List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
-    List<CFAEdge> targetPath = new ArrayList<>(path.size());
-    PathIterator iterator = path.pathIterator();
-    // iterate through the Path and find the first target-element
-    while (iterator.hasNext()) {
-      iterator.advance();
-      targetPath.add(iterator.getIncomingEdge());
-      if (iterator.getAbstractState().isTarget()) {
-        break;
-      }
+    int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);
+    if (targetPos > 0) {
+      return path.getInnerEdges().subList(0, targetPos);
+    } else {
+      return path.getInnerEdges();
     }
-
-    return targetPath;
   }
 
   /** This method iterates a Path and adds all global Variables to the Set
