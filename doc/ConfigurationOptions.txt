@@ -1024,10 +1024,6 @@ cpa.predicate.invariants.file = "invariants.txt"
 # file for precision that consists of invariants.
 cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
 
-# List of further options which will be passed to Mathsat in addition to the
-# default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.mathsat5.furtherOptions = ""
-
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
@@ -1186,14 +1182,6 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Double check generated results like interpolants and models whether they
-# are correct
-cpa.predicate.smtinterpol.checkResults = false
-
-# List of further options which will be set to true for SMTInterpol in
-# addition to the default options. Format is 'option1,option2,option3'
-cpa.predicate.smtinterpol.furtherOptions = []
-
 # Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
 # FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
@@ -1202,6 +1190,18 @@ cpa.predicate.solver = MATHSAT5
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.solver.logAllQueries = false
 cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
+
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
+cpa.predicate.solver.mathsat5.furtherOptions = ""
+
+# Double check generated results like interpolants and models whether they
+# are correct
+cpa.predicate.solver.smtinterpol.checkResults = false
+
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+cpa.predicate.solver.smtinterpol.furtherOptions = []
 
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false

@@ -5,7 +5,7 @@
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
   <option name="-heap">25000M</option>

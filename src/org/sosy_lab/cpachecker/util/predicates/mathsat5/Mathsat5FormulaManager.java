@@ -54,7 +54,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
-  @Options(prefix="cpa.predicate.mathsat5")
+  @Options(prefix="cpa.predicate.solver.mathsat5")
   private static class Mathsat5Settings {
 
     @Option(description = "List of further options which will be passed to Mathsat in addition to the default options. "

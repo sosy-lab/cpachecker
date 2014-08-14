@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <!-- try to make it more deterministic -->
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
