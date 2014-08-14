@@ -63,34 +63,34 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
 
-    try{
-    while (reached.hasWaitingState()) {
-      sound &= algorithm.run(reached);
+    try {
+      while (reached.hasWaitingState()) {
+        sound &= algorithm.run(reached);
 
-      numberOfCounterexamples++;
+        numberOfCounterexamples++;
 
-      if(sound) {
-        checkTime.start();
+        if (sound) {
+          checkTime.start();
+        }
+
+        AbstractState lastElement = reached.getLastState();
+
+        if (!(lastElement instanceof ARGState)) {
+          // no analysis possible
+          break;
+        }
+
+        ARGState errorElement = (ARGState) lastElement;
+        if (!errorElement.isTarget()) {
+          // no analysis necessary
+          break;
+        }
+
+        removeErrorElement(reached, errorElement);
+
+        sound = false;
       }
-
-      AbstractState lastElement = reached.getLastState();
-
-      if (!(lastElement instanceof ARGState)) {
-        // no analysis possible
-        break;
-      }
-
-      ARGState errorElement = (ARGState)lastElement;
-      if (!errorElement.isTarget()) {
-        // no analysis necessary
-        break;
-      }
-
-      removeErrorElement(reached, errorElement);
-
-      sound = false;
-    }
-    }finally{
+    } finally {
       checkTime.stopIfRunning();
     }
 
