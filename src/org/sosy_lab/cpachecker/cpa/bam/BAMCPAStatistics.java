@@ -36,19 +36,15 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -59,6 +55,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Prints some BAM related statistics
@@ -72,7 +73,7 @@ class BAMCPAStatistics implements Statistics {
 
   @Option(description="export single blocked ARG as .dot files, should contain '%d'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path indexedArgFile = Paths.get("ARGs/ARG_%d.dot");
+  private PathTemplate indexedArgFile = PathTemplate.ofFormatString("ARGs/ARG_%d.dot");
 
   @Option(description="export used parts of blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -183,8 +184,7 @@ class BAMCPAStatistics implements Statistics {
         connections.putAll(localConnections);
 
         // dump small graph
-        Path file = new FileSystemPath(String.format(
-                indexedArgFile.getPath(), ((ARGState) reachedSet.getFirstState()).getStateId()));
+        Path file = indexedArgFile.getPath(((ARGState) reachedSet.getFirstState()).getStateId());
         try (Writer w = Files.openOutputFile(file)) {
           ARGToDotWriter.write(w,
                   Collections.singleton((ARGState) reachedSet.getFirstState()),

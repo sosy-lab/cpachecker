@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
@@ -116,7 +116,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private Path exportSMGFilePattern = Paths.get("smg-%s.dot");
+  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-%s.dot");
 
   @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -207,8 +207,8 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return Paths.get(String.format(pExportSMGFilePattern.toAbsolutePath().getPath(), pName));
+    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
+      return pExportSMGFilePattern.getPath(pName);
     }
 
     protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
@@ -1808,8 +1808,8 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), "Explicit_" + pName));
+    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
+      return exportSMGFilePattern.getPath("Explicit_" + pName);
     }
 
     @Override

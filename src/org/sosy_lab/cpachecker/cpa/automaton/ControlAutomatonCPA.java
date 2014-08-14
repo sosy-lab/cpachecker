@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -83,7 +83,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFile = Paths.get("%s.dot");
+  private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -168,8 +168,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      String fileName = String.format(exportFile.toAbsolutePath().getPath(), automaton.getName());
-      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
+      try (Writer w = Files.openOutputFile(exportFile.getPath(automaton.getName()))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");

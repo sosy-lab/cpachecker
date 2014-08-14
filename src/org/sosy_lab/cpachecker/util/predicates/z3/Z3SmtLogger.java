@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -54,8 +54,7 @@ public class Z3SmtLogger {
 
     @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path basicLogfile = Paths.get("z3smtlog.%d.smt2");
-    private static int logfileCounter = 0;
+    private PathCounterTemplate basicLogfile = PathCounterTemplate.ofFormatString("z3smtlog.%d.smt2");
 
     @Option(description = "Export solver queries in Smtlib2 format, " +
             "there are small differences for different solvers, " +
@@ -90,8 +89,7 @@ public class Z3SmtLogger {
     settings = pSettings;
 
     if (settings.logAllQueries && settings.basicLogfile != null) {
-      String filename = String.format(settings.basicLogfile.toAbsolutePath().getPath(), Z3Settings.logfileCounter++);
-      this.logfile = Paths.get(filename);
+      this.logfile = settings.basicLogfile.getFreshPath();
       log("", false); // create or clean the file
     } else {
       this.logfile = null;

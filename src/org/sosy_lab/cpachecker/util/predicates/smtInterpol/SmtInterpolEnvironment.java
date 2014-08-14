@@ -45,7 +45,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
@@ -109,14 +109,11 @@ class SmtInterpolEnvironment {
 
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
+  private PathCounterTemplate smtLogfile = PathCounterTemplate.ofFormatString("smtinterpol.%03d.smt2");
 
   @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
       + "Format is 'option1,option2,option3'")
   private List<String> furtherOptions = ImmutableList.of();
-
-  /** this is a counter to get distinct logfiles for distinct environments. */
-  private static int logfileCounter = 0;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -180,7 +177,7 @@ class SmtInterpolEnvironment {
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
-    String filename = getFilename(smtLogfile);
+    String filename = smtLogfile.getFreshPath().toAbsolutePath().toString();
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
@@ -244,19 +241,12 @@ class SmtInterpolEnvironment {
     return theory;
   }
 
-  /**  This function creates a filename with following scheme:
-       first filename is unchanged, then a number is appended */
-  private String getFilename(final Path oldFilename) {
-    String filename = oldFilename.toAbsolutePath().getPath();
-    return String.format(filename, logfileCounter++);
-  }
-
   SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
     if (logInterpolationQueries && smtLogfile != null) {
-      String logfile = getFilename(smtLogfile);
+      Path logfile = smtLogfile.getFreshPath();
 
       try {
-        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+        PrintWriter out = new PrintWriter(Files.openOutputFile(logfile));
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");

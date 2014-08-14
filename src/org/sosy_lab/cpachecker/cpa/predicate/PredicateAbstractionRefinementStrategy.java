@@ -47,7 +47,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -137,7 +137,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
-  private Path dumpPredicatesFile = Paths.get("refinement%04d-predicates.prec");
+  private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -425,7 +425,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
+      Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
       try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
