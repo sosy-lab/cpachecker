@@ -63,6 +63,7 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean sound = true;
 
+    try{
     while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
 
@@ -89,9 +90,8 @@ public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsP
 
       sound = false;
     }
-
-    if(!sound) {
-      checkTime.stop();
+    }finally{
+      checkTime.stopIfRunning();
     }
 
     return sound;
