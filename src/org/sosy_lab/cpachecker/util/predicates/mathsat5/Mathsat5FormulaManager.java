@@ -30,11 +30,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -61,17 +61,13 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
         + "Format is 'key1=value1,key2=value2'")
     private String furtherOptions = "";
 
-    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-    private boolean logAllQueries = false;
-
-    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-    @FileOption(Type.OUTPUT_FILE)
-    private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("mathsat5.%03d.smt2");
+    private final @Nullable PathCounterTemplate logfile;
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 
-    private Mathsat5Settings(Configuration config) throws InvalidConfigurationException {
+    private Mathsat5Settings(Configuration config, PathCounterTemplate pLogfile) throws InvalidConfigurationException {
       config.inject(this);
+      logfile = pLogfile;
 
       MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
                       .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
@@ -131,10 +127,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   }
 
   public static Mathsat5FormulaManager create(LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate solverLogFile) throws InvalidConfigurationException {
 
     // Init Msat
-    Mathsat5Settings settings = new Mathsat5Settings(config);
+    Mathsat5Settings settings = new Mathsat5Settings(config, solverLogFile);
 
     long msatConf = msat_create_config();
     msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
@@ -206,7 +203,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       msat_set_option_checked(cfg, option.getKey(), option.getValue());
     }
 
-    if (settings.logAllQueries && settings.logfile != null) {
+    if (settings.logfile != null) {
       Path filename = settings.logfile.getFreshPath();
       try {
         Files.createParentDirs(filename);

@@ -37,9 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -101,15 +102,7 @@ class SmtInterpolEnvironment {
   @Option(description="Double check generated results like interpolants and models whether they are correct")
   private boolean checkResults = false;
 
-  @Option(description="Export solver queries in Smtlib format into a file.")
-  private boolean logAllQueries = false;
-
-  @Option(description="Export interpolation queries in Smtlib format into a file.")
-  private boolean logInterpolationQueries = false;
-
-  @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathCounterTemplate smtLogfile = PathCounterTemplate.ofFormatString("smtinterpol.%03d.smt2");
+  private final @Nullable PathCounterTemplate smtLogfile;
 
   @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
       + "Format is 'option1,option2,option3'")
@@ -132,10 +125,12 @@ class SmtInterpolEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate pSmtLogfile) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
+    smtLogfile = pSmtLogfile;
 
     final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger),
         new TerminationRequest() {
@@ -145,7 +140,7 @@ class SmtInterpolEnvironment {
           }
         });
 
-    if (logAllQueries && smtLogfile != null) {
+    if (smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
     } else {
       script = smtInterpol;
@@ -242,7 +237,7 @@ class SmtInterpolEnvironment {
   }
 
   SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
-    if (logInterpolationQueries && smtLogfile != null) {
+    if (smtLogfile != null) {
       Path logfile = smtLogfile.getFreshPath();
 
       try {

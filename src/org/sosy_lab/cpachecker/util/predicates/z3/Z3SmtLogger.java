@@ -31,8 +31,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -49,12 +50,7 @@ public class Z3SmtLogger {
   @Options(prefix="cpa.predicate.solver.z3.logger")
   private static class Z3Settings {
 
-    @Option(description = "Export solver queries in Smtlib format into a file.")
-    private boolean logAllQueries = false;
-
-    @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
-    private PathCounterTemplate basicLogfile = PathCounterTemplate.ofFormatString("z3smtlog.%d.smt2");
+    private final @Nullable PathCounterTemplate basicLogfile;
 
     @Option(description = "Export solver queries in Smtlib2 format, " +
             "there are small differences for different solvers, " +
@@ -62,8 +58,9 @@ public class Z3SmtLogger {
             values = { Z3, MATHSAT5 }, toUppercase = true)
     private String target = Z3;
 
-    private Z3Settings(Configuration config) throws InvalidConfigurationException {
+    private Z3Settings(Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
       config.inject(this);
+      basicLogfile = logfile;
     }
   }
 
@@ -80,15 +77,15 @@ public class Z3SmtLogger {
   private int itpIndex = 0; // each interpolation gets its own index
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
-  public Z3SmtLogger(long z3context, Configuration config) throws InvalidConfigurationException {
-    this(z3context, new Z3Settings(config));
+  public Z3SmtLogger(long z3context, Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
+    this(z3context, new Z3Settings(config, logfile));
   }
 
   private Z3SmtLogger(long pZ3context, Z3Settings pSettings) {
     z3context = pZ3context;
     settings = pSettings;
 
-    if (settings.logAllQueries && settings.basicLogfile != null) {
+    if (settings.basicLogfile != null) {
       this.logfile = settings.basicLogfile.getFreshPath();
       log("", false); // create or clean the file
     } else {
