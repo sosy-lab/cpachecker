@@ -158,8 +158,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Option(name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
   private long cpuTimelimitPerGoal = -1;
 
-  @Option(name = "inverseOrder", description = "Inverses the order of test goals each time a new round for re-processing of timed-out goals begins.")
+  @Option(name = "inverseOrder", description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
   private boolean inverseOrder = true;
+
+  @Option(name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
+  private boolean useOrder = true;
 
   private LogManager logger;
   private StartupConfig startupConfig;
@@ -347,7 +350,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     // reprocess timed-out goals
     if (timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
-      int previousNumberOfTestCases = 0;
+      // TODO move to upper loop
+      Map<Goal, Integer> coverageCheckOpt = new HashMap<>();
+
+      //int previousNumberOfTestCases = 0;
+      //int previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
 
       boolean order = true;
 
@@ -376,23 +383,29 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal, cpuTimelimitPerGoal);
         }
 
-        Map<Integer, Goal> timedoutGoals = new HashMap<>();
-        timedoutGoals.putAll(testsuite.getTimedOutGoals());
-        testsuite.getTimedOutGoals().clear();
+        Collection<Entry<Integer, Goal>> set;
 
-        if (inverseOrder) {
-          order = !order;
-        }
+        if (useOrder) {
+          if (inverseOrder) {
+            order = !order;
+          }
 
-        // keep original order of goals (or inverse of it)
-        TreeSet<Entry<Integer, Goal>> set;
-        if (order) {
-          set = new TreeSet<>(posComparator);
+          // keep original order of goals (or inverse of it)
+          if (order) {
+            set = new TreeSet<>(posComparator);
+          }
+          else {
+            set = new TreeSet<>(negComparator);
+          }
+
+          set.addAll(testsuite.getTimedOutGoals().entrySet());
         }
         else {
-          set = new TreeSet<>(negComparator);
+          set = new LinkedList<>();
+          set.addAll(testsuite.getTimedOutGoals().entrySet());
         }
-        set.addAll(timedoutGoals.entrySet());
+
+        testsuite.getTimedOutGoals().clear();
 
         for (Entry<Integer, Goal> entry : set) {
           goalIndex = entry.getKey();
@@ -401,9 +414,23 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
           // TODO optimization: do not check for coverage if no new testcases were generated.
-          if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
-            continue;
+          if (checkCoverage) {
+            if (coverageCheckOpt.containsKey(lGoal)) {
+              if (coverageCheckOpt.get(lGoal) < testsuite.getNumberOfTestCases()) {
+                if (isCovered(goalIndex, lGoal)) {
+                  continue;
+                }
+                else {
+                  // TODO optimization: only add if goal times out!
+                  coverageCheckOpt.put(lGoal, testsuite.getNumberOfTestCases());
+                }
+              }
+            }
           }
+
+          /*if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
+            continue;
+          }*/
 
           if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
             logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -413,7 +440,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           previousAutomaton = lGoal.getAutomaton();
         }
 
-        previousNumberOfTestCases = testsuite.getNumberOfTestCases();
+        //previousNumberOfTestCases = previousPreviousNumberOfTestCases;
+        //previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
       }
       while (testsuite.hasTimedoutTestGoals());
     }
