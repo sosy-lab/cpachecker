@@ -559,7 +559,7 @@ public class BAMTransferRelation implements TransferRelation {
         // lets skip the function and return only a short "summary" of the function.
         // this summary is the result of a previous analysis of this block from the cache.
         logger.logf(Level.FINEST, "recursion will cause endless unrolling (with current precision), " +
-                "aborting call of function '%s'", rootNode.getFunctionName());
+                "aborting call of function '%s'", node.getFunctionName());
 
         recursionSeen = true;
         // after this point we have to check all returnStates for changes.
