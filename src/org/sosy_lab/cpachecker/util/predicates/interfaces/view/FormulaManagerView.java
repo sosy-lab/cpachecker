@@ -49,7 +49,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -126,8 +126,7 @@ public class FormulaManagerView {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path formulaDumpFile = Paths.get("%s%04d-%s%03d.smt2");
-  private String formulaDumpFilePattern;
+  private PathTemplate formulaDumpFile = PathTemplate.ofFormatString("%s%04d-%s%03d.smt2");
 
   @Option(description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
@@ -170,12 +169,6 @@ public class FormulaManagerView {
     functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
     functionFormulaManager.couple(this);
     logger = pLogger;
-
-    if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.toAbsolutePath().getPath();
-    } else {
-      formulaDumpFilePattern = null;
-    }
   }
 
   public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -183,11 +176,11 @@ public class FormulaManagerView {
   }
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
-    if (formulaDumpFilePattern == null) {
+    if (formulaDumpFile == null) {
       return null;
     }
 
-    return Paths.get(String.format(formulaDumpFilePattern, function, call, formula, index));
+    return formulaDumpFile.getPath(function, call, formula, index);
   }
 
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {

@@ -59,6 +59,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -166,7 +167,7 @@ public final class InterpolationManager {
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)
-  private long itpTimeLimit = 0;
+  private TimeSpan itpTimeLimit = TimeSpan.ofMillis(0);
 
   @Option(description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
@@ -196,7 +197,7 @@ public final class InterpolationManager {
     solver = pSolver;
     factory = pFmgrFactory;
 
-    if (itpTimeLimit == 0) {
+    if (itpTimeLimit.isEmpty()) {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
@@ -236,7 +237,7 @@ public final class InterpolationManager {
     assert pAbstractionStates.isEmpty() || pFormulas.size() == pAbstractionStates.size();
 
     // if we don't want to limit the time given to the solver
-    if (itpTimeLimit == 0) {
+    if (itpTimeLimit.isEmpty()) {
       return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
     }
 
@@ -254,7 +255,7 @@ public final class InterpolationManager {
     try {
       // here we get the result of the post computation but there is a time limit
       // given to complete the task specified by timeLimit
-      return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
+      return future.get(itpTimeLimit.asNanos(), TimeUnit.NANOSECONDS);
 
     } catch (TimeoutException e) {
       logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");

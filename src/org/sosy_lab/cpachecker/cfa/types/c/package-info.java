@@ -21,14 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types.java;
-
-import org.sosy_lab.cpachecker.cfa.types.Type;
-
-/**
- * Marker interface for Java types.
+/** 
+ * Provides classes for C types.
+ * This includes simple and complex types.
  */
-public interface JType extends Type {
-
-
-}
+package org.sosy_lab.cpachecker.cfa.types.c;

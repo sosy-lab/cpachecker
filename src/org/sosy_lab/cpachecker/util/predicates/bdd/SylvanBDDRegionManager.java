@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import jsylvan.JSylvan;
 
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,8 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.base.Function;
@@ -94,8 +93,7 @@ class SylvanBDDRegionManager implements RegionManager {
   private int threads = 0;
 
   // Statistics
-  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
-  private final StatTimer cleanupTimer = new StatTimer("Time for BDD node cleanup");
+  private final StatTimer cleanupTimer = new StatTimer("Time for BDD cleanup after GC");
 
   private final Region trueFormula;
   private final Region falseFormula;
@@ -115,6 +113,17 @@ class SylvanBDDRegionManager implements RegionManager {
 
     trueFormula = new SylvanBDDRegion(JSylvan.getTrue());
     falseFormula = new SylvanBDDRegion(JSylvan.getFalse());
+
+    Threads.newThread(new Runnable() {
+        @Override
+        public void run() {
+          // We pass all references explicitly to a static method
+          // in order to not leak the reference to the SylvanBDDRegionManager
+          // from within its constructor to a separate thread
+          // (this is not thread safe in Java).
+          cleanupReferences(referenceQueue, referenceMap, cleanupTimer);
+        }
+      }, "BDD cleanup thread", true).start();
   }
 
   /** Instantiate a new SylvanBDDRegionManager */
@@ -124,15 +133,17 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    writingStatisticsTo(out)
-      .put(cleanupQueueSize)
-      .put(cleanupTimer)
-      ;
+    synchronized (cleanupTimer) {
+      writingStatisticsTo(out)
+        .putIf(cleanupTimer.getUpdateCount() > 0,
+               "Number of BDD freed by GC", cleanupTimer.getUpdateCount())
+        .putIfUpdatedAtLeastOnce(cleanupTimer)
+        ;
+    }
   }
 
   @Override
   public SylvanBDDRegion createPredicate() {
-    cleanupReferences();
     return wrap(JSylvan.makeVar(nextvar++));
   }
 
@@ -149,29 +160,37 @@ class SylvanBDDRegionManager implements RegionManager {
   private final ReferenceQueue<SylvanBDDRegion> referenceQueue = new ReferenceQueue<>();
 
   // In this map we store the info which BDD to free after a SylvanBDDRegion object was GCed.
-  private final Map<PhantomReference<SylvanBDDRegion>, Long> referenceMap = Maps.newIdentityHashMap();
+  // Needs to be concurrent because we access it from two threads,
+  // and we don't want synchronized blocks in the main thread.
+  private final Map<PhantomReference<SylvanBDDRegion>, Long> referenceMap = Maps.newConcurrentMap();
 
   /**
-   * Cleanup all references to BDDs that are no longer needed.
-   * We call this method from all public methods, so that this gets done as soon
-   * as possible.
-   * Usually we would do this in a daemon thread in the background, but the
-   * BDD library is not multi-threaded.
+   * Cleanup all references to BDDs that are no longer needed,
+   * after the GC notified us about the fact that it freed a SylvanBDDRegion object.
+   * This method runs in a separate thread infinitely.
    */
-  private void cleanupReferences() {
-    cleanupTimer.start();
-    try {
-      int count = 0;
-      PhantomReference<? extends SylvanBDDRegion> ref;
-      while ((ref = (PhantomReference<? extends SylvanBDDRegion>)referenceQueue.poll()) != null) {
-        count++;
+  private static void cleanupReferences(
+      final ReferenceQueue<SylvanBDDRegion> referenceQueue,
+      final Map<PhantomReference<SylvanBDDRegion>, Long> referenceMap,
+      final StatTimer cleanupTimer) {
 
-        long bdd = referenceMap.remove(ref);
-        JSylvan.deref(bdd);
+    try {
+      while (true) {
+        PhantomReference<? extends SylvanBDDRegion> ref =
+            (PhantomReference<? extends SylvanBDDRegion>)referenceQueue.remove();
+
+        // It would be faster to have a thread-safe timer instead of synchronized.
+        // However, the lock is uncontended, and thus probably quite fast
+        // (and it does not hurt the main thread).
+        synchronized (cleanupTimer) {
+          cleanupTimer.start();
+          long bdd = referenceMap.remove(ref);
+          JSylvan.deref(bdd);
+          cleanupTimer.stop();
+        }
       }
-      cleanupQueueSize.setNextValue(count);
-    } finally {
-      cleanupTimer.stop();
+    } catch (InterruptedException e) {
+      // do nothing, we just let this thread terminate
     }
   }
 
@@ -196,8 +215,6 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public boolean entails(Region pF1, Region pF2) {
-    cleanupReferences();
-
     // check entailment using BDDs: create the BDD representing
     // the implication, and check that it is the TRUE formula
     long imp = JSylvan.makeImplies(unwrap(pF1), unwrap(pF2));
@@ -207,64 +224,47 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeTrue() {
-    cleanupReferences();
-
     return trueFormula;
   }
 
   @Override
   public Region makeFalse() {
-    cleanupReferences();
-
     return falseFormula;
   }
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    cleanupReferences();
-
     return wrap(JSylvan.makeAnd(unwrap(pF1), unwrap(pF2)));
   }
 
   @Override
   public Region makeNot(Region pF) {
-    cleanupReferences();
-
     return wrap(JSylvan.makeNot(unwrap(pF)));
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    cleanupReferences();
-
     return wrap(JSylvan.makeOr(unwrap(pF1), unwrap(pF2)));
   }
 
   @Override
   public Region makeEqual(Region pF1, Region pF2) {
-    cleanupReferences();
-
     return wrap(JSylvan.makeEquals(unwrap(pF1), unwrap(pF2)));
   }
 
   @Override
   public Region makeUnequal(Region pF1, Region pF2) {
-    cleanupReferences();
-
     return wrap(JSylvan.makeNotEquals(unwrap(pF1), unwrap(pF2)));
   }
 
 
   @Override
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
-    cleanupReferences();
     return wrap(JSylvan.makeIte(unwrap(pF1), unwrap(pF2), unwrap(pF3)));
   }
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
-    cleanupReferences();
-
     long f = unwrap(pF);
 
     Region predicate = wrap(JSylvan.getIf(f));
@@ -276,8 +276,6 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeExists(Region pF1, Region... pF2) {
-    cleanupReferences();
-
     if (pF2.length == 0) {
       return pF1;
     }
@@ -406,8 +404,6 @@ class SylvanBDDRegionManager implements RegionManager {
   @Override
   public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
       Function<BooleanFormula, Region> atomToRegion) {
-    cleanupReferences();
-
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     if (bfmgr.isFalse(pF)) {
       return makeFalse();
@@ -428,7 +424,7 @@ class SylvanBDDRegionManager implements RegionManager {
    * This class directly uses the BDD objects and their manual reference counting,
    * because for large formulas, the performance impact of creating SylvanBDDRegion
    * objects, putting them into the referenceMap and referenceQueue,
-   * gc'ing the SylvanBDDRegions again, and calling cleanupReferences() would be too big.
+   * gc'ing the SylvanBDDRegions again, and freeing them in cleanupReferences() would be too big.
    *
    * All visit* methods from this class return methods that have not been ref'ed.
    */

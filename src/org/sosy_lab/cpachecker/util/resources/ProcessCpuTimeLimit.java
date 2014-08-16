@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.JMException;
 
+import org.sosy_lab.common.time.TimeSpan;
+
 /**
  * A limit that measures the CPU time used by the current process
  * (if available on this JVM).
@@ -44,6 +46,10 @@ public class ProcessCpuTimeLimit implements ResourceLimit {
     checkArgument(pLimit > 0);
     duration = TimeUnit.NANOSECONDS.convert(pLimit, pUnit);
     endTime = pStart + duration;
+  }
+
+  public static ProcessCpuTimeLimit fromNowOn(TimeSpan timeSpan) throws JMException {
+    return new ProcessCpuTimeLimit(ProcessCpuTime.read(), timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
   public static ProcessCpuTimeLimit fromNowOn(long limit, TimeUnit unit) throws JMException {

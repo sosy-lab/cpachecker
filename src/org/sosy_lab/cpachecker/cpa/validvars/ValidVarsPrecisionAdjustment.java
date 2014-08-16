@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -40,16 +39,16 @@ public class ValidVarsPrecisionAdjustment implements PrecisionAdjustment{
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
     ValidVarsState state = (ValidVarsState) pState;
 
-    Triple<AbstractState, Precision, Action> wrappedPrecResult =
+    PrecisionAdjustmentResult wrappedPrecResult =
         wrappedPrecAdjust.prec(state.getWrappedState(), pPrecision, pStates);
-    if (wrappedPrecResult.getFirst() != state.getWrappedState()) {
-      pState = new ValidVarsState(wrappedPrecResult.getFirst(), state.getValidVariables());
+    if (wrappedPrecResult.abstractState() != state.getWrappedState()) {
+      pState = new ValidVarsState(wrappedPrecResult.abstractState(), state.getValidVariables());
     }
-    return Triple.of(pState, wrappedPrecResult.getSecond(), wrappedPrecResult.getThird());
+    return wrappedPrecResult.withAbstractState(pState);
   }
 
 }

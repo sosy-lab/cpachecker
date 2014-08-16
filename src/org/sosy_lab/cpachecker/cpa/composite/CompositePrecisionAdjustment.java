@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -86,7 +85,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
+  public PrecisionAdjustmentResult prec(AbstractState pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     CompositeState comp = (CompositeState) pElement;
@@ -106,10 +105,10 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Triple<AbstractState, Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
-      AbstractState newElement = out.getFirst();
-      Precision newPrecision = out.getSecond();
-      if (out.getThird() == Action.BREAK) {
+      PrecisionAdjustmentResult out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      AbstractState newElement = out.abstractState();
+      Precision newPrecision = out.precision();
+      if (out.action() == Action.BREAK) {
         action = Action.BREAK;
       }
 
@@ -124,7 +123,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    return Triple.of(outElement, outPrecision, action);
+    return PrecisionAdjustmentResult.create(outElement, outPrecision, action);
   }
 
 }

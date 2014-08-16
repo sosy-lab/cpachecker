@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 
@@ -59,7 +59,7 @@ public class TestGenStatistics implements Statistics {
   private volatile int countPathChecks = 0;
   private final boolean printAutomatonFileGenerationStats;
   private final List<Statistics> cpaAlgorithmStatistics = new ArrayList<>();
-  private final List<ARGPath> testCases = new ArrayList<>();
+  private final List<MutableARGPath> testCases = new ArrayList<>();
   private CFA cfa;
 
 
@@ -119,7 +119,7 @@ public class TestGenStatistics implements Statistics {
     }
   }
 
-  public void addTestCase(ARGPath pARGPath) {
+  public void addTestCase(MutableARGPath pARGPath) {
     testCases.add(pARGPath);
   }
 
@@ -155,7 +155,7 @@ public class TestGenStatistics implements Statistics {
   private int calculateTestedLocations() {
 
     Set<CFANode> locations = new HashSet<>();
-    for (ARGPath path : testCases) {
+    for (MutableARGPath path : testCases) {
       Set<CFANode> currentLocs = from(path.getStateSet()).transform(EXTRACT_LOCATION).filter(notNull()).toSet();
       locations.addAll(currentLocs);
     }

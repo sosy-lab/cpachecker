@@ -182,8 +182,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
-    CType ssaSavedType = ssa.getType(name);
+  protected void checkSsaSavedType(final String name, final CType type, CType ssaSavedType) {
     if (ssaSavedType != null) {
       ssaSavedType = CTypeUtils.simplifyType(ssaSavedType);
     }
@@ -198,7 +197,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa);
+    checkSsaSavedType(name, type, ssa.getType(name));
     return ssa.getIndex(name) > 0;
   }
 
@@ -206,8 +205,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   protected Formula makeFreshVariable(final String name,
                             final CType type,
                             final SSAMapBuilder ssa) {
-    final int oldIndex = getIndex(name, type, ssa);
-    final int newIndex = oldIndex + 1;
+    final int newIndex = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, newIndex);
     return fmgr.makeVariable(getFormulaTypeFromCType(type),
                              name + FRESH_INDEX_SEPARATOR + newIndex);
@@ -774,6 +772,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.getIndex(pName, pType, pSsa);
+  }
+
+  @Override
+  protected int getFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.getFreshIndex(pName, pType, pSsa);
   }
 
   @Override

@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -84,7 +83,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFile = Paths.get("%s.dot");
+  private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -132,13 +131,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
 
       @Override
-      public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+      public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
           UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
 
-        Triple<AbstractState, Precision, Action> wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-        return Triple.of(wrappedPrec.getFirst(), wrappedPrec.getSecond(), Action.BREAK);
+          return wrappedPrec.withAction(Action.BREAK);
         }
 
         return wrappedPrec;
@@ -169,8 +168,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      String fileName = String.format(exportFile.toAbsolutePath().getPath(), automaton.getName());
-      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
+      try (Writer w = Files.openOutputFile(exportFile.getPath(automaton.getName()))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -191,7 +189,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
   @Override

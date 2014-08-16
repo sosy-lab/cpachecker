@@ -182,8 +182,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-      return ViolatedProperty.OTHER;
+    public String getViolatedPropertyDescription() throws IllegalStateException {
+      return "";
     }
   }
 }

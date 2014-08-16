@@ -42,7 +42,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 public class ARGSubtreeRemover {
 
@@ -252,8 +250,7 @@ public class ARGSubtreeRemover {
     Set<ARGState> callNodes = pair.getFirst();
     Set<ARGState> returnNodes = pair.getSecond();
 
-    Deque<ARGState> remainingPathElements = new LinkedList<>(
-            Lists.transform(pPath, Pair.<ARGState>getProjectionToFirst()));
+    Deque<ARGState> remainingPathElements = new LinkedList<>(pPath.asStatesList());
 
     boolean starting = false;
     while (!remainingPathElements.isEmpty()) {
@@ -289,8 +286,7 @@ public class ARGSubtreeRemover {
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
-    for (Pair<ARGState, CFAEdge> currentElementPair : path) {
-      ARGState pathState = currentElementPair.getFirst();
+    for (ARGState pathState : path.asStatesList()) {
       CFANode node = extractLocation(pathState);
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
@@ -389,7 +385,7 @@ public class ARGSubtreeRemover {
   /** remove all states after pState from path */
   private static List<ARGState> trimPath(final ARGPath pPath, final ARGState pState) {
     final List<ARGState> result = new ArrayList<>();
-    for (ARGState state : Lists.transform(pPath, Pair.<ARGState>getProjectionToFirst())) {
+    for (ARGState state : pPath.asStatesList()) {
       result.add(state);
       if (state.equals(pState)) { return result; }
     }

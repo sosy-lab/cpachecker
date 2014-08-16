@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -63,7 +63,7 @@ public class ValueAnalysisStaticRefiner extends StaticRefiner {
   }
 
   public ValueAnalysisPrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      ARGPath pPath) throws CPATransferException {
+      MutableARGPath pPath) throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
     ARGState targetState = Iterables.getLast(pPath).getFirst();

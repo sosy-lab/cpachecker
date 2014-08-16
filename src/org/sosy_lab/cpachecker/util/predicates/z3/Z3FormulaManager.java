@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -62,7 +65,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     this.z3smtLogger = smtLogger;
   }
 
-  public static synchronized Z3FormulaManager create(LogManager logger, Configuration config)
+  public static synchronized Z3FormulaManager create(LogManager logger,
+      Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
 
     /*
@@ -108,7 +112,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
     // they will not contain variable-declaration!
-    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config);
+    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config, solverLogfile);
 
     // this options should match the option set above!
     smtLogger.logOption("model", "true");

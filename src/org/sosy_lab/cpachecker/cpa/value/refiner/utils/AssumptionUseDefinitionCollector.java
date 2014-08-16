@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 /**
@@ -129,7 +129,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
    * @param path the path to analyze
    * @return the mapping of location to referenced variables in the given path
    */
-  public Set<String> obtainUseDefInformation(ARGPath pFullArgPath) {
+  public Set<String> obtainUseDefInformation(MutableARGPath pFullArgPath) {
     return obtainUseDefInformation(from(pFullArgPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList());
   }
 

@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -136,7 +136,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);
   }
 
-  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
+  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(MutableARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations.inc();
     timerInterpolation.start();
@@ -145,14 +145,22 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
 
+    // obtain use-def relation, containing variables relevant to the "failing" assumption
+    Set<MemoryLocation> useDefRelation = new HashSet<>();
+    /* TODO: does not work as long as AssumptionUseDefinitionCollector is incomplete (e.g., does not take structs into account)
+    if(prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
+      AssumptionUseDefinitionCollector useDefinitionCollector = new InitialAssumptionUseDefinitionCollector();
+      useDefRelation = from(useDefinitionCollector.obtainUseDefInformation(errorTrace)).
+          transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet();
+    }*/
+
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
     final Deque<ValueAnalysisState> callstack = new ArrayDeque<>();
-
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
       if(!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, callstack);
+        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, callstack, useDefRelation);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
@@ -161,13 +169,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         interpolationOffset = i + 1;
       }
 
-      if(interpolant.isTrivial()) {
-        sizeOfInterpolant.setNextValue(0);
-      }
-
-      else {
-        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
-      }
+      sizeOfInterpolant.setNextValue(interpolant.isTrivial() ? 0 : interpolant.assignment.size());
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
 
@@ -178,7 +180,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     return pathInterpolants;
   }
 
-  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -221,11 +223,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  public Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
     if(interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
@@ -264,7 +266,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @param errorPath the error path
    * @return the list of CFA edges to be interpolated
    */
-  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+  private List<CFAEdge> obtainErrorTrace(MutableARGPath errorPath) {
     return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
   }
 
@@ -277,15 +279,15 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+  private MutableARGPath obtainErrorPathPrefix(MutableARGPath errorPath, ValueAnalysisInterpolant interpolant)
           throws CPAException, InterruptedException {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
 
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
-
-      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefix(prefixPreference, prefixes);
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
@@ -316,7 +318,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @param errorPath the error path
    * @return true, if the current cut-off point is at an assume edge, else false
    */
-  private boolean cutOffIsAssumeEdge(ARGPath errorPath) {
+  private boolean cutOffIsAssumeEdge(MutableARGPath errorPath) {
     return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
   }
 

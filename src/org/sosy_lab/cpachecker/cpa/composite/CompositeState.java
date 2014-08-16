@@ -27,7 +27,9 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -65,18 +67,16 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+  public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    // prefer a specific property over the default OTHER property
+    Set<String> descriptions = new HashSet<>(states.size());
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
-        ViolatedProperty property = ((Targetable)element).getViolatedProperty();
-        if (property != ViolatedProperty.OTHER) {
-          return property;
-        }
+        descriptions.add(((Targetable)element).getViolatedPropertyDescription());
       }
     }
-    return ViolatedProperty.OTHER;
+    descriptions.remove("");
+    return Joiner.on(", ").join(descriptions);
   }
 
   @Override

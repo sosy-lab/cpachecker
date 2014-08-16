@@ -37,7 +37,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class CoverageInformation {
 
-  public static void writeCoverageInfo(Path outputFile, ReachedSet reached, CFA cfa,
+  public static void writeCoverageInfo(PathTemplate outputFile, ReachedSet reached, CFA cfa,
       LogManager logger) {
 
     Set<CFANode> reachedLocations = getAllLocationsFromReached(reached);
@@ -103,8 +103,7 @@ public class CoverageInformation {
     }
 
     for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
-      Path p = Paths.get(String.format(outputFile.getAbsolutePath(),
-          entry.getKey().replace(File.separator, "--")));
+      Path p = outputFile.getPath(entry.getKey().replace(File.separator, "--"));
       try (Writer out = Files.openOutputFile(p)) {
         entry.getValue().print(out, entry.getKey());
       } catch (IOException e) {

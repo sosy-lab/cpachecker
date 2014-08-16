@@ -36,13 +36,17 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
@@ -75,6 +79,15 @@ public class FormulaManagerFactory {
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
 
+  @Option(name="solver.logAllQueries",
+      description = "Export solver queries in Smtlib format into a file.")
+  private boolean logAllQueries = false;
+
+  @Option(name="solver.logfile",
+      description = "Export solver queries in Smtlib format into a file.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
+
   @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
   private Solvers solver = Solvers.MATHSAT5;
 
@@ -94,6 +107,10 @@ public class FormulaManagerFactory {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
+
+    if (!logAllQueries) {
+      logfile = null;
+    }
 
     if (solver.equals(interpolationSolver)) {
       // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
@@ -117,14 +134,14 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, shutdownNotifier);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier, logfile);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile);
 
       case Z3:
         try {
-          return Z3FormulaManager.create(logger, config);
+          return Z3FormulaManager.create(logger, config, logfile);
         } catch (UnsatisfiedLinkError e) {
           if (e.getMessage().contains("libfoci.so")) {
             throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
@@ -217,7 +234,8 @@ public class FormulaManagerFactory {
    */
   public static interface SolverFactory {
     FormulaManager create(Configuration config, LogManager logger,
-        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException;
+        ShutdownNotifier pShutdownNotifier,
+        @Nullable PathCounterTemplate solverLogfile) throws InvalidConfigurationException;
 
     ProverEnvironment createProver(FormulaManager mgr);
 

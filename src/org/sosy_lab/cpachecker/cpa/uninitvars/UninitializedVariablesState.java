@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -231,9 +233,9 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    if (isTarget()) { return ViolatedProperty.OTHER; }
-    return null;
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    checkState(isTarget());
+    return "";
   }
 
   @Override

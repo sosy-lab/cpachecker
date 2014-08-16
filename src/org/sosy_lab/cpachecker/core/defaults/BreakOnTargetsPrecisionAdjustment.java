@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -80,7 +79,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(final AbstractState pState,
+  public PrecisionAdjustmentResult prec(final AbstractState pState,
       final Precision pPrecision,
       final UnmodifiableReachedSet pStates)
           throws CPAException {
@@ -92,18 +91,18 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (extraIterationsLimitReached()) {
-      return Triple.of(pState, pPrecision, Action.BREAK);
+      return PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK);
     }
 
     if (((Targetable)pState).isTarget()) {
       foundTargetCounter++;
 
       if (foundTargetLimitReached()) {
-        return Triple.of(pState, pPrecision, Action.BREAK);
+        return PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK);
       }
     }
 
-    return Triple.of(pState, pPrecision, Action.CONTINUE);
+    return PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE);
   }
 
   /**

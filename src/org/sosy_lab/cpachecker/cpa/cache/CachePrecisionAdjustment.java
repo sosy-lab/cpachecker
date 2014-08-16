@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.cache;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -41,7 +40,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment mCachedPrecisionAdjustment;
   //private final Map<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>> mCache;
-  private final Map<Precision, Map<AbstractState, Triple<AbstractState, Precision, Action>>> mCache;
+  private final Map<Precision, Map<AbstractState, PrecisionAdjustmentResult>> mCache;
 
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
@@ -50,7 +49,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
@@ -69,14 +68,14 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
 
     return lResult;*/
 
-    Map<AbstractState, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pPrecision);
+    Map<AbstractState, PrecisionAdjustmentResult> lCache = mCache.get(pPrecision);
 
     if (lCache == null) {
       lCache = new HashMap<>();
       mCache.put(pPrecision, lCache);
     }
 
-    Triple<AbstractState, Precision, Action> lResult = lCache.get(pElement);
+    PrecisionAdjustmentResult lResult = lCache.get(pElement);
 
     if (lResult == null) {
       lResult = mCachedPrecisionAdjustment.prec(pElement, pPrecision, pElements);

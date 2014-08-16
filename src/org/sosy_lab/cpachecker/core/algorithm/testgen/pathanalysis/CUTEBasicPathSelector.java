@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -78,8 +79,7 @@ public class CUTEBasicPathSelector implements PathSelector {
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    ARGPath newARGPath = new ARGPath();
-    newARGPath.addAll(pExecutedPath);
+    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
     PathInfo pathInfo = new PathInfo(newARGPath.size());
     //    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
     /*
@@ -188,7 +188,7 @@ public class CUTEBasicPathSelector implements PathSelector {
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         //        pathValidator.handleValidPath(newARGPath, traceInfo);
         branchingHistory.resetTo(newARGPath);
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
       }
       else {
         lastElement = currentElement;
@@ -243,7 +243,7 @@ public class CUTEBasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
       InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList());
+    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
   }
 
   public class PathInfo {
@@ -326,7 +326,7 @@ public class CUTEBasicPathSelector implements PathSelector {
       return pCurrentPathLength < currentDepths;
     }
 
-    public void resetTo(ARGPath argPath) {
+    public void resetTo(MutableARGPath argPath) {
       descendingEdgePath = Iterators.transform(argPath.descendingIterator(), Pair.<CFAEdge> getProjectionToSecond());
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 

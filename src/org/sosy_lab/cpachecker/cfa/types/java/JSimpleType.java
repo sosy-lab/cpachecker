@@ -30,15 +30,24 @@ import java.util.Objects;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-
-
-
+/**
+ * Description of a simple Java structure's type.
+ *
+ * These descriptions are mostly merely primitive types, but include special cases like
+ * <code>null</code> either. Actually, possible concrete types are all enum constants of
+ * {@link JBasicType}.
+ */
 public class JSimpleType implements JType {
 
   private final JBasicType type;
   private final boolean isPrimitive;
 
-
+  /**
+   * Creates a new <code>JSimpleType</code> object that represents the given
+   * basic type.
+   *
+   * @param pType the concrete primitive type to represent
+   */
   public JSimpleType(JBasicType pType) {
     type = pType;
 
@@ -62,7 +71,11 @@ public class JSimpleType implements JType {
 
   }
 
-
+  /**
+   * Returns the concrete primitive type this class represents.
+   *
+   * @return the concrete primitive type this class represents
+   */
   public JBasicType getType() {
     return type;
   }
@@ -77,7 +90,6 @@ public class JSimpleType implements JType {
     return Joiner.on(' ').skipNulls().join(parts);
   }
 
-
   public boolean isPrimitive() {
     return isPrimitive;
   }
@@ -91,6 +103,14 @@ public class JSimpleType implements JType {
       return result;
   }
 
+  /**
+   * Returns whether the given object equals this object.
+   *
+   * <p>Two <code>JSimpleType</code> objects equal each other if their stored primitive types equal.</p>
+   *
+   * @param obj the object to compare to this object
+   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
+   */
   @Override
   public boolean equals(Object obj) {
       if (this == obj) {
@@ -105,4 +125,5 @@ public class JSimpleType implements JType {
       return type == other.type && isPrimitive == other.isPrimitive;
   }
 
+  // TODO toString erstellen
 }

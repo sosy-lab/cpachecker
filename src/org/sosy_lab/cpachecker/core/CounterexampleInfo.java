@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
@@ -43,7 +43,7 @@ public class CounterexampleInfo {
   private final Model model;
 
   // list with additional information about the counterexample
-  private final Collection<Pair<Object, Path>> furtherInfo;
+  private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
@@ -89,7 +89,7 @@ public class CounterexampleInfo {
    * @param info The information.
    * @param dumpFile The file where "info.toString()" should be dumped (may be null).
    */
-  public void addFurtherInformation(Object info, Path dumpFile) {
+  public void addFurtherInformation(Object info, PathTemplate dumpFile) {
     checkState(!spurious);
 
     furtherInfo.add(Pair.of(checkNotNull(info), dumpFile));
@@ -102,7 +102,7 @@ public class CounterexampleInfo {
    *
    * @return
    */
-  public Collection<Pair<Object, Path>> getAllFurtherInformation() {
+  public Collection<Pair<Object, PathTemplate>> getAllFurtherInformation() {
     checkState(!spurious);
 
     return Collections.unmodifiableCollection(furtherInfo);

@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
@@ -108,6 +109,8 @@ public class ValueAnalysisInterpolator {
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    * @param callStack the stack at where to start interpolation
+   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
+   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
@@ -115,7 +118,8 @@ public class ValueAnalysisInterpolator {
       final List<CFAEdge> pErrorPath,
       final int pOffset,
       final ValueAnalysisInterpolant pInputInterpolant,
-      final Deque<ValueAnalysisState> callStack) throws CPAException, InterruptedException {
+      final Deque<ValueAnalysisState> callStack,
+      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
@@ -139,6 +143,11 @@ public class ValueAnalysisInterpolator {
     // then return the input interpolant with those renamings
     if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
       return initialSuccessor.createInterpolant();
+    }
+
+    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
+    if(!useDefRelation.isEmpty()) {
+      initialSuccessor.retainAll(useDefRelation);
     }
 
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
@@ -248,7 +257,7 @@ public class ValueAnalysisInterpolator {
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
 
-    ARGPath argErrorPath = new ARGPath();
+    MutableARGPath argErrorPath = new MutableARGPath();
 
     for(CFAEdge currentEdge : remainingErrorPath) {
         argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, currentEdge));

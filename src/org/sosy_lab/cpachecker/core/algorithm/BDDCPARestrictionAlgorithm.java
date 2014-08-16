@@ -32,8 +32,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -61,7 +60,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   @Option(description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
   @FileOption(Type.OUTPUT_FILE)
-  private Path presenceConditionFile = Paths.get("ErrorPath.%d.presenceCondition.txt");
+  private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("ErrorPath.%d.presenceCondition.txt");
 
   private final Algorithm algorithm;
   private final LogManager logger;

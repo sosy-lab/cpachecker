@@ -27,11 +27,20 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
-
+/**
+ * Description of a Java array through its element type and number of dimensions.
+ */
 public class JArrayType extends AArrayType implements JReferenceType {
 
   private final int dimension;
 
+  /**
+   * Creates a new <code>JArrayType</code> object that describes a Java array with the given
+   * properties.
+   *
+   * @param pElementType the type of the array's elements described by a {@link JType}
+   * @param pDimension the number of dimensions the array has
+   */
   public JArrayType(final JType pElementType, final int pDimension) {
 
     super(pElementType);
@@ -51,10 +60,20 @@ public class JArrayType extends AArrayType implements JReferenceType {
     return  astString.toString();
   }
 
+  /**
+   * Returns the type of the described array's elements.
+   *
+   * @return the type of the described array's elements
+   */
   public JType getElementType() {
     return (JType) super.getType();
   }
 
+  /**
+   * Returns the number of dimensions of the described array.
+   *
+   * @return the number of dimensions of the described array
+   */
   public int getDimensions() {
     return dimension;
   }

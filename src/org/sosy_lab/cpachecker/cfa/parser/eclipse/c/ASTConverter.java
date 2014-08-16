@@ -1115,6 +1115,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(final IASTUnaryExpression e) {
+    if (e.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+      // we can have side effects here
+      return convertExpressionWithSideEffects(e.getOperand());
+    }
+
     final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
     final FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
@@ -1122,6 +1127,7 @@ class ASTConverter {
 
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_bracketedPrimary:
+      throw new AssertionError("handled above");
     case IASTUnaryExpression.op_plus:
       return operand;
 

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -76,10 +77,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    ARGPath newARGPath = new ARGPath();
-    for (Pair<ARGState, CFAEdge> pair : pExecutedPath) {
-      newARGPath.add(pair);
-    }
+    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
     /*
      * only by edge representation of the new path.
      */
@@ -178,7 +176,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         handledDecisions.add(currentElement.getFirst());
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
+        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
       }
       else {
         lastElement = currentElement;
@@ -192,7 +190,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList());
+    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
   }
 
 }

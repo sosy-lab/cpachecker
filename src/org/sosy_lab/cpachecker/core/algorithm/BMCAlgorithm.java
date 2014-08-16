@@ -46,8 +46,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -184,7 +183,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpCounterexampleFormula = Paths.get("ErrorPath.%d.smt2");
+  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -532,7 +531,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker = new PathChecker(logger, shutdownNotifier, pmgr, solver, machineModel);
       try {
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.getInnerEdges());
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");
@@ -550,7 +549,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         counterexample = CounterexampleInfo.feasible(targetPath, model);
       }
-      pCounterexampleStorage.addCounterexample(targetPath.getLast().getFirst(), counterexample);
+      pCounterexampleStorage.addCounterexample(targetPath.getLastState(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();

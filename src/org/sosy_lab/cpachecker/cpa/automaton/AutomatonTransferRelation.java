@@ -273,7 +273,7 @@ class AutomatonTransferRelation implements TransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0);
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, "");
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
@@ -301,7 +301,11 @@ class AutomatonTransferRelation implements TransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches());
+        String violatedPropertyDescription = null;
+        if (t.getFollowState().isTarget()) {
+          violatedPropertyDescription = t.getViolatedPropertyDescription(exprArgs);
+        }
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedPropertyDescription);
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {
@@ -311,7 +315,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches);
+      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches, null);
       if (collectTokenInformation) {
         stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
         if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {

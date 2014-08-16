@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -50,7 +49,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
+  public PrecisionAdjustmentResult prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
@@ -67,27 +66,27 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractState oldElement = element.getWrappedState();
 
-    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
-    if(unwrappedResult.getThird() == Action.BREAK && elementHasSiblings(element)) {
+    if(unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
       removeUnreachedSiblingsFromARG(element, pElements);
     }
 
-    AbstractState newElement = unwrappedResult.getFirst();
-    Precision newPrecision = unwrappedResult.getSecond();
-    Action action = unwrappedResult.getThird();
+    AbstractState newElement = unwrappedResult.abstractState();
+    Precision newPrecision = unwrappedResult.precision();
+    Action action = unwrappedResult.action();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return Triple.of(pElement, oldPrecision, action);
+      return PrecisionAdjustmentResult.create(pElement, oldPrecision, action);
     }
 
     ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
-    return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
+    return PrecisionAdjustmentResult.create(resultElement, newPrecision, action);
   }
 
   /**

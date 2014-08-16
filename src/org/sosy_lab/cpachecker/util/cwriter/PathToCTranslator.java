@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +39,6 @@ import java.util.Stack;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -55,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Function;
@@ -178,9 +177,8 @@ public class PathToCTranslator {
 
   private void translateSinglePath0(ARGPath pPath) {
     assert pPath.size() >= 1;
-    Iterator<Pair<ARGState, CFAEdge>> pathIt = pPath.iterator();
-    Pair<ARGState, CFAEdge> parentPair = pathIt.next();
-    ARGState firstElement = parentPair.getFirst();
+    PathIterator pathIt = pPath.pathIterator();
+    ARGState firstElement = pathIt.getAbstractState();
 
     Stack<FunctionBody> functionStack = new Stack<>();
 
@@ -188,14 +186,12 @@ public class PathToCTranslator {
     startFunction(firstElement, functionStack);
 
     while (pathIt.hasNext()) {
-      Pair<ARGState, CFAEdge> nextPair = pathIt.next();
+      pathIt.advance();
 
-      CFAEdge currentCFAEdge = parentPair.getSecond();
-      ARGState childElement = nextPair.getFirst();
+      CFAEdge currentCFAEdge = pathIt.getIncomingEdge();
+      ARGState childElement = pathIt.getAbstractState();
 
       processEdge(childElement, currentCFAEdge, functionStack);
-
-      parentPair = nextPair;
     }
   }
 

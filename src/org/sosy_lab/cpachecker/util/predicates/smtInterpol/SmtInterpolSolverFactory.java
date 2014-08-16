@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.SolverFactory;
@@ -46,12 +49,13 @@ public class SmtInterpolSolverFactory implements SolverFactory {
 
   @Override
   public FormulaManager create(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate solverLogfile) throws InvalidConfigurationException {
     final Thread currentThread = Thread.currentThread();
     final ClassLoader contextClassLoader = currentThread.getContextClassLoader();
     try {
       currentThread.setContextClassLoader(SmtInterpolSolverFactory.class.getClassLoader());
-      return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier);
+      return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier, solverLogfile);
     } finally {
       currentThread.setContextClassLoader(contextClassLoader);
     }

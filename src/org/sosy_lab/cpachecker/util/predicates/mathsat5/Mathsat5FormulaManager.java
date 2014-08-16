@@ -28,20 +28,19 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -55,24 +54,20 @@ import com.google.common.collect.ImmutableMap;
 
 public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
-  @Options(prefix="cpa.predicate.mathsat5")
+  @Options(prefix="cpa.predicate.solver.mathsat5")
   private static class Mathsat5Settings {
 
     @Option(description = "List of further options which will be passed to Mathsat in addition to the default options. "
         + "Format is 'key1=value1,key2=value2'")
     private String furtherOptions = "";
 
-    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-    private boolean logAllQueries = false;
-
-    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-    @FileOption(Type.OUTPUT_FILE)
-    private Path logfile = Paths.get("mathsat5.%03d.smt2");
+    private final @Nullable PathCounterTemplate logfile;
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 
-    private Mathsat5Settings(Configuration config) throws InvalidConfigurationException {
+    private Mathsat5Settings(Configuration config, PathCounterTemplate pLogfile) throws InvalidConfigurationException {
       config.inject(this);
+      logfile = pLogfile;
 
       MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
                       .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
@@ -88,7 +83,6 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   private final LogManager logger;
   private final long mathsatConfig;
   private final Mathsat5Settings settings;
-  private static final AtomicInteger logfileCounter = new AtomicInteger(0);
 
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
@@ -133,10 +127,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   }
 
   public static Mathsat5FormulaManager create(LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      Configuration config, ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate solverLogFile) throws InvalidConfigurationException {
 
     // Init Msat
-    Mathsat5Settings settings = new Mathsat5Settings(config);
+    Mathsat5Settings settings = new Mathsat5Settings(config, solverLogFile);
 
     long msatConf = msat_create_config();
     msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
@@ -208,16 +203,16 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       msat_set_option_checked(cfg, option.getKey(), option.getValue());
     }
 
-    if (settings.logAllQueries && settings.logfile != null) {
-      String filename = String.format(settings.logfile.toAbsolutePath().getPath(), logfileCounter.getAndIncrement());
+    if (settings.logfile != null) {
+      Path filename = settings.logfile.getFreshPath();
       try {
-        Files.createParentDirs(Paths.get(filename));
+        Files.createParentDirs(filename);
       } catch (IOException e) {
         logger.logException(Level.WARNING, e, "Cannot create directory for MathSAT logfile");
       }
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
-      msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);
+      msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename.toAbsolutePath().toString());
     }
 
     if (shared) {

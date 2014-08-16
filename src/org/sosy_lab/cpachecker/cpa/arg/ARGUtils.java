@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -60,6 +61,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -109,7 +111,47 @@ public class ARGUtils {
    * @return A path from root to lastElement.
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
-    ARGPath path = new ARGPath();
+    List<ARGState> states = new ArrayList<>(); // reversed order
+    Set<ARGState> seenElements = new HashSet<>();
+
+    // each element of the path consists of the abstract state and the outgoing
+    // edge to its successor
+
+    ARGState currentARGState = pLastElement;
+    states.add(currentARGState);
+    seenElements.add(currentARGState);
+
+    while (!currentARGState.getParents().isEmpty()) {
+      Iterator<ARGState> parents = currentARGState.getParents().iterator();
+
+      ARGState parentElement = parents.next();
+      while (!seenElements.add(parentElement) && parents.hasNext()) {
+        // while seenElements already contained parentElement, try next parent
+        parentElement = parents.next();
+      }
+
+      states.add(parentElement);
+
+      currentARGState = parentElement;
+    }
+    return new ARGPath(Lists.reverse(states));
+  }
+
+  /**
+   * Create a path in the ARG from root to the given element.
+   * If there are several such paths, one is chosen randomly.
+   *
+   * This is a copy of {@link #getOnePathTo(ARGState)}
+   * that should be used only if a {@link MutableARGPath}
+   * is strictly required as the return object
+   * (we hope we can remove {@link MutableARGPath} and this method
+   * sometime in the future).
+   *
+   * @param pLastElement The last element in the path.
+   * @return A path from root to lastElement.
+   */
+  public static MutableARGPath getOneMutablePathTo(ARGState pLastElement) {
+    MutableARGPath path = new MutableARGPath();
     Set<ARGState> seenElements = new HashSet<>();
 
     // each element of the path consists of the abstract state and the outgoing
@@ -141,6 +183,22 @@ public class ARGUtils {
     return path;
   }
 
+  /**
+   * Get one random path from the ARG root to an ARG leaf.
+   * @param root The root state of an ARG (may not have any parents)
+   */
+  public static ARGPath getRandomPath(final ARGState root) {
+    checkArgument(root.getParents().isEmpty());
+
+    List<ARGState> states = new ArrayList<>();
+    ARGState currentElement = root;
+    while (currentElement.getChildren().size() > 0) {
+      states.add(currentElement);
+      currentElement = currentElement.getChildren().iterator().next();
+    }
+    states.add(currentElement);
+    return new ARGPath(states);
+  }
 
   public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
@@ -244,7 +302,8 @@ public class ARGUtils {
 
     checkArgument(arg.contains(root));
 
-    ARGPath result = new ARGPath();
+    List<ARGState> states = new ArrayList<>();
+    List<CFAEdge> edges = new ArrayList<>();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
@@ -325,7 +384,8 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
-      result.add(Pair.of(currentElement, edge));
+      states.add(currentElement);
+      edges.add(edge);
       currentElement = child;
     }
 
@@ -333,9 +393,10 @@ public class ARGUtils {
     // need to add another pair with target state and one (arbitrary) outgoing edge
     CFANode loc = extractLocation(currentElement);
     CFAEdge lastEdge = leavingEdges(loc).first().orNull();
-    result.add(Pair.of(currentElement, lastEdge));
+    states.add(currentElement);
+    edges.add(lastEdge);
 
-    return result;
+    return new ARGPath(states, edges);
   }
 
   /**
@@ -360,7 +421,7 @@ public class ARGUtils {
 
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
-    if (result.getLast().getFirst() != target) {
+    if (result.getLastState() != target) {
       throw new IllegalArgumentException("ARG target path reached the wrong target state!");
     }
 
@@ -532,7 +593,7 @@ public class ARGUtils {
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
     int multiEdgeCount = 0; // see below
-    Pair<ARGState,CFAEdge> lastElement = pCounterExample.getTargetPath().getLast();
+    final ARGState lastState = pCounterExample.getTargetPath().getLastState();
     for (ARGState s : pPathStates) {
 
       CFANode loc = AbstractStates.extractLocation(s);
@@ -598,16 +659,16 @@ public class ARGUtils {
           sb.append(";\n");
         }
       }
-      if(!s.equals(lastElement.getFirst())) {
+      if(!s.equals(lastState)) {
         sb.append("    TRUE -> STOP;\n\n");
       }
     }
 
-
-    if(lastElement.getSecond() != null)
+    CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
+    if(lastEdge != null)
     {
       sb.append("    MATCH \"");
-      escape(lastElement.getSecond().getRawStatement(), sb);
+      escape(lastEdge.getRawStatement(), sb);
       sb.append("\" -> ");
       sb.append("GOTO EndLoop");
       sb.append(";\n");

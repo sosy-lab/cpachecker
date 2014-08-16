@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -37,7 +36,7 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
   INSTANCE;
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) {
 
@@ -45,7 +44,7 @@ enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
     assert Iterables.all(pElements, Predicates.<AbstractState>equalTo(AlwaysTopState.INSTANCE));
 
-    return Triple.<AbstractState, Precision, Action>of(
+    return PrecisionAdjustmentResult.create(
         AlwaysTopState.INSTANCE, AlwaysTopPrecision.INSTANCE, Action.CONTINUE);
   }
 }

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.CompleteCertificateConstructionAlgorithm;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
@@ -92,6 +93,11 @@ public class PartitioningIOHelper {
     switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
     case ALL:
       partialConstructor = new CompleteCertificateConstructionAlgorithm();
+      break;
+    case HEURISTIC:
+      logger.log(Level.WARNING,
+          "Only heuristic, constructed certificate may not be checkable, especially if merge is not join operator.");
+      partialConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
       break;
     case MONOTONESTOPARG:
       partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);

@@ -37,15 +37,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
@@ -73,7 +74,7 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
  * so functions remain declared, if levels are popped.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
  */
-@Options(prefix="cpa.predicate.smtinterpol")
+@Options(prefix="cpa.predicate.solver.smtinterpol")
 class SmtInterpolEnvironment {
 
   /**
@@ -101,22 +102,11 @@ class SmtInterpolEnvironment {
   @Option(description="Double check generated results like interpolants and models whether they are correct")
   private boolean checkResults = false;
 
-  @Option(description="Export solver queries in Smtlib format into a file.")
-  private boolean logAllQueries = false;
-
-  @Option(description="Export interpolation queries in Smtlib format into a file.")
-  private boolean logInterpolationQueries = false;
-
-  @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
+  private final @Nullable PathCounterTemplate smtLogfile;
 
   @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
       + "Format is 'option1,option2,option3'")
   private List<String> furtherOptions = ImmutableList.of();
-
-  /** this is a counter to get distinct logfiles for distinct environments. */
-  private static int logfileCounter = 0;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -135,10 +125,12 @@ class SmtInterpolEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate pSmtLogfile) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
+    smtLogfile = pSmtLogfile;
 
     final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger),
         new TerminationRequest() {
@@ -148,7 +140,7 @@ class SmtInterpolEnvironment {
           }
         });
 
-    if (logAllQueries && smtLogfile != null) {
+    if (smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
     } else {
       script = smtInterpol;
@@ -180,7 +172,7 @@ class SmtInterpolEnvironment {
   }
 
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
-    String filename = getFilename(smtLogfile);
+    String filename = smtLogfile.getFreshPath().toAbsolutePath().toString();
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
@@ -244,19 +236,12 @@ class SmtInterpolEnvironment {
     return theory;
   }
 
-  /**  This function creates a filename with following scheme:
-       first filename is unchanged, then a number is appended */
-  private String getFilename(final Path oldFilename) {
-    String filename = oldFilename.toAbsolutePath().getPath();
-    return String.format(filename, logfileCounter++);
-  }
-
   SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
-    if (logInterpolationQueries && smtLogfile != null) {
-      String logfile = getFilename(smtLogfile);
+    if (smtLogfile != null) {
+      Path logfile = smtLogfile.getFreshPath();
 
       try {
-        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+        PrintWriter out = new PrintWriter(Files.openOutputFile(logfile));
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");

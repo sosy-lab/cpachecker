@@ -60,7 +60,7 @@ public class Z3MaximizationTest {
 
     loadZ3();
     Configuration config = Configuration.defaultConfiguration();
-    Z3FormulaManager mgr = Z3FormulaManager.create(null, config);
+    Z3FormulaManager mgr = Z3FormulaManager.create(null, config, null);
     Z3RationalFormulaManager rfmgr =
         (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
 

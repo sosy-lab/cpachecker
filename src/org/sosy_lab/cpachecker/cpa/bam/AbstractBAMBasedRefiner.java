@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,7 +38,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -51,7 +49,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
- * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, ARGPath)}.
+ * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, MutableARGPath)}.
  *
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
@@ -65,7 +63,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   private final BAMTransferRelation transfer;
   private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
-  private final static ARGPath DUMMY_PATH_FOR_MISSING_BLOCK = new ARGPath();
   final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
@@ -85,9 +82,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
   @Override
   protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
-    assert pPath == DUMMY_PATH_FOR_MISSING_BLOCK || pPath.size() > 0;
+    assert pPath == null || pPath.size() > 0;
 
-    if (pPath == DUMMY_PATH_FOR_MISSING_BLOCK) {
+    if (pPath == null) {
       // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
       // We directly return SPURIOUS and let the CPA-algorithm run again.
       // During the counter-example-path-building we already re-added the start-states of all blocks,
@@ -112,7 +109,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       try {
         subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, pathStateToReachedState);
         if (subgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
-          return DUMMY_PATH_FOR_MISSING_BLOCK;
+          return null;
         }
       } finally {
         computeSubtreeTimer.stop();
@@ -121,7 +118,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       computeCounterexampleTimer.start();
       try {
         logger.log(Level.ALL, "root of subgraph", subgraph);
-        final ARGPath path = computeCounterexample(subgraph);
+        final ARGPath path = ARGUtils.getRandomPath(subgraph);
         logger.log(Level.ALL, "computed path from subgraph", path);
         return path;
       } finally {
@@ -130,21 +127,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     } finally {
       computePathTimer.stop();
     }
-  }
-
-  private ARGPath computeCounterexample(ARGState root) {
-    ARGPath path = new ARGPath();
-    ARGState currentElement = root;
-    while (currentElement.getChildren().size() > 0) {
-      ARGState child = currentElement.getChildren().iterator().next();
-
-      CFAEdge edge = currentElement.getEdgeToChild(child);
-      path.add(Pair.of(currentElement, edge));
-
-      currentElement = child;
-    }
-    path.add(Pair.of(currentElement, extractLocation(currentElement).getLeavingEdge(0)));
-    return path;
   }
 
   private static class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {

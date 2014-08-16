@@ -1690,33 +1690,28 @@ public class ASTConverter {
       basicType = null;
     }
 
-    try {
-      if (op.equals(Assignment.Operator.ASSIGN)) {
-        return null;
+    if (op.equals(Assignment.Operator.ASSIGN)) {
+      return null;
 
-      } else if (basicType != null) {
-        switch (basicType) {
-        case BOOLEAN:
-          return convertBooleanOperator(op); // might throw CFAGenerationRuntimeException
+    } else if (basicType != null) {
+      switch (basicType) {
+      case BOOLEAN:
+        return convertBooleanOperator(op); // might throw CFAGenerationRuntimeException
 
-        case BYTE:
-        case SHORT:
-        case INT:
-        case LONG:
-        case DOUBLE:
-        case FLOAT:
-          return convertNumberOperator(op); // might throw CFAGenerationRuntimeException
+      case BYTE:
+      case SHORT:
+      case INT:
+      case LONG:
+      case DOUBLE:
+      case FLOAT:
+        return convertNumberOperator(op); // might throw CFAGenerationRuntimeException
 
-        default:
-          throw new CFAGenerationRuntimeException(invalidTypeMsg);
-        }
-
-      } else {
+      default:
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
-    } catch (CFAGenerationRuntimeException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      return null;
+
+    } else {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
   }
 
@@ -1899,40 +1894,34 @@ public class ASTConverter {
       basicType = null;
     }
 
-    try {
-      if (basicType != null && basicType.equals(JBasicType.VOID)) {
-        throw new CFAGenerationRuntimeException(invalidTypeMsg);
+    if (basicType != null && basicType.equals(JBasicType.VOID)) {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
 
-      } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-        return BinaryOperator.EQUALS;
+    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
+      return BinaryOperator.EQUALS;
 
-      } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-        return BinaryOperator.NOT_EQUALS;
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+      return BinaryOperator.NOT_EQUALS;
 
-      } else if (basicType != null) {
+    } else if (basicType != null) {
 
-        switch (basicType) {
-        case BOOLEAN:
-          return convertBooleanOperator(op);
+      switch (basicType) {
+      case BOOLEAN:
+        return convertBooleanOperator(op);
 
-        case BYTE:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          return convertNumberOperator(op);
+      case BYTE:
+      case SHORT:
+      case INT:
+      case LONG:
+      case FLOAT:
+      case DOUBLE:
+        return convertNumberOperator(op);
 
-        default:
-          throw new CFAGenerationRuntimeException(invalidTypeMsg);
-        }
-      } else {
+      default:
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
-
-    } catch (CFAGenerationRuntimeException e) {
-        logger.log(Level.SEVERE, e.getMessage());
-        return null;
+    } else {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
   }
 

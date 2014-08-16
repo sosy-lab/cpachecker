@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
 import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -59,10 +59,10 @@ public class ApronAnalysisFeasabilityChecker {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ARGPath checkedPath;
-  private final ARGPath foundPath;
+  private final MutableARGPath checkedPath;
+  private final MutableARGPath foundPath;
 
-  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
+  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, MutableARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
@@ -120,12 +120,12 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final StaticFullApronPrecision pPrecision, final ApronState pInitial)
+  private MutableARGPath getInfeasiblePrefix(final StaticFullApronPrecision pPrecision, final ApronState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 
-      ARGPath prefix = new ARGPath();
+      MutableARGPath prefix = new MutableARGPath();
 
       Collection<ApronState> successors = new HashSet<>();
 

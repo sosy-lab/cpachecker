@@ -53,7 +53,6 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -67,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -173,7 +173,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     // stop once any feasible counterexample is found
     if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
-      System.out.println("path is feasible !!!");
       totalTime.stop();
       return false;
     }
@@ -186,7 +185,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     while(interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
-      ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
+      MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
       if(errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
@@ -195,7 +194,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
       if(initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
-        errorPath   = ARGUtils.getOnePathTo(errorPath.getLast().getFirst());
+        errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
         initialItp  = ValueAnalysisInterpolant.createInitial();
       }
 
@@ -334,8 +333,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     ARGPath errorPath = ARGUtils.getOnePathTo(lastState);
 
-    for(Pair<ARGState, CFAEdge> currentElement : errorPath) {
-      ARGState state = currentElement.getFirst();
+    for(ARGState state : errorPath.asStatesList()) {
 
       if(strengthenedStates.contains(state)) {
         try {
@@ -370,7 +368,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     }
   }
 
-  private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
+  private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
@@ -400,11 +398,11 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     return Precisions.extractPrecisionByType(pReached.getPrecision(state), ValueAnalysisPrecision.class);
   }
 
-  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
+  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)
       throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for(ARGPath currentPath : errorPaths) {
+    MutableARGPath feasiblePath = null;
+    for(MutableARGPath currentPath : errorPaths) {
       if(isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
       }
@@ -412,7 +410,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     // remove all other target states, so that only one is left (for CEX-checker)
     if(feasiblePath != null) {
-      for(ARGPath others : errorPaths) {
+      for(MutableARGPath others : errorPaths) {
         if(others != feasiblePath) {
           pReached.removeSubtree(others.getLast().getFirst());
         }
@@ -423,7 +421,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     return false;
   }
 
-  private boolean isErrorPathFeasible(final ARGPath errorPath)
+  private boolean isErrorPathFeasible(final MutableARGPath errorPath)
       throws CPAException, InterruptedException {
     if(checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
@@ -434,10 +432,10 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     return false;
   }
 
-  private Collection<ARGPath> getErrorPaths(final Collection<ARGState> targetStates) {
-    Set<ARGPath> errorPaths = new TreeSet<>(new Comparator<ARGPath>() {
+  private Collection<MutableARGPath> getErrorPaths(final Collection<ARGState> targetStates) {
+    Set<MutableARGPath> errorPaths = new TreeSet<>(new Comparator<MutableARGPath>() {
       @Override
-      public int compare(ARGPath path1, ARGPath path2) {
+      public int compare(MutableARGPath path1, MutableARGPath path2) {
         if(path1.size() == path2.size()) {
           return 1;
         }
@@ -449,7 +447,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     });
 
     for(ARGState target : targetStates) {
-      ARGPath p = ARGUtils.getOnePathTo(target);
+      MutableARGPath p = ARGUtils.getOneMutablePathTo(target);
       errorPaths.add(p);
     }
 
@@ -653,7 +651,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
      * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
      * @return the next error path for a subsequent interpolation
      */
-    private ARGPath getNextPathForInterpolation() {
+    private MutableARGPath getNextPathForInterpolation() {
       return strategy.getNextPathForInterpolation();
     }
 
@@ -663,7 +661,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
      * @param errorPath the path for which to obtain the initial interpolant
      * @return the initial interpolant for the given path
      */
-    private ValueAnalysisInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+    private ValueAnalysisInterpolant getInitialInterpolantForPath(MutableARGPath errorPath) {
       return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
     }
 
@@ -819,7 +817,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     private interface InterpolationStrategy {
 
-      public ARGPath getNextPathForInterpolation();
+      public MutableARGPath getNextPathForInterpolation();
 
       public boolean hasNextPathForInterpolation();
 
@@ -834,8 +832,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
       @Override
-      public ARGPath getNextPathForInterpolation() {
-        ARGPath errorPath = new ARGPath();
+      public MutableARGPath getNextPathForInterpolation() {
+        MutableARGPath errorPath = new MutableARGPath();
 
         ARGState current = sources.pop();
 
@@ -915,12 +913,12 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       private List<ARGState> sources = new ArrayList<>(targets);
 
       @Override
-      public ARGPath getNextPathForInterpolation() {
+      public MutableARGPath getNextPathForInterpolation() {
         ARGState current = sources.remove(0);
 
         assert current.isTarget() : "current element is not a target";
 
-        ARGPath errorPath = new ARGPath();
+        MutableARGPath errorPath = new MutableARGPath();
 
         errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
 
