@@ -182,8 +182,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
-    CType ssaSavedType = ssa.getType(name);
+  protected void checkSsaSavedType(final String name, final CType type, CType ssaSavedType) {
     if (ssaSavedType != null) {
       ssaSavedType = CTypeUtils.simplifyType(ssaSavedType);
     }
@@ -198,7 +197,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa);
+    checkSsaSavedType(name, type, ssa.getType(name));
     return ssa.getIndex(name) > 0;
   }
 

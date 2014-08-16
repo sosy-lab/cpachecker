@@ -273,6 +273,7 @@ public class CtoFormulaConverter {
 
   private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh) {
     int idx = ssa.getIndex(name);
+    checkSsaSavedType(name, type, ssa.getType(name));
     if (makeFresh) {
       if (idx > 0) {
         idx = idx+1;
@@ -281,24 +282,20 @@ public class CtoFormulaConverter {
         // not from 1, because this is an assignment,
         // so the SSA index must be fresh.
       }
-      checkSsaSavedType(name, type, ssa);
       ssa.setIndex(name, type, idx);
     } else {
       if (idx <= 0) {
         logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
         idx = 1;
-        checkSsaSavedType(name, type, ssa);
 
         ssa.setIndex(name, type, idx);
-      } else {
-        checkSsaSavedType(name, type, ssa);
       }
     }
 
     return idx;
   }
 
-  protected void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
+  protected void checkSsaSavedType(String name, CType type, CType t) {
 
     // Check if types match
 
@@ -309,7 +306,6 @@ public class CtoFormulaConverter {
 //         (t = ssa.getType(name)) == null
 //      || CTypeUtils.equals(t, type)
 //      : "Saving variables with mutliple types is not possible!";
-    CType t = ssa.getType(name);
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
       if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
