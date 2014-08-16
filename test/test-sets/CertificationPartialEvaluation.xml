@@ -10213,7 +10213,7 @@
 <include>../programs/benchmarks/eca/Problem02_40_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=ERROR,u,PLUS,1,21,21,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10228,7 +10228,7 @@
 <include>../programs/benchmarks/eca/Problem03_00_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=ERROR,u,PLUS,1,21,21,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10243,7 +10243,7 @@
 <include>../programs/benchmarks/eca/Problem03_10_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=ERROR,u,PLUS,1,21,21,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10258,7 +10258,7 @@
 <include>../programs/benchmarks/eca/Problem03_20_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=ERROR,u,PLUS,1,21,21,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10273,7 +10273,7 @@
 <include>../programs/benchmarks/eca/Problem03_30_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=ERROR,u,PLUS,1,21,21,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10633,7 +10633,7 @@
 <include>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10648,7 +10648,7 @@
 <include>../programs/benchmarks/locks/test_locks_10_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10663,7 +10663,7 @@
 <include>../programs/benchmarks/locks/test_locks_11_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10678,7 +10678,7 @@
 <include>../programs/benchmarks/locks/test_locks_12_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10693,7 +10693,7 @@
 <include>../programs/benchmarks/locks/test_locks_13_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10708,7 +10708,7 @@
 <include>../programs/benchmarks/locks/test_locks_14_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10723,7 +10723,7 @@
 <include>../programs/benchmarks/locks/test_locks_15_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10738,7 +10738,7 @@
 <include>../programs/benchmarks/locks/test_locks_5_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10753,7 +10753,7 @@
 <include>../programs/benchmarks/locks/test_locks_6_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10768,7 +10768,7 @@
 <include>../programs/benchmarks/locks/test_locks_7_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10783,7 +10783,7 @@
 <include>../programs/benchmarks/locks/test_locks_8_true-unreach-call_false-termination.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=out,main::cond,ZERO,1,0,0,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10798,7 +10798,7 @@
 <include>../programs/benchmarks/locks/test_locks_9_true-unreach-call.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=_L,IPC,PLUS,1,7,7,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10813,7 +10813,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=_L,IPC,PLUS,1,7,7,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10828,7 +10828,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_true-unreach-call_true-termination.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=_L,IPC,PLUS,1,7,7,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10843,7 +10843,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=_L,IPC,PLUS,1,7,7,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>
@@ -10858,7 +10858,7 @@
 <include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_true-unreach-call_true-termination.cil.c</include>
 </sourcefiles>
 <sourcefiles>
-<option name="-sign-intervalARG-propertycheck"/>
+<option name="-sign-intervalARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
 <option name="-setprop">cpa.propertychecker.parameters=_L,IPC,PLUS,1,7,7,</option>
 <option name="-setprop">pcc.proofgen.doPCC=true</option>

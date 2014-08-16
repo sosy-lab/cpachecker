@@ -7,7 +7,7 @@ CONTROL AUTOMATON SMGCPALeaks
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH LABEL [ERROR] -> ERROR;
+  MATCH LABEL [ERROR] -> ERROR("error label in $location");
   CHECK(SMGCPA, "has-invalid-writes") -> STOP;
   CHECK(SMGCPA, "has-invalid-reads") -> STOP;
   CHECK(SMGCPA, "has-invalid-frees") -> STOP;

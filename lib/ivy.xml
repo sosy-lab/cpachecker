@@ -24,7 +24,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.460" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.466" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -64,6 +64,9 @@
         <!-- Mockito
              Mocking framework for tests. -->
         <dependency org="org.mockito" name="mockito-core" rev="1.9.5" conf="test->default"/>
+
+        <!--  Guava-testlib contains many useful testing utilities -->
+        <dependency org="com.google.guava" name="guava-testlib" rev="17.0" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->

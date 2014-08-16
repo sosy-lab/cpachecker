@@ -17,6 +17,7 @@
 	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
 	<classpathentry kind="lib" path="lib/apron.jar"/>
 	<classpathentry kind="lib" path="lib/gmp.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="lib/java-contrib/guava-testlib-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
