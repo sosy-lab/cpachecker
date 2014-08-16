@@ -234,8 +234,8 @@ public class PathFormulaManagerImplTest {
     PathFormula p = makePathFormulaWithCustomIdx(
         a_to_b, customIdx, pathFormulaManager);
 
-    // The SSA index should be incremented by one by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + 1, p.getSsa().getIndex("x"));
+    // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
+    Assert.assertEquals(customIdx + SSAMap.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
 
   /**

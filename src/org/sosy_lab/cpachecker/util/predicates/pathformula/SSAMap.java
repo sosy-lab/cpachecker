@@ -59,7 +59,10 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value :p
-  private static final int DEFAULT_DEFAULT_IDX = -1;
+  public static final int DEFAULT_DEFAULT_IDX = -1;
+
+  // Default difference for two SSA-indizes of the same name.
+  public static final int DEFAULT_INCREMENT   =  1;
 
   private final int defaultValue;
 
@@ -115,14 +118,18 @@ public class SSAMap implements Serializable {
       return SSAMap.getIndex(variable, vars, ssa.defaultValue);
     }
 
+    public int getFreshIndex(String variable) {
+      return SSAMap.getFreshIndex(variable, vars, ssa.defaultValue);
+    }
+
     public CType getType(String name) {
       return varTypes.get(name);
     }
 
     public void setIndex(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
+      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
       type = type.getCanonicalType();
       CType oldType = varTypes.get(name);
@@ -285,9 +292,17 @@ public class SSAMap implements Serializable {
   static int getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
     Integer value = vars.get(variable);
     if (value == null) {
-      return defaultValue;
+      value = defaultValue;
     }
     return value;
+  }
+
+  private static int getFreshIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+    Integer value = vars.get(variable);
+    if (value == null) {
+      value = defaultValue;
+    }
+    return value + DEFAULT_INCREMENT; // increment for a new index
   }
 
   /**

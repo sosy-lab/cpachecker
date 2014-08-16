@@ -159,8 +159,9 @@ public class CtoFormulaConverter {
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  public static final int          VARIABLE_UNSET          = -1;
-  static final int                 VARIABLE_UNINITIALIZED  = 2;
+  public static final int          VARIABLE_UNSET          = SSAMap.DEFAULT_DEFAULT_IDX;
+  static final int                 VARIABLE_INSTANTIATED   = 1;
+  static final int                 VARIABLE_UNINITIALIZED  = VARIABLE_INSTANTIATED + SSAMap.DEFAULT_INCREMENT;
 
   private final FunctionFormulaType<?> stringUfDecl;
 
@@ -258,7 +259,15 @@ public class CtoFormulaConverter {
    * and updates the SSA map.
    */
   protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, true);
+    return getIndex(name, type, ssa, true, true);
+  }
+
+  /**
+   * Produces a fresh new SSA index for an assignment,
+   * but does _not_ update the SSA map.
+   */
+  protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+    return getIndex(name, type, ssa, true, false);
   }
 
   /**
@@ -268,27 +277,30 @@ public class CtoFormulaConverter {
    * @return the index of the variable
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, false);
+    return getIndex(name, type, ssa, false, true);
   }
 
-  private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh) {
+  private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh, boolean set) {
     int idx = ssa.getIndex(name);
     checkSsaSavedType(name, type, ssa.getType(name));
     if (makeFresh) {
       if (idx > 0) {
-        idx = idx+1;
+        idx = ssa.getFreshIndex(name);
       } else {
         idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
         // not from 1, because this is an assignment,
         // so the SSA index must be fresh.
       }
-      ssa.setIndex(name, type, idx);
+      if (set) {
+        ssa.setIndex(name, type, idx);
+      }
     } else {
       if (idx <= 0) {
         logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-        idx = 1;
-
-        ssa.setIndex(name, type, idx);
+        idx = VARIABLE_INSTANTIATED;
+        if (set) {
+          ssa.setIndex(name, type, idx);
+        }
       }
     }
 
@@ -344,7 +356,7 @@ public class CtoFormulaConverter {
    * This method does not update the index of the variable.
    */
   private Formula makeVariable(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    int idx = getIndex(name, type, ssa, makeFreshIndex);
+    int idx = getIndex(name, type, ssa, makeFreshIndex, true);
     return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
   }
 
