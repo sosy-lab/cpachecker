@@ -444,26 +444,10 @@ public class BAMPredicateReducer implements Reducer {
       return expandedState;
     }
 
-    // we build a new SSA from:
-    // - local variables from rootSSA,               -> update indizes & assign for equality (their indices will have "holes")
-    // - local variables from expandedSSA,             -> delete indizes (by incrementing them)
-    // - global variables from expandedSSA,            -> ignore them (we have to keep them)
-    // - the local return variable from expandedState. -> ignore it // TODO check for non-existance in rootState?
-    // we copy expandedState and override all local values.
-
-    final SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    PathFormula expandedPathFormula = expandedState.getPathFormula();
-    final SSAMap expandedSSA = expandedPathFormula.getSsa();
-
-    final SSAMapBuilder rootBuilder = rootSSA.builder();
-
-    // we do not need variables from inner scope after this point, so lets 'delete' them
-    // deleteInnerVariables(rootSSA, expandedSSA, builder);
+    final PathFormula expandedPathFormula = expandedState.getPathFormula();
 
     // rebuild indices from outer scope
-    updateLocalIndices(rootSSA, expandedSSA, rootBuilder);
-
-    final SSAMap newSSA = rootBuilder.build();
+    final SSAMap newSSA = updateIndices(rootState.getPathFormula().getSsa(), expandedPathFormula.getSsa());
 
     final PathFormula newPathFormula = pmgr.makeNewPathFormula(expandedPathFormula, newSSA);
 
@@ -491,15 +475,23 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   /**
-   * The new SSA-builder might not contain correct indices for the local variables of calling function-scope.
-   * For all local variables from rootState: update indices & assign equality of old and new variable.
+   * rootSSA might not contain correct indices for the local variables of calling function-scope.
+   * so lets build a new SSA from:
+   * - local variables from rootSSA,                  -> update indices (their indices will have "holes")
+   * - local variables from expandedSSA,              -> ignore indices (their indices are the "holes")
+   * - global variables from expandedSSA,             -> update indices (we have to keep them)
+   * - the local return variables from expandedState. -> update indices (we have to keep them,
+   *       there can be several ret-vars from distinct functions, ignore them, they are created new, if needed)
+   * we copy expandedState and override all local values.
    *
    * @param rootSSA SSA before function-call
    * @param expandedSSA SSA before function-return
-   * @param rootBuilder new SSA
-   * @return expandedPathFormula AND (for all var from outer scope: var_oldIndex == var_newIndex)
+   * @return new SSAMap
    */
-  protected void updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder rootBuilder) {
+  protected SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA) {
+
+    final SSAMapBuilder rootBuilder = rootSSA.builder();
+
     for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
 
       final int expIndex = expandedSSA.getIndex(var.getKey());
@@ -534,7 +526,8 @@ public class BAMPredicateReducer implements Reducer {
         }
       }
     }
-    logger.log(Level.SEVERE, rootSSA + "\n vs \n" + expandedSSA + "\n vs \n" + rootBuilder.build() + "\n\n");
+
+    return rootBuilder.build();
   }
 
   private boolean isReturnVar(String var) {

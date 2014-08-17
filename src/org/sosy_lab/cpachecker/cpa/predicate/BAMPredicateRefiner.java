@@ -310,23 +310,10 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       PredicateAbstractState predicateCallState = extractStateByType(callState, PredicateAbstractState.class);
       PathFormula rootFormula = predicateCallState.getPathFormula();
 
-      // we build a new formula from:
-      // - local variables from rootFormula,               -> update indizes (their indices will have "holes")
-      // - local variables from parentFormula,             -> delete indizes (by incrementing them)
-      // - global variables from parentFormula,            -> ignore them (we have to keep them)
-      // - the local return variable from expandedFormula. -> ignore it // TODO check for non-existance in rootFormula?
-      // we copy expandedState and override all local values.
-
-      final SSAMap rootSSA = rootFormula.getSsa();
-      final SSAMap parentSSA = parentFormula.getSsa();
-      final SSAMap.SSAMapBuilder rootBuilder = rootSSA.builder();
-
       // rebuild indices from outer scope
-      reducer.updateLocalIndices(rootSSA, parentSSA, rootBuilder);
+      final SSAMap newSSA = reducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
 
-      final PathFormula currentFormula = pfmgr.makeNewPathFormula(parentFormula, rootBuilder.build());
-
-      return currentFormula;
+      return pfmgr.makeNewPathFormula(parentFormula, newSSA);
     }
 
     @Override
