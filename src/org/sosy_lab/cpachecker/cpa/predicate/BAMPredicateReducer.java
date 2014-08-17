@@ -43,10 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -148,7 +145,7 @@ public class BAMPredicateReducer implements Reducer {
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var.getKey()) == -1) {
+        if (oldSSA.getIndex(var.getKey()) == SSAMap.DEFAULT_DEFAULT_IDX) {
           //add an index (with the value of rootSSA)
           builder.setIndex(var.getKey(), var.getValue(), rootSSA.getIndex(var.getKey()));
         }
@@ -458,15 +455,15 @@ public class BAMPredicateReducer implements Reducer {
     PathFormula expandedPathFormula = expandedState.getPathFormula();
     final SSAMap expandedSSA = expandedPathFormula.getSsa();
 
-    final SSAMapBuilder builder = expandedSSA.builder();
+    final SSAMapBuilder rootBuilder = rootSSA.builder();
 
     // we do not need variables from inner scope after this point, so lets 'delete' them
-    deleteInnerVariables(rootSSA, expandedSSA, builder);
+    // deleteInnerVariables(rootSSA, expandedSSA, builder);
 
     // rebuild indices from outer scope
-    expandedPathFormula = updateLocalIndices(rootSSA, expandedSSA, builder, expandedPathFormula);
+    updateLocalIndices(rootSSA, expandedSSA, rootBuilder);
 
-    final SSAMap newSSA = builder.build();
+    final SSAMap newSSA = rootBuilder.build();
 
     final PathFormula newPathFormula = pmgr.makeNewPathFormula(expandedPathFormula, newSSA);
 
@@ -494,82 +491,54 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   /**
-   * 'delete' all variables from the inner function-scope,
-   * (except the return-var, which is needed for further processing.)
-   * For all local variables from expandedState: delete indizes through incrementing.
-   *
-   * Optimisation: only delete vars, that are assigned in inner scope (rootIndex != expandedIndex)
-   *
-   * @param rootSSA SSA before function-call
-   * @param expandedSSA SSA before function-return
-   * @param builder new SSA
-   */
-  protected void deleteInnerVariables(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder) {
-    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
-      if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
-        final int rootIndex = rootSSA.getIndex(var.getKey());
-        final int expandedIndex = expandedSSA.getIndex(var.getKey());
-        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
-          builder.setIndex(var.getKey(), var.getValue(), expandedIndex + 1); // increment index to have a new variable
-        }
-      } else {
-          // global variable -> keep it 'as is'
-          // or return-variable, which is needed after this -> also keep it 'as is'
-      }
-    }
-  }
-
-  /**
    * The new SSA-builder might not contain correct indices for the local variables of calling function-scope.
-   * For all local variables from rootState: update indizes & assign equality of old and new variable.
+   * For all local variables from rootState: update indices & assign equality of old and new variable.
    *
    * @param rootSSA SSA before function-call
    * @param expandedSSA SSA before function-return
-   * @param builder new SSA
-   * @param expandedPathFormula path until current node
+   * @param rootBuilder new SSA
    * @return expandedPathFormula AND (for all var from outer scope: var_oldIndex == var_newIndex)
    */
-  protected PathFormula updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder builder, PathFormula expandedPathFormula) {
-    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
+  protected void updateLocalIndices(SSAMap rootSSA, SSAMap expandedSSA, SSAMapBuilder rootBuilder) {
+    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
 
-      // ignore return-variables, they are needed beyond function-calls and must not be changed during rebuilding.
-      // ignore parameter-variables, they are not needed beyond function-calls.
-      if (var.getKey().contains("::") && !isReturnVar(var.getKey()) && !isParamVar(var.getKey())) { // var is scoped -> not global
+      final int expIndex = expandedSSA.getIndex(var.getKey());
+      final int rootIndex = rootSSA.getIndex(var.getKey());
 
-        final int rootIndex = rootSSA.getIndex(var.getKey());
-        final int expandedIndex = expandedSSA.getIndex(var.getKey());
+      if (expIndex != SSAMap.DEFAULT_DEFAULT_IDX) {
+        if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
+          // in case of cached blocks, the inner index could be smaller. // TODO expand should handle this?
 
-        if (rootIndex != expandedIndex) { // variable was changed during block-traversal
+          if (rootIndex == SSAMap.DEFAULT_DEFAULT_IDX) { // inner local variable, never seen before
+            final int incIndex = expandedSSA.getFreshIndex(var.getKey());
+            rootBuilder.setIndex(var.getKey(), var.getValue(), incIndex);
 
-          final int incrementedIndex = expandedIndex + 1;
-
-          if (expandedIndex != SSAMap.DEFAULT_DEFAULT_IDX) { // if variable is used in block
-            // TODO variable used before block, but index is DEFAULT_INDEX? How is that possible? bug in Reduce/Expand?
-            builder.setIndex(var.getKey(), var.getValue(), incrementedIndex); // increment index to have a new variable
+          } else { // outer variable or inner variable from previous function call
+            final int lastUsedIndex = Math.max(expIndex, rootSSA.getIndex(var.getKey()));
+            rootBuilder.setLatestUsedIndex(var.getKey(), var.getValue(), lastUsedIndex);
           }
 
-          final FormulaType type = pmgr.getTypeHandler().getFormulaTypeFromCType(rootSSA.getType(var.getKey()));
-          final Formula oldVarFormula = fmgr.makeVariable(type, var.getKey(), rootIndex);
-          final Formula newVarFormula = fmgr.makeVariable(type, var.getKey(), incrementedIndex);
+        } else {
+          // global variable in rootSSA is outdated, the correct index is in expandedSSA.
+          // return-variable in rootSSA is outdated, the correct index is in expandedSSA
+          // (this is the return-variable of the current function-return).
 
-          final BooleanFormula equality = fmgr.assignment(oldVarFormula, newVarFormula);
-          expandedPathFormula = pmgr.makeAnd(expandedPathFormula, equality);
+          // small trick:
+          // If MAX is not expIndex,
+          // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
+          // in this case the index is irrelevant and can be set to MAX (TODO really?).
+          // Otherwise (the important case, MAX == expIndex)
+          // we are in the refinement step and build the CEX-path.
+          final int maxIndex = Math.max(expIndex, rootSSA.getIndex(var.getKey()));
+          rootBuilder.setIndex(var.getKey(), var.getValue(), maxIndex);
         }
-      } else {
-        // global variable in rootSSA is outdated, the correct index is in expandedSSA.
-        // the new SSA is based on expandedSSA, so we can ignore it
       }
     }
-    return expandedPathFormula;
+    logger.log(Level.SEVERE, rootSSA + "\n vs \n" + expandedSSA + "\n vs \n" + rootBuilder.build() + "\n\n");
   }
 
   private boolean isReturnVar(String var) {
       return var.contains("::") &&
               CtoFormulaConverter.RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
-  }
-
-  private boolean isParamVar(String var) {
-    return var.contains("::") &&
-            var.substring(var.indexOf("::") + 2).endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME);
   }
 }

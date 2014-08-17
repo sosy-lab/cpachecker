@@ -100,6 +100,8 @@ public class SSAMap implements Serializable {
 
     private SSAMap ssa;
     private PersistentSortedMap<String, Integer> vars; // Do not update without updating varsHashCode!
+    private PersistentSortedMap<String, Integer> latestUsedVars; // might contain a bigger index than 'vars'
+    // TODO possible optimisation: latestUsedVars only stores values, if they do not exist in vars
     private PersistentSortedMap<String, CType> varTypes;
 
     // Instead of computing vars.hashCode(),
@@ -110,6 +112,7 @@ public class SSAMap implements Serializable {
     private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
       this.vars = ssa.vars;
+      this.latestUsedVars = ssa.latestUsedVars;
       this.varTypes = ssa.varTypes;
       this.varsHashCode = ssa.varsHashCode;
     }
@@ -119,7 +122,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getFreshIndex(String variable) {
-      return SSAMap.getFreshIndex(variable, vars, ssa.defaultValue);
+      return SSAMap.getFreshIndex(variable, latestUsedVars, ssa.defaultValue);
     }
 
     public CType getType(String name) {
@@ -141,6 +144,7 @@ public class SSAMap implements Serializable {
 
       if (idx > oldIdx) {
         vars = vars.putAndCopy(name, idx);
+        latestUsedVars = latestUsedVars.putAndCopy(name, idx);
         if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
@@ -148,10 +152,30 @@ public class SSAMap implements Serializable {
       }
     }
 
+    /** Warning: do not use out of order! */
+    public void setLatestUsedIndex(String name, CType type, int idx) {
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+      int oldIdx = getIndex(name);
+      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx, "vs", oldIdx);
+
+      type = type.getCanonicalType();
+      CType oldType = varTypes.get(name);
+      if (oldType != null) {
+        TYPE_CONFLICT_CHECKER.resolveConflict(name, type, oldType);
+      } else {
+        varTypes = varTypes.putAndCopy(name, type);
+      }
+
+      if (idx > oldIdx) {
+        latestUsedVars = latestUsedVars.putAndCopy(name, idx);
+      }
+    }
+
     public void deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
+        latestUsedVars = latestUsedVars.removeAndCopy(variable);
         varsHashCode -= mapEntryHashCode(variable, index);
 
         varTypes = varTypes.removeAndCopy(variable);
@@ -174,11 +198,11 @@ public class SSAMap implements Serializable {
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
     public SSAMap build() {
-      if (vars == ssa.vars) {
+      if (vars == ssa.vars && latestUsedVars == ssa.latestUsedVars) {
         return ssa;
       }
 
-      ssa = new SSAMap(vars, varsHashCode, varTypes);
+      ssa = new SSAMap(vars, latestUsedVars, varsHashCode, varTypes);
       return ssa;
     }
 
@@ -193,6 +217,7 @@ public class SSAMap implements Serializable {
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.<String, Integer>of(),
+      PathCopyingPersistentTreeMap.<String, Integer>of(),
       0,
       PathCopyingPersistentTreeMap.<String, CType>of());
 
@@ -204,7 +229,7 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.varsHashCode, this.varTypes, defaultValue);
+    return new SSAMap(this.vars, this.latestUsedVars, this.varsHashCode, this.varTypes, defaultValue);
   }
 
   /**
@@ -222,8 +247,9 @@ public class SSAMap implements Serializable {
     // probably never be the case on a merge.
 
     PersistentSortedMap<String, Integer> vars;
+    PersistentSortedMap<String, Integer> latestUsedVars;
     List<Triple<String, Integer, Integer>> differences;
-    if (s1.vars == s2.vars) {
+    if (s1.vars == s2.vars && s1.latestUsedVars == s2.latestUsedVars) {
       differences = ImmutableList.of();
       // both are absolutely identical
       return Pair.of(s1, differences);
@@ -232,6 +258,8 @@ public class SSAMap implements Serializable {
       differences = new ArrayList<>();
       vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
           PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
+      latestUsedVars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
+          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), null);
     }
 
     PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
@@ -250,20 +278,23 @@ public class SSAMap implements Serializable {
         TYPE_CONFLICT_CHECKER,
         null);
 
-    return Pair.of(new SSAMap(vars, 0, varTypes), differences);
+    return Pair.of(new SSAMap(vars, latestUsedVars, 0, varTypes), differences);
   }
 
   private final PersistentSortedMap<String, Integer> vars;
+  private final PersistentSortedMap<String, Integer> latestUsedVars;
   private final PersistentSortedMap<String, CType> varTypes;
 
   // Cache hashCode of potentially big map
   private final int varsHashCode;
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 PersistentSortedMap<String, Integer> latestUsedVars,
                  int varsHashCode,
                  PersistentSortedMap<String, CType> varTypes,
                  int defaultSSAIdx) {
     this.vars = vars;
+    this.latestUsedVars = latestUsedVars;
     this.varTypes = varTypes;
 
     if (varsHashCode == 0) {
@@ -277,9 +308,10 @@ public class SSAMap implements Serializable {
   }
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 PersistentSortedMap<String, Integer> latestUsedVars,
                  int varsHashCode,
                  PersistentSortedMap<String, CType> varTypes) {
-    this(vars, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
+    this(vars, latestUsedVars, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
   /**
@@ -297,8 +329,8 @@ public class SSAMap implements Serializable {
     return value;
   }
 
-  private static int getFreshIndex(String variable, Map<String, Integer> vars, int defaultValue) {
-    Integer value = vars.get(variable);
+  private static int getFreshIndex(String variable, Map<String, Integer> latestUsedVars, int defaultValue) {
+    Integer value = latestUsedVars.get(variable);
     if (value == null) {
       value = defaultValue;
     }
@@ -311,6 +343,10 @@ public class SSAMap implements Serializable {
    */
   public int getIndex(String variable) {
     return getIndex(variable, vars, defaultValue);
+  }
+
+  public int getFreshIndex(String variable) {
+    return getIndex(variable, latestUsedVars, defaultValue);
   }
 
   public boolean containsVariable(String variable) {
@@ -351,7 +387,8 @@ public class SSAMap implements Serializable {
       SSAMap other = (SSAMap)obj;
       // Do a few cheap checks before the expensive ones.
       return varsHashCode == other.varsHashCode
-          && vars.equals(other.vars);
+          && vars.equals(other.vars)
+          && latestUsedVars.equals(other.latestUsedVars);
     }
   }
 }

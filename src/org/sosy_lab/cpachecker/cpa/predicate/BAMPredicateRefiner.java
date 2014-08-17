@@ -311,7 +311,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       PathFormula rootFormula = predicateCallState.getPathFormula();
 
       // we build a new formula from:
-      // - local variables from rootFormula,               -> update indizes & assign for equality (their indices will have "holes")
+      // - local variables from rootFormula,               -> update indizes (their indices will have "holes")
       // - local variables from parentFormula,             -> delete indizes (by incrementing them)
       // - global variables from parentFormula,            -> ignore them (we have to keep them)
       // - the local return variable from expandedFormula. -> ignore it // TODO check for non-existance in rootFormula?
@@ -319,17 +319,12 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
       final SSAMap rootSSA = rootFormula.getSsa();
       final SSAMap parentSSA = parentFormula.getSsa();
-      final SSAMap.SSAMapBuilder builder = parentSSA.builder();
-
-      // we do not need variables from inner scope after this point, so lets 'delete' them
-      reducer.deleteInnerVariables(rootSSA, parentSSA, builder);
+      final SSAMap.SSAMapBuilder rootBuilder = rootSSA.builder();
 
       // rebuild indices from outer scope
-      parentFormula = reducer.updateLocalIndices(rootSSA, parentSSA, builder, parentFormula);
+      reducer.updateLocalIndices(rootSSA, parentSSA, rootBuilder);
 
-      final SSAMap newSSA = builder.build();
-
-      final PathFormula currentFormula = pfmgr.makeNewPathFormula(parentFormula, newSSA);
+      final PathFormula currentFormula = pfmgr.makeNewPathFormula(parentFormula, rootBuilder.build());
 
       return currentFormula;
     }
