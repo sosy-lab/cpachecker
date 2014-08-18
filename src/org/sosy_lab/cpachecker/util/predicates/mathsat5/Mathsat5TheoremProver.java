@@ -34,6 +34,8 @@ import java.util.List;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -65,15 +67,20 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
   }
 
   @Override
+  public OptResult maximize(BooleanFormula constraints, Formula objective) throws InterruptedException, UnsupportedOperationException {
+    throw new UnsupportedOperationException("This solver does not support optimization");
+  }
+
+  @Override
+  public Model getOptModel() throws SolverException {
+    throw new UnsupportedOperationException("This solver does not support optimization");
+  }
+
+  @Override
   public void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
-  }
-
-  @Override
-  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    throw new UnsupportedOperationException();
   }
 
   @Override

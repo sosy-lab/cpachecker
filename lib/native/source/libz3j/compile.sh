@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # This script searches for all included libraries in the current directory first.
 # You can use this to override specific libraries installed on your system.
 # You can also use this to force static linking of a specific library,
@@ -24,6 +25,13 @@ echo "Compiling the C wrapper code and creating the \"z3j\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Z3 header files
 gcc -g $JNI_HEADERS -I$Z3_SRC_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c -fPIC -c
+
+if [ $? -eq 0 ]; then
+	echo "JNI wrapper compiled"
+else
+	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o\""
+	exit 1
+fi
 
 gcc -Wall -g -o libz3j.so -shared -Wl,-soname,libz3j.so -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o -lc -lz3
 

@@ -72,11 +72,16 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    logger.log(Level.FINE, "starting optimization procedure");
-    OptResult result = wrapped.isOpt(f, maximize);
-    logger.log(Level.FINE, "optimization returned: ", result);
+  public OptResult maximize(BooleanFormula constraints, Formula objective) throws InterruptedException, UnsupportedOperationException {
+    logger.log(Level.FINE, "Performing maximization");
+    OptResult result = wrapped.maximize(constraints, objective);
+    logger.log(Level.FINE, "Maximization performed");
     return result;
+  }
+
+  @Override
+  public Model getOptModel() throws SolverException {
+    return wrapped.getOptModel();
   }
 
   @Override

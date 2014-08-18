@@ -53,9 +53,86 @@ public final class Z3NativeApi {
     public String value;
   }
 
-  // OPTIMIZATION
+  // OPTIMIZATION - OPTI BRANCH.
   public static native int solver_check_opti(
       long context, long solver, PointerToInt unbounded, long var, int maximize);
+
+  // OPTIMIZATION - Nikolaj Bjorner branch.
+
+  /**
+   * \brief Create a new optimize context.
+   *
+   * \conly \remark User must use #Z3_optimize_inc_ref
+   * and #Z3_optimize_dec_ref to manage optimize objects.
+   * \conly Even if the context was created using
+   * #Z3_mk_context instead of #Z3_mk_context_rc.
+   *
+   * @return Z3_optimize pointer.
+   */
+  public static native long mk_optimize(long context);
+
+  /**
+   * Increment the reference counter of the optimize context.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   */
+  public static native void optimize_inc_ref(long context, long optimize);
+
+  /**
+   * Decrement the reference counter of the optimize context.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   */
+  public static native void optimize_dec_ref(long context, long optimize);
+
+  /**
+   * Add a maximization constraint.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast arithmetical term to maximize.
+   */
+  public static native int optimize_maximize(long context, long optimize, long ast);
+
+  /**
+   * Add a minimazation constraint.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast arithmetical term to maximize.
+   */
+  public static native int optimize_minimize(long context, long optimize, long ast);
+
+
+  /**
+   * Check consistency and produce optimal values.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   */
+  public static native int optimize_check(long context, long optimize);
+
+  /**
+   * \brief Retrieve the model for the last #Z3_optimize_check
+   * The error handler is invoked if a model is not available because
+   * the commands above were not invoked for the given optimization
+   * solver, or if the result was \c Z3_L_FALSE.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @return Z3_model pointer
+   */
+  public static native long optimize_get_model(long context, long optimize);
+
+  /**
+   * \brief Assert hard constraint to the optimization context.
+   *
+   * def_API('Z3_optimize_assert', VOID, (_in(CONTEXT), _in(OPTIMIZE), _in(AST)))
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast imposed constraints
+   */
+  public static native void optimize_assert(
+      long context, long optimize, long ast);
 
   // CREATE CONFIGURATION
   public static native void global_param_set(String param_id, String param_value);

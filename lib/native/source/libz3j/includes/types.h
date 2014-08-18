@@ -105,6 +105,11 @@ typedef jlong jJ_model;
 #define CLEAN_MODEL_ARG(num) CLEAN_STRUCT_ARG(num)
 #define MODEL_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
+typedef jlong jJ_optimize;
+#define OPTIMIZE_ARG(num) STRUCT_ARG(Z3_optimize, num)
+#define CLEAN_OPTIMIZE_ARG(num) CLEAN_STRUCT_ARG(num)
+#define OPTIMIZE_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
+
 typedef jlong jJ_func_interp;
 #define FUNC_INTERP_ARG(num) STRUCT_ARG(Z3_func_interp, num)
 #define CLEAN_FUNC_INTERP_ARG(num) CLEAN_STRUCT_ARG(num)
@@ -222,9 +227,9 @@ typedef jobject jJ_model_pointer;
 
 
 typedef jintArray junsigned_array;
+typedef jintArray jint_array;
 #define UNSIGNED_ARRAY_ARG(num) INT_ARRAY_ARG(num)
 #define CLEAN_UNSIGNED_ARRAY_ARG(num) CLEAN_INT_ARRAY_ARG(num)
-
 
 typedef jlongArray jJ_ast_array;
 #define AST_ARRAY_ARG(num) ARRAY_ARG(Z3_ast, num)

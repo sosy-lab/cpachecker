@@ -6,6 +6,8 @@ if [ `uname` = "Darwin" ] ; then
 elif [ `uname` = "Linux" ] ; then
   java_home=`readlink -f \`which java\``
   java_home=`echo $java_home | sed 's#/jre/bin/java##'`
+
+  java_home=/import/linux/x86_64/soft/netbeans/8.0/jdk1.8.0
   echo "-I$java_home/include/ -I$java_home/include/linux/"
 else
   echo "Missing build information for `uname`" >&2
