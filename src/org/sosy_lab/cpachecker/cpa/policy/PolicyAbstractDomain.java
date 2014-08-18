@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.policy;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Table;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
 import org.sosy_lab.cpachecker.cpa.policy.ValueDeterminationFormulaManager.ValueDeterminationConstraint;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
@@ -104,17 +104,25 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
     // NOTE: check. But I think it must be actually the same node.
     Preconditions.checkState(newState.node == prevState.node);
-
-    // OK so what do we have.
-    // if we are performing the merge step there must exist at least one
-    // policy for which the new node is strictly larger.
-
     final CFANode node = newState.node;
+
+    logger.log(Level.FINE, "Performing join on node " + node);
+
+    /** Just return the old node if it is strictly larger */
+    if (isLessOrEqual(newState, prevState)) {
+      return prevState;
+    }
 
     /** Find the templates which were updated */
     final Map<LinearExpression, CFAEdge> updated = new HashMap<>();
 
-    for (Entry<LinearExpression, PolicyTemplateBound> entry : prevState) {
+    Preconditions.checkState(
+        newState.getTemplates().containsAll(prevState.getTemplates()),
+        "We are assuming templates associated with the new state are " +
+        "a strict superset of templates associated with the old state."
+    );
+
+    for (Entry<LinearExpression, PolicyTemplateBound> entry : newState) {
       LinearExpression template = entry.getKey();
       PolicyTemplateBound policyValue = entry.getValue();
       PolicyTemplateBound oldValue = prevState.data.get(template);
@@ -124,6 +132,10 @@ public class PolicyAbstractDomain implements AbstractDomain {
         updated.put(template, policyValue.edge);
       }
     }
+
+    Preconditions.checkState(updated.size() > 0,
+        "There must exist at least one policy for which the new" +
+        "node is strictly larger");
 
     ValueDeterminationConstraint valueDeterminationConstraints;
     try {
@@ -148,16 +160,29 @@ public class PolicyAbstractDomain implements AbstractDomain {
         solver.addConstraint(valueDeterminationConstraints.constraints);
 
         SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(ssaIdx);
-
         ExtendedRational newValue = lcmgr.maximize(solver, template, ssaMap);
-
         builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+
       } catch (Exception e) {
         throw new CPATransferException("Failed solving", e);
       }
     }
 
-    return prevState.withUpdates(builder.build());
+    ImmutableMap<LinearExpression, PolicyTemplateBound> outData = builder.build();
+
+    // For each updated value in the policy improvement step, value
+    // determination should return a new value.
+    Preconditions.checkState(
+      outData.size() == updated.size()
+    );
+
+    logger.log(
+        Level.FINE,
+        "Obtained during value determination: " + outData
+    );
+    PolicyAbstractState joinedState = newStateWithUpdates(prevState, outData);
+    logger.log(Level.FINE, "New state: " + joinedState.data);
+    return joinedState;
   }
 
   enum PARTIAL_ORDER {
@@ -211,5 +236,28 @@ public class PolicyAbstractDomain implements AbstractDomain {
     } else {
       return PARTIAL_ORDER.UNCOMPARABLE;
     }
+  }
+
+  /**
+   * @return Copy of a given state, with updates applied.
+   */
+  PolicyAbstractState newStateWithUpdates(
+      PolicyAbstractState prevState,
+      Map<LinearExpression, PolicyTemplateBound> updates) {
+    ImmutableSet<LinearExpression> allKeys = ImmutableSet.<LinearExpression>
+        builder().addAll(updates.keySet()).addAll(prevState.data.keySet()).build();
+
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder =
+        ImmutableMap.builder();
+
+    for (LinearExpression key : allKeys) {
+      if (updates.containsKey(key)) {
+        builder.put(key, updates.get(key));
+      } else {
+        builder.put(key, prevState.data.get(key));
+      }
+    }
+
+    return PolicyAbstractState.withState(builder.build(), prevState.node);
   }
 }

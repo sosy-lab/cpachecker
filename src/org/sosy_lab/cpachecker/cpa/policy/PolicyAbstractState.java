@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 /**
  * Abstract state for policy iteration: bounds on each expression (from the template),
@@ -63,28 +65,6 @@ public class PolicyAbstractState implements AbstractState,
     this.node = node;
   }
 
-  /**
-   * @return Copy of a given state, with updates applied.
-   */
-  public PolicyAbstractState withUpdates(
-      Map<LinearExpression, PolicyTemplateBound> updates) {
-
-    ImmutableSet<LinearExpression> allKeys = ImmutableSet.<LinearExpression>
-        builder().addAll(updates.keySet()).addAll(data.keySet()).build();
-
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder =
-         ImmutableMap.builder();
-
-    for (LinearExpression key : allKeys) {
-      if (updates.containsKey(key)) {
-        builder.put(key, updates.get(key));
-      } else {
-        builder.put(key, data.get(key));
-      }
-    }
-
-    return new PolicyAbstractState(builder.build(), node);
-  }
 
   public static PolicyAbstractState withState(
       ImmutableMap<LinearExpression, PolicyTemplateBound> data,

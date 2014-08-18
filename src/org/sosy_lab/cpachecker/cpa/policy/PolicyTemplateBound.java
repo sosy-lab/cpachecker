@@ -38,4 +38,9 @@ public class PolicyTemplateBound {
   public static PolicyTemplateBound of(CFAEdge edge, ExtendedRational bound) {
     return new PolicyTemplateBound(edge, bound);
   }
+
+  @Override
+  public String toString() {
+    return String.format("(Bound: %s, Edge: XX)", bound);
+  }
 }

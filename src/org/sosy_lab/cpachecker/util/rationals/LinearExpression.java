@@ -39,6 +39,7 @@ import java.util.Map.Entry;
  */
 public class LinearExpression implements Iterable<Entry<String, ExtendedRational>> {
   private final ImmutableMap<String, ExtendedRational> data;
+  private int hashCache = 0;
 
   private LinearExpression(ImmutableMap<String, ExtendedRational> data) {
     this.data = data;
@@ -148,5 +149,25 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
     );
 
     return Joiner.on(" + ").join(stream);
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (!(object instanceof LinearExpression)) {
+      return false;
+    }
+    LinearExpression other = (LinearExpression) object;
+    return data.equals(other.data);
+  }
+
+  @Override
+  public int hashCode() {
+    // Caching the hashing procedure.
+    if (hashCache == 0) {
+      hashCache = data.hashCode();
+    }
+
+    // Safe to do so, since we are immutable.
+    return hashCache;
   }
 }

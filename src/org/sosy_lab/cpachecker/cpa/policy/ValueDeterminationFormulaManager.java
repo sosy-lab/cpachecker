@@ -116,8 +116,6 @@ public class ValueDeterminationFormulaManager {
 
     List<BooleanFormula> constraints = new LinkedList<>();
 
-    logger.log(Level.FINE, "Got policy keys: \n" + policy.keySet());
-
     // Record the SSA mapping.
     Table<CFANode, LinearExpression, Integer> OutSSAMap = HashBasedTable.create();
 
@@ -130,7 +128,6 @@ public class ValueDeterminationFormulaManager {
 
     // But such an improvement can be left as a todo-item for later.
     for (CFANode node : policy.keySet()) {
-      logger.log(Level.FINE, "Value determination formula, node = " + node);
       for (Map.Entry<LinearExpression, CFAEdge> incoming : policy.get(node).entrySet()) {
 
         CFAEdge edge = incoming.getValue();

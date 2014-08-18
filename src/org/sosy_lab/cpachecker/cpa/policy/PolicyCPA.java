@@ -129,12 +129,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    // Abstract state for a _single_ node.
-    // E.g. map from a variable map to a policy->bound.
-    logger.log(
-        Level.FINE,
-        "Initial state" + node
-    );
     return PolicyAbstractState.withEmptyState(node);
   }
 

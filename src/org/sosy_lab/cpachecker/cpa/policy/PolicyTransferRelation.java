@@ -173,7 +173,7 @@ public class PolicyTransferRelation implements TransferRelation {
     }
 
     /** Update the global policy object. */
-    logger.log(Level.FINE,
+    logger.log(Level.FINER,
         "For node = " + toNode + " setting policy = " + edge);
     for (LinearExpression template : toTemplates) {
       abstractDomain.setPolicyForTemplate(toNode, template, edge);

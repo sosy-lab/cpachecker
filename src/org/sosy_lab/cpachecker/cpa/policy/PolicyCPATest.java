@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.ImmutableMap;
+import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -58,8 +59,8 @@ public class PolicyCPATest {
 
     System.out.println(log);
 
-    // Hm, curious. We never process that statement, yet
-    // the system still returns "Property Violation Found".
     System.out.println(results.getCheckerResult().getResultString());
+
+    Assert.assertEquals(results.isSafe(), true);
   }
 }
