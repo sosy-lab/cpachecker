@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
@@ -161,4 +162,37 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   protected abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
+
+  public <ResultFormulaType extends Formula, ParamFormulaType extends Formula>
+    ResultFormulaType
+    substitute(
+      ResultFormulaType f,
+      List<ParamFormulaType> changeFrom,
+      List<ParamFormulaType> changeTo) {
+
+    Function<Formula, TFormulaInfo> toPtr = new Function<Formula, TFormulaInfo>() {
+      public TFormulaInfo apply(Formula f) {
+        return getFormulaCreator().extractInfo(f);
+      }
+    };
+
+    TFormulaInfo newExpression = substitute(
+        getFormulaCreator().extractInfo(f),
+        Lists.transform(changeFrom, toPtr),
+        Lists.transform(changeTo, toPtr)
+    );
+
+    return getFormulaCreator().encapsulate(
+
+        // TODO: a very bad hack, let's get rid of it later.
+        // Note: it seems there is no way to get rid of the unsafe cast due
+        // to the type erasure.
+        (Class<ResultFormulaType>) f.getClass().getInterfaces()[0],
+        newExpression);
+  }
+
+  protected abstract TFormulaInfo substitute(
+      TFormulaInfo expr,
+      List<TFormulaInfo> substituteFrom,
+      List<TFormulaInfo> substituteTo);
 }

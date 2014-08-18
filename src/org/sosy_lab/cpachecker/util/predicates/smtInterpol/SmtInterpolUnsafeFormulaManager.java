@@ -121,4 +121,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   public boolean isNumber(Term pT) {
     return SmtInterpolUtil.isNumber(pT);
   }
+
+  @Override
+  protected Term substitute(Term expr, List<Term> substituteFrom, List<Term> substituteTo) {
+    throw new UnsupportedOperationException();
+  }
 }

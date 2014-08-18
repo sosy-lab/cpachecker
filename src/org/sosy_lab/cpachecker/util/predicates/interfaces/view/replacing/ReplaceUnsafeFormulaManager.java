@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
 
+import java.util.List;
+
 class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
   private final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
@@ -117,4 +119,11 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
         replaceManager.unwrap(pF),
         pNewName);
   }
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1
+      substitute(T1 f, List<T2> changeFrom, List<T2> changeTo) {
+    throw new UnsupportedOperationException();
+  }
+
 }
