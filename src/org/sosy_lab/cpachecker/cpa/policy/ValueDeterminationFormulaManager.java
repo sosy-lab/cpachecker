@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -47,6 +48,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -113,7 +115,7 @@ public class ValueDeterminationFormulaManager {
    * @return {@link org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula} representing the CFA subset.
    * @throws CPATransferException
    * @throws InterruptedException
-  // NOTE: So I am doing something which seems quite silly here.
+  // NOTE: I am doing something which seems quite silly here.
   // Iteration over all the nodes should not be required, I should iterate
   // only over the reachable ones [or better yet, the ones involved in a created
   // cycle.
@@ -143,8 +145,6 @@ public class ValueDeterminationFormulaManager {
         int toNodeNo = toNode.getNodeNumber();
         int toNodePrimeNo = toPrime(toNodeNo);
 
-        // well I don't even get the distinction between
-        // the variable-is-in-the-edge vs. variable-not-in-the-edge.
         PathFormula edgePathFormula = pathFormulaWithCustomIdx(
             incomingEdge,
             toNodeNo,
@@ -186,11 +186,6 @@ public class ValueDeterminationFormulaManager {
               + f);
         }
 
-        // if the variable does not appear in the expression i should do
-        // something else.
-        // however, with [getSsa()] we never know whether it does or does
-        // not appear in the expression
-
         NumeralFormula outExpr = lcmgr.linearExpressionToFormula(
             template, edgePathFormula.getSsa(), templatePrefix
         );
@@ -201,6 +196,7 @@ public class ValueDeterminationFormulaManager {
         BooleanFormula outConstraint = rfmgr.equal(
             outExpr, out
         );
+
         logger.log(Level.FINE, "Output constraint = " + outConstraint);
         constraints.add(outConstraint);
 
@@ -228,59 +224,37 @@ public class ValueDeterminationFormulaManager {
 
     SSAMap.SSAMapBuilder newMapBuilder = customFromIdxSSAMap.builder();
 
-    /**
-     * the issue is simple: SSA map is updated twice, hence only the latest
-     * update is contained.
-     *
-     * basically, what I want is something else: container of a meta-information
-     * about the formula.
-     *
-     * Is it possible to add one without changing everything all over the
-     * place? a hacky alternative is to just walk a formula tree.
-     */
+    Formula edgeFormula = p.getFormula();
 
     List<Formula> fromVars = new LinkedList<>();
     List<Formula> toVars = new LinkedList<>();
 
-    logger.log(Level.FINE, "SSA map = " + p.getSsa() + " edge formula = "
-        + p.getFormula());
+    Set<String> allVars = fmgr.extractVariables(edgeFormula);
+    for (String varNameWithIdx : allVars) {
 
-    for (Entry<String, CType> entry :
-                              customFromIdxSSAMap.allVariablesWithTypes()) {
+      Pair<String, Integer> pair = FormulaManagerView.parseName(varNameWithIdx);
+      int oldIdx = pair.getSecond();
+      String varName = pair.getFirst();
 
-      String variable = entry.getKey();
-      CType type = entry.getValue();
-
-      int oldIdx = customFromIdxSSAMap.getIndex(variable);
+      CType type = newMapBuilder.getType(varName);
 
       int newIdx;
       if (oldIdx != startIdx) {
         newIdx = stopIdx;
 
-        // TODO: less hacky way?
-        // We are using the assumption that if the start index appears then the
-        // old index MAY appear as well.
-        // If it does not appear, it's fine as well.
-        fromVars.add(
-            rfmgr.makeVariable(formulaVarName(variable, startIdx, ""))
-        );
-        toVars.add(
-            rfmgr.makeVariable(formulaVarName(variable, startIdx, customPrefix))
-        );
+        newMapBuilder.setIndex(varName, type, newIdx);
 
       } else {
         newIdx = oldIdx;
       }
 
-      newMapBuilder.setIndex(variable, type, newIdx);
-
       fromVars.add(
-          rfmgr.makeVariable(formulaVarName(variable, oldIdx, ""))
+          rfmgr.makeVariable(formulaVarName(varName, oldIdx, ""))
       );
 
       toVars.add(
           rfmgr.makeVariable(
-              formulaVarName(variable, newIdx, customPrefix)
+              formulaVarName(varName, newIdx, customPrefix)
           )
       );
     }

@@ -49,24 +49,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
  * referring to that variable.
- *
- * OK some thinking notes:
- *
- * the main premise of the SSAMap that it should just return an integer for a
- * variable + type is broken in the general case.
- *
- * Sometimes it is important to distinguish between the cases where the
- * variable is there and where the variable is not there.
- *
- * 1. I could construct an alternative getter which would return a more
- * meaningful - namely, tuple <is_actually_there::bool, number::int>
- *
- * But maybe it is my conceptual understanding is at fault.
- * I am trying to use [SSAMap] as a tool for storing meta-data about the
- * formulas.
- * Maybe it's simply not meant to do more then just provide a numbering
- * when queried?
- *
  */
 public class SSAMap implements Serializable {
 
@@ -153,13 +135,13 @@ public class SSAMap implements Serializable {
         varTypes = varTypes.putAndCopy(name, type);
       }
 
-//      if (idx > oldIdx || idx == ssa.defaultValue) {
+      if (idx > oldIdx || idx == ssa.defaultValue) {
         vars = vars.putAndCopy(name, idx);
         if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
         varsHashCode += mapEntryHashCode(name, idx);
-//      }
+      }
     }
 
     public void deleteVariable(String variable) {
@@ -288,8 +270,7 @@ public class SSAMap implements Serializable {
       this.varsHashCode = vars.hashCode();
     } else {
       this.varsHashCode = varsHashCode;
-      // TODO: dirty hack.
-//      assert varsHashCode == vars.hashCode();
+      assert varsHashCode == vars.hashCode();
     }
 
     defaultValue = defaultSSAIdx;
@@ -361,10 +342,7 @@ public class SSAMap implements Serializable {
 
   @Override
   public int hashCode() {
-    // TODO: a hack. we'll have to find a cleaner way.
-    return vars.hashCode();
-//    return varsHashCode;
-
+    return varsHashCode;
   }
 
   @Override
