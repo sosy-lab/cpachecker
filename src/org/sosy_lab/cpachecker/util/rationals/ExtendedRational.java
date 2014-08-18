@@ -38,7 +38,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * else is RATIONAL.
    */
   @SuppressWarnings("hiding")
-  static enum NumberType {
+  public static enum NumberType {
     NEG_INFTY,
     RATIONAL, // Normal rational.
     INFTY,
@@ -55,6 +55,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
   static private final BigInteger b_m_one = BigInteger.ONE.negate();
 
   public static final ExtendedRational ZERO = new ExtendedRational(b_zero, b_one);
+  public static final ExtendedRational ONE = new ExtendedRational(b_one, b_one);
   public static final ExtendedRational INFTY = new ExtendedRational(b_one, b_zero);
   public static final ExtendedRational NEG_INFTY = new ExtendedRational(b_m_one, b_zero);
   public static final ExtendedRational NaN = new ExtendedRational(b_zero, b_zero);
