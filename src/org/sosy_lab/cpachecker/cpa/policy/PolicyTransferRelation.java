@@ -24,12 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,141 +51,132 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Transfer relation for policy iteration.
- *
- * NOTE to self: do not do any dependancy analysis yet.
  */
+@Options(prefix="cpa.policy")
 public class PolicyTransferRelation implements TransferRelation {
 
-  private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager pfmgr;
   private final FormulaManagerFactory formulaManagerFactory;
   private final BooleanFormulaManagerView bfmgr;
-  private final NumeralFormulaManager<NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
+  private final NumeralFormulaManager<NumeralFormula,
+      NumeralFormula.RationalFormula> rfmgr;
 
   private final LinearConstraintManager lcmgr;
-
-  /**
-   * Class for dealing with fresh variables.
-   */
-  private static class FreshVariable {
-    public static final String FRESH_VAR_PREFIX = "POLICY_ITERATION_FRESH_VAR_%d";
-
-    // NOTE: hm what if it overflows?
-    private static long fresh_var_counter = 0;
-
-    final long no;
-    final NumeralFormula variable;
-
-    private FreshVariable(long no, NumeralFormula variable) {
-      this.no = no;
-      this.variable = variable;
-    }
-
-    String name() {
-      return name(no);
-    }
-
-    static String name(long counter) {
-      return String.format(FRESH_VAR_PREFIX, counter);
-    }
-
-    /**
-     * @return Unique fresh variable created using a global counter.
-     */
-    private static FreshVariable createFreshVar(
-        NumeralFormulaManager<NumeralFormula, NumeralFormula.RationalFormula> rfmgr
-    ) {
-      FreshVariable out = new FreshVariable(
-          fresh_var_counter,
-          rfmgr.makeVariable(FreshVariable.name(fresh_var_counter))
-      );
-      fresh_var_counter++;
-      return out;
-    }
-  }
-
+  private final LogManager logger;
+  private final PolicyAbstractDomain abstractDomain;
 
   public PolicyTransferRelation(
           Configuration config,
           FormulaManagerView formulaManager,
           FormulaManagerFactory formulaManagerFactory,
-          PathFormulaManager pathFormulaManager)
+          PathFormulaManager pfmgr,
+          LogManager logger,
+          PolicyAbstractDomain abstractDomain,
+          LinearConstraintManager lcmgr)
+
       throws InvalidConfigurationException {
 
-    // NOTE: apparently after this line we can start adding new options
-    // to the class and they will be honoured by the runner.
     config.inject(this, PolicyTransferRelation.class);
 
-    this.pathFormulaManager = pathFormulaManager;
+    this.pfmgr = pfmgr;
     this.formulaManagerFactory = formulaManagerFactory;
 
     rfmgr = formulaManager.getRationalFormulaManager();
     bfmgr = formulaManager.getBooleanFormulaManager();
 
-    lcmgr = new LinearConstraintManager(formulaManager);
+    this.lcmgr = lcmgr;
+
+    this.logger = logger;
+    this.abstractDomain = abstractDomain;
   }
 
-  // (abstract_state, edge) -> list abstract_state
   @Override
-  public Collection<? extends AbstractState>
-      getAbstractSuccessors(AbstractState pState, Precision precision, CFAEdge cfaEdge)
-         throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState,
+      Precision precision,
+      CFAEdge edge
+      ) throws CPATransferException, InterruptedException {
 
     PolicyAbstractState prevState = (PolicyAbstractState) pState;
 
-    CFANode toNode = cfaEdge.getSuccessor();
+    logger.log(Level.FINE, ">>> Processing statement: " + edge.getCode()
+     + " for to-node: " + edge.getSuccessor());
+
+
+    CFANode toNode = edge.getSuccessor();
 
     // Formula representing the edge.
-    PathFormula pathFormula = pathFormulaManager.makeFormulaForPath(
-        Collections.singletonList(cfaEdge));
+    PathFormula edgeFormula = pfmgr.makeFormulaForPath(
+        Collections.singletonList(edge));
 
-    Set<LinearExpression> fromTemplates = prevState.getTemplates();
+    ImmutableSet<LinearExpression> fromTemplates = prevState.getTemplates();
 
     // NOTE: we can do it much faster if we use a different datastructure to hash sets.
     // e.g. balanced binary tree.
     Set<LinearExpression> toTemplates = new HashSet<>();
     toTemplates.addAll(fromTemplates);
 
-    if (cfaEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
-      ADeclarationEdge declarationEdgeedge = (ADeclarationEdge) cfaEdge;
-      String varName = declarationEdgeedge.getDeclaration().getName();
+    /** Propagating templates */
+    if (edge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
 
-      // NOTE:
-      // I am honestly not sure that this is a best way to propagate templates.
-      // Though hey, I guess it is better than pre-processing.
-      toTemplates.add(LinearExpression.ofVariable(varName));
-      toTemplates.add(LinearExpression.ofVariable(varName).negate());
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
+
+      // Do not process declarations for functions.
+      if (!isFuncDeclaration(declarationEdge)) {
+        String varName = declarationEdge.getDeclaration().getQualifiedName();
+
+        // NOTE: A better way to propagate templates?
+        // NOTE: Let's also check for liveness! [other property?
+        // CPA communication FTW!!].
+        // If the variable is no longer alive at a certain location
+        // there is no point in tracking it (deeper analysis -> dependencies).
+        toTemplates.add(LinearExpression.ofVariable(varName));
+        toTemplates.add(LinearExpression.ofVariable(varName).negate());
+      }
     }
 
-    // Well okay so here is where it is gets interesting.
-    // Do I have to interact through the [Solver] object?
-    // Or should I just manually create the [OptEnvironment  as I see fit?]
 
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound>
-        newStateData = ImmutableMap.builder();
+    /** Propagate the invariants */
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> newStateData;
+
+    newStateData = ImmutableMap.builder();
 
     try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
 
       // Constraints imposed by the previous state.
-      solver.addConstraint(stateToFormula(prevState));
+      solver.addConstraint(stateToFormula(prevState,
+          SSAMap.emptySSAMap().withDefault(1)));
 
       // Constraints imposed by the edge.
-      solver.addConstraint(pathFormula.getFormula());
+      solver.addConstraint(edgeFormula.getFormula());
 
       for (LinearExpression template : toTemplates) {
 
-        ExtendedRational value = maximize(solver, template, pathFormula.getSsa());
-        PolicyTemplateBound constraint = PolicyTemplateBound.of(
-            cfaEdge,
-            value
-        );
+        ExtendedRational value = lcmgr.maximize(
+            solver, template, edgeFormula.getSsa());
+        PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
+
+        // If the state is not reachable, bail early.
+        if (value == ExtendedRational.NEG_INFTY) {
+          logger.log(Level.FINE, "Stopping, unfeasible branch.");
+          return Collections.emptyList();
+        }
 
         newStateData.put(template, constraint);
       }
     } catch (Exception e) {
-      throw new CPATransferException("Failed the policy iteration step", e);
+      throw new CPATransferException("Failed solving", e);
+    }
+
+    /** Update the global policy object. */
+    logger.log(Level.FINE,
+        "For node = " + toNode + " setting policy = " + edge);
+    for (LinearExpression template : toTemplates) {
+      abstractDomain.setPolicyForTemplate(toNode, template, edge);
     }
 
     PolicyAbstractState newState = PolicyAbstractState.withState(
@@ -192,71 +187,39 @@ public class PolicyTransferRelation implements TransferRelation {
     return Collections.singleton(newState);
   }
 
-  /**
-   * @param prover Prover engine used
-   * @param expression Expression to maximize
-   * @return Returned value in the extended rational field.
-   * @throws CPATransferException
-   */
-  private ExtendedRational maximize(
-      OptEnvironment prover, LinearExpression expression, SSAMap pSSAMap
-      ) throws CPATransferException, InterruptedException {
-
-    // We can only maximize a single variable.
-    // Create a new variable, make it equal to the template which we have.
-    FreshVariable target = FreshVariable.createFreshVar(rfmgr);
-    BooleanFormula constraint =
-        rfmgr.equal(
-            target.variable,
-            lcmgr.linearExpressionToFormula(expression, SSAMap.emptySSAMap())
-        );
-    prover.addConstraint(constraint);
-    prover.setObjective(target.variable);
-
-    try {
-      OptEnvironment.OptResult result = prover.maximize();
-
-      switch (result) {
-        case OPT:
-          Model model = prover.getModel();
-          return (ExtendedRational) model.get(
-              new Model.Constant(target.name(), Model.TermType.Real)
-          );
-        case UNSAT:
-          return ExtendedRational.NEG_INFTY;
-        case UNBOUNDED:
-          return ExtendedRational.INFTY;
-        case UNDEF:
-          throw new CPATransferException("Result undefiend: something is wrong");
-        default:
-          throw new RuntimeException("Internal Error, unaccounted case");
-      }
-    } catch (SolverException e) {
-      throw new CPATransferException("Failed getting model", e);
-    }
-  }
-
-  private BooleanFormula stateToFormula(PolicyAbstractState state) {
+  private BooleanFormula stateToFormula(PolicyAbstractState state, SSAMap ssaMap) {
     List<BooleanFormula> constraints = new LinkedList<>();
-    SSAMap freshMap = SSAMap.emptySSAMap();
 
     for (Map.Entry<LinearExpression, PolicyTemplateBound> item : state) {
       LinearExpression expr = item.getKey();
 
       LinearConstraint constraint = new LinearConstraint(expr, item.getValue().bound);
-      constraints.add(lcmgr.linearConstraintToFormula(constraint, freshMap));
+      constraints.add(lcmgr.linearConstraintToFormula(constraint, ssaMap));
     }
 
     return bfmgr.and(constraints);
   }
 
+  /**
+   * Strengthening is used for communicating the analysis details between
+   * various CPAs.
+   */
   public Collection<? extends AbstractState> strengthen(
           AbstractState state,
           List<AbstractState> otherStates,
           CFAEdge cfaEdge,
           Precision precision) throws CPATransferException, InterruptedException {
 
-    // AFAIR strengthening is used for communicating the analysis details between various CPAs.
     return null;
+  }
+
+  /**
+   * Test whether the declaration is a function.
+   */
+  private boolean isFuncDeclaration(ADeclarationEdge declarationEdge) {
+    // NOTE: this is extremely hacky, but can't find a better way.
+    Type t = declarationEdge.getDeclaration().getType();
+    String type = t.toASTString(declarationEdge.getDeclaration().getName());
+    return type.contains("(");
   }
 }

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * All our SSA-customization code should go there.
@@ -58,14 +59,14 @@ public class ValueDeterminationFormulaManager {
    */
   public static class ValueDeterminationConstraint {
     final BooleanFormula constraints;
-    final Table<CFANode, LinearExpression, Integer> SSATemplateMap;
+    final Table<CFANode, LinearExpression, Integer> ssaTemplateMap;
 
     ValueDeterminationConstraint(
         BooleanFormula constraints,
-        Table<CFANode, LinearExpression, Integer> SSATemplateMap
+        Table<CFANode, LinearExpression, Integer> ssaTemplateMap
         ) {
       this.constraints = constraints;
-      this.SSATemplateMap = SSATemplateMap;
+      this.ssaTemplateMap = ssaTemplateMap;
     }
   }
 
@@ -73,6 +74,7 @@ public class ValueDeterminationFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
+  private final LogManager logger;
 
   private static final String BOUND_VAR_NAME = "BOUND_%s_%s";
 
@@ -88,6 +90,7 @@ public class ValueDeterminationFormulaManager {
     this.fmgr = fmgr;
     this.rfmgr = fmgr.getRationalFormulaManager();
     this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.logger = logger;
   }
 
   private String boundVarName(CFANode node, LinearExpression template) {
@@ -113,12 +116,21 @@ public class ValueDeterminationFormulaManager {
 
     List<BooleanFormula> constraints = new LinkedList<>();
 
+    logger.log(Level.FINE, "Got policy keys: \n" + policy.keySet());
+
     // Record the SSA mapping.
     Table<CFANode, LinearExpression, Integer> OutSSAMap = HashBasedTable.create();
 
     int globalSSACounter = 1;
 
+    // NOTE: So I am doing something which seems quite silly here.
+    // Iteration over all the nodes should not be required, I should iterate
+    // only over the reachable ones [or better yet, the ones involved in a created
+    // cycle.
+
+    // But such an improvement can be left as a todo-item for later.
     for (CFANode node : policy.keySet()) {
+      logger.log(Level.FINE, "Value determination formula, node = " + node);
       for (Map.Entry<LinearExpression, CFAEdge> incoming : policy.get(node).entrySet()) {
 
         CFAEdge edge = incoming.getValue();
@@ -135,6 +147,19 @@ public class ValueDeterminationFormulaManager {
         // [globalSSACounter].
         SSAMap incomingMap = SSAMap.emptySSAMap().withDefault(globalSSACounter);
         CFANode fromNode = edge.getPredecessor();
+
+        // OK easy, policy wasn't set yet for the from-node.
+        logger.log(Level.FINER, "From node = " + fromNode);
+        if (policy.get(fromNode) == null) {
+
+          // NOTE: The problem is the nodes with no templates attached
+          // are not recorded in the policy and might raise a null-pointer
+          // error.
+          // This is not the most type-safe way to check for it, but it
+          // will do.
+          continue;
+        }
+
         for (Map.Entry<LinearExpression, CFAEdge>
             fromPolicy : policy.get(fromNode).entrySet()) {
           LinearExpression fromTemplate = fromPolicy.getKey();
@@ -166,13 +191,7 @@ public class ValueDeterminationFormulaManager {
     return new ValueDeterminationConstraint(bfmgr.and(constraints), OutSSAMap);
   }
 
-  /**
-   * Wait WTF does it belong here?..
-   * @param expr
-   * @param ssa
-   * @return
-   */
-  RationalFormula linearExpressionToFormula(LinearExpression expr, SSAMap ssa) {
+  private RationalFormula linearExpressionToFormula(LinearExpression expr, SSAMap ssa) {
     RationalFormula sum = rfmgr.makeNumber(0);
     for (Map.Entry<String, ExtendedRational> monomial : expr) {
       String var = monomial.getKey();
@@ -187,7 +206,7 @@ public class ValueDeterminationFormulaManager {
     return sum;
   }
 
-  public PathFormula pathFormulaWithSSA(SSAMap map) {
+  private PathFormula pathFormulaWithSSA(SSAMap map) {
     PathFormula empty = pfmgr.makeEmptyPathFormula();
     return pfmgr.makeNewPathFormula(
         empty,
@@ -200,7 +219,7 @@ public class ValueDeterminationFormulaManager {
    * from the specified value.
    * Useful for more fine-grained control over SSA indexes.
    */
-  public PathFormula pathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+  private PathFormula pathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
       throws CPATransferException, InterruptedException {
     PathFormula empty = pfmgr.makeEmptyPathFormula();
     PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(

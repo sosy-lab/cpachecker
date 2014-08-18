@@ -24,9 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -35,6 +39,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Wrapper for a linear constraint:
@@ -48,11 +53,15 @@ public class LinearConstraintManager {
   private final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManager<
       NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
+  private final LogManager logger;
 
-
-  LinearConstraintManager(FormulaManagerView pFmgr) {
+  LinearConstraintManager(
+      FormulaManagerView pFmgr,
+      LogManager logger
+      ) {
     bfmgr = pFmgr.getBooleanFormulaManager();
     rfmgr = pFmgr.getRationalFormulaManager();
+    this.logger = logger;
   }
 
   /**
@@ -112,5 +121,55 @@ public class LinearConstraintManager {
     }
 
     return sum;
+  }
+
+  /**
+   * @param prover Prover engine used
+   * @param expression Expression to maximize
+   * @return Returned value in the extended rational field.
+   *
+   * @throws SolverException, InterruptedException
+   */
+  ExtendedRational maximize(
+      OptEnvironment prover, LinearExpression expression, SSAMap pSSAMap
+  ) throws SolverException, InterruptedException {
+
+    // We can only maximize a single variable.
+    // Create a new variable, make it equal to the linear expression which we
+    // have.
+    FreshVariable target = FreshVariable.createFreshVar(rfmgr);
+    BooleanFormula constraint =
+        rfmgr.equal(
+            target.variable,
+
+            // Shouldn't we maximize stuff <after> edge?
+            // (e.g. after the SSA map being applied).
+            linearExpressionToFormula(expression, pSSAMap)
+        );
+    prover.addConstraint(constraint);
+    prover.setObjective(target.variable);
+
+    OptEnvironment.OptResult result = prover.maximize();
+
+    switch (result) {
+      case OPT:
+        Model model = prover.getModel();
+        logger.log(Level.FINEST, "OPT");
+        return (ExtendedRational) model.get(
+            new Model.Constant(target.name(), Model.TermType.Real)
+        );
+      case UNSAT:
+        logger.log(Level.FINEST, "UNSAT");
+        return ExtendedRational.NEG_INFTY;
+      case UNBOUNDED:
+        logger.log(Level.FINEST, "UNBOUNDED");
+        return ExtendedRational.INFTY;
+      case UNDEF:
+        logger.log(Level.FINEST, "UNDEFINED");
+        throw new SolverException("Result undefiend: something is wrong");
+      default:
+        logger.log(Level.FINEST, "ERROR RUNNING OPTIMIZATION");
+        throw new RuntimeException("Internal Error, unaccounted case");
+    }
   }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,15 +33,17 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+import java.util.logging.Level;
+
 /**
  * Configurable-Program-Analysis implementation for policy iteration.
  */
+@Options(prefix="cpa.policy")
 public class PolicyCPA implements ConfigurableProgramAnalysis{
 
   private final ShutdownNotifier shutdownNotifier;
@@ -58,14 +61,12 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
   private final PathFormulaManager pathFormulaManager;
   private final ValueDeterminationFormulaManager valueDeterminationFormulaManager;
 
-  private final AbstractDomain abstractDomain;
+  private final PolicyAbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final LogManager logger;
   private final Configuration config;
+  private final LinearConstraintManager lcmgr;
 
-  private final Solver solver;
-
-  // Potential FEATURE: make configurable.
   private String mergeType = "JOIN";
 
   private MergeOperator mergeOperator;
@@ -73,10 +74,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
 
   private PrecisionAdjustment precisionAdjustment;
 
-
-
-  // NOTE: I *think* this magic method allows the CPA to ask for, like, whatever in the
-  // constructor, and then the factory supplies the instances of all the required classes.
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
   }
@@ -99,43 +96,47 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     realFormulaManager = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
 
-    solver = new Solver(formulaManager, formulaManagerFactory);
-
     pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa);
     valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
         pathFormulaManager, formulaManager, config, logger, shutdownNotifier, cfa.getMachineModel()
     );
 
-    abstractDomain = new PolicyAbstractDomain(valueDeterminationFormulaManager);
+    lcmgr = new LinearConstraintManager(formulaManager, logger);
 
+    abstractDomain = new PolicyAbstractDomain(
+        valueDeterminationFormulaManager,
+        formulaManagerFactory,
+        logger,
+        lcmgr
+    );
 
     transferRelation = new PolicyTransferRelation(
         config,
         formulaManager,
         formulaManagerFactory,
-        pathFormulaManager);
+        pathFormulaManager,
+        logger,
+        abstractDomain,
+        lcmgr
+    );
 
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
-
-
-    // NOTE: in [PredicateTransferRelation] for some reason they use 4 different formula managers:
-    // predicateMeneger, pathFormulaManager, formulaManager and finally booleanFormulaManager.
-
-    // Apparently all of those can be generated from [formulaManagerView]?..
   }
 
   @Override
   public AbstractState getInitialState(CFANode node) {
     // Abstract state for a _single_ node.
     // E.g. map from a variable map to a policy->bound.
+    logger.log(
+        Level.FINE,
+        "Initial state" + node
+    );
     return PolicyAbstractState.withEmptyState(node);
   }
-
 
   @Override
   public AbstractDomain getAbstractDomain() {
@@ -161,7 +162,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
-
 
   @Override
   public Precision getInitialPrecision(CFANode node) {

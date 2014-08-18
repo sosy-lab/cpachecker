@@ -49,6 +49,7 @@ public class PolicyAbstractState implements AbstractState,
    * The whole class is a storage for this datastructure +
    * a pointer to node.
    */
+
   final ImmutableMap<LinearExpression, PolicyTemplateBound> data;
 
   public ImmutableSet<LinearExpression> getTemplates() {
@@ -60,6 +61,29 @@ public class PolicyAbstractState implements AbstractState,
           CFANode node) {
     this.data = data;
     this.node = node;
+  }
+
+  /**
+   * @return Copy of a given state, with updates applied.
+   */
+  public PolicyAbstractState withUpdates(
+      Map<LinearExpression, PolicyTemplateBound> updates) {
+
+    ImmutableSet<LinearExpression> allKeys = ImmutableSet.<LinearExpression>
+        builder().addAll(updates.keySet()).addAll(data.keySet()).build();
+
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder =
+         ImmutableMap.builder();
+
+    for (LinearExpression key : allKeys) {
+      if (updates.containsKey(key)) {
+        builder.put(key, updates.get(key));
+      } else {
+        builder.put(key, data.get(key));
+      }
+    }
+
+    return new PolicyAbstractState(builder.build(), node);
   }
 
   public static PolicyAbstractState withState(
@@ -79,5 +103,10 @@ public class PolicyAbstractState implements AbstractState,
   @Override
   public Iterator<Entry<LinearExpression, PolicyTemplateBound>> iterator() {
     return data.entrySet().iterator();
+  }
+
+  @Override
+  public String toString() {
+    return String.format("[AS @Node:%s %s]", node, data);
   }
 }

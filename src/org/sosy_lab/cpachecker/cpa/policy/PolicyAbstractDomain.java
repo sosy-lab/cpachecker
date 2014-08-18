@@ -25,138 +25,139 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Table;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
 import org.sosy_lab.cpachecker.cpa.policy.ValueDeterminationFormulaManager.ValueDeterminationConstraint;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 /**
  * Abstract domain for policy iteration.
  */
 public class PolicyAbstractDomain implements AbstractDomain {
 
-  private final ValueDeterminationFormulaManager cpfmgr;
+  private final ValueDeterminationFormulaManager vdfmgr;
+  private final LogManager logger;
+  private final FormulaManagerFactory formulaManagerFactory;
+  private final LinearConstraintManager lcmgr;
 
   /**
    * Scary-hairy global containing all the global data.
+   * Internal representation:
+   *   {@code Map<CFANode, Map<LinearExpression, CFAEdge>>}
    */
   private final Table<CFANode, LinearExpression, CFAEdge> policy;
 
-
   public PolicyAbstractDomain(
-     ValueDeterminationFormulaManager cpfmgr
+     ValueDeterminationFormulaManager vdfmgr,
+     FormulaManagerFactory formulaManagerFactory,
+     LogManager logger,
+     LinearConstraintManager lcmgr
   ) {
     policy = HashBasedTable.create();
-    this.cpfmgr = cpfmgr;
+    this.vdfmgr = vdfmgr;
+    this.logger = logger;
+    this.formulaManagerFactory = formulaManagerFactory;
+    this.lcmgr = lcmgr;
+  }
+
+  void setPolicyForTemplate(CFANode node, LinearExpression template, CFAEdge edge) {
+    policy.put(node, template, edge);
   }
 
   @Override
-  public AbstractState join(AbstractState current, AbstractState reached)
+  public AbstractState join(AbstractState newState, AbstractState prevState)
        throws CPAException {
 
     // Perform value determination during the join stage?
-    return join((PolicyAbstractState) current, (PolicyAbstractState) reached);
+    return join((PolicyAbstractState) newState, (PolicyAbstractState) prevState);
   }
 
   /**
-   * NOTE1: At each iteration we obtain only one new state.
-   * Thus we merge only two things: a previous state, and the old one at that node.
+   * Each iteration produces only one step, so after each run of
+   * {@link PolicyTransferRelation#getAbstractSuccessors} we merge at most
+   * two states (a new one, and potentially an alrady existing one for
+   * this node).
    *
-   * NOTE2: Cycles can appear only at this step (no cycle can appear if we are updating the invariant
-   * for the previously unreached state).
-   *
-   * At this point our options are:
-   * -> It's always easiest to just start out with something extremely naive which works and update
-   * it later on.
-   *
-   * Hence we don't even have to detect cycles at all. Just the global policy in some datastructure,
-   * synchronize that manually, and run the value determination (in the old, extremely stupid, way)
-   * after every single step.
-   * Yay! Decision right there.
-   *
-   * @param current Newly obtained abstract state.
-   * @param reached A previous abstract state for this node (if such exists)
+   * @param newState Newly obtained abstract state.
+   * @param prevState A previous abstract state for this node (if such exists)
    * @return New abstract state.
    */
   public PolicyAbstractState join(
-      final PolicyAbstractState current,
-      PolicyAbstractState reached) throws CPAException {
+      final PolicyAbstractState newState,
+      PolicyAbstractState prevState) throws CPAException {
 
     // NOTE: check. But I think it must be actually the same node.
-    Preconditions.checkState(current.node == reached.node);
+    Preconditions.checkState(newState.node == prevState.node);
 
     // OK so what do we have.
     // if we are performing the merge step there must exist at least one
     // policy for which the new node is strictly larger.
 
-    final CFANode node = current.node;
+    final CFANode node = newState.node;
 
-    // Templates which were updaed.
-    final List<LinearExpression> updated = new LinkedList<>();
+    /** Find the templates which were updated */
+    final Map<LinearExpression, CFAEdge> updated = new HashMap<>();
 
-    // Note: policy is updated inside the merging step.
-    PolicyAbstractState out = PolicyAbstractState.withState(
-        ImmutableMapMerger.merge(
-            current.data,
-            reached.data,
-            new ImmutableMapMerger.MergeFuncWithKey<LinearExpression,
-                PolicyTemplateBound>() {
-              @Override
-              public PolicyTemplateBound apply(
-                  LinearExpression template,
-                  PolicyTemplateBound newPolicy,
-                  PolicyTemplateBound oldPolicy) {
+    for (Entry<LinearExpression, PolicyTemplateBound> entry : prevState) {
+      LinearExpression template = entry.getKey();
+      PolicyTemplateBound policyValue = entry.getValue();
+      PolicyTemplateBound oldValue = prevState.data.get(template);
 
-                // Bound grows, so we are happy when the difference is bigger than zero.
-                if (newPolicy.bound.compareTo(oldPolicy.bound) > 0) {
+      if (oldValue == null ||
+            oldValue.bound.compareTo(policyValue.bound) < 0) {
+        updated.put(template, policyValue.edge);
+      }
+    }
 
-                  // Let's keep a track of templates we had to update.
-                  updated.add(template);
-
-                  // Update the policy.
-                  policy.put(node, template, newPolicy.edge);
-
-                  return newPolicy;
-                } else {
-                  return oldPolicy;
-                }
-              }
-            }
-        ),
-        node
-    );
-
+    ValueDeterminationConstraint valueDeterminationConstraints;
     try {
-      ValueDeterminationConstraint constr = cpfmgr.valueDeterminationFormula(
+      valueDeterminationConstraints = vdfmgr.valueDeterminationFormula(
           policy.rowMap()
       );
     } catch (InterruptedException e) {
       throw new CPAException("Exception while computing the formula", e);
     }
 
-    for (LinearExpression template : updated) {
-      PolicyTemplateBound currentConstraint = out.data.get(template);
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder;
+    builder = ImmutableMap.builder();
 
-      // TODO: OK at this point we need the bloody interface for the optimization
-      // technique.
+    for (Entry<LinearExpression, CFAEdge> policyValue : updated.entrySet()) {
+      LinearExpression template = policyValue.getKey();
+      CFAEdge policyEdge = policyValue.getValue();
 
+      // Maximize for each template subject to the overall constraints.
+      int ssaIdx = valueDeterminationConstraints.ssaTemplateMap.get(node, template);
 
+      try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+        solver.addConstraint(valueDeterminationConstraints.constraints);
 
-      // TODO: use the value determination formula here to obtain the new state.
+        SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(ssaIdx);
 
-      // TODO: solve the resultant LP to update [out].
+        ExtendedRational newValue = lcmgr.maximize(solver, template, ssaMap);
+
+        builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+      } catch (Exception e) {
+        throw new CPATransferException("Failed solving", e);
+      }
     }
 
-    return out;
-
+    return prevState.withUpdates(builder.build());
   }
 
   enum PARTIAL_ORDER {
@@ -167,22 +168,32 @@ public class PolicyAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState current, AbstractState reached)
+  public boolean isLessOrEqual(AbstractState newState, AbstractState prevState)
       throws CPAException {
 
-    PARTIAL_ORDER ord = compare((PolicyAbstractState)current, (PolicyAbstractState)reached);
+    PARTIAL_ORDER ord = compare(
+        (PolicyAbstractState)newState,
+        (PolicyAbstractState)prevState
+    );
     return (ord == PARTIAL_ORDER.LESS || ord == PARTIAL_ORDER.EQUAL);
   }
 
-  PARTIAL_ORDER compare(PolicyAbstractState newState, PolicyAbstractState otherState) {
+  PARTIAL_ORDER compare(PolicyAbstractState newState,
+                        PolicyAbstractState prevState) {
     boolean less_or_equal = true;
     boolean greater_or_equal = true;
 
     for (Entry<LinearExpression, PolicyTemplateBound> e : newState.data.entrySet()) {
-      PolicyTemplateBound value = e.getValue();
-      PolicyTemplateBound otherValue = otherState.data.get(e.getKey());
+      PolicyTemplateBound newValue = e.getValue();
 
-      int cmp = value.bound.compareTo(otherValue.bound);
+      PolicyTemplateBound prevValue = prevState.data.get(e.getKey());
+
+      int cmp;
+      if (prevValue == null) {
+        cmp = 1;
+      } else {
+        cmp = newValue.bound.compareTo(prevValue.bound);
+      }
 
       if (cmp > 0) {
         less_or_equal = false;
