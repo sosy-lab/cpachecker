@@ -47,6 +47,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
 
+  @Options(prefix = "cpa.predicate.solver.z3")
   private static class Z3NativeLoader {
     @Option(description="Load Z3 with interpolation support. Requires [libfoci].")
     boolean supportInterpolation = false;
