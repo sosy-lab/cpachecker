@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.rationals;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
 
 import java.util.Iterator;
@@ -119,5 +122,31 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   @Override
   public Iterator<Entry<String, ExtendedRational>> iterator() {
     return data.entrySet().iterator();
+  }
+
+  /**
+   * @return Pretty-printing for linear expressions.
+   * E. g. <i>-x + 2y + z</i>
+   */
+  @Override
+  public String toString() {
+    Iterable stream = Iterables.transform(
+        this,
+        new Function<Entry<String, ExtendedRational>, String>() {
+          public String apply(Entry<String, ExtendedRational> monomial) {
+            ExtendedRational coeff = monomial.getValue();
+            String var = monomial.getKey();
+            if (coeff.equals(ExtendedRational.ONE)) {
+              return var;
+            } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
+              return String.format("-%s", var);
+            }
+            return String.format(
+                "%s%s", coeff, var);
+          }
+        }
+    );
+
+    return Joiner.on(" + ").join(stream);
   }
 }
