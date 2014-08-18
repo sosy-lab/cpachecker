@@ -98,11 +98,19 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
 
     pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa);
+    lcmgr = new LinearConstraintManager(formulaManager, logger);
     valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
-        pathFormulaManager, formulaManager, config, logger, shutdownNotifier, cfa.getMachineModel()
+        pathFormulaManager,
+        formulaManager,
+        config,
+        logger,
+        shutdownNotifier,
+        cfa.getMachineModel(),
+        cfa,
+        realFormulaManager,
+        lcmgr
     );
 
-    lcmgr = new LinearConstraintManager(formulaManager, logger);
 
     abstractDomain = new PolicyAbstractDomain(
         valueDeterminationFormulaManager,

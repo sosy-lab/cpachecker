@@ -27,10 +27,7 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -122,7 +119,6 @@ public class LinearConstraintManager {
 
     return sum;
   }
-
   /**
    * @param prover Prover engine used
    * @param expression Expression to maximize
@@ -134,17 +130,25 @@ public class LinearConstraintManager {
       OptEnvironment prover, LinearExpression expression, SSAMap pSSAMap
   ) throws SolverException, InterruptedException {
 
+    NumeralFormula objective = linearExpressionToFormula(expression, pSSAMap);
+
+    return maximize(prover, objective);
+  }
+
+  /**
+   *  Lower-level API allowing one to provide the actual formula.
+   */
+  ExtendedRational maximize(
+      OptEnvironment prover, NumeralFormula objective
+  ) throws SolverException, InterruptedException {
+
     // We can only maximize a single variable.
     // Create a new variable, make it equal to the linear expression which we
     // have.
     FreshVariable target = FreshVariable.createFreshVar(rfmgr);
     BooleanFormula constraint =
         rfmgr.equal(
-            target.variable,
-
-            // Shouldn't we maximize stuff <after> edge?
-            // (e.g. after the SSA map being applied).
-            linearExpressionToFormula(expression, pSSAMap)
+            target.variable, objective
         );
     prover.addConstraint(constraint);
     prover.setObjective(target.variable);

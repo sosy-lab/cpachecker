@@ -46,8 +46,8 @@ public class PolicyCPATest {
             "cpa.callstack.CallstackCPA, cpa.policy.PolicyCPA")
         .put("cpa.predicate.solver", "Z3")
         .put("log.consoleLevel", "FINE")
-        .put("specification", "config/specification/ErrorLabel.spc")
-//        .put("cpa.predicate.solver.useLogger", "true")
+        .put("specification", "config/specification/default.spc")
+        .put("cpa.predicate.solver.useLogger", "true")
     ).build();
 
     TestResults results = CPATestRunner.run(
@@ -61,6 +61,6 @@ public class PolicyCPATest {
 
     System.out.println(results.getCheckerResult().getResultString());
 
-    Assert.assertEquals(results.isSafe(), true);
+    Assert.assertEquals(false, results.isSafe());
   }
 }

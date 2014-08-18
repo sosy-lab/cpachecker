@@ -27,15 +27,15 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
+import java.util.Map.Entry;
 
 /**
  * All our SSA-customization code should go there.
@@ -59,22 +59,27 @@ public class ValueDeterminationFormulaManager {
    */
   public static class ValueDeterminationConstraint {
     final BooleanFormula constraints;
-    final Table<CFANode, LinearExpression, Integer> ssaTemplateMap;
+    final Table<CFANode, LinearExpression, NumeralFormula> templateFormulaMap;
 
     ValueDeterminationConstraint(
         BooleanFormula constraints,
-        Table<CFANode, LinearExpression, Integer> ssaTemplateMap
+        Table<CFANode, LinearExpression, NumeralFormula> templateFormulaMap
         ) {
       this.constraints = constraints;
-      this.ssaTemplateMap = ssaTemplateMap;
+      this.templateFormulaMap = templateFormulaMap;
     }
   }
 
   private final PathFormulaManager pfmgr;
+  private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
   private final LogManager logger;
+  private final LinearConstraintManager lcmgr;
+  private final CFA cfa;
+
+  private final int threshold;
 
   private static final String BOUND_VAR_NAME = "BOUND_%s_%s";
 
@@ -84,22 +89,21 @@ public class ValueDeterminationFormulaManager {
       Configuration config,
       LogManager logger,
       ShutdownNotifier shutdownNotifier,
-      MachineModel machineModel
+      MachineModel machineModel,
+      CFA cfa,
+      FormulaManager rfmgr,
+      LinearConstraintManager lcmgr
   ) {
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
     this.rfmgr = fmgr.getRationalFormulaManager();
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
-  }
+    this.cfa = cfa;
+    this.formulaManager = rfmgr;
+    this.lcmgr = lcmgr;
 
-  private String boundVarName(CFANode node, LinearExpression template) {
-    return String.format(BOUND_VAR_NAME, node, template);
-  }
-
-  private RationalFormula getBoundVar(CFANode node, LinearExpression template) {
-    String varName = boundVarName(node, template);
-    return rfmgr.makeVariable(varName);
+    threshold = getThreshold(cfa);
   }
 
   /**
@@ -109,6 +113,11 @@ public class ValueDeterminationFormulaManager {
    * @return {@link org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula} representing the CFA subset.
    * @throws CPATransferException
    * @throws InterruptedException
+  // NOTE: So I am doing something which seems quite silly here.
+  // Iteration over all the nodes should not be required, I should iterate
+  // only over the reachable ones [or better yet, the ones involved in a created
+  // cycle.
+  // But such an improvement can be left as a todo-item for later.
    */
   public ValueDeterminationConstraint valueDeterminationFormula(
       final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
@@ -116,76 +125,53 @@ public class ValueDeterminationFormulaManager {
 
     List<BooleanFormula> constraints = new LinkedList<>();
 
-    // Record the SSA mapping.
-    Table<CFANode, LinearExpression, Integer> OutSSAMap = HashBasedTable.create();
+    Table<CFANode, LinearExpression, NumeralFormula> outSSAMap = HashBasedTable.create();
 
-    int globalSSACounter = 1;
+    for (CFANode toNode : policy.keySet()) {
+      for (Entry<LinearExpression, CFAEdge> incoming : policy.get(toNode).entrySet()) {
 
-    // NOTE: So I am doing something which seems quite silly here.
-    // Iteration over all the nodes should not be required, I should iterate
-    // only over the reachable ones [or better yet, the ones involved in a created
-    // cycle.
+        LinearExpression template = incoming.getKey();
+        CFAEdge incomingEdge = incoming.getValue();
 
-    // But such an improvement can be left as a todo-item for later.
-    for (CFANode node : policy.keySet()) {
-      for (Map.Entry<LinearExpression, CFAEdge> incoming : policy.get(node).entrySet()) {
+        CFANode fromNode = incomingEdge.getPredecessor();
+        int fromNodePrimeNo = toPrime(fromNode.getNodeNumber());
+        int toNodeNo = toNode.getNodeNumber();
+        int toNodePrimeNo = toPrime(toNodeNo);
 
-        CFAEdge edge = incoming.getValue();
+        PathFormula edgeFormula = pathFormulaWithCustomIdx(
+            incomingEdge,
+            toNodeNo,
+            toNodePrimeNo
+        );
 
-        PathFormula edgeFormula = pathFormulaWithCustomIdx(edge, globalSSACounter);
-
-        // Add the constraint from the edge itself.
         constraints.add(edgeFormula.getFormula());
 
-        // Add constraints from the incoming variables,
-        // of the form
-        //    expr <= <incoming_node_bound_for_expr>
-        // Note that the incoming variables the SSA index corresponds to the
-        // [globalSSACounter].
-        SSAMap incomingMap = SSAMap.emptySSAMap().withDefault(globalSSACounter);
-        CFANode fromNode = edge.getPredecessor();
-
-        // OK easy, policy wasn't set yet for the from-node.
-        logger.log(Level.FINER, "From node = " + fromNode);
         if (policy.get(fromNode) == null) {
-
-          // NOTE: The problem is the nodes with no templates attached
-          // are not recorded in the policy and might raise a null-pointer
-          // error.
-          // This is not the most type-safe way to check for it, but it
-          // will do.
+          // NOTE: nodes with no templates aren't in the policy.
           continue;
         }
 
-        for (Map.Entry<LinearExpression, CFAEdge>
-            fromPolicy : policy.get(fromNode).entrySet()) {
-          LinearExpression fromTemplate = fromPolicy.getKey();
+        for (LinearExpression fromTemplate : policy.get(fromNode).keySet()) {
+          RationalFormula fromTemplateUpperBound =
+              linearExpressionToFormula(
+                  fromTemplate, SSAMap.withDefault(fromNodePrimeNo));
+          RationalFormula incomingTemplateF =  linearExpressionToFormula(fromTemplate,
+                  SSAMap.withDefault(toNodeNo));
 
-          RationalFormula fromTemplateVar = getBoundVar(fromNode, fromTemplate);
+          BooleanFormula f = rfmgr.lessOrEquals(
+              incomingTemplateF, fromTemplateUpperBound);
 
-          RationalFormula fromTemplateF =
-              linearExpressionToFormula(fromTemplate, incomingMap);
-          BooleanFormula f = rfmgr.lessOrEquals(fromTemplateF, fromTemplateVar);
           constraints.add(f);
         }
 
-        // Add constraints on the outgoing variables.
-        //    template = <outgoing_expression_equal_to_template>.
-        LinearExpression template = incoming.getKey();
-        RationalFormula boundExpression = linearExpressionToFormula(
-            template, edgeFormula.getSsa());
-        BooleanFormula f = rfmgr.equal(getBoundVar(node, template), boundExpression);
-        constraints.add(f);
-
-        OutSSAMap.put(node, incoming.getKey(), globalSSACounter);
-
-        // Incrementing a counter by two guarantees a lack of collisions.
-        // NOTE: there has to be a better way.
-        globalSSACounter += 2;
+        outSSAMap.put(
+            toNode,
+            template,
+            lcmgr.linearExpressionToFormula(template, edgeFormula.getSsa())
+        );
       }
     }
-
-    return new ValueDeterminationConstraint(bfmgr.and(constraints), OutSSAMap);
+    return new ValueDeterminationConstraint(bfmgr.and(constraints), outSSAMap);
   }
 
   private RationalFormula linearExpressionToFormula(LinearExpression expr, SSAMap ssa) {
@@ -203,26 +189,94 @@ public class ValueDeterminationFormulaManager {
     return sum;
   }
 
-  private PathFormula pathFormulaWithSSA(SSAMap map) {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
-    return pfmgr.makeNewPathFormula(
-        empty,
-        map
-    );
+
+  /**
+   * Create a path formula for the edge, specifying <i>both</i> custom
+   * from-index and the custom to-index.
+   * E.g. for statement {@code x++}, start index set to 2 and stop index set to 1000
+   * will produce:
+   *
+   *    x@1000 = x@2 + 1
+   */
+  private PathFormula pathFormulaWithCustomIdx(
+      CFAEdge edge, int startIdx, int stopIdx) throws CPATransferException,
+      InterruptedException {
+
+    PathFormula p = pathFormulaWithCustomStartIdx(edge, startIdx);
+    SSAMap customFromIdxSSAMap = p.getSsa();
+
+    SSAMap.SSAMapBuilder newMapBuilder = customFromIdxSSAMap.builder();
+
+    List<Formula> fromVars = new LinkedList<>();
+    List<Formula> toVars = new LinkedList<>();
+
+    for (Entry<String, CType> entry : customFromIdxSSAMap.allVariablesWithTypes()) {
+      String variable = entry.getKey();
+      CType type = entry.getValue();
+      int idx = customFromIdxSSAMap.getIndex(variable);
+      if (idx != startIdx) {
+        fromVars.add(
+            // NOTE: we are making an implicit assumption
+            // here that everything is a rational.
+            rfmgr.makeVariable(
+                FormulaManagerView.makeName(variable, idx))
+        );
+        toVars.add(
+            rfmgr.makeVariable(
+                FormulaManagerView.makeName(variable, stopIdx)
+            )
+        );
+        newMapBuilder.setIndex(variable, type, stopIdx);
+      }
+    }
+
+    return new PathFormula(
+        formulaManager.getUnsafeFormulaManager().substitute(
+            p.getFormula(), fromVars, toVars
+        ),
+        newMapBuilder.build(),
+        p.getPointerTargetSet(),
+        p.getLength());
   }
 
   /**
    * Creates a {@link PathFormula} with SSA indexing starting
    * from the specified value.
-   * Useful for more fine-grained control over SSA indexes.
+   * E.g. for {@code x++} and starting index set to 1000 will produce:
+   *
+   *    x@1001 = x@1000 + 1
    */
-  private PathFormula pathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+  private PathFormula pathFormulaWithCustomStartIdx(CFAEdge edge, int startIdx)
       throws CPATransferException, InterruptedException {
     PathFormula empty = pfmgr.makeEmptyPathFormula();
     PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
         empty,
-        SSAMap.emptySSAMap().withDefault(ssaIdx));
+        SSAMap.withDefault(startIdx));
 
     return pfmgr.makeAnd(emptyWithCustomSSA, edge);
+  }
+
+  /**
+   * The formula encoding uses separate numbering conventions for variables
+   * associated with the node "input" and the variables associated with the
+   * node "output".
+   * The later numbering starts with <getThreshold>.
+   * The threshold is guaranteed to be a multiple of 10 and bigger than the
+   * number of nodes, and at least a thousand (for readability).
+   */
+  private int getThreshold(CFA cfa) {
+    double magnitude = Math.log10(cfa.getAllNodes().size());
+    return Math.min(
+        1000,
+        (int) Math.pow(10, magnitude)
+    );
+  }
+
+  /**
+   * Convert the number from the "input" numbering convention to the "output"
+   * numbering convention.
+   */
+  private int toPrime(int no) {
+    return threshold + no;
   }
 }

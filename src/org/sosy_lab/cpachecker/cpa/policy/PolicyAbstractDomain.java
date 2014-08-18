@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.cpa.policy.ValueDeterminationFormulaManager.ValueDeterminationConstraint;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
@@ -106,7 +105,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
     Preconditions.checkState(newState.node == prevState.node);
     final CFANode node = newState.node;
 
-    logger.log(Level.FINE, "Performing join on node " + node);
+    logger.log(Level.FINE, "@@@ Performing join on node " + node);
 
     /** Just return the old node if it is strictly larger */
     if (isLessOrEqual(newState, prevState)) {
@@ -154,13 +153,13 @@ public class PolicyAbstractDomain implements AbstractDomain {
       CFAEdge policyEdge = policyValue.getValue();
 
       // Maximize for each template subject to the overall constraints.
-      int ssaIdx = valueDeterminationConstraints.ssaTemplateMap.get(node, template);
-
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
         solver.addConstraint(valueDeterminationConstraints.constraints);
 
-        SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(ssaIdx);
-        ExtendedRational newValue = lcmgr.maximize(solver, template, ssaMap);
+        ExtendedRational newValue = lcmgr.maximize(
+            solver,
+            valueDeterminationConstraints.templateFormulaMap.get(node, template)
+        );
         builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
 
       } catch (Exception e) {
