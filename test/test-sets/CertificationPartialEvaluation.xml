@@ -1,13 +1,18 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Rundefinitions execute for each program the verification with proof generation followed by certificate
+<!-- Evaluation of certification with partial certificates.
+     Rundefinitions execute for each program the verification with proof generation followed by certificate
      checking and collect the respective data.
+     For each analysis configuration two rundefinitions are available.
+     One that evaluates certification as in SPIN paper Certification for configurable program analysis. The other
+     rundefinition ending with _Partial uses a partial certificate in which (some) recomputable states are deleted
+     from reached set. For deletion of states best, sound heuristic (in terms of number of deleted states) is used.   
      Programs are taken from SV-Comp Benchmark subcategory ControlFlowInteger (only true-unreach-call programs).
      Programs for which verification timed out after 5 minutes using any traversal order are excluded from the respective
-     rundefinition of that analysis.
-     The time limit used for evaluation was 5 minutes.
+     rundefinition of that analysis. Verification uses the best traversal order for each program.
+     The time limit used for evaluation was 7 minutes to ensure computation of partial certificate within time limit.
 -->    
-<benchmark tool="cpachecker" timelimit="400" memlimit="3500">
+<benchmark tool="cpachecker" timelimit="420" memlimit="3500">
 <option name="-heap">2500M</option>
 <option name="-noout"/>
 <option name="-disable-java-assertions"/>

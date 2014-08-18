@@ -1,11 +1,19 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<!-- Rundefinitions execute for each program the verification with proof generation followed by certificate
-     checking and collect the respective data.
+<!-- Rundefinitions execute for each program the verification with proof generation followed by parallel certificate
+     checking (first reading and then parallel checking) and collect the respective data.
+     For each analysis configuration three rundefinitions are available.
+     One that evaluates certification as in SPIN paper Certification for configurable program analysis but loop is executed
+     in parallel . The second rundefinition ending with _Partial uses a partial certificate in which (some) recomputable 
+     states are deleted from reached set. Certificate is checked in parallel, which elements are processed by which thread
+     is scheduled before checking is started. The third rundefinition ending with _Partial_Load uses also a partial certificate
+     as the second one but which during certificate checking an element is assigned to a thread for being processed.
+     In both rundefinitions considering partial certificates for deletion of states best, sound heuristic (in terms of number 
+     of deleted states) is used.   
      Programs are taken from SV-Comp Benchmark subcategory ControlFlowInteger (only true-unreach-call programs).
      Programs for which verification timed out after 5 minutes using any traversal order are excluded from the respective
-     rundefinition of that analysis.
-     The time limit used for evaluation was 5 minutes.
+     rundefinition of that analysis. Verification uses the best traversal order for each program.
+     The time limit used for evaluation was 7 minutes to ensure computation of partial certificate within time limit.
 -->    
 <benchmark tool="cpachecker" timelimit="300" memlimit="3500">
 <option name="-heap">2500M</option>
