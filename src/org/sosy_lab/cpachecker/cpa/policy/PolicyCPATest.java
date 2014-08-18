@@ -50,7 +50,7 @@ public class PolicyCPATest {
         .put("cpa.predicate.solver.useLogger", "true")
     ).build();
 
-    TestResults results = CPATestRunner.run(
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
         prop,
         "test/programs/simple/policyTest.c"
     );

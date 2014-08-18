@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
@@ -42,9 +43,23 @@ import java.util.logging.StreamHandler;
  * Helper class for running CPA tests.
  */
 public class CPATestRunner {
+
+  public static TestResults runAndLogToSTDOUT(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath) throws Exception {
+    return run(pProperties, pSourceCodeFilePath, true);
+  }
+
   public static TestResults run(
       Map<String, String> pProperties,
       String pSourceCodeFilePath) throws Exception {
+    return run(pProperties, pSourceCodeFilePath, false);
+  }
+
+  public static TestResults run(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath,
+      boolean writeLogToSTDOUT) throws Exception {
 
     Configuration config = Configuration.builder()
         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
@@ -52,11 +67,13 @@ public class CPATestRunner {
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
 
-    Handler h = new StreamHandler(System.out, new SimpleFormatter());
+    Handler h;
+    if (writeLogToSTDOUT) {
+      h = new StreamHandler(System.out, new SimpleFormatter());
+    } else {
+      h = stringLogHandler;
+    }
 
-
-    // TODO: make it configurable, there are two options.
-    // we may or may not want writing to stdout.
     LogManager logger = new BasicLogManager(config, h);
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
