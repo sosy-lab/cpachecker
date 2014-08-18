@@ -30,9 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 
 import com.google.common.base.Function;
 
@@ -182,13 +180,23 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
         Lists.transform(changeTo, toPtr)
     );
 
-    return getFormulaCreator().encapsulate(
+    // NOTE: the code below is very hacky, yet currently I do not see any
+    // better way to get the parent type of the formula.
+    Class<? extends Formula> outClass;
+    if (f instanceof BooleanFormula) {
+      outClass = BooleanFormula.class;
+    } else if (f instanceof BitvectorFormula) {
+      outClass = BitvectorFormula.class;
+    } else if (f instanceof NumeralFormula.IntegerFormula) {
+      outClass = NumeralFormula.IntegerFormula.class;
+    } else if (f instanceof NumeralFormula.RationalFormula) {
+      outClass = NumeralFormula.RationalFormula.class;
+    } else {
+      throw new IllegalArgumentException("Unexpected input formula");
+    }
 
-        // TODO: a very bad hack, let's get rid of it later.
-        // Note: it seems there is no way to get rid of the unsafe cast due
-        // to the type erasure.
-        (Class<ResultFormulaType>) f.getClass().getInterfaces()[0],
-        newExpression);
+    return getFormulaCreator().encapsulate(
+        (Class<ResultFormulaType>) outClass, newExpression);
   }
 
   protected abstract TFormulaInfo substitute(
