@@ -53,11 +53,7 @@ public final class Z3NativeApi {
     public String value;
   }
 
-  // OPTIMIZATION - OPTI BRANCH.
-  public static native int solver_check_opti(
-      long context, long solver, PointerToInt unbounded, long var, int maximize);
-
-  // OPTIMIZATION - Nikolaj Bjorner branch.
+  /** Start optimization - Nikolaj Bjorner branch. **/
 
   /**
    * \brief Create a new optimize context.
@@ -133,6 +129,8 @@ public final class Z3NativeApi {
    */
   public static native void optimize_assert(
       long context, long optimize, long ast);
+
+  /** -- end optimization -- **/
 
   // CREATE CONFIGURATION
   public static native void global_param_set(String param_id, String param_value);
