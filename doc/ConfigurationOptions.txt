@@ -1220,6 +1220,9 @@ cpa.predicate.solver.z3.logger.target = Z3
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
+# Load Z3 with interpolation support. Requires [libfoci].
+cpa.predicate.solver.z3.supportInterpolation = false
+
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
