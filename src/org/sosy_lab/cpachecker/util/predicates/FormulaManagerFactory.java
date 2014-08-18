@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
@@ -203,7 +204,11 @@ public class FormulaManagerFactory {
             throw new AssertionError("Only Z3 supports the optimization interface");
     }
 
-    return environment;
+    if (useLogger) {
+      return new LoggingOptEnvironment(logger, environment);
+    } else {
+      return environment;
+    }
   }
 
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
