@@ -1201,15 +1201,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       assert pLoop.getLoopNodes().contains(current);
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current)) {
-        if (leavingEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
-          CFANode successor = leavingEdge.getSuccessor();
-          if (visited.add(successor) && pLoop.getLoopNodes().contains(successor)) {
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        CFANode successor = leavingEdge.getSuccessor();
+        if (pLoop.getLoopNodes().contains(successor)) {
+          if (visited.add(successor)) {
             waitlist.offer(successor);
-          } else {
-            PathFormula formula = pmgr.makeFormulaForPath(Collections.singletonList(leavingEdge));
-            result.addAll(formula.getSsa().allVariables());
           }
+        } else {
+          PathFormula formula = pmgr.makeFormulaForPath(Collections.singletonList(leavingEdge));
+          result.addAll(formula.getSsa().allVariables());
         }
       }
     }
