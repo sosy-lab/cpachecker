@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -42,7 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import java.util.LinkedList;
@@ -83,7 +81,7 @@ public class ValueDeterminationFormulaManager {
 
   private final int threshold;
 
-  private static final String BOUND_VAR_NAME = "BOUND_%s_%s";
+  private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
 
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
@@ -125,20 +123,6 @@ public class ValueDeterminationFormulaManager {
       final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
       ) throws CPATransferException, InterruptedException{
 
-    // TODO: this doesn't work.
-    // TODO: let's change back to having output variables.
-    // Question: it is definitely significantly easier to encode things
-    // using numbers (as there is already machinery available for this
-    // procedure).
-    // For the nodes the number encoding is quite natural, for the templates
-    // it will be quite confusing (though of course possible as well).
-    // But since I already have machinery for renaming formulas, do I really
-    // care?
-    // TODO: also, renaming is ugly, wouldn't it be better if I just add
-    // namespacing facilities to the [PathFormula] representation?..
-    // A better approach might be to don't use the [PathFormulaManager]
-    // _at all_ and just use the [CToFormulaConverter] directly...
-
     List<BooleanFormula> constraints = new LinkedList<>();
 
     Table<CFANode, LinearExpression, NumeralFormula> outSSAMap = HashBasedTable.create();
@@ -150,28 +134,29 @@ public class ValueDeterminationFormulaManager {
 
       for (Entry<LinearExpression, CFAEdge> incoming : policy.get(toNode).entrySet()) {
 
-
         LinearExpression template = incoming.getKey();
         CFAEdge incomingEdge = incoming.getValue();
 
-        String customPrefix = String.format("tmpl_<%s>_", template);
+        String templatePrefix = String.format("tmpl_[%s]_", template);
 
         CFANode fromNode = incomingEdge.getPredecessor();
-        int fromNodePrimeNo = toPrime(fromNode.getNodeNumber());
         int toNodeNo = toNode.getNodeNumber();
         int toNodePrimeNo = toPrime(toNodeNo);
 
         // well I don't even get the distinction between
         // the variable-is-in-the-edge vs. variable-not-in-the-edge.
-        PathFormula edgeFormula = pathFormulaWithCustomIdx(
+        PathFormula edgePathFormula = pathFormulaWithCustomIdx(
             incomingEdge,
             toNodeNo,
             toNodePrimeNo,
-            customPrefix
+            templatePrefix
         );
+        BooleanFormula edgeFormula = edgePathFormula.getFormula();
 
-        constraints.add(edgeFormula.getFormula());
-        logger.log(Level.FINE, "Adding edge formula: " + edgeFormula.getFormula());
+        if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
+          constraints.add(edgeFormula);
+        }
+        logger.log(Level.FINE, "Adding edge formula: " + edgeFormula);
 
         if (policy.get(fromNode) == null) {
           // NOTE: nodes with no templates aren't in the policy.
@@ -183,56 +168,45 @@ public class ValueDeterminationFormulaManager {
         );
 
         for (LinearExpression fromTemplate : policy.get(fromNode).keySet()) {
-          NumeralFormula fromTemplateUpperBound = lcmgr.linearExpressionToFormula(
-                  fromTemplate, SSAMap.withDefault(fromNodePrimeNo), customPrefix);
-          NumeralFormula incomingTemplateF = lcmgr.linearExpressionToFormula(
-              fromTemplate, SSAMap.withDefault(toNodeNo), customPrefix);
 
-          BooleanFormula f = rfmgr.lessOrEquals(incomingTemplateF,
-              fromTemplateUpperBound);
+          // Add input constraints on the edge variables.
+          NumeralFormula edgeInput = lcmgr.linearExpressionToFormula(
+              fromTemplate,
+              SSAMap.withDefault(toNodeNo),
+              templatePrefix
+          );
+
+          BooleanFormula f = rfmgr.lessOrEquals(
+              edgeInput,
+              rfmgr.makeVariable(absDomainVarName(fromNode, fromTemplate))
+          );
 
           constraints.add(f);
           logger.log(Level.FINE, "Adding abstract-domain constraint: "
               + f);
         }
-        NumeralFormula out = lcmgr.linearExpressionToFormula(
-            template, edgeFormula.getSsa(), customPrefix
+
+        // if the variable does not appear in the expression i should do
+        // something else.
+        // however, with [getSsa()] we never know whether it does or does
+        // not appear in the expression
+
+        NumeralFormula outExpr = lcmgr.linearExpressionToFormula(
+            template, edgePathFormula.getSsa(), templatePrefix
         );
 
-        // TODO: at the output level, I should check that all required templates
-        // exist.
-        for (Entry<String, ExtendedRational> pair : template) {
-          String variable = pair.getKey();
-          Pair<Boolean, Integer> data = edgeFormula.getSsa().getMetaIndex(variable);
+        NumeralFormula out = rfmgr.makeVariable(absDomainVarName(
+            toNode, template));
 
-          if (data.getFirst() == false) {
-            // variable is not actually found in the edge formula in any shape
-            // or form...
+        BooleanFormula outConstraint = rfmgr.equal(
+            outExpr, out
+        );
+        logger.log(Level.FINE, "Output constraint = " + outConstraint);
+        constraints.add(outConstraint);
 
-            // add another constraint connecting output to input.
-            // TODO: which output specifically though...
-
-          }
-          // Now we need to check...
-          // does the edge contain this variable?
-          // Because if it does not, it is bad-bad-bad.
-        }
-
-        // If they don't (e.g. don't appear inside the edge),
-        // I should manually link them to the input variables.
-
-        /**
-         * hm maybe my idea about not using temporary variables to record
-         * the abstract state at every location isn't actually that smart...
-         *
-         * hm hmmm
-         */
-        logger.log(Level.FINE, "Optimizing target = " + out);
 
         outSSAMap.put(toNode, template, out);
       }
-
-
     }
     return new ValueDeterminationConstraint(bfmgr.and(constraints), outSSAMap);
   }
@@ -254,6 +228,17 @@ public class ValueDeterminationFormulaManager {
 
     SSAMap.SSAMapBuilder newMapBuilder = customFromIdxSSAMap.builder();
 
+    /**
+     * the issue is simple: SSA map is updated twice, hence only the latest
+     * update is contained.
+     *
+     * basically, what I want is something else: container of a meta-information
+     * about the formula.
+     *
+     * Is it possible to add one without changing everything all over the
+     * place? a hacky alternative is to just walk a formula tree.
+     */
+
     List<Formula> fromVars = new LinkedList<>();
     List<Formula> toVars = new LinkedList<>();
 
@@ -264,14 +249,30 @@ public class ValueDeterminationFormulaManager {
                               customFromIdxSSAMap.allVariablesWithTypes()) {
 
       String variable = entry.getKey();
+      CType type = entry.getValue();
+
       int oldIdx = customFromIdxSSAMap.getIndex(variable);
 
       int newIdx;
       if (oldIdx != startIdx) {
-         newIdx = stopIdx;
+        newIdx = stopIdx;
+
+        // TODO: less hacky way?
+        // We are using the assumption that if the start index appears then the
+        // old index MAY appear as well.
+        // If it does not appear, it's fine as well.
+        fromVars.add(
+            rfmgr.makeVariable(formulaVarName(variable, startIdx, ""))
+        );
+        toVars.add(
+            rfmgr.makeVariable(formulaVarName(variable, startIdx, customPrefix))
+        );
+
       } else {
         newIdx = oldIdx;
       }
+
+      newMapBuilder.setIndex(variable, type, newIdx);
 
       fromVars.add(
           rfmgr.makeVariable(formulaVarName(variable, oldIdx, ""))
@@ -284,13 +285,12 @@ public class ValueDeterminationFormulaManager {
       );
     }
 
-    logger.log(Level.FINE, "Renaming from: " + fromVars);
-    logger.log(Level.FINE, "Renaming to: " + toVars);
+    BooleanFormula innerFormula = formulaManager.getUnsafeFormulaManager().substitute(
+        p.getFormula(), fromVars, toVars
+    );
 
     return new PathFormula(
-        formulaManager.getUnsafeFormulaManager().substitute(
-            p.getFormula(), fromVars, toVars
-        ),
+        innerFormula,
         newMapBuilder.build(),
         p.getPointerTargetSet(),
         p.getLength());
@@ -299,7 +299,7 @@ public class ValueDeterminationFormulaManager {
   private String formulaVarName(String variable, int idx, String namespace)
   {
     return String.format(
-        "%s_%s", namespace, FormulaManagerView.makeName(variable, idx)
+        "%s%s", namespace, FormulaManagerView.makeName(variable, idx)
     );
   }
 
@@ -342,5 +342,9 @@ public class ValueDeterminationFormulaManager {
    */
   private int toPrime(int no) {
     return threshold + no;
+  }
+
+  private String absDomainVarName(CFANode node, LinearExpression template) {
+    return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
   }
 }
