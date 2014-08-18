@@ -250,6 +250,12 @@ bmc.checkTargetStates = true
 # dump counterexample formula to file
 bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
 
+# Adds pre-loop information to the induction hypothesis. This is unsound and
+# should generally not be used; however it is provided as an implementation
+# of the technique introduced in the SV-COMP 2013 competition contribution of
+# ESBMC 1.20.
+bmc.havocLoopTerminationConditionVariablesOnly = false
+
 # try using induction to verify programs with loops
 bmc.induction = false
 
