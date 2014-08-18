@@ -37,7 +37,7 @@ public class Z3Formula implements Formula {
   public Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
-    Z3NativeApi.inc_ref(z3context, z3expr); // TODO check and delete with garbage collection
+    Z3NativeApi.inc_ref(z3context, z3expr);
   }
 
   @Override
@@ -60,6 +60,11 @@ public class Z3Formula implements Formula {
 
   public long getExpr() {
     return z3expr;
+  }
+
+  public void finalize() throws Throwable {
+    Z3NativeApi.dec_ref(z3context, z3expr);
+    super.finalize();
   }
 }
 
