@@ -7,7 +7,7 @@
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=false</option>
   <option name="-setprop">analysis.postProcessing=false</option>
-  
+  <option name="-setprop">analysis.traversal.useReversePostorder=true</option>
 
   <rundefinition name="predicatedAnalysis">
   <!-- sign CPA -->
