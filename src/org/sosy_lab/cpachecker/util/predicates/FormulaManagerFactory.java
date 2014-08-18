@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingPro
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3OptProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
 import com.google.common.base.Predicate;
@@ -189,6 +191,19 @@ public class FormulaManagerFactory {
     } else {
       return pe;
     }
+  }
+
+  public OptEnvironment newOptEnvironment() {
+    OptEnvironment environment;
+    switch (solver) {
+        case Z3:
+            environment = new Z3OptProver((Z3FormulaManager) fmgr);
+            break;
+        default:
+            throw new AssertionError("Only Z3 supports the optimization interface");
+    }
+
+    return environment;
   }
 
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
