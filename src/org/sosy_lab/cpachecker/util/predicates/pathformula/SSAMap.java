@@ -203,8 +203,12 @@ public class SSAMap implements Serializable {
     return EMPTY_SSA_MAP;
   }
 
-  public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.varsHashCode, this.varTypes, defaultValue);
+  public static SSAMap withDefault(final int defaultValue) {
+    return new SSAMap(
+        EMPTY_SSA_MAP.vars,
+        EMPTY_SSA_MAP.varsHashCode,
+        EMPTY_SSA_MAP.varTypes,
+        defaultValue);
   }
 
   /**
