@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cmdline;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -332,67 +333,77 @@ class CmdLineArguments {
 
         String newValue = args.next();
         if (arg.equals("-spec")) {
-          // handle normal specification definitions
-          if(SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
-            Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
-            if (specFile != null) {
-              newValue = specFile.toString();
-            } else {
-              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(0);
-            }
+
+          final List<String> newValues;
+          if (newValue.contains(".prp,") || newValue.matches("^[a-zA-Z0-9-+]+,[a-zA-Z0-9-+]+\\.prp$")) {
+            newValues = Arrays.asList(newValue.split(","));
+          } else {
+            newValues = Collections.singletonList(newValue);
           }
 
-          // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
-          // the respective specification definition
-          else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = Paths.get(newValue);
-            if (propertyFile.toFile().exists()) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile);
-              try {
-                parser.parse();
-              } catch (InvalidPropertyFileException e) {
-                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
-              }
-              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
-
-              // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.getProperties();
-              assert !properties.isEmpty();
-
-              if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
-                                               PropertyType.VALID_FREE,
-                                               PropertyType.VALID_MEMTRACK))) {
-                putIfNotExistent(options, "memorysafety.check", "true");
-                newValue = null;
-
-              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
-                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
-
-              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
-                newValue = REACHABILITY_SPECIFICATION_FILE;
-
+          for (String newVal : newValues) {
+            // handle normal specification definitions
+            if(SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+              Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newVal);
+              if (specFile != null) {
+                newValue = specFile.toString();
               } else {
-                System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
+                System.err.println("Checking for property " + newVal + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
             }
 
-            else {
-              System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(0);
+            // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
+            // the respective specification definition
+            else if(PROPERTY_FILE_PATTERN.matcher(newVal).matches()) {
+              Path propertyFile = Paths.get(newVal);
+              if (propertyFile.toFile().exists()) {
+                PropertyFileParser parser = new PropertyFileParser(propertyFile);
+                try {
+                  parser.parse();
+                } catch (InvalidPropertyFileException e) {
+                  throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+                }
+                putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
+
+                // set the file from where to read the specification automaton
+                Set<PropertyType> properties = parser.getProperties();
+                assert !properties.isEmpty();
+
+                if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
+                                                 PropertyType.VALID_FREE,
+                                                 PropertyType.VALID_MEMTRACK))) {
+                  putIfNotExistent(options, "memorysafety.check", "true");
+                  newVal = null;
+
+                } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
+                  newVal = REACHABILITY_LABEL_SPECIFICATION_FILE;
+
+                } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
+                  newVal = REACHABILITY_SPECIFICATION_FILE;
+
+                } else {
+                  System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
+                  System.exit(0);
+                }
+              }
+
+              else {
+                System.err.println("Checking for property " + newVal + " is currently not supported by CPAchecker.");
+                System.exit(0);
+              }
+            }
+
+            if (newVal != null) {
+              String value = options.get(option);
+              if (value != null) {
+                value = value + "," + newVal;
+              } else {
+                value = newVal;
+              }
+              options.put(option, value);
             }
           }
-        }
-
-        if (newValue != null) {
-          String value = options.get(option);
-          if (value != null) {
-            value = value + "," + newValue;
-          } else {
-            value = newValue;
-          }
-          options.put(option, value);
         }
 
       } else {

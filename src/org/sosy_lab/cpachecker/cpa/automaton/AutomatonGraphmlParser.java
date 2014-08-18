@@ -50,12 +50,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IntersectionMatchEdgeTokens;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.SubsetMatchEdgeTokens;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -76,23 +80,36 @@ import com.google.common.collect.Sets;
 public class AutomatonGraphmlParser {
 
   @Option(description="Consider the negative semantics of tokens provided with path automatons.")
-  private boolean considerNegativeSemanticsAttribute = true;
+  private boolean considerNegativeSemanticsAttribute = false; // legacy: token matching needs this
+
+  @Option(description="Consider assumptions that are provided with the path automaton?")
+  private boolean considerAssumptions = true;
 
   @Option(description="")
-  private boolean transitionToStopForNegatedTokensetMatch = true;
+  private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
   @Option(description="Match the source code provided with the witness.")
   private boolean matchSourcecodeData = false;
 
   @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
-  private boolean matchOriginLine = false;
+  private boolean matchOriginLine = true;
 
   @Option(description="")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
 
-  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  private Scope scope;
+  private LogManager logger;
+  private Configuration config;
+  private MachineModel machine;
+
+  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope) throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    this.scope = pScope;
+    this.machine = pMachine;
+    this.logger = pLogger;
+    this.config = pConfig;
   }
 
   private void removeTransitions(Set<AutomatonTransition> whitelist, List<AutomatonTransition> from, Set<Comparable<Integer>> tokens) {
@@ -210,8 +227,10 @@ public class AutomatonGraphmlParser {
 
   /**
   * Parses a Specification File and returns the Automata found in the file.
+   * @throws CParserException
   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
+    CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
     Set<AutomatonTransition> auxilaryTransitions = Sets.newHashSet();
     try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
@@ -246,6 +265,7 @@ public class AutomatonGraphmlParser {
 
         List<AutomatonBoolExpr> emptyAssertions = Collections.emptyList();
         List<AutomatonAction> actions = Collections.emptyList();
+        List<CStatement> assumptions = Lists.newArrayList();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
@@ -260,6 +280,13 @@ public class AutomatonGraphmlParser {
         }
 
         AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
+
+        if (considerAssumptions) {
+          Set<String> transAssumes = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
+          for (String assumeCode : transAssumes) {
+            assumptions.addAll(AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, cparser, scope));
+          }
+        }
 
         if (matchOriginLine) {
           Set<String> originFileTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
@@ -278,25 +305,26 @@ public class AutomatonGraphmlParser {
 
             if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
               // Transition to the BOTTOM state
+              AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
+                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+                  conjunctedTriggers);
               transitions.add(new AutomatonTransition(
-                  new AutomatonBoolExpr.And(
-                      new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
-                      conjunctedTriggers),
-                  emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+                  trigger,
+                  emptyAssertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
             } else {
-              transitions.add(new AutomatonTransition(
-                  new AutomatonBoolExpr.And(
-                      new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
-                      new AutomatonBoolExpr.Negation(conjunctedTriggers)),
-                  emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+//              transitions.add(new AutomatonTransition(
+//                  new AutomatonBoolExpr.And(
+//                      new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+//                      new AutomatonBoolExpr.Negation(conjunctedTriggers)),
+//                  emptyAssertions, assumptions, actions, AutomatonInternalState.BOTTOM));
 
               AutomatonBoolExpr lineMatchTrigger = new AutomatonBoolExpr.And(
                   new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(), conjunctedTriggers);
 
-              AutomatonTransition tr = new AutomatonTransition(lineMatchTrigger, emptyAssertions, actions, targetStateId);
+              AutomatonTransition tr = new AutomatonTransition(lineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
               transitions.add(0, tr);
 
-              AutomatonTransition trRepetition = new AutomatonTransition(lineMatchTrigger, emptyAssertions, actions, targetStateId);
+              AutomatonTransition trRepetition = new AutomatonTransition(lineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
               auxilaryTransitions.add(trRepetition);
               targetStateTransitions.add(0, trRepetition);
             }
@@ -304,7 +332,7 @@ public class AutomatonGraphmlParser {
             AutomatonTransition tr = new AutomatonTransition(
                 new AutomatonBoolExpr.Negation(
                     new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr()),
-                      emptyAssertions, actions, targetStateId);
+                      emptyAssertions, assumptions, actions, targetStateId);
             transitions.add(0, tr);
           }
 
@@ -432,6 +460,8 @@ public class AutomatonGraphmlParser {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
       throw new InvalidConfigurationException("The automaton provided is invalid!", e);
+    } catch (CParserException e) {
+      throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
   }
 
