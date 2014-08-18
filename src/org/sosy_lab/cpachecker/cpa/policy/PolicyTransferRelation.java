@@ -127,13 +127,17 @@ public class PolicyTransferRelation implements TransferRelation {
       if (!isFuncDeclaration(declarationEdge)) {
         String varName = declarationEdge.getDeclaration().getQualifiedName();
 
+        // TODO: abstract template propagation to a separate class.
+
         // NOTE: A better way to propagate templates?
         // NOTE: Let's also check for liveness! [other property?
         // CPA communication FTW!!].
         // If the variable is no longer alive at a certain location
         // there is no point in tracking it (deeper analysis -> dependencies).
         toTemplates.add(LinearExpression.ofVariable(varName));
-        toTemplates.add(LinearExpression.ofVariable(varName).negate());
+
+        // TODO: re-enable, disabled for ease of debugging.
+//        toTemplates.add(LinearExpression.ofVariable(varName).negate());
       }
     }
 

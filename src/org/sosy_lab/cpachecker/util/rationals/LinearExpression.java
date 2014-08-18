@@ -120,6 +120,10 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
     return multByConst(ExtendedRational.ONE.negate());
   }
 
+  public int size() {
+    return data.size();
+  }
+
   @Override
   public Iterator<Entry<String, ExtendedRational>> iterator() {
     return data.entrySet().iterator();

@@ -91,34 +91,73 @@ public class LinearConstraintManager {
   }
 
   /**
-   *
    * @param expr Linear expression to convert.
    * @param pSSAMap Version number for each variable.
-   * @return NumeralFormula for the SMT solver.
    *
+   * @return NumeralFormula for the SMT solver.
+   * @throws UnsupportedOperationException if the conversion can not be
+   * performed.
    */
   NumeralFormula linearExpressionToFormula(
-      LinearExpression expr, SSAMap pSSAMap) {
+      LinearExpression expr, SSAMap pSSAMap)
+      throws UnsupportedOperationException {
+    return linearExpressionToFormula(expr, pSSAMap, "");
+  }
 
-    NumeralFormula sum = rfmgr.makeNumber("0");
+  /**
+   * @param expr Linear expression to convert.
+   * @param pSSAMap Version number for each variable.
+   * @param customPrefix Custom string prefix to add before each variable.
+   *
+   * @return NumeralFormula for the SMT solver.
+   * @throws UnsupportedOperationException if the conversion can not be
+   * performed.
+   */
+  NumeralFormula linearExpressionToFormula(
+      LinearExpression expr, SSAMap pSSAMap, String customPrefix
+  ) {
+
+    NumeralFormula sum = null;
     for (Map.Entry<String, ExtendedRational> entry : expr) {
-
+      ExtendedRational coeff = entry.getValue();
       String origVarName = entry.getKey();
 
       // Return the variable name according to the SSA map.
-      String varName = FormulaManagerView.makeName(origVarName,
-          pSSAMap.getIndex(origVarName)
+      String varName = customPrefix + FormulaManagerView.makeName(
+          origVarName, pSSAMap.getIndex(origVarName)
       );
+      NumeralFormula item;
+      if (coeff.getType() != ExtendedRational.NumberType.RATIONAL) {
+        throw new UnsupportedOperationException(
+            "Can not convert the expression " + expr);
+      } else if (coeff.equals(ExtendedRational.ZERO)) {
+        continue;
+      } else if (coeff.equals(ExtendedRational.ONE)) {
+        item = rfmgr.makeVariable(varName);
+      } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
+        item = rfmgr.negate(rfmgr.makeVariable(varName));
+      } else {
+        item = rfmgr.multiply(
+            rfmgr.makeVariable(varName),
+            rfmgr.makeNumber(entry.getValue().toString())
+        );
+      }
 
-      final NumeralFormula item = rfmgr.multiply(
-          rfmgr.makeVariable(varName),
-          rfmgr.makeNumber(entry.getValue().toString())
-      );
-      sum = rfmgr.add(sum, item);
+      if (sum == null) {
+        sum = item;
+      } else {
+        sum = rfmgr.add(sum, item);
+      }
     }
 
-    return sum;
+    if (sum == null) {
+      return rfmgr.makeNumber("0");
+    } else {
+      return sum;
+    }
   }
+
+
   /**
    * @param prover Prover engine used
    * @param expression Expression to maximize

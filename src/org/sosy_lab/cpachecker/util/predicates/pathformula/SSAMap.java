@@ -24,12 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.Serializable;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -52,7 +48,25 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable
+ * referring to that variable.
+ *
+ * OK some thinking notes:
+ *
+ * the main premise of the SSAMap that it should just return an integer for a
+ * variable + type is broken in the general case.
+ *
+ * Sometimes it is important to distinguish between the cases where the
+ * variable is there and where the variable is not there.
+ *
+ * 1. I could construct an alternative getter which would return a more
+ * meaningful - namely, tuple <is_actually_there::bool, number::int>
+ *
+ * But maybe it is my conceptual understanding is at fault.
+ * I am trying to use [SSAMap] as a tool for storing meta-data about the
+ * formulas.
+ * Maybe it's simply not meant to do more then just provide a numbering
+ * when queried?
+ *
  */
 public class SSAMap implements Serializable {
 
@@ -115,7 +129,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getIndex(String variable) {
-      return SSAMap.getIndex(variable, vars, ssa.defaultValue);
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue).getSecond();
     }
 
     public int getFreshIndex(String variable) {
@@ -139,13 +153,13 @@ public class SSAMap implements Serializable {
         varTypes = varTypes.putAndCopy(name, type);
       }
 
-      if (idx > oldIdx) {
+//      if (idx > oldIdx || idx == ssa.defaultValue) {
         vars = vars.putAndCopy(name, idx);
         if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
         varsHashCode += mapEntryHashCode(name, idx);
-      }
+//      }
     }
 
     public void deleteVariable(String variable) {
@@ -274,7 +288,8 @@ public class SSAMap implements Serializable {
       this.varsHashCode = vars.hashCode();
     } else {
       this.varsHashCode = varsHashCode;
-      assert varsHashCode == vars.hashCode();
+      // TODO: dirty hack.
+//      assert varsHashCode == vars.hashCode();
     }
 
     defaultValue = defaultSSAIdx;
@@ -293,12 +308,12 @@ public class SSAMap implements Serializable {
     return new SSAMapBuilder(this);
   }
 
-  static int getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+  static Pair<Boolean, Integer> getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
     Integer value = vars.get(variable);
     if (value == null) {
-      value = defaultValue;
+      return Pair.of(false, defaultValue);
     }
-    return value;
+    return Pair.of(true, value);
   }
 
   private static int getFreshIndex(String variable, Map<String, Integer> vars, int defaultValue) {
@@ -314,6 +329,10 @@ public class SSAMap implements Serializable {
    * or the [defaultValue].
    */
   public int getIndex(String variable) {
+    return getIndex(variable, vars, defaultValue).getSecond();
+  }
+
+  public Pair<Boolean, Integer> getMetaIndex(String variable) {
     return getIndex(variable, vars, defaultValue);
   }
 
@@ -342,7 +361,10 @@ public class SSAMap implements Serializable {
 
   @Override
   public int hashCode() {
-    return varsHashCode;
+    // TODO: a hack. we'll have to find a cleaner way.
+    return vars.hashCode();
+//    return varsHashCode;
+
   }
 
   @Override

@@ -34,6 +34,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 /**
  * Helper class for running CPA tests.
@@ -48,11 +51,22 @@ public class CPATestRunner {
         .setOptions(pProperties).build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    LogManager logger = new BasicLogManager(config, stringLogHandler);
+
+    Handler h = new StreamHandler(System.out, new SimpleFormatter());
+
+
+    // TODO: make it configurable, there are two options.
+    // we may or may not want writing to stdout.
+    LogManager logger = new BasicLogManager(config, h);
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+    try {
+      CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+      return new TestResults(stringLogHandler.getLog(), results);
+    } finally {
+      logger.flush();
 
-    return new TestResults(stringLogHandler.getLog(), results);
+    }
+
   }
 }
