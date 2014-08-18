@@ -67,16 +67,6 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
   }
 
   @Override
-  public OptResult maximize(BooleanFormula constraints, Formula objective) throws InterruptedException, UnsupportedOperationException {
-    throw new UnsupportedOperationException("This solver does not support optimization");
-  }
-
-  @Override
-  public Model getOptModel() throws SolverException {
-    throw new UnsupportedOperationException("This solver does not support optimization");
-  }
-
-  @Override
   public void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);

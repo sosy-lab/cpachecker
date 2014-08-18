@@ -767,6 +767,9 @@ public class FormulaManagerView {
   private static final String INDEX_SEPARATOR = "@";
 
   public static String makeName(String name, int idx) {
+    if (idx < 0) {
+      return name;
+    }
     return name + INDEX_SEPARATOR + idx;
   }
 
