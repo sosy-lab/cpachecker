@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import org.sosy_lab.cpachecker.util.NativeLibraries;
-
 /** This class contains the native calls for Z3.
  *
  * Z3 uses reference-counting for all objects. If a function returns an
@@ -32,11 +30,7 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
  * should not be incremented. The object will be destroyed after next usage.
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
-public final class Z3NativeApi {
-
-  static {
-    NativeLibraries.loadLibrary("z3j");
-  }
+final class Z3NativeApi {
 
   // Helper Classes,
   // they are used during the native operations
