@@ -494,20 +494,20 @@ public class BAMPredicateReducer implements Reducer {
 
     for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
 
-      final int expIndex = expandedSSA.getIndex(var.getKey());
+      final int expIndex = expandedSSA.getLastUsedIndex(var.getKey());
       final int rootIndex = rootSSA.getIndex(var.getKey());
+      final int maxIndex = Math.max(expIndex, rootIndex);
+      // maxIndex is the target value, that must be set.
+      // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
 
       if (expIndex != SSAMap.DEFAULT_DEFAULT_IDX) {
         if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
-          // in case of cached blocks, the inner index could be smaller. // TODO expand should handle this?
 
           if (rootIndex == SSAMap.DEFAULT_DEFAULT_IDX) { // inner local variable, never seen before
-            final int incIndex = expandedSSA.getFreshIndex(var.getKey());
-            rootBuilder.setIndex(var.getKey(), var.getValue(), incIndex);
+            rootBuilder.setIndex(var.getKey(), var.getValue(), maxIndex);
 
           } else { // outer variable or inner variable from previous function call
-            final int lastUsedIndex = Math.max(expIndex, rootSSA.getIndex(var.getKey()));
-            rootBuilder.setLatestUsedIndex(var.getKey(), var.getValue(), lastUsedIndex);
+            rootBuilder.setLatestUsedIndex(var.getKey(), var.getValue(), maxIndex);
           }
 
         } else {
@@ -521,7 +521,6 @@ public class BAMPredicateReducer implements Reducer {
           // in this case the index is irrelevant and can be set to MAX (TODO really?).
           // Otherwise (the important case, MAX == expIndex)
           // we are in the refinement step and build the CEX-path.
-          final int maxIndex = Math.max(expIndex, rootSSA.getIndex(var.getKey()));
           rootBuilder.setIndex(var.getKey(), var.getValue(), maxIndex);
         }
       }

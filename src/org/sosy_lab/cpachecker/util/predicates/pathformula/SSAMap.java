@@ -345,7 +345,7 @@ public class SSAMap implements Serializable {
     return getIndex(variable, vars, defaultValue);
   }
 
-  public int getFreshIndex(String variable) {
+  public int getLastUsedIndex(String variable) {
     return getIndex(variable, latestUsedVars, defaultValue);
   }
 
