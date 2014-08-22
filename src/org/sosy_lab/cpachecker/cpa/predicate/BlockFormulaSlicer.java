@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -88,6 +87,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -233,7 +233,7 @@ public class BlockFormulaSlicer {
       Set<ARGState> block, Collection<String> importantVars) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
-    final Map<ARGState, Collection<String>> s2v = new HashMap<>(block.size());
+    final Map<ARGState, Collection<String>> s2v = Maps.newHashMapWithExpectedSize(block.size());
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
@@ -752,7 +752,7 @@ public class BlockFormulaSlicer {
       Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
-    final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
+    final Map<ARGState, PathFormula> s2f = Maps.newHashMapWithExpectedSize(block.size());
 
     // bfs for parents, visit each state once
     // we use a list for the next states,

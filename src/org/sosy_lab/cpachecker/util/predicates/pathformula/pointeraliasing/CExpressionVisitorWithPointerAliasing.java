@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -65,6 +64,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+
+import com.google.common.collect.Maps;
 
 class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
@@ -480,5 +481,5 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
-  private final Map<String, CType> usedDeferredAllocationPointers = new HashMap<>(1);
+  private final Map<String, CType> usedDeferredAllocationPointers = Maps.newHashMapWithExpectedSize(1);
 }

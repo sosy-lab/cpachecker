@@ -263,7 +263,7 @@ public class CFAUtils {
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {
-    private final Set<CFANode> nodes = new HashSet<>(1);
+    private final Set<CFANode> nodes = Sets.newHashSetWithExpectedSize(1);
 
     private void add(Edge n) {
       nodes.addAll(n.nodes);

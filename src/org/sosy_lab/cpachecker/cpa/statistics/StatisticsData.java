@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+
+import com.google.common.collect.Maps;
 
 /**
  * A simple wrapper around the management of a Map<StatisticsProvider, StatisticsDataProvider> field.
@@ -39,7 +40,7 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
   private Map<StatisticsProvider, StatisticsDataProvider> data;
 
   public StatisticsData(Set<StatisticsProvider> propertyProviders) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = new HashMap<>(propertyProviders.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(propertyProviders.size());
     for (StatisticsProvider providerEntry : propertyProviders) {
       dataProvider.put(providerEntry, providerEntry.createDataProvider());
     }
@@ -56,7 +57,7 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
 
   public StatisticsData mergeState(StatisticsData state2) {
     assert data.size() == state2.data.size() : "sized and properties have to match";
-    Map<StatisticsProvider, StatisticsDataProvider> merged = new HashMap<>(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> merged = Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
       merged.put(providerEntry.getKey(), providerEntry.getValue().mergePath(state2.data.get(providerEntry.getKey())));
     }
@@ -64,7 +65,7 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
   }
 
   public StatisticsData getNextState(CFAEdge node) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = new HashMap<>(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
       StatisticsProvider key = providerEntry.getKey();
       StatisticsDataProvider value = providerEntry.getValue();

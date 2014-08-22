@@ -28,7 +28,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 
 public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrategy{
@@ -84,7 +84,7 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
     Lock lock = new ReentrantLock();
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();

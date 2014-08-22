@@ -29,7 +29,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +62,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 
 public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStrategy {
@@ -94,7 +94,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();

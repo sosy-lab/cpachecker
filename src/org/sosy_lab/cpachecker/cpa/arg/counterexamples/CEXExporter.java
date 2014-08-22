@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -372,7 +372,7 @@ public class CEXExporter {
   }
 
   private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
-    Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
+    Set<Pair<ARGState, ARGState>> result = Sets.newHashSetWithExpectedSize(pPath.size());
     Iterator<ARGState> it = pPath.asStatesList().iterator();
     assert it.hasNext();
     ARGState lastElement = it.next();
