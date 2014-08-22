@@ -172,7 +172,7 @@ public class ValueDeterminationFormulaManager {
           // Add input constraints on the edge variables.
           NumeralFormula edgeInput = lcmgr.linearExpressionToFormula(
               fromTemplate,
-              SSAMap.withDefault(toNodeNo),
+              SSAMap.emptySSAMap().withDefault(toNodeNo),
               templatePrefix
           );
 
@@ -289,7 +289,7 @@ public class ValueDeterminationFormulaManager {
     PathFormula empty = pfmgr.makeEmptyPathFormula();
     PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
         empty,
-        SSAMap.withDefault(startIdx));
+        SSAMap.emptySSAMap().withDefault(startIdx));
 
     return pfmgr.makeAnd(emptyWithCustomSSA, edge);
   }

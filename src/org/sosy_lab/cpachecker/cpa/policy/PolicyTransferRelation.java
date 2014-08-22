@@ -151,7 +151,7 @@ public class PolicyTransferRelation implements TransferRelation {
 
       // Constraints imposed by the previous state.
       solver.addConstraint(stateToFormula(prevState,
-          SSAMap.withDefault(1)));
+          SSAMap.emptySSAMap().withDefault(1)));
 
       // Constraints imposed by the edge.
       solver.addConstraint(edgeFormula.getFormula());
