@@ -544,8 +544,6 @@ public class BAMTransferRelation implements TransferRelation {
       assert !((ARGState)initialState).getParents().isEmpty();
 
       // get the rootState, that is the abstract state of the functioncall.
-      final CallstackState callstackState = extractStateByType(initialState, CallstackState.class);
-      final CFANode rootNode = callstackState.getCallNode();
       Collection<ARGState> possibleRootStates = ((ARGState)initialState).getParents();
       assert possibleRootStates.size() == 1 : "too many functioncalls: " + possibleRootStates;
       AbstractState rootState = possibleRootStates.iterator().next();
@@ -559,7 +557,7 @@ public class BAMTransferRelation implements TransferRelation {
         // lets skip the function and return only a short "summary" of the function.
         // this summary is the result of a previous analysis of this block from the cache.
         logger.logf(Level.FINEST, "recursion will cause endless unrolling (with current precision), " +
-                "aborting call of function '%s'", node.getFunctionName());
+                "aborting call of function '%s' at state %s", node.getFunctionName(), reducedInitialState);
 
         recursionSeen = true;
         // after this point we have to check all returnStates for changes.
@@ -577,10 +575,12 @@ public class BAMTransferRelation implements TransferRelation {
         if (previousResult == null) {
           // outer block was not finished, abort recursion
           reducedResult = Collections.EMPTY_SET;
+          logger.logf(Level.FINEST, "skipping recursive call with new empty result");
         } else {
           // use previously computed outer block as inner block,
           // this is equal to 'add one recursive step' in the recursion
           reducedResult = imbueAbstractStatesWithPrecision(reached, previousResult);
+          logger.logf(Level.FINEST, "skipping recursive call with cached result");
         }
 
         abstractStateToReachedSet.put(initialState, reached);
