@@ -135,9 +135,10 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
    */
   @Override
   public String toString() {
-    Iterable stream = Iterables.transform(
+    Iterable<String> stream = Iterables.transform(
         this,
         new Function<Entry<String, ExtendedRational>, String>() {
+          @Override
           public String apply(Entry<String, ExtendedRational> monomial) {
             ExtendedRational coeff = monomial.getValue();
             String var = monomial.getKey();

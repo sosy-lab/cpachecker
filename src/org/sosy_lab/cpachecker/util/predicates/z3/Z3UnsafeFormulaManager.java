@@ -152,6 +152,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
     return is_numeral_ast(z3context, t);
   }
 
+  @Override
   protected Long substitute(Long t, List<Long> changeFrom, List<Long> changeTo) {
     int size = changeFrom.size();
     Preconditions.checkState(size == changeTo.size());

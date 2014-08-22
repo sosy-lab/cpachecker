@@ -62,6 +62,7 @@ public class Z3Formula implements Formula {
     return z3expr;
   }
 
+  @Override
   protected void finalize() throws Throwable {
     Z3NativeApi.dec_ref(z3context, z3expr);
     super.finalize();

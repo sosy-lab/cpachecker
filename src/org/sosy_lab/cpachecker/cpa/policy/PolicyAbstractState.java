@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.cpa.policy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 
 /**
  * Abstract state for policy iteration: bounds on each expression (from the template),

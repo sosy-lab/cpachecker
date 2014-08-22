@@ -161,6 +161,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   protected abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
 
+  @Override
   public <ResultFormulaType extends Formula, ParamFormulaType extends Formula>
     ResultFormulaType
     substitute(
@@ -169,6 +170,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
       List<ParamFormulaType> changeTo) {
 
     Function<Formula, TFormulaInfo> toPtr = new Function<Formula, TFormulaInfo>() {
+      @Override
       public TFormulaInfo apply(Formula f) {
         return getFormulaCreator().extractInfo(f);
       }
@@ -195,8 +197,10 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
       throw new IllegalArgumentException("Unexpected input formula");
     }
 
+    @SuppressWarnings("unchecked")
+    Class<ResultFormulaType> outClass2 = (Class<ResultFormulaType>) outClass;
     return getFormulaCreator().encapsulate(
-        (Class<ResultFormulaType>) outClass, newExpression);
+        outClass2, newExpression);
   }
 
   protected abstract TFormulaInfo substitute(

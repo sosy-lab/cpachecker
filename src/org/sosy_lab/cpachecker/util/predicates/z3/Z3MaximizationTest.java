@@ -25,23 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.*;
-import org.matheclipse.core.convert.Lists;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
-import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
-import java.util.LinkedList;
 import java.util.List;
 
 

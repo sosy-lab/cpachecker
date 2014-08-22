@@ -206,6 +206,7 @@ public class PolicyTransferRelation implements TransferRelation {
    * Strengthening is used for communicating the analysis details between
    * various CPAs.
    */
+  @Override
   public Collection<? extends AbstractState> strengthen(
           AbstractState state,
           List<AbstractState> otherStates,

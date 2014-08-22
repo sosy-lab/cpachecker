@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
-import java.io.OutputStream;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;

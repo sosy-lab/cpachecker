@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-import java.util.logging.Level;
-
 /**
  * Configurable-Program-Analysis implementation for policy iteration.
  */
