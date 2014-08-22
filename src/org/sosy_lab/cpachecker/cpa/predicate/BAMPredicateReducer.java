@@ -444,12 +444,11 @@ public class BAMPredicateReducer implements Reducer {
       return expandedState;
     }
 
-    final PathFormula expandedPathFormula = expandedState.getPathFormula();
-
     // rebuild indices from outer scope
-    final SSAMap newSSA = updateIndices(rootState.getPathFormula().getSsa(), expandedPathFormula.getSsa());
+    final SSAMap newSSA = updateIndices(rootState.getPathFormula().getSsa(), expandedState.getPathFormula().getSsa());
 
-    final PathFormula newPathFormula = pmgr.makeNewPathFormula(expandedPathFormula, newSSA);
+    final PathFormula newPathFormula = pmgr.makeNewPathFormula(
+            expandedState.getAbstractionFormula().getBlockFormula(), newSSA);
 
     final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
     final AbstractionFormula expandedFormula = expandedState.getAbstractionFormula();
