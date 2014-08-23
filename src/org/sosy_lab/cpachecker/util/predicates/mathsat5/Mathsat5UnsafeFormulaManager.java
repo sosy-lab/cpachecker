@@ -115,4 +115,8 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
     return msat_term_is_number(msatEnv, pT);
   }
 
+  @Override
+  protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
+    throw new UnsupportedOperationException();
+  }
 }

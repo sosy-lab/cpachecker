@@ -29,9 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import com.google.common.collect.Lists;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
 
 import com.google.common.base.Function;
 
@@ -161,4 +160,51 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   protected abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
+
+  @Override
+  public <ResultFormulaType extends Formula, ParamFormulaType extends Formula>
+    ResultFormulaType
+    substitute(
+      ResultFormulaType f,
+      List<ParamFormulaType> changeFrom,
+      List<ParamFormulaType> changeTo) {
+
+    Function<Formula, TFormulaInfo> toPtr = new Function<Formula, TFormulaInfo>() {
+      @Override
+      public TFormulaInfo apply(Formula f) {
+        return getFormulaCreator().extractInfo(f);
+      }
+    };
+
+    TFormulaInfo newExpression = substitute(
+        getFormulaCreator().extractInfo(f),
+        Lists.transform(changeFrom, toPtr),
+        Lists.transform(changeTo, toPtr)
+    );
+
+    // NOTE: the code below is very hacky, yet currently I do not see any
+    // better way to get the parent type of the formula.
+    Class<? extends Formula> outClass;
+    if (f instanceof BooleanFormula) {
+      outClass = BooleanFormula.class;
+    } else if (f instanceof BitvectorFormula) {
+      outClass = BitvectorFormula.class;
+    } else if (f instanceof NumeralFormula.IntegerFormula) {
+      outClass = NumeralFormula.IntegerFormula.class;
+    } else if (f instanceof NumeralFormula.RationalFormula) {
+      outClass = NumeralFormula.RationalFormula.class;
+    } else {
+      throw new IllegalArgumentException("Unexpected input formula");
+    }
+
+    @SuppressWarnings("unchecked")
+    Class<ResultFormulaType> outClass2 = (Class<ResultFormulaType>) outClass;
+    return getFormulaCreator().encapsulate(
+        outClass2, newExpression);
+  }
+
+  protected abstract TFormulaInfo substitute(
+      TFormulaInfo expr,
+      List<TFormulaInfo> substituteFrom,
+      List<TFormulaInfo> substituteTo);
 }

@@ -24,12 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.Serializable;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -52,7 +48,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable
+ * referring to that variable.
  */
 public class SSAMap implements Serializable {
 
@@ -118,7 +114,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getIndex(String variable) {
-      return SSAMap.getIndex(variable, vars, ssa.defaultValue);
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue).getSecond();
     }
 
     public int getFreshIndex(String variable) {
@@ -142,7 +138,7 @@ public class SSAMap implements Serializable {
         varTypes = varTypes.putAndCopy(name, type);
       }
 
-      if (idx > oldIdx) {
+      if (idx > oldIdx || idx == ssa.defaultValue) {
         vars = vars.putAndCopy(name, idx);
         latestUsedVars = latestUsedVars.putAndCopy(name, idx);
         if (oldIdx != ssa.defaultValue) {
@@ -321,12 +317,12 @@ public class SSAMap implements Serializable {
     return new SSAMapBuilder(this);
   }
 
-  static int getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+  static Pair<Boolean, Integer> getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
     Integer value = vars.get(variable);
     if (value == null) {
-      value = defaultValue;
+      return Pair.of(false, defaultValue);
     }
-    return value;
+    return Pair.of(true, value);
   }
 
   private static int getFreshIndex(String variable, Map<String, Integer> latestUsedVars, int defaultValue) {
@@ -342,11 +338,15 @@ public class SSAMap implements Serializable {
    * or the [defaultValue].
    */
   public int getIndex(String variable) {
+    return getIndex(variable, vars, defaultValue).getSecond();
+  }
+
+  public Pair<Boolean, Integer> getMetaIndex(String variable) {
     return getIndex(variable, vars, defaultValue);
   }
 
   public int getLastUsedIndex(String variable) {
-    return getIndex(variable, latestUsedVars, defaultValue);
+    return getIndex(variable, latestUsedVars, defaultValue).getSecond();
   }
 
   public boolean containsVariable(String variable) {

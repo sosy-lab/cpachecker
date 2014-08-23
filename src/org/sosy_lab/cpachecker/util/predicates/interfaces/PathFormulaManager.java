@@ -58,6 +58,7 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
+
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);

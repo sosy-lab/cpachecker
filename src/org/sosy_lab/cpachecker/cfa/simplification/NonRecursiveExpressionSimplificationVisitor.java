@@ -42,6 +42,7 @@ public class NonRecursiveExpressionSimplificationVisitor extends ExpressionSimpl
 
   /** return a simplified version of the expression.
    * --> disabled, because this is the "non-recursive-visitor". */
+  @Override
   protected CExpression recursive(CExpression expr) {
     return expr;
   }

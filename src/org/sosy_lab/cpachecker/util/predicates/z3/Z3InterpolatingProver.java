@@ -152,8 +152,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
   @Override
   public Model getModel() {
-    Z3Model modelCreator = new Z3Model(mgr, z3context, z3solver);
-    return modelCreator.createZ3Model();
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override

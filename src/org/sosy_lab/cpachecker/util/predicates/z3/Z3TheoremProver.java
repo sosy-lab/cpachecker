@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
@@ -100,34 +99,8 @@ public class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public OptResult isOpt(Formula fvar, boolean maximize) {
-    Z3Formula var = (Z3Formula) fvar;
-    Preconditions.checkArgument(mgr.getUnsafeFormulaManager().isVariable(var),
-        "Can only maximize for a single variable.");
-
-    PointerToInt is_unbounded = new PointerToInt();
-
-    int status = solver_check_opti(
-      z3context, z3solver, is_unbounded, var.z3expr, maximize ? 1 : 0
-    );
-
-    if (status == Z3_LBOOL.Z3_L_FALSE.status) {
-      return OptResult.UNSAT;
-    } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
-      return OptResult.UNDEF;
-    } else {
-      if (is_unbounded.value != 0) {
-        return OptResult.UNBOUNDED;
-      }
-    }
-    return OptResult.OPT;
-  }
-
-  @Override
   public Model getModel() throws SolverException {
-    Z3Model model = new Z3Model(mgr, z3context, z3solver);
-    Model m = model.createZ3Model();
-    return m;
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override

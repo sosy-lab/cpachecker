@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -45,6 +46,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
+
+  @Options(prefix = "cpa.predicate.solver.z3")
+  private static class Z3NativeLoader {
+    @Option(description="Load Z3 with interpolation support. Requires [libfoci].")
+    boolean supportInterpolation = false;
+
+    private Z3NativeLoader(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    void loadZ3() {
+      if (supportInterpolation) {
+        NativeLibraries.loadLibrary("z3j_interp");
+      } else {
+        NativeLibraries.loadLibrary("z3j");
+      }
+    }
+  }
 
   private final Z3SmtLogger z3smtLogger;
 
@@ -68,6 +87,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
+
+    // Load Z3 native library.
+    new Z3NativeLoader(config).loadZ3();
 
     /*
     Following method is part of the file "api_interp.cpp" from Z3.

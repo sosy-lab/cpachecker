@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
@@ -63,11 +62,6 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public boolean isUnsat() throws InterruptedException {
     return !env.checkSat();
-  }
-
-  @Override
-  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    throw new UnsupportedOperationException();
   }
 
   @Override

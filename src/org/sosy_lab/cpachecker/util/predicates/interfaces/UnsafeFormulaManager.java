@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 
+import java.util.List;
+
 /**
  * This interface represents some formula traverse methods which should not be used on higher levels.
  * These Methods are hidden behind the View, but used in the view for methods like "extractAtoms".
@@ -107,4 +109,21 @@ public interface UnsafeFormulaManager {
    * @return
    */
   Formula replaceName(Formula f, String newName);
+
+  /**
+   * Substitute every occurrence of any item from {@code changeFrom}
+   * in formula {@code f} to the corresponding occurrence from {@code changeTo}.
+   *
+   * E.g. if {@code changeFrom} contains a variable {@code a} and
+   * {@code changeTo} contains a variable {@code b} all occurrences of {@code a}
+   * will be changed to {@code b} in the returned formula.
+   *
+   * @param f Formula to change
+   * @param changeFrom List of things to change from.
+   * @param changeTo List of things to change to.
+   * @return Formula with variables being replaced.
+   *
+   */
+  <T1 extends Formula, T2 extends Formula> T1
+      substitute(T1 f, List<T2> changeFrom, List<T2> changeTo);
 }

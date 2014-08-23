@@ -626,13 +626,13 @@ public final class InterpolationManager {
         final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth) throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
 
-    logger.log(Level.FINE, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A, "(depth", depth, ")");
+    logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A, "(depth", depth, ")");
 
     getInterpolantTimer.start();
     final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
     getInterpolantTimer.stop();
 
-    logger.log(Level.FINE, "Received interpolant", itp);
+    logger.log(Level.ALL, "Received interpolant", itp);
 
     if (dumpInterpolationProblems) {
       dumpFormulaToFile("interpolant", itp, end_of_A);

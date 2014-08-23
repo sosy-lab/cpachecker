@@ -1,4 +1,3 @@
-
 # /
 /bin
 /build.properties
@@ -217,3 +216,5 @@
 /war/WEB-INF/lib
 /war/WEB-INF/configurations
 /war/WEB-INF/specifications
+
+.idea

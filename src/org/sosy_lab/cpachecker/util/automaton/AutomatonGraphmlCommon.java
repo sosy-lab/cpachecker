@@ -81,7 +81,7 @@ public class AutomatonGraphmlCommon {
     public final String attrName;
     public final String attrType;
 
-    KeyDef(String id, String keyFor, String attrName, String attrType) {
+    private KeyDef(String id, String keyFor, String attrName, String attrType) {
       this.id = id;
       this.keyFor = keyFor;
       this.attrName = attrName;
@@ -126,7 +126,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphType(String text) {
+    private GraphType(String text) {
       this.text = text;
     }
 
@@ -142,7 +142,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    NodeType(String text) {
+    private NodeType(String text) {
       this.text = text;
     }
 
@@ -152,12 +152,7 @@ public class AutomatonGraphmlCommon {
     }
 
     public static NodeType fromString(String nodeTypeString) {
-      for (NodeType t: NodeType.values()) {
-        if (t.text.equalsIgnoreCase(nodeTypeString.trim())) {
-          return t;
-        }
-      }
-      throw new RuntimeException(String.format("String '%s' does not descripe a node type!", nodeTypeString));
+      return valueOf(nodeTypeString.trim().toLowerCase());
     }
   }
 
@@ -173,7 +168,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphMlTag(String text) {
+    private GraphMlTag(String text) {
       this.text = text;
     }
 

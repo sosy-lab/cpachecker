@@ -884,7 +884,7 @@ public class VariableClassification {
     String varName = vdecl.getQualifiedName();
 
     // "connect" the edge with its partition
-    Set<String> var = new HashSet<>(1);
+    Set<String> var = Sets.newHashSetWithExpectedSize(1);
     var.add(varName);
     dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
 
@@ -1079,7 +1079,7 @@ public class VariableClassification {
     VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
     Set<String> vars = exp.accept(dcv);
     if (vars == null) {
-      vars = new HashSet<>(1);
+      vars = Sets.newHashSetWithExpectedSize(1);
     }
 
     vars.add(varName);
@@ -1264,14 +1264,14 @@ public class VariableClassification {
     public Set<String> visit(CFieldReference exp) {
       String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
       String function = isGlobal(exp) ? "" : predecessor.getFunctionName();
-      Set<String> ret = new HashSet<>(1);
+      Set<String> ret = Sets.newHashSetWithExpectedSize(1);
       ret.add(scopeVar(function, varName));
       return ret;
     }
 
     @Override
     public Set<String> visit(CIdExpression exp) {
-      Set<String> ret = new HashSet<>(1);
+      Set<String> ret = Sets.newHashSetWithExpectedSize(1);
       ret.add(exp.getDeclaration().getQualifiedName());
       return ret;
     }

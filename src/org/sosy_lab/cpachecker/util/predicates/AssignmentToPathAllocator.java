@@ -62,6 +62,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -236,7 +237,7 @@ public class AssignmentToPathAllocator {
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
 
-    Map<String, Memory> memory = new HashMap<>(pMemory.size());
+    Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
 
     for (String heapName : pMemory.keySet()) {
       Map<Address, Object> heapValues = pMemory.get(heapName);

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 /** This class contains many constants (enums) from Z3. */
-public class Z3NativeApiConstants {
+class Z3NativeApiConstants {
 
   /** returns, if the function of the expression is the given operation. */
   public static boolean isOP(long z3context, long expr, int op) {

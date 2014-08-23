@@ -26,10 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
@@ -153,5 +150,18 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
   @Override
   public boolean isNumber(Long t) {
     return is_numeral_ast(z3context, t);
+  }
+
+  @Override
+  protected Long substitute(Long t, List<Long> changeFrom, List<Long> changeTo) {
+    int size = changeFrom.size();
+    Preconditions.checkState(size == changeTo.size());
+    return Z3NativeApi.substitute(
+        z3context,
+        t,
+        size,
+        Longs.toArray(changeFrom),
+        Longs.toArray(changeTo)
+    );
   }
 }

@@ -106,12 +106,11 @@ public class CPABuilder {
 
       for (Path specFile : specificationFiles) {
         List<Automaton> automata = Collections.emptyList();
+        Scope scope = createScope(cfa);
         if (specFile.getPath().endsWith(".graphml")) {
-          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel());
+          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
           automata = graphmlParser.parseAutomatonFile(specFile);
         } else {
-          Scope scope = createScope(cfa);
-
           automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope);
         }
 

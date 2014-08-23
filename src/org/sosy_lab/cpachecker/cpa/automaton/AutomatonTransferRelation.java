@@ -32,8 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,6 +60,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -212,7 +212,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AutomatonState> lSuccessors = new HashSet<>(2);
+    Collection<AutomatonState> lSuccessors = Sets.newHashSetWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
@@ -327,7 +327,7 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   private static Map<String, AutomatonVariable> deepCloneVars(Map<String, AutomatonVariable> pOld) {
-    Map<String, AutomatonVariable> result = new HashMap<>(pOld.size());
+    Map<String, AutomatonVariable> result = Maps.newHashMapWithExpectedSize(pOld.size());
     for (Entry<String, AutomatonVariable> e : pOld.entrySet()) {
       result.put(e.getKey(), e.getValue().clone());
     }

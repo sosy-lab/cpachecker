@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 
 
 public class RTTState extends AbstractAppender implements AbstractState {
@@ -218,9 +219,9 @@ public class RTTState extends AbstractAppender implements AbstractState {
   RTTState join(RTTState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
-    Map<String, String> newConstantsMap = new HashMap<>(size);
-    Map<String, String> newIdentificationMap = new HashMap<>(size);
-    Map<String, String> newClassTypeMap = new HashMap<>(size);
+    Map<String, String> newConstantsMap = Maps.newHashMapWithExpectedSize(size);
+    Map<String, String> newIdentificationMap = new HashMap<>(0);
+    Map<String, String> newClassTypeMap = new HashMap<>(0);
 
 
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {

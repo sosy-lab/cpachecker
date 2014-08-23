@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -42,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class CompositeState implements AbstractWrapperState, TargetableWithPredicatedAnalysis, Partitionable, Serializable {
   private static final long serialVersionUID = -5143296331663510680L;
@@ -69,7 +69,7 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
   @Override
   public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    Set<String> descriptions = new HashSet<>(states.size());
+    Set<String> descriptions = Sets.newHashSetWithExpectedSize(states.size());
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         descriptions.add(((Targetable)element).getViolatedPropertyDescription());
