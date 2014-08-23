@@ -270,7 +270,7 @@ public class CBinaryExpressionBuilder {
 
       final CType commonType = getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
 
-      logger.logf(Level.FINEST, "type-conversion: %s (%s, %s) -> %s",
+      logger.logf(Level.ALL, "type-conversion: %s (%s, %s) -> %s",
           pBinOperator, pType1, pType2, commonType);
 
       return commonType;

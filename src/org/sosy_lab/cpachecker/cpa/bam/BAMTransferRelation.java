@@ -226,7 +226,7 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
     }
 
-    logger.log(Level.FINEST, "Expanding states with initial state", pState);
+    logger.log(Level.ALL, "Expanding states with initial state", pState);
     logger.log(Level.FINEST, "Expanding states", reducedResult);
 
     final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, pState, pPrecision);
@@ -273,7 +273,7 @@ public class BAMTransferRelation implements TransferRelation {
           final AbstractState initialState, final Precision initialPrecision, final CFANode node)
           throws InterruptedException, CPATransferException {
 
-    logger.log(Level.FINEST, "Reducing state", initialState);
+    logger.log(Level.ALL, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(initialPrecision, currentBlock);
 
