@@ -49,6 +49,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Function;
@@ -69,6 +71,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -110,6 +113,11 @@ public class CPAchecker {
   @Option(name="disable",
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
+
+  public static enum InitialStatesFor { ENTRY, TARGET }
+  @Option(name="initialStatesFor",
+      description="What CFA nodes should be the starting point of the analysis?")
+  private InitialStatesFor initialStatesFor = InitialStatesFor.ENTRY;
 
   @Option(name="algorithm.CBMC",
       description="use CBMC as an external tool from CPAchecker")
@@ -203,7 +211,7 @@ public class CPAchecker {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
           reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
-          initializeReachedSet(reached, cpa, cfa.getMainFunction());
+          initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
         }
       }
 
@@ -378,12 +386,31 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet reached,
       final ConfigurableProgramAnalysis cpa,
-      final FunctionEntryNode mainFunction) {
+      final FunctionEntryNode analysisEntryFunction,
+      final CFA cfa) throws InvalidConfigurationException {
+
     logger.log(Level.FINE, "Creating initial reached set");
 
-    AbstractState initialState = cpa.getInitialState(mainFunction);
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+    ImmutableSet<? extends CFANode> initialLocations = null;
 
-    reached.add(initialState, initialPrecision);
+    if (initialStatesFor == InitialStatesFor.TARGET) {
+      TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
+      initialLocations = tlp.tryGetAutomatonTargetLocations(analysisEntryFunction);
+
+    } else {
+      initialLocations = ImmutableSet.of(analysisEntryFunction);
+    }
+
+    if (initialLocations == null) {
+      throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
+    }
+
+    for (CFANode loc: initialLocations) {
+      AbstractState initialState = cpa.getInitialState(loc);
+      Precision initialPrecision = cpa.getInitialPrecision(loc);
+
+      reached.add(initialState, initialPrecision);
+    }
+
   }
 }
