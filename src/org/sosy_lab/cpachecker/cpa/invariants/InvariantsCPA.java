@@ -35,14 +35,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -55,9 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -79,10 +75,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -247,7 +241,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
-      targetLocations = tryGetTargetLocations(pNode);
+      TargetLocationProvider tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logManager, config, cfa);
+      targetLocations = tlp.tryGetAutomatonTargetLocations(pNode);
       determineTargetLocations = targetLocations != null;
       if (targetLocations == null) {
         targetLocations = ImmutableSet.of();
@@ -351,52 +346,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
     getInitialState(pNode);
     return initialPrecisionMap.get(pNode);
-  }
-
-  public ImmutableSet<CFANode> tryGetTargetLocations(CFANode pInitialNode) {
-    ImmutableSet<CFANode> targetLocations = this.reachableTargetLocations.get(pInitialNode);
-    if (targetLocations != null) {
-      return targetLocations;
-    }
-    try {
-      // Create new configuration based on existing config but with default set of CPAs
-      String specificationPropertyName = "specification";
-      ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
-      configurationBuilder.setOption("output.disable", "true");
-      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
-      if (config.getProperty(specificationPropertyName) == null) {
-        String specification = "config/specification/default.spc";
-        configurationBuilder.setOption(specificationPropertyName, specification);
-      }
-      Configuration configuration = configurationBuilder.build();
-      CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
-
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pInitialNode), cpa.getInitialPrecision(pInitialNode));
-      CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
-
-      Set<CFANode> tmpTargetLocations = new HashSet<>();
-
-      boolean changed = true;
-      while (changed) {
-        targetFindingAlgorithm.run(reached);
-        changed = tmpTargetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
-      }
-
-      targetLocations = ImmutableSet.copyOf(tmpTargetLocations);
-
-      CPAs.closeCpaIfPossible(cpa, logManager);
-      CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
-      this.reachableTargetLocations.put(pInitialNode, targetLocations);
-      return targetLocations;
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-      if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
-      }
-      return null;
-    }
   }
 
   public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
@@ -816,24 +765,5 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-    return builder;
-  }
 
 }
