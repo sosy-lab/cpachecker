@@ -26,29 +26,58 @@ package org.sosy_lab.cpachecker.cpa.wp;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 
 /**
- * 
+ *
  */
 public class WpAbstractDomain implements AbstractDomain {
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#join(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
+  private final PathFormulaManager pathFormulaManager;
+  private final BooleanFormulaManager boolFmgr;
+
+  private WpAbstractState bottomState;
+
+  public WpAbstractDomain(PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
+    pathFormulaManager = pPathFormulaManager;
+    boolFmgr = pFormulaManagerView.getBooleanFormulaManager();
+    bottomState = null;
+  }
+
+  /**
+   * @see AbstractDomain#join()
    */
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.AbstractDomain#isLessOrEqual(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.AbstractState)
+  /**
+   * @see AbstractDomain#isLessOrEqual()
    */
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
-    // TODO Auto-generated method stub
+  public boolean isLessOrEqual(AbstractState s1, AbstractState s2) throws CPAException, InterruptedException {
+    WpAbstractState e1 = (WpAbstractState) s1;
+    WpAbstractState e2 = (WpAbstractState) s2;
+    // TODO: Implement me
     return false;
+  }
+
+  public synchronized AbstractState getBottomInstance() {
+    if (bottomState == null) {
+      // TODO: Review, this looks unclean.
+      // Implement in PathFormulaManager. makeEmptyFalseFormula
+      PathFormula bottomPF = new PathFormula(boolFmgr.makeBoolean(false), SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+      bottomState = new WpAbstractState(bottomPF);
+    }
+
+    return bottomState;
   }
 
 }

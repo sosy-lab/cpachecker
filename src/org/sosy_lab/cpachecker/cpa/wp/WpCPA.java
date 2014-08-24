@@ -27,12 +27,14 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -67,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  *
  *    Best greetings from Ithaca/NY/USA.
  */
+@Options
 public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, AutoCloseable {
 
   public static CPAFactory factory() {
@@ -85,7 +88,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    */
   private final TransferRelation transfer;
   private final PrecisionAdjustment prec;
-  private final AbstractDomain domain;
+  private final WpAbstractDomain domain;
   private final MergeOperator merge;
   private final StopOperator stop;
 
@@ -101,8 +104,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
   private final FormulaManagerView formulaManager;
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
-  private AbstractState bottomState;
-  private Precision initialPi;
 
 
   protected WpCPA(
@@ -151,70 +152,70 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     //
     //
     // Create and initialize the formal CPA components
-    transfer = new WpTransferRelation();
-    domain = new WpAbstractDomain();
+    transfer = new WpTransferRelation(config, logger, pathFormulaManager, formulaManager, solver);
+    domain = new WpAbstractDomain(pathFormulaManager, formulaManager);
     prec = StaticPrecisionAdjustment.getInstance();
     merge = new MergeJoinOperator(domain);
     stop = new StopSepOperator(domain);
     // TODO: Rethink the choice of STOP and SEP
-    bottomState = WpAbstractState.bottom();
   }
 
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getAbstractDomain()
+  /**
+   * @see ConfigurableProgramAnalysis#getAbstractDomain()
    */
   @Override
   public AbstractDomain getAbstractDomain() {
     return domain;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
+  /**
+   * @see ConfigurableProgramAnalysis#getTransferRelation()
    */
   @Override
   public TransferRelation getTransferRelation() {
     return transfer;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
+  /**
+   * @see ConfigurableProgramAnalysis#getMergeOperator()
    */
   @Override
   public MergeOperator getMergeOperator() {
     return merge;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getStopOperator()
+  /**
+   * @see ConfigurableProgramAnalysis#getStopOperator()
    */
   @Override
   public StopOperator getStopOperator() {
     return stop;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getPrecisionAdjustment()
+  /**
+   * @see ConfigurableProgramAnalysis#getPrecisionAdjustment()
    */
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return prec;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.model.CFANode)
+  /**
+   * @see ConfigurableProgramAnalysis#getInitialState()
    */
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return bottomState;
+    return domain.getBottomInstance();
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialPrecision(org.sosy_lab.cpachecker.cfa.model.CFANode)
+  /**
+   * @see ConfigurableProgramAnalysis#getInitialPrecision()
    */
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return initialPi;
+    // FIXME: Exchange this by a WpPrecision
+    return SingletonPrecision.getInstance();
   }
 
 
