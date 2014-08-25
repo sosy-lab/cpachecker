@@ -53,6 +53,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -107,17 +108,30 @@ public class EclipseCParser implements CParser {
     }
   }
 
+  /**
+   * Convert paths like "file.c" to "./file.c",
+   * and return all other patchs unchanged.
+   * The pre-processor of Eclipse CDT needs this to resolve relative includes.
+   */
+  private static String fixPath(String pPath) {
+    Path path = Paths.get(pPath);
+    if (!path.isEmpty() && !path.isAbsolute() && path.getParent().isEmpty()) {
+      return Paths.get(".").resolve(path).toString();
+    }
+    return pPath;
+  }
+
   private FileContent wrapCode(FileContentToParse pContent) {
-    return FileContent.create(pContent.getFileName(), pContent.getFileContent().toCharArray());
+    return FileContent.create(fixPath(pContent.getFileName()), pContent.getFileContent().toCharArray());
   }
 
   private FileContent wrapCode(String pFileName, String pCode) {
-    return FileContent.create(pFileName, pCode.toCharArray());
+    return FileContent.create(fixPath(pFileName), pCode.toCharArray());
   }
 
   private final FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
-    return wrapCode(pFileName, code);
+    return wrapCode(fixPath(pFileName), code);
   }
 
   @Override
