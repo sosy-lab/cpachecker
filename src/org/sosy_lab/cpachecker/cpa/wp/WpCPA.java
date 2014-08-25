@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaBackwardsManagerImpl;
 
 
 /**
@@ -135,7 +135,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     __no_direct_use_fmgr = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(__no_direct_use_fmgr, config, logger);
 
-    pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa);
+    pathFormulaManager = new PathFormulaBackwardsManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
 
@@ -206,7 +206,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    */
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return domain.getBottomInstance();
+    return domain.getTopInstance();
   }
 
   /**
