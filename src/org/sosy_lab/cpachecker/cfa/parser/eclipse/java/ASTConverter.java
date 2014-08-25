@@ -1680,7 +1680,7 @@ public class ASTConverter {
   // pType is the type of the operands of the operation
   private BinaryOperator convert(Assignment.Operator op, JType type) {
     // will be used if the type doesn't fit the operator
-    final String invalidTypeMsg = "Invalid type " + type + " for assignment with binary operation.";
+    final String invalidTypeMsg = "Invalid type '" + type + "' for assignment with binary operation.";
 
     JBasicType basicType;
 
@@ -1885,7 +1885,7 @@ public class ASTConverter {
 
   // pType is the type of the operands of the operation
   private BinaryOperator convert(InfixExpression.Operator op, JType pType) {
-    final String invalidTypeMsg = "Invalid type " + pType + " for operation " + op;
+    final String invalidTypeMsg = "Invalid type '" + pType + "' for operation '" + op + "'";
     JBasicType basicType;
 
     if (pType instanceof JSimpleType) {
