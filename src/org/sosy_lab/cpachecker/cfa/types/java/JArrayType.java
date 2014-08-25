@@ -101,4 +101,9 @@ public class JArrayType extends AArrayType implements JReferenceType {
 
       return dimension == other.dimension;
     }
+
+  @Override
+  public String toString() {
+    return toASTString("");
+  }
 }

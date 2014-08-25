@@ -125,5 +125,13 @@ public class JSimpleType implements JType {
       return type == other.type && isPrimitive == other.isPrimitive;
   }
 
-  // TODO toString erstellen
+  @Override
+  public String toString() {
+    switch (type) {
+    case UNSPECIFIED:
+      return "unspecified";
+    default:
+      return type.toASTString();
+    }
+  }
 }
