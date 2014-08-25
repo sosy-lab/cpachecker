@@ -307,7 +307,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param pts2 the PointerTargetSet for ssa1
    * @return A pair (formulas, SSAMap) where the formulas need to be added to the path formulas before disjuncting them.
    */
-  private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
+  protected Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -377,7 +377,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
   }
 
-  private BooleanFormula makeSsaVariableMerger(final String variableName,
+  protected BooleanFormula makeSsaVariableMerger(final String variableName,
                                                         final CType variableType,
                                                         final int oldIndex,
                                                         final int newIndex) {
@@ -396,7 +396,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.makeEqual(newVariable, oldVariable);
   }
 
-  private BooleanFormula makeSsaUFMerger(final String functionName,
+  protected BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
                                                   final int newIndex,
@@ -424,7 +424,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return result;
   }
 
-  private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
+  protected BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
   }
 
