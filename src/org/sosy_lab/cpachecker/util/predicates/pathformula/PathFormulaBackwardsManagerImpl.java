@@ -23,19 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
@@ -64,6 +68,7 @@ public class PathFormulaBackwardsManagerImpl extends PathFormulaManagerImpl {
   protected CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions, MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, CtoFormulaTypeHandler pTypeHandler) {
 
+    // FIXME: Provide a correct instance for backwards analysis
     return super.createCtoFormulaConverter(pOptions, pMachineModel, pVariableClassification, pTypeHandler);
   }
 
@@ -73,8 +78,41 @@ public class PathFormulaBackwardsManagerImpl extends PathFormulaManagerImpl {
       PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
+    // FIXME: Provide a correct instance for backwards analysis
     return super.createCToFormulaConverterWithPointerAliasing(pOptions, pMachineModel, pPtsManager,
         pVariableClassification, pAliasingTypeHandler);
   }
+
+  @Override
+  protected Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(SSAMap pSsa1, PointerTargetSet pPts1,
+      SSAMap pSsa2, PointerTargetSet pPts2) throws InterruptedException {
+
+    // FIXME: Provide an implementation for backwards analysis
+    return super.mergeSSAMaps(pSsa1, pPts1, pSsa2, pPts2);
+  }
+
+  @Override
+  protected BooleanFormula makeSsaVariableMerger(String pVariableName, CType pVariableType, int pOldIndex, int pNewIndex) {
+
+    // FIXME: Provide an implementation for backwards analysis
+    return super.makeSsaVariableMerger(pVariableName, pVariableType, pOldIndex, pNewIndex);
+  }
+
+  @Override
+  protected BooleanFormula makeSsaNondetFlagMerger(int pISmaller, int pIBigger) {
+
+    // FIXME: Provide an implementation for backwards analysis
+    return super.makeSsaNondetFlagMerger(pISmaller, pIBigger);
+  }
+
+  @Override
+  protected BooleanFormula makeSsaUFMerger(String pFunctionName, CType pReturnType, int pOldIndex, int pNewIndex,
+      PointerTargetSet pPts) throws InterruptedException {
+
+    // FIXME: Provide an implementation for backwards analysis
+    return super.makeSsaUFMerger(pFunctionName, pReturnType, pOldIndex, pNewIndex, pPts);
+  }
+
+
 
 }
