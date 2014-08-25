@@ -169,19 +169,20 @@ public class ARGToDotWriter {
   }
 
   private static String determineEdge(final Predicate<? super Pair<ARGState, ARGState>> highlightEdge,
-                                      final ARGState currentState, final ARGState child) {
+                                      final ARGState state, final ARGState succesorState) {
     final StringBuilder builder = new StringBuilder();
-    builder.append(currentState.getStateId()).append(" -> ").append(child.getStateId());
+    builder.append(state.getStateId()).append(" -> ").append(succesorState.getStateId());
     builder.append(" [");
 
-    if (currentState.getChildren().contains(child)) {
-      final CFAEdge edge = currentState.getEdgeToChild(child);
+    if (state.getChildren().contains(succesorState)) {
+      final CFAEdge edge = state.getEdgeToChild(succesorState);
+
       if (edge == null) {
         // there is no direct edge between the nodes, use a dummy-edge
         builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
       } else {
         // edge exists, use info from edge
-        boolean colored = highlightEdge.apply(Pair.of(currentState, child));
+        boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
         if (colored) {
           builder.append("color=\"red\" ");
         }
@@ -193,9 +194,9 @@ public class ARGToDotWriter {
         builder.append("\"");
       }
       builder.append(" id=\"");
-      builder.append(currentState.getStateId());
+      builder.append(state.getStateId());
       builder.append(" -> ");
-      builder.append(child.getStateId());
+      builder.append(succesorState.getStateId());
       builder.append("\"");
     }
 
