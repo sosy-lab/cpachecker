@@ -210,7 +210,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private List<BooleanFormula> computeBlockFormulas(final ARGState pRoot) throws CPATransferException, InterruptedException {
 
-      final Map<ARGState, ARGState> callStacks = new HashMap<>();
+      final Map<ARGState, ARGState> callStacks = new HashMap<>(); // contains states and their next higher callstate
       final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
       final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
       final Deque<ARGState> waitlist = new ArrayDeque<>();
@@ -252,11 +252,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
             // rebuild states with info from previous state
             assert callStacks.containsKey(parentElement);
             final ARGState callState = callStacks.get(parentElement);
+
+            assert extractLocation(callState).getLeavingSummaryEdge().getSuccessor() == extractLocation(currentState) :
+                    "callstack does not match entry of current function-exit.";
             assert callState != null || currentState.getChildren().isEmpty() :
                     "returning from empty callstack is only possible at program-exit";
-            prevCallState = callStacks.get(callState);
 
-            parentFormula = rebuildStateAfterFunctionCall(parentFormula, callState);
+            prevCallState = callStacks.get(callState);
+            parentFormula = rebuildStateAfterFunctionCall(parentFormula, finishedFormulas.get(callState));
 
           } else {
             assert callStacks.containsKey(parentElement); // check for null is not enough
@@ -269,9 +272,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
 
         assert currentFormulas.size() >= 1 : "each state except root must have parents";
-        assert currentStacks.size() == currentFormulas.size(); // loop some lines above went wrong
+        assert currentStacks.size() == currentFormulas.size() : "number of callstacks must match predecessors";
 
-        // --> merging after functioncall with different callstates is ugly
+        // merging after functioncall with different callstates is ugly.
+        // this is also guaranteed by the abstraction-locations at function-entries
+        // (--> no merge of states with different latest abstractions).
         assert Sets.newHashSet(currentStacks).size() <= 1 : "function with multiple entry-states not supported";
 
         callStacks.put(currentState, currentStacks.get(0));
@@ -283,7 +288,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
           assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
           assert currentState.getParents().size() == 1 : "there should be only one parent, because of the special ARG structure";
-          finishedFormulas.clear(); // free some memory
+
+          // finishedFormulas.clear(); // free some memory
+          // disabled, we need to keep callStates for later usage
 
           // start new block with empty formula
           currentFormula = getOnlyElement(currentFormulas);
@@ -306,13 +313,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       return abstractionFormulas;
     }
 
-    private PathFormula rebuildStateAfterFunctionCall(PathFormula parentFormula, ARGState callState) {
-      PredicateAbstractState predicateCallState = extractStateByType(callState, PredicateAbstractState.class);
-      PathFormula rootFormula = predicateCallState.getPathFormula();
-
-      // rebuild indices from outer scope
+    /* rebuild indices from outer scope */
+    private PathFormula rebuildStateAfterFunctionCall(PathFormula parentFormula, PathFormula rootFormula) {
       final SSAMap newSSA = reducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
-
       return pfmgr.makeNewPathFormula(parentFormula, newSSA);
     }
 
