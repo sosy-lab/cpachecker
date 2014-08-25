@@ -116,7 +116,7 @@ public class WpTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
 
     WpAbstractState state = (WpAbstractState) pState;
-    CFANode loc = pCfaEdge.getSuccessor();
+    CFANode backwardsLoc = pCfaEdge.getPredecessor();
 
     // TODO: Check whether abstraction is false.
     // Such elements might get created when precision adjustment computes an abstraction.
@@ -129,7 +129,7 @@ public class WpTransferRelation implements TransferRelation {
     // TODO: check whether to do abstraction
     /// boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
 
-    return createState(state, pathFormula, loc, false);
+    return createState(state, pathFormula, backwardsLoc, false);
   }
 
   private Collection<WpAbstractState> handleNonAbstractionFormulaLocation(
