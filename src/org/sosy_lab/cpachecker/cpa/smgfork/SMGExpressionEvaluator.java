@@ -76,9 +76,9 @@ import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.Value;
-import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
