@@ -123,13 +123,13 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
-    CFANode childNode = extractLocation(pChild);
+    CFANode childLoc = extractLocation(pChild);
 
     if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) {
       return currentLoc.getLeavingSummaryEdge();
-    } else if (currentLoc.hasEdgeTo(childNode)) {
-      return currentLoc.getEdgeTo(childNode);
+    } else if (currentLoc.hasEdgeTo(childLoc)) {
+      return currentLoc.getEdgeTo(childLoc);
     } else {
       return null;
     }
