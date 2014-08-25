@@ -202,7 +202,9 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
-        ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
+        ConfigurableProgramAnalysis cpa = factory.createCPA(
+            cfa, stats,
+            initialStatesFor != InitialStatesFor.TARGET);
         GlobalInfo.getInstance().storeCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);

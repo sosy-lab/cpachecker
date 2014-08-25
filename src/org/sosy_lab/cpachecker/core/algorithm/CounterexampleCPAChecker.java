@@ -126,7 +126,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
 
       CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));

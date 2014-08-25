@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.Configuration;
@@ -97,25 +99,35 @@ public class CPABuilder {
   }
 
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
+    // create automata cpas for the specification files given in "specification"
+    return buildCPAs(cfa, specificationFiles);
+  }
+
+  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final List<Path> specAutomatonFiles)
+      throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<>();
 
-    // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
-    if (specificationFiles != null) {
+
+    // create automata cpas for the specification files given as argument
+    if (specAutomatonFiles != null) {
       cpas = new ArrayList<>();
 
-      for (Path specFile : specificationFiles) {
+      for (Path specFile : specAutomatonFiles) {
         List<Automaton> automata = Collections.emptyList();
         Scope scope = createScope(cfa);
+
         if (specFile.getPath().endsWith(".graphml")) {
           AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
           automata = graphmlParser.parseAutomatonFile(specFile);
+
         } else {
           automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope);
         }
 
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();
+
           if (!usedAliases.add(cpaAlias)) {
             throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
           }
@@ -125,11 +137,14 @@ public class CPABuilder {
           factory.setLogger(logger);
           factory.set(cfa, CFA.class);
           factory.set(automaton, Automaton.class);
+
           cpas.add(factory.createInstance());
+
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
       }
     }
+
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
   }
 
