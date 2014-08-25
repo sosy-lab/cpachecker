@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.cpa.value.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
