@@ -241,11 +241,11 @@ public class BAMTransferRelation implements TransferRelation {
       resultStatesChanged = false; // might be changed in recursive analysis
       potentialRecursionUpdateStates.clear();
 
-      logger.log(Level.FINEST, "Starting recursive analysis of main-block");
+      logger.log(Level.INFO, "Starting recursive analysis of main-block");
 
       resultStates = doRecursiveAnalysis(pHeadOfMainFunctionState, pPrecision, pHeadOfMainFunction);
 
-      logger.log(Level.FINEST, "Finished recursive analysis of main-block");
+      logger.log(Level.FINE, "Finished recursive analysis of main-block");
 
       // EITHER: result is an target-state, return it 'as is' and let CEGAR-algorithm perform a refinement, if needed.
       // OR:     we have completely analyzed the main-block and have not found an target-state.
@@ -253,16 +253,16 @@ public class BAMTransferRelation implements TransferRelation {
 
       if (Iterables.any(resultStates, IS_TARGET_STATE)) {
         // not really a fixpoint, but we return and let CEGAR check the target-state
-        logger.log(Level.FINEST, "fixpoint-iteration aborted, because there was a target state.");
+        logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");
         break;
       }
 
       if (!resultStatesChanged) {
-        logger.log(Level.FINEST, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
+        logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
         break;
       }
 
-      logger.log(Level.FINEST, "fixpoint was not reached, starting new iteration", ++iterationCounter);
+      logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
 
       reAddStatesForFixPointIteration(pHeadOfMainFunctionState);
 
