@@ -310,13 +310,11 @@ public class ApronInterpolator {
       CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ValueAnalysisState> successors) {
     if (successors.isEmpty()) {
       return null;
-    }
 
-    else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+    } else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return predecessor.clone();
-    }
 
-    else {
+    } else {
       return Iterables.getOnlyElement(successors);
     }
   }

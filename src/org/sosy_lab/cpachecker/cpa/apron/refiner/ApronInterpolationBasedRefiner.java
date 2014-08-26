@@ -319,9 +319,8 @@ public class ApronInterpolationBasedRefiner implements Statistics {
           }
         }
       }
-    }
 
-    else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+    } else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
       if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
         return variableNames.contains(((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName());
@@ -451,9 +450,8 @@ public class ApronInterpolationBasedRefiner implements Statistics {
       ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
       if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
         return false;
-      }
 
-      else if (!assignment.equals(other.assignment)) {
+      } else if (!assignment.equals(other.assignment)) {
         return false;
       }
 
@@ -537,9 +535,8 @@ public class ApronInterpolationBasedRefiner implements Statistics {
         if (!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
           strengthened = true;
-        }
 
-        else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
+        } else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
           assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
         }
       }

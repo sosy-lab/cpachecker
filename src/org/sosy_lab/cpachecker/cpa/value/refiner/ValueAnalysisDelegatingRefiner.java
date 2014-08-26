@@ -161,9 +161,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     if (predicateCpa == null) {
       return null;
-    }
 
-    else {
+    } else {
         FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
         FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
         Solver solver                               = predicateCpa.getSolver();
@@ -259,9 +258,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     if (predicatingRefiner != null) {
       numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, pErrorPath);
-    }
 
-    else {
+    } else {
       ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
 
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());

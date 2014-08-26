@@ -197,9 +197,8 @@ public class ErrorPathClassifier {
   private boolean isBestScore(Long currentScore, Long currentBestScore, MutableARGPath currentErrorPath) {
     if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
       return currentScore <= currentBestScore;
-    }
 
-    else {
+    } else {
       return currentScore < currentBestScore;
     }
   }
@@ -219,9 +218,8 @@ public class ErrorPathClassifier {
 
       if (classification.get().getIntBoolVars().contains(variableName)) {
         factor = BOOLEAN_VAR;
-      }
 
-      else if (classification.get().getIntEqualVars().contains(variableName)) {
+      } else if (classification.get().getIntEqualVars().contains(variableName)) {
         factor = INTEQUAL_VAR;
       }
 

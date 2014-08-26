@@ -676,8 +676,7 @@ public class ARGUtils {
       sb.append("    MATCH EXIT -> BREAK;\n");
       sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
-    }
-    else {
+    } else {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");

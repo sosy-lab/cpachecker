@@ -148,9 +148,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private MergeOperator initializeMergeOperator() {
     if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
-    }
 
-    else if (mergeType.equals("JOIN")) {
+    } else if (mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
     }
 
@@ -160,13 +159,11 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private StopOperator initializeStopOperator() {
     if (stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("JOIN")) {
+    } else if (stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("NEVER")) {
+    } else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
     }
 
@@ -185,9 +182,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     if (initialPrecisionFile == null) {
       return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
-    }
 
-    else {
+    } else {
       // create precision with empty, refinable component precision
       ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
 
@@ -214,17 +210,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     for (String currentLine : contents) {
       if (currentLine.trim().isEmpty()) {
         continue;
-      }
 
-      else if(currentLine.endsWith(":")) {
+      } else if(currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
-      }
 
-      else {
+      } else {
         mapping.put(location, MemoryLocation.valueOf(currentLine));
       }
     }

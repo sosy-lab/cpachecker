@@ -437,9 +437,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
         }
-      }
 
-      else if (startsWithIgnoreCase(statement, "setvalue(")) {
+      } else if (startsWithIgnoreCase(statement, "setvalue(")) {
         if (!statement.endsWith(")")) {
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
@@ -499,9 +498,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (MemoryLocation variableName : other.constantsMap.keySet()) {
       if (!contains(variableName)) {
         difference.add(variableName);
-      }
 
-      else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
+      } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
         difference.add(variableName);
       }
     }
@@ -700,9 +698,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
       if (isScoped) {
         return new MemoryLocation(nameParts[0], nameParts[1].replace("/" + offset, ""), offset);
-      }
 
-      else {
+      } else {
         return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
       }
     }

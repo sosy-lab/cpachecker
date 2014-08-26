@@ -316,9 +316,8 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
           if (assignments.exceedsHardThreshold(memoryLocation)) {
             state.forget(memoryLocation);
           }
-        }
 
-        else {
+        } else {
           // otherwise, check against soft threshold, including the pending assignment
           if (assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);

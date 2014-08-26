@@ -311,9 +311,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       // a cast, we ignore this cast and call this method again with the casts operand
     } else if (expression instanceof CCastExpression) {
       return handleAssumption(cfaEdge, ((CCastExpression) expression).getOperand(), truthAssumption);
-    }
 
-    else {
+    } else {
       throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
   }

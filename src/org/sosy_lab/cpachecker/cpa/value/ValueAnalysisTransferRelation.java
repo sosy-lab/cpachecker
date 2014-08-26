@@ -662,9 +662,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (op1 instanceof CCastExpression) {
         op1 = ((CCastExpression)op1).getOperand();
       }
-    }
 
-    else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
 
@@ -677,9 +676,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (memLoc != null) {
         return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
       }
-    }
 
-    else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
+    } else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
       // array cell
       if (op1 instanceof CArraySubscriptExpression) {
 
@@ -830,9 +828,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
           assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
-        }
 
-        else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
+        } else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
           assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
         }
       }
@@ -844,9 +841,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
             assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
           }
-        }
 
-        else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+        } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
@@ -910,9 +906,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(leftVariableName, new NumericValue(1L));
-          }
 
-          else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
+          } else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
             assignableState.assignConstant(rightVariableName, new NumericValue(1L));
           }

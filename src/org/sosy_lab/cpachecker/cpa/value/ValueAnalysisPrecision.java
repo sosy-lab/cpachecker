@@ -108,13 +108,11 @@ public class ValueAnalysisPrecision implements Precision {
 
     if (sharing.equals("scope")) {
       refinablePrecision = new ScopedRefinablePrecision();
-    }
 
-    else if(sharing.equals("location")) {
+    } else if(sharing.equals("location")) {
       refinablePrecision = new LocalizedRefinablePrecision();
-    }
 
-    else {
+    } else {
       throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
           "or allowed options out-dated.");
     }

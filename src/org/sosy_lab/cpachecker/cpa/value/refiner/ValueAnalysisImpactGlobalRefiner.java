@@ -485,9 +485,8 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       public int compare(MutableARGPath path1, MutableARGPath path2) {
         if (path1.size() == path2.size()) {
           return 1;
-        }
 
-        else {
+        } else {
           return (path1.size() < path2.size()) ? -1 : 1;
         }
       }
@@ -674,9 +673,8 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
           todo.add(parentState);
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
-        }
 
-        else if (itpTreeRoot == null) {
+        } else if (itpTreeRoot == null) {
           itpTreeRoot = currentState;
         }
       }
@@ -700,9 +698,8 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
-        }
 
-        else {
+        } else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
@@ -757,9 +754,8 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
         if (interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
-        }
 
-        else {
+        } else {
           interpolants.put(state, itp);
         }
       }

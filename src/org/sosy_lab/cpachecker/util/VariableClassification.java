@@ -399,9 +399,8 @@ public class VariableClassification {
             for (CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
               obtainIncDecVariables(singleEdge);
             }
-          }
 
-          else {
+          } else {
             obtainIncDecVariables(e);
           }
         }

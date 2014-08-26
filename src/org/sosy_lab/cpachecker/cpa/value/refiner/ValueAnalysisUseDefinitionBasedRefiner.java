@@ -144,9 +144,8 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 
       return CounterexampleInfo.feasible(pErrorPath, model);
-    }
 
-    else if (performValueAnalysisRefinement(reached, errorPath)) {
+    } else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 

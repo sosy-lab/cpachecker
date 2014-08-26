@@ -376,9 +376,8 @@ class CmdLineArguments {
                 System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
-            }
 
-            else {
+            } else {
               System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
               System.exit(0);
             }

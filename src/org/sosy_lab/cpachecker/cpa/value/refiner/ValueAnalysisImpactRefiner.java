@@ -437,9 +437,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       public int compare(MutableARGPath path1, MutableARGPath path2) {
         if (path1.size() == path2.size()) {
           return 1;
-        }
 
-        else {
+        } else {
           return (path1.size() < path2.size()) ? -1 : 1;
         }
       }
@@ -594,9 +593,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
           todo.add(parentState);
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
-        }
 
-        else if (itpTreeRoot == null) {
+        } else if (itpTreeRoot == null) {
           itpTreeRoot = currentState;
         }
       }
@@ -620,9 +618,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-        }
 
-        else {
+        } else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
         }
