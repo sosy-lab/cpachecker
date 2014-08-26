@@ -124,9 +124,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                    final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger,
                                    final ShutdownNotifier pShutdownNotifier,
-                                   final TypeHandlerWithPointerAliasing pTypeHandler)
+                                   final TypeHandlerWithPointerAliasing pTypeHandler,
+                                   final boolean pBackwards)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler);
+    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pBackwards);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;
@@ -204,7 +205,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeFreshVariable(final String name,
                             final CType type,
-                            final SSAMapBuilder ssa) {
+                            final SSAMapBuilder ssa,
+                            boolean postponeMakeFresh
+                            ) {
+    // TODO: Does this also work backwards? Consider flag postponeMakeFresh
     final int newIndex = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, newIndex);
     return fmgr.makeVariable(getFormulaTypeFromCType(type),

@@ -159,6 +159,8 @@ public class CtoFormulaConverter {
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
+  protected final boolean backwards;
+
   public static final int          VARIABLE_UNSET          = SSAMap.DEFAULT_DEFAULT_IDX;
   static final int                 VARIABLE_INSTANTIATED   = 1;
   static final int                 VARIABLE_UNINITIALIZED  = VARIABLE_INSTANTIATED + SSAMap.DEFAULT_INCREMENT;
@@ -170,7 +172,7 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
-      CtoFormulaTypeHandler pTypeHandler) {
+      CtoFormulaTypeHandler pTypeHandler, boolean pBackwards) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
@@ -184,6 +186,8 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
     this.shutdownNotifier = pShutdownNotifier;
+
+    this.backwards = pBackwards;
 
     stringUfDecl = ffmgr.createFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
@@ -346,7 +350,7 @@ public class CtoFormulaConverter {
    * This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    return makeVariable(name, type, ssa, false);
+    return makeVariable(name, type, ssa, false, false);
   }
 
   /**
@@ -355,9 +359,26 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  private Formula makeVariable(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    int idx = getIndex(name, type, ssa, makeFreshIndex, true);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
+  private Formula makeVariable(String name, CType type, SSAMapBuilder ssa,
+      boolean makeFreshIndex, boolean postponeMakeFresh) {
+
+    // TODO: Write a unit test for this method
+
+    int useIndex;
+
+    if (makeFreshIndex && !postponeMakeFresh) {
+      useIndex = getIndex(name, type, ssa, makeFreshIndex, true);
+    } else {
+      useIndex = getIndex(name, type, ssa, false, false);
+    }
+
+    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+
+    if (postponeMakeFresh && makeFreshIndex) {
+      getIndex(name, type, ssa, makeFreshIndex, true);
+    }
+
+    return result;
   }
 
   /**
@@ -365,8 +386,8 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
-    return makeVariable(name, type, ssa, true);
+  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa, boolean postponeMakeFresh) {
+    return makeVariable(name, type, ssa, true, postponeMakeFresh);
   }
 
   Formula makeStringLiteral(String literal) {
@@ -766,7 +787,9 @@ public class CtoFormulaConverter {
     // In case of an existing initializer, we increment the index twice
     // (here and below) so that the index 2 only occurs for uninitialized variables.
     // DO NOT OMIT THIS CALL, even without an initializer!
-    makeFreshIndex(varName, decl.getType(), ssa);
+    if (!backwards) {
+      makeFreshIndex(varName, decl.getType(), ssa);
+    }
 
     // if there is an initializer associated to this variable,
     // take it into account
@@ -786,6 +809,10 @@ public class CtoFormulaConverter {
 
     for (CAssignment assignment : CInitializers.convertToAssignments(decl, edge)) {
       result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
+    }
+
+    if (backwards) {
+      makeFreshIndex(varName, decl.getType(), ssa);
     }
 
     return result;
@@ -1001,8 +1028,15 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
     }
 
-    Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-    Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    Formula l = null, r = null;
+    if (backwards) {
+      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+    } else {
+      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    }
+
     r = makeCast(
           rhs.getExpressionType(),
           lhsType,
@@ -1023,7 +1057,7 @@ public class CtoFormulaConverter {
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
-    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
+    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions, backwards));
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
@@ -1205,7 +1239,9 @@ public class CtoFormulaConverter {
   /**
    * We call this method for unsupported Expressions and just make a new Variable.
    */
-  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
+  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
+      boolean makeFresh, boolean postponeMakeFresh) {
+
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
@@ -1213,6 +1249,6 @@ public class CtoFormulaConverter {
         exp.getFileLocation(), exp.toASTString());
 
     String var = scoped(exprToVarName(exp), function);
-    return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);
+    return makeVariable(var, exp.getExpressionType(), ssa, makeFresh, postponeMakeFresh);
   }
 }

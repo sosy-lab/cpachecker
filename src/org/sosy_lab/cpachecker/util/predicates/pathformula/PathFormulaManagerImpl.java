@@ -165,7 +165,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       CtoFormulaTypeHandler pTypeHandler) {
 
-    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger, shutdownNotifier, pTypeHandler);
+    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger, shutdownNotifier, pTypeHandler, false);
   }
 
   protected CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
@@ -174,7 +174,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
     return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification, logger, shutdownNotifier, pAliasingTypeHandler);
+        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification, logger, shutdownNotifier, pAliasingTypeHandler, false);
   }
 
   @Override

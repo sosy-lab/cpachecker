@@ -39,23 +39,37 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
  */
 public class WpAbstractDomain implements AbstractDomain {
 
-  private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager pathFmgr;
   private final BooleanFormulaManager boolFmgr;
 
   private WpAbstractState bottomState;
+  private WpAbstractState topState;
 
   public WpAbstractDomain(PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
-    pathFormulaManager = pPathFormulaManager;
+    pathFmgr = pPathFormulaManager;
     boolFmgr = pFormulaManagerView.getBooleanFormulaManager();
     bottomState = null;
+    topState = null;
   }
 
   /**
    * @see AbstractDomain#join()
    */
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    throw new UnsupportedOperationException();
+  public AbstractState join(AbstractState s1, AbstractState s2) throws CPAException {
+    WpAbstractState e1 = (WpAbstractState) s1;
+    WpAbstractState e2 = (WpAbstractState) s2;
+
+    try {
+      // TODO: OR or AND?
+      PathFormula joinedPathFormula = pathFmgr.makeOr(e1.getPathFormula(), e2.getPathFormula());
+
+      return new WpAbstractState(joinedPathFormula);
+
+    } catch (InterruptedException e) {
+      throw new CPAException("Join failed:" + e.getMessage());
+    }
+
   }
 
   /**
@@ -67,6 +81,15 @@ public class WpAbstractDomain implements AbstractDomain {
     WpAbstractState e2 = (WpAbstractState) s2;
     // TODO: Implement me
     return false;
+  }
+
+  public synchronized AbstractState getTopInstance() {
+    if (topState == null) {
+      PathFormula topPf = pathFmgr.makeEmptyPathFormula();
+      topState = new WpAbstractState(topPf);
+    }
+
+    return topState;
   }
 
   public synchronized AbstractState getBottomInstance() {

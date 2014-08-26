@@ -164,9 +164,10 @@ class DynamicMemoryHandler {
                                           conv.options.getSuccessfulZallocFunctionName();
 
     if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
+      // TODO: This might be not work for backwards analysis. Check argument postponeMakeFresh of makeFreshVariable
       final Formula nondet = conv.makeFreshVariable(functionName,
                                                     CPointerType.POINTER_TO_VOID,
-                                                    ssa);
+                                                    ssa, false);
       return conv.bfmgr.ifThenElse(conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
                                     handleSucessfulMemoryAllocation(delegateFunctionName, parameters, e),
                                     conv.nullPointer);

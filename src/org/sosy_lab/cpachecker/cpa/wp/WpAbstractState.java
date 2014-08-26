@@ -45,4 +45,9 @@ public class WpAbstractState implements AbstractState {
     return pathFormula;
   }
 
+  @Override
+  public String toString() {
+    return String.format("%s", pathFormula);
+  }
+
 }

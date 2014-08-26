@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
@@ -52,6 +53,8 @@ public class PathFormulaBackwardsManagerImpl extends PathFormulaManagerImpl {
       ShutdownNotifier pShutdownNotifier, MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification)
           throws InvalidConfigurationException {
+
+    // TODO: Maybe this class can be replaced by just a flag in PathFormulaManagerImpl.
 
     super(pFmgr, pConfig, pLogger, pShutdownNotifier, pMachineModel, pVariableClassification);
   }
@@ -68,8 +71,8 @@ public class PathFormulaBackwardsManagerImpl extends PathFormulaManagerImpl {
   protected CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions, MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, CtoFormulaTypeHandler pTypeHandler) {
 
-    // FIXME: Provide a correct instance for backwards analysis
-    return super.createCtoFormulaConverter(pOptions, pMachineModel, pVariableClassification, pTypeHandler);
+    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger,
+        shutdownNotifier, pTypeHandler, true);
   }
 
   @Override
@@ -78,9 +81,9 @@ public class PathFormulaBackwardsManagerImpl extends PathFormulaManagerImpl {
       PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
-    // FIXME: Provide a correct instance for backwards analysis
-    return super.createCToFormulaConverterWithPointerAliasing(pOptions, pMachineModel, pPtsManager,
-        pVariableClassification, pAliasingTypeHandler);
+    return new CToFormulaConverterWithPointerAliasing(
+        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
+        logger, shutdownNotifier, pAliasingTypeHandler, true);
   }
 
   @Override
