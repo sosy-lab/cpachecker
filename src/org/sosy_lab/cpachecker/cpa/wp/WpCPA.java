@@ -206,7 +206,8 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    */
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return domain.getTopInstance();
+    throw new UnsupportedOperationException();
+    //return domain.getTopInstance();
   }
 
   /**
