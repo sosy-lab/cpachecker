@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
-import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.log.LogManager;
 
@@ -151,15 +150,13 @@ class AstDebugg extends ASTVisitor {
 
   @Override
   public boolean visit(MethodInvocation mI) {
-    @SuppressWarnings("unused")
-    IMethodBinding bind = mI.resolveMethodBinding();
+    mI.resolveMethodBinding();
     return true;
   }
 
  @Override
 public boolean visit(ClassInstanceCreation cIC) {
-  @SuppressWarnings("unused")
-  IMethodBinding bind = cIC.resolveConstructorBinding();
+  cIC.resolveConstructorBinding();
   return true;
 }
 
