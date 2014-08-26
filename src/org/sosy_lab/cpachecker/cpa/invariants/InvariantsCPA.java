@@ -160,8 +160,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private final ConditionAdjuster conditionAdjuster;
 
-  private Map<CFANode, ImmutableSet<CFANode>> reachableTargetLocations = new HashMap<>();
-
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
