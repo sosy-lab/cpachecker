@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -31,16 +30,14 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Represents a state along the currently analysed path within the StatisticsCPA domain.
  */
-public class StatisticsState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
+public class StatisticsState implements AbstractStateWithLocation, Partitionable {
 
   /**
    * This class handles the logic of creating new states and merging them.
@@ -132,10 +129,8 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
       return analysisData;
     }
   }
-  private static final long serialVersionUID = -801176497691618779L;
 
-
-  private transient CFANode locationNode;
+  private final CFANode locationNode;
   private final StatisticsStateFactory factory;
   private final StatisticsData data;
 
@@ -168,34 +163,6 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
   @Override
   public String toString() {
     return locationNode.toString();
-  }
-
-  @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    throw new InvalidQueryException("The Query \"" + pProperty
-        + "\" currently not supported.");
-  }
-
-  @Override
-  public void modifyProperty(String pModification)
-      throws InvalidQueryException {
-    throw new InvalidQueryException("The statistics CPA does not support modification.");
-  }
-
-  @Override
-  public String getCPAName() {
-    return "statistics";
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty)
-      throws InvalidQueryException {
-    if (data == null) {
-      throw new InvalidQueryException("The statistics CPA initialized for analysis does not support queries.");
-    }
-    // TODO: find property (the following code is invalid)...
-    StatisticsDataProvider prov = data.getProperty(pProperty);
-    return prov.getPropertyValue();
   }
 
   @Override

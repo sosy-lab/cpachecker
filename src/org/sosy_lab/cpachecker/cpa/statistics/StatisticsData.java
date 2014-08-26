@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 /**
@@ -37,7 +38,7 @@ import com.google.common.collect.Maps;
  * All instances of this class are immutable.
  */
 public class StatisticsData implements Iterable<Entry<StatisticsProvider, StatisticsDataProvider>> {
-  private Map<StatisticsProvider, StatisticsDataProvider> data;
+  private final Map<StatisticsProvider, StatisticsDataProvider> data;
 
   public StatisticsData(Set<StatisticsProvider> propertyProviders) {
     Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(propertyProviders.size());
@@ -49,10 +50,6 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
 
   private StatisticsData(Map<StatisticsProvider, StatisticsDataProvider> data) {
     this.data = data;
-  }
-
-  public StatisticsDataProvider getProperty(String pProperty) {
-    throw new UnsupportedOperationException("Querying is currently not implemented.");
   }
 
   public StatisticsData mergeState(StatisticsData state2) {
@@ -77,29 +74,6 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
 
   @Override
   public Iterator<Entry<StatisticsProvider, StatisticsDataProvider>> iterator() {
-    return new ReadonlyIterator<>(data.entrySet().iterator());
+    return Iterators.unmodifiableIterator(data.entrySet().iterator());
   }
-
-  public static class ReadonlyIterator<T> implements Iterator<T> {
-    private Iterator<T> wrapped;
-    public ReadonlyIterator(Iterator<T> wrapped) {
-      this.wrapped = wrapped;
-    }
-    @Override
-    public boolean hasNext() {
-      return this.wrapped.hasNext();
-    }
-
-    @Override
-    public T next() {
-      return this.wrapped.next();
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("remove not supported!");
-    }
-
-  }
-
 }
