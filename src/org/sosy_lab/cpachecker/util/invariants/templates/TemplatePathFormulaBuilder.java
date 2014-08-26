@@ -83,8 +83,8 @@ public class TemplatePathFormulaBuilder {
     PathFormula pf = null;
     try {
       pf = pfmgr.makeEmptyPathFormula();
-      for (int i = 0; i < E.length; i++) {
-        pf = pfmgr.makeAnd(pf, E[i]);
+      for (CFAEdge element : E) {
+        pf = pfmgr.makeAnd(pf, element);
       }
     } catch (Exception e) {
       System.err.println(e.getMessage());

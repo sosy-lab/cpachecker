@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -198,9 +197,7 @@ public class ValueAnalysisPrecision implements Precision {
     refinablePrecision.setLocation(location);
 
     Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
-    for (Iterator<MemoryLocation> memoryLocations = candidates.iterator(); memoryLocations.hasNext(); ) {
-      MemoryLocation memoryLocation = memoryLocations.next();
-
+    for (MemoryLocation memoryLocation : candidates) {
       if (!isTracking(memoryLocation)) {
         state.forget(memoryLocation);
       }

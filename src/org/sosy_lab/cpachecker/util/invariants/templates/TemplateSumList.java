@@ -70,16 +70,16 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public void alias(AliasingMap amap) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].alias(amap);
+      for (TemplateSum sum : sums) {
+        sum.alias(amap);
       }
     }
   }
 
   public void unalias() {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].unalias();
+      for (TemplateSum sum : sums) {
+        sum.unalias();
       }
     }
   }
@@ -87,8 +87,8 @@ public class TemplateSumList extends TemplateFormulaList {
   public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        ans &= sums[i].evaluate(map);
+      for (TemplateSum sum : sums) {
+        ans &= sum.evaluate(map);
       }
     }
     return ans;
@@ -96,40 +96,40 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public void unevaluate() {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].unevaluate();
+      for (TemplateSum sum : sums) {
+        sum.unevaluate();
       }
     }
   }
 
   public void postindex(Map<String, Integer> indices) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].postindex(indices);
+      for (TemplateSum sum : sums) {
+        sum.postindex(indices);
       }
     }
   }
 
   public void preindex(Map<String, Integer> indices) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].preindex(indices);
+      for (TemplateSum sum : sums) {
+        sum.preindex(indices);
       }
     }
   }
 
   public void unindex() {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].unindex();
+      for (TemplateSum sum : sums) {
+        sum.unindex();
       }
     }
   }
 
   public Purification purify(Purification pur) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        pur = sums[i].purify(pur);
+      for (TemplateSum sum : sums) {
+        pur = sum.purify(pur);
       }
     }
     return pur;
@@ -137,16 +137,16 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public void unpurify() {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].unpurify();
+      for (TemplateSum sum : sums) {
+        sum.unpurify();
       }
     }
   }
 
   public void generalize() {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].generalize();
+      for (TemplateSum sum : sums) {
+        sum.generalize();
       }
     }
   }
@@ -157,8 +157,8 @@ public class TemplateSumList extends TemplateFormulaList {
   public Set<TemplateVariable> getAllVariables() {
     HashSet<TemplateVariable> vars = new HashSet<>();
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        vars.addAll(sums[i].getAllVariables());
+      for (TemplateSum sum : sums) {
+        vars.addAll(sum.getAllVariables());
       }
     }
     return vars;
@@ -167,8 +167,8 @@ public class TemplateSumList extends TemplateFormulaList {
   public Set<TemplateVariable> getAllParameters() {
     HashSet<TemplateVariable> params = new HashSet<>();
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        params.addAll(sums[i].getAllParameters());
+      for (TemplateSum sum : sums) {
+        params.addAll(sum.getAllParameters());
       }
     }
     return params;
@@ -176,8 +176,8 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        map = sums[i].getMaxIndices(map);
+      for (TemplateSum sum : sums) {
+        map = sum.getMaxIndices(map);
       }
     }
     return map;
@@ -186,8 +186,8 @@ public class TemplateSumList extends TemplateFormulaList {
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm = new TemplateVariableManager();
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        tvm.merge(sums[i].getVariableManager());
+      for (TemplateSum sum : sums) {
+        tvm.merge(sum.getVariableManager());
       }
     }
     return tvm;
@@ -195,8 +195,8 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public void prefixVariables(String prefix) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].prefixVariables(prefix);
+      for (TemplateSum sum : sums) {
+        sum.prefixVariables(prefix);
       }
     }
   }
@@ -210,16 +210,16 @@ public class TemplateSumList extends TemplateFormulaList {
 
   public Iterator<TemplateSum> iterator() {
     Vector<TemplateSum> V = new Vector<>();
-    for (int i = 0; i < sums.length; i++) {
-      V.add(sums[i]);
+    for (TemplateSum sum : sums) {
+      V.add(sum);
     }
     return V.iterator();
   }
 
   void writeAsForm(boolean b) {
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
-        sums[i].writeAsForm(b);
+      for (TemplateSum sum : sums) {
+        sum.writeAsForm(b);
       }
     }
   }
@@ -231,9 +231,9 @@ public class TemplateSumList extends TemplateFormulaList {
   public String toString(String delim, VariableWriteMode vwm) {
     String s = "";
     if (sums != null) {
-      for (int i = 0; i < sums.length; i++) {
+      for (TemplateSum sum : sums) {
         s += delim;
-        s += sums[i].toString(vwm);
+        s += sum.toString(vwm);
       }
     }
     if (s.length() > 0) {

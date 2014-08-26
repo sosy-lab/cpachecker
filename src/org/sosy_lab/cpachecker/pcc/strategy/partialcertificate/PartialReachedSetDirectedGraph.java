@@ -51,7 +51,7 @@ public class PartialReachedSetDirectedGraph {
       nodes = pNodes;
       numNodes = nodes.length;
       adjacencyList = new ArrayList<>(nodes.length);
-      for(int i=0;i<nodes.length;i++){
+      for (AbstractState node : nodes) {
         adjacencyList.add(new ArrayList<Integer>());
       }
 
