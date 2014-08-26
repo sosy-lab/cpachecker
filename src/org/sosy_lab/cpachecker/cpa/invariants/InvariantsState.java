@@ -706,7 +706,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   @Override
   public String toString() {
-    return Joiner.on(", ").join(FluentIterable.from(environment.entrySet()).transform(new Function<Map.Entry<String, InvariantsFormula<CompoundInterval>>, String>() {
+    return FluentIterable.from(environment.entrySet()).transform(new Function<Map.Entry<String, InvariantsFormula<CompoundInterval>>, String>() {
 
       @Override
       public String apply(Entry<String, InvariantsFormula<CompoundInterval>> pInput) {
@@ -718,7 +718,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
         return String.format("%s=%s", variableName, value);
       }
 
-    }));
+    }).join(Joiner.on(", "));
   }
 
   public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
