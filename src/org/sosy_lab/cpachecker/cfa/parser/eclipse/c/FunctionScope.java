@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-class FunctionScope extends Scope {
+class FunctionScope extends AbstractScope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
