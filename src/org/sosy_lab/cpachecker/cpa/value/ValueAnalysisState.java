@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.MoreStrings.startsWithIgnoreCase;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -418,8 +419,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
     String[] statements = pModification.split(";");
     for (int i = 0; i < statements.length; i++) {
-      String statement = statements[i].trim().toLowerCase();
-      if (statement.startsWith("deletevalues(")) {
+      String statement = statements[i].trim();
+      if (startsWithIgnoreCase(statement, "deletevalues(")) {
         if (!statement.endsWith(")")) {
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
@@ -434,7 +435,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
         }
       }
 
-      else if (statement.startsWith("setvalue(")) {
+      else if (startsWithIgnoreCase(statement, "setvalue(")) {
         if (!statement.endsWith(")")) {
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
