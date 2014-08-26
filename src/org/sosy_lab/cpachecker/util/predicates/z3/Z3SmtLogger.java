@@ -114,13 +114,14 @@ public class Z3SmtLogger {
   public void logFunctionDeclaration(long symbol, long[] inputTypes, long returnType) {
     if (logfile == null) { return; }
     if (declarations.add(symbol)) {
-      String s = "declare-fun " + get_symbol_string(z3context, symbol) + " (";
+      StringBuilder s = new StringBuilder();
+      s.append("declare-fun ").append(get_symbol_string(z3context, symbol)).append(" (");
       for (long it : inputTypes) {
-        s += sort_to_string(z3context, it) + " ";
+        s.append(sort_to_string(z3context, it)).append(" ");
       }
-      s += ") " + sort_to_string(z3context, returnType);
+      s.append(") ").append(sort_to_string(z3context, returnType));
 
-      logBracket(s);
+      logBracket(s.toString());
     }
   }
   public void logPush(int n) {
@@ -173,27 +174,29 @@ public class Z3SmtLogger {
       long conjunctionA, long conjunctionB) {
     if (logfile == null) { return; }
 
-    String itpQuery = null;
+    StringBuilder itpQuery = new StringBuilder();
     switch (settings.target) {
     case Z3:
-      itpQuery = "get-interpolant " + ast_to_string(z3context, conjunctionA)
-          + " " + ast_to_string(z3context, conjunctionB);
+      itpQuery.append("get-interpolant ")
+              .append(ast_to_string(z3context, conjunctionA))
+              .append(" ")
+              .append(ast_to_string(z3context, conjunctionB));
       break;
 
     case MATHSAT5:
-      itpQuery = "get-interpolant (";
+      itpQuery.append("get-interpolant (");
 
       for (long f : formulasOfA) {
         Preconditions.checkArgument(interpolationFormulas.containsKey(f));
-        itpQuery += interpolationFormulas.get(f) + " ";
+        itpQuery.append(interpolationFormulas.get(f)).append(" ");
       }
 
-      itpQuery += ")";
+      itpQuery.append(")");
       break;
     }
 
     logCheck(); // TODO remove check?
-    logBracket(itpQuery);
+    logBracket(itpQuery.toString());
   }
 
   public void logBracket(String s) {
