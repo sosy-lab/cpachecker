@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
@@ -317,6 +319,7 @@ public class PredicateTransferRelation implements TransferRelation {
   }
 
   @SuppressWarnings("unused")
+  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
 

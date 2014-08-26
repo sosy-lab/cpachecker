@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
 
   private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
@@ -44,6 +46,9 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
 
   private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
+
+  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+      justification = "Written only by one thread")
   private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, List<String> args) throws IOException {

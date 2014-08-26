@@ -28,6 +28,10 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "EQ_COMPARETO_USE_OBJECT_EQUALS",
+    justification = "The ID used in compareTo() is unique per object instance.")
 public class CFANode implements Comparable<CFANode> {
 
   private static int nextNodeNumber = 0;

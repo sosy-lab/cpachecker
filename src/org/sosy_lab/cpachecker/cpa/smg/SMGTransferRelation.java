@@ -110,6 +110,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.ImmutableSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 @Options(prefix = "cpa.smg")
 public class SMGTransferRelation implements TransferRelation {
@@ -1572,6 +1574,7 @@ public class SMGTransferRelation implements TransferRelation {
   private boolean hasChanged;
 
   @SuppressWarnings("unused")
+  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private Collection<? extends AbstractState> strengthen(ValueAnalysisState explicitState, SMGState pSMGState, CFAEdge cfaEdge) throws CPATransferException {
 
     SMGState newElement = new SMGState(pSMGState);

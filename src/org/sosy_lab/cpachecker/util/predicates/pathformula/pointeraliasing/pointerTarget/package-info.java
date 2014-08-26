@@ -22,10 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Encoding of (possibly-aliased) C pointers into formulas,
- * including conditional updates for maybe-aliased pointers.
- * This package assumes that pointers of different types are never aliased.
+ * Helper for pointer-alias encoding into formulas.
  */
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "SE_BAD_FIELD",
     justification = "serialization of formulas is currently unsupported")
-package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;

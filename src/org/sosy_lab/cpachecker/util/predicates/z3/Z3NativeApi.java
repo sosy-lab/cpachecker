@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /** This class contains the native calls for Z3.
  *
  * Z3 uses reference-counting for all objects. If a function returns an
@@ -36,14 +38,20 @@ final class Z3NativeApi {
   // they are used during the native operations
   // and can be accessed later to get the values.
   public static class PointerToInt {
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
     public int value;
   }
 
   public static class PointerToLong {
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
     public long value;
   }
 
   public static class PointerToString {
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
     public String value;
   }
 

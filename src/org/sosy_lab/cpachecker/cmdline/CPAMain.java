@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import com.google.common.base.Strings;
 import com.google.common.io.Closer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CPAMain {
 
   @SuppressWarnings("resource") // We don't close LogManager
@@ -311,6 +313,8 @@ public class CPAMain {
     }
   }
 
+  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
+      justification="Default encoding is the correct one for stdout.")
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;

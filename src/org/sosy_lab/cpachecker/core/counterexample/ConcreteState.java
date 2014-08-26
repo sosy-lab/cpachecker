@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is used to represent the partial concrete memory of a C program at a statement
  * of the given counter-example path. It is used to calculate the concrete values of
@@ -159,6 +161,7 @@ public final class ConcreteState {
   }
 
   @Override
+  @SuppressFBWarnings("EQ_UNUSUAL")
   public boolean equals(Object obj) {
     throw new UnsupportedOperationException();
   }
