@@ -163,7 +163,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     * @return true, if the number of assignments for the given variable would exceed the soft threshold, else false
     */
     public boolean wouldExceedSoftThreshold(ValueAnalysisState state, MemoryLocation memoryLocation) {
-      if(softThreshold == -1) {
+      if (softThreshold == -1) {
         return false;
       }
 

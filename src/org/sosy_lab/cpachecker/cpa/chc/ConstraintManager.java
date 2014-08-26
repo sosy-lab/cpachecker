@@ -171,7 +171,7 @@ public class ConstraintManager {
     HashMap<String,Term> newVars = new HashMap<>(pVars);
 
     for (Map.Entry<String, Term> me : vars.entrySet()) {
-      if(! pVars.containsKey(me.getKey())) {
+      if (! pVars.containsKey(me.getKey())) {
         newVars.put(me.getKey(), me.getValue());
       }
     }

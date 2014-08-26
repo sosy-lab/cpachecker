@@ -376,7 +376,7 @@ class GlobalScope extends Scope {
       }
 
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(((CCompositeType)oldType).getMembers().size());
-      for(CCompositeTypeMemberDeclaration decl : ((CCompositeType) oldType).getMembers()) {
+      for (CCompositeTypeMemberDeclaration decl : ((CCompositeType) oldType).getMembers()) {
         if (!(decl.getType() instanceof CPointerType)) {
           newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
         } else {

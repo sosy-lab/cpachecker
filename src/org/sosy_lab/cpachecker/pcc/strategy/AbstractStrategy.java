@@ -114,7 +114,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         o.flush();
         zos.closeEntry();
         index++;
-      }while(continueWriting);
+      }while (continueWriting);
 
       ze = new ZipEntry("Helper");
       zos.putNextEntry(ze);

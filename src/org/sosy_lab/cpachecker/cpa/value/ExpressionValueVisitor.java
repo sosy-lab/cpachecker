@@ -101,16 +101,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-    if(this.symbolicValues) {
+    if (this.symbolicValues) {
       // Only generate a symbolic value if we haven't already generated many symbolic
       // values for this location.
       FileLocation key = pIastFunctionCallExpression.getFileLocation();
       int generatedSymbols = 0;
-      if(numberOfSymbolsGenerated.containsKey(key)) {
+      if (numberOfSymbolsGenerated.containsKey(key)) {
         generatedSymbols = numberOfSymbolsGenerated.get(key);
       }
 
-      if(generatedSymbols < maxNumberOfSymbolsGenerated) {
+      if (generatedSymbols < maxNumberOfSymbolsGenerated) {
         numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
         SymbolicValueFormula formula = new SymbolicValueFormula(
             new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
@@ -228,7 +228,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       Value subscriptValue = subscript.accept(evv);
 
-      if(!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
+      if (!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
         return null;
       }
 
@@ -269,7 +269,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       Integer offset = getFieldOffset(ownerType, fieldName);
 
-      if(offset == null) {
+      if (offset == null) {
         return null;
       }
 
@@ -328,7 +328,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
-      if(isGlobal) {
+      if (isGlobal) {
         return MemoryLocation.valueOf(idExp.getName(), 0);
       } else {
         return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);

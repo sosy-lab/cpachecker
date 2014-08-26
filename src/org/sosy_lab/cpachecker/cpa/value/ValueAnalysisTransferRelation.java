@@ -265,7 +265,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (value.isUnknown()) {
         newElement.forget(formalParamName);
 
-        if(isMissingCExpressionInformation(visitor, exp)) {
+        if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
       } else {
@@ -421,16 +421,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       ValueAnalysisState element = state.clone();
 
       // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
-      if(value instanceof SymbolicValueFormula) {
+      if (value instanceof SymbolicValueFormula) {
         Pair<SymbolicValue, Value> replacement = null;
         replacement = ((SymbolicValueFormula)value).inferAssignment(truthValue, logger);
-        if(replacement != null) {
-          for(MemoryLocation memloc : state.getTrackedMemoryLocations()) {
+        if (replacement != null) {
+          for (MemoryLocation memloc : state.getTrackedMemoryLocations()) {
             Value trackedValue = state.getValueFor(memloc);
-            if(trackedValue instanceof SymbolicValueFormula) {
+            if (trackedValue instanceof SymbolicValueFormula) {
               SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
               Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
-              if(newValue != trackedValue) {
+              if (newValue != trackedValue) {
                 element.assignConstant(memloc, newValue);
               }
             }
@@ -640,7 +640,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         MemoryLocation memloc;
 
-        if(isGlobal(op1)) {
+        if (isGlobal(op1)) {
           memloc = MemoryLocation.valueOf(varName, 0);
         } else {
           memloc = MemoryLocation.valueOf(functionName, varName, 0);
@@ -841,7 +841,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          if(booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
+          if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
             assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
           }
         }
@@ -849,7 +849,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
-          if(booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
+          if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
             assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
           }
         }
@@ -1145,10 +1145,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
         result.clear();
-        for(ValueAnalysisState state : toStrengthen) {
+        for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret = strengthen((RTTState)ae);
-          if(ret == null) {
+          if (ret == null) {
             result.add(state);
           } else {
             result.addAll(ret);
@@ -1158,10 +1158,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         toStrengthen.addAll(result);
       } else if(ae instanceof SMGState) {
         result.clear();
-        for(ValueAnalysisState state : toStrengthen) {
+        for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret = strengthen((SMGState)ae);
-          if(ret == null) {
+          if (ret == null) {
             result.add(state);
           } else {
             result.addAll(ret);
@@ -1171,12 +1171,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         toStrengthen.addAll(result);
       } else if(ae instanceof AutomatonState) {
         result.clear();
-        for(ValueAnalysisState state : toStrengthen) {
+        for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
           Collection<ValueAnalysisState> ret = automatonAssumesAsStatements ?
               strengthenAutomatonStatement(autoState, cfaEdge) : strengthenAutomatonAssume(autoState, cfaEdge);
-          if(ret == null) {
+          if (ret == null) {
             result.add(state);
           } else {
             result.addAll(ret);
@@ -1201,10 +1201,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     ValueAnalysisState state = this.state;
 
-    for(CStatementEdge stmtEdge : statementEdges) {
+    for (CStatementEdge stmtEdge : statementEdges) {
       state = handleStatementEdge((AStatementEdge)stmtEdge, (IAStatement)stmtEdge.getStatement());
 
-      if(state == null) {
+      if (state == null) {
         break;
       } else {
         setInfo(state, precision, pCfaEdge);
@@ -1227,10 +1227,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     ValueAnalysisState state = this.state;
 
 
-    for(AssumeEdge assumeEdge : assumeEdges) {
+    for (AssumeEdge assumeEdge : assumeEdges) {
       state = this.handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
 
-      if(state == null) {
+      if (state == null) {
         break;
       } else {
         setInfo(state, precision, pCfaEdge);
@@ -1268,7 +1268,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     //TODO More common handling of missing information (erase missing Information if other cpas solved it).
     missingInformationList.clear();
 
-    if(newElement == null) {
+    if (newElement == null) {
       return new HashSet<>();
     }
 
@@ -1420,11 +1420,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
 
-    if(value.isExplicitlyKnown() && !value.equals(new NumericValue(truthValue))) {
+    if (value.isExplicitlyKnown() && !value.equals(new NumericValue(truthValue))) {
       return null;
     } else {
 
-      if(!value.isExplicitlyKnown()) {
+      if (!value.isExplicitlyKnown()) {
 
         // Try deriving further Information
         ValueAnalysisState element = pNewElement.clone();

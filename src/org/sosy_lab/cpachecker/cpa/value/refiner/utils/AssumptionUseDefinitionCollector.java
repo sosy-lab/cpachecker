@@ -197,7 +197,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
       if (declaration.getName() != null) {
         String variableName = declaration.getName();
 
-        if(!declaration.isGlobal()) {
+        if (!declaration.isGlobal()) {
           variableName = scoped(variableName, currentFunction);
         }
 
@@ -205,9 +205,9 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
           dependingVariables.remove(variableName);
           collectedVariables.add(variableName);
 
-          if(((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
+          if (((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
             CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
-            if(initializer != null) {
+            if (initializer != null) {
               collectVariables(edge, initializer.getExpression());
             }
           }
@@ -219,7 +219,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
         CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
         // for cases where error path ends with a return statement
-        if(previousFunctionReturnEdge == null) {
+        if (previousFunctionReturnEdge == null) {
           break;
         }
 
@@ -287,7 +287,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
       List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
 
       // process MultiEdges also in reverse order
-      for(int i = edges.size() - 1; i >= 0; i--) {
+      for (int i = edges.size() - 1; i >= 0; i--) {
         collectVariables(edges.get(i), collectedVariables);
       }
       break;

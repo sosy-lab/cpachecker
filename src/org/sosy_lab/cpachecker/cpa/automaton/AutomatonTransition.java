@@ -98,7 +98,7 @@ class AutomatonTransition {
 
     this.trigger = checkNotNull(pTrigger);
 
-    if(pAssumption == null) {
+    if (pAssumption == null) {
       this.assumption = ImmutableList.of();
     } else {
       this.assumption = ImmutableList.<IAStatement>copyOf(pAssumption);

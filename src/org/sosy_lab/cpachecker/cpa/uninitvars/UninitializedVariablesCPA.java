@@ -96,7 +96,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
       stopOp = new StopJoinOperator(domain);
     }
 
-    if(checkTarget){
+    if (checkTarget){
       printWarnings = "true";
     }
     UninitializedVariablesState.init(checkTarget);

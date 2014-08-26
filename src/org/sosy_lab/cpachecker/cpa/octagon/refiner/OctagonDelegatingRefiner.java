@@ -209,12 +209,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     refinementRoot                              = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
     // no increment - value-analysis refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 
     // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-    if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
+    if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 

@@ -225,7 +225,7 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
 
   @Override
   public boolean equals(Object pArg0) {
-    if(super.equals(pArg0)) {
+    if (super.equals(pArg0)) {
       return true;
     }
     StatisticsState other = (StatisticsState)pArg0;

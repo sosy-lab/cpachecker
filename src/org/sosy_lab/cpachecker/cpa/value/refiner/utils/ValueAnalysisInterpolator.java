@@ -140,7 +140,7 @@ public class ValueAnalysisInterpolator {
     }
 
     // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
-    if(!useDefRelation.isEmpty()) {
+    if (!useDefRelation.isEmpty()) {
       initialSuccessor.retainAll(useDefRelation);
     }
 
@@ -221,7 +221,7 @@ public class ValueAnalysisInterpolator {
 
     MutableARGPath argErrorPath = new MutableARGPath();
 
-    for(CFAEdge edge : remainingErrorPath) {
+    for (CFAEdge edge : remainingErrorPath) {
       argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));
     }
 

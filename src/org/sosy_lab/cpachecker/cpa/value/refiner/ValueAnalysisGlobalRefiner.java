@@ -149,7 +149,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     totalTargetsFound       = totalTargetsFound + targets.size();
 
     // stop once any feasible counterexample is found
-    if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
+    if (isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
       totalTime.stop();
       return false;
     }
@@ -157,19 +157,19 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     int i = 0;
-    while(interpolationTree.hasNextPathForInterpolation()) {
+    while (interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
       MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-      if(errorPath.isEmpty()) {
+      if (errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
-      if(initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
+      if (initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
         errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
         initialItp  = ValueAnalysisInterpolant.createInitial();
       }
@@ -178,19 +178,19 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
-      if(exportInterpolationTree.equals("ALWAYS")) {
+      if (exportInterpolationTree.equals("ALWAYS")) {
         interpolationTree.exportToDot(totalRefinements, i);
       }
 
       logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
-    if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+    if (exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
     Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
-    for(ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
@@ -200,7 +200,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    for(Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
       reached.removeSubtree(info.getKey(), info.getValue(), ValueAnalysisPrecision.class);
     }
 
@@ -212,7 +212,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
-    if(errorPath.getFirst().getFirst() == root) {
+    if (errorPath.getFirst().getFirst() == root) {
       return false;
     }
 
@@ -225,7 +225,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
-    for(ARGState target : targetsReachableFromRoot) {
+    for (ARGState target : targetsReachableFromRoot) {
       ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
@@ -242,16 +242,16 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       throws CPAException, InterruptedException {
 
     MutableARGPath feasiblePath = null;
-    for(MutableARGPath currentPath : errorPaths) {
-      if(isErrorPathFeasible(currentPath)) {
+    for (MutableARGPath currentPath : errorPaths) {
+      if (isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
       }
     }
 
     // remove all other target states, so that only one is left (for CEX-checker)
-    if(feasiblePath != null) {
-      for(MutableARGPath others : errorPaths) {
-        if(others != feasiblePath) {
+    if (feasiblePath != null) {
+      for (MutableARGPath others : errorPaths) {
+        if (others != feasiblePath) {
           pReached.removeSubtree(others.getLast().getFirst());
         }
       }
@@ -263,7 +263,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
   private boolean isErrorPathFeasible(final MutableARGPath errorPath)
       throws CPAException, InterruptedException {
-    if(checker.isFeasible(errorPath)) {
+    if (checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
 
       return true;
@@ -276,7 +276,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     Set<MutableARGPath> errorPaths = new TreeSet<>(new Comparator<MutableARGPath>() {
       @Override
       public int compare(MutableARGPath path1, MutableARGPath path2) {
-        if(path1.size() == path2.size()) {
+        if (path1.size() == path2.size()) {
           return 1;
         }
 
@@ -286,7 +286,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       }
     });
 
-    for(ARGState target : targetStates) {
+    for (ARGState target : targetStates) {
       MutableARGPath p = ARGUtils.getOneMutablePathTo(target);
       errorPaths.add(p);
     }
@@ -400,7 +400,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       targets   = pTargets;
       root      = buildTree();
 
-      if(useTopDownInterpolationStrategy) {
+      if (useTopDownInterpolationStrategy) {
         strategy = new TopDownInterpolationStrategy();
       } else {
         strategy = new BottomUpInterpolationStrategy();
@@ -453,8 +453,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private void exportToDot(int refinementCnt, int iteration) {
       StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
-      for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-        if(interpolants.containsKey(current.getKey())) {
+      for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
+        if (interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
           sb.append("itp is " + interpolants.get(current.getKey()));
@@ -468,7 +468,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
         }
 
-        if(current.getValue().isTarget()) {
+        if (current.getValue().isTarget()) {
           result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
         }
 
@@ -515,7 +515,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
 
-        if(interpolants.containsKey(state)) {
+        if (interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
         } else {
           interpolants.put(state, itp);
@@ -580,7 +580,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         if (isNonTrivialInterpolantAvailable(currentState)) {
           refinementRoots.add(currentState);
 
-          if(strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
+          if (strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
             assert commonRoot != null: "common root not yet set";
             return new HashSet<>(Collections.singleton(commonRoot));
           }
@@ -653,24 +653,24 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
         ARGState current = sources.pop();
 
-        if(!isValidInterpolationRoot(predecessorRelation.get(current))) {
+        if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
           return errorPath;
         }
 
         // if the current state is not the root, it is a child of a branch , however, the path should not start with the
         // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-        if(current != root) {
+        if (current != root) {
           errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
         }
 
-        while(successorRelation.get(current).iterator().hasNext()) {
+        while (successorRelation.get(current).iterator().hasNext()) {
           Iterator<ARGState> children = successorRelation.get(current).iterator();
           ARGState child = children.next();
           errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
           // push all other children of the current state, if any, onto the stack for later interpolations
-          if(children.hasNext()) {
+          if (children.hasNext()) {
             ARGState sibling = children.next();
             logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
             sources.push(sibling);
@@ -679,7 +679,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
           current = child;
 
           // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
-          if(!successorRelation.get(current).iterator().hasNext()) {
+          if (!successorRelation.get(current).iterator().hasNext()) {
             errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
           }
         }
@@ -691,11 +691,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
        * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
        */
       public boolean isValidInterpolationRoot(ARGState root) {
-        if(!interpolants.containsKey(root)) {
+        if (!interpolants.containsKey(root)) {
           return true;
         }
 
-        if(!interpolants.get(root).isFalse()) {
+        if (!interpolants.get(root).isFalse()) {
           return true;
         }
 
@@ -706,7 +706,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
         ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
-        if(initialInterpolant == null) {
+        if (initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
 
           assert (interpolants.size() == 0) : "initial interpolant was null after initial interpolation!";
@@ -738,7 +738,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
         errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
 
-        while(predecessorRelation.get(current) != null) {
+        while (predecessorRelation.get(current) != null) {
 
           ARGState parent = predecessorRelation.get(current);
 

@@ -89,7 +89,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
 
   @Override
   public Formula visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
-    if(pE.isImaginaryCast()) {
+    if (pE.isImaginaryCast()) {
       throw new UnrecognizedCCodeException("Unknown lvalue", edge, pE);
     }
     // TODO complex numbers are not supported for evaluation right now

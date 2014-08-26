@@ -118,7 +118,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     if (objectCandidates.containsKey(offset)) {
       SMGSingleLinkedListCandidate myCandidate = objectCandidates.get(offset);
-      if(pCandidate.isCompatibleWith(myCandidate)) {
+      if (pCandidate.isCompatibleWith(myCandidate)) {
         objectCandidates.remove(offset);
         pCandidate.addLength(myCandidate.getLength());
       }

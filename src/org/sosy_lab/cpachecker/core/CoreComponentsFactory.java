@@ -157,7 +157,7 @@ public class CoreComponentsFactory {
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
-      if(usePredicatedAnalysisAlgorithm){
+      if (usePredicatedAnalysisAlgorithm){
         algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 

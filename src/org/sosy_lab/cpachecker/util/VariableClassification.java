@@ -395,8 +395,8 @@ public class VariableClassification {
 
         // Get all variables that are incremented or decrement by literal values
         for (CFAEdge e : l.getInnerLoopEdges()) {
-          if(e instanceof MultiEdge) {
-            for(CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
+          if (e instanceof MultiEdge) {
+            for (CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
               obtainIncDecVariables(singleEdge);
             }
           }

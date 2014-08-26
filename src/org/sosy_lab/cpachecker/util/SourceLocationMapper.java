@@ -346,7 +346,7 @@ public class SourceLocationMapper {
       break;
       }
 
-      while(!astNodes.isEmpty()) {
+      while (!astNodes.isEmpty()) {
         CAstNode node = astNodes.pop();
         result.addAll(collectTokensFrom(node, overApproximateTokens));
       }

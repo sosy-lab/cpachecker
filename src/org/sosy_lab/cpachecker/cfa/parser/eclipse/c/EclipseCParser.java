@@ -142,7 +142,7 @@ public class EclipseCParser implements CParser {
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(FileToParse f: pFilenames) {
+    for (FileToParse f: pFilenames) {
       astUnits.add(Pair.of(parse(wrapFile(f.getFileName())), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits, sourceOriginMapping);
@@ -152,7 +152,7 @@ public class EclipseCParser implements CParser {
   public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(FileContentToParse f : codeFragments) {
+    for (FileContentToParse f : codeFragments) {
       astUnits.add(Pair.of(parse(wrapCode(f)), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits, sourceOriginMapping);
@@ -246,8 +246,8 @@ public class EclipseCParser implements CParser {
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
-    for(IASTStatement statement : statements) {
-      if(statement != null) {
+    for (IASTStatement statement : statements) {
+      if (statement != null) {
         nodeList.add(converter.convert(statement));
       }
     }
@@ -324,7 +324,7 @@ public class EclipseCParser implements CParser {
     Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
       CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, sourceOriginMapping, machine);
-      for(Pair<IASTTranslationUnit, String> ast : asts) {
+      for (Pair<IASTTranslationUnit, String> ast : asts) {
         builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
 

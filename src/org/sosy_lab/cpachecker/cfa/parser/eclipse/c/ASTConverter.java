@@ -685,7 +685,7 @@ class ASTConverter {
       operand = convertExpressionWithoutSideEffects(e.getOperand());
     }
 
-    if("__imag__".equals(e.getTypeId().getRawSignature())) {
+    if ("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, castType, operand, castType, false);
     } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, castType, operand, castType, true);

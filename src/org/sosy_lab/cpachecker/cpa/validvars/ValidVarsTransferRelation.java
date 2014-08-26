@@ -65,9 +65,9 @@ public class ValidVarsTransferRelation implements TransferRelation{
       Collection<AbstractState> predecessors, successors;
       predecessors = Collections.singleton(pState);
 
-      for(CFAEdge edge: ((MultiEdge)pCfaEdge).getEdges()){
+      for (CFAEdge edge: ((MultiEdge)pCfaEdge).getEdges()){
         successors = new ArrayList<>();
-        for(AbstractState predState: predecessors){
+        for (AbstractState predState: predecessors){
           successors.addAll(getAbstractSuccessors(predState, pPrecision, edge));
         }
 
@@ -76,7 +76,7 @@ public class ValidVarsTransferRelation implements TransferRelation{
 
       return predecessors;
     case BlankEdge:
-      if(pCfaEdge.getDescription().equals("Function start dummy edge")){
+      if (pCfaEdge.getDescription().equals("Function start dummy edge")){
         validVariables = validVariables.extendLocalVars(pCfaEdge.getSuccessor().getFunctionName(),
            ImmutableSet.<String>of());
       }
@@ -122,12 +122,12 @@ public class ValidVarsTransferRelation implements TransferRelation{
     ValidVarsState state = (ValidVarsState) pState;
     ValidVars vars = state.getValidVariables();
 
-    if(pCfaEdge instanceof FunctionReturnEdge){
+    if (pCfaEdge instanceof FunctionReturnEdge){
       String funName = pCfaEdge.getPredecessor().getFunctionName();
       boolean containsFunction = false;
       boolean foundCss = false;
 
-      for(AbstractState otherS :pOtherStates){
+      for (AbstractState otherS :pOtherStates){
         if (otherS instanceof CallstackState) {
           foundCss = true;
           CallstackState css = (CallstackState) otherS;
@@ -136,7 +136,7 @@ public class ValidVarsTransferRelation implements TransferRelation{
             css = css.getPreviousState();
           }
         }
-        if(otherS instanceof CallstackPccState){
+        if (otherS instanceof CallstackPccState){
           foundCss = true;
           CallstackPccState css = (CallstackPccState) otherS;
           for (int i = css.getDepth(); i > 0 & !containsFunction; i--) {
@@ -146,11 +146,11 @@ public class ValidVarsTransferRelation implements TransferRelation{
         }
       }
       // if found may contain more variables than those already declared in the next call of funName on stack
-      if(!foundCss){
+      if (!foundCss){
         throw new CPATransferException("Require CallstackCPA or CallstackPccCPA to securely remove variables of a function "
             +"after function return. Otherwise e.g. recursion cannot be handled.");
       }
-      if(!containsFunction){
+      if (!containsFunction){
         vars = vars.removeVarsOfFunction(funName);
       }
     }
@@ -158,8 +158,8 @@ public class ValidVarsTransferRelation implements TransferRelation{
     Collection<? extends AbstractState> wrappedStrengthen =
         wrappedTransfer.strengthen(state.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
 
-    if(wrappedStrengthen == null || wrappedStrengthen.size()==0){
-      if(pCfaEdge instanceof FunctionReturnEdge && vars!=state.getValidVariables()){
+    if (wrappedStrengthen == null || wrappedStrengthen.size()==0){
+      if (pCfaEdge instanceof FunctionReturnEdge && vars!=state.getValidVariables()){
         return Collections.singleton(new ValidVarsState(state.getWrappedState(), vars));
       }
       return null;

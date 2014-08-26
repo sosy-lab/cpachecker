@@ -146,7 +146,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     // obtain use-def relation, containing variables relevant to the "failing" assumption
     Set<MemoryLocation> useDefRelation = new HashSet<>();
     /* TODO: does not work as long as AssumptionUseDefinitionCollector is incomplete (e.g., does not take structs into account)
-    if(prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
+    if (prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
       AssumptionUseDefinitionCollector useDefinitionCollector = new InitialAssumptionUseDefinitionCollector();
       useDefRelation = from(useDefinitionCollector.obtainUseDefInformation(errorTrace)).
           transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet();
@@ -156,13 +156,13 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      if(!interpolant.isFalse()) {
+      if (!interpolant.isFalse()) {
         interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, useDefRelation);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
-      if(!interpolant.isTrivial() && interpolationOffset == -1) {
+      if (!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
       }
 
@@ -187,7 +187,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
 
-    for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
     }
 
@@ -204,8 +204,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
       CFANode currentNode,
       ValueAnalysisInterpolant itp) {
-    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
         increment.put(currentNode, memoryLocation);
       }
     }
@@ -223,7 +223,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   public Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
-    if(interpolationOffset == -1) {
+    if (interpolationOffset == -1) {
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
     }
 
@@ -235,14 +235,14 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         List<Pair<ARGState, CFAEdge>> trace = errorPath.subList(0, interpolationOffset - 1);
 
         // check in reverse order only when avoiding assumes
-        if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+        if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
           trace = Lists.reverse(trace);
         }
 
         // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
         Collection<String> releventVariables = convertToIdentifiers(increment.values());
         for (Pair<ARGState, CFAEdge> currentElement : trace) {
-          if(edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
+          if (edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
             return errorPath.get(errorPath.indexOf(currentElement) + 1);
           }
         }
@@ -302,7 +302,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private Collection<String> convertToIdentifiers(Collection<MemoryLocation> memoryLocations) {
     Set<String> identifiers = new HashSet<>();
 
-    for(MemoryLocation memoryLocation : memoryLocations) {
+    for (MemoryLocation memoryLocation : memoryLocations) {
       identifiers.add(memoryLocation.getAsSimpleString());
     }
 
@@ -364,7 +364,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         if (assignedVariable instanceof AIdExpression) {
           IASimpleDeclaration declaration = ((AIdExpression)assignedVariable).getDeclaration();
 
-          if(declaration instanceof CVariableDeclaration) {
+          if (declaration instanceof CVariableDeclaration) {
             return variableNames.contains(((CVariableDeclaration)declaration).getQualifiedName());
           }
         }
@@ -460,7 +460,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      */
     public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
 
-      if(assignment == null || other.assignment == null) {
+      if (assignment == null || other.assignment == null) {
         return ValueAnalysisInterpolant.FALSE;
       }
 
@@ -468,8 +468,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       // add other itp mapping - one by one for now, to check for correctness
       // newAssignment.putAll(other.assignment);
-      for(Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
-        if(newAssignment.containsKey(entry.getKey())) {
+      for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+        if (newAssignment.containsKey(entry.getKey())) {
           assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
         }
 
@@ -549,11 +549,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     @Override
     public String toString() {
-      if(isFalse()) {
+      if (isFalse()) {
         return "FALSE";
       }
 
-      if(isTrue()) {
+      if (isTrue()) {
         return "TRUE";
       }
 
@@ -568,7 +568,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       boolean strengthened = false;
 
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
-        if(!valueState.contains(itp.getKey())) {
+        if (!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
           strengthened = true;
         }
@@ -597,10 +597,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
 
-      for(Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
+      for (Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
         MemoryLocation current = it.next();
 
-        if(!toRetain.contains(current.getAsSimpleString())) {
+        if (!toRetain.contains(current.getAsSimpleString())) {
           it.remove();
         }
       }

@@ -176,7 +176,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       if (traceInfo.isSpurious()) {
         logger.log(Level.FINER, "Current execution path is spurious.");
         //path is infeasible continue to find a new one
-      }else{
+      } else {
         dumpTestCase(executedPath, traceInfo);
         if (pseudoTarget.isTarget()) {
           logger.log(Level.FINER, "Identified error path.");

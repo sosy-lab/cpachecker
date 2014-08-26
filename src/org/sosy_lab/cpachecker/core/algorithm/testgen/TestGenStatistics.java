@@ -113,7 +113,7 @@ public class TestGenStatistics implements Statistics {
   }
 
   private void collectStatisticsForAlgorithm(Algorithm pAlgorithm) {
-    if(pAlgorithm instanceof StatisticsProvider) {
+    if (pAlgorithm instanceof StatisticsProvider) {
       StatisticsProvider sProvider = (StatisticsProvider) pAlgorithm;
       sProvider.collectStatistics(cpaAlgorithmStatistics);
     }

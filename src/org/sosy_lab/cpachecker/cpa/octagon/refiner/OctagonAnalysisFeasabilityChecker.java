@@ -153,7 +153,7 @@ public class OctagonAnalysisFeasabilityChecker {
         prefix.addLast(pathElement);
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
+        if (successors.isEmpty()) {
           break;
         }
 

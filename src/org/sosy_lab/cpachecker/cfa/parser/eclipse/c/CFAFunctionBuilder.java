@@ -667,14 +667,14 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
 
     CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
-    if(localLabel != null) {
+    if (localLabel != null) {
       labelName = localLabel.getName();
     }
 
     CLabelNode labelNode = new CLabelNode(cfa.getFunctionName(), labelName);
     locStack.push(labelNode);
 
-    if(localLabel == null) {
+    if (localLabel == null) {
       labelMap.put(labelName, labelNode);
     } else {
       scope.addLabelCFANode(labelNode);

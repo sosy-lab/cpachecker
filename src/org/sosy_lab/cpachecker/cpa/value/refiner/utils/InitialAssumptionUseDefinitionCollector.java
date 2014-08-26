@@ -38,7 +38,7 @@ public class InitialAssumptionUseDefinitionCollector extends AssumptionUseDefini
 
   @Override
   protected void handleAssumption(CFAEdge edge) {
-    if(!isInitialAssumption) {
+    if (!isInitialAssumption) {
       return;
     }
 

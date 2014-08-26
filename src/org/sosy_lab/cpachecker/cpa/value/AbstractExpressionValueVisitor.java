@@ -277,7 +277,7 @@ public abstract class AbstractExpressionValueVisitor
             binaryExpr.getOperator().getOperator());
 
     // If there's no suitable operator, return UNKNOWN
-    if(op == null) {
+    if (op == null) {
       return Value.UnknownValue.getInstance();
     }
 

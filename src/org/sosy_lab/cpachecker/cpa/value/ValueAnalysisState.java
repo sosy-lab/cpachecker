@@ -156,13 +156,13 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   public void retainAll(Set<MemoryLocation> toRetain) {
     Set<MemoryLocation> toRemove = new HashSet<>();
-    for(MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if(!toRetain.contains(memoryLocation)) {
+    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
+      if (!toRetain.contains(memoryLocation)) {
         toRemove.add(memoryLocation);
       }
     }
 
-    for(MemoryLocation memoryLocation : toRemove) {
+    for (MemoryLocation memoryLocation : toRemove) {
       forget(memoryLocation);
     }
   }
@@ -698,7 +698,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
       int offset = hasOffset ? Integer.parseInt(offsetParts[1]) : 0;
 
-      if(isScoped) {
+      if (isScoped) {
         return new MemoryLocation(nameParts[0], nameParts[1].replace("/" + offset, ""), offset);
       }
 

@@ -194,10 +194,10 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // stop deletion and find out if there are deeper children which are and may reference one of their ancestor
       toProcess.addAll(laterCovered);
-      while(!toProcess.isEmpty()){
+      while (!toProcess.isEmpty()){
         current = toProcess.pop();
 
-        for(ARGState c: current.getChildren()) {
+        for (ARGState c: current.getChildren()) {
 
           assert(c.getParents().size()==1);
           // relink or delete child
@@ -228,10 +228,10 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // find out if now covered by external node
       boolean changed = true;
-      while(changed){
+      while (changed){
         changed = false;
-        for(ARGState later:laterCovered){
-          if(later.getCoveredByThis().size()!=0){
+        for (ARGState later:laterCovered){
+          if (later.getCoveredByThis().size()!=0){
             covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, later);
             if (covered != null) {
               // delete edge from parent and introduce covering
@@ -256,7 +256,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // delete rest of subtree
       toProcess.addAll(laterCovered);
-      while(!toProcess.isEmpty()){
+      while (!toProcess.isEmpty()){
         current = toProcess.pop();
         toDeleteFromReached.add(current);
 
@@ -290,10 +290,10 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     toProcess.push(top);
     nodes.add(top);
 
-    while(!toProcess.isEmpty()){
+    while (!toProcess.isEmpty()){
       top = toProcess.pop();
-      for(ARGState child:top.getChildren()){
-        if(nodes.add(child)){
+      for (ARGState child:top.getChildren()){
+        if (nodes.add(child)){
           toProcess.push(child);
         }
       }

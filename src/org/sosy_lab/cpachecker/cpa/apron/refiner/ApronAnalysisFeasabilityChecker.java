@@ -150,7 +150,7 @@ public class ApronAnalysisFeasabilityChecker {
         prefix.addLast(pathElement);
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
+        if (successors.isEmpty()) {
           break;
         }
 

@@ -250,7 +250,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
         else if(mRefiner instanceof UnsoundRefiner) {
-          if(!refinedInPreviousIteration) {
+          if (!refinedInPreviousIteration) {
             break;
           }
 

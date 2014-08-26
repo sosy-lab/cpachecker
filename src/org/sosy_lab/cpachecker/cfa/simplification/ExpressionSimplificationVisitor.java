@@ -92,9 +92,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
-    if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
+    if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      switch(type.getType()) {
+      switch (type.getType()) {
         case INT:
         case CHAR: {
           return new CIntegerLiteralExpression(expr.getFileLocation(),

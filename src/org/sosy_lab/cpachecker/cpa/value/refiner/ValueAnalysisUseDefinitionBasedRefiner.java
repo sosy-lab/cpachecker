@@ -176,7 +176,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
     // no increment - refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 
@@ -203,7 +203,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
         new AssumptionUseDefinitionCollector() :
         new InitialAssumptionUseDefinitionCollector();
 
-    for(String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
+    for (String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
       increment.put(new CFANode("BOGUS_NODE"), MemoryLocation.valueOf(referencedVariable));
     }
 

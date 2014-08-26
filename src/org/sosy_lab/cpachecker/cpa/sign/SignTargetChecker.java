@@ -55,7 +55,7 @@ public class SignTargetChecker {
   public boolean isTarget(SignState pSignState) {
     SIGN absValue = pSignState.getSignForVariable(errorVar);
 
-    if(allowedAbstractValue.covers(absValue)){
+    if (allowedAbstractValue.covers(absValue)){
       return false;
     }
 

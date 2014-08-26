@@ -166,7 +166,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
         // compute the abstraction based on the value-analysis precision, unless assignment information is available
         // then, this is dealt with during enforcement of the path thresholds, see below
-        if(assigns == null) {
+        if (assigns == null) {
           totalAbstraction.start();
           valueAnalysisState = enforceAbstraction(valueAnalysisState, location, valueAnalysisPrecision);
           totalAbstraction.stop();
@@ -310,17 +310,17 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       for (MemoryLocation memoryLocation: state.getDelta()) {
 
         // if memory location is being tracked, check against hard threshold
-        if(precision.isTracking(memoryLocation)) {
+        if (precision.isTracking(memoryLocation)) {
           assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
 
-          if(assignments.exceedsHardThreshold(memoryLocation)) {
+          if (assignments.exceedsHardThreshold(memoryLocation)) {
             state.forget(memoryLocation);
           }
         }
 
         else {
           // otherwise, check against soft threshold, including the pending assignment
-          if(assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
+          if (assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);
           } else {
             assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));

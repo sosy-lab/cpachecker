@@ -152,7 +152,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
     int currentErrorPathId = errorPath.toString().hashCode();
 
     // same error path as in last iteration -> no progress
-    if(currentErrorPathId == previousErrorPathId) {
+    if (currentErrorPathId == previousErrorPathId) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath.immutableCopy());
     }
 
@@ -166,7 +166,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
     Pair<ARGState, CFAEdge> refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
     // no increment - value-analysis refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 

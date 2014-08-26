@@ -122,7 +122,7 @@ class ASTTypeConverter {
         t2 = ((CElaboratedType) t2).getRealType();
       }
       if (equalWithoutName) {
-        switch(t1.getKind()) {
+        switch (t1.getKind()) {
         case STRUCT:
         case UNION:
           List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
@@ -151,7 +151,7 @@ class ASTTypeConverter {
   }
 
   static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }

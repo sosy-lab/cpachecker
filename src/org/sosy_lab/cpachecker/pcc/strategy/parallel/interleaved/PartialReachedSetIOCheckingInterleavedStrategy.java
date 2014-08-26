@@ -213,7 +213,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
         logger.log(Level.SEVERE, "Unexpected failure during proof reading");
         e2.printStackTrace();
         abortPreparation();
-      } finally{
+      } finally {
         if (streams != null) {
           try {
             streams.getThird().close();

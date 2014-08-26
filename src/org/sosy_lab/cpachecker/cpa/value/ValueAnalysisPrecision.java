@@ -106,7 +106,7 @@ public class ValueAnalysisPrecision implements Precision {
     blackListPattern    = Pattern.compile(variableBlacklist);
     varClass            = vc;
 
-    if(sharing.equals("scope")) {
+    if (sharing.equals("scope")) {
       refinablePrecision = new ScopedRefinablePrecision();
     }
 

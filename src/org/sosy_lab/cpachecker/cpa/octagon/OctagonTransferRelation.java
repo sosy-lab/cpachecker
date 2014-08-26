@@ -445,7 +445,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       return handleBinaryAssumptionWithTwoLiterals((CLiteralExpression)left, (CLiteralExpression)right, op, truthAssumption);
     } else if (left instanceof CLiteralExpression) {
       //change operator so we can call handleBinaryAssumptionWithOneLiteral
-      switch(op) {
+      switch (op) {
       case GREATER_EQUAL:
         op = BinaryOperator.LESS_EQUAL;
         break;

@@ -207,7 +207,7 @@ public class SMGExpressionEvaluator {
 
       CType realType = ((CElaboratedType) ownerType).getRealType();
 
-      if(realType == null) {
+      if (realType == null) {
         return SMGField.getUnknownInstance();
       }
 
@@ -279,15 +279,15 @@ public class SMGExpressionEvaluator {
       //be a pointer to the Null Object, or through reinterpretation
       SMGSymbolicValue symbolicValue = evaluateExpressionValue(smgState, cfaEdge, rValue);
 
-      if(!symbolicValue.isUnknown()) {
-        if(symbolicValue == SMGKnownSymValue.ZERO) {
+      if (!symbolicValue.isUnknown()) {
+        if (symbolicValue == SMGKnownSymValue.ZERO) {
           return SMGKnownExpValue.ZERO;
         }
 
-        if(symbolicValue instanceof SMGAddressValue) {
+        if (symbolicValue instanceof SMGAddressValue) {
           SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
-          if(address.getObject() == SMGObject.getNullObject()) {
+          if (address.getObject() == SMGObject.getNullObject()) {
             return SMGKnownExpValue.valueOf(address.getOffset().getAsLong());
           }
         }
@@ -297,7 +297,7 @@ public class SMGExpressionEvaluator {
     } else {
       Long longValue = value.asNumericValue().longValue();
 
-      if(longValue != null) {
+      if (longValue != null) {
         return SMGKnownExpValue.valueOf(longValue);
       } else {
         return SMGUnknownValue.getInstance();
@@ -814,7 +814,7 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
+    if (!pSmgState.isPointer(pAddressValue.getAsInt())) {
       return SMGUnknownValue.getInstance();
     }
 
@@ -924,7 +924,7 @@ public class SMGExpressionEvaluator {
 
       CExpression op = cast.getOperand();
 
-      if(op.getExpressionType() instanceof CArrayType) {
+      if (op.getExpressionType() instanceof CArrayType) {
         return cast.getOperand().accept(this);
       } else {
         //TODO cast reinterpretation
@@ -1141,7 +1141,7 @@ public class SMGExpressionEvaluator {
 
       CExpression op = cast.getOperand();
 
-      if(isStructOrUnionType(op.getExpressionType())) {
+      if (isStructOrUnionType(op.getExpressionType())) {
         return cast.getOperand().accept(this);
       } else {
         //TODO cast reinterpretation
@@ -1535,7 +1535,7 @@ public class SMGExpressionEvaluator {
 
     private boolean isPointerComparison(CBinaryExpression pE) {
 
-      switch(pE.getOperator()) {
+      switch (pE.getOperator()) {
       case EQUALS:
       case LESS_EQUAL:
       case GREATER_EQUAL:

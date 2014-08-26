@@ -69,7 +69,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
-    if(unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
+    if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
       removeUnreachedSiblingsFromARG(element, pElements);
     }
 
@@ -103,13 +103,13 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   private void removeUnreachedSiblingsFromARG(ARGState element, UnmodifiableReachedSet pReachedSet) {
     Set<ARGState> scheduledForDeletion = new HashSet<>();
 
-    for(ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
-      if(sibling != element && !pReachedSet.contains(sibling)) {
+    for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
+      if (sibling != element && !pReachedSet.contains(sibling)) {
         scheduledForDeletion.add(sibling);
       }
     }
 
-    for(ARGState sibling : scheduledForDeletion) {
+    for (ARGState sibling : scheduledForDeletion) {
       sibling.removeFromARG();
     }
   }

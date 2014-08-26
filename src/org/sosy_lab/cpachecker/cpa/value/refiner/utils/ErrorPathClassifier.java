@@ -106,15 +106,15 @@ public class ErrorPathClassifier {
 
   public MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
     int totalLength = 0;
-    for(MutableARGPath p : pPrefixes) {
+    for (MutableARGPath p : pPrefixes) {
       totalLength += p.size();
     }
 
     int length = 0;
     int index = 0;
-    for(MutableARGPath p : pPrefixes) {
+    for (MutableARGPath p : pPrefixes) {
       length += p.size();
-      if(length > totalLength / 2) {
+      if (length > totalLength / 2) {
         break;
       }
       index++;

@@ -144,7 +144,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
-    if(!(wrapperCpa.retrieveWrappedCpa(CompositeCPA.class).getPrecisionAdjustment() instanceof ComponentAwarePrecisionAdjustment)) {
+    if (!(wrapperCpa.retrieveWrappedCpa(CompositeCPA.class).getPrecisionAdjustment() instanceof ComponentAwarePrecisionAdjustment)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " needs a ComponentAwarePrecisionAdjustment operator");
     }
 
@@ -256,7 +256,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     }
 
-    if(predicatingRefiner != null) {
+    if (predicatingRefiner != null) {
       numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, pErrorPath);
     }
@@ -301,12 +301,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
       // no increment - value-analysis refinement was not successful
-      if(increment.isEmpty()) {
+      if (increment.isEmpty()) {
         return false;
       }
 
       // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-      if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
+      if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
         refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
       }
 

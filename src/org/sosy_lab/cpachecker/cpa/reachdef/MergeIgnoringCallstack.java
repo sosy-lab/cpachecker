@@ -78,7 +78,7 @@ public class MergeIgnoringCallstack implements MergeOperator{
       } else if(map2.get(var)==null) {
         newMap.put(var, map1.get(var));
         changed = true;
-      }else{
+      } else {
         unionResult = new HashSet<>();
         for (DefinitionPoint p : map1.get(var)) {
           unionResult.add(p);

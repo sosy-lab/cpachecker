@@ -259,7 +259,7 @@ class FunctionScope extends Scope {
 
     String labelName = label.getOrigName();
 
-    if(lookupLocalLabel(labelName) != null) {
+    if (lookupLocalLabel(labelName) != null) {
       throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
     }
 
@@ -272,7 +272,7 @@ class FunctionScope extends Scope {
 
   public CLabelNode lookupLocalLabelNode(String name) {
     Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       Map<String, CLabelNode> nodes = it.next();
 
       CLabelNode node = nodes.get(name);

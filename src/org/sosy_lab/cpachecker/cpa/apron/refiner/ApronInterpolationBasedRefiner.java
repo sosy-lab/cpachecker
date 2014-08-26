@@ -138,7 +138,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      if(!interpolant.isFalse()) {
+      if (!interpolant.isFalse()) {
         interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
       }
 
@@ -150,7 +150,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
         interpolant.clearScope(errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
-      if(!interpolant.isTrivial() && interpolationOffset == -1) {
+      if (!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
       }
 
@@ -173,7 +173,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
 
     Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
 
-    for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
     }
 
@@ -190,8 +190,8 @@ public class ApronInterpolationBasedRefiner implements Statistics {
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
       CFANode currentNode,
       ValueAnalysisInterpolant itp) {
-    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
         increment.put(currentNode, memoryLocation);
       }
     }
@@ -209,7 +209,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
   Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
-    if(interpolationOffset == -1) {
+    if (interpolationOffset == -1) {
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
     }
 
@@ -221,14 +221,14 @@ public class ApronInterpolationBasedRefiner implements Statistics {
         List<Pair<ARGState, CFAEdge>> trace = errorPath.subList(0, interpolationOffset - 1);
 
         // check in reverse order only when avoiding assumes
-        if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+        if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
           trace = Lists.reverse(trace);
         }
 
         // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
         Collection<String> releventVariables = convertToIdentifiers(increment.values());
         for (Pair<ARGState, CFAEdge> currentElement : trace) {
-          if(edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
+          if (edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
             return errorPath.get(errorPath.indexOf(currentElement) + 1);
           }
         }
@@ -252,7 +252,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
   private Collection<String> convertToIdentifiers(Collection<MemoryLocation> memoryLocations) {
     Set<String> identifiers = new HashSet<>();
 
-    for(MemoryLocation memoryLocation : memoryLocations) {
+    for (MemoryLocation memoryLocation : memoryLocations) {
       identifiers.add(memoryLocation.getAsSimpleString());
     }
 
@@ -314,7 +314,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
         if (assignedVariable instanceof AIdExpression) {
           IASimpleDeclaration declaration = ((AIdExpression)assignedVariable).getDeclaration();
 
-          if(declaration instanceof CVariableDeclaration) {
+          if (declaration instanceof CVariableDeclaration) {
             return variableNames.contains(((CVariableDeclaration)declaration).getQualifiedName());
           }
         }
@@ -409,7 +409,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
      */
     public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
 
-      if(assignment == null || other.assignment == null) {
+      if (assignment == null || other.assignment == null) {
         return ValueAnalysisInterpolant.FALSE;
       }
 
@@ -417,8 +417,8 @@ public class ApronInterpolationBasedRefiner implements Statistics {
 
       // add other itp mapping - one by one for now, to check for correctness
       // newAssignment.putAll(other.assignment);
-      for(Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
-        if(newAssignment.containsKey(entry.getKey())) {
+      for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+        if (newAssignment.containsKey(entry.getKey())) {
           assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
         }
 
@@ -493,7 +493,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
      * @param functionName the name of the function for which to remove assignments
      */
     private void clearScope(String functionName) {
-      if(isTrivial()) {
+      if (isTrivial()) {
         return;
       }
 
@@ -515,11 +515,11 @@ public class ApronInterpolationBasedRefiner implements Statistics {
 
     @Override
     public String toString() {
-      if(isFalse()) {
+      if (isFalse()) {
         return "FALSE";
       }
 
-      if(isTrue()) {
+      if (isTrue()) {
         return "TRUE";
       }
 
@@ -534,7 +534,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
       boolean strengthened = false;
 
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
-        if(!valueState.contains(itp.getKey())) {
+        if (!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
           strengthened = true;
         }

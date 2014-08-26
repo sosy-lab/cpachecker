@@ -70,27 +70,27 @@ public class ValidVars {
     builder.addAll(globalValidVars);
 
     ImmutableSet<String> newGlobals = builder.build();
-    if(newGlobals.size()!=pOther.globalValidVars.size()){
+    if (newGlobals.size()!=pOther.globalValidVars.size()){
       changed = true;
     }
 
     // merge local vars
     ImmutableSet<String> newLocalsForFun;
     ImmutableMap.Builder<String,ImmutableSet<String>> builderMap = ImmutableMap.builder();
-    for(String funName: localValidVars.keySet()){
+    for (String funName: localValidVars.keySet()){
       builder = ImmutableSet.builder();
       builder.addAll(pOther.localValidVars.get(funName));
       builder.addAll(localValidVars.get(funName));
 
       newLocalsForFun = builder.build();
-      if(newLocalsForFun.size()!=pOther.localValidVars.get(funName).size()){
+      if (newLocalsForFun.size()!=pOther.localValidVars.get(funName).size()){
         changed = true;
       }
 
       builderMap.put(funName, newLocalsForFun);
     }
 
-    if(changed){
+    if (changed){
       return new ValidVars(newGlobals, builderMap.build());
     }
 

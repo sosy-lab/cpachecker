@@ -757,7 +757,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           }
       }
     }
-    if(pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())){
+    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())){
       return pVariableName.toASTString();
     }
     return pCalledFunctionName + "::" + pVariableName.toASTString();

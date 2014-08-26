@@ -115,7 +115,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       // WARNING: some hack don't know if any good or enough
       // ----->
       final AbstractState currentElementTmp = currentElement.getFirst();
-      if(from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
+      if (from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
 
         @Override
         public boolean apply(AbstractState pInput) {
@@ -135,7 +135,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
         continue;
       }
 //      cpa.getTransferRelation().
-      if(lastElement == null) {
+      if (lastElement == null) {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.FINER, "encountered an executed path that might be spurious.");
         lastElement = currentElement;

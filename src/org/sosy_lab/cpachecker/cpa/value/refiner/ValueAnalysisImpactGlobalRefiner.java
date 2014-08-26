@@ -170,7 +170,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     timerErrors.stop();
 //System.out.println("number of targets: " + targets.size());
     // stop once any feasible counterexample is found
-    if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
+    if (isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
       totalTime.stop();
       return false;
     }
@@ -184,13 +184,13 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     timerItp.start();
     int i = 0;
     MutableARGPath lastErrorPath = null;
-    while(interpolationTree.hasNextPathForInterpolation()) {
+    while (interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
       MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
 //System.out.println(totalRefinements + " ->  errorPath |" + errorPath.size() + "|: " + errorPath.toString().hashCode() + "(" + uniqueTargetTraceCounter.containsKey(errorPath.toString().hashCode()) + ")");
-      if(errorPath.isEmpty()) {
+      if (errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
@@ -198,13 +198,13 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
       lastErrorPath = errorPath;
 
-      if(i == 1) {
+      if (i == 1) {
         incrementUniqueTargetTraceCounter(errorPath);
       }
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
-      if(initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
+      if (initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
         errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
         initialItp  = ValueAnalysisInterpolant.createInitial();
       }
@@ -213,7 +213,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
-      if(exportInterpolationTree.equals("ALWAYS")) {
+      if (exportInterpolationTree.equals("ALWAYS")) {
         interpolationTree.exportToDot(totalRefinements, i);
       }
 
@@ -222,7 +222,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
     timerItp.stop();
 
-    if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+    if (exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
@@ -231,7 +231,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     createGlobalPrecision(pReached, interpolationTree);
     timerGlobalPrec.stop();
 
-    if(forceRestart != 0 && totalRefinements % forceRestart == 0) {
+    if (forceRestart != 0 && totalRefinements % forceRestart == 0) {
       new ARGReachedSet(pReached).removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(),
           globalPrecision, ValueAnalysisPrecision.class);
 
@@ -260,7 +260,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
         continue;
       }
 
-      if(strengthendStates.contains(currentState) && currentState.getChildren().size() > 1) {
+      if (strengthendStates.contains(currentState) && currentState.getChildren().size() > 1) {
         ValueAnalysisPrecision currentPrecision = extractPrecision(pReached, currentState);
 
         Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
@@ -270,7 +270,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
         timerReaddToWaitlist.start();
 
-        if(!currentState.isCovered()) {
+        if (!currentState.isCovered()) {
           reached.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
         }
 
@@ -285,13 +285,13 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     removeInfeasiblePartsOfArg(interpolationTree, reached);
     timerRemoveInfeasible.stop();
 
-    for(ARGState leave : weakSiblings) {
+    for (ARGState leave : weakSiblings) {
       // do not remove the sibling that was strengthened, it's not weak after all
-      if(strengthendStates.contains(leave)) {
+      if (strengthendStates.contains(leave)) {
         continue;
       }
 
-      if(leave.isDestroyed()) {
+      if (leave.isDestroyed()) {
         continue;
       }
 
@@ -309,15 +309,15 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     ARGState coverageRoot = null;
 
     // traverse path top-to-bottom, trying to find a state covering a strengthened state in the error path ...
-    for(int i = 0; i < pLastErrorPath.size(); i++) {
+    for (int i = 0; i < pLastErrorPath.size(); i++) {
       Pair<ARGState, CFAEdge> elem = pLastErrorPath.get(i);
 
       ARGState state = elem.getFirst();
 
-      if(strengthendStates.contains(state)) {
+      if (strengthendStates.contains(state)) {
         try {
 
-          if(reached.tryToCover(state, true)) {
+          if (reached.tryToCover(state, true)) {
 //System.out.println("detected coverage for state " + state.getStateId());
             coverageRoot = state;
             break;
@@ -330,9 +330,9 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     }
 
     // ... and if one was found, also set its subtree as covered
-    if(coverageRoot != null) {
-      for(ARGState toCover : coverageRoot.getSubgraph()) {
-        if(!toCover.isCovered()) {
+    if (coverageRoot != null) {
+      for (ARGState toCover : coverageRoot.getSubgraph()) {
+        if (!toCover.isCovered()) {
           toCover.setCovered(coverageRoot);
         }
       }
@@ -348,7 +348,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
   private void incrementUniqueTargetTraceCounter(MutableARGPath errorPath) {
     Integer hash = errorPath.toString().hashCode();
 
-    if(!uniqueTargetTraceCounter.containsKey(hash)) {
+    if (!uniqueTargetTraceCounter.containsKey(hash)) {
       uniqueTargetTraceCounter.put(hash, 0);
     }
     uniqueTargetTraceCounter.put(hash, uniqueTargetTraceCounter.get(hash) + 1);
@@ -364,7 +364,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
   Timer timerErrors = new Timer();
 
   private void dumpArgToDot(final ReachedSet pReached, String currentPhase, Collection<Pair<ARGState, ARGState>> errorPaths) {
-    if(exportInterpolationTree.equals("ALWAYS")) {
+    if (exportInterpolationTree.equals("ALWAYS")) {
       try (Writer w = Files.openOutputFile(Paths.get(currentPhase + "_" + totalRefinements + ".dot"))) {
         //ARGUtils.writeARGAsDot(w, (ARGState)pReached.getFirstState(), Predicates.in(errorPaths));
       } catch (IOException e) {
@@ -383,7 +383,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
         ValueAnalysisInterpolant itp  = entry.getValue();
         ValueAnalysisState valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
 
-        if(itp.strengthen(valueState, state)) {
+        if (itp.strengthen(valueState, state)) {
           strengthendStates.add(state);
         }
       }
@@ -419,7 +419,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
-    if(errorPath.getFirst().getFirst() == root) {
+    if (errorPath.getFirst().getFirst() == root) {
       return false;
     }
 
@@ -432,7 +432,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
     final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
-    for(ARGState target : targetsReachableFromRoot) {
+    for (ARGState target : targetsReachableFromRoot) {
       ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
@@ -449,16 +449,16 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       throws CPAException, InterruptedException {
 
     MutableARGPath feasiblePath = null;
-    for(MutableARGPath currentPath : errorPaths) {
-      if(isErrorPathFeasible(currentPath)) {
+    for (MutableARGPath currentPath : errorPaths) {
+      if (isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
       }
     }
 
     // remove all other target states, so that only one is left (for CEX-checker)
-    if(feasiblePath != null) {
-      for(MutableARGPath others : errorPaths) {
-        if(others != feasiblePath) {
+    if (feasiblePath != null) {
+      for (MutableARGPath others : errorPaths) {
+        if (others != feasiblePath) {
           pReached.removeSubtree(others.getLast().getFirst());
         }
       }
@@ -470,7 +470,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
   private boolean isErrorPathFeasible(final MutableARGPath errorPath)
       throws CPAException, InterruptedException {
-    if(checker.isFeasible(errorPath)) {
+    if (checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
 
       return true;
@@ -483,7 +483,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     Set<MutableARGPath> errorPaths = new TreeSet<>(new Comparator<MutableARGPath>() {
       @Override
       public int compare(MutableARGPath path1, MutableARGPath path2) {
-        if(path1.size() == path2.size()) {
+        if (path1.size() == path2.size()) {
           return 1;
         }
 
@@ -493,7 +493,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       }
     });
 
-    for(ARGState target : targetStates) {
+    for (ARGState target : targetStates) {
       MutableARGPath p = ARGUtils.getOneMutablePathTo(target);
       errorPaths.add(p);
     }
@@ -502,7 +502,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
   }
 
   private List<ARGState> getErrorStates(final ReachedSet pReached) {
-    if(((ARGState)pReached.getLastState()).isTarget()) {
+    if (((ARGState)pReached.getLastState()).isTarget()) {
       return Lists.newArrayList(((ARGState)pReached.getLastState()));
     }
 
@@ -552,7 +552,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       out.println("numberOfUniqueTargets: " + uniqueTargetTraceCounter.size());
 
       int max = 0;
-      for(Integer i : uniqueTargetTraceCounter.values()) {
+      for (Integer i : uniqueTargetTraceCounter.values()) {
         max = Math.max(max, i);
       }
       out.println("MaxNumberOfIdenticalPaths: " + max);
@@ -629,7 +629,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
       targets   = pTargets;
       root      = buildTree();
 
-      if(useTopDownInterpolationStrategy) {
+      if (useTopDownInterpolationStrategy) {
         strategy = new TopDownInterpolationStrategy();
       } else {
         strategy = new BottomUpInterpolationStrategy();
@@ -639,7 +639,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
     public Collection<Pair<ARGState, ARGState>> getErrorPathEdges() {
       Set<Pair<ARGState, ARGState>> edges = new HashSet<>();
 
-      for(Map.Entry<ARGState, ARGState> entry : successorRelation.entries()) {
+      for (Map.Entry<ARGState, ARGState> entry : successorRelation.entries()) {
         edges.add(Pair.<ARGState, ARGState>getPairFomMapEntry().apply(entry));
       }
 
@@ -692,8 +692,8 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
      */
     private void exportToDot(int refinementCnt, int iteration) {
       StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
-      for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-        if(interpolants.containsKey(current.getKey())) {
+      for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
+        if (interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
           sb.append(interpolants.get(current.getKey()));
@@ -707,7 +707,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "").replace("\"", "'") + "\"]\n");
         }
 
-        if(current.getValue().isTarget()) {
+        if (current.getValue().isTarget()) {
           result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
         }
 
@@ -755,7 +755,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
 
-        if(interpolants.containsKey(state)) {
+        if (interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
         }
 
@@ -899,24 +899,24 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
         ARGState current = sources.pop();
 
-        if(!isValidInterpolationRoot(predecessorRelation.get(current))) {
+        if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
           return errorPath;
         }
 
         // if the current state is not the root, it is a child of a branch , however, the path should not start with the
         // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-        if(current != root) {
+        if (current != root) {
           errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
         }
 
-        while(successorRelation.get(current).iterator().hasNext()) {
+        while (successorRelation.get(current).iterator().hasNext()) {
           Iterator<ARGState> children = successorRelation.get(current).iterator();
           ARGState child = children.next();
           errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
           // push all other children of the current state, if any, onto the stack for later interpolations
-          if(children.hasNext()) {
+          if (children.hasNext()) {
             ARGState sibling = children.next();
             logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
             sources.push(sibling);
@@ -925,7 +925,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
           current = child;
 
           // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
-          if(!successorRelation.get(current).iterator().hasNext()) {
+          if (!successorRelation.get(current).iterator().hasNext()) {
             errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
           }
         }
@@ -937,11 +937,11 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
        * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
        */
       public boolean isValidInterpolationRoot(ARGState root) {
-        if(!interpolants.containsKey(root)) {
+        if (!interpolants.containsKey(root)) {
           return true;
         }
 
-        if(!interpolants.get(root).isFalse()) {
+        if (!interpolants.get(root).isFalse()) {
           return true;
         }
 
@@ -953,7 +953,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
         ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
-        if(initialInterpolant == null) {
+        if (initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
           assert isInitialInterpolation : "initial interpolant was null after initial interpolation!";
         }
@@ -986,7 +986,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
         errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
 
-        while(predecessorRelation.get(current) != null) {
+        while (predecessorRelation.get(current) != null) {
 
           ARGState parent = predecessorRelation.get(current);
 

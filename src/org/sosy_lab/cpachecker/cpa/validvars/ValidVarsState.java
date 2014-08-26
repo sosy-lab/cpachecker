@@ -57,7 +57,7 @@ public class ValidVarsState extends AbstractSingleWrapperState implements Target
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
     AbstractState wrappedState = getWrappedState();
-    if(wrappedState instanceof TargetableWithPredicatedAnalysis && isTarget()){
+    if (wrappedState instanceof TargetableWithPredicatedAnalysis && isTarget()){
       return ((TargetableWithPredicatedAnalysis)wrappedState).getErrorCondition(pFmgr);
     }
     return pFmgr.getBooleanFormulaManager().makeBoolean(false);

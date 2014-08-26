@@ -109,7 +109,7 @@ public class NumericValue implements Value, Serializable {
    */
   @Override
   public boolean equals(Object other) {
-    if(other instanceof NumericValue) {
+    if (other instanceof NumericValue) {
       return this.getNumber().equals(((NumericValue) other).getNumber());
     } else {
       return false;
@@ -155,11 +155,11 @@ public class NumericValue implements Value, Serializable {
   public Long asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
-    if(!(type instanceof CSimpleType)) {
+    if (!(type instanceof CSimpleType)) {
       return null;
     }
 
-    if(((CSimpleType)type).getType() == CBasicType.INT) {
+    if (((CSimpleType)type).getType() == CBasicType.INT) {
       return longValue();
     } else {
       return null;

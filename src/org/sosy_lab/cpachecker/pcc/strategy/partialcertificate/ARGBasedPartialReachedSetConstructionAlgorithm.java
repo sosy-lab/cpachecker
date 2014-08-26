@@ -90,7 +90,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
         Collection<AbstractState> successors = new ArrayList<>(
             cpa.getTransferRelation().getAbstractSuccessors(pPredecessor.getWrappedState(), precision, edge));
         // check if child is the successor computed by transfer relation
-        if(successors.contains(pChild.getWrappedState())) { return true; }
+        if (successors.contains(pChild.getWrappedState())) { return true; }
         // check if check only failed because it is not the same object
         if (!cpa.getStopOperator().stop(pChild.getWrappedState(), successors, precision)){
           return false;
