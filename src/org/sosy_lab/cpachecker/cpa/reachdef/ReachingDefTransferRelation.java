@@ -85,7 +85,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pCfaEdge != null) {
       return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
     }
-    CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
+    List<CFANode> nodes = ReachingDefUtils.getAllNodesFromCFA();
     if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
     }
