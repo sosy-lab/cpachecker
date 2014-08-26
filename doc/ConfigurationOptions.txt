@@ -242,6 +242,10 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
+# Generate additional invariants by induction and add them to the induction
+# hypothesis.
+bmc.addInvariantsByInduction = true
+
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true

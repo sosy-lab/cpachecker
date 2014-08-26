@@ -184,6 +184,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="Generate invariants and add them to the induction hypothesis.")
   private boolean useInvariantsForInduction = false;
 
+  @Option(description="Generate additional invariants by induction and add them to the induction hypothesis.")
+  private boolean addInvariantsByInduction = true;
+
   @Option(description="Adds pre-loop information to the induction hypothesis. "
       + "This is unsound and should generally not be used; however "
       + "it is provided as an implementation of the technique introduced in "
@@ -322,7 +325,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
           if (!safe) {
             return soundInner;
-          } else if (induction && !kInductionProver.isTrivial()) {
+          } else if (addInvariantsByInduction && induction && !kInductionProver.isTrivial()) {
             if (targetLocations != null) {
               if (relevantAssumeEdges == null || kInductionProver.haveCurrentPotentialTargetLocationsChanged()) {
                 relevantAssumeEdges = getRelevantAssumeEdges(pReachedSet, targetLocations);
