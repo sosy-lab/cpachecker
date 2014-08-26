@@ -63,7 +63,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable,
+public final class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable,
     TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable {
 
   private static final long serialVersionUID = -3152134511524554357L;
@@ -96,6 +96,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap) {
     this.constantsMap = pConstantsMap;
+  }
+
+  public static ValueAnalysisState copyOf(ValueAnalysisState state) {
+    return new ValueAnalysisState(state.constantsMap);
   }
 
   /**
@@ -298,11 +302,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
 
     return true;
-  }
-
-  @Override
-  public ValueAnalysisState clone() {
-    return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(constantsMap));
   }
 
   @Override

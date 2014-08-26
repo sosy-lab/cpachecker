@@ -312,7 +312,7 @@ public class ApronInterpolator {
       return null;
 
     } else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      return predecessor.clone();
+      return ValueAnalysisState.copyOf(predecessor);
 
     } else {
       return Iterables.getOnlyElement(successors);

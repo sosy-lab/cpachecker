@@ -193,7 +193,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
-      successor = successor.clone();
+      successor = ValueAnalysisState.copyOf(successor);
     }
 
     // only maintain the delta if needed (for later abstraction) and if there is a successor
@@ -215,7 +215,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
-    oldState = ((ValueAnalysisState) pAbstractState).clone();
+    oldState = ValueAnalysisState.copyOf((ValueAnalysisState) pAbstractState);
   }
 
   @Override
@@ -235,7 +235,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {
-    ValueAnalysisState newElement = state.clone();
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert (parameters.size() == arguments.size());
@@ -286,7 +286,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
               || "skipped uneccesary edges".equals(cfaEdge.getDescription());
 
       // clone state, because will be changed through removing all variables of current function's scope
-      state = state.clone();
+      state = ValueAnalysisState.copyOf(state);
       state.dropFrame(functionName);
     }
 
@@ -301,7 +301,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
 
     // clone state, because will be changed through removing all variables of current function's scope
-    state = state.clone();
+    state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
     IAExpression expression = returnEdge.getExpression().orNull();
@@ -331,7 +331,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
     throws UnrecognizedCodeException {
 
-    ValueAnalysisState newElement  = state.clone();
+    ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
     MemoryLocation returnVarName = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -389,7 +389,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   @Override
   protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
-    ValueAnalysisState newState = state.clone();
+    ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
     AFunctionCall functionCall  = cfaEdge.getExpression();
 
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
@@ -418,7 +418,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
 
     if (!value.isExplicitlyKnown()) {
-      ValueAnalysisState element = state.clone();
+      ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
       // If it's a symbolic formula, try if we can solve it for any of its symbolic values.
       if (value instanceof SymbolicValueFormula) {
@@ -462,7 +462,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else if (representsBoolean(value, truthValue)) {
       // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
       // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
-      return state.clone();
+      return ValueAnalysisState.copyOf(state);
 
     } else {
       // assumption not fulfilled
@@ -505,7 +505,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return state;
     }
 
-    ValueAnalysisState newElement = state.clone();
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
     AVariableDeclaration decl = (AVariableDeclaration)declaration;
 
     // get the variable name in the declarator
@@ -731,7 +731,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = state.clone();
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     if (visitor.hasMissingFieldAccessInformation() || visitor.hasMissingEnumComparisonInformation()) {
       // This may happen if an object of class is created which could not be parsed,
@@ -1241,7 +1241,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Collection<ValueAnalysisState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {
 
-    ValueAnalysisState newElement = state.clone();
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     //TODO Refactor
 
@@ -1422,7 +1422,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (!value.isExplicitlyKnown()) {
 
         // Try deriving further Information
-        ValueAnalysisState element = pNewElement.clone();
+        ValueAnalysisState element = ValueAnalysisState.copyOf(pNewElement);
         SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, booleanVariables, pSmgState);
         pMissingInformation.getMissingCExpressionInformation().accept(avv);
 
@@ -1436,7 +1436,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private Collection<ValueAnalysisState> strengthen(RTTState rttState)
       throws UnrecognizedCCodeException {
 
-    ValueAnalysisState newElement = state.clone();
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     if (missingFieldVariableObject) {
       newElement.assignConstant(getRTTScopedVariableName(
