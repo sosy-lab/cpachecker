@@ -220,7 +220,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
-  protected void addPCCStatistic(final Statistics pPCCStatistic){
+  protected void addPCCStatistic(final Statistics pPCCStatistic) {
     pccStats.add(pPCCStatistic);
   }
 
@@ -244,23 +244,23 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       return "Proof Checking Strategy Statistics";
     }
 
-    public Timer getPreparationTimer(){
+    public Timer getPreparationTimer() {
       return preparationTimer;
     }
 
-    public Timer getStopTimer(){
+    public Timer getStopTimer() {
       return stopTimer;
     }
 
-    public Timer getTransferTimer(){
+    public Timer getTransferTimer() {
       return transferTimer;
     }
 
-    public Timer getPropertyCheckingTimer(){
+    public Timer getPropertyCheckingTimer() {
       return propertyCheckingTimer;
     }
 
-    public void increaseIteration(){
+    public void increaseIteration() {
       countIterations++;
     }
 

@@ -326,7 +326,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void differentSizeCheckTest(){
+  public void differentSizeCheckTest() {
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(12, "Object 2");
     WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
@@ -470,7 +470,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void nonMemberObjectTest1(){
+  public void nonMemberObjectTest1() {
     ReadableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     WritableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 
@@ -483,7 +483,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void nonMemberObjectTest2(){
+  public void nonMemberObjectTest2() {
     WritableSMG smg1 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
     ReadableSMG smg2 = SMGFactory.createWritableSMG(MachineModel.LINUX64);
 

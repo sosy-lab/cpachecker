@@ -430,7 +430,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG)){
+    if (pConfig.equals(exportSMG)) {
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }

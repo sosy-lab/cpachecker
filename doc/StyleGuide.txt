@@ -172,3 +172,4 @@ Automatic code cleanup:
 - else on same line: sed '$!N;s%} *\n *else %} else %;P;D' -i src/**/*.java
 - Space after keyword: sed -e 's%^\( *}\? *\(else\|if\|for\|while\|switch\|try\|catch\|finally\)\)\([({]\)%\1 \3%' -i src/**/*.java
 - Space before keyword: sed -e 's%^\( *}\)\(else\|catch\|finally\) %\1 \2 %' -i src/**/*.java
+- Space between ) and {: sed 's%){$%) {%' -i src/**/*.java

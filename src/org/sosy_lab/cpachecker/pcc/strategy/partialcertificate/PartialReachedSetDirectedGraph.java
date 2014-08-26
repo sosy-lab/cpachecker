@@ -69,7 +69,7 @@ public class PartialReachedSetDirectedGraph {
     this.adjacencyList = ImmutableList.copyOf(newList);
   }
 
-  public int getNumNodes(){
+  public int getNumNodes() {
     return numNodes;
   }
   public List<AbstractState> getNodes() {
@@ -95,7 +95,7 @@ public class PartialReachedSetDirectedGraph {
     return visitor.numOutside;
   }
 
-  public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState){
+  public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     List<AbstractState> listRes = new ArrayList<>();
 
     try {
@@ -182,7 +182,7 @@ public class PartialReachedSetDirectedGraph {
       changeableAdjacencyList = pAdjacencyList;
     }
 
-    public void setPredecessorBeforeARGPass(ARGState pNewPredecessor){
+    public void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {
       predecessor = pNewPredecessor;
       indexPredecessor = nodeToIndex.get(predecessor);
     }

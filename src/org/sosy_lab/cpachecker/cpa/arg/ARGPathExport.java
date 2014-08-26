@@ -187,7 +187,7 @@ public class ARGPathExport {
       return this.keyValues.equals(oT.keyValues);
     }
 
-    public boolean hasTransitionRestrictions(){
+    public boolean hasTransitionRestrictions() {
       return !keyValues.isEmpty();
     }
 

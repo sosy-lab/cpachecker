@@ -1435,7 +1435,7 @@ public class CFASingleLoopTransformation {
     Set<CFANode> visited = new HashSet<>();
     waitlist.push(pSingleLoopHead);
     boolean firstIteration = true;
-    while (!waitlist.isEmpty()){
+    while (!waitlist.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.pop();
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {

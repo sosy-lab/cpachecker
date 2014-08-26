@@ -134,7 +134,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::assignConstant
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
-    if (interval.isUnbound()){
+    if (interval.isUnbound()) {
       removeInterval(variableName);
       return this;
     }
@@ -170,8 +170,8 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   public void dropFrame(String pCalledFunctionName) {
-    for (String variableName : intervals.keySet()){
-      if (variableName.startsWith(pCalledFunctionName+"::")){
+    for (String variableName : intervals.keySet()) {
+      if (variableName.startsWith(pCalledFunctionName+"::")) {
         removeInterval(variableName);
       }
     }

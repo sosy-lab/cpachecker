@@ -339,7 +339,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             reachedSet.removeAll(toRemove);
             reachedSet.addAll(toAdd);
 
-            if (mergeOperator instanceof ARGMergeJoinPredicatedAnalysis){
+            if (mergeOperator instanceof ARGMergeJoinPredicatedAnalysis) {
               ((ARGMergeJoinPredicatedAnalysis)mergeOperator).cleanUp(reachedSet);
             }
 

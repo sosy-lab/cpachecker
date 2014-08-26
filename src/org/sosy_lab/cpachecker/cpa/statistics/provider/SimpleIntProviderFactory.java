@@ -264,7 +264,7 @@ public class SimpleIntProviderFactory {
     return count;
   }
 
-  public static IntMerger defaultMerge = new IntMerger(){
+  public static IntMerger defaultMerge = new IntMerger() {
     @Override
     public int merge(int s1, int s2) {
       return s1 + s2;
@@ -274,7 +274,7 @@ public class SimpleIntProviderFactory {
       return "add";
     }
   };
-  public static IntMerger maxMerge = new IntMerger(){
+  public static IntMerger maxMerge = new IntMerger() {
     @Override
     public int merge(int s1, int s2) {
       return Math.max(s1, s2);
@@ -285,7 +285,7 @@ public class SimpleIntProviderFactory {
     }
   };
 
-  public static IntMerger minMerge = new IntMerger(){
+  public static IntMerger minMerge = new IntMerger() {
     @Override
     public int merge(int s1, int s2) {
       return Math.min(s1, s2);
@@ -336,7 +336,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getEdgeType() == CFAEdgeType.BlankEdge && edge.getDescription().startsWith("Goto: ")){
+      if (edge.getEdgeType() == CFAEdgeType.BlankEdge && edge.getDescription().startsWith("Goto: ")) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -360,7 +360,7 @@ public class SimpleIntProviderFactory {
         CFANode pred = edge.getPredecessor();
         CFANode succ = edge.getSuccessor();
         // we run into a loop
-        if (loopHeads.contains(succ)){
+        if (loopHeads.contains(succ)) {
           // Now we have to check that are are not already within the loop
           if (succ.getNodeNumber() > pred.getNodeNumber()) {
             // NOTE: Not really a very sophisticated test, but fast and worked in my test cases
@@ -438,7 +438,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getSuccessor().getNumLeavingEdges() > 1){
+      if (edge.getSuccessor().getNumLeavingEdges() > 1) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -457,7 +457,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getPredecessor().getNodeNumber() + 1 != edge.getSuccessor().getNodeNumber()){
+      if (edge.getPredecessor().getNodeNumber() + 1 != edge.getSuccessor().getNodeNumber()) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -692,7 +692,7 @@ public class SimpleIntProviderFactory {
   }
 
   private static boolean isBitwiseOperation(CBinaryExpression exp) {
-    switch (exp.getOperator()){
+    switch (exp.getOperator()) {
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR:
@@ -796,7 +796,7 @@ public class SimpleIntProviderFactory {
 
 
   private static boolean isArithmeticOperation(CBinaryExpression exp) {
-    switch (exp.getOperator()){
+    switch (exp.getOperator()) {
     case DIVIDE:
     case MINUS:
     case MODULO:

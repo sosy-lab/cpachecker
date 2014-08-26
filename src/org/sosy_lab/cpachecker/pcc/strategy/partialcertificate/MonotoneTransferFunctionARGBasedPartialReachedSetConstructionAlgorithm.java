@@ -37,7 +37,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
 
   private final boolean returnARGStates;
 
-  public MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates){
+  public MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
     returnARGStates = pReturnARGStatesInsteadOfWrappedStates;
   }
 
@@ -94,7 +94,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
       return false;
     }
 
-    public List<? extends AbstractState> getSelectedNodes(){
+    public List<? extends AbstractState> getSelectedNodes() {
       if (returnARGStates) {
         return argStates;
       } else {

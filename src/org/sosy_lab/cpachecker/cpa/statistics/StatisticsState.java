@@ -77,7 +77,7 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
       if (fixed) {
         throw new IllegalStateException("providers are already fixed");
       }
-      if (!propertyProviders.add(provider)){
+      if (!propertyProviders.add(provider)) {
         throw new IllegalStateException("the requested provider was already added!");
       }
     }
@@ -233,7 +233,7 @@ public class StatisticsState implements AbstractStateWithLocation, AbstractQuery
       return false;
     }
     if (locationNode.equals(other.locationNode)
-        /*&& covered.equals(other.covered)*/){
+        /*&& covered.equals(other.covered)*/) {
       return true;
     }
     return false;

@@ -220,7 +220,7 @@ class BAMCPAStatistics implements Statistics {
       final Set<ReachedSet> finished = new HashSet<>();
       final Deque<ReachedSet> waitlist = new ArrayDeque<>();
       waitlist.add(mainReachedSet);
-      while (!waitlist.isEmpty()){
+      while (!waitlist.isEmpty()) {
         ReachedSet reachedSet = waitlist.pop();
         if (!finished.add(reachedSet)) {
           continue;

@@ -34,7 +34,7 @@ public class ValidVarsPrecisionAdjustment implements PrecisionAdjustment{
 
   private final PrecisionAdjustment wrappedPrecAdjust;
 
-  public ValidVarsPrecisionAdjustment(PrecisionAdjustment pWrappedAdjustment){
+  public ValidVarsPrecisionAdjustment(PrecisionAdjustment pWrappedAdjustment) {
     wrappedPrecAdjust = pWrappedAdjustment;
   }
 

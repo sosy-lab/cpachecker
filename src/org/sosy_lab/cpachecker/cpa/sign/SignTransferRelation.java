@@ -239,7 +239,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     case EQUALS:
       return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
     case NOT_EQUALS:
-      if (pResultSign == SIGN.ZERO){
+      if (pResultSign == SIGN.ZERO) {
         return Optional.of(new IdentifierValuePair(pIdExp, SIGN.PLUSMINUS));
       }
     }
@@ -339,7 +339,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
 
     // only expression expr; does not change state
-    if (pStatement instanceof AExpressionStatement){
+    if (pStatement instanceof AExpressionStatement) {
       return state;
     }
     // only function call f(); to external method: assume that it does not change global state
@@ -355,7 +355,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     IAExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
     if (left instanceof AIdExpression) {// TODO also consider arrays, pointer, etc.?
-      if (!((left.getExpressionType() instanceof CSimpleType)|| (left.getExpressionType() instanceof CTypedefType))){
+      if (!((left.getExpressionType() instanceof CSimpleType)|| (left.getExpressionType() instanceof CTypedefType))) {
         return state;
       }
       String scopedId = getScopedVariableName(left, functionName);
@@ -363,7 +363,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
     // TODO become more precise, handle &x, (int *) x on right hand side, deal with int* x = s;
     // p->x = .., c.x =
-    if (left instanceof CFieldReference){
+    if (left instanceof CFieldReference) {
       String scopedId = getScopedVariableName(left, functionName);
       return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
     }

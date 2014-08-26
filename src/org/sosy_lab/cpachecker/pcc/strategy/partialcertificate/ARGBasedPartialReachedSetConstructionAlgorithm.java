@@ -92,7 +92,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
         // check if child is the successor computed by transfer relation
         if (successors.contains(pChild.getWrappedState())) { return true; }
         // check if check only failed because it is not the same object
-        if (!cpa.getStopOperator().stop(pChild.getWrappedState(), successors, precision)){
+        if (!cpa.getStopOperator().stop(pChild.getWrappedState(), successors, precision)) {
           return false;
         }
         Collection<AbstractState> childCollection = Collections.singleton(pChild.getWrappedState());

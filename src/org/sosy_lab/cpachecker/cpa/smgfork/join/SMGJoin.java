@@ -84,7 +84,7 @@ final public class SMGJoin {
     Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -121,7 +121,7 @@ final public class SMGJoin {
     smg1stackIterator = stack_in_smg1.iterator();
     smg2stackIterator = stack_in_smg2.iterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -212,7 +212,7 @@ class SMGNodeMapping {
     return object_map.get(o);
   }
 
-  public void map(SMGObject key, SMGObject value){
+  public void map(SMGObject key, SMGObject value) {
     object_map.put(key, value);
   }
 

@@ -231,7 +231,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
       for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
-        if (!cfaNodes.contains(edge.getPredecessor())){
+        if (!cfaNodes.contains(edge.getPredecessor())) {
           CFACreationUtils.removeEdgeFromNodes(edge);
         }
       }
@@ -1679,9 +1679,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     CStatement stmt = null;
     if (tempVar != null) {
       stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
-    } else if (exp instanceof CStatement){
+    } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
-    } else if (!(exp instanceof CRightHandSide)){
+    } else if (!(exp instanceof CRightHandSide)) {
       throw new CFAGenerationRuntimeException("invalid expression type");
     } else {
       stmt = createStatement(lastExpLocation, null, (CRightHandSide)exp);

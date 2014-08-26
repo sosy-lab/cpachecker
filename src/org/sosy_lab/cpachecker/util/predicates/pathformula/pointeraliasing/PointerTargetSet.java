@@ -109,7 +109,7 @@ public final class PointerTargetSet implements Serializable {
     private final String fieldName;
   }
 
-  public static String getBaseName(final String name){
+  public static String getBaseName(final String name) {
     return BASE_PREFIX + name;
   }
 

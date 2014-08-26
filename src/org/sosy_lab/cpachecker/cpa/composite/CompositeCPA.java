@@ -108,7 +108,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       PredicateAbstractionManager abmgr = null;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if (sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA){
+        if (sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA) {
           abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
         }
 

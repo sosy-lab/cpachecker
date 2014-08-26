@@ -233,7 +233,7 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
-      if (resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs){
+      if (resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs) {
         changed = true;
         newLocal = resultOfMapUnion;
       } else {
@@ -241,12 +241,12 @@ public class ReachingDefState implements AbstractState, Serializable {
       }
 
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
-      if (resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs){
+      if (resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs) {
         changed = true;
       } else {
         resultOfMapUnion = statesToMerge.get(i).globalReachDefs;
       }
-      if (!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)){
+      if (!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)) {
         isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion);
       }
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);

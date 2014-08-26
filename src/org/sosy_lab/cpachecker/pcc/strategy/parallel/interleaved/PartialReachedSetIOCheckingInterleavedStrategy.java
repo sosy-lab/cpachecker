@@ -225,7 +225,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       }
     }
 
-    private void abortPreparation(){
+    private void abortPreparation() {
       giveSignalAndPrepareAbortion(checkResult, mainSemaphore);
     }
 

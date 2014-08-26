@@ -600,7 +600,7 @@ public class SMGState implements AbstractQueryableState {
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
     SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
-        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)) {
       return true;
     }
     return false;

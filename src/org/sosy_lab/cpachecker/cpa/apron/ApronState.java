@@ -329,7 +329,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
            || realToIndexMap.contains(variableName);
   }
 
-  public ApronState declareVariable(String varName, Type type){
+  public ApronState declareVariable(String varName, Type type) {
     assert !existsVariable(varName);
 
     Dimchange dimch;

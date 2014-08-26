@@ -752,12 +752,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     if (pVariableName instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) pVariableName).getDeclaration();
         if (decl instanceof CDeclaration) {
-          if  (((CDeclaration) decl).isGlobal()){
+          if  (((CDeclaration) decl).isGlobal()) {
             return pVariableName.toASTString();
           }
       }
     }
-    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())){
+    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())) {
       return pVariableName.toASTString();
     }
     return pCalledFunctionName + "::" + pVariableName.toASTString();

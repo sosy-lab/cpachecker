@@ -35,7 +35,7 @@ public class ValidVarsMergeOperator implements MergeOperator{
   private final boolean mergeJoin;
   private final MergeOperator wrappedMerge;
 
-  public ValidVarsMergeOperator(MergeOperator pWrappedMergeOp){
+  public ValidVarsMergeOperator(MergeOperator pWrappedMergeOp) {
     mergeJoin = pWrappedMergeOp instanceof MergeJoinOperator;
     wrappedMerge = pWrappedMergeOp;
   }

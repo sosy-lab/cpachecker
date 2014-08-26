@@ -331,15 +331,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     try {
       Collection<? extends AbstractState> computedSuccessors = transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
       boolean found;
-      for (AbstractState comp:computedSuccessors){
+      for (AbstractState comp:computedSuccessors) {
         found = false;
-        for (AbstractState e:pSuccessors){
-          if (isCoveredBy(comp, e)){
+        for (AbstractState e:pSuccessors) {
+          if (isCoveredBy(comp, e)) {
             found = true;
             break;
           }
         }
-        if (!found){
+        if (!found) {
           return false;
         }
       }
