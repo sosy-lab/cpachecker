@@ -204,8 +204,12 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
 
   @Override
   public boolean equals(Object y) {
-    if (y == null) return false;
-    if (y.getClass() != this.getClass()) return false;
+    if (y == null) {
+      return false;
+    }
+    if (y.getClass() != this.getClass()) {
+      return false;
+    }
     ExtendedRational b = (ExtendedRational) y;
     return compareTo(b) == 0;
   }
@@ -239,8 +243,12 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     if (typeA == typeB) {
       if (typeA == NumberType.RATIONAL) {
         // special cases
-        if (a.compareTo(ZERO) == 0) return b;
-        if (b.compareTo(ZERO) == 0) return a;
+        if (a.compareTo(ZERO) == 0) {
+          return b;
+        }
+        if (b.compareTo(ZERO) == 0) {
+          return a;
+        }
 
         // Find gcd of numerators and denominators
         BigInteger f = a.num.gcd(b.num);
