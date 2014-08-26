@@ -137,7 +137,8 @@ public class PredicateAbstractionsWriter {
       writer.append("\n\n");
 
       // -- then the assertions
-      for (ARGState state : stateToAssert.keySet()) {
+      for (Map.Entry<ARGState, String> entry : stateToAssert.entrySet()) {
+        ARGState state = entry.getKey();
         StringBuilder stateSuccessorsSb = new StringBuilder();
         for (ARGState successor : successors.get(state)) {
           if (stateSuccessorsSb.length() > 0) {
@@ -146,11 +147,12 @@ public class PredicateAbstractionsWriter {
           stateSuccessorsSb.append(getAbstractionId(successor));
         }
 
-        writer.append(String.format("%d (%s) @%d:\n",
+        writer.append(String.format("%d (%s) @%d:",
             getAbstractionId(state),
             stateSuccessorsSb.toString(),
             AbstractStates.extractLocation(state).getNodeNumber()));
-        writer.append(stateToAssert.get(state));
+        writer.append("\n");
+        writer.append(entry.getValue());
         writer.append("\n\n");
       }
 

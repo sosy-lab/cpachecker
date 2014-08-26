@@ -40,19 +40,19 @@ final class Z3NativeApi {
   public static class PointerToInt {
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
         justification = "Read by native code")
-    public int value;
+    int value;
   }
 
   public static class PointerToLong {
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
         justification = "Read by native code")
-    public long value;
+    long value;
   }
 
   public static class PointerToString {
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
         justification = "Read by native code")
-    public String value;
+    String value;
   }
 
   /** Start optimization - Nikolaj Bjorner branch. **/

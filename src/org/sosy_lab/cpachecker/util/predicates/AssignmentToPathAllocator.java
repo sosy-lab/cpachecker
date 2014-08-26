@@ -239,9 +239,8 @@ public class AssignmentToPathAllocator {
 
     Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
 
-    for (String heapName : pMemory.keySet()) {
-      Map<Address, Object> heapValues = pMemory.get(heapName);
-      Memory heap = new Memory(heapName, heapValues);
+    for (Map.Entry<String, Map<Address, Object>> heapObject : pMemory.entrySet()) {
+      Memory heap = new Memory(heapObject.getKey(), heapObject.getValue());
       memory.put(heap.getName(), heap);
     }
 

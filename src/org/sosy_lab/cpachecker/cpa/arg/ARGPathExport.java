@@ -197,7 +197,7 @@ public class ARGPathExport {
     }
   }
 
-  private class AggregatedEdge {
+  private static class AggregatedEdge {
     public final String source;
     public final String targetRepresentedBy;
     public final TransitionCondition condition;

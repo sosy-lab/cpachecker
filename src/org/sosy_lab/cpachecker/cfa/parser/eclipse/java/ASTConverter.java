@@ -1858,13 +1858,12 @@ public class ASTConverter {
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
+    assert leftHandSide != null;
 
     BinaryOperator op = convert(e.getOperator(), leftHandSide.getExpressionType());
 
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
-
     assert rightHandSide != null;
-    assert leftHandSide != null;
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 

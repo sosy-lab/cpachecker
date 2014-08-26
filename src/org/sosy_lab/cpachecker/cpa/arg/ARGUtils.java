@@ -570,22 +570,21 @@ public class ARGUtils {
    * @param pRootState The root of the ARG
    * @param pPathStates The states along the path
    * @param pCounterExample Given to try to write exact variable assignment values
-   * into the automaton, may be null
+   * into the automaton
    * @throws IOException
    */
   public static void produceTestGenPathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
+    checkNotNull(pCounterExample);
 
     Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
 
-    if (pCounterExample != null) {
-      Model model = pCounterExample.getTargetPathModel();
-      if (model != null) {
-        CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
-        }
+    Model model = pCounterExample.getTargetPathModel();
+    if (model != null) {
+      CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
+      if (cfaPath != null) {
+        ARGPath targetPath = pCounterExample.getTargetPath();
+        valueMap = model.getExactVariableValues(targetPath);
       }
     }
 

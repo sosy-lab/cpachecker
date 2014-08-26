@@ -42,7 +42,7 @@ public class ShutdownNotifierTest {
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
 
-  private final String reason = "Shutdown Request Reason";
+  private static final String reason = "Shutdown Request Reason";
 
   private ShutdownNotifier instance = null;
 

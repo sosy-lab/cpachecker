@@ -129,7 +129,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
 
-  private class BMCStatistics implements Statistics {
+  private static class BMCStatistics implements Statistics {
 
     private final Timer satCheck = new Timer();
     private final Timer errorPathCreation = new Timer();

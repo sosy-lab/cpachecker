@@ -97,7 +97,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   /** Heuristic to avoid generating too many symbolic values for the same file location. */
   private static Map<FileLocation, Integer> numberOfSymbolsGenerated = new HashMap<>();
-  private final int maxNumberOfSymbolsGenerated = 200;
+  private static final int MAX_NUMBER_OF_SYMBOLS_GENERATED = 200;
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
@@ -110,7 +110,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         generatedSymbols = numberOfSymbolsGenerated.get(key);
       }
 
-      if (generatedSymbols < maxNumberOfSymbolsGenerated) {
+      if (generatedSymbols < MAX_NUMBER_OF_SYMBOLS_GENERATED) {
         numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
         SymbolicValueFormula formula = new SymbolicValueFormula(
             new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
