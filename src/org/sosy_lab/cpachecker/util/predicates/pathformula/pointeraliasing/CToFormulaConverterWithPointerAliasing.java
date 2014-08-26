@@ -505,7 +505,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   throws CPATransferException, InterruptedException {
     BooleanFormula result = super.makeReturn(resultExpression, returnEdge, function, ssa, pts, constraints, errorConditions);
 
-    if (resultExpression != null) {
+    if (resultExpression.isPresent()) {
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition();
 
