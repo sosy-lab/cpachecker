@@ -24,8 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.Serializable;
-import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;

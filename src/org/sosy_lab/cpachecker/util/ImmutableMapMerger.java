@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Hm maybe I should migrate to immutable maps for other classes as well.

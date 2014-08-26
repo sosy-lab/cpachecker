@@ -27,10 +27,10 @@ import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+
+import com.google.common.collect.ImmutableMap;
 
 public class ValueAnalysisTest {
   // Specification Tests

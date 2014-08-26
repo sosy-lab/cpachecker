@@ -23,27 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.policy;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Table;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.policy.ValueDeterminationFormulaManager.ValueDeterminationConstraint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.cpa.policy.ValueDeterminationFormulaManager.ValueDeterminationConstraint;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Table;
 
 /**
  * Abstract domain for policy iteration.

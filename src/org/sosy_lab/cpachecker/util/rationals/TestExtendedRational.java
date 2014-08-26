@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.rationals;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Testing rationals library

@@ -33,11 +33,11 @@ import org.matheclipse.core.interfaces.IExpr;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.BinaryExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.ConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.ExpressionBase;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Uses an external library/application to simplify symbolic formulas.

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;

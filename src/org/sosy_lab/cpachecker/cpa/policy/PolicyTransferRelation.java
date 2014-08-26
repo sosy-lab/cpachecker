@@ -23,8 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.policy;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -39,17 +46,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
+import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
-import java.util.*;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Transfer relation for policy iteration.

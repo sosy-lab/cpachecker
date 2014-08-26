@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 public class Z3Model {
   private static TermType toZ3Type(long z3context, long sort) {

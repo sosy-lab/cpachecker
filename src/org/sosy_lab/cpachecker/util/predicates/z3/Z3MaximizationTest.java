@@ -23,18 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import com.google.common.collect.ImmutableList;
-import org.junit.*;
+import java.util.List;
+
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 
 /**

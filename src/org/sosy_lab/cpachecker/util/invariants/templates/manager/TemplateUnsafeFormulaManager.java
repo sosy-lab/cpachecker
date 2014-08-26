@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaList;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
@@ -35,8 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-
-import java.util.List;
 
 public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 

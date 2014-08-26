@@ -34,10 +34,10 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+
+import com.google.common.collect.ImmutableMap;
 
 public class AutomatonTest {
   private static final String CPAS_UNINITVARS = "cpa.location.LocationCPA, cpa.uninitvars.UninitializedVariablesCPA";

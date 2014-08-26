@@ -23,11 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.policy;
 
-import com.google.common.base.Preconditions;
+import java.util.Map;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -35,8 +40,7 @@ import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
 
 /**
  * Wrapper for a linear constraint:

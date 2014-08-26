@@ -68,10 +68,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,

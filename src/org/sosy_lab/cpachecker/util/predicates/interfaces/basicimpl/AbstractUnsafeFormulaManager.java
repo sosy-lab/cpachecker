@@ -29,10 +29,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.*;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
