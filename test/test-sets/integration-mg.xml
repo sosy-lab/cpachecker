@@ -30,9 +30,4 @@
       <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
     </sourcefiles>
   </rundefinition>
-
-  <columns>
-    <column title="total">time for CPAchecker</column>
-    <column title="reached">reached set</column>
-  </columns>
 </benchmark>
