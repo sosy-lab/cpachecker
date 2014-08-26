@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.isNullOrEmpty;
 

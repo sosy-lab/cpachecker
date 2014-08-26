@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
