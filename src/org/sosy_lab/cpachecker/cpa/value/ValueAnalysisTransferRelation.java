@@ -378,8 +378,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof APointerExpression) {
-      }
-      else {
+      } else {
         throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }

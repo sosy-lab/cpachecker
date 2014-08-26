@@ -52,12 +52,10 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   public void add(AbstractState pStat) {
     super.add(pStat);
     CFANode location = AbstractStates.extractLocation(pStat);
-    if (parent == null || (!parent.hasEdgeTo(location)))
-    {
+    if (parent == null || (!parent.hasEdgeTo(location))) {
       parent = location;
       successorsOfParent = 0;
-    }
-    else {
+    } else {
       successorsOfParent++;
     }
   }
@@ -68,8 +66,8 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
     AbstractState state;
     if (waitlist.size() < 2 || successorsOfParent < 2) {
       state = waitlist.getLast();
-    } else //(successorsOnLevelCount >= 2)
-    {
+    } else {
+      // successorsOnLevelCount >= 2
       int r = rand.nextInt(successorsOfParent) + 1;
       state = waitlist.get(waitlist.size() - r);
     }

@@ -296,8 +296,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       refinementRoot                = errorPath.get(1);
       refinedValueAnalysisPrecision = staticRefiner.extractPrecisionFromCfa(reachedSet, errorPath);
       initialStaticRefinementDone   = true;
-    }
-    else {
+    } else {
       Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
       refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
@@ -328,8 +327,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

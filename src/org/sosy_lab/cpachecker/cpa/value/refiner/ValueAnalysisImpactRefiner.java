@@ -252,8 +252,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
         if(!currentState.isCovered()) {
           if(useGlobalPrecision) {
             argReachedSet.readdToWaitlist(currentState, globalPrecision, ValueAnalysisPrecision.class);
-          }
-          else {
+          } else {
             argReachedSet.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
           }
         }

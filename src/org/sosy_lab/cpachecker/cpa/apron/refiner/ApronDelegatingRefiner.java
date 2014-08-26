@@ -231,8 +231,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       }
 
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

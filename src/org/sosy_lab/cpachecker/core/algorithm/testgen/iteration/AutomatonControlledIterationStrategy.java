@@ -161,8 +161,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     }
   }
 
-  private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath)
-  {
+  private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath) {
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(pFilePath.toAbsolutePath(), Charset.forName("UTF8"))) {
 

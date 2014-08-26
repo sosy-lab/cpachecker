@@ -210,8 +210,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
       }
-    }
-    else if (expression instanceof CFunctionCallStatement) {
+    } else if (expression instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);

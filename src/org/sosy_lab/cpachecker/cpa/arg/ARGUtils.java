@@ -650,8 +650,7 @@ public class ARGUtils {
             sb.append("ERROR");
           } else {
             String assumption ="";
-            if(generateAssumes)
-            {
+            if(generateAssumes) {
               assumption = getAssumption(valueMap, s);
             }
             sb.append(assumption + "GOTO ARG" + child.getStateId());
@@ -665,8 +664,7 @@ public class ARGUtils {
     }
 
     CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
-    if(lastEdge != null)
-    {
+    if(lastEdge != null) {
       sb.append("    MATCH \"");
       escape(lastEdge.getRawStatement(), sb);
       sb.append("\" -> ");

@@ -275,8 +275,7 @@ public class ValueDeterminationFormulaManager {
         p.getLength());
   }
 
-  private String formulaVarName(String variable, int idx, String namespace)
-  {
+  private String formulaVarName(String variable, int idx, String namespace) {
     return String.format(
         "%s%s", namespace, FormulaManagerView.makeName(variable, idx)
     );

@@ -452,8 +452,7 @@ public class SMG {
 
     if (pt_edges.containsKey(pValue)) {
       return pt_edges.get(pValue).getObject();
-    }
-    else {
+    } else {
       return null;
     }
   }

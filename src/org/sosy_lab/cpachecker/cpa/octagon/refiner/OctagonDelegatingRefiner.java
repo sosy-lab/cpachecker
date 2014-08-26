@@ -233,8 +233,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
 
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

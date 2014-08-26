@@ -313,8 +313,7 @@ public class ValueAnalysisPrecision implements Precision {
     public LocalizedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.entries().containsAll(increment.entries())) {
         return this;
-      }
-      else {
+      } else {
         LocalizedRefinablePrecision refinedPrecision = new LocalizedRefinablePrecision();
 
         refinedPrecision.rawPrecision = HashMultimap.create(rawPrecision);
@@ -377,8 +376,7 @@ public class ValueAnalysisPrecision implements Precision {
     public ScopedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.containsAll(increment.values())) {
         return this;
-      }
-      else {
+      } else {
         ScopedRefinablePrecision refinedPrecision = new ScopedRefinablePrecision();
 
         refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
@@ -403,8 +401,7 @@ public class ValueAnalysisPrecision implements Precision {
           writer.write(variable.serialize() + "\n");
 
           previousScope = functionName;
-        }
-        else {
+        } else {
           globals.add(variable.serialize());
         }
       }

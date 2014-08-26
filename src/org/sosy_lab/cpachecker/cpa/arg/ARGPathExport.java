@@ -142,8 +142,7 @@ public class ARGPathExport {
     return String.format("A%d%s", state.getStateId(), identPostfix);
   }
 
-  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount)
-  {
+  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount) {
     return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
   }
 
