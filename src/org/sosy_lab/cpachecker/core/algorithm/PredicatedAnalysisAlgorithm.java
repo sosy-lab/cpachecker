@@ -219,9 +219,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
           comp = new CompositeState(wrappedStates.build());
 
-          assert(predecessor.getChildren().size()==0);
-          assert(predecessor.getParents().size()==1);
-          assert(predecessor.getCoveredByThis().size()==0);
+          assert (predecessor.getChildren().size()==0);
+          assert (predecessor.getParents().size()==1);
+          assert (predecessor.getCoveredByThis().size()==0);
 
           ARGState newPred = new ARGState(comp, predecessor.getParents().iterator().next());
           predecessor.removeFromARG();
@@ -278,7 +278,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       // insert into reached set
       pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
 
-      assert(ARGUtils.checkARG(pReachedSet));
+      assert (ARGUtils.checkARG(pReachedSet));
 
       // return true such that CEGAR works fine
       return true;

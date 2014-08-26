@@ -418,7 +418,7 @@ public class ApronInterpolationBasedRefiner implements Statistics {
       // newAssignment.putAll(other.assignment);
       for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
         if (newAssignment.containsKey(entry.getKey())) {
-          assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
+          assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
         }
 
         newAssignment.put(entry.getKey(), entry.getValue());

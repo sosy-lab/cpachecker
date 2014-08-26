@@ -134,7 +134,7 @@ public class ErrorPathClassifier {
     int bestIndex             = 0;
 
     for (MutableARGPath currentPrefix : pPrefixes) {
-      assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
@@ -164,7 +164,7 @@ public class ErrorPathClassifier {
     int bestIndex             = 0;
 
     for (MutableARGPath currentPrefix : pPrefixes) {
-      assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
@@ -272,7 +272,7 @@ public class ErrorPathClassifier {
   private void replaceAssumeEdgeWithBlankEdge(final MutableARGPath pErrorPath) {
     Pair<ARGState, CFAEdge> assumeState = pErrorPath.removeLast();
 
-    assert(assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+    assert (assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
     pErrorPath.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
         FileLocation.DUMMY,

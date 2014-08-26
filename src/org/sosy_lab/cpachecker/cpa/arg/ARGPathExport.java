@@ -548,7 +548,7 @@ public class ARGPathExport {
               CFAEdge innerEdge = edges.get(i);
               String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
 
-              assert(!(innerEdge instanceof AssumeEdge));
+              assert (!(innerEdge instanceof AssumeEdge));
 
               appendNewPathNode(doc, pseudoStateId, EnumSet.noneOf(NodeFlag.class));
               appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);

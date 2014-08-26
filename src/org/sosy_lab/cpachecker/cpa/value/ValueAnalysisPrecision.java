@@ -339,7 +339,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
 
@@ -413,7 +413,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
 
@@ -451,7 +451,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
     }
 
     @Override

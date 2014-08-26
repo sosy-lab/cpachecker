@@ -199,7 +199,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
         for (ARGState c: current.getChildren()) {
 
-          assert(c.getParents().size()==1);
+          assert (c.getParents().size()==1);
           // relink or delete child
           if (c.getCoveredByThis().size() != 0) {
             // relink child in ARG to parent of first covered element
@@ -235,7 +235,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
             covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, later);
             if (covered != null) {
               // delete edge from parent and introduce covering
-              assert(later.getParents().size()<=1);
+              assert (later.getParents().size()<=1);
               if (later.getParents().size() == 1) {
                 (new ARGState(later.getWrappedState(), later.getParents().iterator().next())).setCovered(later);
                 later.getParents().iterator().next().deleteChild(later);
@@ -275,7 +275,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     ARGState covered;
     do {
       covered = coveredElems.next();
-      assert(covered.getCoveredByThis().size()==0);
+      assert (covered.getCoveredByThis().size()==0);
       if (covered.getParents().size() == 0 || subtreeNodes.contains(covered)) {
         covered = null;
       }

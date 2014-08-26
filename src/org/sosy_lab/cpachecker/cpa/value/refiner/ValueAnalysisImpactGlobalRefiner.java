@@ -708,7 +708,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
           result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
         }
 
-        assert(!current.getKey().isTarget());
+        assert (!current.getKey().isTarget());
       }
       result.append("}");
 

@@ -1178,8 +1178,8 @@ public class CtoFormulaConverter {
 
     int lsb = offset;
     int msb = offset + fieldSize - 1;
-    assert(lsb >= 0);
-    assert(msb >= lsb);
+    assert (lsb >= 0);
+    assert (msb >= lsb);
     Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
     return msb_Lsb;
   }

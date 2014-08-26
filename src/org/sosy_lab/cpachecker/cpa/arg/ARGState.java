@@ -244,7 +244,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   void deleteChild(ARGState child) {
-    assert(children.contains(child));
+    assert (children.contains(child));
     children.remove(child);
     child.parents.remove(this);
   }

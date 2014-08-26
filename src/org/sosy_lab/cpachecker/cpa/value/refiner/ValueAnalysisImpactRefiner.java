@@ -628,7 +628,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
           result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
         }
 
-        assert(!current.getKey().isTarget());
+        assert (!current.getKey().isTarget());
       }
       result.append("}");
 
