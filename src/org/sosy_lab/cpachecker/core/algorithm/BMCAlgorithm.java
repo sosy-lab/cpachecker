@@ -1094,7 +1094,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       BooleanFormula combinedPotentialLoopHeadInvariantAssertion = bfmgr.makeBoolean(true);
-      for (BooleanFormula potentialLoopHeadInvariant : getPotentialLoopHeadInvariants()) {
+      ImmutableSet<BooleanFormula> potentialLoopHeadInvariants = getPotentialLoopHeadInvariants();
+      for (BooleanFormula potentialLoopHeadInvariant : potentialLoopHeadInvariants) {
         BooleanFormula potentialLoopHeadInvariantAssertion = bfmgr.and(from(assertAt(loopHeadStates, potentialLoopHeadInvariant)).toList());
         combinedPotentialLoopHeadInvariantAssertion = bfmgr.and(combinedPotentialLoopHeadInvariantAssertion, potentialLoopHeadInvariant);
         assumptionsAtState.put(potentialLoopHeadInvariant, potentialLoopHeadInvariantAssertion);
@@ -1110,7 +1111,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       loopHeadStates = AbstractStates.filterLocations(reached, loop.getLoopHeads());
       BooleanFormula combinedPotentialLoopHeadInvariantContradiction = bfmgr.makeBoolean(false);
-      for (BooleanFormula potentialLoopHeadInvariant : getPotentialLoopHeadInvariants()) {
+      for (BooleanFormula potentialLoopHeadInvariant : potentialLoopHeadInvariants) {
         BooleanFormula potentialLoopHeadInvariantAssertion = assumptionsAtState.get(potentialLoopHeadInvariant);
         BooleanFormula potentialLoopHeadInvariantContradiction = bfmgr.not(bfmgr.and(from(assertAt(loopHeadStates, potentialLoopHeadInvariant)).toList()));
         combinedPotentialLoopHeadInvariantContradiction = bfmgr.or(combinedPotentialLoopHeadInvariantContradiction, potentialLoopHeadInvariantContradiction);
