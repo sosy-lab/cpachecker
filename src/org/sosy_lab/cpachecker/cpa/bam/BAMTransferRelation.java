@@ -74,7 +74,7 @@ public class BAMTransferRelation implements TransferRelation {
   @Options
   static class PCCInformation {
 
-    @Option(name = "pcc.proofgen.doPCC", description = "")
+    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
 
     private static PCCInformation instance = null;

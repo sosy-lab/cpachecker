@@ -1721,6 +1721,7 @@ reachedSet.file = "reached.txt"
 # matching condition.
 restartAlgorithm.configFiles = no default value
 
+# File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
 
 # Consider assumptions that are provided with the path automaton?
@@ -1736,6 +1737,7 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
+# Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
