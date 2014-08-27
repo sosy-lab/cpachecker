@@ -83,6 +83,9 @@ public class DefUseTransferRelation implements TransferRelation {
       defUseState = handleDeclaration(defUseState, declarationEdge);
       break;
     }
+    default:
+      // not relevant for def-use
+      break;
     }
 
     return Collections.singleton(defUseState);

@@ -161,15 +161,14 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     }
   }
 
-  private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath)
-  {
+  private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath) {
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(pFilePath.toAbsolutePath(), Charset.forName("UTF8"))) {
 
       ARGPath argPath = pResult.getPath();
       CounterexampleInfo ci = CounterexampleInfo.feasible(argPath, pResult.getTrace().getModel());
 
-      ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirst().getFirst(), argPath.getStateSet(),
+      ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirstState(), argPath.getStateSet(),
           "nextPathAutomaton", ci, true);
     } catch (IOException e) {
       throw new IllegalStateException("Unable to create the Algorithm for next Iteration", e);

@@ -28,7 +28,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix = "pcc.parallel.io")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
@@ -78,6 +78,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     shutdownNotifier = pShutdownNotifier;
     cpa = pCpa;
+    addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 
   @Override
@@ -90,7 +91,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
@@ -174,7 +175,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       int numPartition = ioHelper.getNumPartitions();
 
       for (int i = 0; i < numPartition; i++) {
-        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true));
+        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true, stats));
       }
 
       try {

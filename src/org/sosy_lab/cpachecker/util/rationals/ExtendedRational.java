@@ -37,7 +37,8 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * (0, 0) is UNDEFINED, (+n, 0) is INFTY, (-n, 0) is NEG_INFTY, everything
    * else is RATIONAL.
    */
-  static enum NumberType {
+  @SuppressWarnings("hiding")
+  public static enum NumberType {
     NEG_INFTY,
     RATIONAL, // Normal rational.
     INFTY,
@@ -54,6 +55,8 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
   static private final BigInteger b_m_one = BigInteger.ONE.negate();
 
   public static final ExtendedRational ZERO = new ExtendedRational(b_zero, b_one);
+  public static final ExtendedRational ONE = new ExtendedRational(b_one, b_one);
+  public static final ExtendedRational NEG_ONE = new ExtendedRational(b_m_one, b_one);
   public static final ExtendedRational INFTY = new ExtendedRational(b_one, b_zero);
   public static final ExtendedRational NEG_INFTY = new ExtendedRational(b_m_one, b_zero);
   public static final ExtendedRational NaN = new ExtendedRational(b_zero, b_zero);
@@ -122,9 +125,13 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * a) String of the form num/den if the number is rational.
    * b) String containing INF | NEG_INF | NaN otherwise.
    */
+  @Override
   public String toString() {
     switch (getType()) {
       case RATIONAL:
+        if (den.equals(BigInteger.ONE)) {
+          return num.toString();
+        }
         return num + "/" + den;
       default:
         // Double will do the conversion for us, works just fine for infinity/etc.
@@ -142,9 +149,9 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
    * d) a/b -> ExtendedRational(a, b)
    * e) a -> a/1
    *
+   * @param s Input string,
    * @throws NumberFormatException {@code s} is not a valid representation
    * of ExtendedRational.
-   * @param s Input string,
    * @return New {@link ExtendedRational}.
    */
   public static ExtendedRational ofString(String s) {
@@ -175,6 +182,7 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     return ret;
   }
 
+  @Override
   public int compareTo(ExtendedRational b) {
     NumberType us = getType();
     NumberType them = b.getType();
@@ -194,13 +202,19 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     }
   }
 
+  @Override
   public boolean equals(Object y) {
-    if (y == null) return false;
-    if (y.getClass() != this.getClass()) return false;
+    if (y == null) {
+      return false;
+    }
+    if (y.getClass() != this.getClass()) {
+      return false;
+    }
     ExtendedRational b = (ExtendedRational) y;
     return compareTo(b) == 0;
   }
 
+  @Override
   public int hashCode() {
     return this.toString().hashCode();
   }
@@ -229,8 +243,12 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     if (typeA == typeB) {
       if (typeA == NumberType.RATIONAL) {
         // special cases
-        if (a.compareTo(ZERO) == 0) return b;
-        if (b.compareTo(ZERO) == 0) return a;
+        if (a.compareTo(ZERO) == 0) {
+          return b;
+        }
+        if (b.compareTo(ZERO) == 0) {
+          return a;
+        }
 
         // Find gcd of numerators and denominators
         BigInteger f = a.num.gcd(b.num);

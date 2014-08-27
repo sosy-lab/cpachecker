@@ -57,7 +57,7 @@ public class CHCTransferRelation implements TransferRelation {
 
   final LogManager logger;
 
-  public CHCTransferRelation(LogManager logger){
+  public CHCTransferRelation(LogManager logger) {
     this.logger = logger;
   }
 

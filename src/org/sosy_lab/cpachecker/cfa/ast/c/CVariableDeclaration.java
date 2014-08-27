@@ -52,7 +52,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     cStorageClass = pCStorageClass;
 
     checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
-    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
+    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
+        "CStorageClass is %s", cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
   }
 

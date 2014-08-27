@@ -48,7 +48,7 @@ public class ValueAnalysisReducer implements Reducer {
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
-    ValueAnalysisState clonedElement = expandedState.clone();
+    ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
     for (ValueAnalysisState.MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
@@ -70,7 +70,7 @@ public class ValueAnalysisReducer implements Reducer {
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    ValueAnalysisState diffElement = reducedState.clone();
+    ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
 
     for (ValueAnalysisState.MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")

@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -42,6 +46,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
+
+  @Options(prefix = "cpa.predicate.solver.z3")
+  private static class Z3NativeLoader {
+    @Option(description="Load Z3 with interpolation support. Requires [libfoci].")
+    boolean supportInterpolation = false;
+
+    private Z3NativeLoader(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    void loadZ3() {
+      if (supportInterpolation) {
+        NativeLibraries.loadLibrary("z3j_interp");
+      } else {
+        NativeLibraries.loadLibrary("z3j");
+      }
+    }
+  }
 
   private final Z3SmtLogger z3smtLogger;
 
@@ -62,8 +84,12 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     this.z3smtLogger = smtLogger;
   }
 
-  public static synchronized Z3FormulaManager create(LogManager logger, Configuration config)
+  public static synchronized Z3FormulaManager create(LogManager logger,
+      Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
+
+    // Load Z3 native library.
+    new Z3NativeLoader(config).loadZ3();
 
     /*
     Following method is part of the file "api_interp.cpp" from Z3.
@@ -71,8 +97,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     We set the same params in a default context,
     so that interpolation is possible.
 
-    Z3_context Z3_mk_interpolation_context(Z3_config cfg){
-      if(!cfg) cfg = Z3_mk_config();
+    Z3_context Z3_mk_interpolation_context(Z3_config cfg) {
+      if (!cfg) cfg = Z3_mk_config();
       Z3_set_param_value(cfg, "PROOF", "true");
       Z3_set_param_value(cfg, "MODEL", "true");
       Z3_context ctx = Z3_mk_context(cfg);
@@ -108,7 +134,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
     // they will not contain variable-declaration!
-    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config);
+    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config, solverLogfile);
 
     // this options should match the option set above!
     smtLogger.logOption("model", "true");
@@ -205,6 +231,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   /** returns a new logger with a new logfile. */
   public Z3SmtLogger getSmtLogger() {
-    return new Z3SmtLogger(z3smtLogger);
+    return z3smtLogger.cloneWithNewLogfile();
   }
 }

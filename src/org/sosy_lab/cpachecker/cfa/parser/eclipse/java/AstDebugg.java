@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
-import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.log.LogManager;
 
@@ -55,7 +54,7 @@ class AstDebugg extends ASTVisitor {
 
   public static String getTypeName(int type) {
 
-    String name = "";
+    String name;
     switch (type) {
 
 
@@ -143,6 +142,7 @@ class AstDebugg extends ASTVisitor {
         case 60: name="VARIABLE_DECLARATION_STATEMENT"; break;
         case 61: name="WHILE_STATEMENT"; break;
         case 76: name="WILDCARD_TYPE"; break;
+        default: name=""; break;
     }
 
     return name;
@@ -151,15 +151,13 @@ class AstDebugg extends ASTVisitor {
 
   @Override
   public boolean visit(MethodInvocation mI) {
-    @SuppressWarnings("unused")
-    IMethodBinding bind = mI.resolveMethodBinding();
+    mI.resolveMethodBinding();
     return true;
   }
 
  @Override
 public boolean visit(ClassInstanceCreation cIC) {
-  @SuppressWarnings("unused")
-  IMethodBinding bind = cIC.resolveConstructorBinding();
+  cIC.resolveConstructorBinding();
   return true;
 }
 

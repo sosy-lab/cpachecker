@@ -124,9 +124,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                    final Optional<VariableClassification> pVariableClassification,
                                    final LogManager logger,
                                    final ShutdownNotifier pShutdownNotifier,
-                                   final TypeHandlerWithPointerAliasing pTypeHandler)
+                                   final TypeHandlerWithPointerAliasing pTypeHandler,
+                                   final boolean pBackwards)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler);
+    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pBackwards);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;
@@ -182,8 +183,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected void checkSsaSavedType(final String name, final CType type, final SSAMapBuilder ssa) {
-    CType ssaSavedType = ssa.getType(name);
+  protected void checkSsaSavedType(final String name, final CType type, CType ssaSavedType) {
     if (ssaSavedType != null) {
       ssaSavedType = CTypeUtils.simplifyType(ssaSavedType);
     }
@@ -198,16 +198,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa);
+    checkSsaSavedType(name, type, ssa.getType(name));
     return ssa.getIndex(name) > 0;
   }
 
   @Override
   protected Formula makeFreshVariable(final String name,
                             final CType type,
-                            final SSAMapBuilder ssa) {
-    final int oldIndex = getIndex(name, type, ssa);
-    final int newIndex = oldIndex + 1;
+                            final SSAMapBuilder ssa,
+                            boolean postponeMakeFresh
+                            ) {
+    // TODO: Does this also work backwards? Consider flag postponeMakeFresh
+    final int newIndex = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, newIndex);
     return fmgr.makeVariable(getFormulaTypeFromCType(type),
                              name + FRESH_INDEX_SEPARATOR + newIndex);
@@ -334,8 +336,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
+  /**
+   * Expand a string literal to a array of characters.
+   *
+   * http://stackoverflow.com/a/6915917
+   * As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
+   *    char s[] = "abc", t[3] = "abc";
+   *  is identical to:
+   *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+   *
+   * @param e     The string that has to be expanded
+   * @param type
+   * @return      List of character-literal expressions
+   */
   private static List<CCharLiteralExpression> expandStringLiteral(final CStringLiteralExpression e,
                                                                   final CArrayType type) {
+    // The string is either NULL terminated, or not.
+    // If the length is not provided explicitly, NULL termination is used
     Integer length = CTypeUtils.getArrayLength(type);
     final String s = e.getContentString();
     if (length == null) {
@@ -343,9 +360,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
     assert length >= s.length();
 
-    // http://stackoverflow.com/a/6915917
-    // As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
-    // char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
+    // create one CharLiteralExpression for each character of the string
     final List<CCharLiteralExpression> result = new ArrayList<>();
     for (int i = 0; i < s.length(); i++) {
       result.add(new CCharLiteralExpression(e.getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
@@ -480,7 +495,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected BooleanFormula makeReturn(final CExpression resultExpression,
+  protected BooleanFormula makeReturn(final Optional<CExpression> resultExpression,
                                       final CReturnStatementEdge returnEdge,
                                       final String function,
                                       final SSAMapBuilder ssa,
@@ -490,7 +505,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   throws CPATransferException, InterruptedException {
     BooleanFormula result = super.makeReturn(resultExpression, returnEdge, function, ssa, pts, constraints, errorConditions);
 
-    if (resultExpression != null) {
+    if (resultExpression.isPresent()) {
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getFunctionDefinition();
 
@@ -504,14 +519,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CRightHandSide rhs,
+      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, final CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
-    return assignmentHandler.handleAssignment(lhs, rhs, false, null);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);
   }
 
   private static String getLogMessage(final String msg, final CFAEdge edge) {
@@ -613,9 +628,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
-        result = assignmentHandler.handleAssignment(lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
       } else if (isRelevantVariable(declaration)) {
-        result = assignmentHandler.handleAssignment(lhs, null, false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -681,7 +696,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
-      declareSharedBase(formalParameter.asVariableDeclaration(), CTypeUtils.containsArray(parameterType), constraints, pts);
+      final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
+      final CVariableDeclaration declaration;
+      if (options.useParameterVariables()) {
+        CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                formalParameter.getFileLocation(), formalParameter.getType(), formalParameter.getName() + PARAM_VARIABLE_NAME);
+        tmpParameter.setQualifiedName(formalParameter.getQualifiedName() + PARAM_VARIABLE_NAME);
+        declaration = tmpParameter.asVariableDeclaration();
+      } else {
+        declaration = formalDeclaration;
+      }
+      declareSharedBase(declaration, CTypeUtils.containsArray(parameterType), constraints, pts);
     }
 
     return result;
@@ -747,6 +772,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.getIndex(pName, pType, pSsa);
+  }
+
+  @Override
+  protected int getFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.getFreshIndex(pName, pType, pSsa);
   }
 
   @Override

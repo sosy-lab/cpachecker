@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 
@@ -91,18 +92,16 @@ public class Z3TheoremProver implements ProverEnvironment {
   @Override
   public boolean isUnsat() {
     int result = solver_check(z3context, z3solver);
-    Preconditions.checkArgument(result != Z3_L_UNDEF);
+    Preconditions.checkArgument(result != Z3_LBOOL.Z3_L_UNDEF.status);
 
     smtLogger.logCheck();
 
-    return result == Z3_L_FALSE;
+    return result == Z3_LBOOL.Z3_L_FALSE.status;
   }
 
   @Override
   public Model getModel() throws SolverException {
-    Z3Model model = new Z3Model(mgr, z3context, z3solver);
-    Model m = model.createZ3Model();
-    return m;
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override
@@ -149,7 +148,7 @@ public class Z3TheoremProver implements ProverEnvironment {
     smtLogger.logPush(1);
     smtLogger.logCheck();
 
-    while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
+    while (solver_check(z3context, z3solver) == Z3_LBOOL.Z3_L_TRUE.status) {
       long[] valuesOfModel = new long[importantFormulas.length];
       long z3model = solver_get_model(z3context, z3solver);
 

@@ -56,6 +56,7 @@ import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -121,7 +122,7 @@ class ASTTypeConverter {
         t2 = ((CElaboratedType) t2).getRealType();
       }
       if (equalWithoutName) {
-        switch(t1.getKind()) {
+        switch (t1.getKind()) {
         case STRUCT:
         case UNION:
           List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
@@ -150,7 +151,7 @@ class ASTTypeConverter {
   }
 
   static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
@@ -350,8 +351,8 @@ class ASTTypeConverter {
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
-    for (int i = 0; i < pFields.length; i++) {
-      list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    for (IField pField : pFields) {
+      list.add(new CCompositeTypeMemberDeclaration(convert(pField.getType()), pField.getName()));
     }
     return list;
   }

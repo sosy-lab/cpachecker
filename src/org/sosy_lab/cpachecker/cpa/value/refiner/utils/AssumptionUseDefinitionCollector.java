@@ -60,8 +60,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 /**
  * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
@@ -129,7 +129,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
    * @param path the path to analyze
    * @return the mapping of location to referenced variables in the given path
    */
-  public Set<String> obtainUseDefInformation(ARGPath pFullArgPath) {
+  public Set<String> obtainUseDefInformation(MutableARGPath pFullArgPath) {
     return obtainUseDefInformation(from(pFullArgPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList());
   }
 
@@ -139,6 +139,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
    * @param path the path to check
    * @return true, if the path is incomplete, else false
    */
+  @SuppressWarnings("unused")
   private boolean isIncompletePath(List<CFAEdge> path) {
     return path.get(0).getPredecessor().getNumEnteringEdges() > 0;
   }
@@ -196,7 +197,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       if (declaration.getName() != null) {
         String variableName = declaration.getName();
 
-        if(!declaration.isGlobal()) {
+        if (!declaration.isGlobal()) {
           variableName = scoped(variableName, currentFunction);
         }
 
@@ -204,9 +205,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
           dependingVariables.remove(variableName);
           collectedVariables.add(variableName);
 
-          if(((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
+          if (((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
             CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
-            if(initializer != null) {
+            if (initializer != null) {
               collectVariables(edge, initializer.getExpression());
             }
           }
@@ -218,7 +219,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
         CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
         // for cases where error path ends with a return statement
-        if(previousFunctionReturnEdge == null) {
+        if (previousFunctionReturnEdge == null) {
           break;
         }
 
@@ -235,8 +236,11 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
             collectedVariables.add(assignedVariable);
             // also add special FUNCTION_RETURN_VAR as relevant variable
-            collectedVariables.add(scoped(ValueAnalysisTransferRelation.FUNCTION_RETURN_VAR, returnStatementEdge.getPredecessor().getFunctionName()));
-            collectVariables(returnStatementEdge, returnStatementEdge.getExpression());
+            collectedVariables.add(VariableClassification.createFunctionReturnVariable(returnStatementEdge.getPredecessor().getFunctionName()));
+
+            if (returnStatementEdge.getExpression().isPresent()) {
+              collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
+            }
           }
         }
 
@@ -283,7 +287,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
       List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
 
       // process MultiEdges also in reverse order
-      for(int i = edges.size() - 1; i >= 0; i--) {
+      for (int i = edges.size() - 1; i >= 0; i--) {
         collectVariables(edges.get(i), collectedVariables);
       }
       break;
@@ -401,6 +405,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
 
       return null;

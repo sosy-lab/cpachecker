@@ -57,8 +57,8 @@ public class UIFAxiomSet {
 
     // First get the set of all variables appearing in F
     Set<String> allVars = new HashSet<>();
-    for (int i = 0; i < F.length; i++) {
-      allVars.addAll(getAllPurificationVariablesAsStrings(F[i], VariableWriteMode.PLAIN));
+    for (TemplateFormula element : F) {
+      allVars.addAll(getAllPurificationVariablesAsStrings(element, VariableWriteMode.PLAIN));
     }
 
     // go through the value that 'name' maps to, searching for those
@@ -183,8 +183,8 @@ public class UIFAxiomSet {
 
       int[] index_perm = PG.getNext();
       next = new Vector<>();
-      for (int i = 0; i < index_perm.length; i++) {
-        next.add( axiomSubset.get(index_perm[i] ));
+      for (int element : index_perm) {
+        next.add( axiomSubset.get(element ));
       }
 
     }

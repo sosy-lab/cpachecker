@@ -87,7 +87,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   @Override
   protected Formula visitDefault(CExpression exp)
       throws UnrecognizedCCodeException {
-    return conv.makeVariableUnsafe(exp, function, ssa, false);
+    return conv.makeVariableUnsafe(exp, function, ssa, false, false);
   }
 
   protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
@@ -212,7 +212,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case MODULO:
       ret = conv.fmgr.makeModulo(f1, f2, signed);
 
-      FormulaType numberType = conv.fmgr.getFormulaType(f1);
+      FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
       Formula zero = conv.fmgr.makeNumber(numberType, 0L);
 
       BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
@@ -594,6 +594,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   protected Formula makeNondet(final String varName, final CType type) {
-    return conv.makeFreshVariable(varName, type, ssa);
+    return conv.makeFreshVariable(varName, type, ssa, false);
   }
 }

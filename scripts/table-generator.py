@@ -801,28 +801,28 @@ def getCategoryCount(categoryList):
     # warning: read next lines carefully, there are some brackets and commas!
     return (
         # correctTrue, correctFalseLabel, correctProperty
-            counts[result.CATEGORY_CORRECT, result.STR_TRUE],
-            counts[result.CATEGORY_CORRECT, result.STR_FALSE_REACH],
-            counts[result.CATEGORY_CORRECT, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_CORRECT, result.STR_FALSE_TERMINATION],
+            counts[result.CATEGORY_CORRECT, result.STATUS_TRUE_PROP],
+            counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_REACH],
+            counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_CORRECT, result.STATUS_FALSE_TERMINATION],
 
         # wrongTrue, wrongFalseLabel, wrongProperty
-            counts[result.CATEGORY_WRONG, result.STR_TRUE],
-            counts[result.CATEGORY_WRONG, result.STR_FALSE_REACH],
-            counts[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION],
+            counts[result.CATEGORY_WRONG, result.STATUS_TRUE_PROP],
+            counts[result.CATEGORY_WRONG, result.STATUS_FALSE_REACH],
+            counts[result.CATEGORY_WRONG, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_WRONG, result.STATUS_FALSE_TERMINATION],
           
         # missing
-            counts[result.CATEGORY_MISSING, result.STR_TRUE] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_REACH] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_DEREF] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_FREE] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_MEMTRACK] \
-          + counts[result.CATEGORY_MISSING, result.STR_FALSE_TERMINATION] \
+            counts[result.CATEGORY_MISSING, result.STATUS_TRUE_PROP] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_REACH] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_DEREF] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_FREE] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_MEMTRACK] \
+          + counts[result.CATEGORY_MISSING, result.STATUS_FALSE_TERMINATION] \
             )
 
 
@@ -844,14 +844,44 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
 
     return (StatValue.fromList(valueList),
             StatValue.fromList(valuesPerCategory[result.CATEGORY_CORRECT, None]), # None as DUMMY
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_TRUE]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_REACH]),
-            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_DEREF] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_FREE] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_MEMTRACK] +
-                               valuesPerCategory[result.CATEGORY_WRONG, result.STR_FALSE_TERMINATION]
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_TRUE_PROP]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_REACH]),
+            StatValue.fromList(valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_DEREF] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_FREE] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_MEMTRACK] +
+                               valuesPerCategory[result.CATEGORY_WRONG, result.STATUS_FALSE_TERMINATION]
                                ),
             )
+
+
+def getRegressionCount(rows, ignoreFlappingTimeouts): # for options.dumpCounts
+
+    columns = rowsToColumns(rows)
+    if len(columns) < 2:
+        return 0 # no regressions with only one run
+
+    timeouts = set()
+    for runResults in columns[:-1]:
+        timeouts |= set(index for (index, runResult) in enumerate(runResults) if runResult.status == 'TIMEOUT')
+
+    def isFlappingTimeout(index, oldResult, newResult):
+        return index in timeouts \
+            and oldResult.status != 'TIMEOUT' \
+            and newResult.status == 'TIMEOUT'
+
+    def ignoreRegression(oldResult, newResult):
+        return oldResult.status == 'TIMEOUT' and newResult.status == 'OUT OF MEMORY' \
+            or oldResult.status == 'OUT OF MEMORY' and newResult.status == 'TIMEOUT'
+
+    regressions = 0
+    for index, (oldResult, newResult) in enumerate(zip(columns[-2], columns[-1])):
+        # regression can be only if result is different and new result is not correct
+        if oldResult.status != newResult.status and newResult.category != result.CATEGORY_CORRECT:
+
+            if not (ignoreFlappingTimeouts and isFlappingTimeout(index, oldResult, newResult)) \
+                    and not ignoreRegression(oldResult, newResult):
+                regressions += 1
+    return regressions
 
 
 def getCounts(rows): # for options.dumpCounts
@@ -996,7 +1026,11 @@ def main(args=None):
     )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
-        help="Print summary statistics for the good, bad, and unknown counts."
+        help="Print summary statistics for regressions and the good, bad, and unknown counts."
+    )
+    parser.add_argument("--ignore-flapping-timeout-regressions",
+        action="store_true", dest="ignoreFlappingTimeouts",
+        help="For the regression-count statistics, do not count regressions to timeouts if the file already had timeouts before."
     )
     parser.add_argument("-c", "--common",
         action="store_true", dest="common",
@@ -1100,6 +1134,7 @@ def main(args=None):
     print ('done')
 
     if options.dumpCounts: # print some stats for Buildbot
+        print ("REGRESSIONS {}".format(getRegressionCount(rows, options.ignoreFlappingTimeouts)))
         countsList = getCounts(rows)
         print ("STATS")
         for counts in countsList:

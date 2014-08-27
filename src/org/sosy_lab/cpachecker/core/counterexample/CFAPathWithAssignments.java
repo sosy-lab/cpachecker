@@ -32,7 +32,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -42,6 +41,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.MultiConcre
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 
@@ -144,31 +144,31 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   @Nullable
   public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
-    if (pPath.isEmpty() || pPath.size() != pathWithAssignments.size()) {
+
+    if (pPath.size() != (pathWithAssignments.size() + 1)) {
       return null;
     }
 
     Map<ARGState, CFAEdgeWithAssignments> result = new HashMap<>();
 
-    int index = 0;
+    PathIterator pathIterator = pPath.pathIterator();
+    while (pathIterator.hasNext()) {
 
-    for (Pair<ARGState, CFAEdge> argPair : pPath) {
-
-      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
-
-      if (!edgeWithAssignment.getCFAEdge().equals(argPair.getSecond())) {
+      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
+      if (edgeWithAssignment.getCFAEdge().equals(pathIterator.getOutgoingEdge())) {
         // path is not equivalent
         return null;
       }
 
-      result.put(argPair.getFirst(), edgeWithAssignment);
-      index++;
+      result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+      pathIterator.advance();
     }
+    // last state is ignored
 
     return result;
   }
 
-  public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
+  public static CFAPathWithAssignments of(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel) {
 
     List<CFAEdgeWithAssignments> result = new ArrayList<>(statePath.size());
@@ -189,6 +189,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return new CFAPathWithAssignments(result);
   }
 
+  @Deprecated
   public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
       LogManager pLogger, MachineModel pMachineModel,
       Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
@@ -257,6 +258,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return pathWithAssignments.iterator();
   }
 
+  @Deprecated
   public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
     return allAssignableTerms.get(pEdge);
   }

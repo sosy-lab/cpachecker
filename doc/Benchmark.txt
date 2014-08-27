@@ -61,6 +61,7 @@ the time and memory limits.
 
 - Memory
   The memory limit is specified in Megabytes
+  (SI units, i.e., 1 MB = 1,000,000 Bytes)
   with the attribute "memlimit" in the <benchmark> tag
   of the benchmark definition XML file. Example:
   <benchmark ... memlimit="8000">
@@ -76,12 +77,14 @@ the time and memory limits.
   such as MathSAT.
   For analyses without MathSAT,
   start to experiment with 1000 MB less than the external limit.
+  IMPORTANT: Java does not use SI units here, but IEC units (factor 1024).
+  7000M here are 5% more than 7000 for the memory limit above!
   Example:
   <option name="-heap">7000M</option>
 
 Summary:
 For correct and useful benchmarks, choose a memory limit (e.g., 8000MB),
-a Java heap size (e.g., 7000MB), and a timelimit (e.g., 900s).
+a Java heap size (e.g., 7000MiB), and a timelimit (e.g., 900s).
 Then specify them as follows:
 
 <benchmark ... timelimit="900" hardtimelimit="1000" memlimit="8000">

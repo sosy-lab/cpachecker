@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -83,6 +86,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Optional;
+
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation implements TransferRelation {
   @Option(description="decides whether one (false) or two (true) successors should be created "
@@ -93,7 +98,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
    */
   private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
-  private final Set<String> globalVars = new HashSet<>();
+  private final Set<String> globalFieldVars = new HashSet<>();
 
   @Option(description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
@@ -176,10 +181,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
     CFunctionCall expression = summaryEdge.getExpression();
 
-    IntervalAnalysisState newElement = IntervalAnalysisState.copyOf(element.getPreviousState());
+    IntervalAnalysisState newElement = IntervalAnalysisState.copyOf(element);
 
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
+
+    newElement.dropFrame(calledFunctionName);
 
     // expression is an assignment operation, e.g. a = g(b);
     if (expression instanceof CFunctionCallAssignmentStatement) {
@@ -189,32 +196,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
       // left hand side of the expression has to be a variable
       if ((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference)) {
-        String assignedVariableName = operand1.toASTString();
 
         String returnedVariableName = calledFunctionName + "::" + RETURN_VARIABLE_BASE_NAME;
 
-        for (String globalVar : globalVars) {
-          // if the assigned variable represents global variable, set the global variable to the value of the returning variable or unknown
-          if (globalVar.equals(assignedVariableName)) {
-            Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
-
-            newElement.addInterval(globalVar, interval, this.threshold);
-          }
-
-          // import the global variables into the scope of the called function
-          else {
-            Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
-
-            newElement.addInterval(globalVar, interval, this.threshold);
-          }
-        }
-
         // set the value of the assigned variable to the value of the returned variable
-        if (!globalVars.contains(assignedVariableName)) {
-          Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
-
-          newElement.addInterval(constructVariableName(assignedVariableName, callerFunctionName), interval, this.threshold);
-        }
+        Interval interval = element.contains(returnedVariableName) ? element.getInterval(returnedVariableName) : Interval.createUnboundInterval();
+        newElement.addInterval(constructVariableName(operand1, callerFunctionName), interval, this.threshold);
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
@@ -223,15 +210,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
       }
-    }
-
-    // import the global variables back into the scope of the calling function
-    else if (expression instanceof CFunctionCallStatement) {
-      for (String globalVar : globalVars) {
-          Interval interval = element.contains(globalVar) ? element.getInterval(globalVar) : Interval.createUnboundInterval();
-
-          newElement.addInterval(globalVar, interval, this.threshold);
-      }
+    } else if (expression instanceof CFunctionCallStatement) {
+      // nothing to do
     } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
     }
@@ -259,14 +239,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
     assert (parameterNames.size() == arguments.size());
 
-    IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
-
-    // import global variables into the current scope first
-    for (String globalVar : globalVars) {
-      if (previousElement.contains(globalVar)) {
-        newElement.addInterval(globalVar, previousElement.getInterval(globalVar), threshold);
-      }
-    }
+    IntervalAnalysisState newElement = IntervalAnalysisState.copyOf(previousElement);
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(previousElement, callerFunctionName, edge);
 
@@ -276,7 +249,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       // get value of actual parameter in caller function context
       Interval interval = arguments.get(i).accept(visitor);
 
-      String formalParameterName = constructVariableName(parameterNames.get(i), calledFunctionName);
+      String formalParameterName = constructLocalVariableName(parameterNames.get(i), calledFunctionName);
 
       newElement.addInterval(formalParameterName, interval, this.threshold);
     }
@@ -292,16 +265,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
    * @param CReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
-  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, CReturnStatementEdge returnEdge, CFAEdge edge)
+  private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element,
+      Optional<CExpression> expression, CReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException {
-    if (expression == null) {
-      expression = CNumericTypes.ZERO; // this is the default in C
-    }
+
+    CExpression exp = expression.or(CNumericTypes.ZERO); // 0 is the default in C
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, returnEdge.getPredecessor().getFunctionName(), edge);
 
     // assign the value of the function return to a new variable
-    return handleAssignmentToVariable(RETURN_VARIABLE_BASE_NAME, expression, visitor);
+    return handleAssignmentToVariable(RETURN_VARIABLE_BASE_NAME, exp, visitor);
   }
 
   /**
@@ -396,8 +369,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     //Interval orgInterval2 = evaluateInterval(element, operand2, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
     Interval tmpInterval2 = orgInterval2;
 
-    String variableName1 = constructVariableName(operand1.toASTString(), cfaEdge.getPredecessor().getFunctionName());
-    String variableName2 = constructVariableName(operand2.toASTString(), cfaEdge.getPredecessor().getFunctionName());
+    String variableName1 = constructVariableName(operand1, cfaEdge.getPredecessor().getFunctionName());
+    String variableName2 = constructVariableName(operand2, cfaEdge.getPredecessor().getFunctionName());
 
     // determine whether or not the respective operand is an identifier
     boolean isIdOp1 = operand1 instanceof CIdExpression;
@@ -573,10 +546,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
       // if this is a global variable, add it to the list of global variables
       if (decl.isGlobal()) {
-        globalVars.add(decl.getName());
-        varName = constructVariableName(decl.getName(), "");
+        varName = decl.getName();
+        globalFieldVars.add(varName);
       } else {
-        varName = constructVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
+        varName = constructLocalVariableName(decl.getName(), declarationEdge.getPredecessor().getFunctionName());
       }
 
       Interval interval;
@@ -644,7 +617,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     if (op1 instanceof CIdExpression) {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, cfaEdge.getPredecessor().getFunctionName(), cfaEdge);
 
-      return handleAssignmentToVariable(((CIdExpression)op1).getName(), op2, visitor);
+      return handleAssignmentToVariable(constructVariableName(op1,visitor.functionName), op2, visitor);
     }
 
     // TODO: assignment to pointer, *a = ?
@@ -667,14 +640,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
    * @param cfaEdge the respective CFA edge
    * @return the successor element
    */
-  private IntervalAnalysisState handleAssignmentToVariable(String lParam, CRightHandSide expression, ExpressionValueVisitor v)
+  private IntervalAnalysisState handleAssignmentToVariable(String pFullVariableName, CRightHandSide expression, ExpressionValueVisitor v)
     throws UnrecognizedCCodeException {
     Interval value = expression.accept(v);
 
     IntervalAnalysisState newElement = IntervalAnalysisState.copyOf(v.state);
-    String variableName = constructVariableName(lParam, v.functionName);
 
-    newElement.addInterval(variableName, value, this.threshold);
+    newElement.addInterval(pFullVariableName, value, this.threshold);
 
     return newElement;
   }
@@ -695,15 +667,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
-    }
 
-    else if (expression instanceof CIdExpression) {
-      String varName = constructVariableName(((CIdExpression)expression).getName(), functionName);
+    } else if (expression instanceof CIdExpression) {
+      String varName = constructVariableName((CIdExpression)expression, functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
-    }
 
-    else if (expression instanceof CCastExpression) {
+    } else if (expression instanceof CCastExpression) {
       return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
     } else if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExpression = (CUnaryExpression)expression;
@@ -771,19 +741,24 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     }
   }
 
-  /**
-   * This method created a scoped variable name.
-   *
-   * @param variableName
-   * @param functionName
-   * @return a scoped variable name
-   */
-  public String constructVariableName(String variableName, String functionName) {
-    if (globalVars.contains(variableName)) {
-      return variableName;
-    }
 
-    return functionName + "::" + variableName;
+  private String constructLocalVariableName(String pVariableName, String pCalledFunctionName) {
+    return pCalledFunctionName + "::" + pVariableName;
+  }
+
+  private String constructVariableName(IAExpression pVariableName, String pCalledFunctionName) {
+    if (pVariableName instanceof CIdExpression) {
+        CSimpleDeclaration decl = ((CIdExpression) pVariableName).getDeclaration();
+        if (decl instanceof CDeclaration) {
+          if  (((CDeclaration) decl).isGlobal()) {
+            return pVariableName.toASTString();
+          }
+      }
+    }
+    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())) {
+      return pVariableName.toASTString();
+    }
+    return pCalledFunctionName + "::" + pVariableName.toASTString();
   }
 
   @Override
@@ -933,7 +908,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         return new Interval(((CEnumerator)identifier.getDeclaration()).getValue());
       }
 
-      String variableName = constructVariableName(identifier.getName(), functionName);
+      String variableName = constructVariableName(identifier, functionName);
       if (state.contains(variableName)) {
         return state.getInterval(variableName);
       } else {

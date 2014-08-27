@@ -99,6 +99,10 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
+  public ConfigurableProgramAnalysis getCPAs() {
+    return invariantCPAs;
+  }
+
   public CPAInvariantGenerator(Configuration config, LogManager pLogger,
       ReachedSetFactory reachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
@@ -284,14 +288,14 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       // Set the wrapping future as value of the reference
       ref.set(future);
       // From here on it is safe to call the task, so it is submit to a scheduler
-      executorService.submit(new Callable<UnmodifiableReachedSet>() {
+      ref.set(executorService.submit(new Callable<UnmodifiableReachedSet>() {
 
         @Override
-        public UnmodifiableReachedSet call() throws Exception {
+        public UnmodifiableReachedSet call() throws ExecutionException, InterruptedException {
           return future.get();
         }
 
-      });
+      }));
       return future;
     }
 

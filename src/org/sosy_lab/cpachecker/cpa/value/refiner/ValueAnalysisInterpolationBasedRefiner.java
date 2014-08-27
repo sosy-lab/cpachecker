@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,16 +60,16 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.value.Value;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -97,8 +97,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="whether or not to interpolate the shortest infeasible prefix rather than the whole error path")
-  private boolean interpolateInfeasiblePrefix = false;
+  @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -122,7 +122,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final ValueAnalysisInterpolator interpolator;
 
-  protected ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
+  public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {
@@ -134,50 +134,50 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);
   }
 
-  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
+  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(MutableARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations.inc();
     timerInterpolation.start();
 
     interpolationOffset = -1;
 
-    errorPath = obtainErrorPathPrefix(errorPath, interpolant);
+    List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
 
-    List<CFAEdge> errorTrace = obtainErrorTrace(errorPath);
+    // obtain use-def relation, containing variables relevant to the "failing" assumption
+    Set<MemoryLocation> useDefRelation = new HashSet<>();
+    /* TODO: does not work as long as AssumptionUseDefinitionCollector is incomplete (e.g., does not take structs into account)
+    if (prefixPreference != ErrorPathPrefixPreference.DEFAULT) {
+      AssumptionUseDefinitionCollector useDefinitionCollector = new InitialAssumptionUseDefinitionCollector();
+      useDefRelation = from(useDefinitionCollector.obtainUseDefInformation(errorTrace)).
+          transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet();
+    }*/
 
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
-
     for (int i = 0; i < errorPath.size() - 1; i++) {
       shutdownNotifier.shutdownIfNecessary();
 
-      if(!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant);
+      if (!interpolant.isFalse()) {
+        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, useDefRelation);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
-      if(!interpolant.isTrivial() && interpolationOffset == -1) {
+      if (!interpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = i + 1;
       }
 
-      if(interpolant.isTrivial()) {
-        sizeOfInterpolant.setNextValue(0);
-      }
-
-      else {
-        sizeOfInterpolant.setNextValue(interpolant.assignment.size());
-      }
+      sizeOfInterpolant.setNextValue(interpolant.isTrivial() ? 0 : interpolant.assignment.size());
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
-    }
 
-    assert interpolant.isFalse() : "final interpolant is not false";
+      assert ((i != errorTrace.size() - 1) || interpolant.isFalse()) : "final interpolant is not false";
+    }
 
     timerInterpolation.stop();
     return pathInterpolants;
   }
 
-  protected Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
     assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
@@ -187,7 +187,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
 
-    for(Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
     }
 
@@ -204,8 +204,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private void addToPrecisionIncrement(Multimap<CFANode, MemoryLocation> increment,
       CFANode currentNode,
       ValueAnalysisInterpolant itp) {
-    for(MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if(assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+    for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
+      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
         increment.put(currentNode, memoryLocation);
       }
     }
@@ -220,11 +220,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @return the new refinement root
    * @throws RefinementFailedException if no refinement root can be determined
    */
-  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
+  public Pair<ARGState, CFAEdge> determineRefinementRoot(MutableARGPath errorPath, Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement) throws RefinementFailedException {
 
-    if(interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
+    if (interpolationOffset == -1) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
@@ -235,14 +235,14 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         List<Pair<ARGState, CFAEdge>> trace = errorPath.subList(0, interpolationOffset - 1);
 
         // check in reverse order only when avoiding assumes
-        if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+        if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
           trace = Lists.reverse(trace);
         }
 
         // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
         Collection<String> releventVariables = convertToIdentifiers(increment.values());
         for (Pair<ARGState, CFAEdge> currentElement : trace) {
-          if(edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
+          if (edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
             return errorPath.get(errorPath.indexOf(currentElement) + 1);
           }
         }
@@ -263,7 +263,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @param errorPath the error path
    * @return the list of CFA edges to be interpolated
    */
-  private List<CFAEdge> obtainErrorTrace(ARGPath errorPath) {
+  private List<CFAEdge> obtainErrorTrace(MutableARGPath errorPath) {
     return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
   }
 
@@ -276,21 +276,18 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
+  private MutableARGPath obtainErrorPathPrefix(MutableARGPath errorPath, ValueAnalysisInterpolant interpolant)
           throws CPAException, InterruptedException {
-    if(interpolateInfeasiblePrefix) {
-      try {
-        ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
 
-        List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-            ValueAnalysisPrecision.createDefaultPrecision(),
-            interpolant.createValueAnalysisState());
+    try {
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
-        errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
 
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
-      }
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
 
     return errorPath;
@@ -305,7 +302,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private Collection<String> convertToIdentifiers(Collection<MemoryLocation> memoryLocations) {
     Set<String> identifiers = new HashSet<>();
 
-    for(MemoryLocation memoryLocation : memoryLocations) {
+    for (MemoryLocation memoryLocation : memoryLocations) {
       identifiers.add(memoryLocation.getAsSimpleString());
     }
 
@@ -318,7 +315,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * @param errorPath the error path
    * @return true, if the current cut-off point is at an assume edge, else false
    */
-  private boolean cutOffIsAssumeEdge(ARGPath errorPath) {
+  private boolean cutOffIsAssumeEdge(MutableARGPath errorPath) {
     return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
   }
 
@@ -367,14 +364,13 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         if (assignedVariable instanceof AIdExpression) {
           IASimpleDeclaration declaration = ((AIdExpression)assignedVariable).getDeclaration();
 
-          if(declaration instanceof CVariableDeclaration) {
+          if (declaration instanceof CVariableDeclaration) {
             return variableNames.contains(((CVariableDeclaration)declaration).getQualifiedName());
           }
         }
       }
-    }
 
-    else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+    } else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
       if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
         return variableNames.contains(((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName());
@@ -443,11 +439,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return
      */
-    static ValueAnalysisInterpolant createInitial() {
+    public static ValueAnalysisInterpolant createInitial() {
       return new ValueAnalysisInterpolant();
     }
 
-    Set<MemoryLocation> getMemoryLocations() {
+    public Set<MemoryLocation> getMemoryLocations() {
       return isFalse()
           ? Collections.<MemoryLocation>emptySet()
           : Collections.unmodifiableSet(assignment.keySet());
@@ -463,7 +459,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      */
     public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
 
-      if(assignment == null || other.assignment == null) {
+      if (assignment == null || other.assignment == null) {
         return ValueAnalysisInterpolant.FALSE;
       }
 
@@ -471,9 +467,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       // add other itp mapping - one by one for now, to check for correctness
       // newAssignment.putAll(other.assignment);
-      for(Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
-        if(newAssignment.containsKey(entry.getKey())) {
-          assert(entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
+      for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+        if (newAssignment.containsKey(entry.getKey())) {
+          assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
         }
 
         newAssignment.put(entry.getKey(), entry.getValue());
@@ -505,9 +501,8 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
       if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
         return false;
-      }
 
-      else if (!assignment.equals(other.assignment)) {
+      } else if (!assignment.equals(other.assignment)) {
         return false;
       }
 
@@ -519,7 +514,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "true", else false
      */
-    private boolean isTrue() {
+    public boolean isTrue() {
       return assignment.isEmpty();
     }
 
@@ -528,7 +523,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant represents "false", else true
      */
-    boolean isFalse() {
+    public boolean isFalse() {
       return assignment == null;
     }
 
@@ -537,7 +532,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @return true, if the interpolant is trivial, else false
      */
-    boolean isTrivial() {
+    public boolean isTrivial() {
       return isFalse() || isTrue();
     }
 
@@ -552,11 +547,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     @Override
     public String toString() {
-      if(isFalse()) {
+      if (isFalse()) {
         return "FALSE";
       }
 
-      if(isTrue()) {
+      if (isTrue()) {
         return "TRUE";
       }
 
@@ -571,12 +566,11 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       boolean strengthened = false;
 
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
-        if(!valueState.contains(itp.getKey())) {
+        if (!valueState.contains(itp.getKey())) {
           valueState.assignConstant(itp.getKey(), itp.getValue());
           strengthened = true;
-        }
 
-        else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
+        } else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
           assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
         }
       }
@@ -600,10 +594,10 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
 
-      for(Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
+      for (Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
         MemoryLocation current = it.next();
 
-        if(!toRetain.contains(current.getAsSimpleString())) {
+        if (!toRetain.contains(current.getAsSimpleString())) {
           it.remove();
         }
       }

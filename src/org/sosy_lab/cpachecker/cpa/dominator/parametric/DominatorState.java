@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -135,6 +136,11 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
   @Override
   public CFANode getLocationNode() {
     return ((AbstractStateWithLocation)dominatedState).getLocationNode();
+  }
+
+  @Override
+  public Iterable<CFAEdge> getOutgoingEdges() {
+    return ((AbstractStateWithLocation)dominatedState).getOutgoingEdges();
   }
 
   @Override

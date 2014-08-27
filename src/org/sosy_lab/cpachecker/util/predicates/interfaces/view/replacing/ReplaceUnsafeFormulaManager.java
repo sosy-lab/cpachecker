@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
@@ -117,4 +119,11 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
         replaceManager.unwrap(pF),
         pNewName);
   }
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1
+      substitute(T1 f, List<T2> changeFrom, List<T2> changeTo) {
+    throw new UnsupportedOperationException();
+  }
+
 }

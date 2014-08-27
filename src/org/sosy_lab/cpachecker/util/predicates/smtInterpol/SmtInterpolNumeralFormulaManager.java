@@ -111,7 +111,12 @@ abstract class SmtInterpolNumeralFormulaManager
   @Override
   public Term divide(Term pNumber1, Term pNumber2) {
     Term result;
-    if (isNumber(pNumber2)) {
+    if (isNumber(pNumber2)
+        // In SmtInterpol, return type of division is always Real,
+        // but if we have two Int terms, we expect an Int result,
+        // so we use the UF.
+        && (pNumber1.getSort().equals(pNumber1.getTheory().getRealSort())
+            || pNumber2.getSort().equals(pNumber1.getTheory().getRealSort()))) {
       result = env.term("/", pNumber1, pNumber2);
     } else {
       result = makeUf(divUfDecl, pNumber1, pNumber2);

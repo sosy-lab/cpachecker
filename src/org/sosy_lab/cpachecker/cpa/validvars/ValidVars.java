@@ -42,7 +42,7 @@ public class ValidVars {
   public static final ValidVars initial = new ValidVars(Collections.<String> emptySet(),
       Collections.<String, Set<String>> emptyMap());
 
-  ValidVars(Set<String> pGlobalValidVars, Map<String, ? extends Set<String>> pLocal){
+  ValidVars(Set<String> pGlobalValidVars, Map<String, ? extends Set<String>> pLocal) {
     globalValidVars = ImmutableSet.copyOf(pGlobalValidVars);
     localValidVars = ImmutableMap.copyOf(pLocal);
   }
@@ -70,27 +70,27 @@ public class ValidVars {
     builder.addAll(globalValidVars);
 
     ImmutableSet<String> newGlobals = builder.build();
-    if(newGlobals.size()!=pOther.globalValidVars.size()){
+    if (newGlobals.size()!=pOther.globalValidVars.size()) {
       changed = true;
     }
 
     // merge local vars
     ImmutableSet<String> newLocalsForFun;
     ImmutableMap.Builder<String,ImmutableSet<String>> builderMap = ImmutableMap.builder();
-    for(String funName: localValidVars.keySet()){
+    for (String funName: localValidVars.keySet()) {
       builder = ImmutableSet.builder();
       builder.addAll(pOther.localValidVars.get(funName));
       builder.addAll(localValidVars.get(funName));
 
       newLocalsForFun = builder.build();
-      if(newLocalsForFun.size()!=pOther.localValidVars.get(funName).size()){
+      if (newLocalsForFun.size()!=pOther.localValidVars.get(funName).size()) {
         changed = true;
       }
 
       builderMap.put(funName, newLocalsForFun);
     }
 
-    if(changed){
+    if (changed) {
       return new ValidVars(newGlobals, builderMap.build());
     }
 
@@ -124,7 +124,7 @@ public class ValidVars {
     return extendLocalVars(funName, ImmutableSet.of(newLocalVarName));
   }
 
-  public ValidVars extendLocalVars(String funName, Collection<String> newLocalVarsNames){
+  public ValidVars extendLocalVars(String funName, Collection<String> newLocalVarsNames) {
     if (newLocalVarsNames != null) {
       ImmutableMap.Builder<String, Set<String>> builderMap = ImmutableMap.builder();
       for (String functionName : localValidVars.keySet()) {

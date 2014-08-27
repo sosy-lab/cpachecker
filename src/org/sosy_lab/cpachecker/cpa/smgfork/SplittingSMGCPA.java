@@ -140,7 +140,7 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
+    } catch (SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
@@ -148,7 +148,7 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
     try {
       initState.addStackFrame(functionNode.getFunctionDefinition());
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
+    } catch (SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 

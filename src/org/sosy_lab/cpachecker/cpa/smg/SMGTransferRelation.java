@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
@@ -102,13 +102,15 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.ImmutableSet;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 @Options(prefix = "cpa.smg")
@@ -116,7 +118,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
-  private Path exportSMGFilePattern = Paths.get("smg-%s.dot");
+  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-%s.dot");
 
   @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -207,8 +209,8 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return Paths.get(String.format(pExportSMGFilePattern.toAbsolutePath().getPath(), pName));
+    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
+      return pExportSMGFilePattern.getPath(pName);
     }
 
     protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
@@ -430,7 +432,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG)){
+    if (pConfig.equals(exportSMG)) {
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
@@ -550,11 +552,7 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression();
-
-    if (returnExp == null) {
-      returnExp = CNumericTypes.ZERO; // this is the default in C
-    }
+    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -767,7 +765,7 @@ public class SMGTransferRelation implements TransferRelation {
           return new SMGState(pState);
         }
 
-        if(expressionEvaluator.missingExplicitInformation) {
+        if (expressionEvaluator.missingExplicitInformation) {
           missingInformationList.add(new MissingInformation(cFCExpression, isRequiered));
           expressionEvaluator.reset();
         }
@@ -1083,10 +1081,10 @@ public class SMGTransferRelation implements TransferRelation {
       listCounter++;
     }
 
-    if(pVarDecl.isGlobal()) {
+    if (pVarDecl.isGlobal()) {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
-      if(offset < sizeOfType ) {
+      if (offset < sizeOfType ) {
         pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO);
       }
     }
@@ -1232,11 +1230,11 @@ public class SMGTransferRelation implements TransferRelation {
         CExpression operand2 = unwrap(binExp.getOperand2());
         BinaryOperator op = binExp.getOperator();
 
-        if(operand1 instanceof CLeftHandSide) {
+        if (operand1 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
         }
 
-        if(operand2 instanceof CLeftHandSide) {
+        if (operand2 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
         }
 
@@ -1247,14 +1245,14 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp);
 
-        if(rValue.isUnknown()) {
+        if (rValue.isUnknown()) {
           // no further information can be inferred
           return;
         }
 
         SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
 
-        if(rSymValue.isUnknown()) {
+        if (rSymValue.isUnknown()) {
           return;
         }
 
@@ -1262,7 +1260,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -1271,7 +1269,7 @@ public class SMGTransferRelation implements TransferRelation {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
           }
         } else {
-          if(op == BinaryOperator.NOT_EQUALS) {
+          if (op == BinaryOperator.NOT_EQUALS) {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
           }
@@ -1303,7 +1301,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
 
-        if(truthValue == true) {
+        if (truthValue == true) {
           return; // no further explicit Information can be derived
         }
 
@@ -1311,7 +1309,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -1576,6 +1574,7 @@ public class SMGTransferRelation implements TransferRelation {
   private boolean hasChanged;
 
   @SuppressWarnings("unused")
+  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private Collection<? extends AbstractState> strengthen(ValueAnalysisState explicitState, SMGState pSMGState, CFAEdge cfaEdge) throws CPATransferException {
 
     SMGState newElement = new SMGState(pSMGState);
@@ -1812,8 +1811,8 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected Path getOutputFile(Path pExportSMGFilePattern, String pName) {
-      return Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), "Explicit_" + pName));
+    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
+      return exportSMGFilePattern.getPath("Explicit_" + pName);
     }
 
     @Override
@@ -1827,7 +1826,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Value valueV = cc.evaluateExpression(pRValue);
 
-      if(!valueV.isExplicitlyKnown() || !valueV.isNumericValue()) {
+      if (!valueV.isExplicitlyKnown() || !valueV.isNumericValue()) {
         return SMGUnknownValue.getInstance();
       } else {
         return SMGKnownExpValue.valueOf(valueV.asNumericValue().longValue());
@@ -2639,7 +2638,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public final String toString() {
 
-      if(isUnknown()) {
+      if (isUnknown()) {
         return "Unkown";
       }
 

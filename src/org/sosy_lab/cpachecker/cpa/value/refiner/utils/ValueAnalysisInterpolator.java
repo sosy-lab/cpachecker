@@ -24,42 +24,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa.value.interpolation")
 public class ValueAnalysisInterpolator {
-  @Option(name="weakenInterpolant", description="whether or not to heuristically weaken the candidate interpolant "
-      + "prior to the interpolation process")
-  private boolean weakenInterpolant = false;
-
   /**
    * the shutdownNotifier in use
    */
@@ -76,24 +68,19 @@ public class ValueAnalysisInterpolator {
   private final ValueAnalysisPrecision precision;
 
   /**
-   * the collector to get the use-definition information from an error trace
-   */
-  private final AssumptionUseDefinitionCollector assumeCollector;
-
-  /**
-   * the set of relevant variables found by the collector
-   */
-  private Set<String> relevantVariables = new HashSet<>();
-
-  /**
-   * the boolean flag that indicates, if assignments through assumptions are needed for excluding the target state
-   */
-  private Boolean assumptionsAreRelevant = null;
-
-  /**
    * the number of interpolations
    */
   private int numberOfInterpolationQueries = 0;
+
+  /**
+   * the error path checker to be used for feasibility checks
+   */
+  private final ValueAnalysisFeasibilityChecker checker;
+
+  /**
+   * constant to denote that a transition did not yield a successor
+   */
+  private static final ValueAnalysisState NO_SUCCESSOR = null;
 
   /**
    * This method acts as the constructor of the class.
@@ -102,14 +89,11 @@ public class ValueAnalysisInterpolator {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
-    pConfig.inject(this);
-
     try {
       shutdownNotifier  = pShutdownNotifier;
-      assumeCollector   = new AssumptionUseDefinitionCollector();
+      checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-      precision         = new ValueAnalysisPrecision("", Configuration.builder().build(),
-          Optional.<VariableClassification>absent());
+      precision         = ValueAnalysisPrecision.createDefaultPrecision();
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -122,26 +106,23 @@ public class ValueAnalysisInterpolator {
    * @param pErrorPath the path to check
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
+   * @param useDefRelation the use-def relation, containing the variables relevant for proving the infeasibility
+   * of the target assumption
    * @throws CPAException
    * @throws InterruptedException
    */
   public ValueAnalysisInterpolant deriveInterpolant(
       final List<CFAEdge> pErrorPath,
       final int pOffset,
-      final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      final ValueAnalysisInterpolant pInputInterpolant,
+      final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
-
-    // on initial iteration
-    if(pOffset == 0) {
-      assumptionsAreRelevant  = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
-      relevantVariables       = assumeCollector.obtainUseDefInformation(pErrorPath);
-    }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
     ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
 
-    if (initialSuccessor == null) {
+    if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
     }
 
@@ -158,16 +139,16 @@ public class ValueAnalysisInterpolator {
       return initialSuccessor.createInterpolant();
     }
 
+    // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
+    if (!useDefRelation.isEmpty()) {
+      initialSuccessor.retainAll(useDefRelation);
+    }
+
     Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
     if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
       return ValueAnalysisInterpolant.TRUE;
-    }
-
-    if(weakenInterpolant) {
-      initialSuccessor.retainAll(from(relevantVariables)
-          .transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION).toSet());
     }
 
     for (MemoryLocation currentMemoryLocation : initialSuccessor.getTrackedMemoryLocations()) {
@@ -177,7 +158,7 @@ public class ValueAnalysisInterpolator {
       Value value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor, assumptionsAreRelevant)) {
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
         initialSuccessor.assignConstant(currentMemoryLocation, value);
       }
     }
@@ -190,10 +171,11 @@ public class ValueAnalysisInterpolator {
    *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
-   * @throws CPATransferException
+   * @throws InterruptedException
+   * @throws CPAException
    */
-  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath) throws CPATransferException {
-    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState(), assumptionsAreRelevant);
+  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath) throws CPAException, InterruptedException {
+    return !isRemainingPathFeasible(errorPath, new ValueAnalysisState());
   }
 
   /**
@@ -221,7 +203,7 @@ public class ValueAnalysisInterpolator {
         precision,
         initialEdge);
 
-    return extractSingletonSuccessor(initialState, initialEdge, assumptionsAreRelevant, successors);
+    return Iterables.getOnlyElement(successors, NO_SUCCESSOR);
   }
 
   /**
@@ -229,51 +211,23 @@ public class ValueAnalysisInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
-   * @param pAssumptionsAreRelevant whether or not to ignore the assigning semantics of assume edges
    * @return true, it the path is feasible, else false
-   * @throws CPATransferException
+   * @throws InterruptedException
+   * @throws CPAException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state, boolean pAssumptionsAreRelevant)
-      throws CPATransferException {
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state)
+      throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
 
-    for (CFAEdge currentEdge : remainingErrorPath) {
-      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
-        state,
-        precision,
-        currentEdge);
+    MutableARGPath argErrorPath = new MutableARGPath();
 
-      if (successors.isEmpty()) {
-        return false;
-      }
-
-      state = extractSingletonSuccessor(state, currentEdge, pAssumptionsAreRelevant, successors);
+    for (CFAEdge edge : remainingErrorPath) {
+      argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));
     }
-    return true;
+
+    return checker.isFeasible(argErrorPath, state);
   }
 
-  /**
-   * This method extracts the single successor from the (empty or singleton) set of successors.
-   *
-   * @param predecessor the predecessor state
-   * @param currentEdge the current edge
-   * @param successors the (empty or singleton) set of successors
-   * @return the only successor or null, if no set of successors is empty
-   */
-  private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
-      CFAEdge currentEdge, boolean pAssumptionsAreRelevant, Collection<ValueAnalysisState> successors) {
-    if(successors.isEmpty()) {
-      return null;
-    }
-
-    else if(!pAssumptionsAreRelevant && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      return predecessor.clone();
-    }
-
-    else {
-      return Iterables.getOnlyElement(successors);
-    }
-  }
 
   /**
    * This method checks, if the given edge is only renaming variables.

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smgfork;
 
+import org.sosy_lab.cpachecker.cpa.smgfork.graphs.CLangSMG;
+
 
 public interface SMGAbstractionCandidate {
   public int getScore();

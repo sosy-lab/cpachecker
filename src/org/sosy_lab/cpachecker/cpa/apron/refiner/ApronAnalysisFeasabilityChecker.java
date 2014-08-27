@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -39,11 +38,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.cpa.apron.ApronPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
+import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -59,10 +59,10 @@ public class ApronAnalysisFeasabilityChecker {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ARGPath checkedPath;
-  private final ARGPath foundPath;
+  private final MutableARGPath checkedPath;
+  private final MutableARGPath foundPath;
 
-  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
+  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, MutableARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
@@ -72,7 +72,7 @@ public class ApronAnalysisFeasabilityChecker {
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new ApronPrecision(Configuration.defaultConfiguration()),
+    foundPath = getInfeasiblePrefix(new StaticFullApronPrecision(),
                                     new ApronState(logger, cpa.getManager()));
   }
 
@@ -88,7 +88,7 @@ public class ApronAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Set<String> getPrecisionIncrement(ApronPrecision precision) {
+  public Set<String> getPrecisionIncrement(RefineableApronPrecision precision) {
     if (isFeasible()) {
       return Collections.emptySet();
     } else {
@@ -120,12 +120,12 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final ApronPrecision pPrecision, final ApronState pInitial)
+  private MutableARGPath getInfeasiblePrefix(final StaticFullApronPrecision pPrecision, final ApronState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 
-      ARGPath prefix = new ARGPath();
+      MutableARGPath prefix = new MutableARGPath();
 
       Collection<ApronState> successors = new HashSet<>();
 
@@ -150,7 +150,7 @@ public class ApronAnalysisFeasabilityChecker {
         prefix.addLast(pathElement);
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
+        if (successors.isEmpty()) {
           break;
         }
 

@@ -32,7 +32,7 @@ public class ValidVarsDomain implements AbstractDomain{
 
   private final AbstractDomain wrappedDomain;
 
-  public ValidVarsDomain(AbstractDomain pWrapped){
+  public ValidVarsDomain(AbstractDomain pWrapped) {
     wrappedDomain = pWrapped;
   }
 

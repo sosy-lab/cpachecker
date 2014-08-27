@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smgfork.objects;
 
-
-
-
 public final class SMGRegion extends SMGObject {
 
   public SMGRegion(int pSize, String pLabel) {

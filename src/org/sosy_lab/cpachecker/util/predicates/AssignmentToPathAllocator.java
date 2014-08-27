@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
@@ -55,27 +56,22 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.core.counterexample.ReferenceName;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
 public class AssignmentToPathAllocator {
 
-  //TODO check right prefix
   private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
-
   private static final int FIRST = 0;
-
   private static final int IS_NOT_GLOBAL = 2;
-
   private static final int NAME_AND_FUNCTION = 0;
-
   private static final int IS_FIELD_REFERENCE = 1;
 
   @SuppressWarnings("unused")
@@ -98,6 +94,9 @@ public class AssignmentToPathAllocator {
     shutdownNotifier = pShutdownNotifier;
   }
 
+  /**
+   * Provide a path with concrete values (like a test case)
+   */
   public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
@@ -110,15 +109,13 @@ public class AssignmentToPathAllocator {
   }
 
 
-  private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(List<CFAEdge> pPath,
-      Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
+  private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(
+      List<CFAEdge> pPath, Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel)
+          throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
-
     List<ConcerteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.size());
-
     Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
-
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
     /* Its too inefficient to recreate every assignment from scratch,
@@ -131,6 +128,7 @@ public class AssignmentToPathAllocator {
     Map<String, Assignment> variableEnvoirment = new HashMap<>();
     Map<LeftHandSide, Object> variables = new HashMap<>();
     Multimap<String, Assignment> functionEnvoirment = HashMultimap.create();
+    //TODO Persistent Map
     Map<String, Map<Address, Object>> memory = new HashMap<>();
 
     int ssaMapIndex = 0;
@@ -142,13 +140,11 @@ public class AssignmentToPathAllocator {
       CFAEdge cfaEdge = pPath.get(pathIndex);
 
       if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-
         MultiEdge multiEdge = (MultiEdge) cfaEdge;
 
-        ConcreteState[] singleConcreteStates = new ConcreteState[multiEdge.getEdges().size()];
+        List<ConcreteState> singleConcreteStates = new ArrayList<>(multiEdge.getEdges().size());
 
         int multiEdgeIndex = 0;
-
         for (CFAEdge singleCfaEdge : multiEdge) {
 
           variableEnvoirment = new HashMap<>(variableEnvoirment);
@@ -159,10 +155,12 @@ public class AssignmentToPathAllocator {
 
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-          singleConcreteStates[multiEdgeIndex] = createSingleConcreteState(
+          ConcreteState concreteState = createSingleConcreteState(
               singleCfaEdge, ssaMap, variableEnvoirment, variables,
               functionEnvoirment, memory, addressOfVariables, terms,
               pModel, pMachineModel, usedAssignableTerms);
+
+          singleConcreteStates.add(multiEdgeIndex, concreteState);
           ssaMapIndex++;
           multiEdgeIndex++;
         }
@@ -239,11 +237,10 @@ public class AssignmentToPathAllocator {
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
 
-    Map<String, Memory> memory = new HashMap<>(pMemory.size());
+    Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
 
-    for (String heapName : pMemory.keySet()) {
-      Map<Address, Object> heapValues = pMemory.get(heapName);
-      Memory heap = new Memory(heapName, heapValues);
+    for (Map.Entry<String, Map<Address, Object>> heapObject : pMemory.entrySet()) {
+      Memory heap = new Memory(heapObject.getKey(), heapObject.getValue());
       memory.put(heap.getName(), heap);
     }
 
@@ -282,15 +279,15 @@ public class AssignmentToPathAllocator {
       fieldNames.remove(NAME_AND_FUNCTION);
 
       if (isNotGlobal) {
-        return new ReferenceName(name, function, fieldNames);
+        return new FieldReference(name, function, fieldNames);
       } else {
-        return new ReferenceName(name, fieldNames);
+        return new FieldReference(name, fieldNames);
       }
     } else {
       if (isNotGlobal) {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name, function);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name, function);
       } else {
-        return new org.sosy_lab.cpachecker.core.counterexample.Variable(name);
+        return new org.sosy_lab.cpachecker.core.counterexample.IDExpression(name);
       }
     }
   }
@@ -306,7 +303,9 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  /*We need the variableEnvoirment and functionEnvoirment for their SSAIndeces.*/
+  /**
+   * We need the variableEnvoirment and functionEnvoirment for their SSAIndeces.
+   */
   private void createAssignments(Model pModel,
       Collection<AssignableTerm> terms,
       Set<Assignment> termSet,
@@ -338,8 +337,6 @@ public class AssignmentToPathAllocator {
             LeftHandSide lhs = createLeftHandSide(variable);
             pVariables.remove(oldlhs);
             pVariables.put(lhs, assignment.getValue());
-
-
           }
         } else {
           //update variableEnvoirment for subsequent calculation
@@ -350,19 +347,20 @@ public class AssignmentToPathAllocator {
         }
 
       } else if (term instanceof Function) {
+
         Function function = (Function) term;
         String name = getName(function);
 
-        if(functionEnvoirment.containsKey(name)) {
+        if (functionEnvoirment.containsKey(name)) {
 
           boolean replaced = false;
 
           Set<Assignment> assignments = new HashSet<>(functionEnvoirment.get(name));
 
-          for(Assignment oldAssignment : assignments) {
+          for (Assignment oldAssignment : assignments) {
             Function oldFunction = (Function) oldAssignment.getTerm();
 
-            if(isLessSSA(oldFunction, function)) {
+            if (isLessSSA(oldFunction, function)) {
 
               //update functionEnvoirment for subsequent calculation
               functionEnvoirment.remove(name, oldAssignment);
@@ -374,7 +372,7 @@ public class AssignmentToPathAllocator {
             }
           }
 
-          if(!replaced) {
+          if (!replaced) {
             functionEnvoirment.put(name, assignment);
             addHeapValue(memory, assignment);
           }
@@ -388,9 +386,9 @@ public class AssignmentToPathAllocator {
   }
 
   private void removeHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
-    Map<Address, Object> heap = memory.get(heapName); //TODO Assumption
+    Map<Address, Object> heap = memory.get(heapName);
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
@@ -401,7 +399,7 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
-    Function function = (Function) pFunctionAssignment.getTerm(); //TODO Assumption
+    Function function = (Function) pFunctionAssignment.getTerm();
     String heapName = getName(function);
     Map<Address, Object> heap;
 
@@ -551,9 +549,9 @@ public class AssignmentToPathAllocator {
   /**
    * Search through an (ordered) list of SSAMaps
    * for the first index where a given variable appears.
-   * @return -1 if the variable with the given index never occurs, or an index of pSsaMaps
+   * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
    */
-  private int findFirstOccurrenceOfVariable(Variable pVar, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(Variable pVar, List<SSAMap> pSsaMaps) {
 
     // both indices are inclusive bounds of the range where we still need to look
     int lower = 0;
@@ -569,8 +567,7 @@ public class AssignmentToPathAllocator {
     } else {
 
       while (upper >= 0 &&
-          (pSsaMaps.get(upper).getIndex(pVar.getName())
-            == SSAMap.INDEX_NOT_CONTAINED)) {
+          !pSsaMaps.get(upper).containsVariable(pVar.getName())) {
         upper--;
       }
 
@@ -614,7 +611,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
 
     int lower = 0;
     int upper = pSsaMaps.size() - 1;
@@ -656,6 +653,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
+  // TODO: Why is this generic class not in the package core.counterexample?
   private static final class Assignment {
 
     private final AssignableTerm term;

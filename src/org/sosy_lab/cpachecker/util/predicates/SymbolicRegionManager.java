@@ -245,4 +245,8 @@ public class SymbolicRegionManager implements RegionManager {
     // do nothing
   }
 
+  @Override
+  public String getVersion() {
+    return fmgr.getVersion();
+  }
 }

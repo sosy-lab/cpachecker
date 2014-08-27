@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+
 /** Represents a State in the automaton.
  */
 public class AutomatonInternalState {
@@ -46,7 +48,7 @@ public class AutomatonInternalState {
                                     Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM)),
+                                    BOTTOM, new StringExpression(""))),
       true, false);
 
   /** Break state, used to halt the analysis without being a target state */
@@ -57,7 +59,7 @@ public class AutomatonInternalState {
                                     Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM)),
+                                    BOTTOM, null)),
       false, false);
 
   /** Name of this State.  */

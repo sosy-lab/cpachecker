@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
@@ -94,8 +94,8 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     smtLogger.logCheck();
 
-    Preconditions.checkState(result != Z3_L_UNDEF);
-    return result == Z3_L_FALSE;
+    Preconditions.checkState(result != Z3_LBOOL.Z3_L_UNDEF.status);
+    return result == Z3_LBOOL.Z3_L_FALSE.status;
   }
 
   @Override
@@ -140,7 +140,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     int isSat = interpolateSeq(
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
 
-    assert isSat != Z3_L_TRUE;
+    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
 
     // cleanup
@@ -152,8 +152,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
   @Override
   public Model getModel() {
-    Z3Model modelCreator = new Z3Model(mgr, z3context, z3solver);
-    return modelCreator.createZ3Model();
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override

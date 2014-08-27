@@ -63,7 +63,7 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
 
     // get transitive closure over relevant vars.
     // note: at this point, all relevant vars are in the waitlist, but will be copied into it later.
-    while(!waitlist.isEmpty()) {
+    while (!waitlist.isEmpty()) {
       ReferencedVariable var = waitlist.pop();
       if (!relevantVars.add(var.getName())) {
         // important: here each var is copied into relevant vars.

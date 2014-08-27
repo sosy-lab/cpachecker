@@ -62,7 +62,6 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
 
     try {
-      stats.getStopTimer().start();
       if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
@@ -70,8 +69,6 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     } catch (CPAException e) {
       logger.logException(Level.FINE, e, "Stop check failed for initial element.");
       return false;
-    } finally {
-      stats.getStopTimer().stop();
     }
 
     // instantiate parallel threads and check if elements form transitive closure
@@ -94,21 +91,14 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       stats.increaseIteration();
 
       try {
-        stats.getTransferTimer().start();
         successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec, null);
-        stats.getTransferTimer().stop();
 
         for (AbstractState succ : successors) {
-          try {
-            stats.getStopTimer().start();
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                   "of element ", reachedSet[i], "not covered by result.");
               return false;
             }
-          } finally {
-            stats.getStopTimer().stop();
-          }
         }
       } catch (CPATransferException e) {
         logger.logException(Level.FINE, e, "Computation of successors failed.");
@@ -157,24 +147,16 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       Collection<? extends AbstractState> successors;
       for (int i=start;i<start+numElem;i++) {
 
-        stats.increaseIteration();
-
         try {
-          stats.getTransferTimer().start();
           successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec, null);
-          stats.getTransferTimer().stop();
 
           for (AbstractState succ : successors) {
-            try {
-              stats.getStopTimer().start();
+
               if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
                 logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                     "of element ", reachedSet[i], "not covered by result.");
                 result = false;
               }
-            } finally {
-              stats.getStopTimer().stop();
-            }
           }
         } catch (CPATransferException | InterruptedException e) {// TODO how to deal with interrupted exception
           logger.logException(Level.FINE, e, "Computation of successors failed.");

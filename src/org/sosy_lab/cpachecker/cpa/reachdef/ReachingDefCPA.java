@@ -101,7 +101,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
       stop = new StopIgnoringCallstack();
     }
     if (mergeType.equals("SEP")) {
-      merge = new MergeSepOperator();
+      merge = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")) {
       merge = new MergeJoinOperator(domain);
     } else {

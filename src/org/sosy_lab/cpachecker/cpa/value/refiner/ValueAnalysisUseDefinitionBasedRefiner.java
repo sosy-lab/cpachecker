@@ -30,7 +30,10 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,11 +52,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.InitialAssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -67,6 +73,7 @@ import com.google.common.collect.Multimap;
 /**
  * Refiner implementation that extracts a precision increment solely based on syntactical information from error traces.
  */
+@Options(prefix="cpa.value.refiner")
 public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   // statistics
   private int numberOfRefinements           = 0;
@@ -77,7 +84,10 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
+
+  public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisUseDefinitionBasedRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
@@ -96,24 +106,25 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   private static ValueAnalysisUseDefinitionBasedRefiner initialiseRefiner(
       ConfigurableProgramAnalysis cpa, ValueAnalysisCPA pValueAnalysisCpa)
-          throws CPAException, InvalidConfigurationException {
-    LogManager logger = pValueAnalysisCpa.getLogger();
+          throws InvalidConfigurationException {
 
     return new ValueAnalysisUseDefinitionBasedRefiner(
-        logger,
+        pValueAnalysisCpa.getConfiguration(),
+        pValueAnalysisCpa.getLogger(),
         pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
-        pValueAnalysisCpa.getStaticRefiner(),
         pValueAnalysisCpa.getCFA());
   }
 
   protected ValueAnalysisUseDefinitionBasedRefiner(
+      final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
-      ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
-      final CFA pCfa) throws CPAException, InvalidConfigurationException {
+      final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
+
+    pConfig.inject(this);
 
     cfa               = pCfa;
     logger            = pLogger;
@@ -121,8 +132,10 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
+
+    MutableARGPath errorPath = pErrorPath.mutableCopy();
 
     // if path is infeasible, try to refine the precision
     if (isPathFeasable(errorPath)) {
@@ -130,14 +143,13 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 
-      return CounterexampleInfo.feasible(errorPath, model);
-    }
+      return CounterexampleInfo.feasible(pErrorPath, model);
 
-    else if (performValueAnalysisRefinement(reached, errorPath)) {
+    } else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 
-    throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
+    throw new RefinementFailedException(Reason.RepeatedCounterexample, pErrorPath);
   }
 
   /**
@@ -148,24 +160,22 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, MutableARGPath errorPath) throws CPAException, InterruptedException {
     numberOfRefinements++;
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath,
-          ValueAnalysisPrecision.createDefaultPrecision(),
-          new ValueAnalysisState());
+      List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
 
-      errorPath = new ErrorPathClassifier(cfa.getVarClassification()).obtainPrefixWithLowestScore(prefixes);
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
     }
 
     Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
-
     // no increment - refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 
@@ -181,13 +191,19 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     return true;
   }
 
-  private Multimap<CFANode, MemoryLocation> obtainPrecisionIncrement(ARGPath errorPath) {
+  private Multimap<CFANode, MemoryLocation> obtainPrecisionIncrement(MutableARGPath errorPath) {
     List<CFAEdge> cfaTrace = from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    // just add each variable referenced in the use-def set to a BOGUS PROGRAM LOCATION (i.e., initial location)
-    for(String referencedVariable : new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(cfaTrace)) {
-      increment.put(cfaTrace.get(0).getSuccessor(), MemoryLocation.valueOf(referencedVariable));
+    // is the prefixPreference not the default, we know the final assumption is the failing one,
+    // and we can use the InitialAssumptionUseDefinitionCollector to obtain the def-use-information
+    // from that specific assumption
+    AssumptionUseDefinitionCollector useDefinitionCollector = prefixPreference == ErrorPathPrefixPreference.DEFAULT ?
+        new AssumptionUseDefinitionCollector() :
+        new InitialAssumptionUseDefinitionCollector();
+
+    for (String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
+      increment.put(new CFANode("BOGUS_NODE"), MemoryLocation.valueOf(referencedVariable));
     }
 
     return increment;
@@ -216,12 +232,9 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
+  boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
-      // create a new ValueAnalysisChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
-
-      return checker.isFeasible(path);
+      return new ValueAnalysisFeasibilityChecker(logger, cfa).isFeasible(path);
     }
     catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);

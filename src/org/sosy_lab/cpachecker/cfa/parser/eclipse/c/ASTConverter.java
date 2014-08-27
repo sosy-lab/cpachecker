@@ -142,6 +142,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -167,6 +168,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -683,7 +685,7 @@ class ASTConverter {
       operand = convertExpressionWithoutSideEffects(e.getOperand());
     }
 
-    if("__imag__".equals(e.getTypeId().getRawSignature())) {
+    if ("__imag__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, castType, operand, castType, false);
     } else if ("__real__".equals(e.getTypeId().getRawSignature())) {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
@@ -1113,6 +1115,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(final IASTUnaryExpression e) {
+    if (e.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+      // we can have side effects here
+      return convertExpressionWithSideEffects(e.getOperand());
+    }
+
     final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
     final FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
@@ -1120,6 +1127,7 @@ class ASTConverter {
 
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_bracketedPrimary:
+      throw new AssertionError("handled above");
     case IASTUnaryExpression.op_plus:
       return operand;
 
@@ -1342,7 +1350,8 @@ class ASTConverter {
   }
 
   public CReturnStatement convert(final IASTReturnStatement s) {
-    return new CReturnStatement(getLocation(s), convertExpressionWithoutSideEffects(s.getReturnValue()));
+    return new CReturnStatement(getLocation(s),
+        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue())));
   }
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {
@@ -1601,7 +1610,7 @@ class ASTConverter {
       IASTInitializer initializer = null;
       String name = null;
 
-      // Descend into the nested chain of declators.
+      // Descend into the nested chain of declarators.
       // Find out the name and the initializer, and collect all modifiers.
       IASTDeclarator currentDecl = d;
       while (currentDecl != null) {
@@ -1663,6 +1672,27 @@ class ASTConverter {
       // add last array modifiers if necessary
       for (int i = tmpArrMod.size() -1; i >= 0; i--) {
         type = convert(tmpArrMod.get(i), type);
+      }
+
+      // Arrays with unknown length but an initializer
+      // have their length calculated from the initializer.
+      // Example: int a[] = { 1, 2 };
+      // will be converted as int a[2] = { 1, 2 };
+      if (type instanceof CArrayType) {
+        CArrayType arrayType = (CArrayType)type;
+
+        if (arrayType.getLength() == null
+            && initializer instanceof IASTEqualsInitializer) {
+          IASTInitializerClause initClause = ((IASTEqualsInitializer)initializer).getInitializerClause();
+          if (initClause instanceof IASTInitializerList) {
+            int length = ((IASTInitializerList)initClause).getClauses().length;
+            CExpression lengthExp = new CIntegerLiteralExpression(
+                getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+            type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+                arrayType.getType(), lengthExp);
+          }
+        }
       }
 
       return Triple.of(type, initializer, name);

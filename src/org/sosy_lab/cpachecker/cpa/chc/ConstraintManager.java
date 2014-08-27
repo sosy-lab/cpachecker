@@ -171,7 +171,7 @@ public class ConstraintManager {
     HashMap<String,Term> newVars = new HashMap<>(pVars);
 
     for (Map.Entry<String, Term> me : vars.entrySet()) {
-      if(! pVars.containsKey(me.getKey())) {
+      if (! pVars.containsKey(me.getKey())) {
         newVars.put(me.getKey(), me.getValue());
       }
     }
@@ -316,11 +316,9 @@ public class ConstraintManager {
   public static Constraint getConstraint(AReturnStatementEdge aRetEdge)
     throws UnrecognizedCCodeException {
 
-    IAExpression expression = aRetEdge.getExpression();
-
-    if (expression == null) {
-      expression = CNumericTypes.ZERO; // this is the default in C
-    }
+    IAExpression expression = aRetEdge.getExpression().isPresent()
+        ? aRetEdge.getExpression().get()
+        : CNumericTypes.ZERO; // this is the default in C
 
     String varName = "FRET_" + aRetEdge.getSuccessor().getFunctionName();
 

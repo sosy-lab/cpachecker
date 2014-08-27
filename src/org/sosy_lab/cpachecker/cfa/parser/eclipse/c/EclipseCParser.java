@@ -43,16 +43,21 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
 import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
 import org.eclipse.cdt.core.dom.parser.c.ICParserExtensionConfiguration;
+import org.eclipse.cdt.core.index.IIndexFileLocation;
 import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.cdt.core.parser.ParserFactory;
+import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
+import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
+import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
+import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -61,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -106,24 +112,37 @@ public class EclipseCParser implements CParser {
     }
   }
 
+  /**
+   * Convert paths like "file.c" to "./file.c",
+   * and return all other patchs unchanged.
+   * The pre-processor of Eclipse CDT needs this to resolve relative includes.
+   */
+  private static String fixPath(String pPath) {
+    Path path = Paths.get(pPath);
+    if (!path.isEmpty() && !path.isAbsolute() && path.getParent().isEmpty()) {
+      return Paths.get(".").resolve(path).toString();
+    }
+    return pPath;
+  }
+
   private FileContent wrapCode(FileContentToParse pContent) {
-    return FileContent.create(pContent.getFileName(), pContent.getFileContent().toCharArray());
+    return FileContent.create(fixPath(pContent.getFileName()), pContent.getFileContent().toCharArray());
   }
 
   private FileContent wrapCode(String pFileName, String pCode) {
-    return FileContent.create(pFileName, pCode.toCharArray());
+    return FileContent.create(fixPath(pFileName), pCode.toCharArray());
   }
 
   private final FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
-    return wrapCode(pFileName, code);
+    return wrapCode(fixPath(pFileName), code);
   }
 
   @Override
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(FileToParse f: pFilenames) {
+    for (FileToParse f: pFilenames) {
       astUnits.add(Pair.of(parse(wrapFile(f.getFileName())), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits, sourceOriginMapping);
@@ -133,7 +152,7 @@ public class EclipseCParser implements CParser {
   public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
 
     List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
-    for(FileContentToParse f : codeFragments) {
+    for (FileContentToParse f : codeFragments) {
       astUnits.add(Pair.of(parse(wrapCode(f)), f.getStaticVariablePrefix()));
     }
     return buildCFA(astUnits, sourceOriginMapping);
@@ -166,7 +185,7 @@ public class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -191,12 +210,12 @@ public class EclipseCParser implements CParser {
 
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
+    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
         .convert(statements[0]);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -222,13 +241,13 @@ public class EclipseCParser implements CParser {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
-    ASTConverter converter = new ASTConverter(config, new FunctionScope(), new LogManagerWithoutDuplicates(logger),
+    ASTConverter converter = new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
         Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
-    for(IASTStatement statement : statements) {
-      if(statement != null) {
+    for (IASTStatement statement : statements) {
+      if (statement != null) {
         nodeList.add(converter.convert(statement));
       }
     }
@@ -250,9 +269,16 @@ public class EclipseCParser implements CParser {
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
 
-      IASTPreprocessorIncludeStatement[] includes = result.getIncludeDirectives();
-      if (includes.length > 0) {
-        throw new CParserException("File has #include directives and needs to be pre-processed.");
+      // Separate handling of include problems
+      // so that we can give a better error message.
+      for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
+        if (!include.isResolved()) {
+          if (include.isSystemInclude()) {
+            throw new CFAGenerationRuntimeException("File includes system headers, either preprocess it manually or specify -preprocess.");
+          } else {
+            throw new CFAGenerationRuntimeException("Included file " + include.getName() + " is missing", include);
+          }
+        }
       }
 
       // Report the preprocessor problems.
@@ -276,7 +302,7 @@ public class EclipseCParser implements CParser {
   private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,
-                                          IncludeFileContentProvider.getEmptyFilesProvider(),
+                                          FileContentProvider.instance,
                                           null,
                                           PARSER_OPTIONS,
                                           parserLog);
@@ -298,7 +324,7 @@ public class EclipseCParser implements CParser {
     Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
       CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, sourceOriginMapping, machine);
-      for(Pair<IASTTranslationUnit, String> ast : asts) {
+      for (Pair<IASTTranslationUnit, String> ast : asts) {
         builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
 
@@ -446,6 +472,24 @@ public class EclipseCParser implements CParser {
     @Override
     public String[] getIncludePaths() {
       return new String[0];
+    }
+  }
+
+  private static class FileContentProvider extends InternalFileContentProvider {
+
+    static final InternalFileContentProvider instance = new FileContentProvider();
+
+    @Override
+    public InternalFileContent getContentForInclusion(String pFilePath,
+        IMacroDictionary pMacroDictionary) {
+      return InternalParserUtil.createExternalFileContent(pFilePath,
+          InternalParserUtil.SYSTEM_DEFAULT_ENCODING);
+    }
+
+    @Override
+    public InternalFileContent getContentForInclusion(IIndexFileLocation pIfl,
+        String pAstPath) {
+      return InternalParserUtil.createFileContent(pIfl);
     }
   }
 }

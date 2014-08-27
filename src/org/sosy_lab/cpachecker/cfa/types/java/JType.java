@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
-
+/**
+ * Marker interface for Java types.
+ */
 public interface JType extends Type {
 
 

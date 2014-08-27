@@ -29,7 +29,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -134,7 +134,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
+  public PrecisionAdjustmentResult prec(AbstractState pElement,
                                                Precision pPrecision,
                                                UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
     total.start();
@@ -166,7 +166,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
         // compute the abstraction based on the value-analysis precision, unless assignment information is available
         // then, this is dealt with during enforcement of the path thresholds, see below
-        if(assigns == null) {
+        if (assigns == null) {
           totalAbstraction.start();
           valueAnalysisState = enforceAbstraction(valueAnalysisState, location, valueAnalysisPrecision);
           totalAbstraction.stop();
@@ -187,11 +187,11 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       } else {
         totalComposite.start();
 
-        Triple<AbstractState, Precision, Action> result = precisionAdjustment.prec(oldState, oldPrecision, slice);
-        AbstractState newElement = result.getFirst();
-        Precision newPrecision = result.getSecond();
+        PrecisionAdjustmentResult result = precisionAdjustment.prec(oldState, oldPrecision, slice);
+        AbstractState newElement = result.abstractState();
+        Precision newPrecision = result.precision();
 
-        if (result.getThird() == Action.BREAK) {
+        if (result.action() == Action.BREAK) {
           action = Action.BREAK;
         }
 
@@ -215,7 +215,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
     total.stop();
 
-    return Triple.of(outElement, outPrecision, action);
+    return PrecisionAdjustmentResult.create(outElement, outPrecision, action);
   }
 
   /**
@@ -310,20 +310,18 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       for (MemoryLocation memoryLocation: state.getDelta()) {
 
         // if memory location is being tracked, check against hard threshold
-        if(precision.isTracking(memoryLocation)) {
+        if (precision.isTracking(memoryLocation)) {
           assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
 
-          if(assignments.exceedsHardThreshold(memoryLocation)) {
+          if (assignments.exceedsHardThreshold(memoryLocation)) {
             state.forget(memoryLocation);
           }
-        }
 
-        else {
+        } else {
           // otherwise, check against soft threshold, including the pending assignment
-          if(assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
+          if (assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
             state.forget(memoryLocation);
-          }
-          else {
+          } else {
             assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
           }
         }

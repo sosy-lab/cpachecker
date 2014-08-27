@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Representation of concrete counter-examples.
+ * Representation of concrete counterexamples,
+ * produced by analyses after a target state has been found
+ * and written to disk afterwards.
  */
 package org.sosy_lab.cpachecker.core.counterexample;

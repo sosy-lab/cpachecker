@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 
 
@@ -106,7 +107,7 @@ public class ReachingDefinitionStorage implements Serializable {
     for (int i = 0; i < numElem; i++) {
       numKeys = in.readInt();
 
-      map = new HashMap<>(numKeys);
+      map = Maps.newHashMapWithExpectedSize(numKeys);
       for (int j = 0; j < numKeys; j++) {
         key = (String) in.readObject();
 

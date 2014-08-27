@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Sets;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
 
@@ -116,19 +117,31 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Collections.unmodifiableCollection(children);
   }
 
-  /** Returns the edge from current state to child or Null, if there is no edge. */
+  /**
+   * Returns the edge from current state to child or Null, if there is no edge.
+   * Both forward and backward analysis must be considered!
+   */
   @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
-    CFANode childNode = extractLocation(pChild);
+    CFANode childLoc = extractLocation(pChild);
 
     if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childNode)) {
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
       return currentLoc.getLeavingSummaryEdge();
-    } else if (currentLoc.hasEdgeTo(childNode)) {
-      return currentLoc.getEdgeTo(childNode);
+
+    } else if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
+      return currentLoc.getEdgeTo(childLoc);
+
+    } else if (currentLoc.getEnteringSummaryEdge() != null
+          && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
+      return currentLoc.getEnteringSummaryEdge();
+
+    } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
+      return childLoc.getEdgeTo(currentLoc);
+
     } else {
       return null;
     }
@@ -230,8 +243,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     wasExpanded = true;
   }
 
-  void deleteChild(ARGState child){
-    assert(children.contains(child));
+  void deleteChild(ARGState child) {
+    assert (children.contains(child));
     children.remove(child);
     child.parents.remove(this);
   }
@@ -389,7 +402,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<>(mCoveredByThis.size());
+        replacement.mCoveredByThis = Sets.newHashSetWithExpectedSize(mCoveredByThis.size());
       }
 
       for (ARGState covered : mCoveredByThis) {

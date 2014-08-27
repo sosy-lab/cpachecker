@@ -47,7 +47,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 
 /**
- * This class represents an assignment of values to program variables
+ * This class represents an assignment of concrete values to program variables
  * along a path. Each variable can have several assignments with different
  * SSA indices if it gets re-assigned along the path.
  *
@@ -65,13 +65,14 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   public static interface AssignableTerm {
-
     public TermType getType();
     public String getName();
-
   }
 
   public static class Constant implements AssignableTerm {
+
+    protected final String name;
+    protected final TermType type;
 
     public Constant(final String name, final TermType type) {
       this.name = name;
@@ -118,8 +119,6 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
           && type.equals(otherConstant.type);
     }
 
-    protected final String name;
-    protected final TermType type;
   }
 
   public static class Variable extends Constant implements AssignableTerm {
@@ -167,12 +166,15 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     private final int ssaIndex;
   }
 
+  /**
+   * A function call can have a concrete return value.
+   * TODO: Describe why handling pointers/references is not needed in this case
+   */
   public static class Function implements AssignableTerm {
 
     private final String mName;
     private final TermType mReturnType;
     private final List<Object> mArguments;
-
     private int mHashCode;
 
     public Function(String pName, TermType pReturnType, Object[] pArguments) {

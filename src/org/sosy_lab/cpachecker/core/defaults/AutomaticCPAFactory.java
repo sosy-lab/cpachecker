@@ -152,7 +152,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
       if (!optional) {
         Preconditions.checkNotNull(actualParam,
-            formalParam.getSimpleName() + " instance needed to create " + type.getSimpleName() + "-CPA!");
+            "%s instance needed to create %s-CPA!", formalParam.getSimpleName(), type.getSimpleName());
       }
       actualParameters[i] = actualParam;
     }
@@ -212,7 +212,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     Preconditions.checkNotNull(cls);
     Preconditions.checkNotNull(obj);
     Preconditions.checkState(!injects.containsKey(cls),
-        "Cannot store two objects of class " + cls.getSimpleName());
+        "Cannot store two objects of class %s", cls.getSimpleName());
 
     injects.putInstance(cls, obj);
     return this;

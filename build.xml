@@ -34,7 +34,7 @@
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
@@ -55,7 +55,7 @@
     </target>
     <target name="clean">
         <delete includeEmptyDirs="true">
-            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes war/WEB-INF/lib cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
             <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 
@@ -132,7 +132,13 @@
         <echo level="warning">For additional compiler checks, we recommend running ant with command-line arguments "-lib lib/java/build".</echo>
     </target>
 
-    <target depends="build-dependencies,-warn-errorprone" name="build-project">
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
+    </target>
+
+    <target depends="build-dependencies,-warn-errorprone,-warn-factorypath" name="build-project">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>
@@ -176,7 +182,7 @@
 
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
-    <target name="create-version-file-exact">
+    <target name="determine-version-revision">
         <!-- Determine full CPAchecker version including SVN revision. -->
         <exec executable="python"
             outputProperty="version.revision"
@@ -185,6 +191,9 @@
             <arg value="scripts/determine-revision.py"/>
             <arg value="${basedir}"/>
         </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
         <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
             <contains string="${version.base}" substring="-svn"/>
         </condition>
@@ -328,4 +337,16 @@
         description="Run FindBugs and generate report with newly found warnings."/>
 
     <target name="findbugs-full" depends="findbugs, findbugs-diff"/>
+
+    <!-- Targets for downloading CPAchecker instead of building it.
+         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
+         Warning: this might overwrite local changes. -->
+    <target name="download-cpachecker" depends="determine-version-revision">
+        <script language="javascript"><![CDATA[
+            var revision = project.getProperty("version.revision");
+            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
+        ]]></script>
+        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true"/>
+    </target>
 </project>

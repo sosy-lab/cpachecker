@@ -26,11 +26,21 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Description of a constructor method of a Java class.
+ */
 public class JConstructorType extends JMethodType implements JType {
 
   private static final JConstructorType UNRESOLVABLE_TYPE = new JConstructorType(JClassType.createUnresolvableType(), new ArrayList<JType>(), false);
 
+  /**
+   * Creates a new <code>JConstructorType</code> object with the given attributes.
+   *
+   * @param pReturnType a {@link JClassType} describing the class the described constructor creates
+   * @param pParameters the parameters the constructor takes
+   * @param pTakesVarArgs if <code>true</code>, the constructor takes a variable amount of
+   *        arguments, otherwise not
+   */
   public JConstructorType(JClassType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
   }
@@ -40,6 +50,11 @@ public class JConstructorType extends JMethodType implements JType {
     return (JClassType) super.getReturnType();
   }
 
+  /**
+   * Returns a <code>JContructorType</code> instance describing an unresolvable constructor.
+   *
+   * @return a <code>JContructorType</code> instance describing an unresolvable constructor
+   */
   public static JConstructorType createUnresolvableConstructorType() {
     return UNRESOLVABLE_TYPE;
   }

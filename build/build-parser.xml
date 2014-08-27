@@ -58,7 +58,7 @@
         />
 
         <!-- places the suppressWarnings-tag in front of the outer class -->
-        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;unchecked&quot;, &quot;cast&quot;} )${line.separator}"/>
+        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;unchecked&quot;, &quot;cast&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;DLS_DEAD_LOCAL_STORE&quot;, &quot;DM_DEFAULT_ENCODING&quot;, &quot;SA_FIELD_SELF_ASSIGNMENT&quot;})${line.separator}"/>
         <replace file="${dir.parser}/${parser.target}.java" token="public class " value="${annotation}public  class "/>
         <!-- places the suppressWarnings-tag in front of the inner class -->
         <replace file="${dir.parser}/${parser.target}.java" token="class CUP$" value="${annotation}class  CUP$"/>

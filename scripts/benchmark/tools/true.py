@@ -13,8 +13,8 @@ class Tool(benchmark.tools.template.BaseTool):
     def getName(self):
         return 'AlwaysTrue'
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile):
+    def getCmdline(self, executable, options, sourcefile, propertyfile, rlimits):
         return [executable]
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        return result.STR_TRUE
+        return result.STATUS_TRUE_PROP

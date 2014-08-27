@@ -80,9 +80,9 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+  public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    return ((Targetable)wrappedState).getViolatedProperty();
+    return ((Targetable)wrappedState).getViolatedPropertyDescription();
   }
 
   @Override

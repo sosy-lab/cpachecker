@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -43,12 +42,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
+  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates) throws CPAException {
 
     Action action = prec(pState, pPrecision);
 
-    return Triple.of(pState, pPrecision, action);
+    return PrecisionAdjustmentResult.create(pState, pPrecision, action);
   }
 
   public abstract Action prec(AbstractState pState, Precision pPrecision) throws CPAException;

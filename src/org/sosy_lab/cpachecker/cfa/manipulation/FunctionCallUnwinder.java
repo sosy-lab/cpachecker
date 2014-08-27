@@ -104,7 +104,7 @@ public class FunctionCallUnwinder {
       }
 
       // get CFA for functionname
-      Preconditions.checkArgument(functions.containsKey(functionname), "function not available: " + functionname);
+      Preconditions.checkArgument(functions.containsKey(functionname), "function %s not available", functionname);
       FunctionEntryNode entryNode = functions.get(functionname);
 
       // get functioncalls from the CFA

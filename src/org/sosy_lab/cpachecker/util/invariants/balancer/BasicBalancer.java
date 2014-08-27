@@ -90,8 +90,7 @@ public class BasicBalancer implements Balancer {
     //int[] methods = {0,1};
     int[] methods = {1};
     boolean succeed = false;
-    for (int i = 0; i < methods.length; i++) {
-      int method = methods[i];
+    for (int method : methods) {
       switch (method) {
       case 0:
         succeed = balanceWithRREF(tnet);

@@ -35,7 +35,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
@@ -53,13 +52,19 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable
+ * referring to that variable.
  */
 public class SSAMap implements Serializable {
 
   private static final long serialVersionUID = 7618801653203679876L;
 
-  public static final int INDEX_NOT_CONTAINED = -1;
+  // Default value for the default value :p
+  public static final int DEFAULT_DEFAULT_IDX = -1;
+
+  // Default difference for two SSA-indizes of the same name.
+  public static final int DEFAULT_INCREMENT   =  1;
+
+  private final int defaultValue;
 
   private static MergeConflictHandler<String, CType> TYPE_CONFLICT_CHECKER = new MergeConflictHandler<String, CType>() {
     @Override
@@ -110,7 +115,11 @@ public class SSAMap implements Serializable {
     }
 
     public int getIndex(String variable) {
-      return SSAMap.getIndex(variable, vars);
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue).getSecond();
+    }
+
+    public int getFreshIndex(String variable) {
+      return SSAMap.getFreshIndex(variable, vars, ssa.defaultValue);
     }
 
     public CType getType(String name) {
@@ -118,9 +127,9 @@ public class SSAMap implements Serializable {
     }
 
     public void setIndex(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
+      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
       type = type.getCanonicalType();
       CType oldType = varTypes.get(name);
@@ -130,10 +139,9 @@ public class SSAMap implements Serializable {
         varTypes = varTypes.putAndCopy(name, type);
       }
 
-      if (idx > oldIdx) {
+      if (idx > oldIdx || idx == ssa.defaultValue) {
         vars = vars.putAndCopy(name, idx);
-
-        if (oldIdx != INDEX_NOT_CONTAINED) {
+        if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
         varsHashCode += mapEntryHashCode(name, idx);
@@ -142,7 +150,7 @@ public class SSAMap implements Serializable {
 
     public void deleteVariable(String variable) {
       int index = getIndex(variable);
-      if (index != INDEX_NOT_CONTAINED) {
+      if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
         varsHashCode -= mapEntryHashCode(variable, index);
 
@@ -196,17 +204,7 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.varsHashCode, this.varTypes) {
-
-      private static final long serialVersionUID = -5638018887478723717L;
-
-      @Override
-      public int getIndex(String pVariable) {
-        int result = super.getIndex(pVariable);
-
-        return (result < 0) ? defaultValue : result;
-      }
-    };
+    return new SSAMap(this.vars, this.varsHashCode, this.varTypes, defaultValue);
   }
 
   /**
@@ -263,7 +261,8 @@ public class SSAMap implements Serializable {
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
                  int varsHashCode,
-                 PersistentSortedMap<String, CType> varTypes) {
+                 PersistentSortedMap<String, CType> varTypes,
+                 int defaultSSAIdx) {
     this.vars = vars;
     this.varTypes = varTypes;
 
@@ -273,6 +272,14 @@ public class SSAMap implements Serializable {
       this.varsHashCode = varsHashCode;
       assert varsHashCode == vars.hashCode();
     }
+
+    defaultValue = defaultSSAIdx;
+  }
+
+  private SSAMap(PersistentSortedMap<String, Integer> vars,
+                 int varsHashCode,
+                 PersistentSortedMap<String, CType> varTypes) {
+    this(vars, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
   /**
@@ -282,22 +289,38 @@ public class SSAMap implements Serializable {
     return new SSAMapBuilder(this);
   }
 
-  private static <T> int getIndex(T key, PersistentMap<T, Integer> map) {
-    Integer i = map.get(key);
-    if (i != null) {
-      return i;
-    } else {
-      // no index found, return -1
-      return INDEX_NOT_CONTAINED;
+  static Pair<Boolean, Integer> getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+    Integer value = vars.get(variable);
+    if (value == null) {
+      return Pair.of(false, defaultValue);
     }
+    return Pair.of(true, value);
+  }
+
+  private static int getFreshIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+    Integer value = vars.get(variable);
+    if (value == null) {
+      value = defaultValue;
+    }
+    return value + DEFAULT_INCREMENT; // increment for a new index
   }
 
   /**
-   * returns the index of the variable in the map
+   * @return index of the variable in the map,
+   * or the [defaultValue].
    */
   public int getIndex(String variable) {
-    return getIndex(variable, vars);
+    return getIndex(variable, vars, defaultValue).getSecond();
   }
+
+  public Pair<Boolean, Integer> getMetaIndex(String variable) {
+    return getIndex(variable, vars, defaultValue);
+  }
+
+  public boolean containsVariable(String variable) {
+    return vars.containsKey(variable);
+  }
+
   public CType getType(String name) {
     return varTypes.get(name);
   }

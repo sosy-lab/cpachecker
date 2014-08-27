@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-
+/**
+ * A basic Java type. This includes mostly primitive types, but also types like <code>null</code>
+ * or even a special unspecified type.
+ */
 public enum JBasicType {
 
 
@@ -42,11 +45,16 @@ public enum JBasicType {
 
   private final String code;
 
-
   private JBasicType(String pCode) {
      code = pCode;
   }
 
+  /**
+   * Returns an unambiguous String representation of this type.
+   * from all other <code>JBasicType</code> enum constants.
+   *
+   * @return a unique String representation of this type
+   */
   public String toASTString() {
     return code;
   }

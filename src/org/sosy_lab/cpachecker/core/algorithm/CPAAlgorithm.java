@@ -32,7 +32,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.Action;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -92,6 +92,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
+      if (countIterations == 0) {
+        // Statistics not relevant, prevent division by zero
+        return;
+      }
+
       out.println("Max size of waitlist:            " + maxWaitlistSize);
       out.println("Average size of waitlist:        " + countWaitlistSize
           / countIterations);
@@ -256,16 +261,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.ALL, "Successor of", state, "\nis", successor);
 
         stats.precisionTimer.start();
-        Triple<AbstractState, Precision, Action> precAdjustmentResult;
+        PrecisionAdjustmentResult precAdjustmentResult;
         try {
           precAdjustmentResult = precisionAdjustment.prec(successor, precision, reachedSet);
         } finally {
           stats.precisionTimer.stop();
         }
 
-        successor = precAdjustmentResult.getFirst();
-        Precision successorPrecision = precAdjustmentResult.getSecond();
-        Action action = precAdjustmentResult.getThird();
+        successor = precAdjustmentResult.abstractState();
+        Precision successorPrecision = precAdjustmentResult.precision();
+        Action action = precAdjustmentResult.action();
 
         if (action == Action.BREAK) {
           stats.stopTimer.start();
@@ -334,7 +339,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             reachedSet.removeAll(toRemove);
             reachedSet.addAll(toAdd);
 
-            if(mergeOperator instanceof ARGMergeJoinPredicatedAnalysis){
+            if (mergeOperator instanceof ARGMergeJoinPredicatedAnalysis) {
               ((ARGMergeJoinPredicatedAnalysis)mergeOperator).cleanUp(reachedSet);
             }
 

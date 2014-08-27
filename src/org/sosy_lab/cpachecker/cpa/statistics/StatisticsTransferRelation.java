@@ -52,7 +52,7 @@ public class StatisticsTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
     StatisticsState state = (StatisticsState) pState;
     CFANode node = state.getLocationNode();
-    if (pCfaEdge != null){
+    if (pCfaEdge != null) {
       if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
         return Collections.singleton(state.nextState(pCfaEdge));
       }

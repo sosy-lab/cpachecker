@@ -42,6 +42,7 @@ if __name__ == "__main__":
 import benchmark.result as result
 import benchmark.util as Util
 import benchmark.tools.template
+from benchmark.benchmarkDataStructures import SOFTTIMELIMIT
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
@@ -51,6 +52,8 @@ REQUIRED_PATHS = [
                   "cpachecker.jar",
                   "config",
                   ]
+
+timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
 
 class Tool(benchmark.tools.template.BaseTool):
 
@@ -95,7 +98,7 @@ class Tool(benchmark.tools.template.BaseTool):
             logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
             return ''
         stdout = Util.decodeToString(stdout)
-        line = stdout.splitlines()[0]
+        line = next(l for l in stdout.splitlines() if l.startswith('CPAchecker'))
         line = line.replace('CPAchecker' , '')
         line = line.split('(')[0]
         return line.strip()
@@ -104,9 +107,24 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile=None):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
+        if SOFTTIMELIMIT in rlimits:
+            if "-timelimit" in options:
+                global timeLimitWarningCounter
+                if timeLimitWarningCounter > 0: # print the warning for 10 runs, then ignore silently.
+                    timeLimitWarningCounter -= 1
+                    logging.warning('soft-time-limit already specified. ignoring benchmark-limit as tool-parameter.')
+            else:
+                options = options + ["-timelimit", str(rlimits[SOFTTIMELIMIT]) + "s"] # benchmark-xml uses seconds as unit
+
+        # if data.MEMLIMIT in rlimits:
+        #     if "-heap" not in options:
+        #         heapsize = rlimits[MEMLIMIT]*0.8 # 20% overhead for non-java-memory
+        #         options = options + ["-heap", str(int(heapsize)) + "MiB"] # benchmark-xml uses MiB as unit
+
         if ("-stats" not in options):
             options = options + ["-stats"]
+
         spec = ["-spec", propertyfile] if propertyfile is not None else []
         return [executable] + options + spec + sourcefiles
 
@@ -164,7 +182,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
             elif 'Could not reserve enough space for object heap' in line:
                 status = 'JAVA HEAP ERROR'
-            elif line.startswith('Error: ') and not status.startswith('ERROR'):
+            elif line.startswith('Error: ') and not status:
                 status = 'ERROR'
                 if 'Unsupported C feature (recursion)' in line:
                     status = 'ERROR (recursion)'
@@ -172,25 +190,28 @@ class Tool(benchmark.tools.template.BaseTool):
                     status = 'ERROR (threads)'
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
+            elif line.startswith('For your information: CPAchecker is currently hanging at') and status == 'ERROR (1)' and isTimeout:
+                status = 'TIMEOUT'
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                    newStatus = result.STR_FALSE_REACH
-                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
-                    if match:
+                    newStatus = result.STATUS_FALSE_REACH
+                    match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                    if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
-                if newStatus:
-                    status = newStatus if not status else "{0} ({1})".format(status, newStatus)
+                    newStatus = result.STATUS_UNKNOWN
 
-        if status == 'KILLED (UNKNOWN)':
-            status = 'KILLED'
+                if not status:
+                    status = newStatus
+                elif newStatus != result.STATUS_UNKNOWN:
+                    status = "{0} ({1})".format(status, newStatus)
+
         if not status:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

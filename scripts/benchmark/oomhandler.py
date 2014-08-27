@@ -33,7 +33,7 @@ import threading
 from . import filewriter
 from . import util
 
-_BYTE_FACTOR = 1024 # byte in kilobyte
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 class KillProcessOnOomThread(threading.Thread):
     """

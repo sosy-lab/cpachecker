@@ -121,7 +121,7 @@ public class CBinaryExpressionBuilder {
   * @param pMachineModel where to get info about types, for casting and overflows
   * @param pLogger logging
   */
-  public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger){
+  public CBinaryExpressionBuilder(MachineModel pMachineModel, LogManager pLogger) {
     this.logger = pLogger;
     this.machineModel = pMachineModel;
   }
@@ -270,7 +270,7 @@ public class CBinaryExpressionBuilder {
 
       final CType commonType = getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
 
-      logger.logf(Level.FINEST, "type-conversion: %s (%s, %s) -> %s",
+      logger.logf(Level.ALL, "type-conversion: %s (%s, %s) -> %s",
           pBinOperator, pType1, pType2, commonType);
 
       return commonType;
@@ -287,7 +287,7 @@ public class CBinaryExpressionBuilder {
 
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
-      if (!relationalOperators.contains(pBinOperator)){
+      if (!relationalOperators.contains(pBinOperator)) {
         throw new CFAGenerationRuntimeException("unusual calculation " + pBinOperator + " with two pointer-operands.",
                 getDummyBinExprForLogging(pBinOperator, op1, op2));
       }

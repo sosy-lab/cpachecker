@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -176,7 +176,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       if (traceInfo.isSpurious()) {
         logger.log(Level.FINER, "Current execution path is spurious.");
         //path is infeasible continue to find a new one
-      }else{
+      } else {
         dumpTestCase(executedPath, traceInfo);
         if (pseudoTarget.isTarget()) {
           logger.log(Level.FINER, "Identified error path.");
@@ -223,7 +223,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     Path filePath = Paths.get(fileName);
 
     String automatonName = String.format("Testcase%s", testCaseCounter);
-    ARGState rootState = pExecutedPath.getFirst().getFirst();
+    ARGState rootState = pExecutedPath.getFirstState();
     CounterexampleInfo ceInfo = CounterexampleInfo.feasible(pExecutedPath, pTraceInfo.getModel());
 
     try (Writer w = Files.openOutputFile(filePath)) {

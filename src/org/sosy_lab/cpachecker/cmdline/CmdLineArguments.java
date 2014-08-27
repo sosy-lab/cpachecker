@@ -333,7 +333,7 @@ class CmdLineArguments {
         String newValue = args.next();
         if (arg.equals("-spec")) {
           // handle normal specification definitions
-          if(SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+          if (SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
             Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
             if (specFile != null) {
               newValue = specFile.toString();
@@ -376,9 +376,8 @@ class CmdLineArguments {
                 System.err.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
                 System.exit(0);
               }
-            }
 
-            else {
+            } else {
               System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
               System.exit(0);
             }

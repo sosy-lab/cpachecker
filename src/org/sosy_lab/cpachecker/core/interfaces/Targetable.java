@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import javax.annotation.Nonnull;
+
 /**
  * This interface is provided as a shortcut, so that other CPAs' strengthen
  * operator can check whether one abstract state represents some kind of
@@ -34,28 +36,10 @@ public interface Targetable {
   public boolean isTarget();
 
   /**
-   * Get an indication which property was violated.
-   * Should return {@link ViolatedProperty#OTHER} if unknown.
+   * Return a human-readable description of the violated property.
+   * Example: "assert statement in line X"
+   * @return A non-null String, may be empty if no description is available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException;
-
-  public enum ViolatedProperty {
-    OTHER("other"),
-    VALID_DEREF("valid-deref"),
-    VALID_FREE("valid-free"),
-    VALID_MEMTRACK("valid-memtrack"),
-    ;
-
-    private final String propertyString;
-
-    private ViolatedProperty(String pPropertyString) {
-      propertyString = pPropertyString;
-    }
-
-    @Override
-    public String toString() {
-      return propertyString;
-    }
-  }
+  public @Nonnull String getViolatedPropertyDescription() throws IllegalStateException;
 }

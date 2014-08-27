@@ -154,4 +154,17 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
   public boolean isNumber(Long t) {
     return is_numeral_ast(z3context, t);
   }
+
+  @Override
+  protected Long substitute(Long t, List<Long> changeFrom, List<Long> changeTo) {
+    int size = changeFrom.size();
+    Preconditions.checkState(size == changeTo.size());
+    return Z3NativeApi.substitute(
+        z3context,
+        t,
+        size,
+        Longs.toArray(changeFrom),
+        Longs.toArray(changeTo)
+    );
+  }
 }

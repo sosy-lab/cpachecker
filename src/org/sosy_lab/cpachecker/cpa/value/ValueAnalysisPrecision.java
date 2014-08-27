@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -107,15 +106,13 @@ public class ValueAnalysisPrecision implements Precision {
     blackListPattern    = Pattern.compile(variableBlacklist);
     varClass            = vc;
 
-    if(sharing.equals("scope")) {
+    if (sharing.equals("scope")) {
       refinablePrecision = new ScopedRefinablePrecision();
-    }
 
-    else if(sharing.equals("location")) {
+    } else if(sharing.equals("location")) {
       refinablePrecision = new LocalizedRefinablePrecision();
-    }
 
-    else {
+    } else {
       throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
           "or allowed options out-dated.");
     }
@@ -156,6 +153,19 @@ public class ValueAnalysisPrecision implements Precision {
         new ValueAnalysisPrecision.FullPrecision());
   }
 
+  /**
+   * This method determines if this precision allows for abstraction, i.e., if
+   * it ignores variables from some variable class, if it maintains a refinable
+   * precision, or if it contains a variable blacklist.
+   *
+   * @return true, if this precision allows for abstraction, else false
+   */
+  boolean allowsAbstraction() {
+     return ignoreBoolean || ignoreIntAdd || ignoreIntEqual
+         || !(refinablePrecision instanceof FullPrecision)
+         || !blackListPattern.toString().equals("");
+  }
+
   public RefinablePrecision getRefinablePrecision() {
     return refinablePrecision;
   }
@@ -185,9 +195,7 @@ public class ValueAnalysisPrecision implements Precision {
     refinablePrecision.setLocation(location);
 
     Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
-    for (Iterator<MemoryLocation> memoryLocations = candidates.iterator(); memoryLocations.hasNext(); ) {
-      MemoryLocation memoryLocation = memoryLocations.next();
-
+    for (MemoryLocation memoryLocation : candidates) {
       if (!isTracking(memoryLocation)) {
         state.forget(memoryLocation);
       }
@@ -303,8 +311,7 @@ public class ValueAnalysisPrecision implements Precision {
     public LocalizedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.entries().containsAll(increment.entries())) {
         return this;
-      }
-      else {
+      } else {
         LocalizedRefinablePrecision refinedPrecision = new LocalizedRefinablePrecision();
 
         refinedPrecision.rawPrecision = HashMultimap.create(rawPrecision);
@@ -332,7 +339,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
 
@@ -367,8 +374,7 @@ public class ValueAnalysisPrecision implements Precision {
     public ScopedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.containsAll(increment.values())) {
         return this;
-      }
-      else {
+      } else {
         ScopedRefinablePrecision refinedPrecision = new ScopedRefinablePrecision();
 
         refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
@@ -393,8 +399,7 @@ public class ValueAnalysisPrecision implements Precision {
           writer.write(variable.serialize() + "\n");
 
           previousScope = functionName;
-        }
-        else {
+        } else {
           globals.add(variable.serialize());
         }
       }
@@ -408,7 +413,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
 
@@ -446,7 +451,7 @@ public class ValueAnalysisPrecision implements Precision {
 
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
-      assert(getClass().equals(consolidatedPrecision.getClass()));
+      assert (getClass().equals(consolidatedPrecision.getClass()));
     }
 
     @Override

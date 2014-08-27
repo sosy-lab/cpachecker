@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.google.common.collect.Lists;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -90,7 +89,6 @@ public class ARGStatistics implements Statistics {
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
-  private final ARGPathExport witnessExporter;
   private final CEXExporter cexExporter;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
@@ -98,7 +96,6 @@ public class ARGStatistics implements Statistics {
 
     config.inject(this);
 
-    witnessExporter = new ARGPathExport(config);
     cexExporter = new CEXExporter(config, cpa.getLogger());
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
@@ -228,7 +225,7 @@ public class ARGStatistics implements Statistics {
       CounterexampleInfo cex = probableCounterexample.get(s);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
-        if (Lists.transform(path, Pair.getProjectionToSecond()).contains(null)) {
+        if (path.getInnerEdges().contains(null)) {
           // path is invalid,
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.

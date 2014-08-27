@@ -139,13 +139,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       result = pResult;
       mutex = pMutex;
       coordination = pCoordinate;
-      assert(!enableLoadDistribution);
+      assert (!enableLoadDistribution);
       indexProvider = null;
     }
 
     public PartialChecker(final AtomicInteger pIndexProvider, final List<AbstractState> pCertificate, final Precision pInitPrec,
         final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
-      assert(enableLoadDistribution);
+      assert (enableLoadDistribution);
       startIndex = 0;
       certificate = pCertificate;
       initPrec = pInitPrec;

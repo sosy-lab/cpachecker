@@ -31,35 +31,36 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import com.google.common.collect.Maps;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
+import de.uni_freiburg.informatik.ultimate.logic.Annotation;
+import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
+import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
@@ -73,7 +74,7 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
  * so functions remain declared, if levels are popped.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
  */
-@Options(prefix="cpa.predicate.smtinterpol")
+@Options(prefix="cpa.predicate.solver.smtinterpol")
 class SmtInterpolEnvironment {
 
   /**
@@ -98,61 +99,40 @@ class SmtInterpolEnvironment {
     }
   }
 
-  private class SymbolLevel {
-    List<Triple<String, Sort[], Sort>> functionSymbols = new ArrayList<>();
-
-    void add(String fun, Sort[] paramSorts, Sort resultSort) {
-      functionSymbols.add(Triple.of(fun, paramSorts, resultSort));
-    }
-
-    /**  add higher level to current level, we keep the order of creating symbols. */
-    void mergeWithHigher(SymbolLevel other) {
-      this.functionSymbols.addAll(other.functionSymbols);
-    }
-  }
-
   @Option(description="Double check generated results like interpolants and models whether they are correct")
   private boolean checkResults = false;
 
-  @Option(description="Export solver queries in Smtlib format into a file.")
-  private boolean logAllQueries = false;
-
-  @Option(description="Export interpolation queries in Smtlib format into a file.")
-  private boolean logInterpolationQueries = false;
-
-  @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path smtLogfile = Paths.get("smtinterpol.%03d.smt2");
+  private final @Nullable PathCounterTemplate smtLogfile;
 
   @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
       + "Format is 'option1,option2,option3'")
   private List<String> furtherOptions = ImmutableList.of();
 
-  /** this is a counter to get distinct logfiles for distinct environments. */
-  private static int logfileCounter = 0;
-
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  /** The wrapped script is the first created Script.
-   * It will never be used outside of this class.
-   * SMTInterpol shares one Theory across all instances of the Scripts, that are created with createNewScript().
-   * If a Symbol is declared (in the Theory), then it is automatically available in all Scripts.
-   * We have to maintain a stack of Symbols, because Symbols might be deleted through pop(). */
+  /** the wrapped Script */
   private final Script script;
-  private final SMTInterpol smtInterpol;
   private final Theory theory;
-  private final Deque<SymbolLevel> symbolStack = new ArrayDeque<>();
-  final Map<String,Object> options;
+
+  /** The stack contains a List of Declarations for each levels on the assertion-stack.
+   * It is used to declare functions again, if stacklevels are popped. */
+  private final List<Collection<Triple<String, Sort[], Sort>>> stack = new ArrayList<>();
+
+  /** This Collection is the toplevel of the stack. */
+  private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      @Nullable PathCounterTemplate pSmtLogfile) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = checkNotNull(pShutdownNotifier);
-    smtInterpol = new SMTInterpol(createLog4jLogger(logger),
+    smtLogfile = pSmtLogfile;
+
+    final SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger),
         new TerminationRequest() {
           @Override
           public boolean isTerminationRequested() {
@@ -160,26 +140,20 @@ class SmtInterpolEnvironment {
           }
         });
 
-    if (logAllQueries && smtLogfile != null) {
+    if (smtLogfile != null) {
       script = createLoggingWrapper(smtInterpol);
     } else {
       script = smtInterpol;
     }
 
-    // set common options, important: shared instances need the same options!
-    options = new HashMap<>();
-    options.put(":produce-models", true);
-    options.put(":produce-interpolants", true);
-    options.put(":produce-unsat-cores", true);
-    if (checkResults) {
-      options.put(":interpolant-check-mode", true);
-      options.put(":unsat-core-check-mode", true);
-      options.put(":model-check-mode", true);
-    }
-
     try {
-      for (String key: options.keySet()) {
-        script.setOption(key, options.get(key));
+      script.setOption(":produce-interpolants", true);
+      script.setOption(":produce-models", true);
+      script.setOption(":produce-unsat-cores", true);
+      if (checkResults) {
+        script.setOption(":interpolant-check-mode", true);
+        script.setOption(":unsat-core-check-mode", true);
+        script.setOption(":model-check-mode", true);
       }
       script.setLogic(Logics.QF_UFLIRA);
     } catch (SMTLIBException e) {
@@ -194,37 +168,11 @@ class SmtInterpolEnvironment {
       }
     }
 
-    // we do not set any options in the main-script,
-    // because this script is only used local to track all symbols.
-    // there is no need of having a stack or checking for SAT in the main-script.
-
     theory = smtInterpol.getTheory();
   }
 
-  public Script getNewScript() {
-
-    // we use the copy-constructor to have the same theory in all stacks.
-    final Map<String, Object> newOptions = Maps.newHashMap(options);
-    for (String key : furtherOptions) {
-      newOptions.put(key, true);
-    }
-    final SMTInterpol newSmtInterpol = new SMTInterpol(smtInterpol, newOptions);
-
-    final Script newScript;
-    if (logAllQueries && smtLogfile != null) {
-      newScript = createLoggingWrapper(newSmtInterpol);
-    } else {
-      newScript = newSmtInterpol;
-    }
-
-    assert newSmtInterpol.getTheory() == theory : "new stack must have same theory, " +
-            "otherwise we can not use the same terms in several distinct stacks.";
-    // we return both, the (optional) wrapper-script and the original smtInterpol-script.
-    return newScript;
-  }
-
   private Script createLoggingWrapper(SMTInterpol smtInterpol) {
-    String filename = getFilename(smtLogfile);
+    String filename = smtLogfile.getFreshPath().toAbsolutePath().toString();
     try {
       // create a thin wrapper around Benchmark,
       // this allows to write most formulas of the solver to outputfile
@@ -288,23 +236,16 @@ class SmtInterpolEnvironment {
     return theory;
   }
 
-  /**  This function creates a filename with following scheme:
-       first filename is unchanged, then a number is appended */
-  private String getFilename(final Path oldFilename) {
-    String filename = oldFilename.toAbsolutePath().getPath();
-    return String.format(filename, logfileCounter++);
-  }
-
-  SmtInterpolInterpolatingProver createInterpolator(SmtInterpolFormulaManager mgr) {
-    if (logInterpolationQueries && smtLogfile != null) {
-      String logfile = getFilename(smtLogfile);
+  SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
+    if (smtLogfile != null) {
+      Path logfile = smtLogfile.getFreshPath();
 
       try {
-        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+        PrintWriter out = new PrintWriter(Files.openOutputFile(logfile));
 
         out.println("(set-option :produce-interpolants true)");
         out.println("(set-option :produce-models true)");
-        out.println("(set-option :produce-unsat-cores true)"); // TODO unsat-cores needed?
+        out.println("(set-option :produce-unsat-cores true)");
         if (checkResults) {
           out.println("(set-option :interpolant-check-mode true)");
           out.println("(set-option :unsat-core-check-mode true)");
@@ -312,13 +253,13 @@ class SmtInterpolEnvironment {
         }
 
         out.println("(set-logic " + theory.getLogic().name() + ")");
-        return new LoggingSmtInterpolInterpolatingProver(mgr, shutdownNotifier, out);
+        return new LoggingSmtInterpolInterpolatingProver(mgr, out);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write interpolation query to file");
       }
     }
 
-    return new SmtInterpolInterpolatingProver(mgr, shutdownNotifier);
+    return new SmtInterpolInterpolatingProver(mgr);
   }
 
   SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
@@ -349,41 +290,150 @@ class SmtInterpolEnvironment {
     return parseScript.getAssertedTerms();
   }
 
+  public void setOption(String opt, Object value) {
+    try {
+      script.setOption(opt, value);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   /** This function declares a new functionSymbol, that has a given (result-) sort.
    * The params for the functionSymbol also have sorts.
    * If you want to declare a new variable, i.e. "X", paramSorts is an empty array. */
   public void declareFun(String fun, Sort[] paramSorts, Sort resultSort) {
-    if (theory.getFunction(fun, paramSorts) == null) {
-      // if symbol is not already existant
+    declareFun(fun, paramSorts, resultSort, true);
+  }
+
+  /** This function declares a function.
+   * It is possible to check, if the function was declared before.
+   * If both ('check' and 'declared before') are true, nothing is done. */
+  private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
+    if (check) {
+      FunctionSymbol fsym = theory.getFunction(fun, paramSorts);
+
+      if (fsym == null) {
+        declareFun(fun, paramSorts, resultSort, false);
+      } else {
+        if (!fsym.getReturnSort().equals(resultSort)) {
+          throw new SMTLIBException("Function " + fun + " is already declared with different definition");
+        }
+      }
+
+    } else {
       script.declareFun(fun, paramSorts, resultSort);
-    }
-    if (!symbolStack.isEmpty()) {
-      symbolStack.getLast().add(fun, paramSorts, resultSort);
+      if (currentDeclarations != null) {
+        currentDeclarations.add(Triple.of(fun, paramSorts, resultSort));
+      }
     }
   }
 
   public void push(int levels) {
-    // we have to track symbols on higher levels, because CPAchecker assumes "global" symbols.
+    try {
+      script.push(levels);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+
     for (int i = 0; i < levels; i++) {
-      symbolStack.addLast(new SymbolLevel());
+      currentDeclarations = new ArrayList<>();
+      stack.add(currentDeclarations);
     }
   }
 
+  /** This function pops levels from the assertion-stack.
+   * It also declares popped functions on the lower level. */
   public void pop(int levels) {
-    // we have to recreate symbols on lower levels, because CPAchecker assumes "global" symbols.
-    final Deque<SymbolLevel> toAdd = new ArrayDeque<>(levels);
-    for (int i = 0; i < levels; i++) {
-      toAdd.add(symbolStack.removeLast());
+    assert stack.size() >= levels : "not enough levels to remove";
+    try {
+     // for (int i=0;i<levels;i++) script.pop(1); // for old version of SmtInterpol
+      script.pop(levels);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
     }
-    for (SymbolLevel level : toAdd) {
-      for (Triple<String,Sort[],Sort> function : level.functionSymbols) {
-        declareFun(function.getFirst(), function.getSecond(), function.getThird());
-      }
-      if (!symbolStack.isEmpty()) {
-        symbolStack.getLast().mergeWithHigher(level);
+
+    if (stack.size() - levels > 0) {
+      currentDeclarations = stack.get(stack.size() - levels - 1);
+    } else {
+      currentDeclarations = null;
+    }
+
+    for (int i = 0; i < levels; i++) {
+      final Collection<Triple<String, Sort[], Sort>> topDecl = stack.remove(stack.size() - 1);
+
+      for (Triple<String, Sort[], Sort> function : topDecl) {
+        final String fun = function.getFirst();
+        final Sort[] paramSorts = function.getSecond();
+        final Sort resultSort = function.getThird();
+        declareFun(fun, paramSorts, resultSort, false);
       }
     }
   }
+
+  /** This function adds the term on top of the stack. */
+  public void assertTerm(Term term) {
+    assert stack.size() > 0 : "assertions should be on higher levels";
+    try {
+      script.assertTerm(term);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /** This function causes the SatSolver to check all the terms on the stack,
+   * if their conjunction is SAT or UNSAT.
+   */
+  public boolean checkSat() throws InterruptedException {
+    try {
+      // We actually terminate SmtInterpol during the analysis
+      // by using a shutdown listener. However, SmtInterpol resets the
+      // mStopEngine flag in DPLLEngine before starting to solve,
+      // so we check here, too.
+      shutdownNotifier.shutdownIfNecessary();
+
+      LBool result = script.checkSat();
+      switch (result) {
+      case SAT:
+        return true;
+      case UNSAT:
+        return false;
+      default:
+        shutdownNotifier.shutdownIfNecessary();
+        throw new SMTLIBException("checkSat returned " + result);
+      }
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Iterable<Term[]> checkAllSat(Term[] importantPredicates) throws InterruptedException {
+    try {
+      // We actually terminate SmtInterpol during the analysis
+      // by using a shutdown listener. However, SmtInterpol resets the
+      // mStopEngine flag in DPLLEngine before starting to solve,
+      // so we check here, too.
+      shutdownNotifier.shutdownIfNecessary();
+
+      return script.checkAllsat(importantPredicates);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /** This function returns a map,
+   * that contains assignments term->term for all terms in terms. */
+  public Map<Term, Term> getValue(Term[] terms) {
+    try {
+      return script.getValue(terms);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Object getInfo(String info) {
+    return script.getInfo(info);
+  }
+
   /** This function returns the Sort for a Type. */
   public Sort sort(Type type) {
     return sort(type.toString());
@@ -425,6 +475,14 @@ class SmtInterpolEnvironment {
   public Term let(TermVariable[] pVars, Term[] pValues, Term pBody) {
     try {
       return script.let(pVars, pValues, pBody);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term annotate(Term t, Annotation... annotations) {
+    try {
+      return script.annotate(t, annotations);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
@@ -477,6 +535,27 @@ class SmtInterpolEnvironment {
   public Term binary(String bin) {
     try {
       return script.binary(bin);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /** This function returns a list of interpolants for the partitions.
+   * Each partition must be a named term or a conjunction of named terms.
+   * There should be (n-1) interpolants for n partitions. */
+  public Term[] getInterpolants(Term[] partition) {
+    assert stack.size() > 0 : "interpolants should be on higher levels";
+    try {
+      return script.getInterpolants(partition);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term[] getUnsatCore() {
+    assert stack.size() > 0 : "unsat core should be on higher levels";
+    try {
+      return script.getUnsatCore();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

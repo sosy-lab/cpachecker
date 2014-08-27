@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGRegion;
 
+import com.google.common.base.Predicate;
+
 
 public class SMGEdgeHasValueTest {
 
@@ -166,6 +168,22 @@ public class SMGEdgeHasValueTest {
   }
 
   @Test
+  public void testFilterAsPredicate() {
+    SMGObject object1 = new SMGRegion(8, "object1");
+
+    Integer value1 = Integer.valueOf(1);
+    Integer value2 = Integer.valueOf(2);
+
+    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
+    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
+
+    Predicate<SMGEdgeHasValue> predicate = SMGEdgeHasValueFilter.objectFilter(object1).filterHavingValue(value1).asPredicate();
+
+    Assert.assertTrue(predicate.apply(hv11at0));
+    Assert.assertFalse(predicate.apply(hv12at0));
+  }
+
+  @Test
   public void testFilterOnObject() {
     SMGObject object1 = new SMGRegion(8, "object1");
     SMGObject object2 = new SMGRegion(8, "Object2");
@@ -177,6 +195,7 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
     SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 0, object2, value2);
+
     Set<SMGEdgeHasValue> allEdges = new HashSet<>();
     allEdges.add(hv11at0);
     allEdges.add(hv12at0);

@@ -126,8 +126,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
         ValueAnalysisPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ValueAnalysisPrecision.class);
         if (joinedPrecision == null) {
           joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, MemoryLocation>create());
-        }
-        else {
+        } else {
           joinedPrecision.join(prec.getRefinablePrecision());
         }
       }

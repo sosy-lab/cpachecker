@@ -723,6 +723,8 @@ class CFAMethodBuilder extends ASTVisitor {
     case ALWAYS_FALSE:
       createSuccessfulEdge = false;
       break;
+    default:
+      break;
     }
 
 

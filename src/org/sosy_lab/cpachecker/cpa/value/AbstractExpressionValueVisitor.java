@@ -85,9 +85,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.primitives.UnsignedLongs;
@@ -270,7 +277,7 @@ public abstract class AbstractExpressionValueVisitor
             binaryExpr.getOperator().getOperator());
 
     // If there's no suitable operator, return UNKNOWN
-    if(op == null) {
+    if (op == null) {
       return Value.UnknownValue.getInstance();
     }
 
@@ -638,6 +645,9 @@ public abstract class AbstractExpressionValueVisitor
     if (unaryOperator == UnaryOperator.SIZEOF) {
       return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
     }
+    if (unaryOperator == UnaryOperator.ALIGNOF) {
+      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
+    }
     if (unaryOperator == UnaryOperator.AMPER) {
       return Value.UnknownValue.getInstance();
     }
@@ -696,23 +706,68 @@ public abstract class AbstractExpressionValueVisitor
     JType lValType = lVarInBinaryExp.getExpressionType();
     JType rValType = rVarInBinaryExp.getExpressionType();
 
+    // TODO: for logical expressions, work with unknown values (for example 'true || unknown' is 'true')
+    // Get the concrete values of the lefthandside and righthandside
     final Value lValue = lVarInBinaryExp.accept(this);
-    if (lValue.isUnknown() || !lValue.isNumericValue()) { return UnknownValue.getInstance(); }
+    if (lValue.isUnknown()) {
+      return UnknownValue.getInstance();
+    }
 
     final Value rValue = rVarInBinaryExp.accept(this);
-    if (rValue.isUnknown() || !rValue.isNumericValue()) { return UnknownValue.getInstance(); }
+    if (rValue.isUnknown()) {
+      return UnknownValue.getInstance();
+    }
 
-    if (isFloatType(lValType) || isFloatType(rValType)) {
-      final double lVal = ((NumericValue) lValue).doubleValue();
-      final double rVal = ((NumericValue) rValue).doubleValue();
+    // Calculate the result of the expression
+    if (lValue instanceof NumericValue && rValue instanceof NumericValue) {
+
+      // calculate the result for double values
+      if (isFloatType(lValType) || isFloatType(rValType)) {
+        final double lVal = ((NumericValue) lValue).doubleValue();
+        final double rVal = ((NumericValue) rValue).doubleValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+
+      // calculate the result for integer values
+      } else {
+        final long lVal = ((NumericValue) lValue).longValue();
+        final long rVal = ((NumericValue) rValue).longValue();
+
+        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      }
+
+    // calculate the result for enum constant and null values
+    } else if (isEnumType(lValue)) {
+
+      assert isEnumType(rValue);
+      assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
+        || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
+
+      if (binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
+        if (lValue.equals(rValue)) {
+          return BooleanValue.valueOf(true);
+
+        } else {
+          return BooleanValue.valueOf(false);
+        }
+
+      // binary operator has to be NOT_EQUALS since no other operators are allowed for enums
+      } else if (lValue.equals(rValue)) {
+          return BooleanValue.valueOf(false);
+
+      } else {
+          return BooleanValue.valueOf(true);
+      }
+    } else if (lValue instanceof BooleanValue) {
+      assert rValue instanceof BooleanValue;
+
+      boolean lVal = ((BooleanValue) lValue).isTrue();
+      boolean rVal = ((BooleanValue) rValue).isTrue();
 
       return calculateBinaryOperation(lVal, rVal, binaryOperator);
 
     } else {
-      final long lVal = ((NumericValue) lValue).longValue();
-      final long rVal = ((NumericValue) rValue).longValue();
-
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      return UnknownValue.getInstance();
     }
   }
 
@@ -895,6 +950,36 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  private Value calculateBinaryOperation(boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
+
+    switch (operator) {
+    case CONDITIONAL_AND:
+    case LOGICAL_AND:
+      // we do not care about sideeffects through evaluation of the righthandside at this point - this must be handled
+      // earlier
+      return BooleanValue.valueOf(lVal && rVal);
+
+    case CONDITIONAL_OR:
+    case LOGICAL_OR:
+      // we do not care about sideeffects through evaluation of the righthandside at this point
+      return BooleanValue.valueOf(lVal || rVal);
+
+    case LOGICAL_XOR:
+      return BooleanValue.valueOf(lVal ^ rVal);
+
+    case EQUALS:
+      return BooleanValue.valueOf(lVal == rVal);
+    case NOT_EQUALS:
+      return BooleanValue.valueOf(lVal != rVal);
+    default:
+      throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
+    }
+  }
+
+  private boolean isEnumType(Value value) {
+    return value instanceof NullValue || value instanceof EnumConstantValue;
+  }
+
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -919,31 +1004,37 @@ public abstract class AbstractExpressionValueVisitor
     JExpression unaryOperand = unaryExpression.getOperand();
     final Value valueObject = unaryOperand.accept(this);
 
+    // possible error msg if no case fits
+    final String errorMsg
+      = "Invalid argument [" + valueObject + "] for unary operator [" + unaryOperator + "].";
+
     if (valueObject.isUnknown()) {
       return UnknownValue.getInstance();
 
-    } else if (!valueObject.isNumericValue()) {
-      logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", valueObject, unaryOperator);
-      return Value.UnknownValue.getInstance();
-    }
+    } else if (valueObject.isNumericValue()) {
+      NumericValue value = (NumericValue) valueObject;
 
-    NumericValue value = (NumericValue) valueObject;
+      switch (unaryOperator) {
+        case MINUS:
+          return value.negate();
 
-    switch (unaryOperator) {
-      case MINUS:
-        return value.negate();
+        case COMPLEMENT:
+          return evaluateComplement(unaryOperand, value);
 
-      case NOT:
-        // if the value is 0, return 1, if it is anything other than 0, return 0
-        return (value.longValue() == 0L) ? new NumericValue(1L) : new NumericValue(0L);
+        case PLUS:
+          return value;
 
-      case COMPLEMENT:
-        return evaluateComplement(unaryOperand, value);
+        default:
+          logger.log(Level.FINE, errorMsg);
+          return UnknownValue.getInstance();
+      }
 
-      case PLUS:
-        return value;
-      default:
-        throw new AssertionError("unhandled operator: " + unaryOperator);
+    } else if (valueObject instanceof BooleanValue && unaryOperator.equals(JUnaryExpression.UnaryOperator.NOT)) {
+      return ((BooleanValue) valueObject).negate();
+
+    } else {
+      logger.logf(Level.FINE, errorMsg);
+      return UnknownValue.getInstance();
     }
   }
 
@@ -991,7 +1082,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBooleanLiteralExpression pE) {
-    return ((pE.getValue()) ? new NumericValue(1l) : new NumericValue(0l));
+    return BooleanValue.valueOf(pE.getValue());
   }
 
   @Override
@@ -1001,9 +1092,10 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
-    missingEnumComparisonInformation = true;
-    return UnknownValue.getInstance();
-//    return pJEnumConstantExpression.getConstantName();
+    JClassType enumType = pJEnumConstantExpression.getExpressionType();
+    String fullName = pJEnumConstantExpression.getConstantName();
+
+    return new EnumConstantValue(enumType, fullName);
   }
 
   @Override
@@ -1056,7 +1148,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JNullLiteralExpression pJNullLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+    return NullValue.getInstance();
   }
 
   @Override

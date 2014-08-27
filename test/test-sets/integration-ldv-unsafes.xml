@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="300" hardtimelimit="350" memlimit="6000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="8000" cpuCores="2">
   <!-- This file contains regression tests from the LDV project.
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
-  <option name="-heap">1500M</option>
-  <option name="-timelimit">5min</option>
+  <option name="-heap">7500M</option>
   <option name="-ldv"/>
 
   <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
@@ -17,6 +16,15 @@
   <rundefinition>
     <sourcefiles>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--md--md-mod.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-fs--dlm--dlm.ko-ldv_main16_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--mtd--ubi--ubi.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--net2272.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--usb--gadget--pxa27x_udc.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ceph--ceph.ko-ldv_main3_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-fs--ceph--ceph.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--ethernet--chelsio--cxgb3--cxgb3.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/68_1/linux-3.12-rc1/linux-3.12-rc1.tar.xz-68_1-drivers--staging--winbond--w35und.ko-ldv_main7_false-unreach-label.cil.out.c</exclude>
     </sourcefiles>
   </rundefinition>
 </benchmark>

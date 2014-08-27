@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.Lists;
@@ -48,15 +49,14 @@ public class ExpressionValueVisitorTest {
 
 
   // we need some dummy-values.
-  private final ValueAnalysisState state = new ValueAnalysisState();
-  private final String functionName = "dummy_function";
-  private final FileLocation loc = FileLocation.DUMMY;
+  private static final String functionName = "dummy_function";
+  private static final FileLocation loc = FileLocation.DUMMY;
 
 
   // constants for C
-  private final int MAX_CHAR = 256;
-  private final int MAX_SHORT = 65536;
-  private final long MAX_INT = 4294967296L;
+  private static final int MAX_CHAR = 256;
+  private static final int MAX_SHORT = 65536;
+  private static final long MAX_INT = 4294967296L;
 
 
   // type constants
@@ -93,9 +93,9 @@ public class ExpressionValueVisitorTest {
     logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv32 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX32, logger, symbolicValues);
+        new ValueAnalysisState(), functionName, MachineModel.LINUX32, logger, symbolicValues);
     evv64 = new ExpressionValueVisitor(
-        state, functionName, MachineModel.LINUX64, logger, symbolicValues);
+        new ValueAnalysisState(), functionName, MachineModel.LINUX64, logger, symbolicValues);
   }
 
   @Test

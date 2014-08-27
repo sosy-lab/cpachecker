@@ -532,4 +532,14 @@ public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<C
     return pVariable;
   }
 
+  @Override
+  public InvariantsFormula<CompoundInterval> visit(Exclusion<CompoundInterval> pExclusion,
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
+    CompoundInterval value = pExclusion.accept(pEvaluationVisitor, this.environment);
+    if (value.isSingleton()) {
+      return CompoundIntervalFormulaManager.INSTANCE.asConstant(value);
+    }
+    return pExclusion;
+  }
+
 }

@@ -75,7 +75,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
 
   @Override
   protected Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException {
-    List<CFAEdge> edges = counterexample.getTargetPath().asEdgesList();
+    List<CFAEdge> edges = counterexample.getTargetPath().getInnerEdges();
 
     int cutPoint = edges.size() - 1; // Position of last AssumeEdge in path
     for (CFAEdge edge : Lists.reverse(edges)) {

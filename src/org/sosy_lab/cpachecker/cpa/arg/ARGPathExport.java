@@ -142,8 +142,7 @@ public class ARGPathExport {
     return String.format("A%d%s", state.getStateId(), identPostfix);
   }
 
-  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount)
-  {
+  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount) {
     return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
   }
 
@@ -188,7 +187,7 @@ public class ARGPathExport {
       return this.keyValues.equals(oT.keyValues);
     }
 
-    public boolean hasTransitionRestrictions(){
+    public boolean hasTransitionRestrictions() {
       return !keyValues.isEmpty();
     }
 
@@ -198,7 +197,7 @@ public class ARGPathExport {
     }
   }
 
-  private class AggregatedEdge {
+  private static class AggregatedEdge {
     public final String source;
     public final String targetRepresentedBy;
     public final TransitionCondition condition;
@@ -549,7 +548,7 @@ public class ARGPathExport {
               CFAEdge innerEdge = edges.get(i);
               String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
 
-              assert(!(innerEdge instanceof AssumeEdge));
+              assert (!(innerEdge instanceof AssumeEdge));
 
               appendNewPathNode(doc, pseudoStateId, EnumSet.noneOf(NodeFlag.class));
               appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);

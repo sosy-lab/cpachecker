@@ -37,12 +37,15 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSele
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
@@ -71,13 +74,13 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public boolean isVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
+  public boolean isVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
       CFAEdge pOtherEdge) {
     return isVisited(pCurrentElement, pOtherEdge);
   }
 
   @Override
-  public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
     // nothing to to
 
   }
@@ -96,14 +99,11 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   private boolean isVisited(Pair<ARGState, CFAEdge> currentElement, CFAEdge otherEdge) {
-    if (oldElement != null)
-    {
+    if (oldElement != null) {
       logger.log(Level.FINER, "Matching path length. Possibly handled this branch earlier");
       if (branchingHistory.isVisited(otherEdge, oldElement)) {
         return true;
-      }
-      else
-      {
+      } else {
         logger.log(Level.FINER, "Same path length but not in predicted section.");
         return false;
       }
@@ -113,14 +113,12 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
 
   private Pair<CFAEdge, Boolean> handleNextNode(long currentPathSize, CFAEdge edge) {
-    if (branchingHistory.getCurrentDepths() > currentPathSize + 1)
-    {
+    if (branchingHistory.getCurrentDepths() > currentPathSize + 1) {
       branchingHistory.consumeUntilSameSize(currentPathSize);
       logger.logf(Level.FINER, "comsumed until %d %d (%d)", currentPathSize, branchingHistory.getCurrentDepths(),
           branchingHistory.getPathDepths());
     }
-    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize))
-    {
+    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize)) {
       branchingHistory.hasNext();
       oldElement = branchingHistory.next();
       logger.logf(Level.FINER, "Is path candidate for predicted section");
@@ -132,7 +130,6 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
   class BranchingHistory {
 
-    Iterator<CFAEdge> descendingEdgePath;
     Map<CFAEdge, Boolean> visitedEdges;
     Iterator<Pair<CFAEdge, Boolean>> edgeHistory;
 
@@ -141,21 +138,12 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
 
     public BranchingHistory() {
-      descendingEdgePath = Collections.emptyIterator();
       visitedEdges = Maps.newHashMap();
-      edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
-
-        @Override
-        public Pair<CFAEdge, Boolean> apply(CFAEdge pInput) {
-          return Pair.of(pInput, visitedEdges.get(pInput));
-        }
-
-      });
+      edgeHistory = Collections.emptyIterator();
     }
 
     public void consumeUntilSameSize(long pCurrentSizeOfPath) {
-      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths)
-      {
+      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths) {
         next();
       }
     }
@@ -165,7 +153,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
     }
 
     public void resetTo(ARGPath argPath) {
-      descendingEdgePath = Iterators.transform(argPath.descendingIterator(), Pair.<CFAEdge> getProjectionToSecond());
+      Iterator<CFAEdge> descendingEdgePath = Lists.reverse(argPath.asEdgesList()).iterator();
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 
         @Override
@@ -176,7 +164,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
       });
       pathDepths = argPath.size();
       currentDepths = pathDepths;
-      visitedEdges.put(argPath.getLast().getSecond(), true);
+      visitedEdges.put(Iterables.getLast(argPath.asEdgesList()), true);
     }
 
 
@@ -184,8 +172,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
       //      Pair<CFAEdge, Boolean> oldEdge = edgeHistory.next();
       assert oldEdge.getFirst().getPredecessor().equals(edgeToCheck.getPredecessor()) : "Illegal State of history. Wrong edge executed.";
-      if (oldEdge.getSecond() == null)
-      {
+      if (oldEdge.getSecond() == null) {
         logger.log(Level.FINER, "Didn't find a 'visited' match. Not a branching edge or a skipped edge.");
         return false;
       }

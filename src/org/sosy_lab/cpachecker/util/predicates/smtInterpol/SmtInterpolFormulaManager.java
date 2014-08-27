@@ -32,10 +32,13 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -65,9 +68,10 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, @Nullable PathCounterTemplate smtLogfile)
+          throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier);
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
 
     SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env,
         env.sort(Type.BOOL), env.sort(Type.INT), env.sort(Type.REAL));
@@ -81,6 +85,14 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
 
     return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory,
             booleanTheory, integerTheory, rationalTheory);
+  }
+
+  public SmtInterpolInterpolatingProver createInterpolator() {
+    return getEnvironment().getInterpolator(this);
+  }
+
+  SmtInterpolTheoremProver createProver() {
+    return getEnvironment().createProver(this);
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
@@ -159,6 +171,13 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   @Override
   public String getVersion() {
     return getEnvironment().getVersion();
+  }
+
+  /** This method returns a 'shared' environment or
+   * a complete new environment. */
+  SmtInterpolEnvironment createEnvironment() {
+    assert getEnvironment() != null;
+    return getEnvironment();
   }
 
   @Override

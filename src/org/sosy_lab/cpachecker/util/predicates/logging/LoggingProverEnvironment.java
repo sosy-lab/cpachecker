@@ -36,7 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
-
+/**
+ * Wraps a prover environment with a logging object.
+ */
 public class LoggingProverEnvironment implements ProverEnvironment {
 
   private final ProverEnvironment wrapped;

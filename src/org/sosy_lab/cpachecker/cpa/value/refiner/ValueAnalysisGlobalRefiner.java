@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,10 +61,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -75,9 +75,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -151,7 +149,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     totalTargetsFound       = totalTargetsFound + targets.size();
 
     // stop once any feasible counterexample is found
-    if(isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
+    if (isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
       totalTime.stop();
       return false;
     }
@@ -159,20 +157,20 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     int i = 0;
-    while(interpolationTree.hasNextPathForInterpolation()) {
+    while (interpolationTree.hasNextPathForInterpolation()) {
       i++;
 
-      ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
+      MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-      if(errorPath.isEmpty()) {
+      if (errorPath.isEmpty()) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
 
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
-      if(initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
-        errorPath   = ARGUtils.getOnePathTo(errorPath.getLast().getFirst());
+      if (initialInterpolantIsTooWeak(interpolationTree.root, initialItp, errorPath)) {
+        errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
         initialItp  = ValueAnalysisInterpolant.createInitial();
       }
 
@@ -180,19 +178,19 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
-      if(exportInterpolationTree.equals("ALWAYS")) {
+      if (exportInterpolationTree.equals("ALWAYS")) {
         interpolationTree.exportToDot(totalRefinements, i);
       }
 
       logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
-    if(exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+    if (exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
     Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
-    for(ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+    for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
@@ -202,7 +200,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    for(Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
+    for (Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
       reached.removeSubtree(info.getKey(), info.getValue(), ValueAnalysisPrecision.class);
     }
 
@@ -210,22 +208,16 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return true;
   }
 
-  private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
+  private boolean initialInterpolantIsTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, MutableARGPath errorPath)
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
-    if(errorPath.getFirst().getFirst() == root) {
+    if (errorPath.getFirst().getFirst() == root) {
       return false;
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    try {
-      return checker.isFeasible(errorPath,
-          new ValueAnalysisPrecision("", Configuration.builder().build(), Optional.<VariableClassification>absent()),
-          initialItp.createValueAnalysisState());
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Configuring ValueAnalysisPrecision failed: " + e.getMessage(), e);
-    }
+    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
   private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
@@ -233,7 +225,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
-    for(ARGState target : targetsReachableFromRoot) {
+    for (ARGState target : targetsReachableFromRoot) {
       ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
@@ -246,20 +238,20 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return Precisions.extractPrecisionByType(pReached.getPrecision(state), ValueAnalysisPrecision.class);
   }
 
-  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
+  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)
       throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for(ARGPath currentPath : errorPaths) {
-      if(isErrorPathFeasible(currentPath)) {
+    MutableARGPath feasiblePath = null;
+    for (MutableARGPath currentPath : errorPaths) {
+      if (isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
       }
     }
 
     // remove all other target states, so that only one is left (for CEX-checker)
-    if(feasiblePath != null) {
-      for(ARGPath others : errorPaths) {
-        if(others != feasiblePath) {
+    if (feasiblePath != null) {
+      for (MutableARGPath others : errorPaths) {
+        if (others != feasiblePath) {
           pReached.removeSubtree(others.getLast().getFirst());
         }
       }
@@ -269,9 +261,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return false;
   }
 
-  private boolean isErrorPathFeasible(final ARGPath errorPath)
+  private boolean isErrorPathFeasible(final MutableARGPath errorPath)
       throws CPAException, InterruptedException {
-    if(checker.isFeasible(errorPath)) {
+    if (checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
 
       return true;
@@ -280,22 +272,21 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return false;
   }
 
-  private Collection<ARGPath> getErrorPaths(final Collection<ARGState> targetStates) {
-    Set<ARGPath> errorPaths = new TreeSet<>(new Comparator<ARGPath>() {
+  private Collection<MutableARGPath> getErrorPaths(final Collection<ARGState> targetStates) {
+    Set<MutableARGPath> errorPaths = new TreeSet<>(new Comparator<MutableARGPath>() {
       @Override
-      public int compare(ARGPath path1, ARGPath path2) {
-        if(path1.size() == path2.size()) {
+      public int compare(MutableARGPath path1, MutableARGPath path2) {
+        if (path1.size() == path2.size()) {
           return 1;
-        }
 
-        else {
+        } else {
           return (path1.size() < path2.size()) ? -1 : 1;
         }
       }
     });
 
-    for(ARGState target : targetStates) {
-      ARGPath p = ARGUtils.getOnePathTo(target);
+    for (ARGState target : targetStates) {
+      MutableARGPath p = ARGUtils.getOneMutablePathTo(target);
       errorPaths.add(p);
     }
 
@@ -408,7 +399,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       targets   = pTargets;
       root      = buildTree();
 
-      if(useTopDownInterpolationStrategy) {
+      if (useTopDownInterpolationStrategy) {
         strategy = new TopDownInterpolationStrategy();
       } else {
         strategy = new BottomUpInterpolationStrategy();
@@ -443,9 +434,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
           todo.add(parentState);
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
-        }
 
-        else if (itpTreeRoot == null) {
+        } else if (itpTreeRoot == null) {
           itpTreeRoot = currentState;
         }
       }
@@ -461,26 +451,25 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      */
     private void exportToDot(int refinementCnt, int iteration) {
       StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
-      for(Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-        if(interpolants.containsKey(current.getKey())) {
+      for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
+        if (interpolants.containsKey(current.getKey())) {
           StringBuilder sb = new StringBuilder();
 
           sb.append("itp is " + interpolants.get(current.getKey()));
 
           result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-        }
 
-        else {
+        } else {
           result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
           result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
         }
 
-        if(current.getValue().isTarget()) {
+        if (current.getValue().isTarget()) {
           result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
         }
 
-        assert(!current.getKey().isTarget());
+        assert (!current.getKey().isTarget());
       }
       result.append("}");
 
@@ -499,7 +488,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
      * @return the next error path for a subsequent interpolation
      */
-    private ARGPath getNextPathForInterpolation() {
+    private MutableARGPath getNextPathForInterpolation() {
       return strategy.getNextPathForInterpolation();
     }
 
@@ -509,7 +498,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
      * @param errorPath the path for which to obtain the initial interpolant
      * @return the initial interpolant for the given path
      */
-    private ValueAnalysisInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+    private ValueAnalysisInterpolant getInitialInterpolantForPath(MutableARGPath errorPath) {
       return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
     }
 
@@ -523,7 +512,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
 
-        if(interpolants.containsKey(state)) {
+        if (interpolants.containsKey(state)) {
           interpolants.put(state, interpolants.get(state).join(itp));
         } else {
           interpolants.put(state, itp);
@@ -588,7 +577,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         if (isNonTrivialInterpolantAvailable(currentState)) {
           refinementRoots.add(currentState);
 
-          if(strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
+          if (strategy == RestartStrategy.COMMON && refinementRoots.size() > 2) {
             assert commonRoot != null: "common root not yet set";
             return new HashSet<>(Collections.singleton(commonRoot));
           }
@@ -641,7 +630,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     private interface InterpolationStrategy {
 
-      public ARGPath getNextPathForInterpolation();
+      public MutableARGPath getNextPathForInterpolation();
 
       public boolean hasNextPathForInterpolation();
 
@@ -656,29 +645,29 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
       @Override
-      public ARGPath getNextPathForInterpolation() {
-        ARGPath errorPath = new ARGPath();
+      public MutableARGPath getNextPathForInterpolation() {
+        MutableARGPath errorPath = new MutableARGPath();
 
         ARGState current = sources.pop();
 
-        if(!isValidInterpolationRoot(predecessorRelation.get(current))) {
+        if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
           logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
           return errorPath;
         }
 
         // if the current state is not the root, it is a child of a branch , however, the path should not start with the
         // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-        if(current != root) {
+        if (current != root) {
           errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
         }
 
-        while(successorRelation.get(current).iterator().hasNext()) {
+        while (successorRelation.get(current).iterator().hasNext()) {
           Iterator<ARGState> children = successorRelation.get(current).iterator();
           ARGState child = children.next();
           errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
 
           // push all other children of the current state, if any, onto the stack for later interpolations
-          if(children.hasNext()) {
+          if (children.hasNext()) {
             ARGState sibling = children.next();
             logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
             sources.push(sibling);
@@ -687,7 +676,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
           current = child;
 
           // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
-          if(!successorRelation.get(current).iterator().hasNext()) {
+          if (!successorRelation.get(current).iterator().hasNext()) {
             errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
           }
         }
@@ -699,11 +688,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
        * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
        */
       public boolean isValidInterpolationRoot(ARGState root) {
-        if(!interpolants.containsKey(root)) {
+        if (!interpolants.containsKey(root)) {
           return true;
         }
 
-        if(!interpolants.get(root).isFalse()) {
+        if (!interpolants.get(root).isFalse()) {
           return true;
         }
 
@@ -714,7 +703,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       public ValueAnalysisInterpolant getInitialInterpolantForRoot(ARGState root) {
         ValueAnalysisInterpolant initialInterpolant = interpolants.get(root);
 
-        if(initialInterpolant == null) {
+        if (initialInterpolant == null) {
           initialInterpolant = ValueAnalysisInterpolant.createInitial();
 
           assert (interpolants.size() == 0) : "initial interpolant was null after initial interpolation!";
@@ -737,16 +726,16 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       private List<ARGState> sources = new ArrayList<>(targets);
 
       @Override
-      public ARGPath getNextPathForInterpolation() {
+      public MutableARGPath getNextPathForInterpolation() {
         ARGState current = sources.remove(0);
 
         assert current.isTarget() : "current element is not a target";
 
-        ARGPath errorPath = new ARGPath();
+        MutableARGPath errorPath = new MutableARGPath();
 
         errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
 
-        while(predecessorRelation.get(current) != null) {
+        while (predecessorRelation.get(current) != null) {
 
           ARGState parent = predecessorRelation.get(current);
 

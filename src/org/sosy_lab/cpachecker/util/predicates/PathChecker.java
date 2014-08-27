@@ -142,7 +142,7 @@ public class PathChecker {
     return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
   }
 
-  private <T> Model getModel(ProverEnvironment thmProver) {
+  private Model getModel(ProverEnvironment thmProver) {
     try {
       return thmProver.getModel();
     } catch (SolverException e) {

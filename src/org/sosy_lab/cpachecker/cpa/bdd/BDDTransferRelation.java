@@ -372,17 +372,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   @Override
-  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge, CExpression rhs) {
+  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
     BDDState newState = state;
     final String returnVar = createFunctionReturnVariable(functionName);
 
-    if (rhs != null) {
+    if (cfaEdge.getExpression().isPresent()) {
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
 
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-      final Region[] regRHS = evaluateVectorExpression(partition, rhs, functionReturnType);
+      final Region[] regRHS = evaluateVectorExpression(partition, cfaEdge.getExpression().get(), functionReturnType);
 
       // make variable (predicate) for returnStatement,
       // delete variable, if it was used before, this is done with an existential operator

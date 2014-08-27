@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +48,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -126,8 +125,7 @@ public class FormulaManagerView {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path formulaDumpFile = Paths.get("%s%04d-%s%03d.smt2");
-  private String formulaDumpFilePattern;
+  private PathTemplate formulaDumpFile = PathTemplate.ofFormatString("%s%04d-%s%03d.smt2");
 
   @Option(description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
@@ -151,8 +149,16 @@ public class FormulaManagerView {
       manager = pBaseManager;
     }
 
-    bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
-    bitvectorFormulaManager.couple(this);
+    try {
+      bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
+      bitvectorFormulaManager.couple(this);
+    } catch (UnsupportedOperationException e) {
+      throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
+          + "please choose another SMT solver "
+          + "or use the option cpa.predicate.encodeBitvectorAs "
+          + "to approximate bitvectors with another theory.",
+          e);
+    }
     integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
     integerFormulaManager.couple(this);
     rationalFormulaManager = loadManagers.wrapRationalManager(manager.getRationalFormulaManager());
@@ -162,12 +168,6 @@ public class FormulaManagerView {
     functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
     functionFormulaManager.couple(this);
     logger = pLogger;
-
-    if (formulaDumpFile != null) {
-      formulaDumpFilePattern = formulaDumpFile.toAbsolutePath().getPath();
-    } else {
-      formulaDumpFilePattern = null;
-    }
   }
 
   public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -175,11 +175,11 @@ public class FormulaManagerView {
   }
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
-    if (formulaDumpFilePattern == null) {
+    if (formulaDumpFile == null) {
       return null;
     }
 
-    return Paths.get(String.format(formulaDumpFilePattern, function, call, formula, index));
+    return formulaDumpFile.getPath(function, call, formula, index);
   }
 
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
@@ -766,6 +766,9 @@ public class FormulaManagerView {
   private static final String INDEX_SEPARATOR = "@";
 
   public static String makeName(String name, int idx) {
+    if (idx < 0) {
+      return name;
+    }
     return name + INDEX_SEPARATOR + idx;
   }
 
@@ -937,8 +940,7 @@ public class FormulaManagerView {
     Collection<BooleanFormula> unwrapped = myExtractAtoms(extractFromView(f), splitArithEqualities, conjunctionsOnly);
 
     List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
-    for (Iterator<BooleanFormula> iterator = unwrapped.iterator(); iterator.hasNext();) {
-      BooleanFormula booleanFormula = iterator.next();
+    for (BooleanFormula booleanFormula : unwrapped) {
       atoms.add(wrapInView(booleanFormula));
     }
 

@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -241,7 +243,7 @@ public class ValueAnalysisSMGCommunicator {
 
     private Value getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
-      if(pMemloc == null) {
+      if (pMemloc == null) {
         return Value.UnknownValue.getInstance();
       }
 
@@ -262,7 +264,7 @@ public class ValueAnalysisSMGCommunicator {
           throw new UnrecognizedCCodeException("Rvalue Could not be evaluated by smgEvaluator", cfaEdge,rValue);
         }
 
-         if(value.isUnknown() || value.getAsInt() != 0) {
+         if (value.isUnknown() || value.getAsInt() != 0) {
            return Value.UnknownValue.getInstance();
          } else {
            return new NumericValue(0L);
@@ -274,7 +276,7 @@ public class ValueAnalysisSMGCommunicator {
 
       SMGAddress value = evaluateAddress(pOperand);
 
-      if(value == null || value.isUnknown()) {
+      if (value == null || value.isUnknown()) {
         return null;
       } else {
         return smgState.resolveMemLoc(value, getFunctionName());

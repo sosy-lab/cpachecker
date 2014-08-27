@@ -153,6 +153,11 @@ public interface RegionManager {
   public void printStatistics(PrintStream out);
 
   /**
+   * Returns a short string with package name and version number.
+   */
+  public String getVersion();
+
+  /**
    * Return a new {@link RegionBuilder} instance.
    */
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);

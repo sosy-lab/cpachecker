@@ -34,6 +34,12 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 import com.google.common.collect.ImmutableSet;
 
+/**
+ * Description of a Java interface.
+ *
+ * A Java interface is described by its name, visibility and the interfaces
+ * it extends.
+ */
 public final class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
 
   private static final JInterfaceType UNRESOLVABLE_TYPE =
@@ -45,6 +51,7 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
   private final Set<JInterfaceType> superInterfaces;
   private final Set<JInterfaceType> directSubInterfaces = new HashSet<>();
 
+  // Create a JInterface object without an enclosing type
   private JInterfaceType(
       String pFullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility,
@@ -58,6 +65,19 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     checkInterfaceConsistency();
   }
 
+  /**
+   * Creates a new <code>JInterfaceType</code> object describing an interface with the given
+   * attributes.
+   *
+   * @param pFullyQualifiedName the fully qualified name of the interface
+   * @param pSimpleName the simple name of the interface.
+   *        This is only the interface name without its package name
+   * @param pVisibility the visibility of the describes interface, represented by a
+   *        {@link VisibilityModifier} object
+   * @param pExtendedInterfaces the <code>JInterfaceType</code>s of the interfaces the described
+   *        interface extends
+   * @param pEnclosingType the direct enclosing type of this interface
+   */
   public JInterfaceType(
       String pFullyQualifiedName, String pSimpleName,
       VisibilityModifier pVisibility, Set<JInterfaceType> pExtendedInterfaces,
@@ -72,6 +92,12 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
 
   }
 
+  /*
+   *  Checks that no interface that is extended by this interface extends this interface.
+   *
+   *  In a mathematical sense, this method checks that the extends-relation between this
+   *  interface and all its extended interfaces is asymmetrical.
+   */
   private void checkInterfaceConsistency() {
     checkInterfaceConsistencyRec(this);
   }
@@ -94,14 +120,38 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     }
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JClassType} objects that describe the classes
+   * that are known to implement this interface directly.
+   *
+   * This method only returns the classes that extend this interface directly by specifying it
+   * in its class declaration.
+   *
+   * @return the <code>JClassType</code> objects that describe the classes that are known to
+   *         implement this interface directly
+   */
   public Set<JClassType> getKnownInterfaceImplementingClasses() {
       return interfaceImplementingClasses;
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JInterfaceType} objects that describe the interfaces
+   * this interface extends directly.
+   *
+   * @return a <code>Set</code> of {@link JInterfaceType} objects that describe the interfaces
+   *         this interface extends directly
+   */
   public Set<JInterfaceType> getSuperInterfaces() {
     return superInterfaces;
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JInterfaceType} objects that describe the interfaces
+   * that directly extend this interface.
+   *
+   * @return a <code>Set</code> of {@link JInterfaceType} objects that describe the interfaces
+   * that directly extend this interface.
+   */
   public Set<JInterfaceType> getDirectSubInterfaces() {
     return directSubInterfaces;
   }
@@ -119,6 +169,16 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     }
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JInterfaceType} objects that describe the interfaces
+   * that extend this interface.
+   *
+   * Returns not only <code>JInterfaceType</code>s for the interfaces that directly
+   * extend this interface, but all.
+   *
+   * @return a <code>Set</code> of {@link JInterfaceType} objects that describe all the interfaces
+   * that extend this interface directly or indirectly
+   */
   public Set<JInterfaceType> getAllSubInterfacesOfInterface() {
 
     Set<JInterfaceType> result = new HashSet<>();
@@ -133,6 +193,15 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     return result;
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JInterfaceType} objects that describe all the interfaces
+   * this interface extends.
+   *
+   * Returns not only interfaces that are directly extended, but also ones that are indirectly.
+   *
+   * @return a <code>Set</code> of {@link JInterfaceType} objects that describe all the interfaces
+   * this interface extends
+   */
   public Set<JInterfaceType> getAllSuperInterfaces() {
 
     Set<JInterfaceType> result = new HashSet<>();
@@ -147,6 +216,16 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     return result;
   }
 
+  /**
+   * Returns a <code>Set</code> of {@link JClassType} objects that describe all the classes that
+   * are known to implement this interface directly or indirectly.
+   *
+   * Returns not only types for the classes that directly implement this interface, but also for
+   * all classes that implement this interface by implementing a sub interface of this interface.
+   *
+   * @return a <code>Set</code> of {@link JClassType} objects that describe all the classes that
+   * are known to implement this interface directly or indirectly.
+   */
   public Set<JClassType>  getAllKnownImplementingClassesOfInterface() {
 
     // first, get all subInterfaces of this interface
@@ -171,6 +250,18 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
       return result;
   }
 
+  /**
+   * Returns a <code>List</code> of all sub types of this interface.
+   *
+   * This includes all sub interfaces and implementing classes of this interface,
+   * direct and indirect ones.
+   *
+   * The returned <code>List</code> contains first all sub interface of this
+   * interface in random order, followed by all known implementing classes
+   * in random order.
+   *
+   * @return a <code>List</code> of all sub types of this interface
+   */
   public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
 
     List<JClassOrInterfaceType> result = new LinkedList<>();
@@ -179,6 +270,20 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     return result;
   }
 
+  /**
+   * Returns a <code>JInterfaceType</code> instance describing an interface with the given
+   * attributes.
+   *
+   * @param pFullyQualifiedName the fully qualified name of the interface
+   * @param pSimpleName the simple name of the interface.
+   *        This is only the interface name without its package name
+   * @param pVisibility the visibility of the describes interface, represented by a
+   *        {@link VisibilityModifier} object
+   * @param pExtendedInterfaces the <code>JInterfaceType</code>s of the interfaces the described
+   *        interface extends
+   *
+   * @return a <code>JInterfaceType</code> object describing an interface with the given attributes
+   */
   public static JInterfaceType valueOf(String pFullyQualifiedName, String pSimpleName,
       final VisibilityModifier pVisibility, Set<JInterfaceType> pExtendedInterfaces) {
 
@@ -186,10 +291,30 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
         pVisibility, pExtendedInterfaces);
   }
 
+  /**
+   * Returns a <code>JInterfaceType</code> instance describing an unresolvable interface.
+   *
+   * @return a <code>JInterfaceType</code> instance describing an unresolvable interface
+   */
   public static JInterfaceType createUnresolvableType() {
     return UNRESOLVABLE_TYPE;
   }
 
+  /**
+   * Returns a <code>JInterfaceType</code> instance describing an interface with the given
+   * attributes.
+   *
+   * @param pFullyQualifiedName the fully qualified name of the interface
+   * @param pSimpleName the simple name of the interface.
+   *        This is only the interface name without its package name
+   * @param pVisibility the visibility of the describes interface, represented by a
+   *        {@link VisibilityModifier} object
+   * @param pExtendedInterfaces the <code>JInterfaceType</code>s of the interfaces the described
+   *        interface extends
+   * @param pEnclosingType the direct enclosing type of this interface
+   *
+   * @return a <code>JInterfaceType</code> object describing an interface with the given attributes
+   */
   public static JInterfaceType valueOf(
       String pFullyQualifiedName, String pSimpleName,
       VisibilityModifier pVisibility,

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 import java.io.PrintStream;
 import java.util.Map;

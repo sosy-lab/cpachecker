@@ -111,4 +111,26 @@ public class AFunctionType implements IAFunctionType {
            && Objects.equals(returnType, other.returnType);
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("Return type: [");
+    int parameterCounter = 0;
+
+    sb.append(returnType.toString());
+    sb.append ("], ");
+
+    sb.append("Parameters: " + parameters.size() + ", ");
+
+    if (!parameters.isEmpty()) {
+      for (Type currType : parameters) {
+        parameterCounter++;
+        sb.append("Parameter " + parameterCounter + " type: [" + currType + "], ");
+      }
+    }
+
+    sb.append("VarArgs: " + takesVarArgs);
+
+    return sb.toString();
+  }
+
 }

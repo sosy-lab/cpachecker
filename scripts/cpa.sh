@@ -3,8 +3,8 @@
 # the location of the java command
 [ -z "$JAVA" ] && JAVA=java
 
-# the default heap size of the javaVM
-DEFAULT_HEAP_SIZE="1200m"
+# the default heap size of the Java VM
+DEFAULT_HEAP_SIZE="1200M"
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -38,7 +38,7 @@ platform="`uname -s`"
 
 # where the project directory is, relative to the location of this script
 case "$platform" in
-  Linux)
+  Linux|CYGWIN*)
     SCRIPT="$(readlink -f "$0")"
     [ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="$(readlink -f "$(dirname "$SCRIPT")/..")"
     ;;
@@ -90,7 +90,10 @@ elif [ -n "$TMP" ]; then
 fi
 
 if [ -n "$JAVA_HEAP_SIZE" ]; then
-  echo "Running JavaVM with special heap size: $JAVA_HEAP_SIZE"
+  echo "Running CPAchecker with Java heap of size ${JAVA_HEAP_SIZE}."
+else
+  JAVA_HEAP_SIZE="$DEFAULT_HEAP_SIZE"
+  echo "Running CPAchecker with default heap size (${JAVA_HEAP_SIZE}). Specify a larger value with -heap if you have more RAM."
 fi
 
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
@@ -101,6 +104,12 @@ if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra arguments: $CPACHECKER_ARGUMENTS"
 fi
 
+case "$platform" in
+  CYGWIN*)
+    JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -classpath `cygpath -wp $CLASSPATH`"
+    ;;
+esac
+
 # run CPAchecker
 # stack size is set because on some systems it is too small for recursive algorithms and very large programs
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS

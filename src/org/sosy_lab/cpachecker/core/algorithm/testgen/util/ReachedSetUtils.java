@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public class ReachedSetUtils {
 
-  private ReachedSetUtils(){
+  private ReachedSetUtils() {
   }
 
   public static void addReachedStatesToOtherReached(ReachedSet pCurrentReached, ReachedSet pGlobalReached) {
@@ -40,7 +40,7 @@ public class ReachedSetUtils {
     }
   }
 
-  public static void addToReachedOnly(ReachedSet reached, AbstractState stateToAdd, Precision precisionOfState){
+  public static void addToReachedOnly(ReachedSet reached, AbstractState stateToAdd, Precision precisionOfState) {
     reached.add(stateToAdd, precisionOfState);
     reached.removeOnlyFromWaitlist(stateToAdd);
   }

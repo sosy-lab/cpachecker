@@ -14,14 +14,12 @@ public class Object1 {
   int id;
 
 
-public Object1(int pnum1 , int pnum2 , int pnum3 , int pname , Object2 object2){
-
+public Object1(int pnum1, int pnum2, int pnum3, String pname, Object2 object2){
   num1 = pnum1;
   num2 = pnum2;
   num3 = pnum3;
   name = pname;
   id = object2.getId();
-
 }
 
 public Object1(Object2 object2, Object3 object3){
@@ -46,7 +44,7 @@ public int getNum3(){
   return num3;
 }
 
-public int getName(){
+public String getName(){
   return name;
 }
 

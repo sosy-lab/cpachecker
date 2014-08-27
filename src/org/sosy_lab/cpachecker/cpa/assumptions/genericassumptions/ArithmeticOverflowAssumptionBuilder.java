@@ -94,6 +94,9 @@ implements GenericAssumptionBuilder {
           //          else
           //            return new Pair<>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
+        default:
+          // TODO add other bounds
+          break;
       }
     }
     return Pair.of(null, null);
@@ -189,9 +192,12 @@ implements GenericAssumptionBuilder {
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
-      if (returnEdge.getExpression() != null) {
-        visit(returnEdge.getExpression(), result);
+      if (returnEdge.getExpression().isPresent()) {
+        visit(returnEdge.getExpression().get(), result);
       }
+      break;
+    default:
+      // TODO assumptions or other edge types, e.g. declarations?
       break;
     }
     return result;

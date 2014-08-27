@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -97,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -105,7 +106,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -219,7 +220,8 @@ public class CFASingleLoopTransformation {
    * @throws InvalidConfigurationException if the configuration this transformer was created with is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  public ImmutableCFA apply(CFA pInputCFA, Optional<ImmutableMultimap<String, Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) throws InvalidConfigurationException, InterruptedException {
+  public MutableCFAWithOptionalLoopStructure apply(MutableCFA pInputCFA, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) throws InvalidConfigurationException, InterruptedException {
+
     // If the transformation is not necessary, return the original graph
     if (pLoopStructure.isPresent()) {
       Collection<Loop> loops = pLoopStructure.get().values();
@@ -230,7 +232,7 @@ public class CFASingleLoopTransformation {
             || from(singleLoop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).size() > 1;
       }
       if (!modificationRequired) {
-        return toImmutableCFA(pInputCFA, pLoopStructure, pVarClassification);
+        return new MutableCFAWithOptionalLoopStructure(pInputCFA, pLoopStructure);
       }
     }
 
@@ -247,7 +249,7 @@ public class CFASingleLoopTransformation {
     eliminateSelfLoops(nodes);
 
     Multimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
-    BiMap<Integer, CFANode> newSuccessorsToPC = HashBiMap.create();
+    Map<Integer, CFANode> newSuccessorsToPC = new LinkedHashMap<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
 
     // Create new nodes and assume edges based on program counter values leading to the new nodes
@@ -257,17 +259,19 @@ public class CFASingleLoopTransformation {
 
     // Declare program counter and initialize it
     String pcVarName = PROGRAM_COUNTER_VAR_NAME;
-    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, null);
+    CInitializerExpression pcInitializer = new CInitializerExpression(FileLocation.DUMMY,
+        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pcValueOfStart)));
+    CDeclaration pcDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, pcVarName, pcVarName, pcVarName, pcInitializer);
     CIdExpression pcIdExpression = new CIdExpression(FileLocation.DUMMY, pcDeclaration);
-    CFANode declarationDummy = new CFANode(oldMainFunctionEntryNode.getFunctionName());
+    CFANode declarationDummy = newSuccessorsToPC.get(pcValueOfStart);
     CFAEdge pcDeclarationEdge = new CDeclarationEdge(String.format("int %s = %d;", pcVarName, pcValueOfStart), FileLocation.DUMMY, start, declarationDummy, pcDeclaration);
+
+    ImmutableBiMap<Integer, CFANode> newSuccessorsToPCImmutable = ImmutableBiMap.copyOf(newSuccessorsToPC);
 
     addToNodes(pcDeclarationEdge);
 
-    newPredecessorsToPC.put(pcValueOfStart, declarationDummy);
-
     // Remove trivial dummy subgraphs and other dummy edges etc.
-    simplify(start, newPredecessorsToPC, newSuccessorsToPC, globalNewToOld);
+    simplify(start, newPredecessorsToPC, newSuccessorsToPC, newSuccessorsToPCImmutable, globalNewToOld);
 
     /*
      * Connect the subgraph tails to their successors via the loop head by
@@ -283,7 +287,7 @@ public class CFASingleLoopTransformation {
      * Fix the summary edges broken by the indirection introduced by the
      * artificial loop.
      */
-    fixSummaryEdges(start, newSuccessorsToPC, globalNewToOld);
+    fixSummaryEdges(start, newSuccessorsToPCImmutable,  globalNewToOld);
 
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, loopHead, pInputCFA.getMachineModel(),
@@ -301,9 +305,11 @@ public class CFASingleLoopTransformation {
    */
   private void simplify(CFANode pStartNode,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      Map<Integer, CFANode> pNewSuccessorsToPC,
+      BiMap<Integer, CFANode> pImmutableNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
-    Map<CFANode, Integer> pcToNewSuccessors = pNewSuccessorsToPC.inverse();
+    Map<CFANode, Integer> pcToNewSuccessors = pImmutableNewSuccessorsToPC.inverse();
+
     for (int replaceablePCValue : new ArrayList<>(pNewPredecessorsToPC.keySet())) {
       this.shutdownNotifier.shutdownIfNecessary();
       CFANode newSuccessor = pNewSuccessorsToPC.get(replaceablePCValue);
@@ -316,7 +322,9 @@ public class CFASingleLoopTransformation {
             && isDummyEdge(dummyEdge = tailOfRedundantSubgraph.getEnteringEdge(0))
             && dummyEdge.getPredecessor().getNumEnteringEdges() == 0
             && (precedingPCValue = pcToNewSuccessors.get(dummyEdge.getPredecessor())) != null) {
-          Integer predToRemove = pcToNewSuccessors.remove(newSuccessor);
+          Integer predToRemove = pcToNewSuccessors.get(newSuccessor);
+          CFANode removed = pNewSuccessorsToPC.remove(predToRemove);
+          assert removed == newSuccessor;
           for (CFANode removedPredecessor : pNewPredecessorsToPC.removeAll(predToRemove)) {
             pNewPredecessorsToPC.put(precedingPCValue, removedPredecessor);
           }
@@ -377,7 +385,7 @@ public class CFASingleLoopTransformation {
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
@@ -478,7 +486,7 @@ public class CFASingleLoopTransformation {
   private int buildProgramCounterValueMaps(FunctionEntryNode pOldMainFunctionEntryNode,
       Iterable<CFANode> pNodes,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
-      BiMap<Integer, CFANode> pNewSuccessorsToPC,
+      Map<Integer, CFANode> pNewSuccessorsToPC,
       SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
     SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
@@ -634,7 +642,7 @@ public class CFASingleLoopTransformation {
       CFANode pPredecessor,
       CFANode pSuccessor,
       Multimap<Integer, CFANode> pPredecessorsToPC,
-      BiMap<Integer, CFANode> pSuccessorsToPC) {
+      Map<Integer, CFANode> pSuccessorsToPC) {
     if (!(pPredecessor instanceof CFATerminationNode)) {
       int pcToSuccessor = pProgramCounterValueProvider.getPCValueFor(pSuccessor);
       pPredecessorsToPC.put(pcToSuccessor, pPredecessor);
@@ -675,6 +683,7 @@ public class CFASingleLoopTransformation {
     for (CFANode node : pNodes) {
       this.shutdownNotifier.shutdownIfNecessary();
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+
         CFANode successor = edge.getSuccessor();
         // Eliminate a direct self edge by introducing a dummy node in between
         if (successor == node) {
@@ -691,6 +700,33 @@ public class CFASingleLoopTransformation {
           addToNodes(dummyEdge);
 
           toAdd.add(dummy);
+
+          edge = dummyEdge;
+        }
+
+        // Replace obvious endless loop "while (x) {}" by "if (x) { TERMINATION NODE }"
+        if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          CFANode assumePredecessor = edge.getPredecessor();
+          CFANode current = edge.getSuccessor();
+          FluentIterable<CFAEdge> leavingEdges;
+          CFAEdge leavingEdge = edge;
+          List<CFAEdge> edgesToRemove = new ArrayList<>();
+          edgesToRemove.add(leavingEdge);
+          while (!current.equals(assumePredecessor)
+             && (leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
+             && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType() == CFAEdgeType.BlankEdge) {
+            current = leavingEdge.getSuccessor();
+            edgesToRemove.add(leavingEdge);
+          }
+          if (current.equals(assumePredecessor)) {
+            for (CFAEdge toRemove : edgesToRemove) {
+              removeFromNodes(toRemove);
+            }
+            CFANode terminationNode = new CFATerminationNode(assumePredecessor.getFunctionName());
+            CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, assumePredecessor, terminationNode, SimpleMapAdapter.<CFANode, CFANode>createSimpleHashMap());
+            addToNodes(newEdge);
+            toAdd.add(terminationNode);
+          }
         }
       }
     }
@@ -712,7 +748,7 @@ public class CFASingleLoopTransformation {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
    */
-  private ImmutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
+  private MutableCFAWithOptionalLoopStructure buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead,
       MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException, InterruptedException {
 
     SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
@@ -730,14 +766,8 @@ public class CFASingleLoopTransformation {
     Optional<ImmutableMultimap<String, Loop>> loopStructure =
         getLoopStructure(pLoopHead);
 
-    // Get information about variables, required by some analyses
-    final Optional<VariableClassification> varClassification
-        = loopStructure.isPresent()
-        ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
-        : Optional.<VariableClassification>absent();
-
     // Finalize the transformed CFA
-    return cfa.makeImmutableCFA(loopStructure, varClassification);
+    return new MutableCFAWithOptionalLoopStructure(cfa, loopStructure);
   }
 
   /**
@@ -795,24 +825,6 @@ public class CFASingleLoopTransformation {
       }).toList();
     }
     return allNodes;
-  }
-
-  private ImmutableCFA toImmutableCFA(CFA pCFA,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
-      Optional<VariableClassification> pVarClassification) throws InterruptedException {
-    if (pCFA instanceof ImmutableCFA) {
-      return (ImmutableCFA) pCFA;
-    }
-    final MutableCFA mutableCFA;
-    if (pCFA instanceof MutableCFA) {
-      mutableCFA = (MutableCFA) pCFA;
-    } else {
-      SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
-      SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pCFA.getMainFunction(), functions);
-      mutableCFA = new MutableCFA(pCFA.getMachineModel(), functions, allNodes,
-          pCFA.getMainFunction(), pCFA.getLanguage());
-    }
-    return mutableCFA.makeImmutableCFA(pLoopStructure, pVarClassification);
   }
 
   /**
@@ -963,19 +975,22 @@ public class CFASingleLoopTransformation {
        */
       if (newSuccessor.getNumEnteringEdges() > 0) {
         assert tmpMap.isEmpty();
-        CFANode dummySuccessor = pLoopHead.getEnteringAssignmentEdge(pcToSet).getPredecessor();
-        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(newSuccessor).toList()) {
-          CFANode replacementSuccessor = tmpMap.get(enteringEdge.getSuccessor());
-          if (replacementSuccessor == null) {
-            replacementSuccessor = getOrCreateNewFromOld(enteringEdge.getSuccessor(), tmpMap);
-            CFAEdge connectionEdge = new BlankEdge("", FileLocation.DUMMY, replacementSuccessor, dummySuccessor, "");
-            addToNodes(connectionEdge);
+        ProgramCounterValueAssignmentEdge pcAssignmentEdge = pLoopHead.getEnteringAssignmentEdge(pcToSet);
+        if (pcAssignmentEdge != null) {
+          CFANode dummySuccessor = pcAssignmentEdge.getPredecessor();
+          for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(newSuccessor).toList()) {
+            CFANode replacementSuccessor = tmpMap.get(enteringEdge.getSuccessor());
+            if (replacementSuccessor == null) {
+              replacementSuccessor = getOrCreateNewFromOld(enteringEdge.getSuccessor(), tmpMap);
+              CFAEdge connectionEdge = new BlankEdge("", FileLocation.DUMMY, replacementSuccessor, dummySuccessor, "");
+              addToNodes(connectionEdge);
+            }
+            CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(enteringEdge, enteringEdge.getPredecessor(), replacementSuccessor, tmpMap);
+            removeFromNodes(enteringEdge);
+            addToNodes(replacementEdge);
           }
-          CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(enteringEdge, enteringEdge.getPredecessor(), replacementSuccessor, tmpMap);
-          removeFromNodes(enteringEdge);
-          addToNodes(replacementEdge);
+          tmpMap.clear();
         }
-        tmpMap.clear();
       }
 
       // Connect the subgraph entry nodes to the loop header by assuming the program counter value
@@ -1420,7 +1435,7 @@ public class CFASingleLoopTransformation {
     Set<CFANode> visited = new HashSet<>();
     waitlist.push(pSingleLoopHead);
     boolean firstIteration = true;
-    while (!waitlist.isEmpty()){
+    while (!waitlist.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       CFANode current = waitlist.pop();
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {
@@ -2293,7 +2308,7 @@ public class CFASingleLoopTransformation {
      * @return a new simple hash map.
      */
     public static <S, T> SimpleMap<S, T> createSimpleHashMap() {
-      return adapt(new HashMap<S, T>());
+      return adapt(new LinkedHashMap<S, T>());
     }
 
     @Override
@@ -2529,6 +2544,64 @@ public class CFASingleLoopTransformation {
      */
     public Collection<Integer> getProgramCounterValues() {
       return Collections.unmodifiableSet(enteringPCValueAssignmentEdges.keySet());
+    }
+
+  }
+
+  /**
+   * A tuple of a CFA and an optional accompanying loop structure for the CFA.
+   */
+  public static class MutableCFAWithOptionalLoopStructure {
+
+    /**
+     * The CFA.
+     */
+    private final MutableCFA cfa;
+
+    /**
+     * If present, the loop structure of the CFA.
+     */
+    private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+
+    /**
+     * Creates a new tuple of the given CFA and (optional) loop structure.
+     *
+     * @param pCfa
+     * @param pLoopStructure
+     */
+    public MutableCFAWithOptionalLoopStructure(MutableCFA pCfa, Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+      this.cfa = pCfa;
+      this.loopStructure = pLoopStructure;
+    }
+
+    /**
+     * Gets the CFA.
+     *
+     * @return the CFA.
+     */
+    public MutableCFA getCFA() {
+      return this.cfa;
+    }
+
+    /**
+     * Checks if the loop structure is present.
+     *
+     * @return {@code true} if the loop structure is present, {@code false}
+     * otherwise.
+     */
+    public boolean isLoopStructurePresent() {
+      return this.loopStructure.isPresent();
+    }
+
+    /**
+     * Gets the loop structure.
+     *
+     * @return the loop structure.
+     *
+     * @throws IllegalStateException of no loop structure is present.
+     */
+    public ImmutableMultimap<String, Loop> getLoopStructure() {
+      return this.loopStructure.get();
     }
 
   }

@@ -50,15 +50,15 @@ class ApronDomain implements AbstractDomain {
 
     Map<ApronState, Set<ApronState>> covers = new HashMap<>();
 
-    ApronState octState1 = (ApronState) element1;
-    ApronState octState2 = (ApronState) element2;
+    ApronState apronState1 = (ApronState) element1;
+    ApronState apronState2 = (ApronState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<ApronState>)(covers.get(octState2))).contains(octState1)) {
+    if (covers.containsKey(apronState2) && ((HashSet<ApronState>)(covers.get(apronState2))).contains(apronState1)) {
       return true;
     }
 
     try {
-      return octState1.isLessOrEquals(octState2);
+      return apronState1.isLessOrEquals(apronState2);
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
@@ -83,7 +83,7 @@ class ApronDomain implements AbstractDomain {
                                          shrinkedStates.getFirst().getIntegerVariableToIndexMap(),
                                          shrinkedStates.getFirst().getRealVariableToIndexMap(),
                                          shrinkedStates.getFirst().getVariableToTypeMap(),
-                                         ((ApronState)successor).getBlock(),
+                                         ((ApronState)successor).isLoopHead(),
                                          logger);
     if (newState.equals(reached)) {
       return reached;
@@ -94,7 +94,7 @@ class ApronDomain implements AbstractDomain {
     }
   }
 
-  public AbstractState joinWidening(ApronState successorState, ApronState reachedState) {
+  public AbstractState widening(ApronState successorState, ApronState reachedState) {
     Pair<ApronState, ApronState> shrinkedStates;
     Abstract0 newApronState;
     try {
@@ -113,7 +113,7 @@ class ApronDomain implements AbstractDomain {
                                          successorState.getIntegerVariableToIndexMap(),
                                          successorState.getRealVariableToIndexMap(),
                                          successorState.getVariableToTypeMap(),
-                                         successorState.getBlock(),
+                                         successorState.isLoopHead(),
                                          logger);
     if (newState.equals(successorState)) {
       return successorState;

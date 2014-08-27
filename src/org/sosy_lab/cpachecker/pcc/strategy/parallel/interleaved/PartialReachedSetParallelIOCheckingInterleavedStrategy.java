@@ -28,7 +28,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix = "pcc.interleaved")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
@@ -85,6 +85,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
     numReadThreads = Math.min(numReadThreads, numThreads - 1);
     numReadThreads = Math.max(0, numReadThreads);
+    addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 
   @Override
@@ -98,7 +99,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = new HashSet<>(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
@@ -173,7 +174,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
       final Semaphore pPartitionChecked, final Lock pLock, final Condition pPartitionReady) {
     for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
       pReadingExecutor.execute(new ParallelPartitionReader(i, pCheckResult, pPartitionChecked, this, ioHelper,
-          pPartitionReady, pLock, false));
+          pPartitionReady, pLock, false, stats));
     }
   }
 

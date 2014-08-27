@@ -113,6 +113,10 @@ analysis.functionPointerEdgesForUnknownPointer = true
 # potential targets for call edges created for function pointer calls
 analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES}
 
+# What CFA nodes should be the starting point of the analysis?
+analysis.initialStatesFor = ENTRY
+  enum:     [ENTRY, TARGET]
+
 # run interprocedural analysis
 analysis.interprocedural = true
 
@@ -189,24 +193,37 @@ assumptions.file = "assumptions.txt"
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
-bdd.bddCacheRatio = 0.1
+bdd.javabdd.cacheRatio = 0.1
 
 # Size of the BDD cache if cache ratio is not used.
-bdd.bddCacheSize = 1000
+bdd.javabdd.cacheSize = 1000
 
 # Initial size of the BDD node table.
-bdd.initBddNodeTableSize = 10000
+bdd.javabdd.initTableSize = 10000
 
 # Which BDD package should be used?
-# - java:  JavaBDD (default, no dependencies, many features)
-# - cudd:  CUDD (native library required, reordering not supported)
-# - micro: MicroFactory (maximum number of BDD variables is 1024, slow, but
+# - java:   JavaBDD (default, no dependencies, many features)
+# - sylvan: Sylvan (only 64bit Linux, uses multiple threads)
+# - cudd:   CUDD (native library required, reordering not supported)
+# - micro:  MicroFactory (maximum number of BDD variables is 1024, slow, but
 # less memory-comsumption)
-# - buddy: Buddy (native library required)
-# - cal:   CAL (native library required)
-# - jdd:   JDD
-bdd.package = "java"
-  allowed values: [java, cudd, micro, buddy, cal, jdd]
+# - buddy:  Buddy (native library required)
+# - cal:    CAL (native library required)
+# - jdd:    JDD
+bdd.package = "JAVA"
+  allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
+
+# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
+bdd.sylvan.cacheGranularity = 4
+
+# Log2 size of the BDD cache.
+bdd.sylvan.cacheSize = 24
+
+# Log2 size of the BDD node table.
+bdd.sylvan.tableSize = 26
+
+# Number of worker threads, 0 for automatic.
+bdd.sylvan.threads = 0
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -225,6 +242,10 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
+# Generate additional invariants by induction and add them to the induction
+# hypothesis.
+bmc.addInvariantsByInduction = true
+
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
@@ -236,6 +257,12 @@ bmc.checkTargetStates = true
 
 # dump counterexample formula to file
 bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
+
+# Adds pre-loop information to the induction hypothesis. This is unsound and
+# should generally not be used; however it is provided as an implementation
+# of the technique introduced in the SV-COMP 2013 competition contribution of
+# ESBMC 1.20.
+bmc.havocLoopTerminationConditionVariablesOnly = false
 
 # try using induction to verify programs with loops
 bmc.induction = false
@@ -264,6 +291,7 @@ cbmc.options.unwindings = 0
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
 # maximum time limit for CBMC (0 is infinite)
+cbmc.timelimit = 0ms
 cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
@@ -414,9 +442,30 @@ cpa = CompositeCPA.class.getCanonicalName()
 cpa.apron.domain = "OCTAGON"
   allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
 
-# which merge operator to use for ApronCPA?
-cpa.apron.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# this option determines which initial precision should be used
+cpa.apron.initialPrecisionType = "STATIC_FULL"
+  allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
+
+# with this option enabled the states are only merged at loop heads
+cpa.apron.mergeop.onlyMergeAtLoopHeads = false
+
+# of which type should the merge be?
+cpa.apron.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
+
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.apron.refiner.avoidAssumes = false
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.apron.refiner.checkForRepeatedRefinements = true
+
+# whether or not to do lazy-abstraction
+cpa.apron.refiner.doLazyAbstraction = true
+
+# Timelimit (in seconds) for the backup feasibility check with the octagon
+# analysis. Zero means there is no timelimit.
+cpa.apron.refiner.timeForApronFeasibilityCheck = 0
 
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
@@ -571,6 +620,9 @@ cpa.bdd.initiallyEmptyPrecision = false
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
+# mergeType
+cpa.bdd.merge = "join"
+
 # whether or not to add newly-found variables only to the exact program
 # location or to the whole scope of the variable.
 cpa.bdd.precision.refinement.useScopedInterpolation = false
@@ -633,10 +685,12 @@ cpa.composite.merge = "AGREE"
 cpa.composite.precAdjust = "COMPOSITE"
   allowed values: [COMPOSITE, COMPONENT]
 
-# Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.heap = -1
 
-# Limit for process memory used by CPAchecker (in MiB; -1 for infinite)
+# Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for
+# infinite)
 cpa.conditions.global.memory.process = -1
 
 # Limit for size of reached set (-1 for infinite)
@@ -791,6 +845,10 @@ cpa.monitor.pathcomputationlimit = 0
 # with this option the evaluation of float variables can be toggled.
 cpa.octagon.handleFloats = false
 
+# this option determines which initial precision should be used
+cpa.octagon.initialPrecisionType = "STATIC_FULL"
+  allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
+
 # whether or not to use use-definition information from the error pathsto
 # optimize the interpolation process
 cpa.octagon.interpolation.applyUseDefInformation = true
@@ -799,37 +857,21 @@ cpa.octagon.interpolation.applyUseDefInformation = true
 # interpolation - this avoids to have loop-counters in the interpolant
 cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
-# which merge operator to use for OctagonCPA?
-cpa.octagon.merge = "SEP"
-  allowed values: [SEP, JOIN]
+# with this option enabled the states are only merged at loop heads
+cpa.octagon.mergeop.onlyMergeAtLoopHeads = false
 
-# with this option enabledmergeJoin is only used on edges within the same
-# block, i.e. each iterationof a loop is a different block, thus the
-# precision of the analysis increases
-cpa.octagon.mergeop.onlyJoinEdgesInSameBlock = false
-
-# of which type should the merge be? normal, for usual join, widening for a
-# widening instead of a join
-cpa.octagon.mergeop.type = "NORMAL"
-  allowed values: [NORMAL, WIDENING]
+# of which type should the merge be?
+cpa.octagon.mergeop.type = "SEP"
+  allowed values: [SEP, JOIN, WIDENING]
 
 # with this option the number representation in the library will be changed
 # between floats and ints.
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
 
-# turn the refiner on or off, default is off
-cpa.octagon.refiner = false
-
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.octagon.refiner.avoidAssumes = false
-
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.octagon.refiner.checkForRepeatedRefinements = true
-
-# whether or not to do lazy-abstraction
-cpa.octagon.refiner.doLazyAbstraction = true
 
 # Timelimit (in seconds) for the backup feasibility check with the octagon
 # analysis. Zero means there is no timelimit.
@@ -881,7 +923,7 @@ cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
-  allowed values: [BDD, FORMULA]
+  allowed values: [BDD, SYLVAN, FORMULA]
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
@@ -926,12 +968,6 @@ cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
-
-# Check whether all pointer dereferences are valid.
-cpa.predicate.checkValidDeref = false
-
-# Check whether all calls to free() are valid.
-cpa.predicate.checkValidFree = false
 
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
@@ -988,7 +1024,7 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -1001,14 +1037,6 @@ cpa.predicate.invariants.file = "invariants.txt"
 
 # file for precision that consists of invariants.
 cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
-
-# List of further options which will be passed to Mathsat in addition to the
-# default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.mathsat5.furtherOptions = ""
-
-# Export solver queries in Smtlib format into a file (for Mathsat5).
-cpa.predicate.mathsat5.logAllQueries = false
-cpa.predicate.mathsat5.logfile = "mathsat5.%03d.smt2"
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -1073,6 +1101,10 @@ cpa.predicate.predmap.file = "predmap.txt"
 # Format for exporting predicates from precisions.
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
+
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.princess.logAllQueries = false
+cpa.predicate.princess.logfile = "princess.%03d.smt2"
 
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
@@ -1151,7 +1183,7 @@ cpa.predicate.refinement.splitItpAtoms = false
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
-cpa.predicate.refinement.timelimit = 0
+cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
@@ -1168,33 +1200,29 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Double check generated results like interpolants and models whether they
-# are correct
-cpa.predicate.smtinterpol.checkResults = false
-
-# List of further options which will be set to true for SMTInterpol in
-# addition to the default options. Format is 'option1,option2,option3'
-cpa.predicate.smtinterpol.furtherOptions = []
-
-# Export solver queries in Smtlib format into a file.
-cpa.predicate.smtinterpol.logAllQueries = false
-
-# Export interpolation queries in Smtlib format into a file.
-cpa.predicate.smtinterpol.logInterpolationQueries = false
-
-# Export solver queries in Smtlib format into a file.
-cpa.predicate.smtinterpol.logfile = "smtinterpol.%03d.smt2"
-
 # Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
 # FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in Smtlib format into a file.
+cpa.predicate.solver.logAllQueries = false
+cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
+
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
+cpa.predicate.solver.mathsat5.furtherOptions = ""
+
+# Double check generated results like interpolants and models whether they
+# are correct
+cpa.predicate.solver.smtinterpol.checkResults = false
+
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+cpa.predicate.solver.smtinterpol.furtherOptions = []
 
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
-
-# Export solver queries in Smtlib2 format.
-cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
 
 # Export solver queries in Smtlib2 format, there are small differences for
 # different solvers, choose target-solver.
@@ -1203,6 +1231,9 @@ cpa.predicate.solver.z3.logger.target = Z3
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
+
+# Load Z3 with interpolation support. Requires [libfoci].
+cpa.predicate.solver.z3.supportInterpolation = false
 
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
@@ -1230,6 +1261,14 @@ cpa.predicate.useInvariantsForAbstraction = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# Insert tmp-variables for parameters at function-entries. The variables are
+# similar to return-variables at function-exit.
+cpa.predicate.useParameterVariables = false
+
+# Insert tmp-parameters for global variables at function-entries. The global
+# variables are also encoded with return-variables at function-exit.
+cpa.predicate.useParameterVariablesForGlobals = false
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
@@ -1456,10 +1495,6 @@ cpa.value.initAssumptionVars = false
 # get an initial precison from file
 cpa.value.initialPrecisionFile = no default value
 
-# whether or not to heuristically weaken the candidate interpolant prior to
-# the interpolation process
-cpa.value.interpolation.weakenInterpolant = false
-
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1500,9 +1535,15 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# forceRestart
+cpa.value.refinement.forceRestart = 0
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
+
+# globalPrec
+cpa.value.refinement.useGlobalPrecision = false
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -1518,13 +1559,14 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
-# whether or not to interpolate the shortest infeasible prefix rather than
-# the whole error path
-cpa.value.refiner.interpolateInfeasiblePrefix = false
-
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performInitialStaticRefinement = false
+
+# which prefix of an actual counterexample trace should be used for
+# interpolation
+cpa.value.refiner.prefixPreference = BEST
+  enum:     [DEFAULT, SHORTEST, LONGEST, MEDIAN, MIDDLE, BEST, WORST]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1578,11 +1620,11 @@ language = C
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
-limits.time.cpu = -1
+limits.time.cpu = -1ns
 
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
-limits.time.wall = -1
+limits.time.wall = -1ns
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
@@ -1654,7 +1696,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 pcc.partitioning.partitioningStrategy = RANDOM
   enum:     [RANDOM, OPTIMAL]
 
-# If enabled uses the number of nodes saved in certificate size to compute
+# If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the size of certificate
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
@@ -1685,17 +1727,20 @@ restartAlgorithm.configFiles = no default value
 
 spec.automatonDumpFile = no default value
 
+# Consider assumptions that are provided with the path automaton?
+spec.considerAssumptions = true
+
 # Consider the negative semantics of tokens provided with path automatons.
-spec.considerNegativeSemanticsAttribute = true
+spec.considerNegativeSemanticsAttribute = false
 
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
-spec.matchOriginLine = false
+spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
-spec.transitionToStopForNegatedTokensetMatch = true
+spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

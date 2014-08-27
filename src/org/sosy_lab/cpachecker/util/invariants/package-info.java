@@ -24,4 +24,6 @@
 /**
  * Unfinished project for finding linear invariants using RedLog solver.
  */
+@Deprecated
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
 package org.sosy_lab.cpachecker.util.invariants;

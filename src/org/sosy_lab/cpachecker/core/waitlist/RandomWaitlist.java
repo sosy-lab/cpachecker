@@ -28,9 +28,13 @@ import java.util.Random;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Waitlist implementation that considers states in a random order for pop().
  */
+@SuppressFBWarnings(value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
+justification = "warnings is only because of casts introduced by generics")
 public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private final Random rand = new Random();

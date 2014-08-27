@@ -163,55 +163,55 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
     if (nodeCount) {
       factory.addProvider(SimpleIntProviderFactory.getEdgeCountProvider(defMerge));
     }
-    if (gotoCount){
+    if (gotoCount) {
       factory.addProvider(SimpleIntProviderFactory.getGotoCountProvider(defMerge));
     }
-    if (loopCount){
+    if (loopCount) {
       factory.addProvider(SimpleIntProviderFactory.getLoopCountProvider(cfa, defMerge));
     }
-    if (functionCallCount){
+    if (functionCallCount) {
       factory.addProvider(SimpleIntProviderFactory.getFunctionCallCountProvider(defMerge));
     }
-    if (branchCount){
+    if (branchCount) {
       factory.addProvider(SimpleIntProviderFactory.getBranchCountProvider(defMerge));
     }
-    if (jumpCount){
+    if (jumpCount) {
       factory.addProvider(SimpleIntProviderFactory.getJumpCountProvider(defMerge));
     }
-    if (functionDefCount){
+    if (functionDefCount) {
       factory.addProvider(SimpleIntProviderFactory.getFunctionDefCountProvider(defMerge));
     }
-    if (localVariablesCount){
+    if (localVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getLocalVariablesCountProvider(defMerge));
     }
-    if (globalVariablesCount){
+    if (globalVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getGlobalVariablesCountProvider(defMerge));
     }
-    if (structVariablesCount){
+    if (structVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getStructVariablesCountProvider(defMerge));
     }
-    if (pointerVariablesCount){
+    if (pointerVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getPointerVariablesCountProvider(defMerge));
     }
-    if (arrayVariablesCount){
+    if (arrayVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getArrayVariablesCountProvider(defMerge));
     }
-    if (bitwiseOperationCount){
+    if (bitwiseOperationCount) {
       factory.addProvider(SimpleIntProviderFactory.getBitwiseOperationCountProvider(defMerge));
     }
-    if (arithmeticOperationCount){
+    if (arithmeticOperationCount) {
       factory.addProvider(SimpleIntProviderFactory.getArithmeticOperationCountProvider(defMerge));
     }
-    if (integerVariablesCount){
+    if (integerVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getIntegerVariablesCountProvider(defMerge));
     }
-    if (floatVariablesCount){
+    if (floatVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getFloatVariablesCountProvider(defMerge));
     }
-    if (dereferenceCount){
+    if (dereferenceCount) {
       factory.addProvider(SimpleIntProviderFactory.getDereferenceCountProvider(defMerge));
     }
-    if (assumeCount){
+    if (assumeCount) {
       factory.addProvider(SimpleIntProviderFactory.getAssumeCountProvider(defMerge));
     }
 

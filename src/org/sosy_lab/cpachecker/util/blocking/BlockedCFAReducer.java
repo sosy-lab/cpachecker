@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
@@ -405,7 +406,7 @@ public class BlockedCFAReducer implements BlockComputer {
     }
 
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
-    Set<CFANode> result = new HashSet<>(abstractionNodes.size());
+    Set<CFANode> result = Sets.newHashSetWithExpectedSize(abstractionNodes.size());
     for (ReducedNode n : abstractionNodes) {
       result.add(n.getWrapped());
     }

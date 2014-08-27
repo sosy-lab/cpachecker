@@ -169,7 +169,7 @@ class CFABuilder extends ASTVisitor {
       }
 
       fileScope.registerFunctionDeclaration(functionDefinition);
-      if(!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
+      if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
         globalDeclarations.add(Pair.of((IADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
         eliminateableDuplicates.add(functionDefinition.toASTString());
       }

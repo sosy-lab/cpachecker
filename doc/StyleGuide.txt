@@ -104,6 +104,18 @@ Configuration options:
 - Do not forget to update the file doc/ConfigurationOptions.txt
   (done automatically by ant) and commit it together with your changes.
 
+Documentation / Comments:
+- The following ranks several places by their importance of having comments:
+  * packages (in package-info.java, EVERY package should have one!)
+  * interfaces and public classes (at least a short note at the top of their responsibility)
+  * public methods in interfaces and classes
+  * non-public classes, methods and fields
+- Please add comments wherever sensible,
+  but make sure to add comments for the top three items!
+- All command-line options need to be explained in doc/Configuration.txt.
+- All @Option fields need to have a non-empty description
+  that explains (to a user) what the option does.
+
 Coding:
 - Never have public fields,
   never have non-private non-final fields,
@@ -118,6 +130,8 @@ Coding:
   They have a much nicer API, are equally fast,
   and allow you to use ImmutableList and Collections.unmodifiableList()
   to avoid the need for defensive copying while still guaranteeing immutability.
+- Never use classes from the sun.* packages, they are not part of the Java API.
+  Specifically, use UnsupportedOperationException instead of NotImplementedException.
 - Do not use the following classes from the JDK, they all have better replacements:
   Vector (replaced by ArrayList)
   Stack (replaced by Deque interface with implementations ArrayDeque and LinkedList)
@@ -145,3 +159,17 @@ Coding:
   If logging, either use logUserException()
   (if the exception text should be shown to the user)
   or logDebugException() (in all other cases).
+
+
+Automatic code cleanup:
+- Most automatic code formatters are not able to follow these rules,
+  thus use them carefully. The following is a list of possibilities
+  to enforce some of these rules automatically:
+- No tabs: Eclipse configuration, SVN commit hook
+- No trailing whitespaces: Eclipse configuration applied automatically on save
+- Always use braces: Eclipse Code Cleanup
+- Opening brace on same line: sed '$!N;s%\(else\|)\) *\n *{%\1 {%;P;D' -i src/**/*.java
+- else on same line: sed '$!N;s%} *\n *else %} else %;P;D' -i src/**/*.java; sed '$!N;N;s%\( *\)}\n\n *else %\n\1} else %;P;D' -i src/**/*.java
+- Space after keyword: sed -e 's%^\( *}\? *\(assert\|else\|if\|for\|while\|switch\|try\|catch\|finally\)\)\([({]\)%\1 \3%' -i src/**/*.java
+- Space before keyword: sed -e 's%^\( *}\)\(else\|catch\|finally\) %\1 \2 %' -i src/**/*.java
+- Space between ) and {: sed 's%){$%) {%' -i src/**/*.java

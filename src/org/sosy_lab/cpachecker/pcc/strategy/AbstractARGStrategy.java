@@ -58,6 +58,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
     if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
+      stats.increaseProofSize(1);
     }
   }
 
@@ -101,7 +102,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if(checkForStatePropertyAndOtherStateActions(state)){
+        if (checkForStatePropertyAndOtherStateActions(state)) {
           logger.log(Level.INFO, "Property violation at state", state);
           return false;
         }
@@ -112,7 +113,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
           if (!checkAndAddSuccessors(state, pReachedSet, initialPrecision)) { return false; }
         }
       }
-    }while(!isCheckComplete());
+    }while (!isCheckComplete());
 
     return isCheckSuccessful();
   }
@@ -122,7 +123,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
     ARGState coveringState = pCovered.getCoveringState();
 
     if (!pReachedSet.contains(coveringState)) {
-      if(treatStateIfCoveredByUnkownState(pCovered, coveringState, pReachedSet, pPrecision)){
+      if (treatStateIfCoveredByUnkownState(pCovered, coveringState, pReachedSet, pPrecision)) {
         return true;
       }
     }

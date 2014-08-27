@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smgfork.objects.SMGObject;
 
+import com.google.common.base.Predicate;
 
 public class SMGEdgeHasValueFilter {
 
@@ -82,8 +83,7 @@ public class SMGEdgeHasValueFilter {
     if (value != null) {
       if (valueComplement && pEdge.getValue() == value) {
         return false;
-      }
-      else if ( (!valueComplement) && pEdge.getValue() != value) {
+      } else if ( (!valueComplement) && pEdge.getValue() != value) {
         return false;
       }
     }
@@ -107,5 +107,14 @@ public class SMGEdgeHasValueFilter {
       }
     }
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  public Predicate<SMGEdgeHasValue> asPredicate() {
+    return new Predicate<SMGEdgeHasValue>() {
+      @Override
+      public boolean apply(SMGEdgeHasValue pEdge) {
+        return SMGEdgeHasValueFilter.this.holdsFor(pEdge);
+      }
+    };
   }
 }

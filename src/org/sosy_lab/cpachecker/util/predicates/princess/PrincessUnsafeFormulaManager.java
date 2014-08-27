@@ -111,4 +111,9 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   public boolean isNumber(IExpression pT) {
     return PrincessUtil.isNumber(pT);
   }
+
+  @Override
+  protected IExpression substitute(IExpression expr, List<IExpression> substituteFrom, List<IExpression> substituteTo) {
+    throw new UnsupportedOperationException();
+  }
 }

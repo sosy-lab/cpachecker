@@ -5,6 +5,6 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init :
    // matches special edge added by CPAchecker
-   MATCH ASSERT -> ERROR;
+   MATCH ASSERT -> ERROR("assertion in $location");
 
 END AUTOMATON

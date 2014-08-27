@@ -53,9 +53,9 @@ public class SignTargetChecker {
   }
 
   public boolean isTarget(SignState pSignState) {
-    SIGN absValue = pSignState.getSignMap().getSignForVariable(errorVar);
+    SIGN absValue = pSignState.getSignForVariable(errorVar);
 
-    if(allowedAbstractValue.covers(absValue)){
+    if (allowedAbstractValue.covers(absValue)) {
       return false;
     }
 
@@ -107,7 +107,7 @@ public class SignTargetChecker {
     return pFmgr.getBooleanFormulaManager().makeBoolean(false);
   }
 
-  public String getErrorVariableName(){
+  public String getErrorVariableName() {
     return errorVar;
   }
 

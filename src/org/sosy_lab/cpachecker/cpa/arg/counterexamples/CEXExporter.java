@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +45,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -76,17 +76,17 @@ public class CEXExporter {
   @Option(name="file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathFile = Paths.get("ErrorPath.%d.txt");
+  private PathTemplate errorPathFile = PathTemplate.ofFormatString("ErrorPath.%d.txt");
 
   @Option(name="core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathCoreFile = Paths.get("ErrorPath.%d.core.txt");
+  private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("ErrorPath.%d.core.txt");
 
   @Option(name="source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathSourceFile = Paths.get("ErrorPath.%d.c");
+  private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("ErrorPath.%d.c");
 
   @Option(name="exportAsSource",
       description="translate error path to C program")
@@ -95,27 +95,27 @@ public class CEXExporter {
   @Option(name="json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathJson = Paths.get("ErrorPath.%d.json");
+  private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
   @Option(name="assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAssignment = Paths.get("ErrorPath.%d.assignment.txt");
+  private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
   @Option(name="graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathGraphFile = Paths.get("ErrorPath.%d.dot");
+  private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("ErrorPath.%d.dot");
 
   @Option(name="automaton",
       description="export error path to file as an automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonFile = Paths.get("ErrorPath.%d.spc");
+  private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
 
   @Option(name="graphml",
       description="export error path to file as an automaton to a graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path errorPathAutomatonGraphmlFile = null;
+  private PathTemplate errorPathAutomatonGraphmlFile = null;
 
   @Option(name="exportImmediately",
           description="export error paths to files immediately after they were found")
@@ -176,17 +176,17 @@ public class CEXExporter {
                                     @Nonnull final ARGPath targetPath,
                                     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
-    final ARGState rootState = targetPath.getFirst().getFirst();
+    final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
-            createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
+            createErrorPathWithVariableAssignmentInformation(targetPath.getInnerEdges(), counterexample));
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
       // that are important for the error, it is not a complete path,
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
       writeErrorPathFile(errorPathCoreFile, cexIndex,
               createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
     }
@@ -248,7 +248,7 @@ public class CEXExporter {
         writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
       }
 
-      for (Pair<Object, Path> info : counterexample.getAllFurtherInformation()) {
+      for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
         if (info.getSecond() != null) {
           writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
         }
@@ -268,13 +268,12 @@ public class CEXExporter {
   }
 
   private Appender createErrorPathWithVariableAssignmentInformation(
-          final ARGPath targetPath, final CounterexampleInfo counterexample) {
+          final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
     final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        List<CFAEdge> edgePath = targetPath.asEdgesList();
         CFAPathWithAssignments exactValuePath;
         exactValuePath = null;
 
@@ -282,7 +281,7 @@ public class CEXExporter {
           exactValuePath = model.getExactVariableValuePath(edgePath);
         }
 
-        if(exactValuePath != null) {
+        if (exactValuePath != null) {
           printPreciseValues(out, exactValuePath);
         } else {
           printAllValues(out, edgePath);
@@ -358,10 +357,10 @@ public class CEXExporter {
     return targetPath;
   }
 
-  private void writeErrorPathFile(Path file, int cexIndex, Object content) {
-    if (file != null) {
+  private void writeErrorPathFile(PathTemplate template, int cexIndex, Object content) {
+    if (template != null) {
       // fill in index in file name
-      file = Paths.get(String.format(file.toString(), cexIndex));
+      Path file = template.getPath(cexIndex);
 
       try {
         Files.writeFile(file, content);
@@ -373,12 +372,12 @@ public class CEXExporter {
   }
 
   private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
-    Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
-    Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
+    Set<Pair<ARGState, ARGState>> result = Sets.newHashSetWithExpectedSize(pPath.size());
+    Iterator<ARGState> it = pPath.asStatesList().iterator();
     assert it.hasNext();
-    ARGState lastElement = it.next().getFirst();
+    ARGState lastElement = it.next();
     while (it.hasNext()) {
-      ARGState currentElement = it.next().getFirst();
+      ARGState currentElement = it.next();
       result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }

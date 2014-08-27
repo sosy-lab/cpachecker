@@ -95,7 +95,7 @@ final class SMGJoinMatchObjects {
       if (hv1.size() > 0 && hv2.size() > 0) {
         Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
         Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
-        if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))){
+        if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))) {
           return true;
         }
       }
@@ -121,7 +121,7 @@ final class SMGJoinMatchObjects {
 
   public SMGJoinMatchObjects(SMGJoinStatus pStatus, SMG pSMG1, SMG pSMG2,
                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                             SMGObject pObj1, SMGObject pObj2){
+                             SMGObject pObj1, SMGObject pObj2) {
     if ((! pSMG1.getObjects().contains(pObj1)) || (! pSMG2.getObjects().contains(pObj2))) {
       throw new IllegalArgumentException();
     }
@@ -146,7 +146,7 @@ final class SMGJoinMatchObjects {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)){
+    if (SMGJoinMatchObjects.checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
       return;
     }
 

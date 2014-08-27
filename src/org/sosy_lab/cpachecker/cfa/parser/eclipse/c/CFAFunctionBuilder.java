@@ -231,7 +231,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
       for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
-        if (!cfaNodes.contains(edge.getPredecessor())){
+        if (!cfaNodes.contains(edge.getPredecessor())) {
           CFACreationUtils.removeEdgeFromNodes(edge);
         }
       }
@@ -667,14 +667,14 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
 
     CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
-    if(localLabel != null) {
+    if (localLabel != null) {
       labelName = localLabel.getName();
     }
 
     CLabelNode labelNode = new CLabelNode(cfa.getFunctionName(), labelName);
     locStack.push(labelNode);
 
-    if(localLabel == null) {
+    if (localLabel == null) {
       labelMap.put(labelName, labelNode);
     } else {
       scope.addLabelCFANode(labelNode);
@@ -759,8 +759,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
-    if (returnstmt.getReturnValue() != null) {
-      returnstmt.getReturnValue().accept(checkBinding);
+    if (returnstmt.getReturnValue().isPresent()) {
+      returnstmt.getReturnValue().get().accept(checkBinding);
     }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc, prevNode, functionExitNode);
@@ -1679,9 +1679,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     CStatement stmt = null;
     if (tempVar != null) {
       stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
-    } else if (exp instanceof CStatement){
+    } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
-    } else if (!(exp instanceof CRightHandSide)){
+    } else if (!(exp instanceof CRightHandSide)) {
       throw new CFAGenerationRuntimeException("invalid expression type");
     } else {
       stmt = createStatement(lastExpLocation, null, (CRightHandSide)exp);

@@ -78,7 +78,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
       stop = new StopJoinOperator(domain);
     }
     if (mergeType.equals("SEP")) {
-      merge = new MergeSepOperator();
+      merge = MergeSepOperator.getInstance();
     } else {
       merge = new MergeJoinOperator(domain);
     }

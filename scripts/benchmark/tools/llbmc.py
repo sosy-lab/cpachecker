@@ -23,7 +23,7 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'LLBMC'
 
 
-    def getCmdline(self, executable, options, sourcefiles, propertyfile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
         assert len(sourcefiles) == 1, "only one sourcefile supported"
         sourcefile = sourcefiles[0]
         # compile sourcefile with clang
@@ -52,13 +52,13 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        status = result.STATUS_UNKNOWN
 
         for line in output.splitlines():
             if 'Error detected.' in line:
-                status = result.STR_FALSE_REACH
+                status = result.STATUS_FALSE_REACH
             elif 'No error detected.' in line:
-                status = result.STR_TRUE
+                status = result.STATUS_TRUE_PROP
 
         # delete tmp-files
         try:

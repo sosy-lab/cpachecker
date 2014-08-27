@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.chc;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,7 +42,7 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState successor, Precision precision,
+  public PrecisionAdjustmentResult prec(AbstractState successor, Precision precision,
       UnmodifiableReachedSet states) throws CPAException {
 
     CHCState candidateState = (CHCState)successor;
@@ -52,9 +51,9 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
     if (ancestor != null) {
       AbstractState newState = generalize(candidateState, ancestor, precision);
-      return Triple.of(newState, precision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE);
     } else {
-      return Triple.of(successor, precision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE);
     }
 
   }

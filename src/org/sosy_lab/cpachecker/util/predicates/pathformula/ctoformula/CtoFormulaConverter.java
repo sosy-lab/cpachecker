@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,7 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -134,6 +135,7 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   protected static final String RETURN_VARIABLE_NAME = "__retval__";
+  protected static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -157,15 +159,20 @@ public class CtoFormulaConverter {
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  public static final int          VARIABLE_UNSET          = -1;
-  static final int                 VARIABLE_UNINITIALIZED  = 2;
+  protected final boolean backwards;
+
+  public static final int          VARIABLE_UNSET          = SSAMap.DEFAULT_DEFAULT_IDX;
+  static final int                 VARIABLE_INSTANTIATED   = 1;
+  static final int                 VARIABLE_UNINITIALIZED  = VARIABLE_INSTANTIATED + SSAMap.DEFAULT_INCREMENT;
 
   private final FunctionFormulaType<?> stringUfDecl;
 
+  private final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>()
+          ;
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
-      CtoFormulaTypeHandler pTypeHandler) {
+      CtoFormulaTypeHandler pTypeHandler, boolean pBackwards) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
@@ -179,6 +186,8 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
     this.shutdownNotifier = pShutdownNotifier;
+
+    this.backwards = pBackwards;
 
     stringUfDecl = ffmgr.createFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
@@ -254,7 +263,15 @@ public class CtoFormulaConverter {
    * and updates the SSA map.
    */
   protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, true);
+    return getIndex(name, type, ssa, true, true);
+  }
+
+  /**
+   * Produces a fresh new SSA index for an assignment,
+   * but does _not_ update the SSA map.
+   */
+  protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+    return getIndex(name, type, ssa, true, false);
   }
 
   /**
@@ -264,37 +281,37 @@ public class CtoFormulaConverter {
    * @return the index of the variable
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, false);
+    return getIndex(name, type, ssa, false, true);
   }
 
-  private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh) {
+  private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh, boolean set) {
     int idx = ssa.getIndex(name);
+    checkSsaSavedType(name, type, ssa.getType(name));
     if (makeFresh) {
       if (idx > 0) {
-        idx = idx+1;
+        idx = ssa.getFreshIndex(name);
       } else {
         idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
         // not from 1, because this is an assignment,
         // so the SSA index must be fresh.
       }
-      checkSsaSavedType(name, type, ssa);
-      ssa.setIndex(name, type, idx);
+      if (set) {
+        ssa.setIndex(name, type, idx);
+      }
     } else {
       if (idx <= 0) {
         logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-        idx = 1;
-        checkSsaSavedType(name, type, ssa);
-
-        ssa.setIndex(name, type, idx);
-      } else {
-        checkSsaSavedType(name, type, ssa);
+        idx = VARIABLE_INSTANTIATED;
+        if (set) {
+          ssa.setIndex(name, type, idx);
+        }
       }
     }
 
     return idx;
   }
 
-  protected void checkSsaSavedType(String name, CType type, SSAMapBuilder ssa) {
+  protected void checkSsaSavedType(String name, CType type, CType t) {
 
     // Check if types match
 
@@ -305,7 +322,6 @@ public class CtoFormulaConverter {
 //         (t = ssa.getType(name)) == null
 //      || CTypeUtils.equals(t, type)
 //      : "Saving variables with mutliple types is not possible!";
-    CType t = ssa.getType(name);
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
       if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
@@ -334,7 +350,7 @@ public class CtoFormulaConverter {
    * This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    return makeVariable(name, type, ssa, false);
+    return makeVariable(name, type, ssa, false, false);
   }
 
   /**
@@ -343,9 +359,26 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  private Formula makeVariable(String name, CType type, SSAMapBuilder ssa, boolean makeFreshIndex) {
-    int idx = getIndex(name, type, ssa, makeFreshIndex);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
+  private Formula makeVariable(String name, CType type, SSAMapBuilder ssa,
+      boolean makeFreshIndex, boolean postponeMakeFresh) {
+
+    // TODO: Write a unit test for this method
+
+    int useIndex;
+
+    if (makeFreshIndex && !postponeMakeFresh) {
+      useIndex = getIndex(name, type, ssa, makeFreshIndex, true);
+    } else {
+      useIndex = getIndex(name, type, ssa, false, false);
+    }
+
+    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+
+    if (postponeMakeFresh && makeFreshIndex) {
+      getIndex(name, type, ssa, makeFreshIndex, true);
+    }
+
+    return result;
   }
 
   /**
@@ -353,8 +386,8 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
-    return makeVariable(name, type, ssa, true);
+  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa, boolean postponeMakeFresh) {
+    return makeVariable(name, type, ssa, true, postponeMakeFresh);
   }
 
   Formula makeStringLiteral(String literal) {
@@ -495,7 +528,7 @@ public class CtoFormulaConverter {
           + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret) == toType;
+    assert fmgr.getFormulaType(ret) == toType : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
   }
 
@@ -505,11 +538,6 @@ public class CtoFormulaConverter {
       throws CPATransferException, InterruptedException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
-    if (edge.getEdgeType() == CFAEdgeType.BlankEdge) {
-
-      // in this case there's absolutely nothing to do, so take a shortcut
-      return oldFormula;
-    }
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -518,7 +546,21 @@ public class CtoFormulaConverter {
     Constraints constraints = new Constraints(bfmgr);
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(oldFormula.getPointerTargetSet());
 
+    // param-constraints must be added _before_ handling the edge (some lines below),
+    // because this edge could write a global value.
+    if (edge.getPredecessor() instanceof CFunctionEntryNode) {
+      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+      addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
+    }
+
+    // handle the edge
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
+
+    // result-constraints must be added _after_ handling the edge (some lines above),
+    // because this edge could write a global value.
+    if (edge.getSuccessor() instanceof FunctionExitNode) {
+      addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, true);
+    }
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
@@ -536,6 +578,71 @@ public class CtoFormulaConverter {
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newPts, newLength);
+  }
+
+
+  /** this function is only executed, if the option useParameterVariables is used,
+   * otherwise it does nothing.
+   * create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
+   * The tmp-variables are also used before the function-entry as "argument-constraints". */
+  private void addParameterConstraints(final CFAEdge edge, final String function,
+                                       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+                                       final Constraints constraints, final ErrorConditions errorConditions,
+                                       final CFunctionEntryNode entryNode)
+          throws UnrecognizedCCodeException, InterruptedException {
+
+    if (options.useParameterVariables()) {
+      for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
+
+        // create expressions for each formal param: "f::x" --> "f::x__param__"
+        CParameterDeclaration tmpParameterExpression = new CParameterDeclaration(
+                formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+        tmpParameterExpression.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
+
+        CIdExpression lhs = new CIdExpression(formalParam.getFileLocation(), formalParam);
+        CIdExpression rhs = new CIdExpression(formalParam.getFileLocation(), tmpParameterExpression);
+
+        // add assignment to constraints: "f::x" = "f::x__param__"
+        BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+        constraints.addConstraint(eq);
+      }
+    }
+  }
+
+  /** this function is only executed, if the option useParameterVariablesForGlobals is used,
+   * otherwise it does nothing.
+   * create and add constraints about a global variable: tmp_1_f==global1, tmp_2_f==global2, ...
+   * @param tmpAsLHS if tmpAsLHS:  tmp_result1_f := global1
+   *                 else          global1       := tmp_result1_f
+   */
+  private void addGlobalAssignmentConstraints(final CFAEdge edge, final String function,
+                                              final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+                                              final Constraints constraints, final ErrorConditions errorConditions,
+                                              final String tmpNamePart, final boolean tmpAsLHS)
+          throws UnrecognizedCCodeException, InterruptedException {
+
+    if (options.useParameterVariablesForGlobals()) {
+
+      // make assignments: tmp_param1_f==global1, tmp_param2_f==global2, ...
+      // function-name is important, because otherwise the name is not unique over several function-calls.
+      for (final CVariableDeclaration decl : globalDeclarations) {
+        final CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                decl.getFileLocation(), decl.getType(), decl.getName() + tmpNamePart + function);
+        tmpParameter.setQualifiedName(decl.getQualifiedName() + tmpNamePart + function);
+
+        final CIdExpression tmp = new CIdExpression(decl.getFileLocation(), tmpParameter);
+        final CIdExpression glob = new CIdExpression(decl.getFileLocation(), decl);
+
+        final BooleanFormula eq;
+        if (tmpAsLHS) {
+          eq = makeAssignment(tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
+        } else {
+          eq = makeAssignment(glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
+        }
+        constraints.addConstraint(eq);
+      }
+
+    }
   }
 
   /**
@@ -575,7 +682,6 @@ public class CtoFormulaConverter {
     }
 
     case BlankEdge: {
-      assert false : "Handled above";
       return bfmgr.makeBoolean(true);
     }
 
@@ -662,6 +768,10 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
+    if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
+      globalDeclarations.add(decl);
+    }
+
     // if the var is unsigned, add the constraint that it should
     // be > 0
     //    if (((CSimpleType)spec).isUnsigned()) {
@@ -677,7 +787,9 @@ public class CtoFormulaConverter {
     // In case of an existing initializer, we increment the index twice
     // (here and below) so that the index 2 only occurs for uninitialized variables.
     // DO NOT OMIT THIS CALL, even without an initializer!
-    makeFreshIndex(varName, decl.getType(), ssa);
+    if (!backwards) {
+      makeFreshIndex(varName, decl.getType(), ssa);
+    }
 
     // if there is an initializer associated to this variable,
     // take it into account
@@ -699,6 +811,10 @@ public class CtoFormulaConverter {
       result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
     }
 
+    if (backwards) {
+      makeFreshIndex(varName, decl.getType(), ssa);
+    }
+
     return result;
   }
 
@@ -707,6 +823,8 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
+
+    addGlobalAssignmentConstraints(ce, calledFunction, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, false);
 
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
@@ -797,20 +915,32 @@ public class CtoFormulaConverter {
     for (CParameterDeclaration formalParam : formalParams) {
       CExpression paramExpression = actualParams.get(i++);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
+      final CIdExpression paramLHS;
+      if (options.useParameterVariables()) {
+        // make assignments: tmp_param1==arg1, tmp_param2==arg2, ...
+        CParameterDeclaration tmpParameter = new CParameterDeclaration(
+                formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+        tmpParameter.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
+        paramLHS = new CIdExpression(paramExpression.getFileLocation(), tmpParameter);
+      } else {
+        paramLHS = lhs;
+      }
 
-      BooleanFormula eq = makeAssignment(lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
+      BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
       result = bfmgr.and(result, eq);
     }
+
+    addGlobalAssignmentConstraints(edge, fn.getFunctionName(), ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, true);
 
     return result;
   }
 
-  protected BooleanFormula makeReturn(final CExpression rightExp,
+  protected BooleanFormula makeReturn(final Optional<CExpression> rightExp,
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
-    if (rightExp == null) {
+    if (!rightExp.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
     } else {
@@ -821,9 +951,9 @@ public class CtoFormulaConverter {
       // that will hold the return value
       final CFunctionDeclaration functionDeclaration =
           ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
-      final CIdExpression lhs = createReturnVariable(rightExp.getFileLocation(), functionDeclaration);
+      final CIdExpression lhs = createReturnVariable(rightExp.get().getFileLocation(), functionDeclaration);
 
-      return makeAssignment(lhs, rightExp, edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(lhs, rightExp.get(), edge, function, ssa, pts, constraints, errorConditions);
     }
   }
 
@@ -847,19 +977,41 @@ public class CtoFormulaConverter {
 
   /**
    * Creates formula for the given assignment.
-   * @param assignment the assignment to process
+   * @param lhs the left-hand-side of the assignment
+   * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
    * @throws UnrecognizedCCodeException
    * @throws InterruptedException
    */
-  protected BooleanFormula makeAssignment(
+  private BooleanFormula makeAssignment(
       final CLeftHandSide lhs, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
+    // lhs is used twice, also as lhsForChecking!
+    return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+  }
 
-    if (!isRelevantLeftHandSide(lhs)) {
+  /**
+   * Creates formula for the given assignment.
+   * @param lhs the left-hand-side of the assignment
+   * @param lhsForChecking a left-hand-side of the assignment (for most cases: lhs == lhsForChecking),
+   *                       that is used to check, if the assignment is important.
+   *                       If the assignment is not important, we return TRUE.
+   * @param rhs the right-hand-side of the assignment
+   * @return the assignment formula
+   * @throws UnrecognizedCCodeException
+   * @throws InterruptedException
+   */
+  protected BooleanFormula makeAssignment(
+          final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
+          final CFAEdge edge, final String function,
+          final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
+          final Constraints constraints, final ErrorConditions errorConditions)
+          throws UnrecognizedCCodeException, InterruptedException {
+
+    if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return bfmgr.makeBoolean(true);
     }
@@ -876,8 +1028,15 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
     }
 
-    Formula r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-    Formula l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    Formula l = null, r = null;
+    if (backwards) {
+      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+    } else {
+      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+    }
+
     r = makeCast(
           rhs.getExpressionType(),
           lhsType,
@@ -898,7 +1057,7 @@ public class CtoFormulaConverter {
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
-    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
+    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions, backwards));
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
@@ -1053,8 +1212,8 @@ public class CtoFormulaConverter {
 
     int lsb = offset;
     int msb = offset + fieldSize - 1;
-    assert(lsb >= 0);
-    assert(msb >= lsb);
+    assert (lsb >= 0);
+    assert (msb >= lsb);
     Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
     return msb_Lsb;
   }
@@ -1080,7 +1239,9 @@ public class CtoFormulaConverter {
   /**
    * We call this method for unsupported Expressions and just make a new Variable.
    */
-  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
+  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
+      boolean makeFresh, boolean postponeMakeFresh) {
+
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
@@ -1088,6 +1249,6 @@ public class CtoFormulaConverter {
         exp.getFileLocation(), exp.toASTString());
 
     String var = scoped(exprToVarName(exp), function);
-    return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);
+    return makeVariable(var, exp.getExpressionType(), ssa, makeFresh, postponeMakeFresh);
   }
 }

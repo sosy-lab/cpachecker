@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Map;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -49,17 +48,19 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
+  public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
-    if (trans.breakAnalysis) { return Triple.of(pElement, pPrecision, Action.BREAK); }
+    if (trans.breakAnalysis) {
+      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
+    }
 
-    Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
 
-    result = Triple.of(trans.attachAdditionalInfoToCallNode(result.getFirst()), result.getSecond(), result.getThird());
+    result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
     if (newPrecision != null) {
-      return Triple.of(result.getFirst(), newPrecision, result.getThird());
+      return result.withPrecision(newPrecision);
     } else {
       return result;
     }

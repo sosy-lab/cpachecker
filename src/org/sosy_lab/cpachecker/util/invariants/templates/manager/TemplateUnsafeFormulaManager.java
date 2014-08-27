@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaList;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
@@ -35,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-
 
 public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
@@ -266,5 +267,11 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
       return new TemplateTerm(newUif);
     }
     throw new IllegalArgumentException("Can't set the name from the given formula!");
+  }
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1
+  substitute(T1 f, List<T2> changeFrom, List<T2> changeTo) {
+    throw new UnsupportedOperationException();
   }
 }
