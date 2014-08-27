@@ -2348,70 +2348,29 @@ public class ASTConverter {
       return getModifiers(imb.getModifiers());
     }
 
-
-
-
-
     public static ModifierBean getModifiers(int modifiers) {
 
+      boolean isFinal = Modifier.isFinal(modifiers);
+      boolean isStatic = Modifier.isStatic(modifiers);
+      boolean isVolatile = Modifier.isVolatile(modifiers);
+      boolean isTransient = Modifier.isTransient(modifiers);
+      boolean isNative = Modifier.isNative(modifiers);
+      boolean isAbstract = Modifier.isAbstract(modifiers);
+      boolean isStrictFp = Modifier.isStrictfp(modifiers);
+      boolean isSynchronized = Modifier.isSynchronized(modifiers);
+
       VisibilityModifier visibility = null;
-      boolean isFinal = false;
-      boolean isStatic = false;
-      boolean isVolatile = false;
-      boolean isTransient = false;
-      boolean isNative = false;
-      boolean isAbstract = false;
-      boolean isStrictFp = false;
-      boolean isSynchronized = false;
-
-
-
-      // Check all possible bit constants
-      for (int bitMask = 1; bitMask < 2049; bitMask = bitMask << 1) {
-
-        // Check if n-th bit of modifiers is 1
-        switch (modifiers & bitMask) {
-
-        case Modifier.FINAL:
-          isFinal = true;
-          break;
-        case Modifier.STATIC:
-          isStatic = true;
-          break;
-        case Modifier.VOLATILE:
-          isVolatile = true;
-          break;
-        case Modifier.TRANSIENT:
-          isTransient = true;
-          break;
-        case Modifier.PUBLIC:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PUBLIC;
-          break;
-        case Modifier.PROTECTED:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PROTECTED;
-          break;
-        case Modifier.PRIVATE:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PRIVATE;
-          break;
-        case Modifier.NATIVE:
-          isNative = true;
-          break;
-        case Modifier.ABSTRACT:
-          isAbstract = true;
-          break;
-        case Modifier.STRICTFP:
-          isStrictFp = true;
-          break;
-        case Modifier.SYNCHRONIZED:
-          isSynchronized = true;
-          break;
-        }
+      if (Modifier.isPublic(modifiers)) {
+        visibility = VisibilityModifier.PUBLIC;
       }
-
-      // If no Visibility Modifier is selected, it is None
+      if (Modifier.isProtected(modifiers)) {
+        assert visibility == null : "Can only declare one Visibility Modifier";
+        visibility = VisibilityModifier.PROTECTED;
+      }
+      if (Modifier.isPrivate(modifiers)) {
+        assert visibility == null : "Can only declare one Visibility Modifier";
+        visibility = VisibilityModifier.PRIVATE;
+      }
       if (visibility == null) {
         visibility = VisibilityModifier.NONE;
       }
