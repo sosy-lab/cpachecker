@@ -265,10 +265,10 @@ public class SolverTest {
     }
   }
 
-  @Test
-  public void dualStackTestSMTINTERPOL() throws Exception {
-    dualStackTest("SMTINTERPOL");
-  }
+//  @Test
+//  public void dualStackTestSMTINTERPOL() throws Exception {
+//    dualStackTest("SMTINTERPOL");
+//  }
 
   @Test
   public void dualStackTestPRINCESS() throws Exception {
@@ -309,10 +309,10 @@ public class SolverTest {
     if (isLibFociAvailable) dualStackTest2("Z3");
   }
 
-  @Test
-  public void dualStackTest2SMTINTERPOL() throws Exception {
-    dualStackTest2("SMTINTERPOL");
-  }
+//  @Test
+//  public void dualStackTest2SMTINTERPOL() throws Exception {
+//    dualStackTest2("SMTINTERPOL");
+//  }
 
   @Test
   public void dualStackTest2PRINCESS() throws Exception {
