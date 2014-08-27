@@ -405,6 +405,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
 
       return null;

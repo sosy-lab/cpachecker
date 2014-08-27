@@ -895,10 +895,10 @@ public class ASTConverter {
       return convert((TypeLiteral)e);
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
+    default:
+      logger.log(Level.WARNING, "Expression of typ " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
+      return null;
     }
-
-    logger.log(Level.WARNING, "Expression of typ " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
-    return null;
   }
 
   private JAstNode convert(SuperMethodInvocation e) {
@@ -2003,8 +2003,10 @@ public class ASTConverter {
 
     case DOUBLE:
       return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr, e));
+
+    default:
+      return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
     }
-    return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
   }
 
 

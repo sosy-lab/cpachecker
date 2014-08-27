@@ -93,6 +93,9 @@ public enum ProgramCounterTransferRelation implements TransferRelation {
           state = ProgramCounterState.getStateForValue(BigInteger.valueOf(edge.getProgramCounterValue()));
         }
         break;
+      default:
+        // Program counter variable does not occur in other edges.
+        break;
     }
     if (state == null || state.isBottom()) {
       return Collections.emptySet();

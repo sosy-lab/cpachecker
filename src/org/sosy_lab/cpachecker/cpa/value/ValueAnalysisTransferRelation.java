@@ -1072,8 +1072,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       boolean result = value1.equals(value2);
 
       switch (operator) {
-      case EQUALS:   break;
-      case NOT_EQUALS: result = !result;
+      case EQUALS:
+        break;
+      case NOT_EQUALS:
+        result = !result;
+        break;
+      default:
+        throw new AssertionError("Unexected enum comparison with " + operator);
       }
 
       return  result ? new NumericValue(1L) : new NumericValue(0L);

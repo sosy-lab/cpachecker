@@ -667,7 +667,6 @@ public class RTTTransferRelation implements TransferRelation {
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
-    @SuppressWarnings("unused")
     protected final CFAEdge edge;
     protected final RTTState state;
     protected final String functionName;
@@ -736,6 +735,9 @@ public class RTTTransferRelation implements TransferRelation {
         break;
       case NOT_EQUALS:
         result = !result;
+        break;
+      default:
+        throw new UnrecognizedCCodeException("unexpected enum comparison", edge);
       }
 
       return Boolean.toString(result);

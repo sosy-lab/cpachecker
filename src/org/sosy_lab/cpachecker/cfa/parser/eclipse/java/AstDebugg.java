@@ -54,7 +54,7 @@ class AstDebugg extends ASTVisitor {
 
   public static String getTypeName(int type) {
 
-    String name = "";
+    String name;
     switch (type) {
 
 
@@ -142,6 +142,7 @@ class AstDebugg extends ASTVisitor {
         case 60: name="VARIABLE_DECLARATION_STATEMENT"; break;
         case 61: name="WHILE_STATEMENT"; break;
         case 76: name="WILDCARD_TYPE"; break;
+        default: name=""; break;
     }
 
     return name;

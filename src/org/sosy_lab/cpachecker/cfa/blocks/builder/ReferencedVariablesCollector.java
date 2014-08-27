@@ -280,6 +280,7 @@ public class ReferencedVariablesCollector {
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
       return null;
     }
