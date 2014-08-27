@@ -28,6 +28,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -52,9 +53,9 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, PathCounterTemplate pLogfileTemplate) throws InvalidConfigurationException {
 
-    PrincessEnvironment env = new PrincessEnvironment(config, logger);
+    PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
         PrincessEnvironment.Type.BOOL, PrincessEnvironment.Type.INT, PrincessEnvironment.Type.INT);

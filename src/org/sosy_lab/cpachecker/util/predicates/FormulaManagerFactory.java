@@ -160,7 +160,7 @@ public class FormulaManagerFactory {
         }
 
       case PRINCESS:
-        return PrincessFormulaManager.create(config, logger, shutdownNotifier);
+        return PrincessFormulaManager.create(config, logger, shutdownNotifier, logfile);
 
       default:
         throw new AssertionError("no solver selected");

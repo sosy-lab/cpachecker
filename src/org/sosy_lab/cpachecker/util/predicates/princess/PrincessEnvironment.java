@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 
@@ -51,6 +52,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
@@ -115,9 +118,7 @@ class PrincessEnvironment {
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
-  @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path smtLogfile = Paths.get("princess.%03d.smt2");
+  private final @Nullable PathCounterTemplate basicLogfile;
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
@@ -138,9 +139,11 @@ class PrincessEnvironment {
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public PrincessEnvironment(Configuration config, final LogManager pLogger) throws InvalidConfigurationException {
+  public PrincessEnvironment(Configuration config, final LogManager pLogger,
+      final PathCounterTemplate pBasicLogfile) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
+    basicLogfile = pBasicLogfile;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
 
@@ -170,8 +173,8 @@ class PrincessEnvironment {
 
   private SimpleAPI getNewApi(boolean useForInterpolation) {
     final SimpleAPI newApi;
-    if (logAllQueries && smtLogfile != null) {
-      newApi = SimpleAPI.spawnWithLogNoSanitise(getFilename(smtLogfile));
+    if (logAllQueries && basicLogfile != null) {
+      newApi = SimpleAPI.spawnWithLogNoSanitise(basicLogfile.getFreshPath().getAbsolutePath());
     } else {
       newApi = SimpleAPI.spawnNoSanitise();
     }
@@ -186,13 +189,6 @@ class PrincessEnvironment {
   void unregisterStack(SymbolTrackingPrincessStack stack) {
     assert registeredStacks.contains(stack) : "cannot remove stack, it is not registered";
     registeredStacks.remove(stack);
-  }
-
-  /**  This function creates a filename with following scheme:
-       first filename is unchanged, then a number is appended */
-  private String getFilename(final Path oldFilename) {
-    String filename = oldFilename.toAbsolutePath().getPath();
-    return String.format(filename, logfileCounter++);
   }
 
   public List<IExpression> parseStringToTerms(String s) {
