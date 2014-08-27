@@ -28,11 +28,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,6 +50,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -66,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -97,6 +101,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -126,7 +131,7 @@ import com.google.common.collect.TreeMultimap;
  *
  */
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm {
+public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   public static String originalMainFunction = null;
 
@@ -146,7 +151,29 @@ public class TigerAlgorithm implements Algorithm {
   private boolean reuseARG = true;
 
   @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
-  private String testsuiteFile = "output/teststuite.txt";
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path testsuiteFile = Paths.get("testsuite.txt");
+
+  enum TimeoutStrategy {
+    SKIP_AFTER_TIMEOUT,
+    RETRY_AFTER_TIMEOUT
+  }
+
+  @Option(name = "timeoutStrategy", description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
+  private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
+
+  @Option(name = "limitsPerGoal.time.cpu.increment", description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
+  private int timeoutIncrement = 0;
+
+  @Option(name = "limitsPerGoal.time.cpu", description = "Time limit per test goal in seconds (-1 for infinity).")
+  private long cpuTimelimitPerGoal = -1;
+
+  @Option(name = "inverseOrder", description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
+  private boolean inverseOrder = true;
+
+  @Option(name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
+  private boolean useOrder = true;
+
 
   private LogManager logger;
   private StartupConfig startupConfig;
@@ -162,7 +189,9 @@ public class TigerAlgorithm implements Algorithm {
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
-  // TODO replace by a proper class
+
+  private int statistics_numberOfTestGoals;
+  private int statistics_numberOfProcessedTestGoals = 0;
 
 
   private TestSuite testsuite;
@@ -258,14 +287,6 @@ public class TigerAlgorithm implements Algorithm {
       wasSound = false;
     }
 
-    // write generated test suite and mapping to file system
-    try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile), "utf-8"))) {
-      writer.write(testsuite.toString());
-      writer.close();
-    } catch (IOException e){
-      throw new RuntimeException(e);
-    }
-
     return wasSound;
   }
 
@@ -280,13 +301,13 @@ public class TigerAlgorithm implements Algorithm {
 
     IncrementalCoverageSpecificationTranslator lTranslator = new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    int lNumberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", lNumberOfTestGoals);
+    statistics_numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
+    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
-    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[lNumberOfTestGoals];
+    ElementaryCoveragePattern[] lGoalPatterns = new ElementaryCoveragePattern[statistics_numberOfTestGoals];
 
-    for (int lGoalIndex = 0; lGoalIndex < lNumberOfTestGoals; lGoalIndex++) {
+    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
       lGoalPatterns[lGoalIndex] = lGoalIterator.next();
     }
 
@@ -312,6 +333,8 @@ public class TigerAlgorithm implements Algorithm {
     // revert to try a different order -> did not help
     // revertInSitu(pGoalsToCover);
     for (Pair<ElementaryCoveragePattern, Region> testGoalToCover : pGoalsToCover) {
+      statistics_numberOfProcessedTestGoals++;
+
       goalIndex++;
       ElementaryCoveragePattern lTestGoalPattern = testGoalToCover.getFirst();
       // the condition identifying configurations that we want to cover (gets reduced in due process until only an infeasible/non-coverable condition remains)
@@ -781,6 +804,44 @@ public class TigerAlgorithm implements Algorithm {
     mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
 
     return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    // TODO Print information about feasible, infeasible, timed-out, and unprocessed test goals.
+
+    if (testsuiteFile != null) {
+      // write generated test suite and mapping to file system
+      try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.toFile()), "utf-8"))) {
+        writer.write(testsuite.toString());
+        writer.close();
+      } catch (IOException e){
+        throw new RuntimeException(e);
+      }
+    }
+
+    int numberOfTimedoutTestGoals = statistics_numberOfProcessedTestGoals - (testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals());
+
+    pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
+    pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
+    pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
+    pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
+    //pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+    pOut.println("Number of timedout test goals:                     " + numberOfTimedoutTestGoals);
+
+    if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+      pOut.println("Timeout occured during processing of a test goal!");
+    }
+  }
+
+  @Override
+  public String getName() {
+    return "TigerAlgorithm";
   }
 
 }

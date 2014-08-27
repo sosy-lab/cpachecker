@@ -39,11 +39,38 @@ public class TestSuite {
   private Map<TestCase, List<Goal>> mapping;
   private Map<Goal, Region> infeasibleGoals;
   private NamedRegionManager bddCpaNamedRegionManager;
+  private int numberOfFeasibleGoals = 0;
+  private Map<Integer, Goal> timedOutGoals;
 
   public TestSuite(NamedRegionManager pBddCpaNamedRegionManager) {
     mapping = new HashMap<>();
     infeasibleGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+  }
+
+  public int getNumberOfFeasibleTestGoals() {
+    return numberOfFeasibleGoals;
+  }
+
+  public int getNumberOfInfeasibleTestGoals() {
+    return infeasibleGoals.size();
+  }
+
+  public int getNumberOfTimedoutTestGoals() {
+    return timedOutGoals.size();
+  }
+
+
+  public boolean hasTimedoutTestGoals() {
+    return !timedOutGoals.isEmpty();
+  }
+
+  public void addTimedOutGoal(int index, Goal goal) {
+    timedOutGoals.put(index, goal);
+  }
+
+  public Map<Integer, Goal> getTimedOutGoals() {
+    return timedOutGoals;
   }
 
   public boolean isInfeasible(Goal goal) {
@@ -70,6 +97,8 @@ public class TestSuite {
   }
 
   public boolean addTestCase(TestCase testcase, Goal goal) {
+    numberOfFeasibleGoals++;
+
     List<Goal> goals = mapping.get(testcase);
 
     boolean testcaseExisted = true;
@@ -87,6 +116,10 @@ public class TestSuite {
 
   public Set<TestCase> getTestCases() {
     return mapping.keySet();
+  }
+
+  public int getNumberOfTestCases() {
+    return getTestCases().size();
   }
 
   @Override
@@ -126,6 +159,18 @@ public class TestSuite {
     }
 
     str.append("\n");
+
+    if (!timedOutGoals.isEmpty()) {
+      str.append("timed out:\n");
+
+      for (Goal goal : timedOutGoals.values()) {
+        //str.append(goal.getIndex());
+        str.append(goal.toSkeleton());
+        str.append("\n");
+      }
+
+      str.append("\n");
+    }
 
     return str.toString();
   }
