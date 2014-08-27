@@ -34,7 +34,6 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -86,6 +85,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -162,149 +163,7 @@ public class TigerAlgorithm implements Algorithm {
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
   // TODO replace by a proper class
-  class TestCase {
 
-    private List<BigInteger> inputs;
-    private List<CFAEdge> path;
-
-    private Region pc;
-
-    public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath) {
-      inputs = pInputs;
-      path = pPath;
-    }
-
-    public TestCase(List<BigInteger> pInputs, Region pPresenceCondition,
-        List<CFAEdge> pPath) {
-      inputs = pInputs;
-      path = pPath;
-      pc = pPresenceCondition;
-    }
-
-    public List<CFAEdge> getPath() {
-      return path;
-    }
-
-    public List<BigInteger> getInputs() {
-      return inputs;
-    }
-
-    public String toCode() {
-      String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
-
-      int index = 0;
-      for (BigInteger input : inputs) {
-        str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
-        index++;
-      }
-
-      str += "  default:\n    return 0;\n  }\n}\n";
-
-      return str;
-    }
-
-    @Override
-    public String toString() {
-      return inputs.toString() + " with configurations " + bddCpaNamedRegionManager.dumpRegion(pc);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof TestCase) {
-        TestCase other = (TestCase)o;
-        return (inputs.equals(other.inputs) && path.equals(other.path));
-      }
-
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode();
-    }
-  }
-
-  class TestSuite {
-    private Map<TestCase, List<Goal>> mapping;
-    private Map<Goal, Region> infeasibleGoals;
-
-    public TestSuite() {
-      mapping = new HashMap<>();
-      infeasibleGoals = new HashMap<>();
-    }
-
-    /** States that the goal is infeasible when enforcing the given constraints
-     */
-    public void addInfeasibleGoal(Goal goal, Region pForConstraints) {
-      if (infeasibleGoals.containsKey(goal)) {
-        Region constraints = infeasibleGoals.get(goal);
-        infeasibleGoals.put(goal, bddCpaNamedRegionManager.makeOr(constraints, pForConstraints));
-      } else {
-        infeasibleGoals.put(goal, pForConstraints);
-      }
-    }
-
-    public boolean addTestCase(TestCase testcase, Goal goal) {
-      List<Goal> goals = mapping.get(testcase);
-
-      boolean testcaseExisted = true;
-
-      if (goals == null) {
-        goals = new LinkedList<>();
-        mapping.put(testcase, goals);
-        testcaseExisted = false;
-      }
-
-      goals.add(goal);
-
-      return testcaseExisted;
-    }
-
-    public Set<TestCase> getTestCases() {
-      return mapping.keySet();
-    }
-
-    @Override
-    public String toString() {
-      StringBuffer str = new StringBuffer();
-
-      for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-        str.append("Testcase ");
-        str.append(entry.getKey().toString());
-        str.append(" covers\n");
-
-        for (Goal goal : entry.getValue()) {
-          str.append("Goal ");
-          str.append(goal.getIndex());
-          str.append(" ");
-          str.append(goal.toSkeleton());
-          str.append(" with targetPC ");
-          str.append(bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()));
-          str.append("\n");
-        }
-
-        str.append("\n");
-      }
-
-      str.append("infeasible:\n");
-
-      for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) {
-        str.append("Goal ");
-        str.append(entry.getKey().getIndex());
-        str.append(" ");
-        str.append(entry.getKey().toSkeleton());
-        str.append(" with targetPC ");
-        str.append(bddCpaNamedRegionManager.dumpRegion(entry.getKey().getPresenceCondition()));
-        str.append("\n\tcannot be covered with PC ");
-        str.append(bddCpaNamedRegionManager.dumpRegion(entry.getValue()));
-        str.append("\n");
-      }
-
-      str.append("\n");
-
-      return str.toString();
-    }
-  }
 
   private TestSuite testsuite;
   ReachedSet reachedSet = null;
@@ -333,7 +192,7 @@ public class TigerAlgorithm implements Algorithm {
       bddCpaNamedRegionManager = ((BDDCPA)cpa).getManager();
     }
 
-    testsuite = new TestSuite();
+    testsuite = new TestSuite(bddCpaNamedRegionManager);
 
 
     assert originalMainFunction != null;
@@ -478,10 +337,10 @@ public class TigerAlgorithm implements Algorithm {
           for (TestCase testcase : testsuite.getTestCases()) {
             ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(currentAutomaton, testcase.getPath());
             if (isCovered.equals(ThreeValuedAnswer.ACCEPT) &&
-                !bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, testcase.pc).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+                !bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, testcase.getRegion()).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
               // test goal is already (at least for some PCs) covered by an existing test case
               // remove those PCs from todo
-              remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testcase.pc));
+              remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testcase.getRegion()));
 
               if (remainingPCforGoalCoverage.isFalse()) {
                 logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
@@ -510,8 +369,8 @@ public class TigerAlgorithm implements Algorithm {
         previousAutomaton = currentAutomaton;
 
         // update PC coverage todo
-        if (testsuite.infeasibleGoals.containsKey(lGoal) &&
-            bddCpaNamedRegionManager.entails(testsuite.infeasibleGoals.get(lGoal), remainingPCforGoalCoverage)) {
+        if (testsuite.isInfeasible(lGoal) &&
+            bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(lGoal), remainingPCforGoalCoverage)) {
           // 1st condition: this goal is infeasible for some constraint
           // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
           logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
@@ -531,9 +390,9 @@ public class TigerAlgorithm implements Algorithm {
 
   private Region getGoalCoverage(Goal pGoal) {
     Region totalCoverage = bddCpaNamedRegionManager.makeFalse();
-    for (Entry<TestCase, List<Goal>> entry : testsuite.mapping.entrySet()) {
+    for (Entry<TestCase, List<Goal>> entry : testsuite.getMapping().entrySet()) {
       if (entry.getValue().contains(pGoal)) {
-        totalCoverage = bddCpaNamedRegionManager.makeOr(totalCoverage, entry.getKey().pc);
+        totalCoverage = bddCpaNamedRegionManager.makeOr(totalCoverage, entry.getKey().getRegion());
       }
     }
     return totalCoverage;
@@ -730,7 +589,7 @@ public class TigerAlgorithm implements Algorithm {
             testsuite.addTestCase(testcase, pGoal);
           } else {
             logger.logf(Level.INFO, "could not determine PC for test");
-            TestCase testcase = new TestCase(inputValues,  cex.getTargetPath().asEdgesList());
+            TestCase testcase = new TestCase(inputValues,  cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
             testsuite.addTestCase(testcase, pGoal);
           }
         }
