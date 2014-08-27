@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 /**
  * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
@@ -1166,6 +1167,12 @@ public class AssignmentToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue) {
+
+      if (pValue instanceof ExtendedRational) {
+        double val = ((ExtendedRational) pValue).toDouble();
+        // TODO should we handle infinity and NaN here?
+        return ExplicitValueLiteral.valueOf(new BigDecimal(val));
+      }
 
       String value = pValue.toString();
 
