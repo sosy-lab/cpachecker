@@ -535,7 +535,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
           @Override
           public boolean adjustConditions() {
-            return true;
+            return false;
           }
 
           @Override
