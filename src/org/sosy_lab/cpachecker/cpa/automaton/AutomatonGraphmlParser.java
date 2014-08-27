@@ -159,7 +159,7 @@ public class AutomatonGraphmlParser {
 
   }
 
-  private static class TokenCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<Integer>> {
+  private static class TokenCollector extends CollectorOnExprLeaf<Comparable<Integer>> {
 
     @Override
     protected Set<Comparable<Integer>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
@@ -172,7 +172,7 @@ public class AutomatonGraphmlParser {
 
   }
 
-  private static class OriginLineCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
+  private static class OriginLineCollector extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
 
     @Override
     protected Set<Comparable<OriginDescriptor>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
@@ -216,12 +216,12 @@ public class AutomatonGraphmlParser {
   }
 
   private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector<>();
+    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector();
     return leafSetsDisjoint(collector, transitions);
   }
 
   private boolean originDescriptorsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector<>();
+    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector();
     return leafSetsDisjoint(collector, transitions);
   }
 
