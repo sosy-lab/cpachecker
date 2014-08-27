@@ -182,7 +182,7 @@
 
     <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
 
-    <target name="create-version-file-exact">
+    <target name="determine-version-revision">
         <!-- Determine full CPAchecker version including SVN revision. -->
         <exec executable="python"
             outputProperty="version.revision"
@@ -191,6 +191,9 @@
             <arg value="scripts/determine-revision.py"/>
             <arg value="${basedir}"/>
         </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
         <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
             <contains string="${version.base}" substring="-svn"/>
         </condition>
@@ -334,4 +337,16 @@
         description="Run FindBugs and generate report with newly found warnings."/>
 
     <target name="findbugs-full" depends="findbugs, findbugs-diff"/>
+
+    <!-- Targets for downloading CPAchecker instead of building it.
+         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
+         Warning: this might overwrite local changes. -->
+    <target name="download-cpachecker" depends="determine-version-revision">
+        <script language="javascript"><![CDATA[
+            var revision = project.getProperty("version.revision");
+            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
+        ]]></script>
+        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true"/>
+    </target>
 </project>
