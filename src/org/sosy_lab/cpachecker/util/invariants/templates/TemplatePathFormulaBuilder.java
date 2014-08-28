@@ -53,7 +53,7 @@ public class TemplatePathFormulaBuilder {
       logger = new BasicLogManager(config);
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), MachineModel.LINUX32);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), MachineModel.LINUX32, false);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }
@@ -68,7 +68,7 @@ public class TemplatePathFormulaBuilder {
     try {
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), machineModel);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), machineModel, false);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

@@ -107,7 +107,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
 
     pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, config, logger, shutdownNotifier, cfa);
+        formulaManager, config, logger, shutdownNotifier, cfa, false);
     lcmgr = new LinearConstraintManager(formulaManager, logger);
     valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
         pathFormulaManager,

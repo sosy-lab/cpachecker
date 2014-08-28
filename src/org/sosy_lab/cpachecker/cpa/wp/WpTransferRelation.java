@@ -135,7 +135,7 @@ public class WpTransferRelation implements TransferRelation {
   private Collection<WpAbstractState> handleNonAbstractionFormulaLocation(
       PathFormula pathFormula, WpAbstractState predState) throws InterruptedException {
 
-    boolean satCheck = false; // (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
+    boolean satCheck = true; // (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
     // TODO: Implement a heuristic for SAT checks
 
     if (satCheck) {
@@ -148,7 +148,7 @@ public class WpTransferRelation implements TransferRelation {
 
       if (unsat) {
         numSatChecksFalse++;
-        logger.log(Level.FINEST, "PathFormula is unsatisfiable.");
+        logger.log(Level.ALL, "PathFormula is unsatisfiable.");
         return Collections.emptySet();
       }
     }

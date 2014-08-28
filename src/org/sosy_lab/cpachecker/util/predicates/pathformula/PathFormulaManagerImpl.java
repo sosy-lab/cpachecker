@@ -116,24 +116,32 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
 
+  private final boolean backwards;
+
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, MachineModel pMachineModel)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel, boolean pBackwards)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pShutdownNotifier, pMachineModel, Optional.<VariableClassification>absent());
+
+    this(pFmgr, config, pLogger, pShutdownNotifier,
+        pMachineModel, Optional.<VariableClassification>absent(), pBackwards);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa, boolean pBackwards)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(), pCfa.getVarClassification());
+
+    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(),
+        pCfa.getVarClassification(), pBackwards);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification)
+      Optional<VariableClassification> pVariableClassification, boolean pBackwards)
           throws InvalidConfigurationException {
+
     config.inject(this, PathFormulaManagerImpl.class);
 
     fmgr = pFmgr;
@@ -141,6 +149,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
+    backwards = pBackwards;
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
@@ -165,7 +175,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       CtoFormulaTypeHandler pTypeHandler) {
 
-    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger, shutdownNotifier, pTypeHandler, false);
+    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification,
+        logger, shutdownNotifier, pTypeHandler, backwards);
   }
 
   protected CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
@@ -174,7 +185,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
     return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification, logger, shutdownNotifier, pAliasingTypeHandler, false);
+        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
+        logger, shutdownNotifier, pAliasingTypeHandler, backwards);
   }
 
   @Override
@@ -281,7 +293,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getSecond();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA, newPTS, newLength);
+    PathFormula result = new PathFormula(newFormula, newSSA, newPTS, newLength);
+    result.setDisjunctionOf(pathFormula1, pathFormula2);
+    return result;
   }
 
   @Override
@@ -566,5 +580,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     return preds;
+  }
+
+  @Override
+  public boolean implies(PathFormula p1, PathFormula p2) throws CheckInfeasibleException {
+    Pair<PathFormula, PathFormula> p2disjunctOf = p2.getDisjunctionOf();
+    if (p2disjunctOf == null) {
+      throw new CheckInfeasibleException("Implication check on syntax infeasible! No explicit info stored!");
+    }
+
+    return p2disjunctOf.getFirst().equals(p1)
+        || p2disjunctOf.getSecond().equals(p1);
   }
 }

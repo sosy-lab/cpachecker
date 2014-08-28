@@ -218,7 +218,8 @@ public class PathFormulaManagerImplTest {
         Configuration.defaultConfiguration(),
         TestLogManager.getInstance(),
         ShutdownNotifier.create(),
-        cfa
+        cfa,
+        false
     );
   }
 
