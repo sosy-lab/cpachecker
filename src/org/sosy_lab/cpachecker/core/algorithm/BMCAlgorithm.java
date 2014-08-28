@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -1187,6 +1188,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         Collection<String> loopTerminationConditionVariables = getTerminationConditionVariables(loop);
         for (AbstractState loopHeadState : loopHeadStates) {
           // Havoc the "loop termination condition" variables
+
+          // ... in predicate analysis
           PredicateAbstractState pas = extractStateByType(loopHeadState, PredicateAbstractState.class);
           PathFormula pathFormula = pas.getPathFormula();
           SSAMapBuilder ssaMapBuilder = pathFormula.getSsa().builder();
@@ -1199,6 +1202,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             }
           }
           pas.setPathFormula(new PathFormula(pathFormula.getFormula(), ssaMapBuilder.build(), pathFormula.getPointerTargetSet(), pathFormula.getLength()));
+
+          // ... and in explicit value analysis
+          ValueAnalysisState vas = extractStateByType(loopHeadState, ValueAnalysisState.class);
+          for (String variable : loopTerminationConditionVariables) {
+            vas.forget(variable);
+          }
+
           pReachedSet.add(loopHeadState, cpa.getInitialPrecision(loopHead));
         }
       } else {
