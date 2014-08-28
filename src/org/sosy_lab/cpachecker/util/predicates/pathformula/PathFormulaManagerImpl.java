@@ -582,14 +582,4 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return preds;
   }
 
-  @Override
-  public boolean implies(PathFormula p1, PathFormula p2) throws CheckInfeasibleException {
-    Pair<PathFormula, PathFormula> p2disjunctOf = p2.getDisjunctionOf();
-    if (p2disjunctOf == null) {
-      throw new CheckInfeasibleException("Implication check on syntax infeasible! No explicit info stored!");
-    }
-
-    return p2disjunctOf.getFirst().equals(p1)
-        || p2disjunctOf.getSecond().equals(p1);
-  }
 }

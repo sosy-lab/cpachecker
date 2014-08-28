@@ -72,8 +72,6 @@ public interface PathFormulaManager {
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
-  boolean implies(PathFormula p1, PathFormula p2) throws CheckInfeasibleException;
-
   /**
    * Build a formula containing a predicate for all branching situations in the
    * ARG. If a satisfying assignment is created for this formula, it can be used

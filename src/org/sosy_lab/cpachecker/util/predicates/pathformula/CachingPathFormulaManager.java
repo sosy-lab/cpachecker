@@ -165,8 +165,4 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 
-  @Override
-  public boolean implies(PathFormula pP1, PathFormula pP2) throws CheckInfeasibleException {
-    return delegate.implies(pP1, pP2);
-  }
 }

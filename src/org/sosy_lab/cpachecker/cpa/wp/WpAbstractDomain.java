@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager.CheckInfeasibleException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -81,11 +80,7 @@ public class WpAbstractDomain implements AbstractDomain {
     WpAbstractState e1 = (WpAbstractState) s1;
     WpAbstractState e2 = (WpAbstractState) s2;
 
-    try {
-      return pathFmgr.implies(e1.getPathFormula(), e2.getPathFormula());
-    } catch (CheckInfeasibleException e) {
-      return false;
-    }
+    throw new RuntimeException("Not yet implemented");
 
     // return e1.getIsLessEqualThan() == e2;
   }
