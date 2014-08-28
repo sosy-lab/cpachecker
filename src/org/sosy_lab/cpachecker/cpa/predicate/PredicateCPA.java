@@ -102,9 +102,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
-  private final Configuration config;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
+  @Option(description="Run the predicate analysis backwards?")
+  private boolean backwards = false;
+
+  protected final Configuration config;
+  protected final LogManager logger;
+  protected final ShutdownNotifier shutdownNotifier;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
@@ -146,7 +149,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     String libraries = formulaManager.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, false);
+    PathFormulaManager pfMgr = createPathFormulaManagerImpl(formulaManager, cfa);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -211,6 +214,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
     machineModel = cfa.getMachineModel();
+  }
+
+
+  protected PathFormulaManager createPathFormulaManagerImpl(FormulaManagerView pFormulaManager, CFA pCfa)
+      throws InvalidConfigurationException {
+
+    return new PathFormulaManagerImpl(pFormulaManager, config, logger, shutdownNotifier, pCfa, false);
   }
 
 
