@@ -25,9 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.Serializable;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
@@ -39,22 +36,12 @@ public final class PathFormula implements Serializable {
   private final int length;
   private final PointerTargetSet pts;
 
-  @Nullable private Pair<PathFormula, PathFormula> disjunctionOf;
-
   public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
       int pLength) {
     this.formula = pf;
     this.ssa = ssa;
     this.pts = pts;
     this.length = pLength;
-  }
-
-  public void setDisjunctionOf(PathFormula a, PathFormula b) {
-    disjunctionOf = Pair.of(a, b);
-  }
-
-  public Pair<PathFormula, PathFormula> getDisjunctionOf() {
-    return disjunctionOf;
   }
 
   public BooleanFormula getFormula() {

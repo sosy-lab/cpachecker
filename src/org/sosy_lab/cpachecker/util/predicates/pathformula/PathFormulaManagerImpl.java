@@ -293,9 +293,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getSecond();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula result = new PathFormula(newFormula, newSSA, newPTS, newLength);
-    result.setDisjunctionOf(pathFormula1, pathFormula2);
-    return result;
+    return new PathFormula(newFormula, newSSA, newPTS, newLength);
   }
 
   @Override
