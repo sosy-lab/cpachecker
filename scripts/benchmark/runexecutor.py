@@ -390,6 +390,8 @@ class RunExecutor():
             # Need the set here to delete each cgroup only once.
             removeCgroup(cgroup)
 
+        reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
+
         logging.debug("executeRun: reading output.")
         outputFile = open(outputFileName, 'rt') # re-open file for reading output
         output = list(map(Util.decodeToString, outputFile.readlines()))
@@ -398,8 +400,6 @@ class RunExecutor():
         logging.debug("executeRun: analysing output for crash-info.")
         getDebugOutputAfterCrash(output, outputFileName)
 
-        output = reduceFileSize(outputFileName, output, maxLogfileSize)
-        
         output = output[6:] # first 6 lines are for logging, rest is output of subprocess
 
 
@@ -416,35 +416,52 @@ class RunExecutor():
                 logging.warn('Killing process {0} forcefully.'.format(process.pid))
                 Util.killProcess(process.pid)
 
-def reduceFileSize(outputFileName, output, maxLogfileSize=-1):
+def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
     """
-    This function shrinks the logfile-content and returns the modified content.
+    This function shrinks a file.
     We remove only the middle part of a file,
     the file-start and the file-end remain unchanged.
     """
-    if maxLogfileSize == -1: return output # disabled, nothing to do
+    if maxLogfileSize == -1: return # disabled, nothing to do
 
-    rest = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
+    maxSize = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
+    fileSize = os.path.getsize(fileName)
+    if fileSize < (maxSize + 500): return # not necessary
 
-    if sum(len(line) for line in output) < rest: return output # too small, nothing to do
+    logging.warning("Logfile '{0}' is too big (size {1} bytes). Removing lines.".format(fileName, fileSize))
 
-    logging.warning("Logfile '{0}' too big. Removing lines.".format(outputFileName))
+    # We partition the file into 3 parts:
+    # A) start: maxSize/2 bytes we want to keep
+    # B) middle: part we want to remove
+    # C) end: maxSize/2 bytes we want to keep
 
-    half = len(output)/2
-    newOutput = ([],[])
-    # iterate parallel from start and end
-    for lineFront, lineEnd in zip(output[:half], reversed(output[half:])):
-        if len(lineFront) > rest: break
-        newOutput[0].append(lineFront)
-        if len(lineEnd) > rest: break
-        newOutput[1].insert(0,lineEnd)
-        rest = rest - len(lineFront) - len(lineEnd)
+    # Trick taken from StackOverflow:
+    # https://stackoverflow.com/questions/2329417/fastest-way-to-delete-a-line-from-large-file-in-python
+    # We open the file twice at the same time, once for reading and once for writing.
+    # We position the one file object at the beginning of B
+    # and the other at the beginning of C.
+    # Then we copy the content of C into B, overwriting what is there.
+    # Afterwards we truncate the file after A+C.
 
-    # build new content and write to file
-    output = newOutput[0] + ["\n\n\nWARNING: YOUR LOGFILE WAS TOO LONG, SOME LINES IN THE MIDDLE WERE REMOVED.\n\n\n"] + newOutput[1]
-    writeFile(''.join(output).encode('utf-8'), outputFileName)
+    with open(fileName, 'r+') as outputFile:
+        with open(fileName, 'r') as inputFile:
+            # Position outputFile between A and B
+            outputFile.seek(maxSize // 2)
+            outputFile.readline() # jump to end of current line so that we truncate at line boundaries
 
-    return output
+            outputFile.write("\n\n\nWARNING: YOUR LOGFILE WAS TOO LONG, SOME LINES IN THE MIDDLE WERE REMOVED.\n\n\n\n")
+
+            # Position inputFile between B and C
+            inputFile.seek(-maxSize // 2, os.SEEK_END) # jump to beginning of second part we want to keep from end of file
+            inputFile.readline() # jump to end of current line so that we truncate at line boundaries
+
+            # Copy C over B
+            currentLine = inputFile.readline()
+            while currentLine:
+                outputFile.write(currentLine)
+                currentLine = inputFile.readline()
+
+            outputFile.truncate()
 
 
 def getDebugOutputAfterCrash(output, outputFileName):
