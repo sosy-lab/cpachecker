@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
@@ -324,10 +325,13 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       in[in.length-1-i] = tmp;
     }
   }
+
   private boolean testGeneration(Pair<ElementaryCoveragePattern, Region>[] pGoalsToCover) throws CPAException, InterruptedException {
     boolean wasSound = true;
+    boolean hasTimedout = false;
 
     int goalIndex = 0;
+    int numberOfTestGoals = pGoalsToCover.length;
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
     // revert to try a different order -> did not help
@@ -340,7 +344,9 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       // the condition identifying configurations that we want to cover (gets reduced in due process until only an infeasible/non-coverable condition remains)
       Region remainingPCforGoalCoverage = testGoalToCover.getSecond();
 
-      while (! remainingPCforGoalCoverage.isFalse()) {
+      hasTimedout = false;
+
+      while (!remainingPCforGoalCoverage.isFalse() && !hasTimedout) {
         logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, pGoalsToCover.length, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
         Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
@@ -350,6 +356,21 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
         if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
           // current goal is for sure infeasible
           logger.logf(Level.INFO, "Test goal infeasible.");
+          testsuite.addInfeasibleGoal(lGoal, remainingPCforGoalCoverage);
+
+          // update PC coverage todo
+          if (bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(lGoal), remainingPCforGoalCoverage)) {
+            // 1st condition: this goal is infeasible for some constraint
+            // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
+            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+            remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
+          } else {
+            // now we need to cover all remaining configurations
+            // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
+            remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(getGoalCoverage(lGoal)));
+            logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+          }
+
           continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
         }
 
@@ -384,12 +405,21 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
             continue;
           }
         }
+
+        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, remainingPCforGoalCoverage);
+
         // goal is uncovered so far; run CPAchecker to cover it
-        if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, remainingPCforGoalCoverage)) {
+        if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
+        //if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, remainingPCforGoalCoverage)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
         }
         previousAutomaton = currentAutomaton;
+
+        if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
+          hasTimedout = true;
+          continue;
+        }
 
         // update PC coverage todo
         if (testsuite.isInfeasible(lGoal) &&
@@ -404,8 +434,139 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
           remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(getGoalCoverage(lGoal)));
           logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         }
-
       }
+    }
+
+    // reprocess timed-out goals
+    if (timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+
+      boolean order = true;
+
+      Comparator<Entry<Integer, Pair<Goal, Region>>> posComparator = new Comparator<Entry<Integer, Pair<Goal, Region>>>() {
+
+        @Override
+        public int compare(Entry<Integer, Pair<Goal, Region>> pArg0, Entry<Integer, Pair<Goal, Region>> pArg1) {
+          return (pArg0.getKey() - pArg1.getKey());
+        }
+
+      };
+
+      Comparator<Entry<Integer, Pair<Goal, Region>>> negComparator = new Comparator<Entry<Integer, Pair<Goal, Region>>>() {
+
+        @Override
+        public int compare(Entry<Integer, Pair<Goal, Region>> pArg0, Entry<Integer, Pair<Goal, Region>> pArg1) {
+          return (pArg1.getKey() - pArg0.getKey());
+        }
+
+      };
+
+      do {
+        if (timeoutIncrement > 0) {
+          long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
+          cpuTimelimitPerGoal += timeoutIncrement;
+          logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal, cpuTimelimitPerGoal);
+        }
+
+        Collection<Entry<Integer, Pair<Goal, Region>>> set;
+
+        if (useOrder) {
+          if (inverseOrder) {
+            order = !order;
+          }
+
+          // keep original order of goals (or inverse of it)
+          if (order) {
+            set = new TreeSet<>(posComparator);
+          }
+          else {
+            set = new TreeSet<>(negComparator);
+          }
+
+          set.addAll(testsuite.getTimedOutGoals().entrySet());
+        }
+        else {
+          set = new LinkedList<>();
+          set.addAll(testsuite.getTimedOutGoals().entrySet());
+        }
+
+        testsuite.getTimedOutGoals().clear();
+
+        for (Entry<Integer, Pair<Goal, Region>> entry : set) {
+          goalIndex = entry.getKey();
+          Goal lGoal = entry.getValue().getFirst();
+          Region lRegion = entry.getValue().getSecond();
+
+          logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
+
+          hasTimedout = false;
+
+          while (!lRegion.isFalse() && !hasTimedout) {
+
+            // TODO optimization: do not check for coverage if no new testcases were generated.
+            if (checkCoverage) {
+              // find out if the testgoal is already covered or partly covered by other testcases
+              boolean wasCovered = false;
+
+              for (TestCase testcase : testsuite.getTestCases()) {
+                ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
+                if (isCovered.equals(ThreeValuedAnswer.ACCEPT) &&
+                    !bddCpaNamedRegionManager.makeAnd(lRegion, testcase.getRegion()).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+                  // test goal is already (at least for some PCs) covered by an existing test case
+                  // remove those PCs from todo
+                  lRegion = bddCpaNamedRegionManager.makeAnd(lRegion, bddCpaNamedRegionManager.makeNot(testcase.getRegion()));
+
+                  if (lRegion.isFalse()) {
+                    logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
+                    testsuite.addTestCase(testcase, lGoal);
+                    wasCovered = true;
+                    break;
+                  } else {
+                    logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex , " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(lRegion));
+                    testsuite.addTestCase(testcase, lGoal);
+                  }
+                }
+                else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+                  logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
+                }
+              }
+
+              if (wasCovered) {
+                continue;
+              }
+            }
+
+            ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, lRegion);
+
+            if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
+            //if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, lRegion)) {
+              logger.logf(Level.WARNING, "Analysis run was unsound!");
+              wasSound = false;
+            }
+
+            previousAutomaton = lGoal.getAutomaton();
+
+            if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
+              hasTimedout = true;
+              continue;
+            }
+
+            // update PC coverage todo
+            if (testsuite.isInfeasible(lGoal) &&
+                bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(lGoal), lRegion)) {
+              // 1st condition: this goal is infeasible for some constraint
+              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
+              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(lRegion));
+              lRegion = bddCpaNamedRegionManager.makeFalse();
+            } else {
+              // now we need to cover all remaining configurations
+              // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
+              lRegion = bddCpaNamedRegionManager.makeAnd(lRegion, bddCpaNamedRegionManager.makeNot(getGoalCoverage(lGoal)));
+              logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(lRegion));
+            }
+          }
+        }
+      }
+      while (testsuite.hasTimedoutTestGoals());
     }
 
     return wasSound;
@@ -421,7 +582,13 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
     return totalCoverage;
   }
 
-  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton, Region remainingPCforGoalCoverage) throws CPAException, InterruptedException {
+  enum ReachabilityAnalysisResult {
+    SOUND,
+    UNSOUND,
+    TIMEDOUT
+  }
+
+  private ReachabilityAnalysisResult runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton, Region remainingPCforGoalCoverage) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
@@ -529,8 +696,38 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
     }
     bddcpa.getTransferRelation().setGlobalConstraint(remainingPCforGoalCoverage);
 
+    boolean analysisWasSound = false;
+    boolean hasTimedOut = false;
+
     // start CPAchecker to find a path to the test goal
-    boolean analysisWasSound = cegarAlg.run(reachedSet);
+    if (cpuTimelimitPerGoal < 0) {
+      // run algorithm without time limit
+      analysisWasSound = cegarAlg.run(reachedSet);
+    }
+    else {
+   // run algorithm with time limit
+      WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, cpuTimelimitPerGoal, algNotifier);
+
+      Thread workerThread = new Thread(workerRunnable);
+
+      workerThread.start();
+      workerThread.join();
+
+      if (workerRunnable.exceptionWasCaught()) {
+        throw new RuntimeException("Handle!");
+      }
+      else {
+        analysisWasSound = workerRunnable.analysisWasSound();
+
+        if (workerRunnable.hasTimeout()) {
+          logger.logf(Level.INFO, "Test goal timed out!");
+
+          testsuite.addTimedOutGoal(goalIndex, pGoal, remainingPCforGoalCoverage);
+
+          hasTimedOut = true;
+        }
+      }
+    }
 
     if (printARGperGoal) {
       Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
@@ -542,85 +739,96 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       }
     }
 
-    Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
-
-    if (counterexamples.isEmpty()) {
-      // test goal is not feasible
-      logger.logf(Level.INFO, "Test goal infeasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+ ".");
-
-      testsuite.addInfeasibleGoal(pGoal, remainingPCforGoalCoverage);
-      // TODO add missing soundness checks!
+    if (hasTimedOut) {
+      return ReachabilityAnalysisResult.TIMEDOUT;
     }
-    else {
-      // test goal is feasible
-      logger.logf(Level.INFO, "Test goal is feasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+".");
 
-      // TODO add missing soundness checks!
+    if (!hasTimedOut) {
+      Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
-      assert counterexamples.size() == 1;
+      if (counterexamples.isEmpty()) {
+        // test goal is not feasible
+        logger.logf(Level.INFO, "Test goal infeasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+ ".");
 
-      for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-        //ARGState state = lEntry.getKey();
-        CounterexampleInfo cex = lEntry.getValue();
+        testsuite.addInfeasibleGoal(pGoal, remainingPCforGoalCoverage);
+        // TODO add missing soundness checks!
+      }
+      else {
+        // test goal is feasible
+        logger.logf(Level.INFO, "Test goal is feasible with PC " + bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)+".");
 
-        if (cex.isSpurious()) {
-          logger.logf(Level.WARNING, "Counterexample is spurious!");
-        }
-        else {
-          Model model = cex.getTargetPathModel();
+        // TODO add missing soundness checks!
 
-          Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
+        assert counterexamples.size() == 1;
 
-            @Override
-            public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-              assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
-              assert pArg0.getKey() instanceof Model.Variable;
-              assert pArg1.getKey() instanceof Model.Variable;
+        for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+          //ARGState state = lEntry.getKey();
+          CounterexampleInfo cex = lEntry.getValue();
 
-              Model.Variable v0 = (Model.Variable)pArg0.getKey();
-              Model.Variable v1 = (Model.Variable)pArg1.getKey();
+          if (cex.isSpurious()) {
+            logger.logf(Level.WARNING, "Counterexample is spurious!");
+          }
+          else {
+            Model model = cex.getTargetPathModel();
 
-              return (v0.getSSAIndex() - v1.getSSAIndex());
-            }
+            Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
 
-          };
+              @Override
+              public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+                assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+                assert pArg0.getKey() instanceof Model.Variable;
+                assert pArg1.getKey() instanceof Model.Variable;
 
-          TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+                Model.Variable v0 = (Model.Variable)pArg0.getKey();
+                Model.Variable v1 = (Model.Variable)pArg1.getKey();
 
-          for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
-            if (e.getKey() instanceof Model.Variable) {
-              Model.Variable v = (Model.Variable)e.getKey();
+                return (v0.getSSAIndex() - v1.getSSAIndex());
+              }
 
-              if (v.getName().equals(TigerAlgorithm.CPAtiger_INPUT + "::__retval__")) {
-                inputs.add(e);
+            };
+
+            TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+
+            for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
+              if (e.getKey() instanceof Model.Variable) {
+                Model.Variable v = (Model.Variable)e.getKey();
+
+                if (v.getName().equals(TigerAlgorithm.CPAtiger_INPUT + "::__retval__")) {
+                  inputs.add(e);
+                }
               }
             }
-          }
 
-          List<BigInteger> inputValues = new ArrayList<>(inputs.size());
+            List<BigInteger> inputValues = new ArrayList<>(inputs.size());
 
-          for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
-            assert e.getValue() instanceof BigInteger;
-            inputValues.add((BigInteger)e.getValue());
-          }
-          BDDState wrappedBDDState = getWrappedBDDState(reachedSet.getLastState());
-          if (wrappedBDDState!=null) {
-            Region testGoalRegion = wrappedBDDState.getRegion();
-            assert wrappedBDDState.getNamedRegionManager() == bddCpaNamedRegionManager;
-            TestCase testcase = new TestCase(inputValues, testGoalRegion, cex.getTargetPath().asEdgesList());
-            logger.logf(Level.INFO, " generated Testcase with PC " + bddCpaNamedRegionManager.dumpRegion(testGoalRegion));
-            testsuite.addTestCase(testcase, pGoal);
-          } else {
-            logger.logf(Level.INFO, "could not determine PC for test");
-            TestCase testcase = new TestCase(inputValues,  cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
-            testsuite.addTestCase(testcase, pGoal);
+            for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
+              assert e.getValue() instanceof BigInteger;
+              inputValues.add((BigInteger)e.getValue());
+            }
+            BDDState wrappedBDDState = getWrappedBDDState(reachedSet.getLastState());
+            if (wrappedBDDState!=null) {
+              Region testGoalRegion = wrappedBDDState.getRegion();
+              assert wrappedBDDState.getNamedRegionManager() == bddCpaNamedRegionManager;
+              TestCase testcase = new TestCase(inputValues, testGoalRegion, cex.getTargetPath().asEdgesList());
+              logger.logf(Level.INFO, " generated Testcase with PC " + bddCpaNamedRegionManager.dumpRegion(testGoalRegion));
+              testsuite.addTestCase(testcase, pGoal);
+            } else {
+              logger.logf(Level.INFO, "could not determine PC for test");
+              TestCase testcase = new TestCase(inputValues,  cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
+              testsuite.addTestCase(testcase, pGoal);
+            }
           }
         }
       }
     }
 
-    return analysisWasSound;
+    if (analysisWasSound) {
+      return ReachabilityAnalysisResult.SOUND;
+    }
+
+    return ReachabilityAnalysisResult.UNSOUND;
   }
+
   BDDState getWrappedBDDState(AbstractState inState) {
     if (inState instanceof BDDState) {
       return (BDDState)inState;

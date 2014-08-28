@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -40,12 +41,13 @@ public class TestSuite {
   private Map<Goal, Region> infeasibleGoals;
   private NamedRegionManager bddCpaNamedRegionManager;
   private int numberOfFeasibleGoals = 0;
-  private Map<Integer, Goal> timedOutGoals;
+  private Map<Integer, Pair<Goal, Region>> timedOutGoals;
 
   public TestSuite(NamedRegionManager pBddCpaNamedRegionManager) {
     mapping = new HashMap<>();
     infeasibleGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    timedOutGoals = new HashMap<>();
   }
 
   public int getNumberOfFeasibleTestGoals() {
@@ -65,11 +67,11 @@ public class TestSuite {
     return !timedOutGoals.isEmpty();
   }
 
-  public void addTimedOutGoal(int index, Goal goal) {
-    timedOutGoals.put(index, goal);
+  public void addTimedOutGoal(int index, Goal goal, Region region) {
+    timedOutGoals.put(index, Pair.of(goal, region));
   }
 
-  public Map<Integer, Goal> getTimedOutGoals() {
+  public Map<Integer, Pair<Goal, Region>> getTimedOutGoals() {
     return timedOutGoals;
   }
 
@@ -163,9 +165,9 @@ public class TestSuite {
     if (!timedOutGoals.isEmpty()) {
       str.append("timed out:\n");
 
-      for (Goal goal : timedOutGoals.values()) {
+      for (Pair<Goal, Region> goal : timedOutGoals.values()) {
         //str.append(goal.getIndex());
-        str.append(goal.toSkeleton());
+        str.append(goal.getFirst().toSkeleton());
         str.append("\n");
       }
 
