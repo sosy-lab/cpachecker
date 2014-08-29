@@ -47,7 +47,12 @@
     </fileset>
   </path>
 
-  <target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker.resolve-dependencies" unless="ivy.disable">
+  <condition property="ivy.target-prefix" value="cpachecker" else="ivy">
+    <antversion atleast="1.9.0"/>
+  </condition>
+
+  <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
+    <antcall target="${ivy.target-prefix}.resolve-dependencies"/>
     <ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
     <ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
   </target>
@@ -55,8 +60,8 @@
   <available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
   <target name="update-contrib" if="ivy.contrib.present">
     <antcall target="install-contrib"/>
-   </target>
-  <target name="install-contrib" depends="load-ivy, cpachecker.install-contrib" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
+  </target>
+  <target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
     <ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
     <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
    </target>
