@@ -1231,7 +1231,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       assert pLoop.getLoopNodes().contains(current);
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
         CFANode successor = leavingEdge.getSuccessor();
-        if (pLoop.getLoopNodes().contains(successor)) {
+        if (!isLoopExitEdge(leavingEdge, pLoop)) {
           if (visited.add(successor)) {
             waitlist.offer(successor);
           }
@@ -1242,6 +1242,36 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     return result;
+  }
+
+  private static boolean isLoopExitEdge(CFAEdge pEdge, Loop pLoop) {
+    if (!pLoop.getLoopNodes().contains(pEdge.getSuccessor())) {
+      return true;
+    }
+    // Now it get's a bit tricky:
+    // Actually, the above check is sufficient;
+    // however, ESBMC hard codes the specification and thus
+    // also knows that every call to __VERIFIER_assert must exit
+    // iff the parameter condition does not hold.
+    // So, to be able to compare somehow, here is a hack that kinda
+    // simulates this behavior:
+
+    // Check the next two levels of successive edges
+    FluentIterable<CFAEdge> directSuccessorEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+    Iterable<CFAEdge> successorEdges = Iterables.concat(directSuccessorEdges, directSuccessorEdges.transformAndConcat(new Function<CFAEdge, Iterable<CFAEdge>>() {
+
+      @Override
+      public Iterable<CFAEdge> apply(CFAEdge pArg0) {
+        return CFAUtils.leavingEdges(pArg0.getSuccessor());
+      }
+
+    }));
+    return from(successorEdges).anyMatch(new Predicate<CFAEdge>() {
+
+      @Override
+      public boolean apply(CFAEdge pArg0) {
+        return pArg0.getEdgeType() == CFAEdgeType.FunctionCallEdge && pArg0.getSuccessor().getFunctionName().equals("__VERIFIER_assert");
+      }});
   }
 
   private Iterable<BooleanFormula> assertAt(Iterable<AbstractState> pStates, final BooleanFormula pUninstantiatedFormula) {
