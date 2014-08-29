@@ -24,7 +24,6 @@
     <import file="build/build-findbugs.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
-
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
     <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
 
@@ -33,6 +32,7 @@
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
     </path>
+
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
     </condition>
@@ -42,14 +42,10 @@
     <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
-    <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version.base}"/>
-    </target>
-    <target name="create-version-file" unless="version">
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <!-- Here we only write the imprecise base version. Exact version is only used for JAR files. -->
-        <echo message="${version.base}" file="${version.file}"/>
-    </target>
+
+
+    <!-- Main targets -->
+
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
@@ -59,13 +55,51 @@
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
     </target>
-    <target depends="clean" name="cleanall"/>
 
+    <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
 
-    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
+    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
         <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
         <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="tests" depends="unit-tests, benchmark-tests" description="Run all tests"/>
+
+
+    <!-- Auxiliary targets -->
+
+    <target name="determine-version-revision">
+        <!-- Determine full CPAchecker version including SVN revision. -->
+        <exec executable="python"
+            outputProperty="version.revision"
+            failifexecutionfails="false"
+            logError="true">
+            <arg value="scripts/determine-revision.py"/>
+            <arg value="${basedir}"/>
+        </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+            <contains string="${version.base}" substring="-svn"/>
+        </condition>
+        <echo message="${version}" file="${version.file}"/>
+    </target>
+
+    <target name="determine-version" depends="create-version-file-exact"/>
+
+    <target name="create-version-file" unless="version">
+        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version.base}" file="${version.file}"/>
+    </target>
+
+    <target name="init" depends="create-version-file">
+        <echo message="Building ${ant.project.name} ${version.base}"/>
     </target>
 
     <target name="build-subprojects">
@@ -73,10 +107,7 @@
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
     </target>
 
-
-    <target depends="init,resolve-dependencies,build-subprojects" name="build-dependencies"/>
-
-    <target depends="-warn-factorypath,build-project,build-documentation" name="build"/>
+    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
@@ -84,7 +115,7 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target depends="build-dependencies,-warn-errorprone" name="build-project">
+    <target name="build-project" depends="build-dependencies,-warn-errorprone">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>
@@ -97,8 +128,8 @@
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
-        	<!-- exclude for now since necessary JARs might not be installed -->
-        	<exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <!-- exclude for now since necessary JARs might not be installed -->
+            <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
         </javac>
     </target>
 
@@ -125,28 +156,6 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
-
-    <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
-
-    <target name="determine-version-revision">
-        <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="python"
-            outputProperty="version.revision"
-            failifexecutionfails="false"
-            logError="true">
-            <arg value="scripts/determine-revision.py"/>
-            <arg value="${basedir}"/>
-        </exec>
-    </target>
-
-    <target name="create-version-file-exact" depends="determine-version-revision">
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
-            <contains string="${version.base}" substring="-svn"/>
-        </condition>
-        <echo message="${version}" file="${version.file}"/>
-    </target>
-    <target name="determine-version" depends="create-version-file-exact"/>
 
     <!-- Release for Windows -->
     <target name="zip" depends="jar">
@@ -177,11 +186,9 @@
         </tar>
     </target>
 
-    <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">
+    <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">
         <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
     </target>
-
-    <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
 
     <!-- Targets for downloading CPAchecker instead of building it.
          This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
