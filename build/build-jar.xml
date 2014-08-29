@@ -9,6 +9,7 @@
     <!-- These properties can and should be overridden from including file. -->
     <property name="class.main" value=""/>
     <property name="project.url" value=""/>
+    <property name="jar.excludes" value=""/>
 
     <target name="jar" depends="determine-version,build" description="Create a runnable JAR file">
         <property name="jar.file" value="${ivy.module}-${version}.jar"/>
@@ -19,7 +20,7 @@
         <jar basedir="${class.dir}/"
                 destfile="${jar.file}"
                 includes="**"
-                excludes="**/*Test.class **/*Test$*.class"
+                excludes="${jar.excludes}"
                 whenmanifestonly="fail">
             <manifest>
                 <attribute name="Class-Path" value="${classpath.jar}"/>
