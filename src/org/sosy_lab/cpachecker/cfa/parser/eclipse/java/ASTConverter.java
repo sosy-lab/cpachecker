@@ -267,10 +267,11 @@ public class ASTConverter {
   }
 
   /**
-   * Returns the temporary Variable, which holds the
-   * result of the conditional statement
+   * Returns the latest temporary variable. This variable holds the
+   * result of the last processed conditional statement.
    *
-   * @return
+   * @return a {@link JIdExpression} representing the temporary variable of the last processed
+   *         conditional statement
    */
   public JIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
@@ -329,7 +330,7 @@ public class ASTConverter {
    * of the JDT AST to a MethodDeclaration of the CFA AST
    *
    *
-   * @param Method Declaration to be coverted.
+   * @param md method declaration to be converted.
    * @return CFA AST of Method Declaration
    */
   public JMethodDeclaration convert(final MethodDeclaration md) {
@@ -399,7 +400,7 @@ public class ASTConverter {
   /**
    * Converts a List of Field Declaration into the intern AST.
    *
-   * @param field Declarations given to be transformed.
+   * @param fd declaration to be transformed.
    * @return intern AST of the Field Declarations.
    */
   public List<JDeclaration> convert(FieldDeclaration fd) {
@@ -539,7 +540,7 @@ public class ASTConverter {
    * Converts JDT SingleVariableDeclaration into an AST.
    *
    *
-   * @param vds JDT SingleVariableDeclaration to be transformed
+   * @param d JDT SingleVariableDeclaration to be transformed
    * @return AST representing given Parameter
    */
   public JDeclaration convert(SingleVariableDeclaration d) {
@@ -595,8 +596,8 @@ public class ASTConverter {
  * put into a side assignment and can subsequently be fetched
  * with getNextSideAssignment().
  *
- * @param Given expression to be transformed.
- * @return an side effect free AST representing the given parameter.
+ * @param e expression to be transformed.
+ * @return a side effect free AST representing the given parameter.
  */
   public JExpression convertExpressionWithoutSideEffects(Expression e) {
 
@@ -708,7 +709,7 @@ public class ASTConverter {
   /**
    * Transforms a JDT SuperConstructorInvocation into the intern AST.
    *
-   * @param SuperConstructorInvocation to be transformed.
+   * @param sCI SuperConstructorInvocation to be transformed.
    * @return AST representing given parameter.
    */
   public JStatement convert(final SuperConstructorInvocation sCI) {
@@ -896,18 +897,18 @@ public class ASTConverter {
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
-      logger.log(Level.WARNING, "Expression of typ " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
+      logger.log(Level.WARNING, "Expression of type " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
       return null;
     }
   }
 
   private JAstNode convert(SuperMethodInvocation e) {
 
-    boolean canBeResolve = e.resolveMethodBinding() != null;
+    boolean canBeResolved = e.resolveMethodBinding() != null;
 
     JClassOrInterfaceType declaringClassType = null;
 
-    if (canBeResolve) {
+    if (canBeResolved) {
       declaringClassType = (JClassOrInterfaceType) convert(e.resolveMethodBinding().getDeclaringClass());
       scope.registerClass(e.resolveMethodBinding().getDeclaringClass());
     }
@@ -928,7 +929,7 @@ public class ASTConverter {
 
     ModifierBean mb = null;
 
-    if (canBeResolve) {
+    if (canBeResolved) {
       mb = ModifierBean.getModifiers(e.resolveMethodBinding());
     }
 
@@ -949,7 +950,7 @@ public class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolve) {
+      if (canBeResolved) {
         declaration = scope.createExternMethodDeclaration(
             convertMethodType(e.resolveMethodBinding()),
             methodName.toASTString(),
@@ -966,7 +967,7 @@ public class ASTConverter {
       JMethodInvocationExpression miv =
           new JMethodInvocationExpression(getFileLocation(e), convert(e.resolveTypeBinding()), methodName, params, declaration);
 
-      if (canBeResolve) {
+      if (canBeResolved) {
 
         JType type = miv.getDeclaringType();
 
@@ -1094,7 +1095,11 @@ public class ASTConverter {
       if (subClassTypes.isEmpty()) { return firstCond; }
 
     } else {
-      throw new AssertionError();
+      // Through assertions above, instanceCompatible has to be a sub type of JClassOrInterfaceType
+      // already. So the only case this error is thrown is if a new sub type of JClassOrInterfaceType
+      // would be implemented.
+      throw new AssertionError("The right hand side of an instanceof expression has to be a class" +
+          " or interface type");
     }
 
     JBinaryExpression firstOrConnection;
@@ -1250,16 +1255,15 @@ public class ASTConverter {
         declaration =
             new JConstructorDeclaration(getFileLocation(cIC),
                 convertConstructorType(binding), name, simpleName,
-                new LinkedList<JParameterDeclaration>(),
+                new ArrayList<JParameterDeclaration>(),
                 mb.getVisibility(), mb.isStrictFp(),
                 (JClassType) getDeclaringClassType(binding));
 
       } else {
-
         declaration =
             new JConstructorDeclaration(getFileLocation(cIC), JConstructorType.createUnresolvableConstructorType(), name,
                 simpleName, new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE, false,
-                (JClassType) getDeclaringClassType(binding));
+                JClassType.createUnresolvableType());
       }
     }
 
@@ -2024,7 +2028,7 @@ public class ASTConverter {
         // TODO handle hex floating point literals that are too large for Double
         value = BigDecimal.valueOf(Double.parseDouble(valueStr));
       } catch (NumberFormatException nfe2) {
-        throw new CFAGenerationRuntimeException("illegal floating point literal");
+        throw new CFAGenerationRuntimeException("Illegal floating point literal", nfe2);
       }
     }
     return value;
@@ -2057,10 +2061,11 @@ public class ASTConverter {
       } else {
         result = new BigInteger(s, 10);
       }
-    } catch (NumberFormatException _) {
-      throw new CFAGenerationRuntimeException("invalid number");
+    } catch (NumberFormatException e1) {
+      throw new CFAGenerationRuntimeException("Invalid number", e1);
     }
-    check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
+
+    check(result.compareTo(BigInteger.ZERO) >= 0, "Invalid number", e);
 
     // clear the bits that don't fit in the type
     // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
@@ -2203,9 +2208,8 @@ public class ASTConverter {
    * Converts a Expression into the intern AST which is required to
    * give a boolean Type back.
    *
-   *
-   * @param e a Expression with a boolean type
-   * @return Intern AST representing JDT Expression
+   * @param e an expression with a boolean type
+   * @return intern AST representing JDT expression
    */
   public JExpression convertBooleanExpression(Expression e) {
 
@@ -2235,7 +2239,6 @@ public class ASTConverter {
   /**
    * Checks if the given Expression returns a Value of
    *  boolean Type.
-   *
    *
    * @param e Expression to be checked
    * @return True, iff Type of Expression is boolean, else False.
@@ -2272,10 +2275,14 @@ public class ASTConverter {
       JMethodInvocationExpression methodInvocation,
       JClassOrInterfaceType classType) {
 
+    JIdExpression referencedVariable =
+        ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable();
+
+    JRunTimeTypeExpression methodReturnType = new JVariableRunTimeType(fileloc, referencedVariable);
+
     if (methodInvocation instanceof JReferencedMethodInvocationExpression) {
-      return new JRunTimeTypeEqualsType(fileloc, new JVariableRunTimeType(fileloc,
-          ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable()),
-          classType);
+      return new JRunTimeTypeEqualsType(fileloc, methodReturnType, classType);
+
     } else {
       return new JRunTimeTypeEqualsType(fileloc,
           new JThisExpression(fileloc, methodInvocation.getDeclaringType()), classType);
@@ -2298,9 +2305,9 @@ public class ASTConverter {
   /**
    * Creates a default Constructor AST for a class represented by the class Binding.
    *
-   *
-   * @param classBinding represents a Class for which the Constructor be constructed.
-   * @return An AST for the default Constructor.
+   * @param classBinding representation of the class a constructor should be constructed for
+   * @return a {@link JMethodDeclaration} representing the default constructor of the given class
+   *         binding
    */
   public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
 
