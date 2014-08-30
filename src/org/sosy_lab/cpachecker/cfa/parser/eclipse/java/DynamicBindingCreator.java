@@ -110,8 +110,8 @@ public class DynamicBindingCreator {
     trackOverridenMethods(cfAs);
     completeMethodBindings();
 
-    for (String functionName : cfAs.keySet()) {
-      insertBindings(cfAs.get(functionName));
+    for (Map.Entry<String, FunctionEntryNode> functionEntry : cfAs.entrySet()) {
+      insertBindings(functionEntry.getValue());
     }
   }
 
@@ -119,11 +119,16 @@ public class DynamicBindingCreator {
 
     Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
-    for (String functionName : cfAs.keySet()) {
+    for (Map.Entry<String, FunctionEntryNode> entry : cfAs.entrySet()) {
+      String functionName = entry.getKey();
+      FunctionEntryNode currEntryNode = entry.getValue();
+      MethodDeclaration currMethod = allParsedMethodDeclaration.get(functionName);
+
       assert allParsedMethodDeclaration.containsKey(functionName);
+
       // Constructors and default Constructors can't be overriden
-      if (!(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor()) ) {
-        trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
+      if (!(currMethod == null  || currMethod.isConstructor()) ) {
+        trackOverridenMethods(currMethod, currEntryNode);
       }
     }
   }
