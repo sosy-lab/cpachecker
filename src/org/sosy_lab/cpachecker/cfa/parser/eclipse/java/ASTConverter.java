@@ -2275,12 +2275,12 @@ public class ASTConverter {
       JMethodInvocationExpression methodInvocation,
       JClassOrInterfaceType classType) {
 
-    JIdExpression referencedVariable =
-        ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable();
-
-    JRunTimeTypeExpression methodReturnType = new JVariableRunTimeType(fileloc, referencedVariable);
-
     if (methodInvocation instanceof JReferencedMethodInvocationExpression) {
+      JIdExpression referencedVariable =
+          ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable();
+
+      JRunTimeTypeExpression methodReturnType = new JVariableRunTimeType(fileloc, referencedVariable);
+
       return new JRunTimeTypeEqualsType(fileloc, methodReturnType, classType);
 
     } else {
