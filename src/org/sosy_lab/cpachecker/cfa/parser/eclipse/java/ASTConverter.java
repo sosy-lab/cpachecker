@@ -839,6 +839,7 @@ public class ASTConverter {
     //TODO  All Expression Implementation
 
     if (e == null) {
+      logger.log(Level.INFO, "Expression to convert is null");
       return null;
     }
 
@@ -1297,6 +1298,7 @@ public class ASTConverter {
   private JAstNode convert(ArrayInitializer initializer) {
 
     if (initializer == null) {
+      logger.log(Level.FINE, "Array initializer to convert is null");
       return null;
     }
 
