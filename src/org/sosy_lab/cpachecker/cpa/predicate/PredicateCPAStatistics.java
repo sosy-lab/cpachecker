@@ -112,6 +112,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
+  private final ReachingPathsWriter reachingPathsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
   private final Timer invariantGeneratorTime;
@@ -127,6 +128,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
     config.inject(this, PredicateCPAStatistics.class);
 
+    reachingPathsWriter = new ReachingPathsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
 
