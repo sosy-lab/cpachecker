@@ -1688,6 +1688,7 @@ class ASTConverter {
           IASTInitializerClause initClause = ((IASTEqualsInitializer)initializer).getInitializerClause();
           if (initClause instanceof IASTInitializerList) {
             int length = 0;
+            int position = 0;
             for (IASTInitializerClause x : ((IASTInitializerList)initClause).getClauses()) {
               if (length == -1) {
                 break;
@@ -1697,21 +1698,24 @@ class ASTConverter {
                 for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
                   if (designator instanceof CASTArrayRangeDesignator) {
                     CAstNode ceil = convertExpressionWithSideEffects(((CASTArrayRangeDesignator)designator).getRangeCeiling());
-                    CAstNode floor = convertExpressionWithSideEffects(((CASTArrayRangeDesignator)designator).getRangeFloor());
-                    if (floor instanceof CIntegerLiteralExpression && ceil instanceof CIntegerLiteralExpression) {
-                      long f = ((CIntegerLiteralExpression)floor).getValue().longValue();
-                      long c = ((CIntegerLiteralExpression)ceil).getValue().longValue();
-                      length += 1 + c - f;
+                    if (ceil instanceof CIntegerLiteralExpression) {
+                      int c = ((CIntegerLiteralExpression)ceil).getValue().intValue();
+                      length = Math.max(length, c + 1);
+                      position = c + 1;
 
                       // we need distinct numbers for the range bounds, if they
                       // are not there we cannot calculate the length of the array
                       // correctly
                     } else {
                       length = -1;
+                      break;
                     }
 
                   } else if (designator instanceof CASTArrayDesignator) {
-                    length++;
+                    CAstNode subscript = convertExpressionWithSideEffects(((CASTArrayDesignator)designator).getSubscriptExpression());
+                    int s = ((CIntegerLiteralExpression)subscript).getValue().intValue();
+                    length = Math.max(length, s+1);
+                    position = s + 1;
 
                     // we only know the length of the CASTArrayDesignator and the CASTArrayRangeDesignator, all other designators
                     // have to be ignore, if one occurs, we cannot calculate the length of the array correctly
@@ -1721,7 +1725,8 @@ class ASTConverter {
                   }
                 }
               } else {
-                length++;
+                position++;
+                length = Math.max(position, length);
               }
             }
 
