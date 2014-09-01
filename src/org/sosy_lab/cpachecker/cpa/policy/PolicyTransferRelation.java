@@ -115,7 +115,6 @@ public class PolicyTransferRelation implements TransferRelation {
     logger.log(Level.FINE, ">>> Processing statement: " + edge.getCode()
      + " for to-node: " + edge.getSuccessor());
 
-
     CFANode toNode = edge.getSuccessor();
 
     // Formula representing the edge.

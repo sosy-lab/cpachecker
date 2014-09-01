@@ -56,12 +56,6 @@ public class PolicyCPATest {
         "test/programs/simple/policyTest.c"
     );
 
-    String log = results.getLog();
-
-    System.out.println(log);
-
-    System.out.println(results.getCheckerResult().getResultString());
-
     Assert.assertEquals(false, results.isSafe());
   }
 }

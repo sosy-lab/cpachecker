@@ -204,12 +204,9 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
 
   @Override
   public boolean equals(Object y) {
-    if (y == null) {
-      return false;
-    }
-    if (y.getClass() != this.getClass()) {
-      return false;
-    }
+    if (this == y) return true;
+    if (y == null) return false;
+    if (y.getClass() != this.getClass()) return false;
     ExtendedRational b = (ExtendedRational) y;
     return compareTo(b) == 0;
   }
