@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -162,8 +163,9 @@ public final class SMGExplicitPlotter {
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
-    for (String key : pNamespace.keySet()) {
-      SMGObject obj = pNamespace.get(key);
+    for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
+      String key = entry.getKey();
+      SMGObject obj = entry.getValue();
 
       if (key.equals("node")) {
         // escape Node1

@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
@@ -236,8 +237,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     Map<Address, Object> result = new HashMap<>();
 
-    for (MemoryLocation heapLoc : valueView.keySet()) {
-      Value valueAsValue = valueView.get(heapLoc);
+    for (Entry<MemoryLocation, Value> entry : valueView.entrySet()) {
+      MemoryLocation heapLoc = entry.getKey();
+      Value valueAsValue = entry.getValue();
 
       if (!valueAsValue.isNumericValue()) {
         // Skip non numerical values for now

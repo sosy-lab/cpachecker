@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -370,10 +371,12 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @VisibleForTesting
   void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, Writer pOut) throws IOException {
-    for (ReducedNode u: pInlinedCfa.keySet()) {
-      Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
-      for (ReducedNode v: uTarget.keySet()) {
-        for (int i=0; i<uTarget.get(v).size(); i++) {
+    for (Entry<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> outerEntry : pInlinedCfa.entrySet()) {
+      ReducedNode u = outerEntry.getKey();
+      Map<ReducedNode, Set<ReducedEdge>> uTarget = outerEntry.getValue();
+      for (Entry<ReducedNode, Set<ReducedEdge>> entry: uTarget.entrySet()) {
+        ReducedNode v = entry.getKey();
+        for (int i=0; i < entry.getValue().size(); i++) {
           pOut.append("REL\t")
               .append(getRsfEntryFor(u))
               .append('\t')
