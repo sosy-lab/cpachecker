@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +34,9 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import apron.ApronException;
 
@@ -96,9 +97,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="Timelimit (in seconds) for the backup feasibility check with the octagon analysis."
-      + " Zero means there is no timelimit.")
-  private int timeForApronFeasibilityCheck = 0;
+  @Option(description="Timelimit for the backup feasibility check with the apron analysis."
+      + "(use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                  defaultUserUnit=TimeUnit.SECONDS,
+                  min=0)
+  private TimeSpan timeForApronFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
@@ -341,12 +345,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       ApronAnalysisFeasabilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
-      if (timeForApronFeasibilityCheck == 0) {
+      if (timeForApronFeasibilityCheck.isEmpty()) {
         checker = new ApronAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, apronCPA);
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-        FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForApronFeasibilityCheck*(long)1000000);
+        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
@@ -360,39 +364,4 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     }
   }
 
-  static class FeasabilityCheckTimeLimit implements ResourceLimit {
-    private final long duration;
-    private final long endTime;
-
-    private FeasabilityCheckTimeLimit(long pDuration) {
-      duration = pDuration;
-      endTime = getCurrentValue() + pDuration;
-    }
-
-    public static FeasabilityCheckTimeLimit fromNowOn(long time, TimeUnit unit) {
-      checkArgument(time > 0);
-      long nanoDuration = TimeUnit.NANOSECONDS.convert(time, unit);
-      return new FeasabilityCheckTimeLimit(nanoDuration);
-    }
-
-    @Override
-    public long getCurrentValue() {
-      return System.nanoTime();
-    }
-
-    @Override
-    public boolean isExceeded(long pCurrentValue) {
-      return pCurrentValue >= endTime;
-    }
-
-    @Override
-    public long nanoSecondsToNextCheck(long pCurrentValue) {
-      return endTime - pCurrentValue;
-    }
-
-    @Override
-    public String getName() {
-      return "feasbility check timelimit of " + TimeUnit.NANOSECONDS.toSeconds(duration) + "s";
-    }
-  }
 }
