@@ -30,12 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -52,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker{
 
-  private FunctionPointerDomain abstractDomain;
+  private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
@@ -64,7 +59,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    this.abstractDomain = new FunctionPointerDomain();
+    this.abstractDomain = DelegateAbstractDomain.<FunctionPointerState>getInstance();
 
     this.mergeOperator = MergeSepOperator.getInstance();
 
@@ -143,7 +138,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

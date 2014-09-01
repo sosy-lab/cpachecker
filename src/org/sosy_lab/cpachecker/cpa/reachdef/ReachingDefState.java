@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -42,7 +43,8 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class ReachingDefState implements AbstractState, Serializable {
+public class ReachingDefState implements AbstractState, Serializable,
+    LatticeAbstractState<ReachingDefState> {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -123,7 +125,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     return this == topElement ? null : globalReachDefs;
   }
 
-  public boolean isSubsetOf(ReachingDefState superset) {
+  @Override
+  public boolean isLessOrEqual(ReachingDefState superset) {
     if (superset == this || superset == topElement) {
       return true;
     }
@@ -168,7 +171,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     return true;
   }
 
-  public ReachingDefState union(ReachingDefState toJoin) {
+  @Override
+  public ReachingDefState join(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     boolean changed = false;
     ReachingDefState lastFunctionCall;

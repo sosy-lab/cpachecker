@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -101,7 +102,8 @@ import com.google.common.collect.Iterables;
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
  */
-public class InvariantsState implements AbstractState, FormulaReportingState {
+public class InvariantsState implements AbstractState, FormulaReportingState,
+    LatticeAbstractState<InvariantsState>{
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -734,7 +736,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return Collections.unmodifiableMap(environment);
   }
 
-  public boolean isLessThanOrEqualTo(InvariantsState pState2) {
+  @Override
+  public boolean isLessOrEqual(InvariantsState pState2) {
     if (equals(pState2)) { return true; }
     if (pState2 == null) {
       return false;
@@ -820,6 +823,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return result;
   }
 
+  @Override
+  public InvariantsState join(InvariantsState state2) {
+    return join(state2, InvariantsPrecision.getEmptyPrecision());
+  }
+
   public InvariantsState join(InvariantsState pState2, InvariantsPrecision pPrecision) {
 
     InvariantsState result;
@@ -827,9 +835,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsState state1 = this;
     InvariantsState state2 = pState2;
 
-    if (state1.isLessThanOrEqualTo(state2)) {
+    if (state1.isLessOrEqual(state2)) {
       result = state2;
-    } else if (state2.isLessThanOrEqualTo(state1)) {
+    } else if (state2.isLessOrEqual(state1)) {
       result = state1;
     } else {
       NonRecursiveEnvironment resultEnvironment = NonRecursiveEnvironment.of();

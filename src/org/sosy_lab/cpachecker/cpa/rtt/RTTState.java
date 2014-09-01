@@ -36,13 +36,15 @@ import java.util.Stack;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 
-public class RTTState extends AbstractAppender implements AbstractState {
+public class RTTState extends AbstractAppender implements
+    LatticeAbstractState<RTTState> {
 
 
   public static final String KEYWORD_THIS = "this";
@@ -216,7 +218,8 @@ public class RTTState extends AbstractAppender implements AbstractState {
    * @param other the other element to join with this element
    * @return a new state representing the join of this element and the other element
    */
-  RTTState join(RTTState other) {
+  @Override
+  public RTTState join(RTTState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, String> newConstantsMap = Maps.newHashMapWithExpectedSize(size);
@@ -259,7 +262,8 @@ public class RTTState extends AbstractAppender implements AbstractState {
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  boolean isLessOrEqual(RTTState other) {
+  @Override
+  public boolean isLessOrEqual(RTTState other) {
 
     // this element is not less or equal than the other element, if it contains less elements
     if (constantsMap.size() < other.constantsMap.size()) {

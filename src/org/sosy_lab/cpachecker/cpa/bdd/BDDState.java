@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
@@ -32,7 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Joiner;
 
-public class BDDState implements AbstractQueryableState {
+public class BDDState implements AbstractQueryableState,
+    LatticeAbstractState<BDDState> {
 
   private Region currentState;
   private final NamedRegionManager manager;
@@ -48,10 +50,12 @@ public class BDDState implements AbstractQueryableState {
     return currentState;
   }
 
+  @Override
   public boolean isLessOrEqual(BDDState other) throws InterruptedException {
     return manager.entails(this.currentState, other.currentState);
   }
 
+  @Override
   public BDDState join(BDDState other) {
      Region result = manager.makeOr(this.currentState, other.currentState);
 
