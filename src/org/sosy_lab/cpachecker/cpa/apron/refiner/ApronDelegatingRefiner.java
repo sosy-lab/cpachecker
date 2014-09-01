@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -82,7 +83,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ApronInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -145,7 +146,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     logger               = pApronCPA.getLogger();
     shutdownNotifier     = pApronCPA.getShutdownNotifier();
     apronCPA             = pApronCPA;
-    interpolatingRefiner = new ApronInterpolationBasedRefiner(pApronCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    interpolatingRefiner = new ValueAnalysisInterpolationBasedRefiner(pApronCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override
