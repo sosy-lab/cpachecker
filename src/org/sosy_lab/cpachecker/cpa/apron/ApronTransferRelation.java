@@ -494,6 +494,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
           case PLUS:
             innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
             break;
+
+            // this cannot happen, this switch clause checks the same binary operator
+            // as the outer switch clause
+          default:
+            throw new AssertionError();
           }
 
           if (truthAssumption) {
