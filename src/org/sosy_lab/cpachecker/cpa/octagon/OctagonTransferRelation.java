@@ -1328,7 +1328,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
                // unused default statements, all possible values for this switch
                // statement are handled above
               default:
-                break;
+                throw new AssertionError("Unhandled case in switch clause.");
               }
               continue;
             }
