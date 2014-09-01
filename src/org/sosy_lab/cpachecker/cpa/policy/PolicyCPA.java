@@ -1,26 +1,3 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
 package org.sosy_lab.cpachecker.cpa.policy;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,28 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 @Options(prefix="cpa.policy")
 public class PolicyCPA implements ConfigurableProgramAnalysis{
 
-  private final ShutdownNotifier shutdownNotifier;
-
-  /**
-   * Formula handling.
-   */
-  private final FormulaManagerFactory formulaManagerFactory;
-  private final FormulaManager realFormulaManager;
-  private final FormulaManagerView formulaManager;
-
-  /**
-   * Converting code to formulas.
-   */
-  private final PathFormulaManager pathFormulaManager;
-  private final ValueDeterminationFormulaManager valueDeterminationFormulaManager;
-
   private final PolicyAbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
-  private final LogManager logger;
-  private final Configuration config;
-  private final LinearConstraintManager lcmgr;
-
-  private String mergeType = "JOIN";
 
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -88,28 +45,23 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     return AutomaticCPAFactory.forType(PolicyCPA.class);
   }
 
+  @SuppressWarnings("unused")
   private PolicyCPA(
         Configuration config,
         LogManager logger,
         ShutdownNotifier shutdownNotifier,
-        CFA cfa // NOTE: I have CFA, therefore I can do any pre-processing I should desire.
+        CFA cfa
         ) throws InvalidConfigurationException {
     config.inject(this);
 
+    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(config, logger, shutdownNotifier);
 
-    this.config = config;
-    this.logger = logger;
-    this.shutdownNotifier = shutdownNotifier;
-
-    formulaManagerFactory = new FormulaManagerFactory(config, logger, shutdownNotifier);
-
-    realFormulaManager = formulaManagerFactory.getFormulaManager();
-    formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
-
-    pathFormulaManager = new PathFormulaManagerImpl(
+    FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
+    FormulaManagerView formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
+    PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa, false);
-    lcmgr = new LinearConstraintManager(formulaManager, logger);
-    valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger);
+    ValueDeterminationFormulaManager valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
         pathFormulaManager,
         formulaManager,
         config,
@@ -141,7 +93,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
 
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
-
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
