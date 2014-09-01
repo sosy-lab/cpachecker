@@ -1325,6 +1325,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
               case GREATER_THAN:
                 returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
                 break;
+               // unused default statements, all possible values for this switch
+               // statement are handled above
+              default:
+                break;
               }
               continue;
             }
