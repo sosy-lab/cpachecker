@@ -247,7 +247,7 @@ class CFATransformations {
                                   ((CDeclarationEdge)edge).getDeclaration());
     case CallToReturnEdge:
       assert (false);
-      // falls through
+      // $FALL-THROUGH$
     default:
       throw new CFAGenerationRuntimeException("more edge types valid than expected, more work to do here");
     }
