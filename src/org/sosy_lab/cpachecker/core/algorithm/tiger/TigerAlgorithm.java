@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -358,24 +359,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
       boolean order = true;
 
-      Comparator<Entry<Integer, Goal>> posComparator = new Comparator<Entry<Integer, Goal>>() {
-
-        @Override
-        public int compare(Entry<Integer, Goal> pArg0, Entry<Integer, Goal> pArg1) {
-          return (pArg0.getKey() - pArg1.getKey());
-        }
-
-      };
-
-      Comparator<Entry<Integer, Goal>> negComparator = new Comparator<Entry<Integer, Goal>>() {
-
-        @Override
-        public int compare(Entry<Integer, Goal> pArg0, Entry<Integer, Goal> pArg1) {
-          return (pArg1.getKey() - pArg0.getKey());
-        }
-
-      };
-
       do {
         if (timeoutIncrement > 0) {
           long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
@@ -392,10 +375,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           // keep original order of goals (or inverse of it)
           if (order) {
-            set = new TreeSet<>(posComparator);
+            set = new TreeSet<>(WorklistEntryComparator.ORDER_RESPECTING_COMPARATOR);
           }
           else {
-            set = new TreeSet<>(negComparator);
+            set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
           }
 
           set.addAll(testsuite.getTimedOutGoals().entrySet());
