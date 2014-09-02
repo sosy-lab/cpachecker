@@ -122,7 +122,7 @@ public class CPABuilder {
           automata = graphmlParser.parseAutomatonFile(specFile);
 
         } else {
-          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope);
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
         }
 
         for (Automaton automaton : automata) {

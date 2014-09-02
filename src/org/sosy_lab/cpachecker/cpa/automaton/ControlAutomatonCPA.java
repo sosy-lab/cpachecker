@@ -40,6 +40,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -151,9 +152,21 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     } else {
 
-      Scope scope = new CProgramScope(cfa);
+      Language language = cfa.getLanguage();
 
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope);
+      List<Automaton> lst;
+
+      switch (language) {
+      case C:
+        Scope scope = new CProgramScope(cfa);
+        lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope, language);
+        break;
+      default:
+        scope = CProgramScope.empty();
+        lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope, language);
+        break;
+      }
+
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
