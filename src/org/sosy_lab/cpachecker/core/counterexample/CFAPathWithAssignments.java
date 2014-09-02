@@ -130,7 +130,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
 
-    if (pPath.size() != (pathWithAssignments.size() + 1)) {
+    if (pPath.getInnerEdges().size() != (pathWithAssignments.size())) {
       return null;
     }
 
@@ -140,7 +140,8 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     while (pathIterator.hasNext()) {
 
       CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
-      if (edgeWithAssignment.getCFAEdge().equals(pathIterator.getOutgoingEdge())) {
+      CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
+      if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
         // path is not equivalent
         return null;
       }
