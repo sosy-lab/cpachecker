@@ -93,7 +93,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  protected boolean handlePointerAliasing = true;
+  private boolean handlePointerAliasing = true;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
