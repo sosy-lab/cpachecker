@@ -122,13 +122,13 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
   private boolean fitsPath(List<CFAEdge> pPath) {
 
+    if (pPath.size() != pathWithAssignments.size()) {
+      return false;
+    }
+
     int index = 0;
 
     for (CFAEdge edge : pPath) {
-
-      if (index > pathWithAssignments.size()) {
-        return false;
-      }
 
       CFAEdgeWithAssignments cfaWithAssignment = pathWithAssignments.get(index);
 
@@ -137,11 +137,9 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       }
 
       index++;
-
-      return true;
     }
 
-    return false;
+    return true;
   }
 
   @Nullable
