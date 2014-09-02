@@ -960,7 +960,7 @@ int get_nondet() {
 
 int get_nondetMinMax07() {
     int nd;
-
+    nd = input();
     if (nd==0) {
  return 0;
     } else if (nd==1) {
