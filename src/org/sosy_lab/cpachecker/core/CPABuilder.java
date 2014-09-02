@@ -46,7 +46,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.JProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -155,11 +155,8 @@ public class CPABuilder {
     case C:
       return new CProgramScope(cfa);
 
-    case JAVA:
-      return new JProgramScope(cfa);
-
     default:
-      throw new AssertionError("Unhandled language type: " + usedLanguage);
+      return DummyScope.getInstance();
     }
   }
 
