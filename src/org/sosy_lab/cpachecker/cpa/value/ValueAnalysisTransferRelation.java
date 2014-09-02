@@ -1218,9 +1218,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private static final CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
-    CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
