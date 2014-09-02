@@ -50,6 +50,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -1221,6 +1222,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private Collection<String> getTerminationConditionVariables(Loop pLoop) throws CPATransferException, InterruptedException {
     Collection<String> result = new HashSet<>();
+    result.add(CFASingleLoopTransformation.PROGRAM_COUNTER_VAR_NAME);
     CFANode loopHead = Iterables.getOnlyElement(pLoop.getLoopHeads());
     Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
