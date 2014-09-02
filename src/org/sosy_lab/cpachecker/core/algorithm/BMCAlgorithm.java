@@ -766,7 +766,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             trivialResult = false;
           } else {
             trivialResult = null;
-            reachedSet = reachedSetFactory.create();
+            reachedSet = reachedSetFactory.create(false);
             CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
 
             if (invariantGenerator instanceof CPAInvariantGenerator) {

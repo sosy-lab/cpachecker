@@ -121,7 +121,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
     this.reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
-    reached = reachedSetFactory.create();
+    reached = reachedSetFactory.create(false);
   }
 
   @Override
@@ -177,7 +177,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
     private ReachedSet taskReached;
 
     public InvariantGenerationTask(ReachedSetFactory pReachedSetFactory, CFANode pInitialLocation) {
-      taskReached = pReachedSetFactory.create();
+      taskReached = pReachedSetFactory.create(false);
       synchronized (invariantCPAs) {
         taskReached.add(invariantCPAs.getInitialState(pInitialLocation),
             invariantCPAs.getInitialPrecision(pInitialLocation));
@@ -223,7 +223,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
         @Override
         public UnmodifiableReachedSet call() {
-          return pReachedSetFactory.create();
+          return pReachedSetFactory.create(false);
         }
 
       };

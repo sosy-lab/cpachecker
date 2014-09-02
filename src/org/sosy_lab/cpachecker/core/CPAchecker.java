@@ -188,7 +188,7 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = factory.createReachedSet();
+      reached = factory.createReachedSet(initialStatesFor == InitialStatesFor.TARGET);
 
       Algorithm algorithm;
 

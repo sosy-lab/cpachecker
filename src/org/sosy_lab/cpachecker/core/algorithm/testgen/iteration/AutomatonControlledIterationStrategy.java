@@ -91,7 +91,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       wrongStates.add(Pair.of((AbstractState) pResult.getWrongState(),
           getLocalReached().getPrecision(pResult.getWrongState())));
     }
-    ReachedSet newReached = reachedSetFactory.create();
+    ReachedSet newReached = reachedSetFactory.create(false);
     AbstractState initialState = getModel().getGlobalReached().getFirstState();
     CFANode initialLoc = AbstractStates.extractLocation(initialState);
     initialState = currentCPA.getInitialState(initialLoc);

@@ -38,7 +38,7 @@ public class DoNothingInvariantGenerator implements InvariantGenerator {
   private final Timer timer = new Timer();
 
   public DoNothingInvariantGenerator(ReachedSetFactory factory) {
-    reachedSet = factory.create();
+    reachedSet = factory.create(false);
   }
 
   @Override

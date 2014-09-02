@@ -128,7 +128,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
-      ReachedSet lReached = factory.createReachedSet();
+      ReachedSet lReached = factory.createReachedSet(false);
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);

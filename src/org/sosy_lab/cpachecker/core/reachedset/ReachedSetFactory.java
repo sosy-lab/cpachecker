@@ -84,21 +84,21 @@ public class ReachedSetFactory {
     config.inject(this);
   }
 
-  public ReachedSet create() {
+  public ReachedSet create(boolean pReverseWaitlist) {
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useAutomatonInformation) {
-      waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
-      waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory);
+      waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory, pReverseWaitlist);
+      waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
     if (useReversePostorder || useTopsort) {
-      waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
+      waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
     if (useCallstack) {
-      waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
+      waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
     if (useExplicitInformation) {
-      waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
+      waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
 
     switch (reachedSet) {

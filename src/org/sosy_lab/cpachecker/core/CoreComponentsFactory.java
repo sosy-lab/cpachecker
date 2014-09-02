@@ -213,8 +213,8 @@ public class CoreComponentsFactory {
     return reachedSetFactory;
   }
 
-  public ReachedSet createReachedSet() {
-    ReachedSet reached = reachedSetFactory.create();
+  public ReachedSet createReachedSet(boolean pReverseWaitlist) {
+    ReachedSet reached = reachedSetFactory.create(pReverseWaitlist);
 
     if (useRestartingAlgorithm) {
       // this algorithm needs an indirection so that it can change

@@ -373,7 +373,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
       cpa = null;
-      reached = new ReachedSetFactory(singleConfig, logger).create();
+      reached = new ReachedSetFactory(singleConfig, logger).create(false);
     } else {
       ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
       cpa = createCPA(singleReachedSetFactory, singleConfig, singleShutdownNotifier, stats);
@@ -393,7 +393,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     AbstractState initialState = cpa.getInitialState(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
 
-    ReachedSet reached = pReachedSetFactory.create();
+    ReachedSet reached = pReachedSetFactory.create(false);
     reached.add(initialState, initialPrecision);
     return reached;
   }

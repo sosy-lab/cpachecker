@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  protected ExplicitSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
-    super(pSecondaryStrategy);
+  protected ExplicitSortedWaitlist(WaitlistFactory pSecondaryStrategy, boolean pReverse) {
+    super(pSecondaryStrategy, pReverse);
   }
 
   @Override
@@ -49,12 +49,12 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
     return (explicitState != null) ? -explicitState.getSize() : 0;
   }
 
-  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final boolean pReverse) {
     return new WaitlistFactory() {
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new ExplicitSortedWaitlist(pSecondaryStrategy);
+        return new ExplicitSortedWaitlist(pSecondaryStrategy, pReverse);
       }
     };
   }

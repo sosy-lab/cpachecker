@@ -54,12 +54,15 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
 
   private int size = 0;
 
+  private final boolean reverse;
+
   /**
    * Constructor that needs a factory for the waitlist implementation that
    * should be used to store states with the same sorting key.
    */
-  protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+  protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy, boolean pReverse) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
+    reverse = pReverse;
   }
 
   /**
@@ -113,8 +116,14 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public AbstractState pop() {
-    Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
+  public final AbstractState pop() {
+    Entry<K, Waitlist> highestEntry = null;
+    if (reverse) {
+      highestEntry = waitlist.firstEntry();
+    } else {
+      highestEntry = waitlist.lastEntry();
+    }
+
     Waitlist localWaitlist = highestEntry.getValue();
     assert !localWaitlist.isEmpty();
     AbstractState result = localWaitlist.pop();
