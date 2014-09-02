@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 /** Represents a State in the automaton.
  */
 public class AutomatonInternalState {
   // the StateId is used to identify States in GraphViz
-  private static int stateIdCounter = 0;
-  // stateIdCounter is incremented every time an instance of AutomatonState is created.
-  private int stateId = stateIdCounter++;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int stateId = idGenerator.getFreshId();
 
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());

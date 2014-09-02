@@ -30,6 +30,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -65,8 +66,8 @@ public class AbstractionFormula implements Serializable {
    */
   private final PathFormula blockFormula;
 
-  private static int nextId = 0;
-  private final int id = nextId++;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int id = idGenerator.getFreshId();
   private final BooleanFormulaManager mgr;
   private final ImmutableSet<Integer> idsOfStoredAbstractionReused;
 

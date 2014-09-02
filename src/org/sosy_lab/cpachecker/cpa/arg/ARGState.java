@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -74,11 +75,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private final int stateId;
 
-  private static int nextArgStateId = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState);
-    stateId = ++nextArgStateId;
+    stateId = idGenerator.getFreshId();
     if (pParentElement != null) {
       addParent(pParentElement);
     }

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -50,7 +51,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   private final List<String> assertedFormulas; // Collection of termNames
   private final Map<String, Term> annotatedTerms; // Collection of termNames
   private static final String prefix = "term_"; // for termnames
-  private static int counter = 0; // for different termnames // TODO static?
+  private static final UniqueIdGenerator termIdGenerator = new UniqueIdGenerator(); // for different termnames // TODO static?
 
   SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
@@ -66,7 +67,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     Term t = mgr.getTerm(f);
     //Term t = ((SmtInterpolFormula)f).getTerm();
 
-    String termName = prefix + counter++;
+    String termName = prefix + termIdGenerator.getFreshId();
     Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
     pushAndAssert(annotatedTerm);
     assertedFormulas.add(termName);

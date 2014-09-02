@@ -28,9 +28,11 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+
 public class CFANode implements Comparable<CFANode> {
 
-  private static int nextNodeNumber = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final int nodeNumber;
 
@@ -54,7 +56,7 @@ public class CFANode implements Comparable<CFANode> {
     assert !pFunctionName.isEmpty();
 
     functionName = pFunctionName;
-    nodeNumber = nextNodeNumber++;
+    nodeNumber = idGenerator.getFreshId();
   }
 
   public int getNodeNumber() {
