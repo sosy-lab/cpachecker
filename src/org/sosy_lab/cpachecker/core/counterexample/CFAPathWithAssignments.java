@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +33,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -261,5 +264,41 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   @Deprecated
   public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
     return allAssignableTerms.get(pEdge);
+  }
+
+  public void toJSON(Appendable sb, ARGPath argPath) throws IOException {
+    List<Map<?, ?>> path = new ArrayList<>(this.size());
+
+
+    if( argPath.size() != pathWithAssignments.size()) {
+      argPath.toJSON(sb);
+      return;
+    }
+
+    int index = 0;
+
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(argPath.asStatesList(), argPath.asEdgesList())) {
+
+      Map<String, Object> elem = new HashMap<>();
+      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+      ARGState argelem = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+
+      if (edge == null) {
+        continue; // in this case we do not need the edge
+      }
+
+      elem.put("argelem", argelem.getStateId());
+      elem.put("source", edge.getPredecessor().getNodeNumber());
+      elem.put("target", edge.getSuccessor().getNodeNumber());
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
+      elem.put("val", edgeWithAssignment.prettyPrint());
+      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("file", edge.getFileLocation().getFileName());
+      path.add(elem);
+      index++;
+    }
+
+    JSON.writeJSONString(path, sb);
   }
 }

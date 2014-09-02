@@ -194,7 +194,14 @@ public class CEXExporter {
     writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        targetPath.toJSON(pAppendable);
+
+        if (counterexample != null
+            && counterexample.getTargetPathModel() != null
+            && counterexample.getTargetPathModel().getAssignedTermsPerEdge() != null) {
+          counterexample.getTargetPathModel().getAssignedTermsPerEdge().toJSON(pAppendable, targetPath);
+        } else {
+          targetPath.toJSON(pAppendable);
+        }
       }
     });
 

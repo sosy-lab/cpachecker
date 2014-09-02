@@ -101,6 +101,23 @@ public class CFAEdgeWithAssignments {
     return result.toString();
   }
 
+  public String prettyPrint() {
+    String assignments = this.prettyPrintCode(0);
+    String comment = this.getComment();
+
+    String result = "";
+
+    if (assignments != null) {
+      result = assignments;
+    }
+
+    if (comment != null) {
+      result = result + comment;
+    }
+
+    return result;
+  }
+
   @Override
   public String toString() {
     return edge.toString() + " " + assignments.toString();
