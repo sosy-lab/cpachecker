@@ -197,8 +197,8 @@ public class CEXExporter {
 
         if (counterexample != null
             && counterexample.getTargetPathModel() != null
-            && counterexample.getTargetPathModel().getAssignedTermsPerEdge() != null) {
-          counterexample.getTargetPathModel().getAssignedTermsPerEdge().toJSON(pAppendable, targetPath);
+            && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
+          counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
         } else {
           targetPath.toJSON(pAppendable);
         }
@@ -301,7 +301,7 @@ public class CEXExporter {
           out.append(System.lineSeparator());
           if (model != null) {
             //TODO Erase, counterexample is supposed to be independent of Assignable terms
-            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
+            for (Model.AssignableTerm term : model.getAllAssignedTerms(edge)) {
               out.append('\t');
               out.append(term.toString());
               out.append(": ");

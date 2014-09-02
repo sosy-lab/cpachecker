@@ -47,7 +47,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -79,6 +81,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -407,8 +410,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
 
     Model model = counterexample.getModel();
-    model = counterexample.getModel().withAssignmentInformation(
-        pathChecker.extractVariableAssignment(edges, ssamaps, model));
+
+    Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
+        pathChecker.extractVariableAssignment(edges, ssamaps, model);
+
+    CFAPathWithAssignments pathWithAssignments = pathAndTerms.getFirst();
+    Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
+
+    model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
 
     return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }

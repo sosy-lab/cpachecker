@@ -522,7 +522,7 @@ public class ARGUtils {
       throws IOException {
 
     Model model = pCounterExampleTrace.getModel();
-    CFAPathWithAssignments assignmentCFAPath = model.getAssignedTermsPerEdge();
+    CFAPathWithAssignments assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
 
@@ -581,7 +581,7 @@ public class ARGUtils {
 
     Model model = pCounterExample.getTargetPathModel();
     if (model != null) {
-      CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
+      CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
       if (cfaPath != null) {
         ARGPath targetPath = pCounterExample.getTargetPath();
         valueMap = model.getExactVariableValues(targetPath);
@@ -702,7 +702,7 @@ public class ARGUtils {
     if (pCounterExample != null) {
       Model model = pCounterExample.getTargetPathModel();
       if (model != null) {
-        CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
+        CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
         if (cfaPath != null) {
           ARGPath targetPath = pCounterExample.getTargetPath();
           valueMap = model.getExactVariableValues(targetPath);
