@@ -1024,11 +1024,11 @@ public class CFASingleLoopTransformation {
               pPCIdExpression, secondToLastFalseEdge.getProgramCounterValue(), false);
           toAdd.add(newLastEdge);
         } else {
-          BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, new CFATerminationNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME), lastTrueEdge.getSuccessor(), "");
+          BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, pLoopHead, lastTrueEdge.getSuccessor(), "");
           addToNodes(edge);
         }
       } else {
-        BlankEdge defaultBackEdge = new BlankEdge("", FileLocation.DUMMY, decisionTreeNode, pLoopHead, "Illegal program counter value");
+        BlankEdge defaultBackEdge = new BlankEdge("", FileLocation.DUMMY, decisionTreeNode, new CFATerminationNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME), "Illegal program counter value");
         addToNodes(defaultBackEdge);
       }
     }
