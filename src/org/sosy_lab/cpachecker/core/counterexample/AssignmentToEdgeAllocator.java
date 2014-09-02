@@ -1186,6 +1186,8 @@ public class AssignmentToEdgeAllocator {
       try {
         val = new BigDecimal(value);
       } catch (NumberFormatException e) {
+
+        logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
         return UnknownValueLiteral.getInstance();
       }
 
