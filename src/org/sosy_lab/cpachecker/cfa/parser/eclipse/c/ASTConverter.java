@@ -1889,6 +1889,12 @@ class ASTConverter {
 
     String name = convert(d.getName());
 
+    // when the enum has no name we create one
+    // (this may be the case when the enum declaration is surrounded by a typedef)
+    if (name.isEmpty()) {
+      name = "__anon_type_" + anonTypeCounter++;
+    }
+
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
