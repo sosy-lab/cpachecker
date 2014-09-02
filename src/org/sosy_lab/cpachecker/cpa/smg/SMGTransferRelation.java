@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -1252,16 +1253,19 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
 
-        if (rSymValue.isUnknown()) {
-          return;
-        }
+        if(rSymValue.isUnknown()) {
 
-        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+          rSymValue = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
 
-        SMGAddress addressOfField = lValue.accept(visitor);
+          SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
-        if (addressOfField.isUnknown()) {
-          return;
+          SMGAddress addressOfField = lValue.accept(visitor);
+
+          if(addressOfField.isUnknown()) {
+            return;
+          }
+
+          assignableState.writeValue(addressOfField.getObject(), addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue);
         }
 
         if (truthValue) {
@@ -1536,7 +1540,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
-        strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
+        retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
       }
     }
 
@@ -1555,10 +1559,12 @@ public class SMGTransferRelation implements TransferRelation {
     SMGState newElement = new SMGState(pElement);
 
     for (AssumeEdge assume : assumptions) {
-      if (!(assume instanceof CAssumeEdge)) {
+      if (!(assume instanceof CAssumeEdge) || !(((CBinaryExpression)((CAssumeEdge)assume).getExpression()).getOperand1().getExpressionType() instanceof CSimpleType)) {
         continue;
       }
+
       newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption());
+
       if (newElement == null) {
         break;
       }
