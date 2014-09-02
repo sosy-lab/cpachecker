@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -105,7 +106,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrat
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -488,7 +488,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     if (reuseARG && (reachedSet != null)) {
       ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoal.getAutomaton());
 
-      if (reusePredicates) {
+      // reusedPrecision == null indicates that there is no PredicateCPA
+      if (reusePredicates && reusedPrecision != null) {
         for (AbstractState lWaitlistElement : reachedSet.getWaitlist()) {
           Precision lOldPrecision = reachedSet.getPrecision(lWaitlistElement);
           Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, reusedPrecision, PredicatePrecision.class);
@@ -510,9 +511,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       if (reusePredicates) {
         // initialize reused predicate precision
         PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
-        assert(predicateCPA != null);
 
-        reusedPrecision = (PredicatePrecision)predicateCPA.getInitialPrecision(cfa.getMainFunction());
+        if (predicateCPA != null) {
+          reusedPrecision = (PredicatePrecision)predicateCPA.getInitialPrecision(cfa.getMainFunction());
+        }
+        else {
+          logger.logf(Level.INFO, "No predicate CPA available to reuse predicates!");
+        }
       }
     }
 
@@ -526,29 +531,26 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       throw new RuntimeException(e1);
     }
 
-
-    PredicateCPARefiner lRefiner;
+    CEGARAlgorithm cegarAlg;
     try {
-      //lRefiner = PredicateRefiner.cpatiger_create(lARTCPA, this);
-      lRefiner = PredicateRefiner.create(lARTCPA);
+      cegarAlg = new CEGARAlgorithm(cpaAlg, lARTCPA, startupConfig.getConfig(), logger);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+
+    Refiner refiner = cegarAlg.getRefiner();
+    if (refiner instanceof PredicateCPARefiner) {
+      PredicateCPARefiner predicateRefiner = (PredicateCPARefiner)refiner;
 
       if (reusePredicates) {
-        RefinementStrategy strategy = lRefiner.getRefinementStrategy();
+        RefinementStrategy strategy = predicateRefiner.getRefinementStrategy();
         assert(strategy instanceof PredicateAbstractionRefinementStrategy);
 
         PredicateAbstractionRefinementStrategy refinementStrategy = (PredicateAbstractionRefinementStrategy)strategy;
         refinementStrategy.setPrecisionCallback(this);
       }
-    } catch (CPAException | InvalidConfigurationException e) {
-      throw new RuntimeException(e);
     }
 
-    CEGARAlgorithm cegarAlg;
-    try {
-      cegarAlg = new CEGARAlgorithm(cpaAlg, lRefiner, startupConfig.getConfig(), logger);
-    } catch (InvalidConfigurationException | CPAException e) {
-      throw new RuntimeException(e);
-    }
 
     ARGStatistics lARTStatistics;
     try {
@@ -559,6 +561,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     Set<Statistics> lStatistics = new HashSet<>();
     lStatistics.add(lARTStatistics);
     cegarAlg.collectStatistics(lStatistics);
+
 
     boolean analysisWasSound = false;
     boolean hasTimedOut = false;

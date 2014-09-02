@@ -222,6 +222,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     mRefiner = Preconditions.checkNotNull(pRefiner);
   }
 
+  public Refiner getRefiner() {
+    return mRefiner;
+  }
+
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete        = true;
