@@ -28,10 +28,6 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings(value = "EQ_COMPARETO_USE_OBJECT_EQUALS",
-    justification = "The ID used in compareTo() is unique per object instance.")
 public class CFANode implements Comparable<CFANode> {
 
   private static int nextNodeNumber = 0;
@@ -185,7 +181,21 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   @Override
-  public int compareTo(CFANode pOther) {
+  public final int compareTo(CFANode pOther) {
     return Integer.compare(this.nodeNumber, pOther.nodeNumber);
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    // Object.equals() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.hashCode();
   }
 }

@@ -261,13 +261,24 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   /**
    * The ordering of this class is the chronological creation order.
-   *
-   * Note: Although equals() is not overwritten, this ordering is consistent
-   * with equals() as the stateId field is unique.
    */
   @Override
-  public int compareTo(ARGState pO) {
+  public final int compareTo(ARGState pO) {
     return Integer.compare(this.stateId, pO.stateId);
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    // Object.equals() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.hashCode();
   }
 
   public boolean isOlderThan(ARGState other) {

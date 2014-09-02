@@ -1488,11 +1488,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
       } else {
-        missingInformationRightJExpression = null;
-        missingInformationLeftJVariable = null;
-        if (missingInformationLeftJVariable != null) { // TODO why check this???
+        if (missingInformationLeftJVariable != null) {
           newElement.forget(missingInformationLeftJVariable);
         }
+        missingInformationRightJExpression = null;
+        missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
       }
     }

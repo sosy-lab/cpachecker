@@ -1333,7 +1333,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private <T extends Throwable> void adjustReachedSet(ReachedSet pReachedSet, ReachedSetInitializer pInitializer) throws CPAException, InterruptedException {
+  private void adjustReachedSet(ReachedSet pReachedSet, ReachedSetInitializer pInitializer) throws CPAException, InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : conditionCPAs) {

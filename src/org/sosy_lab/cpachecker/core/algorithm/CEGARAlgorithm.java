@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -70,7 +72,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    public volatile int countRefinements = 0;
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+        justification = "only one thread writes, others read")
+    private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
