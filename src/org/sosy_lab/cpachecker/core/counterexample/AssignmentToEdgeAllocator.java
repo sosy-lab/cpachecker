@@ -1180,18 +1180,20 @@ public class AssignmentToEdgeAllocator {
       }
 
       String value = pValue.toString();
+      BigDecimal val;
 
-      if (value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))")) {
-        BigDecimal val = new BigDecimal(value);
-
-        if(!isSigned && val.signum() == -1) {
-          return ExplicitValueLiteral.valueOf(val).addCast(UNSIGNED_DOUBLE);
-        } else {
-          return ExplicitValueLiteral.valueOf(val);
-        }
+      //TODO support rationals
+      try {
+        val = new BigDecimal(value);
+      } catch (NumberFormatException e) {
+        return UnknownValueLiteral.getInstance();
       }
 
-      return UnknownValueLiteral.getInstance();
+      if (!isSigned && val.signum() == -1) {
+        return ExplicitValueLiteral.valueOf(val).addCast(UNSIGNED_DOUBLE);
+      } else {
+        return ExplicitValueLiteral.valueOf(val);
+      }
     }
 
     public void resolveStruct(CType type, ValueLiterals pValueLiterals,
