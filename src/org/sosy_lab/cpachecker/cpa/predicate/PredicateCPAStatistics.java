@@ -112,23 +112,25 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
-  private final ReachingPathsWriter reachingPathsWriter;
+  //private final ReachingPathsWriter reachingPathsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
   private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Timer pInvariantGeneratorTimer, Configuration config)
+      Timer pInvariantGeneratorTimer, Configuration pConfig)
           throws InvalidConfigurationException {
+
     cpa = pCpa;
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
     invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
-    config.inject(this, PredicateCPAStatistics.class);
 
-    reachingPathsWriter = new ReachingPathsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
+    pConfig.inject(this, PredicateCPAStatistics.class);
+
+    //reachingPathsWriter = new ReachingPathsWriter(pCfa, pConfig, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
 
@@ -229,7 +231,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
 
-    if (result == Result.TRUE && exportInvariants && invariantsFile != null) {
+    if (exportInvariants && invariantsFile != null) {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
     }
 
