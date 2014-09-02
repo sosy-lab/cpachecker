@@ -223,8 +223,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
   public void toJSON(Appendable sb, ARGPath argPath) throws IOException {
     List<Map<?, ?>> path = new ArrayList<>(this.size());
 
-
-    if( argPath.size() != pathWithAssignments.size()) {
+    if (argPath.getInnerEdges().size() != pathWithAssignments.size()) {
       argPath.toJSON(sb);
       return;
     }
@@ -234,7 +233,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(argPath.asStatesList(), argPath.asEdgesList())) {
 
       Map<String, Object> elem = new HashMap<>();
-      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
 
@@ -246,9 +245,17 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
-      elem.put("val", edgeWithAssignment.prettyPrint());
       elem.put("line", edge.getFileLocation().getStartingLineNumber());
       elem.put("file", edge.getFileLocation().getFileName());
+
+      // cfa path with assignments has no padding (only inner edges of argpath).
+      if (index == pathWithAssignments.size()) {
+        elem.put("val", "");
+      } else {
+        CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+        elem.put("val", edgeWithAssignment.printForHTML());
+      }
+
       path.add(elem);
       index++;
     }

@@ -118,6 +118,10 @@ public class CFAEdgeWithAssignments {
     return result;
   }
 
+  public String printForHTML() {
+    return prettyPrint().replace(System.lineSeparator(), "\n");
+  }
+
   @Override
   public String toString() {
     return edge.toString() + " " + assignments.toString();
