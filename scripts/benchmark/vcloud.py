@@ -52,7 +52,7 @@ STOPPED_BY_INTERRUPT = False
 def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
     if not justReprocessResults:
         # build input for cloud
-        cloudInput = getCloudInput(benchmark)
+        (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
         filewriter.writeFile(cloudInput, cloudInputFile)
         outputHandler.allCreatedFiles.append(cloudInputFile)
@@ -68,8 +68,9 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
             logLevel =  "FINER"
         else:
             logLevel = "INFO"
+        heapSize = 50 + numberOfRuns//10 # 50 MB and 100 kB per run
         libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
-        cmdLine = ["java", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
+        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
@@ -143,7 +144,7 @@ def getCloudInput(benchmark):
                 toTabList(limitsAndNumRuns)
             ])
     cloudInput.extend(runDefinitions)
-    return "\n".join(cloudInput)
+    return ("\n".join(cloudInput), numberOfRuns)
 
 
 def getBenchmarkDataForCloud(benchmark):
