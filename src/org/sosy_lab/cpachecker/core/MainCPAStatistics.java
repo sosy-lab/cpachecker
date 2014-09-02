@@ -57,7 +57,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -73,11 +76,12 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
 @Options
-class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
@@ -108,6 +112,8 @@ class MainCPAStatistics implements Statistics {
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
   private Thread memStatsThread;
+
+  private Collection<IterationStatistics> iterationStats;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -434,5 +440,21 @@ class MainCPAStatistics implements Statistics {
   public void setCFA(CFA pCfa) {
     Preconditions.checkState(cfa == null);
     cfa = pCfa;
+  }
+
+  @Override
+  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
+    if (iterationStats == null) {
+      iterationStats = Lists.newArrayList();
+      for (Statistics s: subStats) {
+        if (s instanceof IterationStatistics) {
+          iterationStats.add((IterationStatistics)s);
+        }
+      }
+    }
+
+    for(IterationStatistics s: iterationStats) {
+      s.printIterationStatistics(System.out, pReached);
+    }
   }
 }
