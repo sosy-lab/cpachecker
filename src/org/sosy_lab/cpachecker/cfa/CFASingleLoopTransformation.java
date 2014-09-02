@@ -161,7 +161,7 @@ public class CFASingleLoopTransformation {
         " counter value not to be explicitly assumed in the decision tree," +
         " so that it is only indirectly represented by the assumption of" +
         " falsehood for all other assumptions in the decision tree.")
-  private boolean omitExplicitLastProgramCounterAssumption = true;
+  private boolean omitExplicitLastProgramCounterAssumption = false;
 
   @Option(name="cfa.transformIntoSingleLoop.programCounterValueProviderFactory",
       description="This option controls what program counter values are used" +
@@ -1024,7 +1024,7 @@ public class CFASingleLoopTransformation {
               pPCIdExpression, secondToLastFalseEdge.getProgramCounterValue(), false);
           toAdd.add(newLastEdge);
         } else {
-          BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, pLoopHead, lastTrueEdge.getSuccessor(), "");
+          BlankEdge edge = new BlankEdge("", FileLocation.DUMMY, new CFATerminationNode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME), lastTrueEdge.getSuccessor(), "");
           addToNodes(edge);
         }
       } else {

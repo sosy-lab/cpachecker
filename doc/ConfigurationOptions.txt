@@ -372,7 +372,7 @@ cfa.transformIntoSingleLoop = false
 # explicitly assumed in the decision tree, so that it is only indirectly
 # represented by the assumption of falsehood for all other assumptions in the
 # decision tree.
-cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = true
+cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
 
 # This option controls what program counter values are used. Possible values
 # are INCREMENTAL and NODE_NUMBER.
@@ -927,6 +927,9 @@ cpa.predicate.abstraction.type = "BDD"
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
+
+# Run the predicate analysis backwards?
+cpa.predicate.backwards = false
 
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
