@@ -34,7 +34,10 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -406,7 +409,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     /**
      * the variable assignment of the interpolant
      */
-    private final Map<MemoryLocation, Value> assignment;
+    private @Nullable final Map<MemoryLocation, Value> assignment;
 
     /**
      * the interpolant representing "true"
@@ -481,7 +484,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     @Override
     public int hashCode() {
-      return (assignment == null) ? 0 : assignment.hashCode();
+      return Objects.hashCode(assignment);
     }
 
     @Override
@@ -499,14 +502,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-      if ((assignment == null && other.assignment != null) || (assignment != null && other.assignment == null)) {
-        return false;
-
-      } else if (!assignment.equals(other.assignment)) {
-        return false;
-      }
-
-      return true;
+      return Objects.equals(assignment, other.assignment);
     }
 
     /**
@@ -515,7 +511,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      * @return true, if the interpolant represents "true", else false
      */
     public boolean isTrue() {
-      return assignment.isEmpty();
+      return !isFalse() && assignment.isEmpty();
     }
 
     /**
