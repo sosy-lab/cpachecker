@@ -22,12 +22,12 @@
  *    http://cpachecker.sosy-lab.org
  */
 
-package org.sosy_lab.cpachecker.fshell.fql2.parser;
+package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 
 import java_cup.runtime.*;
 import java.io.IOException;
 
-import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.*;
 
 @SuppressWarnings("all")
 %%
@@ -42,7 +42,7 @@ import static org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym.*;
 %final
 // %abstract
 
-%cupsym org.sosy_lab.cpachecker.fshell.fql2.parser.FQLSym
+%cupsym org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym
 %cup
 // %cupdebug
 
