@@ -170,7 +170,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk, config);
+    transfer = new PredicateTransferRelation(this, blk, config, backwards);
 
     topState = PredicateAbstractState.mkAbstractionState(
         formulaManager.getBooleanFormulaManager(),

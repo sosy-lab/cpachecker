@@ -99,8 +99,10 @@ public class PredicateTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
+  private final boolean backwards;
+
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config) throws InvalidConfigurationException {
+      Configuration config, boolean pBackwards) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -109,6 +111,7 @@ public class PredicateTransferRelation implements TransferRelation {
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
+    backwards = pBackwards;
   }
 
   @Override
@@ -119,7 +122,8 @@ public class PredicateTransferRelation implements TransferRelation {
     try {
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
-      CFANode loc = edge.getSuccessor();
+      CFANode loc = getAnalysisSuccesor(edge);
+      CFANode predloc = getAnalysisPredecessor(edge);
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
@@ -130,11 +134,28 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(loc, predloc, pathFormula);
 
       return createState(element, pathFormula, loc, doAbstraction);
+
     } finally {
       postTimer.stop();
+    }
+  }
+
+  private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
+    if (backwards) {
+      return pEdge.getPredecessor();
+    } else {
+      return pEdge.getSuccessor();
+    }
+  }
+
+  private CFANode getAnalysisPredecessor(CFAEdge pEdge) {
+    if (backwards) {
+      return pEdge.getSuccessor();
+    } else {
+      return pEdge.getPredecessor();
     }
   }
 
@@ -304,7 +325,7 @@ public class PredicateTransferRelation implements TransferRelation {
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
       if (errorFound && targetStateSatCheck) {
-        element = strengthenSatCheck(element, edge.getSuccessor());
+        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();
