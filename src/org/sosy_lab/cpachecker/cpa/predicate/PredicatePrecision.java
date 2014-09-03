@@ -318,7 +318,7 @@ public class PredicatePrecision implements Precision {
       return true;
     } else if (pObj == null) {
       return false;
-    } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
+    } else if (!(pObj.getClass().equals(this.getClass()))) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;
