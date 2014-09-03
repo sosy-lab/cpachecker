@@ -26,12 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import java.util.Comparator;
 import java.util.Map.Entry;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-
-public class WorklistEntryComparator implements Comparator<Entry<Integer, Pair<Goal, Region>>> {
+public class WorklistEntryComparator implements Comparator<Entry<Integer, ?>> {
 
   public static final WorklistEntryComparator ORDER_RESPECTING_COMPARATOR = new WorklistEntryComparator(true);
   public static final WorklistEntryComparator ORDER_INVERTING_COMPARATOR = new WorklistEntryComparator(false);
@@ -45,7 +41,7 @@ public class WorklistEntryComparator implements Comparator<Entry<Integer, Pair<G
   }
 
   @Override
-  public int compare(Entry<Integer, Pair<Goal, Region>> pArg0, Entry<Integer, Pair<Goal, Region>> pArg1) {
+  public int compare(Entry<Integer, ?> pArg0, Entry<Integer, ?> pArg1) {
     return (factor * (pArg0.getKey() - pArg1.getKey()));
   }
 
