@@ -367,7 +367,7 @@ public class CtoFormulaConverter {
     if (makeFreshIndex && !postponeMakeFresh) {
       useIndex = getIndex(name, type, ssa, makeFreshIndex, true);
     } else {
-      useIndex = getIndex(name, type, ssa, false, false);
+      useIndex = getIndex(name, type, ssa, false, backwards); // if backwards: set=true because variables appear before their declaration
     }
 
     Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
