@@ -23,10 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.base.Equivalence;
+
 /**
  * Helper methods for CType instances.
  */
 public final class CTypes {
+
+  private static class CanonicalCTypeEquivalence extends Equivalence<CType> {
+    private static final CanonicalCTypeEquivalence INSTANCE = new CanonicalCTypeEquivalence();
+
+    @Override
+    protected boolean doEquivalent(CType pA, CType pB) {
+      return pA.getCanonicalType().equals(pB.getCanonicalType());
+    }
+
+    @Override
+    protected int doHash(CType pT) {
+      return pT.hashCode();
+    }
+  }
+
+  /**
+   * Return an {@link Equivalence} based on the canonical type,
+   * i.e., two types are defined as equal if their canonical types are equal.
+   */
+  public static Equivalence<CType> canonicalTypeEquivalence() {
+    return CanonicalCTypeEquivalence.INSTANCE;
+  }
 
   /**
    * Return a copy of a given type that has the "const" flag not set.

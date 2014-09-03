@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
@@ -236,17 +237,7 @@ public class SSAMap implements Serializable {
 
     PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
         s1.varTypes, s2.varTypes,
-        new Equivalence<CType>() {
-          @Override
-          protected boolean doEquivalent(CType pA, CType pB) {
-            return pA.getCanonicalType().equals(pB.getCanonicalType());
-          }
-
-          @Override
-          protected int doHash(CType pT) {
-            return pT.hashCode();
-          }
-        },
+        CTypes.canonicalTypeEquivalence(),
         TYPE_CONFLICT_CHECKER,
         null);
 
