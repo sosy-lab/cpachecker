@@ -1155,19 +1155,50 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       push(bfmgr.or(unsafeSuccessor, combinedPotentialLoopHeadInvariantContradiction)); // combined contradiction to successor safety or loop invariant
       boolean sound = prover.isUnsat();
 
+      UnmodifiableReachedSet localInvariantsReachedSet = invariantsReachedSet;
+      UnmodifiableReachedSet currentInvariantsReachedSet = invariantGenerator.get();
+
+      int pushed = 0;
+      while (!sound && currentInvariantsReachedSet != localInvariantsReachedSet) {
+        localInvariantsReachedSet = currentInvariantsReachedSet;
+        BooleanFormula invariants = getCurrentInvariants();
+        invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
+        push(invariants);
+        ++pushed;
+        sound = prover.isUnsat();
+        currentInvariantsReachedSet = invariantGenerator.get();
+      }
+
       pop(); // pop combined contradiction
       pop(); // pop loop invariant assertion for predecessors
 
       // If first check failed and a candidate loop invariant was tried out, check without the candidate loop invariant
-      if (!sound && potentialLoopHeadInvariants.isEmpty()) {
+      if (!sound && !potentialLoopHeadInvariants.isEmpty()) {
         push(unsafeSuccessor); // push plain contradiction to successor safety
         sound = prover.isUnsat();
+
+        currentInvariantsReachedSet = invariantGenerator.get();
+        while (!sound && currentInvariantsReachedSet != localInvariantsReachedSet) {
+          localInvariantsReachedSet = currentInvariantsReachedSet;
+          BooleanFormula invariants = getCurrentInvariants();
+          invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
+          push(invariants);
+          ++pushed;
+          sound = prover.isUnsat();
+          currentInvariantsReachedSet = invariantGenerator.get();
+        }
+
         if (!sound && logger.wouldBeLogged(Level.ALL)) {
           logger.log(Level.ALL, "Model returned for induction check:", prover.getModel());
         }
         pop(); // pop plain contradiction to successor safety ("unsafe successor")
       }
       pop(); // pop assertion of safe predecessors
+
+      // Pop extra pushed invariants off
+      for (int i = 0; i < pushed; ++i) {
+        pop();
+      }
 
       stats.inductionCheck.stop();
 
