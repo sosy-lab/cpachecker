@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Predicate;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.TargetGraph.Builder;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.mask.FunctionNameMaskFunctor;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 
 public class TargetGraphUtil {
 
@@ -168,7 +168,7 @@ public class TargetGraphUtil {
       throw new IllegalArgumentException();
     }
 
-    if (pInitialNode.getFunctionName().equals(TigerAlgorithm.CPAtiger_MAIN)) {
+    if (pInitialNode.getFunctionName().equals(WrapperUtil.CPAtiger_MAIN)) {
       throw new IllegalArgumentException("Do not start target graph construction inside wrapper code!");
     }
 
@@ -211,7 +211,7 @@ public class TargetGraphUtil {
           CFAEdge lEdge = lCFANode.getLeavingEdge(lEdgeIndex);
           CFANode lSuccessor = lEdge.getSuccessor();
 
-          if (lSuccessor.getFunctionName().equals(TigerAlgorithm.CPAtiger_MAIN)) {
+          if (lSuccessor.getFunctionName().equals(WrapperUtil.CPAtiger_MAIN)) {
             // we will not consider wrapper code in target graphs
             continue;
           }

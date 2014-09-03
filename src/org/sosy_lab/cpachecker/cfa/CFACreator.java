@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -453,7 +454,7 @@ public class CFACreator {
 
       // switch main functions
       TigerAlgorithm.originalMainFunction = mainFunctionName;
-      mainFunctionName = TigerAlgorithm.CPAtiger_MAIN;
+      mainFunctionName = WrapperUtil.CPAtiger_MAIN;
 
       CParser cParser = (CParser)parser;
 
@@ -468,7 +469,7 @@ public class CFACreator {
 
       ParseResult tmpParseResult = cParser.parseFile(programFragments, sourceOriginMapping);
 
-      parseResult = TigerAlgorithm.addWrapper(cParser, tmpParseResult, sourceOriginMapping);
+      parseResult = WrapperUtil.addWrapper(cParser, tmpParseResult, sourceOriginMapping);
     }
     else {
       if (sourceFiles.size() == 1) {

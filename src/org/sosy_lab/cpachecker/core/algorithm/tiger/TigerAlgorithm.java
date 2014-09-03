@@ -24,13 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -43,8 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
@@ -59,16 +54,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -89,12 +75,14 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -102,6 +90,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -117,21 +106,20 @@ import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
-
-/**
- *
- */
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
 
   public static String originalMainFunction = null;
 
@@ -149,6 +137,9 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
 
   @Option(name = "reuseARG", description = "Reuse ARG across test goals")
   private boolean reuseARG = true;
+
+  @Option(name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
+  private boolean reusePredicates = true;
 
   @Option(name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -174,7 +165,6 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
   @Option(name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
   private boolean useOrder = true;
 
-
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -189,13 +179,14 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
 
+  private TestSuite testsuite;
+  private ReachedSet reachedSet = null;
+  private ReachedSet outsideReachedSet = null;
+
+  private PredicatePrecision reusedPrecision = null;
 
   private int statistics_numberOfTestGoals;
   private int statistics_numberOfProcessedTestGoals = 0;
-
-
-  private TestSuite testsuite;
-  ReachedSet reachedSet = null;
 
   NamedRegionManager bddCpaNamedRegionManager = null;
 
@@ -265,7 +256,8 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
     // Problem: pReachedSet does not match the internal CPA structure!
     logger.logf(Level.INFO, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
-    pReachedSet.clear();
+    outsideReachedSet = pReachedSet;
+    outsideReachedSet.clear();
 
 
     // (ii) translate query into set of test goals
@@ -580,6 +572,8 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
 
     lAutomatonCPAs.add(lAutomatonCPA);
 
+
+
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
     //int lProductAutomatonIndex = lComponentAnalyses.size();
@@ -621,6 +615,16 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
 
     if (reuseARG && (reachedSet != null)) {
       ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex, pPreviousGoalAutomaton, pGoal.getAutomaton());
+
+      // reusedPrecision == null indicates that there is no PredicateCPA
+      if (reusePredicates && reusedPrecision != null) {
+        for (AbstractState lWaitlistElement : reachedSet.getWaitlist()) {
+          Precision lOldPrecision = reachedSet.getPrecision(lWaitlistElement);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, reusedPrecision, PredicatePrecision.class);
+
+          reachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
+        }
+      }
     }
     else {
       reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
@@ -629,6 +633,20 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
 
       reachedSet.add(lInitialElement, lInitialPrecision);
+
+      outsideReachedSet.add(lInitialElement, lInitialPrecision);
+
+      if (reusePredicates) {
+        // initialize reused predicate precision
+        PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
+
+        if (predicateCPA != null) {
+          reusedPrecision = (PredicatePrecision)predicateCPA.getInitialPrecision(cfa.getMainFunction());
+        }
+        else {
+          logger.logf(Level.INFO, "No predicate CPA available to reuse predicates!");
+        }
+      }
     }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
@@ -647,6 +665,20 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
+
+    Refiner refiner = cegarAlg.getRefiner();
+    if (refiner instanceof PredicateCPARefiner) {
+      PredicateCPARefiner predicateRefiner = (PredicateCPARefiner)refiner;
+
+      if (reusePredicates) {
+        RefinementStrategy strategy = predicateRefiner.getRefinementStrategy();
+        assert(strategy instanceof PredicateAbstractionRefinementStrategy);
+
+        PredicateAbstractionRefinementStrategy refinementStrategy = (PredicateAbstractionRefinementStrategy)strategy;
+        refinementStrategy.setPrecisionCallback(this);
+      }
+    }
+
 
     ARGStatistics lARTStatistics;
     try {
@@ -677,7 +709,7 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       analysisWasSound = cegarAlg.run(reachedSet);
     }
     else {
-   // run algorithm with time limit
+      // run algorithm with time limit
       WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, cpuTimelimitPerGoal, algNotifier);
 
       Thread workerThread = new Thread(workerRunnable);
@@ -765,7 +797,7 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
               if (e.getKey() instanceof Model.Variable) {
                 Model.Variable v = (Model.Variable)e.getKey();
 
-                if (v.getName().equals(TigerAlgorithm.CPAtiger_INPUT + "::__retval__")) {
+                if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
                   inputs.add(e);
                 }
               }
@@ -891,99 +923,14 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
     return lGoal;
   }
 
-  // TODO move all these wrapper related code into TigerAlgorithmUtil class
-  public static final String CPAtiger_MAIN = "__CPAtiger__main";
-  public static final String CPAtiger_INPUT = "input";
-
-  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
-
-    StringWriter lWrapperFunction = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
-
-    // TODO interpreter is not capable of handling initialization of global declarations
-
-    lWriter.println(pMainFunction.getFunctionDefinition().toASTString());
-    lWriter.println();
-    lWriter.println("extern int __VERIFIER_nondet_int();");
-    lWriter.println();
-    lWriter.println("int " +  CPAtiger_INPUT + "() {");
-    lWriter.println("  return __VERIFIER_nondet_int();");
-    lWriter.println("}");
-    lWriter.println();
-    lWriter.println("void " + CPAtiger_MAIN + "()");
-    lWriter.println("{");
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.toASTString() + ";");
-    }
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      // TODO do we need to handle lDeclaration more specifically?
-      lWriter.println("  " + lDeclaration.getName() + " = " +  CPAtiger_INPUT + "();");
-    }
-
-    lWriter.println();
-    lWriter.print("  " + pMainFunction.getFunctionName() + "(");
-
-    boolean isFirst = true;
-
-    for (CParameterDeclaration lDeclaration : pMainFunction.getFunctionParameters()) {
-      if (isFirst) {
-        isFirst = false;
-      }
-      else {
-        lWriter.print(", ");
-      }
-
-      lWriter.print(lDeclaration.getName());
-    }
-
-    lWriter.println(");");
-    lWriter.println("  return;");
-    lWriter.println("}");
-    lWriter.println();
-
-    File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
-    f.deleteOnExit();
-
-    Writer writer = null;
-
-    try {
-        writer = new BufferedWriter(new OutputStreamWriter(
-              new FileOutputStream(f), "utf-8"));
-        writer.write(lWrapperFunction.toString());
-    } catch (IOException ex) {
-      // TODO report
-    } finally {
-       try {writer.close();} catch (Exception ex) {}
-    }
-
-    return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
+  @Override
+  public PredicatePrecision getPrecision() {
+    return reusedPrecision;
   }
 
-  public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
-    // create wrapper code
-    CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
-
-    List<FileToParse> tmpList = new ArrayList<>();
-    tmpList.add(TigerAlgorithm.getWrapperCFunction(entryNode));
-
-    ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
-
-    // TODO add checks for consistency
-    SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
-    mergedFunctions.putAll(tmpParseResult.getFunctions());
-    mergedFunctions.putAll(wrapperParseResult.getFunctions());
-
-    SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
-    mergedCFANodes.putAll(tmpParseResult.getCFANodes());
-    mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
-
-    List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
-    mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
-    mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
-
-    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+  @Override
+  public void setPrecision(PredicatePrecision pNewPrec) {
+    reusedPrecision = pNewPrec;
   }
 
   @Override
