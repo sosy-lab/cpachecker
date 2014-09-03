@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -57,6 +58,12 @@ public class ReachedSetFactory {
       + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
       + "The secondary strategy is selected with 'analysis.traversal.order'.")
   boolean useReversePostorder = false;
+
+  @Option(name = "traversal.usePostorder",
+      description = "Use an implementation of postorder strategy that allows to select "
+      + "a secondary strategy that is used if there are two states with the same postorder id. "
+      + "The secondary strategy is selected with 'analysis.traversal.order'.")
+  boolean usePostorder = false;
 
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
@@ -87,6 +94,9 @@ public class ReachedSetFactory {
     }
     if (useReversePostorder) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (usePostorder) {
+      waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

@@ -160,6 +160,12 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
+# Use an implementation of postorder strategy that allows to select a
+# secondary strategy that is used if there are two states with the same
+# postorder id. The secondary strategy is selected with
+# 'analysis.traversal.order'.
+analysis.traversal.usePostorder = false
+
 # Use an implementation of reverse postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
 # reverse postorder id. The secondary strategy is selected with
@@ -208,18 +214,6 @@ bdd.javabdd.initTableSize = 10000
 # - jdd:    JDD
 bdd.package = "JAVA"
   allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
-
-# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
-bdd.sylvan.cacheGranularity = 4
-
-# Log2 size of the BDD cache.
-bdd.sylvan.cacheSize = 24
-
-# Log2 size of the BDD node table.
-bdd.sylvan.tableSize = 26
-
-# Number of worker threads, 0 for automatic.
-bdd.sylvan.threads = 0
 
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
@@ -284,11 +278,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (0 is infinite)
-cbmc.timelimit = 0ms
 cbmc.timelimit = 0
+cbmc.timelimit = 0ms
 
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
