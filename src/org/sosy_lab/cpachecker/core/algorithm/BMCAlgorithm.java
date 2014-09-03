@@ -41,6 +41,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -714,14 +716,17 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private int stackDepth = 0;
 
+    @GuardedBy("this")
     private ImmutableSet<CFANode> targetLocations = null;
 
+    @GuardedBy("this")
     private boolean targetLocationsChanged = false;
 
     private BooleanFormula previousFormula = null;
 
     private int previousK = -1;
 
+    @GuardedBy("this")
     private ImmutableSet<BooleanFormula> potentialLoopHeadInvariants = ImmutableSet.of();
 
     private Set<BooleanFormula> knownLoopHeadInvariants = new HashSet<>();

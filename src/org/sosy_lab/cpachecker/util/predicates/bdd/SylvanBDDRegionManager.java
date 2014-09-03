@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import jsylvan.JSylvan;
 
 import org.sosy_lab.common.Triple;
@@ -93,6 +95,7 @@ class SylvanBDDRegionManager implements RegionManager {
   private int threads = 0;
 
   // Statistics
+  @GuardedBy("itself")
   private final StatTimer cleanupTimer = new StatTimer("Time for BDD cleanup after GC");
 
   private final Region trueFormula;
