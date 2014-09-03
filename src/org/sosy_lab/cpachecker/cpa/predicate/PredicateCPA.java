@@ -149,7 +149,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     String libraries = formulaManager.getVersion();
 
-    PathFormulaManager pfMgr = createPathFormulaManagerImpl(formulaManager, cfa);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, backwards);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -215,14 +215,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     machineModel = cfa.getMachineModel();
   }
-
-
-  protected PathFormulaManager createPathFormulaManagerImpl(FormulaManagerView pFormulaManager, CFA pCfa)
-      throws InvalidConfigurationException {
-
-    return new PathFormulaManagerImpl(pFormulaManager, config, logger, shutdownNotifier, pCfa, false);
-  }
-
 
   @Override
   public PredicateAbstractDomain getAbstractDomain() {
