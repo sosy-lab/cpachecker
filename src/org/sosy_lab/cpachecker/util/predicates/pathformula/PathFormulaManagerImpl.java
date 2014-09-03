@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collections;
@@ -272,25 +273,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts1 = pathFormula1.getPointerTargetSet();
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
-    final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMap newSSA = mergeSSAResult.getSecond();
+    final MergeResult<SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
+    final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult;
+    final MergeResult<PointerTargetSet> mergePtsResult;
     if (ptsManager != null) {
       mergePtsResult = ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
     } else {
-      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
-      mergePtsResult = Pair.of(Triple.of(trueFormula, trueFormula, trueFormula), pts1);
+      mergePtsResult = MergeResult.trivial(pts1, bfmgr);
     }
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
-        bfmgr.and(mergeSSAResult.getFirst().getFirst(), mergePtsResult.getFirst().getFirst()));
+        bfmgr.and(mergeSSAResult.getLeftConjunct(), mergePtsResult.getLeftConjunct()));
     final BooleanFormula newFormula2 = bfmgr.and(formula2,
-        bfmgr.and(mergeSSAResult.getFirst().getSecond(), mergePtsResult.getFirst().getSecond()));
+        bfmgr.and(mergeSSAResult.getRightConjunct(), mergePtsResult.getRightConjunct()));
     final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
-                                                         mergePtsResult.getFirst().getThird());
-    final PointerTargetSet newPTS = mergePtsResult.getSecond();
+        bfmgr.and(mergeSSAResult.getFinalConjunct(), mergePtsResult.getFinalConjunct()));
+    final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
     return new PathFormula(newFormula, newSSA, newPTS, newLength);
@@ -306,6 +306,59 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
+   * Class representing the result of the operation of merging (disjuncting)
+   * additional parts of {@link PathFormula}s beyond the actual formula.
+   */
+  public static class MergeResult<T> {
+
+    private final BooleanFormula leftConjunct;
+    private final BooleanFormula rightConjunct;
+    private final BooleanFormula finalConjunct;
+
+    private final T result;
+
+    public MergeResult(T pResult, BooleanFormula pLeftConjunct,
+        BooleanFormula pRightConjunct, BooleanFormula pFinalConjunct) {
+      result = checkNotNull(pResult);
+      leftConjunct = checkNotNull(pLeftConjunct);
+      rightConjunct = checkNotNull(pRightConjunct);
+      finalConjunct = checkNotNull(pFinalConjunct);
+    }
+
+    public static <T> MergeResult<T> trivial(T result, BooleanFormulaManagerView bfmgr) {
+      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
+      return new MergeResult<>(result, trueFormula, trueFormula, trueFormula);
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the left formula
+     * before it is used in the disjunction.
+     */
+    BooleanFormula getLeftConjunct() {
+      return leftConjunct;
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the right formula
+     * before it is used in the disjunction.
+     */
+    BooleanFormula getRightConjunct() {
+      return rightConjunct;
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the result of the disjunction.
+     */
+    BooleanFormula getFinalConjunct() {
+      return finalConjunct;
+    }
+
+    T getResult() {
+      return result;
+    }
+  }
+
+  /**
    * builds a formula that represents the necessary variable assignments
    * to "merge" the two ssa maps. That is, for every variable X that has two
    * different ssa indices i and j in the maps, creates a new formula
@@ -317,9 +370,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param pts1 the PointerTargetSet for ssa1
    * @param ssa2 an SSAMap
    * @param pts2 the PointerTargetSet for ssa1
-   * @return A pair (formulas, SSAMap) where the formulas need to be added to the path formulas before disjuncting them.
+   * @return The new SSAMap and the formulas that need to be added to the path formulas before disjuncting them.
    */
-  protected Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
+  protected MergeResult<SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -386,7 +439,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
 
-    return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
+    return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeBoolean(true));
   }
 
   protected BooleanFormula makeSsaVariableMerger(final String variableName,
