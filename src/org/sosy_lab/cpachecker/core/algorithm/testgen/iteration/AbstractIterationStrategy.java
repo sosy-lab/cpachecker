@@ -60,7 +60,7 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
   @Override
   public void initializeModel(ReachedSet pReachedSet) {
     getModel().setGlobalReached(pReachedSet);
-    ReachedSet currentReached = reachedSetFactory.create(false);
+    ReachedSet currentReached = reachedSetFactory.create();
     getModel().setLocalReached(currentReached);
     AbstractState initialState = getGlobalReached().getFirstState();
     currentReached.add(initialState, getGlobalReached().getPrecision(initialState));

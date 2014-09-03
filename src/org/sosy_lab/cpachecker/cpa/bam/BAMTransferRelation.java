@@ -420,7 +420,7 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create(false);
+    ReachedSet reached = reachedSetFactory.create();
     reached.add(initialState, initialPredicatePrecision);
     return reached;
   }

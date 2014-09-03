@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy, boolean pReverse) {
-    super(pSecondaryStrategy, pReverse);
+  protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+    super(pSecondaryStrategy);
   }
 
   @Override
@@ -43,12 +43,12 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
     return AbstractStates.extractLocation(pState).getReversePostorderId();
   }
 
-  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final boolean pReverse) {
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
     return new WaitlistFactory() {
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new ReversePostorderSortedWaitlist(pSecondaryStrategy, pReverse);
+        return new ReversePostorderSortedWaitlist(pSecondaryStrategy);
       }
     };
   }

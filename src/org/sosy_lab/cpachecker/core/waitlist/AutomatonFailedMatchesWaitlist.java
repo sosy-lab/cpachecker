@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class AutomatonFailedMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  protected AutomatonFailedMatchesWaitlist(WaitlistFactory pSecondaryStrategy, final boolean pReverse) {
-    super(pSecondaryStrategy, pReverse);
+  protected AutomatonFailedMatchesWaitlist(WaitlistFactory pSecondaryStrategy) {
+    super(pSecondaryStrategy);
   }
 
   @Override
@@ -42,12 +42,12 @@ public class AutomatonFailedMatchesWaitlist extends AbstractSortedWaitlist<Integ
     return (automatonState != null) ? automatonState.getFailedMatches() : 0;
   }
 
-  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy, final boolean pReverse) {
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
     return new WaitlistFactory() {
 
       @Override
       public Waitlist createWaitlistInstance() {
-        return new AutomatonFailedMatchesWaitlist(pSecondaryStrategy, pReverse);
+        return new AutomatonFailedMatchesWaitlist(pSecondaryStrategy);
       }
     };
   }

@@ -93,7 +93,7 @@ public class TargetLocationProvider {
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
       ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
 
-      ReachedSet reached = reachedSetFactory.create(false);
+      ReachedSet reached = reachedSetFactory.create();
       reached.add(cpa.getInitialState(pRootNode), cpa.getInitialPrecision(pRootNode));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
 
