@@ -108,7 +108,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (!(cpa instanceof ARGCPA) || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
+    if (!(cpa instanceof ARGCPA)
+        || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
         || CPAs.retrieveCPA(cpa, PredicateCPA.class) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and Predicate CPA to work.");
