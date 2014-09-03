@@ -54,10 +54,4 @@ public class CNumericTypes {
 
   public static final CIntegerLiteralExpression ZERO = create(0L, INT);
   public static final CIntegerLiteralExpression ONE = create(1L, INT);
-
-  /* type bounds, assuming 32-bit machine */
-  // TODO move to MachineModel
-  public static final CIntegerLiteralExpression INT_MAX = create(2147483647L, INT);
-  public static final CIntegerLiteralExpression INT_MIN = create(-2147483648L, INT);
-
 }

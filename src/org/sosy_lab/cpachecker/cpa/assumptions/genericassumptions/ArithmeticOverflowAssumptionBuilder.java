@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -56,6 +57,11 @@ import com.google.common.collect.Lists;
 public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder {
 
+  /* type bounds, assuming 32-bit machine */
+  // TODO use MachineModel
+  public static final CIntegerLiteralExpression INT_MAX = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(2147483647L));
+  public static final CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-2147483648L));
+
   private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ) {
     if (typ instanceof CSimpleType) {
       CSimpleType btyp = (CSimpleType) typ;
@@ -65,7 +71,7 @@ implements GenericAssumptionBuilder {
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
-          (CNumericTypes.INT_MIN, CNumericTypes.INT_MAX);
+          (INT_MIN, INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
           //              return new Pair<>
