@@ -654,15 +654,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingInformationList.add(new MissingInformation(op1, op2));
       }
 
-      op1 = ((APointerExpression)op1).getOperand();
-
-      // Cil produces code like
-      // *((int*)__cil_tmp5) = 1;
-      // so remove cast
-      if (op1 instanceof CCastExpression) {
-        op1 = ((CCastExpression)op1).getOperand();
-      }
-
     } else if (op1 instanceof CFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
