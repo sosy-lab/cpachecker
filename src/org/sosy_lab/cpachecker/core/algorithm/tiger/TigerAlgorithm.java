@@ -605,6 +605,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
     }
 
+    // TODO maybe we should check for this: from(reached).anyMatch(IS_TARGET_STATE)
     Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
     if (!hasTimedOut) {
