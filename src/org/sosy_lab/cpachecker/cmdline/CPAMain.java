@@ -86,6 +86,7 @@ public class CPAMain {
       System.exit(1);
       return;
     }
+    cpaConfig.enableLogging(logManager);
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();

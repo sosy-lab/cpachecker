@@ -248,6 +248,9 @@ public class CPABuilder {
       throw new InvalidConfigurationException(
         "Option " + optionName + " has to be set to a class implementing the ConfigurableProgramAnalysis interface!");
     }
+
+    Classes.produceClassLoadingWarning(logger, cpaClass, ConfigurableProgramAnalysis.class);
+
     return cpaClass;
   }
 
