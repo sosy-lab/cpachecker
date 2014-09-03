@@ -314,7 +314,7 @@ public class SMGTransferRelation implements TransferRelation {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
+          writeValue(currentState, bufferMemory, offset + c, CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
         if (!expValue.isUnknown()) {
