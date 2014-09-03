@@ -117,8 +117,6 @@ import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
@@ -643,19 +641,10 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
       throw new RuntimeException(e1);
     }
 
-
-    PredicateCPARefiner lRefiner;
-    try {
-      //lRefiner = PredicateRefiner.cpatiger_create(lARTCPA, this);
-      lRefiner = PredicateRefiner.create(lARTCPA);
-    } catch (CPAException | InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
-
     CEGARAlgorithm cegarAlg;
     try {
-      cegarAlg = new CEGARAlgorithm(cpaAlg, lRefiner, startupConfig.getConfig(), logger);
-    } catch (InvalidConfigurationException | CPAException e) {
+      cegarAlg = new CEGARAlgorithm(cpaAlg, lARTCPA, startupConfig.getConfig(), logger);
+    } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
 
