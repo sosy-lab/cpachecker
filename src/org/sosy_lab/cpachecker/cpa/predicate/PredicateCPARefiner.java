@@ -221,6 +221,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // however we do not have the very first state in the trace,
     // because the rootState has always abstraction "True".
 
+    logger.log(Level.ALL, "Error path formulas: ", formulas);
+
     // build the counterexample
     buildCounterexampeTraceTime.start();
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
