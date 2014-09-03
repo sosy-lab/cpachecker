@@ -356,8 +356,6 @@ public class CtoFormulaConverter {
   /**
    * Create a formula for a given variable with a fresh index if needed.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   *
-   * This method does not update the index of the variable.
    */
   private Formula makeVariable(String name, CType type, SSAMapBuilder ssa,
       boolean makeFreshIndex, boolean postponeMakeFresh) {
