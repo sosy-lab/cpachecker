@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -1188,9 +1187,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         pReachedSet.clear();
         Collection<String> loopTerminationConditionVariables = getTerminationConditionVariables(loop);
         for (AbstractState loopHeadState : loopHeadStates) {
-          // Havoc the "loop termination condition" variables
-
-          // ... in predicate analysis
+          // Havoc the "loop termination condition" variables in predicate analysis state
           PredicateAbstractState pas = extractStateByType(loopHeadState, PredicateAbstractState.class);
           PathFormula pathFormula = pas.getPathFormula();
           SSAMapBuilder ssaMapBuilder = pathFormula.getSsa().builder();
@@ -1202,15 +1199,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
               ssaMapBuilder.setIndex(variable, type, freshIndex);
             }
           }
-          pas.setPathFormula(new PathFormula(pathFormula.getFormula(), ssaMapBuilder.build(), pathFormula.getPointerTargetSet(), pathFormula.getLength()));
 
-          // ... and in explicit value analysis
-          ValueAnalysisState vas = extractStateByType(loopHeadState, ValueAnalysisState.class);
-          for (String variable : loopTerminationConditionVariables) {
-            vas.forget(variable);
-          }
+          AbstractState newLoopHeadState = cpa.getInitialState(loopHead);
 
-          pReachedSet.add(loopHeadState, cpa.getInitialPrecision(loopHead));
+          PredicateAbstractState newPAS = extractStateByType(newLoopHeadState, PredicateAbstractState.class);
+          newPAS.setPathFormula(new PathFormula(pathFormula.getFormula(), ssaMapBuilder.build(), pathFormula.getPointerTargetSet(), pathFormula.getLength()));
+
+          pReachedSet.add(newLoopHeadState, cpa.getInitialPrecision(loopHead));
         }
       } else {
         Precision precision = cpa.getInitialPrecision(loopHead);
@@ -1247,33 +1242,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private static boolean isLoopExitEdge(CFAEdge pEdge, Loop pLoop) {
-    if (!pLoop.getLoopNodes().contains(pEdge.getSuccessor())) {
-      return true;
-    }
-    // Now it get's a bit tricky:
-    // Actually, the above check is sufficient;
-    // however, ESBMC hard codes the specification and thus
-    // also knows that every call to __VERIFIER_assert must exit
-    // iff the parameter condition does not hold.
-    // So, to be able to compare somehow, here is a hack that kinda
-    // simulates this behavior:
-
-    // Check the next two levels of successive edges
-    FluentIterable<CFAEdge> directSuccessorEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
-    Iterable<CFAEdge> successorEdges = Iterables.concat(directSuccessorEdges, directSuccessorEdges.transformAndConcat(new Function<CFAEdge, Iterable<CFAEdge>>() {
-
-      @Override
-      public Iterable<CFAEdge> apply(CFAEdge pArg0) {
-        return CFAUtils.leavingEdges(pArg0.getSuccessor());
-      }
-
-    }));
-    return from(successorEdges).anyMatch(new Predicate<CFAEdge>() {
-
-      @Override
-      public boolean apply(CFAEdge pArg0) {
-        return pArg0.getEdgeType() == CFAEdgeType.FunctionCallEdge && pArg0.getSuccessor().getFunctionName().equals("__VERIFIER_assert");
-      }});
+    return !pLoop.getLoopNodes().contains(pEdge.getSuccessor());
   }
 
   private Iterable<BooleanFormula> assertAt(Iterable<AbstractState> pStates, final BooleanFormula pUninstantiatedFormula) {
