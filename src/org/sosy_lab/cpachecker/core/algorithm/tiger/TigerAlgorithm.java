@@ -1049,7 +1049,7 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider, Statistics
 
   @Override
   public String getName() {
-    return "TigerAlgorithm";
+    return "TigerAlgorithm (variability aware)";
   }
 
 }
