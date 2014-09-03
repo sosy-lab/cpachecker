@@ -114,7 +114,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   protected final ShutdownNotifier shutdownNotifier;
 
   @Option(description="add special information to formulas about non-deterministic functions")
-  protected boolean useNondetFlags = false;
+  private boolean useNondetFlags = false;
 
   private final boolean backwards;
 
