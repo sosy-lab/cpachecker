@@ -1790,6 +1790,17 @@ tiger.checkCoverage = true
 # Coverage criterion given as an FQL query
 tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
 
+# Inverses the order of test goals each time a new round of re-processing of
+# timed-out goals begins.
+tiger.inverseOrder = true
+
+# Time limit per test goal in seconds (-1 for infinity).
+tiger.limitsPerGoal.time.cpu = -1
+
+# Value for which timeout gets incremented if timed-out goals are
+# re-processed.
+tiger.limitsPerGoal.time.cpu.increment = 0
+
 # Optimize the test goal automata
 tiger.optimizeGoalAutomata = true
 
@@ -1800,5 +1811,14 @@ tiger.printARGperGoal = false
 tiger.reuseARG = true
 
 # Filename for output of generated test suite
-tiger.testsuiteFile = "output/teststuite.txt"
+tiger.testsuiteFile = "testsuite.txt"
+
+# How to proceed with timed-out goals if some time remains after processing
+# all other goals.
+tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
+  enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
+
+# Enforce the original order each time a new round of re-processing of
+# timed-out goals begins.
+tiger.useOrder = true
 
