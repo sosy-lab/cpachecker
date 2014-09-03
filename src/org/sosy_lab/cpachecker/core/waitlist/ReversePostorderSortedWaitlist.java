@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
-  @SuppressWarnings("deprecation")
   protected ReversePostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy, boolean pReverse) {
     super(pSecondaryStrategy, pReverse);
   }

@@ -166,10 +166,6 @@ analysis.traversal.useExplicitInformation = false
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
 
-# DEPRECATED: This option was renamed to
-# analysis.traversal.useReversePostorder and will soon get removed.
-analysis.traversal.useTopsort = false
-
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
 

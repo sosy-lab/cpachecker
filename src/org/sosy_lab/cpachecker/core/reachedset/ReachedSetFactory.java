@@ -58,11 +58,6 @@ public class ReachedSetFactory {
       + "The secondary strategy is selected with 'analysis.traversal.order'.")
   boolean useReversePostorder = false;
 
-  @Option(name = "traversal.useTopsort",
-      description="This option was renamed to analysis.traversal.useReversePostorder and will soon get removed.")
-  @Deprecated
-  boolean useTopsort = false;
-
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
   boolean useExplicitInformation = false;
@@ -79,7 +74,6 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  @SuppressWarnings("deprecation")
   public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -91,7 +85,7 @@ public class ReachedSetFactory {
       waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory, pReverseWaitlist);
       waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
-    if (useReversePostorder || useTopsort) {
+    if (useReversePostorder) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory, pReverseWaitlist);
     }
     if (useCallstack) {
