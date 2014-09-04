@@ -38,12 +38,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,6 +57,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -64,6 +67,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
@@ -71,9 +75,13 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedE
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
@@ -139,6 +147,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
 
+  @Option(name = "useInfeasibilityPropagation", description = "Map information on infeasibility of one test goal to other test goals.")
+  private boolean useInfeasibilityPropagation = true;
+
   enum TimeoutStrategy {
     SKIP_AFTER_TIMEOUT,
     RETRY_AFTER_TIMEOUT
@@ -187,6 +198,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private int statistics_numberOfTestGoals;
   private int statistics_numberOfProcessedTestGoals = 0;
+
+  private Prediction[] lGoalPrediction;
 
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -247,14 +260,41 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     outsideReachedSet.clear();
 
 
-    // (ii) translate query into set of test goals
-    // I didn't move this operation to the constructor since it is a potentially expensive operation.
-    LinkedList<ElementaryCoveragePattern> goalPatterns = extractTestGoalPatterns(fqlSpecification);
+    // Optimization: Infeasibility propagation
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
+
+    if (useInfeasibilityPropagation) {
+      lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
+    }
+    else {
+      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+    }
+
+    LinkedList<ElementaryCoveragePattern> goalPatterns;
+
+    if (lInfeasibilityPropagation.getFirst()) {
+      goalPatterns = extractTestGoalPatterns_InfeasibilityPropagation(fqlSpecification, lInfeasibilityPropagation.getSecond());
+
+      lGoalPrediction = new Prediction[statistics_numberOfTestGoals];
+
+      for (int i = 0; i < statistics_numberOfTestGoals; i++) {
+        lGoalPrediction[i] = Prediction.UNKNOWN;
+      }
+    }
+    else {
+      // (ii) translate query into set of test goals
+      // I didn't move this operation to the constructor since it is a potentially expensive operation.
+      goalPatterns = extractTestGoalPatterns(fqlSpecification);
+
+      lGoalPrediction = null;
+    }
+
+
 
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
-    if (!testGeneration(goalPatterns)) {
+    if (!testGeneration(goalPatterns, lInfeasibilityPropagation)) {
       logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
       wasSound = false;
     }
@@ -262,6 +302,26 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     assert(goalPatterns.isEmpty());
 
     return wasSound;
+  }
+
+  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(FQLSpecification pFQLQuery, LinkedList<Edges> pEdges) {
+    logger.logf(Level.INFO, "Extracting test goals.");
+
+    CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
+    ClusteringCoverageSpecificationTranslator lTranslator = new ClusteringCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator, pEdges, lInitialNode);
+
+    ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
+    statistics_numberOfTestGoals = lGoalPatterns.length;
+
+    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
+
+    LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
+
+    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
+      goalPatterns.add(lGoalPatterns[lGoalIndex]);
+    }
+
+    return goalPatterns;
   }
 
   private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery) {
@@ -307,7 +367,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     return false;
   }
 
-  private boolean testGeneration(LinkedList<ElementaryCoveragePattern> pTestGoalPatterns) throws CPAException, InterruptedException {
+  private boolean testGeneration(LinkedList<ElementaryCoveragePattern> pTestGoalPatterns, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
     boolean wasSound = true;
 
     int goalIndex = 0;
@@ -326,6 +386,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
       Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata);
 
+      if (lGoalPrediction != null && lGoalPrediction[goalIndex - 1] == Prediction.INFEASIBLE) {
+        logger.logf(Level.INFO, "This goal is predicted as infeasible!");
+
+        testsuite.addInfeasibleGoal(lGoal);
+
+        continue;
+      }
+
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = lGoal.getAutomaton();
 
       if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
@@ -334,14 +402,17 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         testsuite.addInfeasibleGoal(lGoal);
 
+        lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+
         continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
       }
 
       if (checkCoverage && isCovered(goalIndex, lGoal)) {
+        lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
         continue;
       }
 
-      if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
+      if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
         wasSound = false;
       }
@@ -396,6 +467,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
+          if (lGoalPrediction != null && lGoalPrediction[goalIndex - 1] == Prediction.INFEASIBLE) {
+            logger.logf(Level.INFO, "This goal is predicted as infeasible!");
+
+            testsuite.addInfeasibleGoal(lGoal);
+
+            continue;
+          }
+
           // TODO optimization: do not check for coverage if no new testcases were generated.
           if (checkCoverage) {
             if (coverageCheckOpt.containsKey(lGoal)) {
@@ -415,7 +494,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             continue;
           }*/
 
-          if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton)) {
+          if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation)) {
             logger.logf(Level.WARNING, "Analysis run was unsound!");
             wasSound = false;
           }
@@ -432,7 +511,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     return wasSound;
   }
 
-  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton) throws CPAException, InterruptedException {
+  private boolean runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
 
@@ -613,14 +692,71 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         // test goal is not feasible
         logger.logf(Level.INFO, "Test goal infeasible.");
 
+        lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+
         testsuite.addInfeasibleGoal(pGoal);
         // TODO add missing soundness checks!
+
+        if (pInfeasibilityPropagation.getFirst()) {
+          logger.logf(Level.INFO, "Do infeasibility propagation!");
+
+
+
+          HashSet<CFAEdge> lTargetEdges = new HashSet<>();
+
+          ClusteredElementaryCoveragePattern lClusteredPattern = (ClusteredElementaryCoveragePattern)pGoal.getPattern();
+
+          ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+          int lTmpIndex = goalIndex - 1; // caution lIndex starts at 0
+
+          while (lRemainingPatterns.hasNext()) {
+            Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+            if (lPrediction.equals(Prediction.UNKNOWN)) {
+              lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
+            }
+
+            lTmpIndex++;
+          }
+
+          Collection<CFAEdge> lFoundEdges = InfeasibilityPropagation.dfs2(lClusteredPattern.getCFANode(), lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
+
+          lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+          lTmpIndex = goalIndex - 1;
+
+          while (lRemainingPatterns.hasNext()) {
+            Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+            if (lPrediction.equals(Prediction.UNKNOWN)) {
+              if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
+                //mFeasibilityInformation.setStatus(lTmpIndex+1, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+                // TODO remove ???
+
+                lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
+              }
+            }
+
+            lTmpIndex++;
+          }
+
+
+
+        }
       }
       else {
         // test goal is feasible
         logger.logf(Level.INFO, "Test goal is feasible.");
 
         // TODO add missing soundness checks!
+
+
+        lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
 
         assert counterexamples.size() == 1;
 
