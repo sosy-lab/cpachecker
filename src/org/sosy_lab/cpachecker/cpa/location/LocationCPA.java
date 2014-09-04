@@ -58,7 +58,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final TransferRelation transferRelation;
+  private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPA(CFA pCfa) {
@@ -117,7 +117,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(transferRelation.getAbstractSuccessors(pElement, null, pCfaEdge));
+    return pSuccessors.equals(transferRelation.getAbstractSuccessors(
+        pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override
