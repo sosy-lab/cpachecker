@@ -126,4 +126,6 @@ public interface UnsafeFormulaManager {
    */
   <T1 extends Formula, T2 extends Formula> T1
       substitute(T1 f, List<T2> changeFrom, List<T2> changeTo);
+
+  Formula simplify(Formula f);
 }

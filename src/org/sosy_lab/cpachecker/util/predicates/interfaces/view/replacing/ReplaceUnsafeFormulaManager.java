@@ -126,4 +126,10 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public Formula simplify(Formula pF) {
+    return rawUnsafeManager.simplify(
+        replaceManager.unwrap(pF));
+  }
+
 }
