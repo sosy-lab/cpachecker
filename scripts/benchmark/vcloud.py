@@ -88,8 +88,13 @@ def executeBenchmarkInCloud(benchmark, outputHandler, justReprocessResults):
         wallTimeAfter = time.time()
         usedWallTime = wallTimeAfter - wallTimeBefore
 
-        if returnCode and not STOPPED_BY_INTERRUPT:
-            logging.warn("Cloud return code: {0}".format(returnCode))
+        if returnCode:
+            if STOPPED_BY_INTERRUPT:
+                outputHandler.setError('interrupted')
+            else:
+                errorMsg = "Cloud return code: {0}".format(returnCode)
+                logging.warn(errorMsg)
+                outputHandler.setError(errorMsg)
     else:
         returnCode = 0    
 
