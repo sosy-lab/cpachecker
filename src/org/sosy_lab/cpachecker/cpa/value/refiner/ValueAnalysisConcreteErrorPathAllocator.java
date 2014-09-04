@@ -88,7 +88,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     //TODO After multi edges are implemented, erase
     if (concreteStatePath == null) {
-      return null;
+      return Model.empty();
     }
 
     CFAPathWithAssignments pathWithAssignments =
