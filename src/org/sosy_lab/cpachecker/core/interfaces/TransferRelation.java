@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -43,8 +45,11 @@ public interface TransferRelation {
    * @param cfaEdge null or an edge of the CFA
    * @return list of all successors of the current state (may be empty)
    */
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException, InterruptedException;
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state,
+      Precision precision,
+      @Nullable CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract state with information from the abstract states of
@@ -52,14 +57,14 @@ public interface TransferRelation {
    * abstract state of the domain it belongs to.
    * @param state abstract state of the current domain
    * @param otherStates list of abstract states of all domains
-   * @param cfaEdge the current edge of the CFA
+   * @param cfaEdge null or an edge of the CFA
    * @param precision
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractState> strengthen(AbstractState state,
-                                     List<AbstractState> otherStates,
-                                     CFAEdge cfaEdge,
-                                     Precision precision)
-                                     throws CPATransferException,
-                                            InterruptedException;
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException;
 }

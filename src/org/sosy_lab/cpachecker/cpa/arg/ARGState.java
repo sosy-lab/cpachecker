@@ -77,7 +77,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
+  public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
     stateId = idGenerator.getFreshId();
     if (pParentElement != null) {
