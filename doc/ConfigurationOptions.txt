@@ -1083,6 +1083,12 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
+# Export the weakest precondition?
+cpa.predicate.precondition.export = false
+
+# File for exporting the weakest precondition.
+cpa.predicate.precondition.file = "precondition.txt"
+
 # export final predicate map
 cpa.predicate.predmap.export = true
 
