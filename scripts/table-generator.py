@@ -1024,6 +1024,11 @@ def main(args=None):
         dest="outputName",
         help="Base name of the created output files."
     )
+    parser.add_argument("--ignore-erroneous-benchmarks",
+        action="store_true",
+        dest="ignoreErrors",
+        help="Ignore results where the was an error during benchmarking."
+    )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
         help="Print summary statistics for regressions and the good, bad, and unknown counts."
@@ -1105,10 +1110,19 @@ def main(args=None):
     if not outputPath:
         outputPath = '.'
 
+    if options.ignoreErrors:
+        filteredRunSets = []
+        for runSet in runSetResults:
+            if 'error' in runSet.attributes:
+                print('Ignoring benchmark {0} because of error: {1}'
+                      .format(", ".join(set(runSet.attributes['name'])),
+                              ", ".join(set(runSet.attributes['error']))))
+            else:
+                filteredRunSets.append(runSet)
+        runSetResults = filteredRunSets
+
     if not runSetResults:
-        print ('\nError! No file with benchmark results found.')
-        if options.xmltablefile:
-            print ('Please check the filenames in your XML-file.')
+        print ('\nError! No benchmark results found.')
         exit()
 
     print ('merging results ...')
