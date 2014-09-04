@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -94,6 +96,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -550,13 +553,61 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (init instanceof AInitializerExpression) {
 
-      ExpressionValueVisitor evv = getVisitor();
-      IAExpression exp = ((AInitializerExpression) init).getExpression();
-      initialValue = getExpressionValue(exp, decl.getType(), evv);
+      // handles: int* myArray[] = yourArray;
+      if (decl.getType() instanceof CPointerType) {
 
-      if (isMissingCExpressionInformation(evv, exp)) {
-        addMissingInformation(memoryLocation, exp);
+        IAExpression exp = ((AInitializerExpression) init).getExpression();
+
+        if(exp.getExpressionType() instanceof CArrayType) {
+          CArrayType array = (CArrayType)exp.getExpressionType();
+
+          int len = Integer.valueOf(array.getLength().toASTString());
+
+          for(int i = 0; i < len; i++) {
+            MemoryLocation original = MemoryLocation.valueOf(init.toASTString(), i * 4);
+            MemoryLocation newMem = MemoryLocation.valueOf(varName, i * 4);
+
+            newElement.assignConstant(newMem, newElement.getValueFor(original));
+          }
+        }
+        return newElement;
       }
+
+      else {
+        ExpressionValueVisitor evv = getVisitor();
+        IAExpression exp = ((AInitializerExpression) init).getExpression();
+        initialValue = getExpressionValue(exp, decl.getType(), evv);
+
+        if (isMissingCExpressionInformation(evv, exp)) {
+          addMissingInformation(memoryLocation, exp);
+        }
+      }
+    }
+
+    // handles: int myArray[] = {1, 2, 3, 4};
+    else if (init instanceof CInitializerList) {
+
+      CInitializerList initList = (CInitializerList) init;
+
+      int offset = 0;
+      for(CInitializer ini : initList.getInitializers()) {
+        ExpressionValueVisitor evv = getVisitor();
+        IAExpression exp = ((AInitializerExpression) ini).getExpression();
+
+        initialValue = getExpressionValue(exp, decl.getType(), evv);
+
+        if (decl.isGlobal()) {
+          memoryLocation = MemoryLocation.valueOf(varName, offset * 4);
+        } else {
+          memoryLocation = MemoryLocation.valueOf(functionName, varName, offset * 4);
+        }
+
+        newElement.assignConstant(memoryLocation, initialValue);
+
+        offset++;
+      }
+
+      return newElement;
     }
 
     boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
@@ -646,8 +697,30 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           memloc = MemoryLocation.valueOf(functionName, varName, 0);
         }
 
-        return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
-    } else if (op1 instanceof APointerExpression) {
+        // handles: int* myArray[] = yourArray;
+        if (op1.getExpressionType() instanceof CPointerType && op2.getExpressionType() instanceof CArrayType) {
+
+          CArrayType arrayType = (CArrayType)op2.getExpressionType();
+
+          int len = Integer.valueOf(arrayType.getLength().toASTString());
+          for(int i = 0; i < len; i++) {
+            MemoryLocation original = MemoryLocation.valueOf(((AIdExpression) op2).getName(), i * 4);
+            MemoryLocation newMem = MemoryLocation.valueOf(varName, i * 4);
+
+            if(state.contains(original)) {
+              state.assignConstant(newMem, state.getValueFor(original));
+            } else {
+              state.forget(newMem);
+            }
+          }
+        }
+
+        else {
+          return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
+        }
+    }
+
+    else if (op1 instanceof APointerExpression) {
       // *a = ...
 
       if (isRelevant(op1, op2)) {
@@ -818,10 +891,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
+          //assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
 
         } else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
+          //assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
         }
       }
 
@@ -830,14 +903,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
+            //assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
           }
 
         } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
+            //assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
           }
         }
       }

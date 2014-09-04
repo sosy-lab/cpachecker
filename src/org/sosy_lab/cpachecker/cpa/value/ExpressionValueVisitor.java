@@ -150,9 +150,9 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private Value evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
-
+//System.out.println("pLValue = " + pLValue);
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
-
+//System.out.println("varLoc = " + varLoc);
     if (varLoc == null) {
       return Value.UnknownValue.getInstance();
     }
@@ -206,14 +206,14 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         throws UnrecognizedCCodeException {
 
       CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
-
+//System.out.println("arrayExpression = " + arrayExpression);
       CType arrayExpressionType = arrayExpression.getExpressionType().getCanonicalType();
-
+//System.out.println("arrayExpressionType = " + arrayExpressionType);
       /* A subscript Expression can also include an Array Expression.
       In that case, it is a dereference*/
       if (arrayExpressionType instanceof CPointerType) {
-        evv.missingPointer = true;
-        return null;
+        //evv.missingPointer = true;
+        //return null;
       }
 
       CExpression subscript = pIastArraySubscriptExpression.getSubscriptExpression();
@@ -221,7 +221,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       CType elementType = pIastArraySubscriptExpression.getExpressionType();
 
       MemoryLocation arrayLoc = arrayExpression.accept(this);
-
+//System.out.println("arrayLoc = " + arrayLoc);
       if (arrayLoc == null) {
         return null;
       }

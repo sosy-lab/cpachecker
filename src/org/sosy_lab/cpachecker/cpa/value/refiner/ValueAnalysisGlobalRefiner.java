@@ -53,10 +53,18 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -75,6 +83,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -139,6 +148,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
   }
 
+  private List<MemoryLocation> staticCandidates = null;
+
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
@@ -155,6 +166,84 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     }
 
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+
+    if(staticCandidates == null) {
+
+      staticCandidates = new ArrayList<>();
+      interpolationTree.hasNextPathForInterpolation();
+      MutableARGPath errP = interpolationTree.getNextPathForInterpolation();
+
+      Set<CFAEdge> candidates = new HashSet<>();
+      int line = 0;
+
+      boolean found = false;
+      for(int i = errP.size() - 1; i > 0; i--) {
+        if(!found && errP.get(i).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge) {
+          found = true;
+          line = errP.get(i).getSecond().getLineNumber();
+        }
+
+        if(found && errP.get(i).getSecond().getLineNumber() == line) {
+          candidates.add(errP.get(i).getSecond());
+        }
+      }
+
+      for(CFAEdge edge : candidates) {
+
+        String functionName = edge.getPredecessor().getFunctionName();
+        for(CIdExpression id : ((CAssumeEdge)edge).getExpression().accept(new CIdExpressionCollectingVisitor())) {
+          CSimpleDeclaration decl = id.getDeclaration();
+
+          MemoryLocation memloc;
+          if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+            memloc = MemoryLocation.valueOf(id.getName(), 0);
+          }
+          else {
+            memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
+          }
+
+          if(VariableClassification.memLocInAssign.containsKey(memloc) && VariableClassification.memLocInAssign.get(memloc) < 100) {
+            staticCandidates.add(memloc);
+          }
+        }
+      }
+
+      Collections.sort(staticCandidates, new Comparator<MemoryLocation>() {
+
+        @Override
+        public int compare(MemoryLocation pO1, MemoryLocation pO2) {
+          Integer val1 = VariableClassification.memLocInAssign.containsKey(pO1) ? VariableClassification.memLocInAssign.get(pO1) : 0;
+          Integer val2 = VariableClassification.memLocInAssign.containsKey(pO2) ? VariableClassification.memLocInAssign.get(pO2) : 0;
+
+          if(val1 < val2) {
+            return -1;
+          }
+          if(val1 > val2) {
+            return 1;
+          }
+          return 0;
+        }});
+
+    }
+
+    if (!staticCandidates.isEmpty()) {
+      MemoryLocation candidate = staticCandidates.remove(0);
+System.out.println("picked candidate " + candidate);
+      Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+      increment.put(new CFANode("dummy"), candidate);
+
+      ARGReachedSet reached = new ARGReachedSet(pReached);
+
+      Precision precision                           = pReached.getPrecision(pReached.getLastState());
+      ValueAnalysisPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+
+      reached.removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(),
+          new ValueAnalysisPrecision(valueAnalysisPrecision, increment),
+          ValueAnalysisPrecision.class);
+
+      totalTime.stop();
+      return true;
+    }
 
     int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
@@ -543,6 +632,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
         Set<ARGState> successors = successorRelation.get(currentState);
         todo.addAll(successors);
       }
+
+System.out.println(new TreeSet<>(increment.values()));
 
       return increment;
     }

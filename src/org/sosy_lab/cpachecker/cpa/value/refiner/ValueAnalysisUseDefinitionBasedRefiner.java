@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -174,6 +175,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     }
 
     Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
+System.out.println(new TreeSet<>(increment.values()));
     // no increment - refinement was not successful
     if (increment.isEmpty()) {
       return false;

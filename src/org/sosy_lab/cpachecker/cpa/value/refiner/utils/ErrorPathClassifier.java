@@ -29,19 +29,26 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 public class ErrorPathClassifier {
 
@@ -133,14 +140,49 @@ public class ErrorPathClassifier {
     Long bestScore            = null;
     int bestIndex             = 0;
 
+    CFAEdge lastFailingAssume = Iterables.getLast(pPrefixes).getLast().getSecond();
+
     for (MutableARGPath currentPrefix : pPrefixes) {
       assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
-      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+      //Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
 
-      Long score = obtainScoreForVariables(useDefinitionInformation);
+      CIdExpressionCollectingVisitor visitor = new CIdExpressionCollectingVisitor();
+
+      Set<CIdExpression> exprs = ((CAssumeEdge)currentPrefix.getLast().getSecond()).getExpression().accept(visitor);
+
+      Long score/* = obtainScoreForVariables(useDefinitionInformation)*/;
+      score = 0L;
+
+      String functionName = currentPrefix.getLast().getSecond().getPredecessor().getFunctionName();
+      for(CIdExpression id : exprs) {
+        CSimpleDeclaration decl = id.getDeclaration();
+        MemoryLocation memloc;
+        if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+          memloc = MemoryLocation.valueOf(id.getName(), 0);
+        }
+        else {
+          memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
+        }
+
+        if(VariableClassification.memLocInAssign.containsKey(memloc)) {
+          score = score + VariableClassification.memLocInAssign.get(memloc);
+        }
+
+        if(id.getName().equals("cf")) {
+          //score = Long.MAX_VALUE / 2; // half, to avoid overflow
+        }
+
+        else if(id.getName().contains("input")) {
+          score = Long.MAX_VALUE / 2; // half, to avoid overflow
+        }
+      }
+
+      if(currentPrefix.getLast().getSecond().getLineNumber() != lastFailingAssume.getLineNumber()) {
+        score = score + 15;
+      }
 
       // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
       // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
@@ -195,12 +237,14 @@ public class ErrorPathClassifier {
    * @return true, if the current score is a new optimum, else false
    */
   private boolean isBestScore(Long currentScore, Long currentBestScore, MutableARGPath currentErrorPath) {
-    if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
+    /*if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
       return currentScore <= currentBestScore;
 
     } else {
       return currentScore < currentBestScore;
-    }
+    }*/
+
+    return currentScore < currentBestScore;
   }
 
   private boolean isWorstScore(Long currentScore, Long currentBestScore) {

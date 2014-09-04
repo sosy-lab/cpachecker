@@ -33,6 +33,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -98,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -111,6 +114,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
@@ -210,6 +214,92 @@ public class VariableClassification {
       printStats();
     }
 
+    Collection<CFANode> nodes = cfa.getAllNodes();
+    for (CFANode node : nodes) {
+      for (CFAEdge edge : leavingEdges(node)) {
+        if(edge instanceof AssumeEdge) {
+          getAssumeVars((AssumeEdge)edge);
+
+          break;
+        }
+      }
+    }
+
+    for (CFANode node : nodes) {
+      for (CFAEdge edge : leavingEdges(node)) {
+        if(edge instanceof CStatementEdge) {
+          getAssignVars((CStatementEdge)edge);
+        }
+
+        else if(edge instanceof MultiEdge) {
+          for(CFAEdge cfaEdge : ((MultiEdge)edge).getEdges()) {
+            if(cfaEdge instanceof CStatementEdge) {
+              getAssignVars((CStatementEdge)cfaEdge);
+            }
+          }
+        }
+      }
+    }
+    //System.out.println(Joiner.on("\n").join(memLocInAssume.entrySet()));
+    //System.out.println(Joiner.on("\n").join(memLocInAssign.entrySet()));
+
+  }
+
+  public static Map<MemoryLocation, Integer> memLocInAssume = new HashMap<>();
+
+  private void getAssumeVars(AssumeEdge pEdge) {
+    CIdExpressionCollectingVisitor visitor = new CIdExpressionCollectingVisitor();
+    //System.out.println("vars in edge " + pEdge);
+
+    String functionName = pEdge.getPredecessor().getFunctionName();
+    for(CIdExpression id : ((CAssumeEdge)pEdge).getExpression().accept(visitor)) {
+      CSimpleDeclaration decl = id.getDeclaration();
+
+      MemoryLocation memloc;
+      if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+        memloc = MemoryLocation.valueOf(id.getName(), 0);
+      }
+      else {
+        memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
+      }
+
+      int value = 0;
+      if(memLocInAssume.containsKey(memloc)) {
+        value = memLocInAssume.get(memloc);
+      }
+
+      memLocInAssume.put(memloc, value - 1);
+    }
+  }
+
+  public static Map<MemoryLocation, Integer> memLocInAssign = new HashMap<>();
+
+  private void getAssignVars(CStatementEdge pEdge) {
+    if(!(pEdge.getStatement() instanceof CAssignment)) {
+      return;
+    }
+
+    String functionName = pEdge.getPredecessor().getFunctionName();
+
+    for(CIdExpression id : ((CAssignment)pEdge.getStatement()).getLeftHandSide().accept(
+        new CIdExpressionCollectingVisitor())) {
+      CSimpleDeclaration decl = id.getDeclaration();
+
+      MemoryLocation memloc;
+      if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+        memloc = MemoryLocation.valueOf(id.getName(), 0);
+      }
+      else {
+        memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
+      }
+
+      int value = 0;
+      if(memLocInAssign.containsKey(memloc)) {
+        value = memLocInAssign.get(memloc);
+      }
+
+      memLocInAssign.put(memloc, value + 1);
+    }
   }
 
   private void printStats() {
@@ -1393,7 +1483,7 @@ public class VariableClassification {
     public Set<String> visit(CIntegerLiteralExpression exp) {
       BigInteger value = exp.getValue();
       if (BigInteger.ZERO.equals(value)
-          || (allowOneAsBooleanValue && BigInteger.ONE.equals(value))) {
+          || (BigInteger.ONE.equals(value))) {
         return new HashSet<>(0);
       } else {
         return null;
