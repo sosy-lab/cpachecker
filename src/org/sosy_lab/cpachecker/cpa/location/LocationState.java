@@ -121,7 +121,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   @Override
   public String toString() {
-    return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
+    String loc = locationNode.describeFileLocation();
+    return locationNode
+        + (loc.isEmpty() ? "" : " (" + loc + ")");
   }
 
   @Override
