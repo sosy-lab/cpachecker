@@ -64,7 +64,7 @@ public class CounterexampleInfo {
   }
 
   public static CounterexampleInfo feasible(ARGPath pTargetPath, Model pModel) {
-    return new CounterexampleInfo(false, pTargetPath, pModel);
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel));
   }
 
   public boolean isSpurious() {
