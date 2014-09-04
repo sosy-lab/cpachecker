@@ -40,7 +40,7 @@ public final class CTypes {
 
     @Override
     protected int doHash(CType pT) {
-      return pT.hashCode();
+      return pT.getCanonicalType().hashCode();
     }
   }
 
