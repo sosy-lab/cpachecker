@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA.OctagonOptions;
@@ -109,7 +110,6 @@ import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonUniversalCoeffici
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
@@ -125,7 +125,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Multimap;
 
 @SuppressWarnings("rawtypes")
-public class OctagonTransferRelation extends ForwardingTransferRelation<Set<OctagonState>, OctagonState, ValueAnalysisPrecision> {
+public class OctagonTransferRelation extends ForwardingTransferRelation<Set<OctagonState>, OctagonState, VariableTrackingPrecision> {
 
   private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
@@ -480,7 +480,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (!octagonOptions.shouldHandleFloats() && var instanceof CFloatLiteralExpression)
+        || (octagonOptions.ignoreFloatVariables() && var instanceof CFloatLiteralExpression)
         || var instanceof CStringLiteralExpression
         || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
@@ -552,7 +552,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       rightVal = OctagonIntValue.of(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = OctagonIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression && octagonOptions.shouldHandleFloats()) {
+    } else if (right instanceof CFloatLiteralExpression && !octagonOptions.ignoreFloatVariables()) {
       rightVal = new OctagonDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
 
     // we cannot handle strings, so just return the previous state
@@ -1564,10 +1564,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFloatLiteralExpression e) throws CPATransferException {
       // only handle floats when specified in the configuration
-      if (octagonOptions.shouldHandleFloats()) {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
-      } else {
+      if (octagonOptions.ignoreFloatVariables()) {
         return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      } else {
+        return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
       }
     }
 

@@ -27,11 +27,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -41,11 +41,11 @@ import com.google.common.collect.Multimap;
 public class RefineableApronPrecision implements IApronPrecision {
 
   private final Set<String> trackedVars;
-  private final ValueAnalysisPrecision valuePrecision;
+  private final VariableTrackingPrecision valuePrecision;
 
 
-  public RefineableApronPrecision(Configuration pConfig) throws InvalidConfigurationException {
-    valuePrecision = new ValueAnalysisPrecision("", pConfig, Optional.<VariableClassification>absent());
+  public RefineableApronPrecision() throws InvalidConfigurationException {
+    valuePrecision = new VariableTrackingPrecision("", VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent());
     trackedVars = new HashSet<>();
   }
 
@@ -54,7 +54,7 @@ public class RefineableApronPrecision implements IApronPrecision {
    * OctPrecision.
    */
   public RefineableApronPrecision(RefineableApronPrecision pOctPrecision, Multimap<CFANode, MemoryLocation> pIncrement) {
-    valuePrecision = new ValueAnalysisPrecision(pOctPrecision.valuePrecision, pIncrement);
+    valuePrecision = new VariableTrackingPrecision(pOctPrecision.valuePrecision, pIncrement);
     trackedVars = new HashSet<>();
     trackedVars.addAll(pOctPrecision.trackedVars);
     for (MemoryLocation mem : pIncrement.values()) {
@@ -86,7 +86,7 @@ public class RefineableApronPrecision implements IApronPrecision {
     return trackedVars.contains(varName);
   }
 
-  public ValueAnalysisPrecision getValueAnalysisPrecision() {
+  public VariableTrackingPrecision getValueAnalysisPrecision() {
     return valuePrecision;
   }
 

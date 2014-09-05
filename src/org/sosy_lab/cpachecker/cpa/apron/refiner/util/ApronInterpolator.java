@@ -45,7 +45,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -89,7 +90,7 @@ public class ApronInterpolator {
   /**
    * the precision in use
    */
-  private final ValueAnalysisPrecision precision;
+  private final VariableTrackingPrecision precision;
 
   /**
    * the collector to get the use-definition information from an error trace
@@ -137,7 +138,7 @@ public class ApronInterpolator {
 
       cfa               = pCfa;
       transfer          = new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
-      precision         = new ValueAnalysisPrecision("", pConfig, Optional.<VariableClassification>absent());
+      precision         = new VariableTrackingPrecision("", VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent());
 
       initializeLoopInformation();
     }

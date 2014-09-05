@@ -34,9 +34,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -49,7 +49,7 @@ public class ValueAnalysisFeasibilityChecker {
 
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
-  private final ValueAnalysisPrecision precision;
+  private final VariableTrackingPrecision precision;
 
   /**
    * This method acts as the constructor of the class.
@@ -63,7 +63,7 @@ public class ValueAnalysisFeasibilityChecker {
     logger    = pLogger;
 
     transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = ValueAnalysisPrecision.createDefaultPrecision();
+    precision = VariableTrackingPrecision.createDefaultPrecision();
   }
 
   /**

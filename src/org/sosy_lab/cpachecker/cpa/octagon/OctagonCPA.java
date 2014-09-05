@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -43,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
@@ -73,15 +74,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
    * cpa are kept.
    */
   @Options(prefix="cpa.octagon")
-  public static class OctagonOptions {
+  public static class OctagonOptions extends VariableTrackingPrecisionOptions {
 
     @Option(name="handleFloats",
         description="with this option the evaluation of float variables can be toggled.")
     private boolean handleFloats = false;
-
-    public boolean shouldHandleFloats() {
-      return handleFloats;
-    }
   }
 
   private final OctagonOptions octagonOptions;
@@ -127,11 +124,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
+      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent());
 
       // static full precision is default
     } else {
-      precision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent(), new ValueAnalysisPrecision.FullPrecision());
+      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
     }
 
   }

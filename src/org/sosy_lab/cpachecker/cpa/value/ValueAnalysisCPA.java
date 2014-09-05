@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -76,6 +78,37 @@ import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
+
+  @Options(prefix="cpa.value.precision")
+  public static class ValueAnalaysisPrecisionOptions extends VariableTrackingPrecisionOptions {
+    @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
+    private int reachedSetThreshold = -1;
+
+    @Option(values={"location", "scope"},
+        description = "whether to track relevant variables only at the exact program location (sharing=location), " +
+            "or within their respective (function-/global-) scope (sharing=scoped).")
+    private String sharing = "scope";
+
+    @Option(description = "ignore boolean variables. if this option is used, "
+        + "booleans from the cfa should tracked with another CPA, "
+        + "i.e. with BDDCPA.")
+    private boolean ignoreBoolean = false;
+
+    @Option(description = "ignore variables, that are only compared for equality. "
+        + "if this option is used, these variables from the cfa should "
+        + "tracked with another CPA, i.e. with BDDCPA.")
+    private boolean ignoreIntEqual = false;
+
+    @Option(description = "ignore variables, that are only used in simple " +
+        "calculations (add, sub, lt, gt, eq). "
+        + "if this option is used, these variables from the cfa should "
+        + "tracked with another CPA, i.e. with BDDCPA.")
+    private boolean ignoreIntAdd = false;
+
+    public ValueAnalaysisPrecisionOptions() {
+      super();
+    }
+  }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
@@ -105,14 +138,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private Path initialPrecisionFile = null;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
+    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class).withOptions(ValueAnalaysisPrecisionOptions.class);
   }
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
-  private ValueAnalysisPrecision precision;
+  private VariableTrackingPrecision precision;
+  private ValueAnalaysisPrecisionOptions precisionOptions;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
   private final ValueAnalysisReducer reducer;
@@ -124,7 +158,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private final CFA cfa;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, CFA cfa, ValueAnalaysisPrecisionOptions pOptions) throws InvalidConfigurationException {
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
@@ -134,6 +168,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
+    precisionOptions    = pOptions;
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -180,17 +215,17 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return null;
   }
 
-  private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
+      return new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification(), new VariableTrackingPrecision.FullPrecision());
 
     } else {
       // create precision with empty, refinable component precision
-      ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+      VariableTrackingPrecision precision = new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification());
 
       // refine the refinable component precision with increment from file
-      return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+      return new VariableTrackingPrecision(precision, restoreMappingFromFile(cfa));
     }
   }
 
@@ -244,7 +279,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null) {
-      precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+      precision = new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification());
     }
   }
 
@@ -278,7 +313,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return precision;
   }
 
-  ValueAnalysisPrecision getPrecision() {
+  VariableTrackingPrecision getPrecision() {
     return precision;
   }
 

@@ -96,7 +96,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableApronPrecision(config);
+      precision = new RefineableApronPrecision();
 
       // static full precision is default
     } else {

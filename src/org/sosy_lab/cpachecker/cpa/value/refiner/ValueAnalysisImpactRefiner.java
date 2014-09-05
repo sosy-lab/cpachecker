@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -68,7 +69,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
@@ -109,7 +109,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
   ValueAnalysisFeasibilityChecker checker;
 
-  private ValueAnalysisPrecision globalPrecision = null;
+  private VariableTrackingPrecision globalPrecision = null;
 
   private final LogManager logger;
 
@@ -241,7 +241,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       }
 
       if (strengthenedStates.contains(currentState) && currentState.getChildren().size() > 1) {
-        ValueAnalysisPrecision currentPrecision = extractPrecision(pReached, currentState);
+        VariableTrackingPrecision currentPrecision = extractPrecision(pReached, currentState);
 
         Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
         for (MemoryLocation memoryLocation : interpolationTree.interpolants.get(currentState).getMemoryLocations()) {
@@ -251,9 +251,9 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
         // does not clear waitlist
         if (!currentState.isCovered()) {
           if (useGlobalPrecision) {
-            argReachedSet.readdToWaitlist(currentState, globalPrecision, ValueAnalysisPrecision.class);
+            argReachedSet.readdToWaitlist(currentState, globalPrecision, VariableTrackingPrecision.class);
           } else {
-            argReachedSet.readdToWaitlist(currentState, new ValueAnalysisPrecision(currentPrecision, increment), ValueAnalysisPrecision.class);
+            argReachedSet.readdToWaitlist(currentState, new VariableTrackingPrecision(currentPrecision, increment), VariableTrackingPrecision.class);
           }
         }
 
@@ -284,11 +284,11 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
-      final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
+      final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
       Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
 //System.out.println(new TreeSet<>(extractPrecisionIncrement.values()));
-      ValueAnalysisPrecision currentPrecision = new ValueAnalysisPrecision(subTreePrecision, extractPrecisionIncrement);
+      VariableTrackingPrecision currentPrecision = new VariableTrackingPrecision(subTreePrecision, extractPrecisionIncrement);
 
       if (globalPrecision != null) {
         currentPrecision.getRefinablePrecision().join(globalPrecision.getRefinablePrecision());
@@ -301,7 +301,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   //////////////////////// IMPACT STUFF ///////////////////////////
 
   @Override
-  public ValueAnalysisPrecision getGlobalPrecision() {
+  public VariableTrackingPrecision getGlobalPrecision() {
     return globalPrecision;
   }
 
@@ -379,22 +379,22 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
-  private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
+  private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
-    final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    final VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
     for (ARGState target : targetsReachableFromRoot) {
-      ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
+      VariableTrackingPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
 
     return precision;
   }
 
-  private ValueAnalysisPrecision extractPrecision(final ReachedSet pReached,
+  private VariableTrackingPrecision extractPrecision(final ReachedSet pReached,
       ARGState state) {
-    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ValueAnalysisPrecision.class);
+    return Precisions.extractPrecisionByType(pReached.getPrecision(state), VariableTrackingPrecision.class);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)

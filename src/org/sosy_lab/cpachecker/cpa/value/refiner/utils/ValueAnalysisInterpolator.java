@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -65,7 +65,7 @@ public class ValueAnalysisInterpolator {
   /**
    * the precision in use
    */
-  private final ValueAnalysisPrecision precision;
+  private final VariableTrackingPrecision precision;
 
   /**
    * the number of interpolations
@@ -93,7 +93,7 @@ public class ValueAnalysisInterpolator {
       shutdownNotifier  = pShutdownNotifier;
       checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-      precision         = ValueAnalysisPrecision.createDefaultPrecision();
+      precision         = VariableTrackingPrecision.createDefaultPrecision();
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);

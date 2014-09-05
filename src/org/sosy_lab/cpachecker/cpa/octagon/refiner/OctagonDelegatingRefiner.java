@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -190,12 +190,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    ValueAnalysisPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    ValueAnalysisPrecision refinedOctPrecision;
+    VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -212,9 +212,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedOctPrecision  = new ValueAnalysisPrecision(octPrecision, increment);
+    refinedOctPrecision  = new VariableTrackingPrecision(octPrecision, increment);
     refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(ValueAnalysisPrecision.class);
+    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
@@ -235,7 +235,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    ValueAnalysisPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
     // no newly tracked variables, so the refinement was not successful
@@ -245,8 +245,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new ValueAnalysisPrecision(octPrecision, increment));
-    newPrecisionTypes.add(ValueAnalysisPrecision.class);
+    refinedPrecisions.add(new VariableTrackingPrecision(octPrecision, increment));
+    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
@@ -280,8 +280,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, ValueAnalysisPrecision valueAnalysisPrecision,
-      ValueAnalysisPrecision refinedValueAnalysisPrecision) {
+  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+      VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
         || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());

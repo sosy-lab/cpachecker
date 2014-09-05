@@ -36,12 +36,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
@@ -73,7 +73,7 @@ public class OctagonAnalysisFeasabilityChecker {
     transfer  = new OctagonTransferRelation(logger, cfa, cpa.getOctagonOptions());
     checkedPath = path;
 
-    foundPath = getInfeasiblePrefix(new ValueAnalysisPrecision("", cpa.getConfiguration(), Optional.<VariableClassification>absent(), new ValueAnalysisPrecision.FullPrecision()),
+    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision("", cpa.getOctagonOptions(), Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision()),
                                     new OctagonState(logger, cpa.getManager()));
   }
 
@@ -89,7 +89,7 @@ public class OctagonAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(ValueAnalysisPrecision pOctPrecision) {
+  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision pOctPrecision) {
     if (isFeasible()) {
       return ArrayListMultimap.<CFANode, ValueAnalysisState.MemoryLocation>create();
     } else {
@@ -130,7 +130,7 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private MutableARGPath getInfeasiblePrefix(final ValueAnalysisPrecision pPrecision, final OctagonState pInitial)
+  private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final OctagonState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<OctagonState> next = Lists.newArrayList(pInitial);

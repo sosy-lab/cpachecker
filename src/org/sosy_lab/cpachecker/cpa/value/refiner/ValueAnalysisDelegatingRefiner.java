@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -281,13 +281,13 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
     Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    ValueAnalysisPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+    VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
     BDDPrecision bddPrecision                     = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
-    ValueAnalysisPrecision refinedValueAnalysisPrecision;
+    VariableTrackingPrecision refinedValueAnalysisPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
@@ -309,9 +309,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
 
       //      if (valueAnalysisPrecision != null) { // TODO ValueAnalysisRefiner without ValueAnalysisPresicion, possible?
-      refinedValueAnalysisPrecision  = new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
+      refinedValueAnalysisPrecision  = new VariableTrackingPrecision(valueAnalysisPrecision, increment);
       refinedPrecisions.add(refinedValueAnalysisPrecision);
-      newPrecisionTypes.add(ValueAnalysisPrecision.class);
+      newPrecisionTypes.add(VariableTrackingPrecision.class);
       //      }
 
       if (bddPrecision != null) {
@@ -356,8 +356,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, ValueAnalysisPrecision valueAnalysisPrecision,
-      ValueAnalysisPrecision refinedValueAnalysisPrecision) {
+  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+      VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
         || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
