@@ -43,12 +43,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
+
+import com.google.common.base.Optional;
 
 @Options(prefix="cpa.octagon")
 public final class OctagonCPA implements ConfigurableProgramAnalysis {
@@ -125,11 +127,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableOctagonPrecision(config);
+      precision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent());
 
       // static full precision is default
     } else {
-      precision = new StaticFullOctagonPrecision(octagonOptions);
+      precision = new ValueAnalysisPrecision("", config, Optional.<VariableClassification>absent(), new ValueAnalysisPrecision.FullPrecision());
     }
 
   }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -57,8 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.IOctagonPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -72,7 +69,6 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 /**
  * Refiner implementation that delegates to {@link OctagonInterpolationBasedRefiner},
@@ -194,12 +190,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    RefineableOctagonPrecision octPrecision         = Precisions.extractPrecisionByType(precision, RefineableOctagonPrecision.class);
+    ValueAnalysisPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    RefineableOctagonPrecision refinedOctPrecision;
+    ValueAnalysisPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -216,19 +212,19 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedOctPrecision  = new RefineableOctagonPrecision(octPrecision, increment);
+    refinedOctPrecision  = new ValueAnalysisPrecision(octPrecision, increment);
     refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(RefineableOctagonPrecision.class);
+    newPrecisionTypes.add(ValueAnalysisPrecision.class);
 
-    if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision.getValueAnalysisPrecision(), refinedOctPrecision.getValueAnalysisPrecision())) {
+    if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getTrackedVars(), octPrecision.getTrackedVars());
-      if (strIncrement.isEmpty()) {
-        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
-      } else {
-        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
-      }
+//      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getRefinablePrecision()., octPrecision.getTrackedVars());
+//      if (strIncrement.isEmpty()) {
+//        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
+//      } else {
+//        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
+//      }
 
       return true;
     } else {
@@ -239,9 +235,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    RefineableOctagonPrecision octPrecision         = Precisions.extractPrecisionByType(precision, RefineableOctagonPrecision.class);
+    ValueAnalysisPrecision octPrecision         = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
 
-    Set<String> increment = checker.getPrecisionIncrement(octPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
     // no newly tracked variables, so the refinement was not successful
     if (increment.isEmpty()) {
     //  return false;
@@ -249,8 +245,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new RefineableOctagonPrecision(octPrecision, increment));
-    newPrecisionTypes.add(IOctagonPrecision.class);
+    refinedPrecisions.add(new ValueAnalysisPrecision(octPrecision, increment));
+    newPrecisionTypes.add(ValueAnalysisPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);

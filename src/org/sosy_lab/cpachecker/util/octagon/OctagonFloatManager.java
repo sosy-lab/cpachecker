@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 
 import com.google.common.collect.BiMap;
 
@@ -37,7 +38,7 @@ public class OctagonFloatManager extends OctagonManager {
   }
 
   @Override
-  public String print(Octagon oct, BiMap<Integer, String> map) {
+  public String print(Octagon oct, BiMap<Integer, MemoryLocation> map) {
     StringBuilder str = new StringBuilder();
     int dimension = dimension(oct);
     long pointer = oct.getOctId();
