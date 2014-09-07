@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.apron.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -73,7 +71,6 @@ import apron.ApronException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 /**
  * Refiner implementation that delegates to {@link ApronInterpolationBasedRefiner},
@@ -200,12 +197,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    RefineableApronPrecision apronPrecision = Precisions.extractPrecisionByType(precision, RefineableApronPrecision.class);
+    VariableTrackingPrecision apronPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
-    RefineableApronPrecision refinedApronPrecision;
+    VariableTrackingPrecision refinedApronPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
 
@@ -222,21 +219,15 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedApronPrecision  = new RefineableApronPrecision(apronPrecision, increment);
+    refinedApronPrecision  = new VariableTrackingPrecision(apronPrecision, increment);
     refinedPrecisions.add(refinedApronPrecision);
-    newPrecisionTypes.add(RefineableApronPrecision.class);
+    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
-    if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision.getValueAnalysisPrecision(), refinedApronPrecision.getValueAnalysisPrecision())) {
+    if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision, refinedApronPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-      Set<String> strIncrement = Sets.difference(refinedApronPrecision.getTrackedVars(), apronPrecision.getTrackedVars());
-      if (strIncrement.isEmpty()) {
-        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
-      } else {
-        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
-      }
-
       return true;
+
     } else {
       return false;
     }
@@ -245,9 +236,9 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final ApronAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    RefineableApronPrecision apronPrecision = Precisions.extractPrecisionByType(precision, RefineableApronPrecision.class);
+    VariableTrackingPrecision apronPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
-    Set<String> increment = checker.getPrecisionIncrement(apronPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(apronPrecision);
     // no newly tracked variables, so the refinement was not successful
     if (increment.isEmpty()) {
     //  return false;
@@ -255,8 +246,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new RefineableApronPrecision(apronPrecision, increment));
-    newPrecisionTypes.add(RefineableApronPrecision.class);
+    refinedPrecisions.add(new VariableTrackingPrecision(apronPrecision, increment));
+    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);

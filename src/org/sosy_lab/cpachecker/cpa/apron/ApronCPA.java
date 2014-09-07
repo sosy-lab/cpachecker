@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -43,11 +45,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
-import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import apron.ApronException;
+
+import com.google.common.base.Optional;
 
 @Options(prefix="cpa.apron")
 public final class ApronCPA implements ConfigurableProgramAnalysis {
@@ -96,11 +99,11 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableApronPrecision();
+      precision = new VariableTrackingPrecision("", VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent());
 
       // static full precision is default
     } else {
-      precision = new StaticFullApronPrecision();
+      precision = new VariableTrackingPrecision("", VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
     }
   }
 
