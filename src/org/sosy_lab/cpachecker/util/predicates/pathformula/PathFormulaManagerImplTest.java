@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static org.junit.Assert.assertEquals;
+
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.SortedMap;
@@ -67,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
@@ -267,5 +270,16 @@ public class PathFormulaManagerImplTest {
         SSAMap.emptySSAMap().withDefault(ssaIdx));
 
     return pfmgr.makeAnd(emptyWithCustomSSA, edge);
+  }
+
+  @Test
+  public void testEmpty() {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula expected = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0);
+    assertEquals(expected, empty);
   }
 }
