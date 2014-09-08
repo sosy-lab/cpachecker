@@ -106,14 +106,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final CType NONDET_TYPE = CNumericTypes.INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
-  protected final FormulaManagerView fmgr;
-  protected final BooleanFormulaManagerView bfmgr;
-  protected final FunctionFormulaManagerView ffmgr;
-  protected final CtoFormulaConverter converter;
-  protected final CtoFormulaTypeHandler typeHandler;
-  protected final @Nullable PointerTargetSetManager ptsManager;
-  protected final LogManager logger;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final FunctionFormulaManagerView ffmgr;
+  private final CtoFormulaConverter converter;
+  private final CtoFormulaTypeHandler typeHandler;
+  private final @Nullable PointerTargetSetManager ptsManager;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
@@ -174,7 +174,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
   }
 
-  protected CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
+  private CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       CtoFormulaTypeHandler pTypeHandler) {
 
@@ -182,7 +182,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         logger, shutdownNotifier, pTypeHandler, backwards);
   }
 
-  protected CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
+  private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
       FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
       PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
@@ -374,7 +374,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param pts2 the PointerTargetSet for ssa1
    * @return The new SSAMap and the formulas that need to be added to the path formulas before disjuncting them.
    */
-  protected MergeResult<SSAMap> mergeSSAMaps(
+  private MergeResult<SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -444,7 +444,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeBoolean(true));
   }
 
-  protected BooleanFormula makeSsaVariableMerger(final String variableName,
+  private BooleanFormula makeSsaVariableMerger(final String variableName,
                                                         final CType variableType,
                                                         final int oldIndex,
                                                         final int newIndex) {
@@ -463,7 +463,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.makeEqual(newVariable, oldVariable);
   }
 
-  protected BooleanFormula makeSsaUFMerger(final String functionName,
+  private BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
                                                   final int newIndex,
@@ -491,7 +491,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return result;
   }
 
-  protected BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
+  private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
   }
 
