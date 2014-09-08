@@ -28,13 +28,13 @@ import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -60,14 +60,15 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
@@ -75,6 +76,43 @@ import com.google.common.collect.TreeMultimap;
  * Testing the custom SSA implementation.
  */
 public class PathFormulaManagerImplTest {
+
+  private FormulaManager __formulaManager;
+  private FormulaManagerView fmgr;
+  private PathFormulaManager pfmgr;
+
+  @Before
+  public void setup() throws Exception {
+    Configuration.defaultConfiguration();
+    Configuration config = Configuration
+        .builder()
+        .setOption("cpa.predicate.solver", "smtinterpol") // only solver guaranteed on all platforms
+        .build();
+
+    FormulaManagerFactory factory = new FormulaManagerFactory(
+        config, TestLogManager.getInstance(), ShutdownNotifier.create());
+    __formulaManager = factory.getFormulaManager();
+    fmgr = new FormulaManagerView(__formulaManager,
+        config, TestLogManager.getInstance());
+
+    pfmgr = new PathFormulaManagerImpl(
+        fmgr,
+        config,
+        TestLogManager.getInstance(),
+        ShutdownNotifier.create(),
+        MachineModel.LINUX32,
+        Optional.<VariableClassification>absent(),
+        false
+        );
+  }
+
+  @After
+  public void closeFormulaManager() throws Exception {
+    if (__formulaManager instanceof AutoCloseable) {
+      ((AutoCloseable)__formulaManager).close();
+    }
+  }
+
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
 
@@ -187,8 +225,7 @@ public class PathFormulaManagerImplTest {
   }
 
   private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = new CFunctionType(false, false, CNumericTypes.BOOL,
-        Collections.<CType>emptyList(), false);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
     FunctionEntryNode main = new FunctionEntryNode(
         FileLocation.DUMMY,
@@ -204,36 +241,14 @@ public class PathFormulaManagerImplTest {
     return main;
   }
 
-  private PathFormulaManager getPathFormulaManager(CFA cfa) throws InvalidConfigurationException {
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(), ShutdownNotifier.create());
-
-    FormulaManager formulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManagerView = new FormulaManagerView(formulaManager,
-        Configuration.defaultConfiguration(), TestLogManager.getInstance());
-
-    return new PathFormulaManagerImpl(
-        formulaManagerView,
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        cfa,
-        false
-    );
-  }
-
   @Test
   public void testCustomSSAIdx() throws Exception {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFA cfa = data.getThird();
     CFAEdge a_to_b = data.getFirst();
-
-    PathFormulaManager pathFormulaManager = getPathFormulaManager(cfa);
 
     int customIdx = 1337;
     PathFormula p = makePathFormulaWithCustomIdx(
-        a_to_b, customIdx, pathFormulaManager);
+        a_to_b, customIdx);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
     Assert.assertEquals(customIdx + SSAMap.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
@@ -244,13 +259,13 @@ public class PathFormulaManagerImplTest {
    * from the specified value.
    * Useful for more fine-grained control over SSA indexes.
    */
-  private static PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx,
-      PathFormulaManager pathFormulaManager) throws CPATransferException, InterruptedException {
-    PathFormula empty = pathFormulaManager.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pathFormulaManager.makeNewPathFormula(
+  private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+      throws CPATransferException, InterruptedException {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
         empty,
         SSAMap.emptySSAMap().withDefault(ssaIdx));
 
-    return pathFormulaManager.makeAnd(emptyWithCustomSSA, edge);
+    return pfmgr.makeAnd(emptyWithCustomSSA, edge);
   }
 }

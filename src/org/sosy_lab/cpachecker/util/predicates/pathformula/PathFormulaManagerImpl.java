@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
@@ -137,7 +138,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getVarClassification(), pBackwards);
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+  @VisibleForTesting
+  PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, boolean pBackwards)
