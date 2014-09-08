@@ -579,7 +579,6 @@ public final class InterpolationManager {
 
       case NESTED: {
 
-
         BooleanFormula lastItp = bfmgr.makeBoolean(true); // PSI_0 = True
         final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
 
@@ -587,58 +586,8 @@ public final class InterpolationManager {
 
           // use a new prover, because we use several distinct queries
           final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment();
-          final List<T> A = new ArrayList<>();
-          final List<T> B = new ArrayList<>();
 
-          // add all remaining PHI_j
-          for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
-            B.add(itpProver.push(t.getFirst()));
-            //logger.log(Level.ALL, "\n1. B +=", t.getFirst()); // disabled, too many lines
-          }
-
-          // If we have entered or exited a function, update the stack of entry points
-          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
-          final CFANode node = AbstractStates.extractLocation(abstractionState);
-          if (node instanceof FunctionEntryNode) {
-            callstack.addLast(Triple.of(lastItp, orderedFormulas.get(positionOfA).getFirst(),node));
-          }
-
-          // case 1,2,4 from paper, internal position OR call of non-returning function OR function-return
-          //if (!(node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA))) {
-            if (positionOfA != 0) {
-              A.add(itpProver.push(lastItp));
-            }
-            A.add(itpProver.push(orderedFormulas.get(positionOfA).getFirst()));
-            logger.log(Level.ALL, "\n1. A +=", lastItp, "+", orderedFormulas.get(positionOfA).getFirst());
-          //}
-
-          // case 4, we are returning from a function,
-          if (!callstack.isEmpty()) {
-            final CFANode lastEntryNode = callstack.getLast().getThird();
-            if (node instanceof FunctionExitNode
-                    && ((FunctionExitNode) node).getEntryNode() == lastEntryNode
-              //|| (node.getEnteringSummaryEdge() != null
-              //     && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
-                    ) {
-              A.add(itpProver.push(callstack.getLast().getFirst()));
-              A.add(itpProver.push(callstack.getLast().getSecond()));
-              logger.log(Level.ALL, "\n2. A +=", callstack.getLast());
-              callstack.removeLast();
-            }
-          }
-
-          // add all previous function calls
-          for (Triple<BooleanFormula,BooleanFormula, CFANode> t : callstack) {
-            B.add(itpProver.push(t.getFirst())); // add PSI_k
-            B.add(itpProver.push(t.getSecond())); // ... and PHI_k
-            logger.log(Level.ALL, "\n2. B +=", t);
-          }
-
-          // case 3, call of returning function
-          if (A.isEmpty()) {
-            A.add(itpProver.push(bfmgr.makeBoolean(true)));
-            logger.log(Level.ALL, "\n3. A = TRUE");
-          }
+          final List<T> A = buildFormulas(orderedFormulas, lastItp, callstack, positionOfA, itpProver);
 
           // update prover with new formulas.
           // this is the expensive step, that is distinct from other strategies.
@@ -665,6 +614,67 @@ public final class InterpolationManager {
     }
 
     return interpolants;
+  }
+
+  /** build groups A and B from formulas and update the solver-stack. */
+  private <T> List<T> buildFormulas(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, BooleanFormula lastItp, Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack, int positionOfA, InterpolatingProverEnvironment<T> itpProver) {
+    final List<T> A = new ArrayList<>();
+    final List<T> B = new ArrayList<>();
+
+    // add all remaining PHI_j
+    for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
+      B.add(itpProver.push(t.getFirst()));
+      //logger.log(Level.ALL, "\n1. B +=", t.getFirst()); // disabled, too many lines
+    }
+
+    // If we have entered or exited a function, update the stack of entry points
+    final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+    final CFANode node = AbstractStates.extractLocation(abstractionState);
+    if (node instanceof FunctionEntryNode) {
+      callstack.addLast(Triple.of(lastItp, orderedFormulas.get(positionOfA).getFirst(),node));
+    }
+
+    // The next condition is out-commented, because case 3 is the "second part" of a function-entry-state.
+    // Thus the condition is wrong for the "first part" ofthe same state.
+
+    // case 1,2,4 from paper, internal position OR call of non-returning function OR function-return
+    //if (!(node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA))) {
+      //if (positionOfA != 0) { // TODO is this position-check needed?
+        A.add(itpProver.push(lastItp));
+      //}
+      A.add(itpProver.push(orderedFormulas.get(positionOfA).getFirst()));
+      logger.log(Level.ALL, "\n1. A +=", lastItp, "+", orderedFormulas.get(positionOfA).getFirst());
+    //}
+
+    // case 4, we are returning from a function,
+    if (!callstack.isEmpty()) {
+      final CFANode lastEntryNode = callstack.getLast().getThird();
+      if (node instanceof FunctionExitNode
+              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode
+        //|| (node.getEnteringSummaryEdge() != null
+        //     && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
+              ) {
+        A.add(itpProver.push(callstack.getLast().getFirst()));
+        A.add(itpProver.push(callstack.getLast().getSecond()));
+        logger.log(Level.ALL, "\n2. A +=", callstack.getLast());
+        callstack.removeLast();
+      }
+    }
+
+    // add all previous function calls
+    for (Triple<BooleanFormula,BooleanFormula, CFANode> t : callstack) {
+      B.add(itpProver.push(t.getFirst())); // add PSI_k
+      B.add(itpProver.push(t.getSecond())); // ... and PHI_k
+      logger.log(Level.ALL, "\n2. B +=", t);
+    }
+
+    // case 3, call of returning function
+    if (A.isEmpty()) {
+      A.add(itpProver.push(bfmgr.makeBoolean(true)));
+      logger.log(Level.ALL, "\n3. A = TRUE");
+    }
+
+    return A;
   }
 
   /** check, if there exists a functionexitnode to the current callNode. */
