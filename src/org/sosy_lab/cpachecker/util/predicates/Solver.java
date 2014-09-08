@@ -160,7 +160,7 @@ public class Solver {
       return;
     }
     try {
-      assert isUnsatUncached(unsat);
+      assert isUnsatUncached(unsat) : "formula is sat: " + unsat;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
