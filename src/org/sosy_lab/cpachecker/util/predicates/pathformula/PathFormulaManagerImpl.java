@@ -492,17 +492,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
-  }
-
-  private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
+    Formula pInitialValue = fmgr.makeNumber(NONDET_FORMULA_TYPE, 0);
     assert iSmaller < iBigger;
 
     BooleanFormula lResult = bfmgr.makeBoolean(true);
     FormulaType<Formula> type = fmgr.getFormulaType(pInitialValue);
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      Formula currentVar = fmgr.makeVariable(type, var, i);
+      Formula currentVar = fmgr.makeVariable(type, NONDET_FLAG_VARIABLE, i);
       BooleanFormula e = fmgr.makeEqual(currentVar, pInitialValue);
       lResult = bfmgr.and(lResult, e);
     }
