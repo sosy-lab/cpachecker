@@ -149,12 +149,14 @@ public final class InterpolationManager {
     ;
   }
 
-  @Option(name="addWellScopedPredicates",
-      description="refinement will try to build 'well-scoped' predicates, "
-        + "by cutting spurious traces as explained in Section 5.2 of the paper "
-        + "'Abstractions From Proofs'\n(this does not work with function inlining).\n"
-        + "THIS FEATURE IS CURRENTLY NOT AVAILABLE. ")
-  private boolean wellScopedPredicates = false;
+  @Option(name="strategy",
+      description="strategy to get interpolant from the counter example." +
+          "The analysis must support the strategy, otherwise the result will be useless!" +
+          "SEQUENCE: default case, simple sequential interpolation," +
+          "WELLSCOPED: use callstack-info to generate interpolants (see 'Abstractions from Proof')," +
+          "NESTED: use callstack info and previous interpolants for next interpolants (see 'Nested Interpolants').")
+  private InterpolationStrategy strategy = InterpolationStrategy.SEQUENCE;
+  private static enum InterpolationStrategy { SEQUENCE, WELLSCOPED, NESTED }
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -529,13 +531,13 @@ public final class InterpolationManager {
    * to be unsatisfiable.
    *
    * @param pItpProver The solver.
-   * @param itpGroupsIds The references to the interpolation groups
+   * @param itpGroupsIds The references to the interpolation groups, sorting depends on the solver-stack.
    * @param orderedFormulas list of formulas with their (nullable) successor-state and the index in the "correct" order.
    * @return A list of all the interpolants.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds,
-      List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) throws InterruptedException {
+      final Interpolator<T> interpolator, List<T> itpGroupsIds,
+      final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) throws InterruptedException {
 
     assert itpGroupsIds.size() == orderedFormulas.size();
 
@@ -543,36 +545,165 @@ public final class InterpolationManager {
 
     // The counterexample is spurious. Get the interpolants.
 
-    // how to partition the trace into partitions (A, B) depends on whether
-    // we want well-scoped interpolants or not:
-    //   1. For well-scoped interpolants, A is the trace from the entry point
+    // how to partition the trace into partitions (A, B) depends on the strategy:
+    //   1. For sequential interpolants, A always starts at the
+    // beginning (start=0). Then we simply return each interpolant for i={0..n-1}
+    // for the partitions A=[0 .. i] and B=[i+1 .. n].
+    //   2. For well-scoped interpolants, A is the trace from the entry point
     // of the current function to the current point, and B is everything else.
     // To implement this, we keep track of which function we are currently in.
     // Then we return each interpolant for i={0..n-1} for the partitions
     // A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].
-    //   2. If we do not want well-scoped interpolants, A always starts at the
-    // beginning (start=0). Then we simply return each interpolant for i={0..n-1}
-    // for the partitions A=[0 .. i] and B=[i+1 .. n].
+    //   3. For nested interpolants, TODO add description
 
     assert interpolants.isEmpty();
 
-    Deque<Pair<Integer, CFANode>> callstack = wellScopedPredicates ? new ArrayDeque<Pair<Integer, CFANode>>() : null;
-
-    for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
-      // last iteration is left out because B would be empty
-
-      final int start_of_A;
-      if (wellScopedPredicates) {
-        start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
-      } else {
-        start_of_A = 0; // if not well-scoped interpolation: we always start at 0.
+    switch (strategy) {
+      case SEQUENCE: {
+        for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
+          // last iteration is left out because B would be empty
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, 0, end_of_A, 0));
+        }
+        break;
       }
 
-      final int depth = callstack == null ? 0 : callstack.size(); // just for logging
-      interpolants.add(getInterpolantFromSublist(pItpProver, itpGroupsIds, start_of_A, end_of_A, depth));
+      case WELLSCOPED: {
+        final Deque<Pair<Integer, CFANode>> callstack = new ArrayDeque<>();
+        for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
+          // last iteration is left out because B would be empty
+          final int start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, callstack.size()));
+        }
+        break;
+      }
+
+      case NESTED: {
+
+
+        BooleanFormula lastItp = bfmgr.makeBoolean(true); // PSI_0 = True
+        final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
+
+        for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
+
+          // use a new prover, because we use several distinct queries
+          final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment();
+          final List<T> A = new ArrayList<>();
+          final List<T> B = new ArrayList<>();
+
+          // add all remaining PHI_j
+          for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
+            B.add(itpProver.push(t.getFirst()));
+            //logger.log(Level.ALL, "\n1. B +=", t.getFirst()); // disabled, too many lines
+          }
+
+          // If we have entered or exited a function, update the stack of entry points
+          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+          final CFANode node = AbstractStates.extractLocation(abstractionState);
+          if (node instanceof FunctionEntryNode) {
+            callstack.addLast(Triple.of(lastItp, orderedFormulas.get(positionOfA).getFirst(),node));
+          }
+
+          // case 1,2,4 from paper, internal position OR call of non-returning function OR function-return
+          //if (!(node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA))) {
+            if (positionOfA != 0) {
+              A.add(itpProver.push(lastItp));
+            }
+            A.add(itpProver.push(orderedFormulas.get(positionOfA).getFirst()));
+            logger.log(Level.ALL, "\n1. A +=", lastItp, "+", orderedFormulas.get(positionOfA).getFirst());
+          //}
+
+          // case 4, we are returning from a function,
+          if (!callstack.isEmpty()) {
+            final CFANode lastEntryNode = callstack.getLast().getThird();
+            if (node instanceof FunctionExitNode
+                    && ((FunctionExitNode) node).getEntryNode() == lastEntryNode
+              //|| (node.getEnteringSummaryEdge() != null
+              //     && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
+                    ) {
+              A.add(itpProver.push(callstack.getLast().getFirst()));
+              A.add(itpProver.push(callstack.getLast().getSecond()));
+              logger.log(Level.ALL, "\n2. A +=", callstack.getLast());
+              callstack.removeLast();
+            }
+          }
+
+          // add all previous function calls
+          for (Triple<BooleanFormula,BooleanFormula, CFANode> t : callstack) {
+            B.add(itpProver.push(t.getFirst())); // add PSI_k
+            B.add(itpProver.push(t.getSecond())); // ... and PHI_k
+            logger.log(Level.ALL, "\n2. B +=", t);
+          }
+
+          // case 3, call of returning function
+          if (A.isEmpty()) {
+            A.add(itpProver.push(bfmgr.makeBoolean(true)));
+            logger.log(Level.ALL, "\n3. A = TRUE");
+          }
+
+          // update prover with new formulas.
+          // this is the expensive step, that is distinct from other strategies.
+          // TODO improve! example: reverse ordering of formulas for re-usage of the solver-stack
+          boolean unsat = itpProver.isUnsat();
+          assert unsat : "formulas were unsat before, they have to be unsat now.";
+
+          // get interpolant of A and B, for B we use the complementary set of A
+          logger.log(Level.ALL, "Looking for interpolant for formulas at position", positionOfA, "(depth", callstack.size(), ")");
+          final BooleanFormula itp = itpProver.getInterpolant(A);
+          logger.log(Level.ALL, "Received interpolant", itp);
+
+          interpolants.add(itp);
+          lastItp = itp;
+
+          itpProver.close();
+        }
+
+        break;
+      }
+
+      default:
+        throw new AssertionError("should not happen");
     }
 
     return interpolants;
+  }
+
+  /** check, if there exists a functionexitnode to the current callNode. */
+  private boolean callHasReturn(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, int callIndex) {
+    final Deque<CFANode> callstack = new ArrayDeque<>();
+
+    {
+      final AbstractState abstractionState = orderedFormulas.get(callIndex).getSecond();
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
+      assert (node instanceof FunctionEntryNode) : "call needed as input param";
+      callstack.addLast(node);
+    }
+
+    // walk along path and track the callstack
+    for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, callIndex + 1)) {
+      assert !callstack.isEmpty() : "should have returned when callstack is empty";
+
+      final AbstractState abstractionState = checkNotNull(t.getSecond());
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
+
+      if (node instanceof FunctionEntryNode) {
+        callstack.addLast(node);
+      }
+
+      final CFANode lastEntryNode = callstack.getLast();
+      if ((node instanceof FunctionExitNode
+              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode)
+        //|| (node.getEnteringSummaryEdge() != null
+        // && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
+              ) {
+        callstack.removeLast();
+
+        // we found the function exit for the input param
+        if (callstack.isEmpty()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private int getWellScopedStartOfA(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
@@ -875,7 +1006,7 @@ public final class InterpolationManager {
       if (spurious) {
 
         if (computeInterpolants) {
-          List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds, orderedFormulas);
+          List<BooleanFormula> interpolants = getInterpolants(this, itpGroupsIds, orderedFormulas);
           if (verifyInterpolants) {
             verifyInterpolants(interpolants, f, itpProver);
           }
