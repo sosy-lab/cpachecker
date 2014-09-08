@@ -389,30 +389,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getFirst();
+      final CType symbolType = resultSSA.getType(symbolName);
       final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
       final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
       assert symbolName != null;
-      assert resultSSA != null;
-      BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-
-        assert index2 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          mergeFormula = makeSsaNondetFlagMerger(index2, index1);
-
-        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
-          mergeFormula = makeSsaUFMerger(symbolName, resultSSA.getType(symbolName),
-              index2, index1, pts2);
-
-        } else {
-          mergeFormula = makeSsaVariableMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index2, index1);
-        }
+        BooleanFormula mergeFormula = makeSsaMerger(symbolName, symbolType, index2, index1, pts2);
 
         mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
 
@@ -420,28 +405,35 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         assert index1 < index2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
-
-        assert index1 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          mergeFormula = makeSsaNondetFlagMerger(index1, index2);
-
-        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
-          mergeFormula = makeSsaUFMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index1, index2, pts1);
-
-        } else {
-          mergeFormula = makeSsaVariableMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index1, index2);
-        }
+        BooleanFormula mergeFormula = makeSsaMerger(symbolName, symbolType, index1, index2, pts1);
 
         mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
       }
     }
 
     return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeBoolean(true));
+  }
+
+  /**
+   * Create the necessary equivalence terms for adjusting the SSA indices
+   * of a given symbol (of any type) from oldIndex to newIndex.
+   */
+  private BooleanFormula makeSsaMerger(final String symbolName, final CType symbolType,
+      final int oldIndex, final int newIndex,
+      final PointerTargetSet oldPts) throws InterruptedException {
+    assert oldIndex > 0;
+    assert newIndex > oldIndex;
+
+    if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+      return makeSsaNondetFlagMerger(oldIndex, newIndex);
+
+    } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
+      return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
+
+    } else {
+      return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
+    }
   }
 
   private BooleanFormula makeSsaVariableMerger(final String variableName,
