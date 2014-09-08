@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,7 +57,7 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import com.google.common.base.Throwables;
 
 @Options(prefix="cpa.monitor")
-public class MonitorTransferRelation implements TransferRelation {
+public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
@@ -92,7 +93,7 @@ public class MonitorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<MonitorState> getAbstractSuccessors(
+  public Collection<MonitorState> getAbstractSuccessorsForEdge(
       AbstractState pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
@@ -108,7 +109,7 @@ public class MonitorTransferRelation implements TransferRelation {
       @Override
       public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
         assert !(element.getWrappedState() instanceof MonitorState) : element;
-        return transferRelation.getAbstractSuccessors(element.getWrappedState(), pPrecision, pCfaEdge);
+        return transferRelation.getAbstractSuccessorsForEdge(element.getWrappedState(), pPrecision, pCfaEdge);
       }
     };
 

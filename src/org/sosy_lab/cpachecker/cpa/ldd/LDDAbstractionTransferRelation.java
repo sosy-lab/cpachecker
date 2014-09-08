@@ -54,14 +54,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
 
-public class LDDAbstractionTransferRelation implements TransferRelation {
+public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
   private final LDDRegionManager regionManager;
 
@@ -75,8 +75,9 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractState> getAbstractSuccessors(AbstractState element, Precision precision,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
+  public Collection<? extends LDDAbstractState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge edge)
+          throws CPATransferException, InterruptedException {
     if (!(element instanceof LDDAbstractState)) { return Collections.emptyList(); }
     LDDAbstractState analysisElement = (LDDAbstractState) element;
     LDDRegion region = toRegion(edge, analysisElement.getRegion());

@@ -128,7 +128,7 @@ public class OctagonAnalysisFeasabilityChecker {
       for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
         for (OctagonState st : next) {
-          successors.addAll(transfer.getAbstractSuccessors(
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
               pathElement.getSecond()));

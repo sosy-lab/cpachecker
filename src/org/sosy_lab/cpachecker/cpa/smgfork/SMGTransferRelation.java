@@ -92,9 +92,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -106,7 +106,7 @@ import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix = "cpa.smgfork")
-public class SMGTransferRelation implements TransferRelation {
+public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
@@ -426,8 +426,9 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());

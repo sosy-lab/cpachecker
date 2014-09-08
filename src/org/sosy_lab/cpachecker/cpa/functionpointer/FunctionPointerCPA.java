@@ -119,7 +119,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> computedSuccessors =
-        transferRelation.getAbstractSuccessors(
+        transferRelation.getAbstractSuccessorsForEdge(
             pState, SingletonPrecision.getInstance(), pCfaEdge);
     if (pSuccessors.size() != computedSuccessors.size()) {
       return false; }

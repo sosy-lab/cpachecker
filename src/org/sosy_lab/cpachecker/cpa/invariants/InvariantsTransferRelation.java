@@ -97,9 +97,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
@@ -118,9 +118,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
-public enum InvariantsTransferRelation implements TransferRelation {
+class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
-  INSTANCE;
+  static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
 
   /**
    * Base name of the variable that is introduced to pass results from
@@ -131,7 +131,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pEdge)
       throws CPATransferException {
 

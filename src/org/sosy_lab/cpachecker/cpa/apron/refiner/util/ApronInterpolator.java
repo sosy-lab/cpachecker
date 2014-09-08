@@ -258,7 +258,7 @@ public class ApronInterpolator {
   private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
       throws CPATransferException {
 
-    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,
         precision,
         initialEdge);
@@ -284,7 +284,7 @@ public class ApronInterpolator {
         continue;
       }
 
-      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         state,
         precision,
         currentEdge);

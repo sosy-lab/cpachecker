@@ -326,7 +326,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
       Collection<? extends AbstractState> computedSuccessors =
-          transferRelation.getAbstractSuccessors(
+          transferRelation.getAbstractSuccessorsForEdge(
               pState, SingletonPrecision.getInstance(), pCfaEdge);
       boolean found;
       for (AbstractState comp:computedSuccessors) {

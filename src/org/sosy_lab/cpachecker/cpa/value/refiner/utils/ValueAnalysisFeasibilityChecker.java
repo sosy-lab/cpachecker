@@ -128,7 +128,7 @@ public class ValueAnalysisFeasibilityChecker {
       ValueAnalysisState next = pInitial;
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
             next,
             precision,
             pathElement.getSecond());

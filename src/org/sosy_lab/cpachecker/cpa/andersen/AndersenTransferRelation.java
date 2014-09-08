@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.Iterables;
 
-public class AndersenTransferRelation implements TransferRelation {
+public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
 
@@ -71,8 +71,8 @@ public class AndersenTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
-      CFAEdge pCfaEdge)
+  public Collection<AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
     AbstractState successor = null;
@@ -105,7 +105,7 @@ public class AndersenTransferRelation implements TransferRelation {
       successor = andersenState;
       Iterator<CFAEdge> edgeIterator = ((MultiEdge) pCfaEdge).iterator();
       while (pElement != null && edgeIterator.hasNext()) {
-        successor = Iterables.getFirst(getAbstractSuccessors(successor, pPrecision, edgeIterator.next()), null);
+        successor = Iterables.getFirst(getAbstractSuccessorsForEdge(successor, pPrecision, edgeIterator.next()), null);
       }
       break;
 

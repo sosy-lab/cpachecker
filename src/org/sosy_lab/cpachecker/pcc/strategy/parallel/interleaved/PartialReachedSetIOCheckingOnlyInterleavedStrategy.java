@@ -128,7 +128,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
           // compute successors
           try {
-            successors = cpa.getTransferRelation().getAbstractSuccessors(checkedState, initPrec, null);
+            successors = cpa.getTransferRelation().getAbstractSuccessors(checkedState, initPrec);
 
 
             for (AbstractState successor : successors) {

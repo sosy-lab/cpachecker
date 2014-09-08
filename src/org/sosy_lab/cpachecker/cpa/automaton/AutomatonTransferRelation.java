@@ -47,9 +47,9 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -67,7 +67,7 @@ import com.google.common.collect.Sets;
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
 @Options(prefix = "cpa.automaton")
-class AutomatonTransferRelation implements TransferRelation {
+class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(description = "Collect information about matched (and traversed) tokens.")
   private boolean collectTokenInformation = false;
@@ -89,11 +89,8 @@ class AutomatonTransferRelation implements TransferRelation {
     this.logger = pLogger;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#getAbstractSuccessors(org.sosy_lab.cpachecker.core.interfaces.AbstractState, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.cfa.model.CFAEdge)
-   */
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
                       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 

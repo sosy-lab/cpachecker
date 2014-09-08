@@ -170,7 +170,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = extractLocation(v);
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex

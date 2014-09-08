@@ -32,24 +32,25 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * The transfer relation of the StatisticsCPA.
  */
-public class StatisticsTransferRelation implements TransferRelation {
+public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
 
 
   public StatisticsTransferRelation(Configuration pConfig, LogManager pLogger) {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
     StatisticsState state = (StatisticsState) pState;
     CFANode node = state.getLocationNode();
     if (pCfaEdge != null) {

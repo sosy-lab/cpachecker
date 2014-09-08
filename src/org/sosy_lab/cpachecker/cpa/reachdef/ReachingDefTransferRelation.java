@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtract
 import com.google.common.collect.ImmutableSet;
 
 
-public class ReachingDefTransferRelation implements TransferRelation {
+public class ReachingDefTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<FunctionEntryNode, Set<String>> localVariablesPerFunction;
 
@@ -80,8 +80,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
     if (pCfaEdge != null) {
       return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
     }

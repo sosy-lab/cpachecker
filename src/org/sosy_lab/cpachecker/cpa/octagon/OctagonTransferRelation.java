@@ -171,7 +171,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
   }
 
   @Override
-  public Collection<OctagonState> getAbstractSuccessors(
+  public Collection<OctagonState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 

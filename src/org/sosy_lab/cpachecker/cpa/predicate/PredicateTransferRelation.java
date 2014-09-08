@@ -44,10 +44,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -66,7 +66,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * computes an abstraction.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateTransferRelation implements TransferRelation {
+public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(name = "satCheck",
       description = "maximum blocksize before a satisfiability check is done\n"
@@ -115,8 +115,9 @@ public class PredicateTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pElement,
-      Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge edge)
+          throws CPATransferException, InterruptedException {
 
     postTimer.start();
     try {
