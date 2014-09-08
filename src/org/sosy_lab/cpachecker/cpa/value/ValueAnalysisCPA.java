@@ -174,7 +174,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
-      return new ValueAnalysisStaticRefiner(config, logger, precision);
+      return new ValueAnalysisStaticRefiner(config, logger);
     }
 
     return null;
