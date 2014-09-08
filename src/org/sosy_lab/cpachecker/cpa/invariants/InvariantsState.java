@@ -1106,7 +1106,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
                   AFunctionCall functionCall = summaryEdge.getExpression();
                   if (functionCall instanceof AFunctionCallAssignmentStatement) {
                     AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
-                    wideningTargets.addAll(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
+                    wideningTargets.addAll(InvariantsTransferRelation.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
 
                     continue;
                   }

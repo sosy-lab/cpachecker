@@ -443,7 +443,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
         CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
         return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong()).toString();
       } else if (pState != null) {
-        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.INSTANCE.getExpressionToFormulaVisitor(pEdge, pState)), pState);
+        CompoundInterval subscriptValue = evaluate(subscript.accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge, pState)), pState);
         if (subscriptValue.isSingleton()) {
           return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), subscriptValue.getValue()).toString();
         }
@@ -541,15 +541,15 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return null;
   }
 
-  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
+  public static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
     return getExpressionToFormulaVisitor(pEdge, null);
   }
 
-  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor) {
+  public static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor) {
     return getExpressionToFormulaVisitor(pVariableNameExtractor, null);
   }
 
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final @Nullable InvariantsState pState) {
+  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final @Nullable InvariantsState pState) {
     return getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
       @Override
@@ -559,13 +559,13 @@ public enum InvariantsTransferRelation implements TransferRelation {
     }, pState);
   }
 
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final @Nullable InvariantsState pState) {
+  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final @Nullable InvariantsState pState) {
     final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
     environment = pState == null ? Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap() : pState.getEnvironment();
     return new ExpressionToFormulaVisitor(pVariableNameExtractor, environment);
   }
 
-  private boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
+  private static boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
     for (String pVarName : pFormula.accept(COLLECT_VARS_VISITOR)) {
       if (pVarName.contains("[*]")) {
         return true;
@@ -574,7 +574,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return false;
   }
 
-  private CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
+  private static CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       if (statementEdge.getStatement() instanceof CAssignment) {
@@ -759,7 +759,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
    *
    * @return the variables involved in the given expression.
    */
-  public Map<String, CType> getInvolvedVariables(IAExpression pExpression, CFAEdge pCfaEdge) {
+  public static Map<String, CType> getInvolvedVariables(IAExpression pExpression, CFAEdge pCfaEdge) {
     if (pExpression == null) {
       return Collections.emptyMap();
     } if (pExpression instanceof CExpression) {
