@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -66,9 +66,14 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
@@ -82,6 +87,7 @@ public class PathFormulaManagerImplTest {
 
   private FormulaManager __formulaManager;
   private FormulaManagerView fmgr;
+  private Solver solver;
   private PathFormulaManager pfmgr;
 
   @Before
@@ -97,6 +103,7 @@ public class PathFormulaManagerImplTest {
     __formulaManager = factory.getFormulaManager();
     fmgr = new FormulaManagerView(__formulaManager,
         config, TestLogManager.getInstance());
+    solver = new Solver(fmgr, factory);
 
     pfmgr = new PathFormulaManagerImpl(
         fmgr,
@@ -281,5 +288,92 @@ public class PathFormulaManagerImplTest {
         PointerTargetSet.emptyPointerTargetSet(),
         0);
     assertEquals(expected, empty);
+  }
+
+  private PathFormula makePathFormulaWithVariable(String var, int index) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    BooleanFormula f = rfmgr.equal(rfmgr.makeVariable(var, index), rfmgr.makeNumber(0));
+
+    SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, CNumericTypes.DOUBLE, index).build();
+
+    return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
+  }
+
+  private BooleanFormula makeVariableEquality(String var, int index1, int index2) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    return rfmgr.equal(rfmgr.makeVariable(var, index2), rfmgr.makeVariable(var, index1));
+  }
+
+  // The following tests test the disjunction of the Formulas
+  // as well as the merge of the SSAMaps within makeOr().
+
+  @Test
+  public void testMakeOrBothEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula result = pfmgr.makeOr(empty, empty);
+
+    assertEquals(empty, result);
+  }
+
+  @Test
+  public void testMakeOrLeftEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgr.makeOr(empty, pf);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrRightEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgr.makeOr(pf, empty);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOr() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("a", 3);
+
+    PathFormula result = pfmgr.makeOr(pf1, pf2);
+
+    BooleanFormula left = fmgr.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
+    BooleanFormula right = pf2.getFormula();
+
+    PathFormula expected = new PathFormula(fmgr.makeOr(left, right),
+        pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrCommutative() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("b", 3);
+
+    PathFormula resultA = pfmgr.makeOr(pf1, pf2);
+    PathFormula resultB = pfmgr.makeOr(pf2, pf1);
+
+    BooleanFormula equiv = fmgr.makeEqual(resultA.getFormula(), resultB.getFormula());
+
+    // check for tautology of equiv
+    assertTrue(solver.isUnsat(fmgr.makeNot(equiv)));
   }
 }
