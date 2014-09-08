@@ -113,8 +113,9 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public AbstractState pop() {
-    Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
+  public final AbstractState pop() {
+    Entry<K, Waitlist> highestEntry = null;
+    highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
     assert !localWaitlist.isEmpty();
     AbstractState result = localWaitlist.pop();

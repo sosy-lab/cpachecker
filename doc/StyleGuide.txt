@@ -89,6 +89,9 @@ Design:
   (https://code.google.com/p/guava-libraries/wiki/ImmutableCollectionsExplained).
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
+- Avoid boolean parameters. They carry no semantics
+  and make it hard to understand for the reader what effect they have
+  (cf. http://martinfowler.com/bliki/FlagArgument.h.tml)
 
 Configuration options:
 - Only use the @Option scheme so your options are automatically type-checked

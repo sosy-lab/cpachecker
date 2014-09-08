@@ -21,23 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.rtt;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-
-public class RTTDomain implements AbstractDomain {
-
-  @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return ((RTTState)currentElement).join((RTTState)reachedState);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((RTTState)currentElement).isLessOrEqual((RTTState)reachedState);
-  }
-
-}
+@org.sosy_lab.common.Unmaintained
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
+package org.sosy_lab.cpachecker.cpa.dominator;

@@ -54,11 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -163,6 +159,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
+  private final AbstractDomain abstractDomain;
 
   /**
    * Gets a factory for creating InvariantCPAs.
@@ -194,13 +191,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();
+    abstractDomain = DelegateAbstractDomain.<InvariantsState>getInstance();
     if (pOptions.merge.equalsIgnoreCase("precisiondependent")) {
       mergeOperator = new InvariantsMergeOperator();
     } else if (pOptions.merge.equalsIgnoreCase("sep")) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       assert pOptions.merge.equalsIgnoreCase("join");
-      mergeOperator = new MergeJoinOperator(InvariantsDomain.INSTANCE);
+      mergeOperator = new MergeJoinOperator(abstractDomain);
     }
   }
 
@@ -211,7 +209,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return InvariantsDomain.INSTANCE;
+    return abstractDomain;
   }
 
   @Override

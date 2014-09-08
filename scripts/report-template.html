@@ -826,6 +826,7 @@ a.action:hover {
                                 'source' : elem.source,
                                 'target' : parseInt(fcalledge[0], 10),
                                 'desc' : elem.desc,
+                                'val' : elem.val,
                                 'stmt' : elem.desc,
                                 'line' : elem.line
                             };
@@ -835,6 +836,7 @@ a.action:hover {
                                 'source' : parseInt(fcalledge[0], 10),
                                 'target' : elem.target,
                                 'desc' : '',
+                                'val' : '',
                                 'stmt' : '',
                                 'line' : elem.line
                             };
@@ -916,6 +918,29 @@ a.action:hover {
                         code.appendChild(edgelink);
                         li.appendChild(code);
                         ul.appendChild(li);
+                        
+                        // add concrete error path values
+                        var values = step.val.split('\n');
+
+                        for (var c = 0; c < values.length; c++) {
+
+                        	if(values[c] == '') {
+                        	  continue;
+                        	}
+
+                            var valLi = document.createElement('li');
+                            
+                            var valSrcspan = document.createElement('span');
+                            valLi.appendChild(valSrcspan);
+
+                            var value = document.createElement('code');
+                            value.className = 'prettyprint lang-c';
+                            value.innerHTML = values[c];                            
+                            valLi.style.textIndent = '' + ((level + 2) * 15) + 'px';
+                            valLi.appendChild(value);
+
+                            ul.appendChild(valLi);
+                    	} 
                     }
                 };
             })();

@@ -194,7 +194,14 @@ public class CEXExporter {
     writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        targetPath.toJSON(pAppendable);
+
+        if (counterexample != null
+            && counterexample.getTargetPathModel() != null
+            && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
+          counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
+        } else {
+          targetPath.toJSON(pAppendable);
+        }
       }
     });
 
@@ -274,12 +281,7 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssignments exactValuePath;
-        exactValuePath = null;
-
-        if (model != null) {
-          exactValuePath = model.getExactVariableValuePath(edgePath);
-        }
+        CFAPathWithAssignments exactValuePath = model.getExactVariableValuePath(edgePath);
 
         if (exactValuePath != null) {
           printPreciseValues(out, exactValuePath);
@@ -292,15 +294,13 @@ public class CEXExporter {
         for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
-          if (model != null) {
-            //TODO Erase, counterexample is supposed to be independent of Assignable terms
-            for (Model.AssignableTerm term : model.getAssignedTermsPerEdge().getAllAssignedTerms(edge)) {
-              out.append('\t');
-              out.append(term.toString());
-              out.append(": ");
-              out.append(model.get(term).toString());
-              out.append(System.lineSeparator());
-            }
+          //TODO Erase, counterexample is supposed to be independent of Assignable terms
+          for (Model.AssignableTerm term : model.getAllAssignedTerms(edge)) {
+            out.append('\t');
+            out.append(term.toString());
+            out.append(": ");
+            out.append(model.get(term).toString());
+            out.append(System.lineSeparator());
           }
         }
       }

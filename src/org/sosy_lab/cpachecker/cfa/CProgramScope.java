@@ -232,7 +232,21 @@ public class CProgramScope implements Scope {
 
   @Override
   public CComplexType lookupType(String pName) {
-    // TODO not implemented
+    // TODO support non global type declarations
+
+    for (CDeclaration dcl : simpleDeclarations.values()) {
+      CType type = dcl.getType().getCanonicalType();
+
+      if (type instanceof CComplexType) {
+        CComplexType complexType = (CComplexType) type;
+
+        if(pName.equals(complexType.getQualifiedName())) {
+          //TODO unique?
+          return complexType;
+        }
+      }
+    }
+
     return null;
   }
 

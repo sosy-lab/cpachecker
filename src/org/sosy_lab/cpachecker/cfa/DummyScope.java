@@ -29,80 +29,70 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 
 /**
- * Used to store the types of the CFA that are
- * lost when only a single statement or a block of statements
- * of the original program is parsed.
+ * For all languages, where parsing of single or blocks of statements is not yet implemented,
+ * use this dummy scope when parsing an automaton {@link AutomatonParser}.
  */
-/*
- * This class is currently a stub to ensure working Java analysis without
- * the use of a global scope.
- */
-public class JProgramScope implements Scope {
+public class DummyScope implements Scope {
 
-  public JProgramScope(CFA cfa) {
-    assert cfa.getLanguage() == Language.JAVA;
+  private static final DummyScope DUMMYSCOPE = new DummyScope();
+
+  private DummyScope() {} // Private constructor to insure one instance.
+
+  public static DummyScope getInstance() {
+    return DUMMYSCOPE;
   }
 
   @Override
   public boolean isGlobalScope() {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean variableNameInUse(String pName, String pOrigName) {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CSimpleDeclaration lookupVariable(String pName) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CFunctionDeclaration lookupFunction(String pName) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CComplexType lookupType(String pName) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public CType lookupTypedef(String pName) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void registerDeclaration(CSimpleDeclaration pDeclaration) {
-    // TODO Auto-generated method stub
-
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String createScopedNameOf(String pName) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String getRenamedTypeName(String pType) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
 }

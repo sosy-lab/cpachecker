@@ -55,19 +55,21 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   }
 
   public static LinearExpression ofVariable(String var) {
-    return LinearExpression.pair(var, ExtendedRational.ofInt(1));
+    return LinearExpression.pair(var, ExtendedRational.ONE);
   }
 
   /**
-   * Add [other] linear expression.
+   * Add {@code other} linear expression.
    */
   public LinearExpression add(LinearExpression other) {
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         other.data,
-        new ImmutableMapMerger.MergeFunc<ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
           @Override
-          public ExtendedRational apply(ExtendedRational a, ExtendedRational b) {
+          public ExtendedRational apply(String var,
+                                        ExtendedRational a,
+                                        ExtendedRational b) {
             return a.plus(b);
           }
         }
@@ -75,15 +77,17 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   }
 
   /**
-   * Subtract [other] linear expression.
+   * Subtract {@code other} linear expression.
    */
   public LinearExpression sub(LinearExpression other) {
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         other.data,
-        new ImmutableMapMerger.MergeFunc<ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
           @Override
-          public ExtendedRational apply(ExtendedRational a, ExtendedRational b) {
+          public ExtendedRational apply(String var,
+                                        ExtendedRational a,
+                                        ExtendedRational b) {
             return a.minus(b);
           }
         }
@@ -91,15 +95,17 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   }
 
   /**
-   * Multiply the linear expression by [constant].
+   * Multiply the linear expression by {@code constant}.
    */
   public LinearExpression multByConst(final ExtendedRational constant) {
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         data,
-        new ImmutableMapMerger.MergeFunc<ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
           @Override
-          public ExtendedRational apply(ExtendedRational a, ExtendedRational b) {
+          public ExtendedRational apply(String var,
+                                        ExtendedRational a,
+                                        ExtendedRational b) {
             return a.times(constant);
           }
         }
@@ -118,7 +124,7 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
    * Negate the linear expression.
    */
   public LinearExpression negate() {
-    return multByConst(ExtendedRational.ONE.negate());
+    return multByConst(ExtendedRational.NEG_ONE);
   }
 
   public int size() {

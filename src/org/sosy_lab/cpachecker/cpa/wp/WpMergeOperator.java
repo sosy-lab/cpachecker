@@ -21,22 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.wp;
 
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class SMGDomain implements AbstractDomain {
+public class WpMergeOperator extends MergeJoinOperator implements MergeOperator {
 
-  @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((SMGState)currentElement).join((SMGState)reachedState);
+  public WpMergeOperator(AbstractDomain pD) {
+    super(pD);
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((SMGState) currentElement).isLessOrEqual((SMGState) reachedState);
+  public AbstractState merge(AbstractState olderState, AbstractState newerState, Precision pi) throws CPAException {
+    WpAbstractState result = (WpAbstractState) super.merge(olderState, newerState, pi);
+
+    return result;
   }
+
 }

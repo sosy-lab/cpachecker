@@ -35,9 +35,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
  *
  */
 @Options
-public class WpTransferRelation implements TransferRelation {
+public class WpTransferRelation extends SingleEdgeTransferRelation {
 
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -112,8 +112,9 @@ public class WpTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
 
     WpAbstractState state = (WpAbstractState) pState;
     CFANode backwardsLoc = pCfaEdge.getPredecessor();
@@ -135,7 +136,7 @@ public class WpTransferRelation implements TransferRelation {
   private Collection<WpAbstractState> handleNonAbstractionFormulaLocation(
       PathFormula pathFormula, WpAbstractState predState) throws InterruptedException {
 
-    boolean satCheck = false; // (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
+    boolean satCheck = true; // (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
     // TODO: Implement a heuristic for SAT checks
 
     if (satCheck) {
@@ -148,7 +149,7 @@ public class WpTransferRelation implements TransferRelation {
 
       if (unsat) {
         numSatChecksFalse++;
-        logger.log(Level.FINEST, "PathFormula is unsatisfiable.");
+        logger.log(Level.ALL, "PathFormula is unsatisfiable.");
         return Collections.emptySet();
       }
     }

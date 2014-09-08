@@ -24,4 +24,5 @@
 /**
  * Interfaces for theoretical core concepts of CPAchecker.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.interfaces;

@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
+
+import ap.parser.PartialEvaluator;
 import scala.collection.JavaConversions;
 
 import java.util.ArrayList;
@@ -116,4 +119,14 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   protected IExpression substitute(IExpression expr, List<IExpression> substituteFrom, List<IExpression> substituteTo) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  protected IExpression simplify(IExpression f) {
+    // TODO this method is not tested, check it!
+    if (f instanceof IFormula) {
+      f = BooleanCompactifier.apply((IFormula)f);
+    }
+    return PartialEvaluator.apply(f);
+  }
+
 }

@@ -21,26 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.functionpointer;
+package org.sosy_lab.cpachecker.util;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import static com.google.common.base.Preconditions.checkState;
 
-class FunctionPointerDomain implements AbstractDomain {
+import java.util.concurrent.atomic.AtomicInteger;
 
-  @Override
-  public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
-    throw new UnsupportedOperationException();
-  }
+/**
+ * Utility class for generating unique.
+ * This class is fully thread-safe.
+ *
+ * It gives out at most MAX_INT ids, afterwards it throws an exception.
+ */
+public final class UniqueIdGenerator {
 
-  @Override
-  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException {
-    // returns true if element1 < element2 on lattice
+  private final AtomicInteger nextId = new AtomicInteger();
 
-    FunctionPointerState elem1 = (FunctionPointerState) pElement1;
-    FunctionPointerState elem2 = (FunctionPointerState) pElement2;
-
-    return elem1.isLessOrEqualThan(elem2);
+  public int getFreshId() {
+    int id = nextId.getAndIncrement();
+    checkState(id >= 0, "Overflow for unique ID");
+    return id;
   }
 }

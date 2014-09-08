@@ -134,12 +134,13 @@ public class ValueDeterminationFormulaManager {
 
     Table<CFANode, LinearExpression, NumeralFormula> outSSAMap = HashBasedTable.create();
 
-    for (CFANode toNode : policy.keySet()) {
+    for (Entry<CFANode, Map<LinearExpression, CFAEdge>> entry : policy.entrySet()) {
 
+      CFANode toNode = entry.getKey();
       logger.log(Level.FINE, "Creating value-determination formula for node "
           + toNode);
 
-      for (Entry<LinearExpression, CFAEdge> incoming : policy.get(toNode).entrySet()) {
+      for (Entry<LinearExpression, CFAEdge> incoming : entry.getValue().entrySet()) {
 
         LinearExpression template = incoming.getKey();
         CFAEdge incomingEdge = incoming.getValue();

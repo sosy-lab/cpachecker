@@ -81,6 +81,7 @@ class OutputHandler:
         self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
+        self.runSet = None
 
         # get information about computer
         sysinfo = None
@@ -115,6 +116,16 @@ class OutputHandler:
         systemInfo.append(cpuElem)
         systemInfo.append(ramElem)
         self.XMLHeader.append(systemInfo)
+
+
+    def setError(self, msg):
+        """
+        Mark the benchmark as erroneous, e.g., because the benchmarking tool crashed.
+        The message is intended as explanation for the user.
+        """
+        self.XMLHeader.set('error', msg if msg else 'unknown error')
+        if self.runSet:
+            self.runSet.xml.set('error', msg if msg else 'unknown error')
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, sysinfo):

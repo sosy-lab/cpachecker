@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
@@ -120,7 +119,7 @@ import com.google.common.base.Preconditions;
  *  - P type of Precision
  */
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
-    implements TransferRelation {
+    extends SingleEdgeTransferRelation {
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
@@ -154,7 +153,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
 
   @Override
-  public Collection<T> getAbstractSuccessors(
+  public Collection<T> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 

@@ -107,6 +107,8 @@ def executeBenchmarkLocaly(benchmark, outputHandler):
             usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
                         - (ruBefore.ru_utime + ruBefore.ru_stime)
 
+            if STOPPED_BY_INTERRUPT:
+                outputHandler.setError('interrupted')
             outputHandler.outputAfterRunSet(runSet, cpuTime=usedCpuTime, wallTime=usedWallTime, energy=energy)
 
     outputHandler.outputAfterBenchmark(STOPPED_BY_INTERRUPT)

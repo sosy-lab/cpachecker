@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -61,7 +62,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       LocationState[] elements = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
         LocationState state = backwards
-            ? new BackwardsLocationState(node)
+            ? new BackwardsLocationState(node, pCfa)
             : new LocationState(node);
         elements[node.getNodeNumber()] = state;
       }
@@ -77,15 +78,28 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-  private static class BackwardsLocationState extends LocationState {
+  private static class BackwardsLocationState extends LocationState implements Targetable {
 
-    protected BackwardsLocationState(CFANode locationNode) {
+    private final CFA cfa;
+
+    protected BackwardsLocationState(CFANode locationNode, CFA pCfa) {
       super(locationNode);
+      cfa = pCfa;
     }
 
     @Override
     public Iterable<CFAEdge> getOutgoingEdges() {
       return CFAUtils.enteringEdges(getLocationNode());
+    }
+
+    @Override
+    public boolean isTarget() {
+      return cfa.getMainFunction() == getLocationNode();
+    }
+
+    @Override
+    public String getViolatedPropertyDescription() throws IllegalStateException {
+      return "Entry node reached backwards.";
     }
   }
 
@@ -107,7 +121,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   @Override
   public String toString() {
-    return locationNode + " (number of node: " + locationNode.getNodeNumber() + ")";
+    String loc = locationNode.describeFileLocation();
+    return locationNode
+        + (loc.isEmpty() ? "" : " (" + loc + ")");
   }
 
   @Override

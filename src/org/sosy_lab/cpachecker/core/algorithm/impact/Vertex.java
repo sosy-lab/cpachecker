@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -76,7 +78,7 @@ class Vertex extends AbstractSingleWrapperState {
     stateFormula = pStateFormula;
   }
 
-  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, AbstractState pElement) {
+  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, @Nullable AbstractState pElement) {
     super(pElement);
     this.bfmgr = bfmgr;
     parent = checkNotNull(pParent);

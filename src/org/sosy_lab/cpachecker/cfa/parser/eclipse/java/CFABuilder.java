@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -103,9 +104,9 @@ class CFABuilder extends ASTVisitor {
 
     List<Pair<IADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
 
-    for (String declName : staticFieldDeclarations.keySet()) {
-      IADeclaration declaration = staticFieldDeclarations.get(declName);
-      result.add(Pair.of(declaration, declName));
+    for (Entry<String, JFieldDeclaration> entry : staticFieldDeclarations.entrySet()) {
+      IADeclaration declaration = entry.getValue();
+      result.add(Pair.of(declaration, entry.getKey()));
     }
 
     return result;

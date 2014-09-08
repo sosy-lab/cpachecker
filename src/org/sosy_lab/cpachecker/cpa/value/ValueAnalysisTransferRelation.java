@@ -654,15 +654,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingInformationList.add(new MissingInformation(op1, op2));
       }
 
-      op1 = ((APointerExpression)op1).getOperand();
-
-      // Cil produces code like
-      // *((int*)__cil_tmp5) = 1;
-      // so remove cast
-      if (op1 instanceof CCastExpression) {
-        op1 = ((CCastExpression)op1).getOperand();
-      }
-
     } else if (op1 instanceof CFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
@@ -1195,8 +1186,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
-
     List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = this.state;
@@ -1218,9 +1207,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private static final CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
-    CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
@@ -1490,11 +1479,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
       } else {
-        missingInformationRightJExpression = null;
-        missingInformationLeftJVariable = null;
-        if (missingInformationLeftJVariable != null) { // TODO why check this???
+        if (missingInformationLeftJVariable != null) {
           newElement.forget(missingInformationLeftJVariable);
         }
+        missingInformationRightJExpression = null;
+        missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
       }
     }

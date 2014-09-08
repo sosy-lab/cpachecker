@@ -32,12 +32,14 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable {
+public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable,
+    LatticeAbstractState<IntervalAnalysisState>{
 
   private static final long serialVersionUID = -2030700797958100666L;
   private static IntervalTargetChecker targetChecker;
@@ -183,6 +185,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state to join this element with
    * @return a new state representing the join of this element and the reached state
    */
+  @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
     boolean changed = false;
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
@@ -228,6 +231,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
+  @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
     if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals

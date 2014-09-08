@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -312,7 +313,8 @@ public class SMGExpressionEvaluator {
 
     if (expressionType instanceof CPointerType
         || expressionType instanceof CArrayType
-        || isStructOrUnionType(expressionType)) {
+        || isStructOrUnionType(expressionType)
+        || expressionType instanceof CFunctionType) {
       /* expressions with Array Types as result
        *  are transformed. a = &(a[0]) */
 
@@ -349,7 +351,13 @@ public class SMGExpressionEvaluator {
 
     CType expressionType = getRealExpressionType(rValue);
 
-    if (expressionType instanceof CPointerType) {
+    if (expressionType instanceof CFunctionType) {
+
+      // TODO Represantation of functions
+
+      return SMGUnknownValue.getInstance();
+
+    } else if (expressionType instanceof CPointerType) {
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, newState);
 
@@ -1374,10 +1382,10 @@ public class SMGExpressionEvaluator {
       case LESS_THAN:
       case LESS_EQUAL: {
 
-        SMGSymbolicValue lVal = lVarInBinaryExp.accept(this);
+        SMGSymbolicValue lVal = evaluateExpressionValue(getSmgState(), getCfaEdge(), lVarInBinaryExp);
         if (lVal.equals(SMGUnknownValue.getInstance())) { return SMGUnknownValue.getInstance(); }
 
-        SMGSymbolicValue rVal = rVarInBinaryExp.accept(this);
+        SMGSymbolicValue rVal = evaluateExpressionValue(getSmgState(), getCfaEdge(), rVarInBinaryExp);
         if (rVal.equals(SMGUnknownValue.getInstance())) { return SMGUnknownValue.getInstance(); }
 
         boolean isZero;

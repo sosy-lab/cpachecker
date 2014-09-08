@@ -171,6 +171,24 @@ public class SourceLocationMapper {
         }
       }
     }
+
+    @Override
+    public int hashCode() {
+      return 31 * (31 + column) + row;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof RowAndColumn)) {
+        return false;
+      }
+      RowAndColumn other = (RowAndColumn) obj;
+      return row == other.row
+          && column == other.column;
+    }
   }
 
   public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode, boolean overApproximateTokens) {

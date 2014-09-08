@@ -79,7 +79,7 @@ public class FMtester {
       FormulaManagerView emgr = new FormulaManagerView(fmgr, config, logger);
       //
 
-      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, shutdownNotifier, cfa);
+      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, shutdownNotifier, cfa, false);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

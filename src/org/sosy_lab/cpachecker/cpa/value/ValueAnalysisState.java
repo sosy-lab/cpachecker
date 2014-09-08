@@ -39,6 +39,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -63,8 +64,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
-public final class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable,
-    TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable {
+public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable,
+    TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable, LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -259,7 +260,8 @@ public final class ValueAnalysisState implements AbstractQueryableState, Formula
    * @param reachedState the other element to join with this element
    * @return a new state representing the join of this element and the other element
    */
-  ValueAnalysisState join(ValueAnalysisState reachedState) {
+  @Override
+  public ValueAnalysisState join(ValueAnalysisState reachedState) {
     PersistentMap<MemoryLocation, Value> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
     for (Map.Entry<MemoryLocation, Value> otherEntry : reachedState.constantsMap.entrySet()) {
@@ -284,7 +286,8 @@ public final class ValueAnalysisState implements AbstractQueryableState, Formula
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  boolean isLessOrEqual(ValueAnalysisState other) {
+  @Override
+  public boolean isLessOrEqual(ValueAnalysisState other) {
 
     // also, this element is not less or equal than the other element, if it contains less elements
     if (constantsMap.size() < other.constantsMap.size()) {

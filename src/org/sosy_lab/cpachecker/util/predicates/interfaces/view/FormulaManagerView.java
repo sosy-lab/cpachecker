@@ -1258,4 +1258,9 @@ public class FormulaManagerView {
   public BooleanFormula createPredicateVariable(String pName) {
     return wrapInView(myCreatePredicateVariable(pName));
   }
+
+  public Formula simplify(Formula input) {
+    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
+    return unsafeManager.simplify(input);
+  }
 }

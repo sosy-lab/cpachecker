@@ -97,7 +97,7 @@ public class PathSelectorFactory {
             ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier()));
     FormulaManagerView formulaManager =
         new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), startupConfig.getLog());
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa, false);
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathChecker pathChecker = new PathChecker(startupConfig.getLog(), startupConfig.getShutdownNotifier(), pfMgr, solver, pCfa.getMachineModel());
     return pathChecker;

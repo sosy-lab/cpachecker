@@ -119,4 +119,9 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  protected Long simplify(Long pF) {
+    throw new UnsupportedOperationException();
+  }
 }

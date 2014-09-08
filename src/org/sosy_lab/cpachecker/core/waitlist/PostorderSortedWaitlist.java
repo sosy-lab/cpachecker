@@ -21,19 +21,35 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.core.waitlist;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ValueAnalysisDomain implements AbstractDomain {
-  @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
-    return ((ValueAnalysisState)currentElement).isLessOrEqual((ValueAnalysisState)reachedState);
+public class PostorderSortedWaitlist extends AbstractSortedWaitlist<Integer> {
+
+  protected PostorderSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
+    super(pSecondaryStrategy);
   }
 
   @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return ((ValueAnalysisState)currentElement).join((ValueAnalysisState)reachedState);
+  public void add(AbstractState pState) {
+    assert AbstractStates.extractLocation(pState) != null;
+    super.add(pState);
+  }
+
+  @Override
+  protected Integer getSortKey(AbstractState pState) {
+    return 0 - AbstractStates.extractLocation(pState).getReversePostorderId();
+  }
+
+  public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new PostorderSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

@@ -31,6 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -52,7 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker{
 
-  private FunctionPointerDomain abstractDomain;
+  private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
@@ -64,7 +65,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    this.abstractDomain = new FunctionPointerDomain();
+    this.abstractDomain = DelegateAbstractDomain.<FunctionPointerState>getInstance();
 
     this.mergeOperator = MergeSepOperator.getInstance();
 
@@ -118,7 +119,8 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> computedSuccessors =
-        transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
+        transferRelation.getAbstractSuccessorsForEdge(
+            pState, SingletonPrecision.getInstance(), pCfaEdge);
     if (pSuccessors.size() != computedSuccessors.size()) {
       return false; }
     boolean found;
@@ -143,7 +145,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
 }

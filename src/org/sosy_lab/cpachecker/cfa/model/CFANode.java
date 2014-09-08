@@ -24,17 +24,17 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.Iterables.getLast;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
-@SuppressFBWarnings(value = "EQ_COMPARETO_USE_OBJECT_EQUALS",
-    justification = "The ID used in compareTo() is unique per object instance.")
 public class CFANode implements Comparable<CFANode> {
 
-  private static int nextNodeNumber = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final int nodeNumber;
 
@@ -58,7 +58,7 @@ public class CFANode implements Comparable<CFANode> {
     assert !pFunctionName.isEmpty();
 
     functionName = pFunctionName;
-    nodeNumber = nextNodeNumber++;
+    nodeNumber = idGenerator.getFreshId();
   }
 
   public int getNodeNumber() {
@@ -185,7 +185,66 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   @Override
-  public int compareTo(CFANode pOther) {
+  public final int compareTo(CFANode pOther) {
     return Integer.compare(this.nodeNumber, pOther.nodeNumber);
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    // Object.equals() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.hashCode();
+  }
+
+  /**
+   * Return a human-readable string describing to which point in the program
+   * this state belongs to.
+   * Returns the empty string if no suitable description can be found.
+   *
+   * Normally CFANodes do not belong to a file location,
+   * so this should be used only as a best-effort guess to give a user
+   * at least something to hold on.
+   * Whenever possible, use the file locations of edges instead.
+   */
+  public String describeFileLocation() {
+    if (this instanceof FunctionEntryNode) {
+      return "entry of function " + getFunctionName()
+          + " in " + ((FunctionEntryNode)this).getFileLocation();
+    }
+
+    if (this instanceof FunctionExitNode) {
+      // these nodes do not belong to a location
+      return "exit of function " + getFunctionName()
+          + " in " + ((FunctionExitNode)this).getEntryNode().getFileLocation();
+    }
+
+    if (getNumLeavingEdges() > 0) {
+      CFAEdge edge = getLeavingEdge(0);
+      if (edge instanceof MultiEdge) {
+        edge = ((MultiEdge)edge).getEdges().get(0);
+      }
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+        return "before " + edge.getFileLocation();
+      }
+    }
+
+    if (getNumEnteringEdges() > 0) {
+      CFAEdge edge = getEnteringEdge(0);
+      if (edge instanceof MultiEdge) {
+        edge = getLast(((MultiEdge)edge).getEdges());
+      }
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+        return "after " + edge.getFileLocation();
+      }
+    }
+
+    return "";
   }
 }

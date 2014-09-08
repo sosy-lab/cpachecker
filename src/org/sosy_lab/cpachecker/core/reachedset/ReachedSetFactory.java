@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -58,10 +59,11 @@ public class ReachedSetFactory {
       + "The secondary strategy is selected with 'analysis.traversal.order'.")
   boolean useReversePostorder = false;
 
-  @Option(name = "traversal.useTopsort",
-      description="This option was renamed to analysis.traversal.useReversePostorder and will soon get removed.")
-  @Deprecated
-  boolean useTopsort = false;
+  @Option(name = "traversal.usePostorder",
+      description = "Use an implementation of postorder strategy that allows to select "
+      + "a secondary strategy that is used if there are two states with the same postorder id. "
+      + "The secondary strategy is selected with 'analysis.traversal.order'.")
+  boolean usePostorder = false;
 
   @Option(name = "traversal.useExplicitInformation",
       description = "handle more abstract states (with less information) first? (only for ExplicitCPA)")
@@ -79,7 +81,6 @@ public class ReachedSetFactory {
       + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  @SuppressWarnings("deprecation")
   public ReachedSetFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -91,8 +92,11 @@ public class ReachedSetFactory {
       waitlistFactory = AutomatonMatchesWaitlist.factory(waitlistFactory);
       waitlistFactory = AutomatonFailedMatchesWaitlist.factory(waitlistFactory);
     }
-    if (useReversePostorder || useTopsort) {
+    if (useReversePostorder) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (usePostorder) {
+      waitlistFactory = PostorderSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

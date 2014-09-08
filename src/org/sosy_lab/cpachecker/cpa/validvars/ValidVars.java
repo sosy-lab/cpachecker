@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -34,7 +35,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ValidVars {
+public class ValidVars implements Serializable {
+
+  private static final long serialVersionUID = 3944327361058660L;
 
   private final ImmutableSet<String> globalValidVars;
   private final ImmutableMap<String, Set<String>> localValidVars;

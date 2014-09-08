@@ -85,7 +85,7 @@ public class AutomatonGraphmlParser {
   @Option(description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
-  @Option(description="")
+  @Option(description="Legacy option for token-based matching with path automatons.")
   private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
   @Option(description="Match the source code provided with the witness.")
@@ -94,7 +94,7 @@ public class AutomatonGraphmlParser {
   @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
-  @Option(description="")
+  @Option(description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
 

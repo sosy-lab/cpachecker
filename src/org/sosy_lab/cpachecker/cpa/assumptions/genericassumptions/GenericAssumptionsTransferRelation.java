@@ -29,9 +29,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
@@ -40,7 +40,7 @@ import com.google.common.collect.Lists;
 /**
  * Transfer relation for the generic assumption generator.
  */
-public class GenericAssumptionsTransferRelation implements TransferRelation {
+public class GenericAssumptionsTransferRelation extends SingleEdgeTransferRelation {
 
   /**
    * List of interfaces used to build the default
@@ -54,8 +54,9 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
         new ArithmeticOverflowAssumptionBuilder());
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState el, Precision p, CFAEdge edge)
-  throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState el, Precision p, CFAEdge edge)
+          throws CPATransferException {
 
     List<CExpression> allAssumptions = Lists.newArrayList();
     for (GenericAssumptionBuilder b : assumptionBuilders) {

@@ -42,7 +42,14 @@ public enum IdentityTransferRelation implements TransferRelation {
   INSTANCE;
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+  public Collection<AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision) {
+    return Collections.singleton(pState);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
     return Collections.singleton(pState);
   }
 

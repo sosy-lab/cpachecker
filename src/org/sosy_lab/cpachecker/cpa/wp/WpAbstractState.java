@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.wp;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
 
-
-/**
- *
- */
 public class WpAbstractState implements AbstractState {
 
-  private PathFormula pathFormula;
+  @Nonnull  private PathFormula pathFormula;
 
   public WpAbstractState(PathFormula pF) {
     Preconditions.checkNotNull(pF);

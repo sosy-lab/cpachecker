@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.SingleLoopHead;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -52,7 +53,7 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
   private final CFA cfa;
 
   public ProgramCounterCPA(CFA pCFA) {
-    super("sep", "sep", ProgramCounterDomain.INSTANCE, ProgramCounterTransferRelation.INSTANCE);
+    super("sep", "sep", DelegateAbstractDomain.<ProgramCounterState>getInstance(), ProgramCounterTransferRelation.INSTANCE);
     this.cfa = pCFA;
   }
 

@@ -53,8 +53,11 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -75,6 +79,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvalua
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
@@ -85,6 +91,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -101,7 +108,8 @@ import com.google.common.collect.Iterables;
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
  */
-public class InvariantsState implements AbstractState, FormulaReportingState {
+public class InvariantsState implements AbstractState, FormulaReportingState,
+    LatticeAbstractState<InvariantsState>{
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -734,7 +742,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return Collections.unmodifiableMap(environment);
   }
 
-  public boolean isLessThanOrEqualTo(InvariantsState pState2) {
+  @Override
+  public boolean isLessOrEqual(InvariantsState pState2) {
     if (equals(pState2)) { return true; }
     if (pState2 == null) {
       return false;
@@ -820,6 +829,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     return result;
   }
 
+  @Override
+  public InvariantsState join(InvariantsState state2) {
+    return join(state2, InvariantsPrecision.getEmptyPrecision());
+  }
+
   public InvariantsState join(InvariantsState pState2, InvariantsPrecision pPrecision) {
 
     InvariantsState result;
@@ -827,9 +841,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsState state1 = this;
     InvariantsState state2 = pState2;
 
-    if (state1.isLessThanOrEqualTo(state2)) {
+    if (state1.isLessOrEqual(state2)) {
       result = state2;
-    } else if (state2.isLessThanOrEqualTo(state1)) {
+    } else if (state2.isLessOrEqual(state1)) {
       result = state1;
     } else {
       NonRecursiveEnvironment resultEnvironment = NonRecursiveEnvironment.of();
@@ -1041,13 +1055,21 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
           private final ImmutableSet<String> wideningTargets;
 
-          private VisitedEdgesBasedAbstractionStrategy(ImmutableSet<String> pPreviousWideningTargets) {
-            this(ImmutableSet.<CFAEdge>of(), pPreviousWideningTargets);
+          private final ImmutableSet<InvariantsFormula<CompoundInterval>> wideningHints;
+
+          private VisitedEdgesBasedAbstractionStrategy(
+              ImmutableSet<String> pPreviousWideningTargets,
+              ImmutableSet<InvariantsFormula<CompoundInterval>> pPreviousWideningHints) {
+            this(ImmutableSet.<CFAEdge>of(), pPreviousWideningTargets, pPreviousWideningHints);
           }
 
-          private VisitedEdgesBasedAbstractionStrategy(ImmutableSet<CFAEdge> pVisitedEdges, ImmutableSet<String> pWideningTargets) {
+          private VisitedEdgesBasedAbstractionStrategy(
+              ImmutableSet<CFAEdge> pVisitedEdges,
+              ImmutableSet<String> pWideningTargets,
+              ImmutableSet<InvariantsFormula<CompoundInterval>> pWideningHints) {
             this.visitedEdges = pVisitedEdges;
             this.wideningTargets = pWideningTargets;
+            this.wideningHints = pWideningHints;
           }
 
           private ImmutableSet<String> determineWideningTargets(CFAEdge pEdge) {
@@ -1098,7 +1120,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
                   AFunctionCall functionCall = summaryEdge.getExpression();
                   if (functionCall instanceof AFunctionCallAssignmentStatement) {
                     AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
-                    wideningTargets.addAll(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
+                    wideningTargets.addAll(InvariantsTransferRelation.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
 
                     continue;
                   }
@@ -1169,12 +1191,61 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           @Override
           public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
             ImmutableSet<String> newWideningTargets = determineWideningTargets(pEdge);
-            if (visitedEdges.contains(pEdge) && wideningTargets.equals(newWideningTargets)) {
+            ImmutableSet<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
+            if (visitedEdges.contains(pEdge)
+                && wideningTargets.equals(newWideningTargets)
+                && wideningHints.containsAll(newWideningHints)) {
               return this;
             }
+            newWideningHints = wideningHints.isEmpty()
+                ? newWideningHints
+                : ImmutableSet.<InvariantsFormula<CompoundInterval>>builder().addAll(wideningHints).addAll(newWideningHints).build();
             return new VisitedEdgesBasedAbstractionStrategy(
                 ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).add(pEdge).build(),
-                newWideningTargets);
+                newWideningTargets, newWideningHints);
+          }
+
+          private ImmutableSet<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
+            if (pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+              AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+              IAExpression expression = assumeEdge.getExpression();
+              final InvariantsFormula<CompoundInterval> wideningHint;
+              try {
+                if (expression instanceof CExpression) {
+                  wideningHint = ((CExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                } else if (expression instanceof JExpression) {
+                  wideningHint = ((JExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                } else {
+                  return ImmutableSet.of();
+                }
+              } catch (UnrecognizedCodeException e) {
+                // Does not really matter, just no hint
+                return ImmutableSet.of();
+              }
+              return normalize(Collections.singleton(wideningHint));
+            }
+            return ImmutableSet.of();
+          }
+
+          private ImmutableSet<InvariantsFormula<CompoundInterval>> normalize(
+              Set<InvariantsFormula<CompoundInterval>> pToNormalize) {
+            ImmutableSet.Builder<InvariantsFormula<CompoundInterval>> builder = ImmutableSet.builder();
+            Queue<InvariantsFormula<CompoundInterval>> toNormalize = new ArrayDeque<>(pToNormalize);
+            PartialEvaluator partialEvaluator = new PartialEvaluator();
+            while (!toNormalize.isEmpty()) {
+              InvariantsFormula<CompoundInterval> hint = toNormalize.poll();
+              if (!hint.accept(COLLECT_VARS_VISITOR).isEmpty()) {
+                if (hint instanceof LogicalNot) {
+                  toNormalize.offer(((LogicalNot<CompoundInterval>) hint).getNegated());
+                } else if (hint instanceof LogicalAnd) {
+                  toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand1());
+                  toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand2());
+                } else {
+                  builder.add(hint.accept(partialEvaluator, EVALUATION_VISITOR));
+                }
+              }
+            }
+            return builder.build();
           }
 
           @Override
@@ -1185,7 +1256,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
             if (pStrategy instanceof VisitedEdgesBasedAbstractionStrategy) {
               VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pStrategy;
               if ((this.visitedEdges == other.visitedEdges || other.visitedEdges.containsAll(this.visitedEdges))
-                  && (this.wideningTargets == other.wideningTargets || other.wideningTargets.containsAll(this.wideningTargets))) {
+                  && (this.wideningTargets == other.wideningTargets || other.wideningTargets.containsAll(this.wideningTargets))
+                  && (this.wideningHints == other.wideningHints || other.wideningHints.containsAll(this.wideningHints))) {
                 return other;
               }
               if ((this.visitedEdges.containsAll(other.visitedEdges))
@@ -1196,7 +1268,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
                   ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).addAll(other.visitedEdges).build();
               final ImmutableSet<String> lastEdges =
                   ImmutableSet.<String>builder().addAll(wideningTargets).addAll(other.wideningTargets).build();
-              return new VisitedEdgesBasedAbstractionStrategy(edges, lastEdges);
+              final ImmutableSet<InvariantsFormula<CompoundInterval>> hints =
+                  ImmutableSet.<InvariantsFormula<CompoundInterval>>builder().addAll(wideningHints).addAll(other.wideningHints).build();
+              return new VisitedEdgesBasedAbstractionStrategy(edges, lastEdges, hints);
             }
             return BasicAbstractionStrategies.ALWAYS;
           }
@@ -1209,14 +1283,15 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
             if (pO instanceof VisitedEdgesBasedAbstractionStrategy) {
               VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pO;
               return wideningTargets.equals(other.wideningTargets)
-                  && visitedEdges.equals(other.visitedEdges);
+                  && visitedEdges.equals(other.visitedEdges)
+                  && wideningHints.equals(other.wideningHints);
             }
             return false;
           }
 
           @Override
           public int hashCode() {
-            return visitedEdges.hashCode() * 43 + wideningTargets.hashCode();
+            return (visitedEdges.hashCode() * 43 + wideningTargets.hashCode()) * 43 + wideningHints.hashCode();
           }
 
           @Override
@@ -1234,11 +1309,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           }
 
         }
-        ImmutableSet<String> previousWideningTargets = ImmutableSet.<String>of();
+        final ImmutableSet<String> previousWideningTargets;
+        final ImmutableSet<InvariantsFormula<CompoundInterval>> previousWideningHints;
         if (pPrevious instanceof VisitedEdgesBasedAbstractionStrategy) {
           previousWideningTargets = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningTargets;
+          previousWideningHints = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningHints;
+        } else {
+          previousWideningTargets = ImmutableSet.<String>of();
+          previousWideningHints = ImmutableSet.<InvariantsFormula<CompoundInterval>>of();
         }
-        return new VisitedEdgesBasedAbstractionStrategy(previousWideningTargets);
+        return new VisitedEdgesBasedAbstractionStrategy(previousWideningTargets, previousWideningHints);
       }
 
     },

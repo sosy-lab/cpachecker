@@ -25,4 +25,5 @@
  * The reached set, which is used to store the found reachable abstract states
  * during the analysis.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.reachedset;

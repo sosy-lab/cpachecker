@@ -169,7 +169,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
   boolean done = false;
 
   @Override
-  public Collection<ApronState> getAbstractSuccessors(
+  public Collection<ApronState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -494,6 +494,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
           case PLUS:
             innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
             break;
+
+            // this cannot happen, this switch clause checks the same binary operator
+            // as the outer switch clause
+          default:
+            throw new AssertionError();
           }
 
           if (truthAssumption) {

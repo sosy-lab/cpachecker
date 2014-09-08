@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -317,7 +318,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   }
 
-  private static class DelegatingTransferRelation implements TransferRelation {
+  private static class DelegatingTransferRelation extends SingleEdgeTransferRelation {
 
     private TransferRelation delegate = null;
 
@@ -334,10 +335,11 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     }
 
     @Override
-    public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-        CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+        AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+            throws CPATransferException, InterruptedException {
       Preconditions.checkState(delegate != null);
-      return this.delegate.getAbstractSuccessors(pState, pPrecision, pCfaEdge);
+      return this.delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
     }
 
     @Override

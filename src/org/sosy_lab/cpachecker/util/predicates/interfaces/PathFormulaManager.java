@@ -38,6 +38,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public interface PathFormulaManager {
 
+  public class CheckInfeasibleException extends Exception {
+    private static final long serialVersionUID = -1;
+
+    public CheckInfeasibleException(String message) {
+      super (message);
+    }
+  }
+
   PathFormula makeEmptyPathFormula();
 
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);

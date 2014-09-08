@@ -30,4 +30,5 @@
  * This package itself contains the class CPAchecker with the central entry point
  * and some related classes.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core;

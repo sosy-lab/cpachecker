@@ -61,9 +61,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState.SeplogicQueryUnsuccessful;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.Handle;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.PartingstarInterface;
@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import com.google.common.base.Optional;
 
 
-public class SeplogicTransferRelation implements TransferRelation {
+public class SeplogicTransferRelation extends SingleEdgeTransferRelation {
 
   boolean entryFunctionProcessed = false;
   long existentialVarIndex = 0;
@@ -95,7 +95,7 @@ public class SeplogicTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<SeplogicState> getAbstractSuccessors(
+  public Collection<SeplogicState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException {
 

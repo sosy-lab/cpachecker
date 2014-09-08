@@ -38,6 +38,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
@@ -54,7 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SMGState implements AbstractQueryableState {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
   static boolean targetMemoryErrors = true;
   static boolean unknownOnUndefined = true;
 
@@ -579,6 +580,7 @@ public class SMGState implements AbstractQueryableState {
    * @param reachedState the abstract state this state will be joined to.
    * @return the join of the two states.
    */
+  @Override
   public SMGState join(SMGState reachedState) {
     // Not necessary if merge_SEP and stop_SEP is used.
     return null;
@@ -595,6 +597,7 @@ public class SMGState implements AbstractQueryableState {
    * @return True, if this state is covered by the given state, false otherwise.
    * @throws SMGInconsistentException
    */
+  @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
     SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&

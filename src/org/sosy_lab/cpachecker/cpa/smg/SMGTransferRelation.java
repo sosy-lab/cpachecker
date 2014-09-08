@@ -94,10 +94,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -114,7 +115,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 @Options(prefix = "cpa.smg")
-public class SMGTransferRelation implements TransferRelation {
+public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
@@ -313,7 +314,7 @@ public class SMGTransferRelation implements TransferRelation {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          writeValue(currentState, bufferMemory, offset + c, AnonymousTypes.dummyChar, ch, cfaEdge);
+          writeValue(currentState, bufferMemory, offset + c, CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
         if (!expValue.isUnknown()) {
@@ -446,8 +447,9 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());
@@ -1252,16 +1254,19 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
 
-        if (rSymValue.isUnknown()) {
-          return;
-        }
+        if(rSymValue.isUnknown()) {
 
-        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+          rSymValue = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
 
-        SMGAddress addressOfField = lValue.accept(visitor);
+          SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
-        if (addressOfField.isUnknown()) {
-          return;
+          SMGAddress addressOfField = lValue.accept(visitor);
+
+          if(addressOfField.isUnknown()) {
+            return;
+          }
+
+          assignableState.writeValue(addressOfField.getObject(), addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue);
         }
 
         if (truthValue) {
@@ -1536,7 +1541,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
-        strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
+        retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
       }
     }
 
@@ -1555,10 +1560,12 @@ public class SMGTransferRelation implements TransferRelation {
     SMGState newElement = new SMGState(pElement);
 
     for (AssumeEdge assume : assumptions) {
-      if (!(assume instanceof CAssumeEdge)) {
+      if (!(assume instanceof CAssumeEdge) || !(((CBinaryExpression)((CAssumeEdge)assume).getExpression()).getOperand1().getExpressionType() instanceof CSimpleType)) {
         continue;
       }
+
       newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption());
+
       if (newElement == null) {
         break;
       }

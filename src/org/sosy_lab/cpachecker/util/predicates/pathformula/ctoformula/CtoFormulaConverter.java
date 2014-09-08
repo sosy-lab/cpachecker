@@ -356,8 +356,6 @@ public class CtoFormulaConverter {
   /**
    * Create a formula for a given variable with a fresh index if needed.
    * This method does not handle scoping and the NON_DET_VARIABLE!
-   *
-   * This method does not update the index of the variable.
    */
   private Formula makeVariable(String name, CType type, SSAMapBuilder ssa,
       boolean makeFreshIndex, boolean postponeMakeFresh) {
@@ -369,7 +367,7 @@ public class CtoFormulaConverter {
     if (makeFreshIndex && !postponeMakeFresh) {
       useIndex = getIndex(name, type, ssa, makeFreshIndex, true);
     } else {
-      useIndex = getIndex(name, type, ssa, false, false);
+      useIndex = getIndex(name, type, ssa, false, backwards); // if backwards: set=true because variables appear before their declaration
     }
 
     Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
@@ -581,17 +579,24 @@ public class CtoFormulaConverter {
   }
 
 
-  /** this function is only executed, if the option useParameterVariables is used,
-   * otherwise it does nothing.
-   * create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
-   * The tmp-variables are also used before the function-entry as "argument-constraints". */
+  /**
+   * Create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
+   * The tmp-variables are also used before the function-entry as "argument-constraints".
+   *
+   * This function is usually only relevant with options.useParameterVariables().
+   * We also add the same constraints for the entry function, though,
+   * to ensure that the parameters of the entry function have been assigned once
+   * and are in the SSAMap (otherwise instantiate and uninstantiate will be wrong).
+   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
+   */
   private void addParameterConstraints(final CFAEdge edge, final String function,
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
                                        final Constraints constraints, final ErrorConditions errorConditions,
                                        final CFunctionEntryNode entryNode)
           throws UnrecognizedCCodeException, InterruptedException {
 
-    if (options.useParameterVariables()) {
+    if (options.useParameterVariables()
+        || entryNode.getNumEnteringEdges() == 0 /* entry function */ ) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
         // create expressions for each formal param: "f::x" --> "f::x__param__"

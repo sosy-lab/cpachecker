@@ -107,6 +107,13 @@ public abstract class ABinaryExpression extends AExpression {
             && Objects.equals(other.operator, operator);
   }
 
+  @Override
+  public String toString() {
+    return "operand1=[" + getOperand1() +
+        "], operand2=[" + getOperand2() +
+        "], operator=[" + getOperator() + "]";
+  }
+
   public static  interface ABinaryOperator {
     /**
      * Returns the string representation of this operator (e.g. "*", "+").
