@@ -274,4 +274,29 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     return wrapInView(manager.extend(extractFromView(pNumber), pExtensionBits, pSigned));
   }
+
+  @Override
+  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
+    return manager.isShiftRight(extractFromView(pBits), signed);
+  }
+
+  @Override
+  public boolean isShiftLeft(BitvectorFormula pBits) {
+    return manager.isShiftLeft(extractFromView(pBits));
+  }
+
+  @Override
+  public boolean isConcat(BitvectorFormula pBits) {
+    return manager.isConcat(extractFromView(pBits));
+  }
+
+  @Override
+  public boolean isExtract(BitvectorFormula pBits) {
+    return manager.isExtract(extractFromView(pBits));
+  }
+
+  @Override
+  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
+    return manager.isExtend(extractFromView(pBits), signed);
+  }
 }
