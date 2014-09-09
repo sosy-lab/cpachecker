@@ -74,7 +74,6 @@ public class AssignmentToPathAllocator {
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
