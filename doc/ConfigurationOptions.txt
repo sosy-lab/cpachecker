@@ -215,6 +215,18 @@ bdd.javabdd.initTableSize = 10000
 bdd.package = "JAVA"
   allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
 
+# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
+bdd.sylvan.cacheGranularity = 4
+
+# Log2 size of the BDD cache.
+bdd.sylvan.cacheSize = 24
+
+# Log2 size of the BDD node table.
+bdd.sylvan.tableSize = 26
+
+# Number of worker threads, 0 for automatic.
+bdd.sylvan.threads = 0
+
 # Allow reduction of function entries; calculate abstractions alwasy at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
@@ -278,11 +290,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-cbmc.timelimit = 0
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
+cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
@@ -836,14 +848,6 @@ cpa.octagon.handleFloats = false
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
-
-# whether or not to use use-definition information from the error pathsto
-# optimize the interpolation process
-cpa.octagon.interpolation.applyUseDefInformation = true
-
-# whether or not to ignore the semantics of loop-leaving-assume-edges during
-# interpolation - this avoids to have loop-counters in the interpolant
-cpa.octagon.interpolation.ignoreLoopsExitAssumes = true
 
 # with this option enabled the states are only merged at loop heads
 cpa.octagon.mergeop.onlyMergeAtLoopHeads = false

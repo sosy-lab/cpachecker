@@ -45,8 +45,9 @@ public class LocationTransferRelationBackwards implements TransferRelation {
     factory = pFactory;
   }
 
-  private Collection<LocationState> getAbstractSuccessor(AbstractState state,
-      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+  @Override
+  public Collection<LocationState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision prec,  CFAEdge cfaEdge) throws CPATransferException {
 
     LocationState predState = (LocationState) state;
     CFANode predLocation = predState.getLocationNode();
@@ -60,11 +61,7 @@ public class LocationTransferRelationBackwards implements TransferRelation {
 
   @Override
   public Collection<LocationState> getAbstractSuccessors(AbstractState state,
-      Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-
-    if (cfaEdge != null) {
-      return getAbstractSuccessor(state, cfaEdge, prec);
-    }
+      Precision prec) throws CPATransferException {
 
     CFANode predLocation = ((LocationState)state).getLocationNode();
 

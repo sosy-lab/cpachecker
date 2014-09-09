@@ -77,9 +77,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
@@ -92,7 +92,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.functionpointer")
-class FunctionPointerTransferRelation implements TransferRelation {
+class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
@@ -125,7 +125,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 

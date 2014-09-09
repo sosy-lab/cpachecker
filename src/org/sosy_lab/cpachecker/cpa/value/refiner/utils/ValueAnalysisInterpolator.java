@@ -198,7 +198,7 @@ public class ValueAnalysisInterpolator {
   private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
       throws CPATransferException {
 
-    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,
         precision,
         initialEdge);

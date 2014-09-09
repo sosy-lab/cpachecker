@@ -70,7 +70,7 @@ public class CallstackPccCPA extends AbstractCPA implements ConfigurableProgramA
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> computedSuccessors =
-        getTransferRelation().getAbstractSuccessors(
+        getTransferRelation().getAbstractSuccessorsForEdge(
             pElement, SingletonPrecision.getInstance(), pCfaEdge);
     if (!(pSuccessors instanceof Set) || !(computedSuccessors instanceof Set)
         || pSuccessors.size() != computedSuccessors.size()) { return false; }

@@ -36,8 +36,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -51,19 +49,13 @@ import com.google.common.collect.Multimap;
 
 public class ValueAnalysisStaticRefiner extends StaticRefiner {
 
-  private final VariableTrackingPrecision valueAnalysisPrecision;
-
   public ValueAnalysisStaticRefiner(
       Configuration pConfig,
-      LogManager pLogger,
-      VariableTrackingPrecision initialPrecision) throws InvalidConfigurationException {
+      LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
-
-    valueAnalysisPrecision = initialPrecision;
   }
 
-  public VariableTrackingPrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      MutableARGPath pPath) throws CPATransferException {
+  public Multimap<CFANode, MemoryLocation> extractPrecisionIncrementFromCfa(MutableARGPath pPath) throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
     ARGState targetState = Iterables.getLast(pPath).getFirst();
@@ -80,6 +72,6 @@ public class ValueAnalysisStaticRefiner extends StaticRefiner {
       }
     }
 
-    return new VariableTrackingPrecision(valueAnalysisPrecision, increment);
+    return increment;
   }
 }

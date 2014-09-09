@@ -46,8 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTargetPattern;
 
 
 public interface PointerTargetSetBuilder {
@@ -122,7 +120,7 @@ public interface PointerTargetSetBuilder {
    *
    * This class is not thread-safe.
    */
-  public final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
+  final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
     // The counter that guarantees a unique name for each allocated memory region.
     private static int dynamicAllocationCounter = 0;

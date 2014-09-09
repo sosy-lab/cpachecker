@@ -283,4 +283,34 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
     BitvectorType t = getType(pNumber);
     return new NonTemplate(t.withSize(t.getSize() + pExtensionBits));
   }
+
+  @Override
+  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isShiftLeft(BitvectorFormula pBits) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isConcat(BitvectorFormula pBits) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isExtract(BitvectorFormula pBits) {
+   // TODO Auto-generated method stub
+   return false;
+  }
+
+  @Override
+  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
+    // TODO Auto-generated method stub
+    return false;
+  }
 }

@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -38,9 +42,9 @@ public final class PathFormula implements Serializable {
 
   public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
       int pLength) {
-    this.formula = pf;
-    this.ssa = ssa;
-    this.pts = pts;
+    this.formula = checkNotNull(pf);
+    this.ssa = checkNotNull(ssa);
+    this.pts = checkNotNull(pts);
     this.length = pLength;
   }
 
@@ -66,7 +70,7 @@ public final class PathFormula implements Serializable {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

@@ -148,7 +148,7 @@ public class ApronAnalysisFeasabilityChecker {
       for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
         for (ApronState st : next) {
-          successors.addAll(transfer.getAbstractSuccessors(
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
               pathElement.getSecond()));

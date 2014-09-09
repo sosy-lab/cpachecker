@@ -1239,7 +1239,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           AbstractState newLoopHeadState = cpa.getInitialState(loopHead);
 
           PredicateAbstractState newPAS = extractStateByType(newLoopHeadState, PredicateAbstractState.class);
-          newPAS.setPathFormula(new PathFormula(pathFormula.getFormula(), ssaMapBuilder.build(), pathFormula.getPointerTargetSet(), pathFormula.getLength()));
+          newPAS.setPathFormula(pmgr.makeNewPathFormula(pathFormula, ssaMapBuilder.build()));
 
           pReachedSet.add(newLoopHeadState, cpa.getInitialPrecision(loopHead));
         }

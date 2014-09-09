@@ -252,7 +252,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 

@@ -264,7 +264,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.transferTimer.start();
       Collection<? extends AbstractState> successors;
       try {
-        successors = transferRelation.getAbstractSuccessors(state, precision, null);
+        successors = transferRelation.getAbstractSuccessors(state, precision);
       } finally {
         stats.transferTimer.stop();
       }

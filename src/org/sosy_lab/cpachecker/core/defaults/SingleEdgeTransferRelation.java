@@ -21,47 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.alwaystop;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-enum AlwaysTopTransferRelation implements TransferRelation {
-
-  INSTANCE;
-
-  @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision) {
-
-    assert pElement == AlwaysTopState.INSTANCE;
-    assert pPrecision == AlwaysTopPrecision.INSTANCE;
-
-    return Collections.singleton(AlwaysTopState.INSTANCE);
-  }
+/**
+ * Abstract base class for {@link TransferRelation},
+ * which should be used by most CPAs.
+ *
+ * It eliminates the need to implement a stub for
+ * {@link #getAbstractSuccessors(AbstractState, Precision)}.
+ */
+public abstract class SingleEdgeTransferRelation implements TransferRelation {
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
-    return getAbstractSuccessors(pState, pPrecision);
+  public final Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+
+    throw new UnsupportedOperationException(
+        "The " + this.getClass().getSimpleName()
+        + " expects to be called with a CFA edge supplied"
+        + " and does not support configuration where it needs to"
+        + " return abstract states for any CFA edge.");
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
-
-    assert pElement == AlwaysTopState.INSTANCE;
-    assert pPrecision == AlwaysTopPrecision.INSTANCE;
-
-    return null;
-  }
-
 }

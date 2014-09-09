@@ -170,7 +170,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
   boolean done = false;
 
   @Override
-  public Collection<ApronState> getAbstractSuccessors(
+  public Collection<ApronState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 

@@ -103,7 +103,7 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
       try {
         stats.transferTimer.start();
-        successors = cpa.getTransferRelation().getAbstractSuccessors(state, initialPrec, null);
+        successors = cpa.getTransferRelation().getAbstractSuccessors(state, initialPrec);
         stats.transferTimer.stop();
 
         for (AbstractState succ : successors) {

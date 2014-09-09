@@ -118,7 +118,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     }
 
     Collection<? extends AbstractState> computedSuccessors =
-        transfer.getAbstractSuccessors(pPredecessor.getWrappedState(), pPrecision, null);
+        transfer.getAbstractSuccessors(pPredecessor.getWrappedState(), pPrecision);
 
      for (AbstractState succ : computedSuccessors) {
        if (!checkCoverWithStopOp(succ, wrappedSuccessors, pPrecision)) {

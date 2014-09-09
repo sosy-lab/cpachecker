@@ -155,22 +155,17 @@ public class BAMTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-          final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
+          final AbstractState pState, final Precision pPrecision)
           throws CPATransferException, InterruptedException {
-    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision, edge);
+    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
     return attachAdditionalInfoToCallNodes(successors);
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
-            final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
-    throws CPATransferException, InterruptedException {
+      final AbstractState pState, final Precision pPrecision)
+          throws CPATransferException, InterruptedException {
 
     forwardPrecisionToExpandedPrecision.clear();
-
-    if (edge != null) {
-      // TODO when does this happen?
-      return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, edge);
-    }
 
     CFANode node = extractLocation(pState);
 
@@ -188,7 +183,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
     // if there are several leaving edges, the wrapped CPA should handle all of them.
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null);
+    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
@@ -679,5 +674,14 @@ public class BAMTransferRelation implements TransferRelation {
       correctARGsForBlocks = new HashMap<>();
     }
     correctARGsForBlocks.put(pKey, pEndOfBlock);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+
+    throw new UnsupportedOperationException(
+        "BAMCPA needs to be used as the outer-most CPA,"
+        + " thus it does not support returning successors for a single edge.");
   }
 }

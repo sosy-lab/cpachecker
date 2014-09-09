@@ -170,7 +170,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
             shutdownNotifier.shutdownIfNecessary();
 
             for (AbstractState succ : cpa.getTransferRelation().getAbstractSuccessors(currentStates.get(index++),
-                initPrec, null)) {
+                initPrec)) {
               if (!cpa.getStopOperator().stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)),
                   initPrec)) {
                 if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size() + currentStates.size()) {
