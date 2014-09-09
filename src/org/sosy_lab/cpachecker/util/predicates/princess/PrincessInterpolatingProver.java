@@ -23,12 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
-import ap.parser.IFormula;
-import com.google.common.collect.Lists;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,9 +33,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+
+import ap.parser.IExpression;
+import ap.parser.IFormula;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public class PrincessInterpolatingProver extends PrincessAbstractProver implements InterpolatingProverEnvironment<Integer> {
 
@@ -84,7 +86,7 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
                                  .toSet();
 
     // get interpolant of groups
-    List<IFormula> itp = stack.getInterpolants(indizesOfA, indizesOfB);
+    List<IFormula> itp = stack.getInterpolants(ImmutableList.of(indizesOfA, indizesOfB));
     assert itp.size() == 1; // 2 groups -> 1 interpolant
 
     return mgr.encapsulateBooleanFormula(itp.get(0));

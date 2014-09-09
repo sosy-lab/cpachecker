@@ -23,21 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.SimpleAPI;
-import ap.parser.IFormula;
-import ap.parser.IFunction;
-import ap.parser.ITerm;
-import org.sosy_lab.common.Pair;
-import scala.Enumeration.Value;
-import scala.collection.JavaConversions;
-import scala.collection.Seq;
-import scala.collection.mutable.ArrayBuffer;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
+
+import org.sosy_lab.common.Pair;
+
+import scala.Enumeration.Value;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
+import scala.collection.mutable.ArrayBuffer;
+import ap.SimpleAPI;
+import ap.parser.IFormula;
+import ap.parser.IFunction;
+import ap.parser.ITerm;
 
 /** This is a Wrapper around some parts of the PrincessAPI.
  * It allows to have a stack with operations like: push, pop, assert, checkSat, getInterpolants, getModel.
@@ -140,21 +141,22 @@ class SymbolTrackingPrincessStack implements PrincessStack {
    * Each partition contains the indizes of its terms.
    * There will be (n-1) interpolants for n partitions. */
   @Override
-  public List<IFormula> getInterpolants(Set<Integer>... partitions) {
+  public List<IFormula> getInterpolants(List<Set<Integer>> partitions) {
 
     // convert to needed data-structure
     final ArrayBuffer<scala.collection.immutable.Set<Object>> args = new ArrayBuffer<>();
-    for (Set<Integer> partition :partitions) {
+    for (Set<Integer> partition : partitions) {
       final ArrayBuffer<Object> indexes = new ArrayBuffer<>();
-      for (Integer index : partition)
+      for (Integer index : partition) {
         indexes.$plus$eq(index);
+      }
       args.$plus$eq(indexes.toSet());
     }
 
     // do the hard work
     final Seq<IFormula> itps = api.getInterpolants(args.toSeq());
 
-    assert itps.length() == partitions.length - 1 : "There should be (n-1) interpolants for n partitions";
+    assert itps.length() == partitions.size() - 1 : "There should be (n-1) interpolants for n partitions";
 
     // convert data-structure back
     final List<IFormula> result = new ArrayList<>(itps.size());

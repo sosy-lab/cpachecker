@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.SimpleAPI;
-import ap.parser.IFormula;
-
 import java.util.List;
 import java.util.Set;
+
+import ap.SimpleAPI;
+import ap.parser.IFormula;
 
 /** This is a Interface for the Wrapper around some parts of the PrincessAPI.
  * It allows to have a stack with operations like: push, pop, assert, checkSat, getInterpolants, getModel.
@@ -49,7 +49,7 @@ public interface PrincessStack {
 
   SimpleAPI.PartialModel getPartialModel();
 
-  List<IFormula> getInterpolants(Set<Integer>... partitions);
+  List<IFormula> getInterpolants(List<Set<Integer>> partitions);
 
   void close();
 }
