@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static scala.collection.JavaConversions.*;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -32,13 +34,14 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 
 import scala.Enumeration.Value;
-import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.parser.IFormula;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
+
+import com.google.common.collect.ImmutableList;
 
 /** This is a Wrapper around some parts of the PrincessAPI.
  * It allows to have a stack with operations like: push, pop, assert, checkSat, getInterpolants, getModel.
@@ -85,8 +88,8 @@ class SymbolTrackingPrincessStack implements PrincessStack {
       toAdd.add(trackingStack.removeLast());
     }
     for (Level level : toAdd) {
-      api.addBooleanVariables(scala.collection.JavaConversions.asScalaIterable(level.booleanSymbols));
-      api.addConstants(scala.collection.JavaConversions.asScalaIterable(level.intSymbols));
+      api.addBooleanVariables(asScalaIterable(level.booleanSymbols));
+      api.addConstants(asScalaIterable(level.intSymbols));
       for (IFunction function : level.functionSymbols) {
         api.addFunction(function);
       }
@@ -146,11 +149,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     // convert to needed data-structure
     final ArrayBuffer<scala.collection.immutable.Set<Object>> args = new ArrayBuffer<>();
     for (Set<Integer> partition : partitions) {
-      final ArrayBuffer<Object> indexes = new ArrayBuffer<>();
-      for (Integer index : partition) {
-        indexes.$plus$eq(index);
-      }
-      args.$plus$eq(indexes.toSet());
+      args.$plus$eq(asScalaSet(partition).toSet());
     }
 
     // do the hard work
@@ -159,12 +158,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     assert itps.length() == partitions.size() - 1 : "There should be (n-1) interpolants for n partitions";
 
     // convert data-structure back
-    final List<IFormula> result = new ArrayList<>(itps.size());
-    for (IFormula itp : JavaConversions.asJavaIterable(itps)) {
-      result.add(itp);
-    }
-
-    return result;
+    return ImmutableList.copyOf(asJavaCollection(itps));
   }
 
   @Override

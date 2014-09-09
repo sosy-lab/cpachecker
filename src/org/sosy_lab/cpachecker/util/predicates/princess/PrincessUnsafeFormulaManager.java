@@ -23,19 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import java.util.ArrayList;
+import static scala.collection.JavaConversions.asJavaCollection;
+
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
-import scala.collection.JavaConversions;
 import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
-import ap.parser.ITerm;
 import ap.parser.PartialEvaluator;
+
+import com.google.common.collect.ImmutableList;
 
 class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 
@@ -94,10 +95,7 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     } else if (isUF(t)) {
       IFunApp fun = (IFunApp) t;
       PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().getFunctionDeclaration(fun.fun());
-      List<IExpression> args = new ArrayList<>(fun.length());
-      for (ITerm arg: JavaConversions.asJavaIterable(fun.args())) {
-        args.add(arg);
-      }
+      List<IExpression> args = ImmutableList.<IExpression>copyOf(asJavaCollection(fun.args()));
       return createUIFCallImpl(fun.fun(), funcDecl.getResultType(), args);
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
