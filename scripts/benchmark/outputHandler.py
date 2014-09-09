@@ -61,8 +61,7 @@ if _term.startswith(('xterm', 'rxvt')):
 elif _term.startswith('screen'):
     TERMINAL_TITLE = "\033kBenchmark {0}\033\\"
 
-# the number of digits after the decimal separator of the time column,
-# for the other columns it can be configured in the xml-file
+# the number of digits after the decimal separator for text output of time columns with times
 TIME_PRECISION = 2
 
 
@@ -364,7 +363,7 @@ class OutputHandler:
                 cpuTimeStr, wallTimeStr, run.values.get('host'), 
                 [run.values.get('energy', {}).get(t, '-') for t in Util.ENERGY_TYPES],
                 run.columns)
-        self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
+        self.addValuesToRunXML(run)
 
         # output in terminal/console
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
@@ -460,7 +459,7 @@ class OutputHandler:
         return runsElem
 
 
-    def addValuesToRunXML(self, run, cpuTimeStr, wallTimeStr):
+    def addValuesToRunXML(self, run):
         """
         This function adds the result values to the XML representation of a run.
         """
@@ -468,8 +467,8 @@ class OutputHandler:
         for elem in list(runElem):
             runElem.remove(elem)
         self.addColumnToXML(runElem, 'status',    run.status)
-        self.addColumnToXML(runElem, 'cputime',   cpuTimeStr)
-        self.addColumnToXML(runElem, 'walltime',  wallTimeStr)
+        self.addColumnToXML(runElem, 'cputime',   str(run.cpuTime) + 's')
+        self.addColumnToXML(runElem, 'walltime',  str(run.wallTime) + 's')
         self.addColumnToXML(runElem, '@category', run.category) # hidden
         self.addColumnToXML(runElem, '',          run.values)
 
@@ -481,10 +480,8 @@ class OutputHandler:
         """
         This function adds the result values to the XML representation of a runSet.
         """
-        cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
-        wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
-        self.addColumnToXML(runSet.xml, 'cputime', cpuTimeStr)
-        self.addColumnToXML(runSet.xml, 'walltime', wallTimeStr)
+        self.addColumnToXML(runSet.xml, 'cputime', cpuTime)
+        self.addColumnToXML(runSet.xml, 'walltime', wallTime)
         self.addColumnToXML(runSet.xml, 'energy', energy)
 
 
