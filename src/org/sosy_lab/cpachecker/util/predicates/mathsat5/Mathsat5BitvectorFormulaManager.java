@@ -292,6 +292,31 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
+  public boolean isShiftRight(Long pBits, boolean signed) {
+    return signed ? msat_term_is_bv_ashr(mathsatEnv, pBits) : msat_term_is_bv_lshr(mathsatEnv, pBits);
+  }
+
+  @Override
+  public boolean isShiftLeft(Long pBits) {
+    return msat_term_is_bv_lshl(mathsatEnv, pBits);
+  }
+
+  @Override
+  protected boolean isConcat(Long pBits) {
+    return msat_term_is_bv_concat(mathsatEnv, pBits);
+  }
+
+  @Override
+  protected boolean isExtract(Long pBits) {
+    return msat_term_is_bv_extract(mathsatEnv, pBits);
+  }
+
+  @Override
+  protected boolean isExtend(Long pBits, boolean signed) {
+    return signed ? msat_term_is_bv_sext(mathsatEnv, pBits) : msat_term_is_bv_zext(mathsatEnv, pBits);
+  }
+
+  @Override
   public int getLength(Long pParam) {
     long type = msat_term_get_type(pParam);
     assert msat_is_bv_type(mathsatEnv, type);
