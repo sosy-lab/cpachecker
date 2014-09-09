@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,9 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class SolverTest {
 
@@ -249,7 +248,7 @@ public class SolverTest {
 
   private void stackTest2(String solver) throws Exception {
     init(solver);
-    InterpolatingProverEnvironment stack = factory.newProverEnvironmentWithInterpolation(true);
+    InterpolatingProverEnvironment<?> stack = factory.newProverEnvironmentWithInterpolation(true);
     stack.pop();
   }
 
@@ -306,7 +305,9 @@ public class SolverTest {
 
   @Test
   public void dualStackTest2Z3() throws Exception {
-    if (isLibFociAvailable) dualStackTest2("Z3");
+    if (isLibFociAvailable) {
+      dualStackTest2("Z3");
+    }
   }
 
 //  @Test

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 
 abstract class PrincessAbstractProver {
 

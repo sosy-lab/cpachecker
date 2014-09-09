@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+
+import ap.parser.IExpression;
 
 class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 

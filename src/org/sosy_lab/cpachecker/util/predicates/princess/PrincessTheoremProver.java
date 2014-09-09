@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.SimpleAPI;
-import ap.parser.IBinFormula;
-import ap.parser.IBinJunctor;
-import ap.parser.IBoolLit;
-import ap.parser.IExpression;
-import ap.parser.IFormula;
-import ap.parser.INot;
+import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToFormula;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -39,17 +41,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
+
 import scala.Option;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToFormula;
+import ap.SimpleAPI;
+import ap.parser.IBinFormula;
+import ap.parser.IBinJunctor;
+import ap.parser.IBoolLit;
+import ap.parser.IExpression;
+import ap.parser.IFormula;
+import ap.parser.INot;
 
 public class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvironment {
 

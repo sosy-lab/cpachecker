@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
+import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
+
 import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
@@ -32,15 +40,8 @@ import ap.parser.IIntRelation;
 import ap.parser.IPlus;
 import ap.parser.ITerm;
 import ap.parser.ITimes;
-import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
-import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.isNumber;
-import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToTerm;
+import com.google.common.collect.ImmutableList;
 
 
 abstract class PrincessNumeralFormulaManager

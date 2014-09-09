@@ -23,6 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import scala.Enumeration;
+import scala.collection.Iterator;
+import scala.collection.JavaConversions;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
 import ap.parser.IBinFormula;
@@ -37,16 +47,6 @@ import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-import scala.Enumeration;
-import scala.collection.Iterator;
-import scala.collection.JavaConversions;
-
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */

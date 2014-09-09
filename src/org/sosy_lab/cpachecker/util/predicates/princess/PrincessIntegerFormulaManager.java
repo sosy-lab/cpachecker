@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.math.BigInteger;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+
 import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-
-import java.math.BigInteger;
 
 
 class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predicates.princess.PrincessNumeralFormulaManager<IntegerFormula, IntegerFormula> {

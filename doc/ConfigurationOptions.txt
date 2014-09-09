@@ -1111,9 +1111,6 @@ cpa.predicate.predmap.file = "predmap.txt"
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
 
-# Export solver queries in Smtlib format into a file.
-cpa.predicate.princess.logAllQueries = false
-
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false

@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
+
+import scala.collection.JavaConversions;
 import ap.parser.BooleanCompactifier;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
-
 import ap.parser.PartialEvaluator;
-import scala.collection.JavaConversions;
-
-import java.util.ArrayList;
-import java.util.List;
 
 class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 

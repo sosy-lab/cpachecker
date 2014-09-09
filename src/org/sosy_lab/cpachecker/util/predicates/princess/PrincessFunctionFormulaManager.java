@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
-import ap.parser.IFunction;
+import java.util.Arrays;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
-import java.util.Arrays;
-import java.util.List;
+import ap.parser.IExpression;
 
 class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 

@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.parser.IExpression;
+import static com.google.common.collect.Iterables.getOnlyElement;
+
+import java.io.IOException;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,9 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
-import java.io.IOException;
-
-import static com.google.common.collect.Iterables.getOnlyElement;
+import ap.parser.IExpression;
 
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
 

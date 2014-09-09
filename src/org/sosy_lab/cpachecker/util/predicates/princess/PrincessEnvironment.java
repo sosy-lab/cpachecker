@@ -23,6 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.PathCounterTemplate;
+import org.sosy_lab.common.log.LogManager;
+
+import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
@@ -32,35 +47,15 @@ import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import org.sosy_lab.common.Pair;
-import scala.collection.mutable.ArrayBuffer;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.PathCounterTemplate;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.LogManager;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
  * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
  * It also manages the "shared variables": each variable is declared for all stacks.
  */
-@Options(prefix="cpa.predicate.princess")
 class PrincessEnvironment {
 
   /**
@@ -115,20 +110,12 @@ class PrincessEnvironment {
   // for faster lookup, key: abbreviation, entry: long formula.
   private final BiMap<IFormula, IFormula> abbrevFormulasMap = HashBiMap.create();
 
-  @Option(description="Export solver queries in Smtlib format into a file.")
-  private boolean logAllQueries = false;
-
   private final @Nullable PathCounterTemplate basicLogfile;
-
-  /** this is a counter to get distinct logfiles for distinct environments. */
-  private static int logfileCounter = 0;
 
   /** formulas can be simplified through replacing them with an abbrev-formula. */
   // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
   private static final String ABBREV = "ABBREV_";
   private static int abbrevIndex = 0;
-
-  private final LogManager logger;
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -141,8 +128,6 @@ class PrincessEnvironment {
    * and initializes the logger. */
   public PrincessEnvironment(Configuration config, final LogManager pLogger,
       final PathCounterTemplate pBasicLogfile) throws InvalidConfigurationException {
-    config.inject(this);
-    logger = pLogger;
     basicLogfile = pBasicLogfile;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
   }
@@ -173,7 +158,7 @@ class PrincessEnvironment {
 
   private SimpleAPI getNewApi(boolean useForInterpolation) {
     final SimpleAPI newApi;
-    if (logAllQueries && basicLogfile != null) {
+    if (basicLogfile != null) {
       newApi = SimpleAPI.spawnWithLogNoSanitise(basicLogfile.getFreshPath().getAbsolutePath());
     } else {
       newApi = SimpleAPI.spawnNoSanitise();

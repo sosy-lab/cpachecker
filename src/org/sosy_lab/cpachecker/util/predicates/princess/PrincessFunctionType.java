@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
-
-import java.util.List;
 
 class PrincessFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, PrincessEnvironment.FunctionType> {
 

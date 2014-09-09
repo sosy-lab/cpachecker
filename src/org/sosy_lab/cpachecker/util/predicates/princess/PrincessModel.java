@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import ap.SimpleAPI;
-import ap.parser.IAtom;
-import ap.parser.IConstant;
-import ap.parser.IExpression;
-import ap.parser.IFunApp;
-import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
+import java.util.Set;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
@@ -37,10 +34,15 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import scala.Option;
 
-import java.util.Collection;
-import java.util.Set;
+import scala.Option;
+import ap.SimpleAPI;
+import ap.parser.IAtom;
+import ap.parser.IConstant;
+import ap.parser.IExpression;
+import ap.parser.IFunApp;
+
+import com.google.common.collect.ImmutableMap;
 
 class PrincessModel {
 
