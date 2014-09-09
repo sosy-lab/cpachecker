@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -47,7 +48,7 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
 
   private final List<Integer> assertedFormulas = new ArrayList<>(); // Collection of termNames
   private final Map<Integer, IFormula> annotatedTerms = new HashMap<>(); // Collection of termNames
-  private static int counter = 0; // for different indices
+  private static final UniqueIdGenerator counter = new UniqueIdGenerator(); // for different indices
 
   public PrincessInterpolatingProver(PrincessFormulaManager pMgr) {
     super(pMgr, true);
@@ -56,7 +57,7 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
   @Override
   public Integer push(BooleanFormula f) {
     IFormula t = (IFormula)mgr.getTerm(f);
-    Integer termIndex = counter++;
+    int termIndex = counter.getFreshId();
 
     stack.push(1);
     stack.assertTermInPartition(t, termIndex);

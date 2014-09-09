@@ -197,11 +197,11 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
 
-      for (IFormula f : model.keySet()) {
-        if (model.get(f)) {
-          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(f)));
+      for (Map.Entry<IFormula, Boolean> f : model.entrySet()) {
+        if (f.getValue()) {
+          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(f.getKey())));
         } else {
-          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(f)));
+          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(f.getKey())));
         }
       }
       builder.finishConjunction();

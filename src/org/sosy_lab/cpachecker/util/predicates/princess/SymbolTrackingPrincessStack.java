@@ -199,7 +199,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     }
   }
 
-  private class Level {
+  private static class Level {
     List<IFormula> booleanSymbols = new ArrayList<>();
     List<ITerm> intSymbols = new ArrayList<>();
     List<IFunction> functionSymbols = new ArrayList<>();

@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
@@ -79,7 +80,7 @@ class PrincessEnvironment {
     }
   }
 
-  public class FunctionType {
+  public static class FunctionType {
 
     private final IFunction funcDecl;
     private final Type resultType;
@@ -115,7 +116,7 @@ class PrincessEnvironment {
   /** formulas can be simplified through replacing them with an abbrev-formula. */
   // TODO do we have to check, that no other symbol equals an abbreviation-symbol?
   private static final String ABBREV = "ABBREV_";
-  private static int abbrevIndex = 0;
+  private static final UniqueIdGenerator abbrevIndex = new UniqueIdGenerator();
 
   /** the wrapped api is the first created api.
    * It will never be used outside of this class and never be closed.
@@ -274,7 +275,7 @@ class PrincessEnvironment {
     if (abbrevFormulasMap.inverse().containsKey(longFormula)) {
       return abbrevFormulasMap.inverse().get(longFormula);
     } else {
-      final String abbrevName = ABBREV + abbrevIndex++;
+      final String abbrevName = ABBREV + abbrevIndex.getFreshId();
       final IFormula abbrev = api.abbrev(longFormula, abbrevName);
       abbrevFormulas.add(Pair.of(abbrev, longFormula));
       abbrevFormulasMap.put(abbrev, longFormula);
