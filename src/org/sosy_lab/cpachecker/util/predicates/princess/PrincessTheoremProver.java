@@ -97,10 +97,9 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
     final AllSatCallback result = new AllSatCallback(rmgr, solveTime, enumTime);
 
     // unpack formulas to terms
-    IFormula[] importantFormulas = new IFormula[formulas.size()];
-    int i = 0;
+    List<IFormula> importantFormulas = new ArrayList<>(formulas.size());
     for (BooleanFormula impF : formulas) {
-      importantFormulas[i++] = castToFormula(mgr.getTerm(impF));
+      importantFormulas.add(castToFormula(mgr.getTerm(impF)));
     }
 
     solveTime.start();

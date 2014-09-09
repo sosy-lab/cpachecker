@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +49,7 @@ import ap.parser.ITermITE;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
@@ -83,17 +83,17 @@ class PrincessEnvironment {
 
     private final IFunction funcDecl;
     private final Type resultType;
-    private final Type[] args;
+    private final List<Type> args;
 
-    FunctionType(IFunction funcDecl, Type resultType, Type[] args) {
+    FunctionType(IFunction funcDecl, Type resultType, List<Type> args) {
       this.funcDecl = funcDecl;
       this.resultType = resultType;
-      this.args = args;
+      this.args = ImmutableList.copyOf(args);
     }
 
     public IFunction getFuncDecl() { return funcDecl; }
     public Type getResultType() { return resultType; }
-    public Type[] getArgs() { return args; }
+    public List<Type> getArgs() { return args; }
 
   }
 
@@ -216,11 +216,11 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  public FunctionType declareFun(String name, Type resultType, Type[] args) {
+  public FunctionType declareFun(String name, Type resultType, List<Type> args) {
     if (functionsCache.containsKey(name)) {
       FunctionType function = functionsCache.get(name);
       assert function.getResultType() == resultType;
-      assert Arrays.equals(function.getArgs(), args);
+      assert function.getArgs().equals(args);
       return function;
     } else {
       final FunctionType type = declareFun0(name, resultType, args);
@@ -231,8 +231,8 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  private FunctionType declareFun0(String name, Type resultType, Type[] args) {
-    IFunction funcDecl = api.createFunction(name, args.length);
+  private FunctionType declareFun0(String name, Type resultType, List<Type> args) {
+    IFunction funcDecl = api.createFunction(name, args.size());
     for (SymbolTrackingPrincessStack stack : registeredStacks) {
        stack.addSymbol(funcDecl);
     }

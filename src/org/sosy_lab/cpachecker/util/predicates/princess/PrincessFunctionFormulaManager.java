@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -48,7 +49,7 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   public <TFormula extends Formula> IExpression createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
       List<IExpression> pArgs) {
     PrincessFunctionType<TFormula> type = (PrincessFunctionType<TFormula>) pFuncType;
-    assert pArgs.size() == type.getFuncDecl().getArgs().length : "functiontype has different number of args.";
+    assert pArgs.size() == type.getFuncDecl().getArgs().size() : "functiontype has different number of args.";
     return unsafeManager.createUIFCallImpl(
             type.getFuncDecl().getFuncDecl(), type.getFuncDecl().getResultType(), pArgs);
   }
@@ -57,9 +58,9 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   public <T extends Formula> PrincessFunctionType<T> createFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
-    PrincessEnvironment.Type[] types = new PrincessEnvironment.Type[pArgs.size()];
-    for (int i = 0; i < types.length; i++) {
-      types[i] = toSolverType(pArgs.get(i));
+    List<PrincessEnvironment.Type> types = new ArrayList<>(pArgs.size());
+    for (FormulaType<?> type : pArgs) {
+      types.add(toSolverType(type));
     }
     PrincessEnvironment.Type returnType = toSolverType(pReturnType);
     PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().declareFun(pName, returnType, types);
