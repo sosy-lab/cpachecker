@@ -170,11 +170,9 @@ def killAllTasksInCgroup(cgroup):
 
             if task is None:
                 return # No process was hanging, exit
-            elif sig == signal.SIGKILL:
-                logging.warning('Run still has left over processes after third try of killing them, giving up.')
-            
+
             time.sleep(0.5) # wait for the process to exit, this might take some time
-    
+
     with open(tasksFile, 'rt') as tasks:
         for task in tasks:
             logging.warning('Run has left-over process with pid {0}, we could not kill it.'.format(task))
