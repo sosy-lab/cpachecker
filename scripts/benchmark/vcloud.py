@@ -228,7 +228,7 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
     # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
-    runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
 
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
@@ -264,10 +264,6 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
                 executedAllRuns = False
                 returnValue = None
 
-            key = os.path.basename(run.logFile)[:-4] # VCloud uses logfilename without '.log' as key
-            if key in runToHostMap:
-                run.values['host'] = runToHostMap[key]
-
             dataFile = run.logFile + ".data"
             if os.path.exists(dataFile):
                 outputHandler.allCreatedFiles.append(dataFile)
@@ -293,8 +289,6 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
-
-    runToHostMap = {}
     try:
         with open(filePath, 'rt') as file:
             outputHandler.allCreatedFiles.append(filePath)
@@ -312,19 +306,11 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
                 cores = file.readline().split("=")[-1].strip()
                 outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
 
-            # Parse second part of information about runs
-            for line in file:
-                line = line.strip()
-                if not line:
-                    continue # skip empty lines
-
-                runInfo = line.split('\t')
-                runToHostMap[runInfo[1].strip()] = runInfo[0].strip()
-                # TODO one key + multiple values <==> one sourcefile + multiple configs
+            # Ignore second part of information about runs
+            # (we read the run-to-host mapping from the .data file for each run).
 
     except IOError:
         logging.warning("Host information file not found: " + filePath)
-    return runToHostMap
 
 
 def parseCloudResultFile(filePath):
