@@ -88,7 +88,7 @@ class KillProcessOnOomThread(threading.Thread):
                     os.write(ofd, '1')
                 except OSError:
                     pass
-            except Error as e:
+            except EnvironmentError as e:
                 os.close(self._efd)
                 raise e
         finally:
