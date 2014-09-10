@@ -437,7 +437,7 @@ def insertLogFileNames(resultFile, resultElem):
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
-        sourcefile.logfile = logFolder + logFileName
+        sourcefile.set('logfile', logFolder + logFileName)
 
 def getDefaultLogFolder(resultElem):
     return logFolder
@@ -484,7 +484,7 @@ def mergeFilelists(runSetResults, filenames):
             fileResult = dic.get(filename)
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
-                fileResult.logfile = None
+                fileResultset('logfile', None)
                 fileResult.set('name', filename)
                 print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
@@ -577,7 +577,7 @@ class RunResult:
 
                 else: # collect values from logfile
                     if logfileLines is None: # cache content
-                        logfileLines = readLogfileLines(sourcefileTag.logfile)
+                        logfileLines = readLogfileLines(sourcefileTag.get('logfile'))
 
                     value = getValueFromLogfile(logfileLines, column.pattern)
 
@@ -586,7 +586,7 @@ class RunResult:
 
             values.append(value)
 
-        return RunResult(status, category, sourcefileTag.logfile, listOfColumns, values)
+        return RunResult(status, category, sourcefileTag.get('logfile'), listOfColumns, values)
 
 
 class Row:
@@ -786,7 +786,7 @@ def getStatsOfRunSet(runResults):
     def replaceIrrelevant(row):
         count = row[0]
         if not count or not count.sum:
-            for i in xrange(1, len(row)):
+            for i in range(1, len(row)):
                 row[i] = None
 
     replaceIrrelevant(sumRow)
