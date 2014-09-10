@@ -148,7 +148,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
   }
 
-  private List<MemoryLocation> staticCandidates = null;
+  private TreeSet<MemoryLocation> staticCandidates = null;
 
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
@@ -169,7 +169,22 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     if(staticCandidates == null) {
 
-      staticCandidates = new ArrayList<>();
+      staticCandidates = new TreeSet<>(new Comparator<MemoryLocation>() {
+
+        @Override
+        public int compare(MemoryLocation pO1, MemoryLocation pO2) {
+          Integer val1 = VariableClassification.memLocInAssign.containsKey(pO1) ? VariableClassification.memLocInAssign.get(pO1) : 0;
+          Integer val2 = VariableClassification.memLocInAssign.containsKey(pO2) ? VariableClassification.memLocInAssign.get(pO2) : 0;
+
+          if(val1 < val2) {
+            return -1;
+          }
+          if(val1 > val2) {
+            return 1;
+          }
+          return 0;
+        }});
+
       interpolationTree.hasNextPathForInterpolation();
       MutableARGPath errP = interpolationTree.getNextPathForInterpolation();
 
@@ -202,32 +217,16 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
             memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
           }
 
-          if(VariableClassification.memLocInAssign.containsKey(memloc) && VariableClassification.memLocInAssign.get(memloc) < 100) {
+          if(VariableClassification.memLocInAssign.containsKey(memloc)
+              && VariableClassification.memLocInAssign.get(memloc) < 100) {
             staticCandidates.add(memloc);
           }
         }
       }
-
-      Collections.sort(staticCandidates, new Comparator<MemoryLocation>() {
-
-        @Override
-        public int compare(MemoryLocation pO1, MemoryLocation pO2) {
-          Integer val1 = VariableClassification.memLocInAssign.containsKey(pO1) ? VariableClassification.memLocInAssign.get(pO1) : 0;
-          Integer val2 = VariableClassification.memLocInAssign.containsKey(pO2) ? VariableClassification.memLocInAssign.get(pO2) : 0;
-
-          if(val1 < val2) {
-            return -1;
-          }
-          if(val1 > val2) {
-            return 1;
-          }
-          return 0;
-        }});
-
     }
 
     if (!staticCandidates.isEmpty()) {
-      MemoryLocation candidate = staticCandidates.remove(0);
+      MemoryLocation candidate = staticCandidates.pollFirst();
 System.out.println("picked candidate " + candidate);
       Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
       increment.put(new CFANode("dummy"), candidate);
