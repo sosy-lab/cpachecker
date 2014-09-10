@@ -212,7 +212,7 @@ class RunExecutor():
                 pass
                 #print('libcgroup is not available: {}'.format(e.strerror))
 
-            for cgroup in cgroups.values():
+            for cgroup in set(cgroups.values()):
                 addTaskToCgroup(cgroup, pid)
 
 
@@ -291,7 +291,7 @@ class RunExecutor():
             logging.debug("size of logfile '{0}': {1}".format(outputFileName, str(os.path.getsize(outputFileName))))
 
             # kill all remaining processes if some managed to survive
-            for cgroup in cgroups.values():
+            for cgroup in set(cgroups.values()):
                 killAllTasksInCgroup(cgroup)
 
         wallTimeAfter = time.time()
@@ -392,21 +392,14 @@ class RunExecutor():
 
         reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
-        logging.debug("executeRun: reading output.")
-        outputFile = open(outputFileName, 'rt') # re-open file for reading output
-        output = list(map(Util.decodeToString, outputFile.readlines()))
-        outputFile.close()
-
-        logging.debug("executeRun: analysing output for crash-info.")
-        getDebugOutputAfterCrash(output, outputFileName)
-
-        output = output[6:] # first 6 lines are for logging, rest is output of subprocess
-
+        if returnvalue not in [0,1]:
+            logging.debug("executeRun: analysing output for crash-info.")
+            getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
                       .format(returnvalue, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output), energy)
+        return (wallTime, cpuTime, memUsage, returnvalue, energy)
 
 
     def kill(self):
@@ -464,24 +457,25 @@ def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
             outputFile.truncate()
 
 
-def getDebugOutputAfterCrash(output, outputFileName):
+def getDebugOutputAfterCrash(outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
     with more information. We append this file to the log.
     """
     next = False
-    for line in output:
-        if next:
-            try:
-                dumpFile = line.strip(' #\n')
-                Util.appendFileToFile(dumpFile, outputFileName)
-                os.remove(dumpFile)
-            except IOError as e:
-                logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
-            break
-        if line.startswith('# An error report file with more information is saved as:'):
-            logging.debug('Going to append error report file')
-            next = True
+    with open(outputFileName, 'r') as outputFile:
+        for line in outputFile:
+            if next:
+                try:
+                    dumpFile = line.strip(' #\n')
+                    Util.appendFileToFile(dumpFile, outputFileName)
+                    os.remove(dumpFile)
+                except IOError as e:
+                    logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
+                break
+            if line.startswith('# An error report file with more information is saved as:'):
+                logging.debug('Going to append error report file')
+                next = True
 
 
 def _readCpuTime(cgroupCpuacct):

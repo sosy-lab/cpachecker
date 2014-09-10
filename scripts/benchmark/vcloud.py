@@ -277,16 +277,8 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
                 runsProducedErrorOutput = True
 
             outputHandler.outputBeforeRun(run)
-            output = ''
-            if os.path.exists(run.logFile):
-                try:
-                    with open(run.logFile, 'rt') as outputFile:
-                        # first 6 lines are for logging, rest is output of subprocess, see RunExecutor.py for details
-                        output = '\n'.join(map(Util.decodeToString, outputFile.readlines()[6:]))
-                except IOError as e:
-                    logging.warning("Cannot read log file: " + e.strerror)
 
-            run.afterExecution(returnValue, output)
+            run.afterExecution(returnValue)
             outputHandler.outputAfterRun(run)
 
         outputHandler.outputAfterRunSet(runSet, wallTime=usedWallTime)

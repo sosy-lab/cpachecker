@@ -46,6 +46,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         status = result.STATUS_UNKNOWN
 
         if self.allInText(['Violated property:',

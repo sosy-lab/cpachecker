@@ -60,7 +60,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
         memory_leak = False
         bad_deref = False
         undef = False
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):

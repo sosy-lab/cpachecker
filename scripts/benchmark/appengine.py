@@ -188,7 +188,7 @@ def _handleAppEngineResults(benchmark, outputHandler):
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
 
-            (returnValue, output, hasErr, hasTO, isNotSubmt, overQuota) = \
+            (returnValue, hasErr, hasTO, isNotSubmt, overQuota) = \
                 _parseAppEngineResult(run)
 
             if run.wallTime:
@@ -199,7 +199,7 @@ def _handleAppEngineResults(benchmark, outputHandler):
             if isNotSubmt: notSubmitted += 1
             isOverQuota = True if overQuota or isOverQuota else False
 
-            run.afterExecution(returnValue, output, hasTO)
+            run.afterExecution(returnValue, hasTO)
             outputHandler.outputAfterRun(run)
 
         outputHandler.outputAfterRunSet(runSet, wallTime=totalWallTime)
@@ -221,26 +221,16 @@ def _parseAppEngineResult(run):
     error = False
     timeout = False
     notSubmitted = False
-    output = ''
     returnValue = 0
     overQuota = False
 
-    hasLogFile = (os.path.exists(run.logFile) and os.path.isfile(run.logFile))
     hasStdOutFile = (os.path.exists(run.logFile+'.stdOut') and os.path.isfile(run.logFile+'.stdOut'))
     hasErrOutFile = (os.path.exists(run.logFile+'.stdErr') and os.path.isfile(run.logFile+'.stdErr'))
-
-    if hasLogFile:
-        try:
-            with open(run.logFile, 'rt') as outputFile:
-                output = '\n'.join(map(Util.decodeToString, outputFile.readlines()))
-        except IOError as e:
-            logging.warning("Cannot read log file: " + e.strerror)
 
     if hasStdOutFile:
         try:
             with open(run.logFile+'.stdOut', 'rt') as file:
                 lines = file.read()
-                output += '\n'+lines
                 result = json.loads(lines)
                 if result['status'] == 'ERROR':
                     returnValue = 256 # error; returncode != 0
@@ -262,7 +252,6 @@ def _parseAppEngineResult(run):
         try:
             with open(run.logFile+'.stdErr', 'rt') as errFile:
                 lines = errFile.read()
-                output += '\n'+lines
                 if 'NOT SUBMITTED' in lines:
                     returnValue = 6 # aborted
                     notSubmitted = True
@@ -277,7 +266,7 @@ def _parseAppEngineResult(run):
         except:
             pass # can't read err file
 
-    return (returnValue, output, error, timeout, notSubmitted, overQuota)
+    return (returnValue, error, timeout, notSubmitted, overQuota)
 
 
 class _AppEngineSubmitter(threading.Thread):

@@ -34,6 +34,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if "collect2: ld returned 1 exit status" in output:
             status = "COMPILE ERROR"
 

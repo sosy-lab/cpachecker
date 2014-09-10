@@ -10,7 +10,6 @@ import os
 import signal
 import logging
 import benchmark.runexecutor as runexecutor
-from benchmark.runexecutor import RunExecutor
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -54,11 +53,11 @@ def main(argv=None):
              rlimits[CORELIMIT] = int(argv[5])
 
         global runExecutor
-        runExecutor = RunExecutor()
+        runExecutor = runexecutor.RunExecutor()
 
         logging.debug("runExecutor.executeRun() started.")
 
-        (wallTime, cpuTime, memUsage, returnvalue, output, energy) = \
+        (wallTime, cpuTime, memUsage, returnvalue, energy) = \
             runExecutor.executeRun(args, rlimits, outputFileName, environments=env, maxLogfileSize=logfileSize);
 
         logging.debug("runExecutor.executeRun() ended.")
