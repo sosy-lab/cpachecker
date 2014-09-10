@@ -36,6 +36,8 @@ from . import util as Util
 
 CGROUP_NAME_PREFIX='benchmark_'
 
+ALL_KNOWN_SUBSYSTEMS = set(['cpuacct', 'cpuset', 'freezer', 'memory'])
+
 def initCgroup(cgroupsParents, subsystem):
     """
     Initialize a cgroup subsystem.
@@ -43,72 +45,74 @@ def initCgroup(cgroupsParents, subsystem):
     @param cgroupsParents: A dictionary with the cgroup mount points for each subsystem (filled by this method)
     @param subsystem: The subsystem to initialize
     """
-    if not subsystem in cgroupsParents:
-        cgroup = _findCgroupMount(subsystem)
+    if not cgroupsParents:
+        # first call to this method
+        logging.debug('Analyzing /proc/mounts and /proc/self/cgroup for determining cgroups.')
+        mounts = _findCgroupMounts()
+        cgroups = _findOwnCgroups()
 
-        if not cgroup:
-            logging.warning(
+        for mountedSubsystem, mount in mounts.items():
+            cgroupsParents[mountedSubsystem] = os.path.join(mount, cgroups[mountedSubsystem])
+
+    if not subsystem in cgroupsParents:
+        logging.warning(
 '''Cgroup subsystem {0} not enabled.
 Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
-                .format(subsystem)
-                )
-            cgroupsParents[subsystem] = None
-            return
-        else:
-            logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
+            .format(subsystem)
+            )
+        cgroupsParents[subsystem] = None
+        return
 
-        # find our own cgroup, we want to put processes in a child group of it
-        cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
-        cgroupsParents[subsystem] = cgroup
-        logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
+    cgroup = cgroupsParents[subsystem]
+    logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
 
-        try: # only for testing?
-            testCgroup = createCgroup(cgroupsParents, subsystem)[subsystem]
-            removeCgroup(testCgroup)
-
-            logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
-        except OSError as e:
-            logging.warning(
+    try: # only for testing?
+        testCgroup = createCgroup(cgroupsParents, subsystem)[subsystem]
+        removeCgroup(testCgroup)
+    except OSError as e:
+        logging.warning(
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
 If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
-                .format(cgroup, e.strerror))
-            cgroupsParents[subsystem] = None
+            .format(cgroup, e.strerror))
+        cgroupsParents[subsystem] = None
 
 
-def _findCgroupMount(subsystem=None):
+def _findCgroupMounts():
+    mounts = {}
     try:
-        with open('/proc/mounts', 'rt') as mounts:
-            for mount in mounts:
+        with open('/proc/mounts', 'rt') as mountsFile:
+            for mount in mountsFile:
                 mount = mount.split(' ')
                 if mount[2] == 'cgroup':
                     mountpoint = mount[1]
                     options = mount[3]
-                    logging.debug('Found cgroup mount at {0} with options {1}'.format(mountpoint, options))
-                    if subsystem:
-                        if subsystem in options.split(','):
-                            return mountpoint
-                    else:
-                        return mountpoint
-    except:
-        pass # /proc/mounts cannot be read
-    return None
+                    for option in options.split(','):
+                        if option in ALL_KNOWN_SUBSYSTEMS:
+                            mounts[option] = mountpoint
+    except IOError as e:
+        logging.exception('Cannot read /proc/mounts')
+    return mounts
 
 
-def _findOwnCgroup(subsystem):
+def _findOwnCgroups():
     """
     Given a cgroup subsystem,
     find the cgroup in which this process is in.
     (Each process is in exactly cgroup in each hierarchy.)
     @return the path to the cgroup inside the hierarchy
     """
-    with open('/proc/self/cgroup', 'rt') as ownCgroups:
-        for ownCgroup in ownCgroups:
-            #each line is "id:subsystem,subsystem:path"
-            ownCgroup = ownCgroup.strip().split(':')
-            if subsystem in ownCgroup[1].split(','):
-                return ownCgroup[2]
-        logging.warning('Could not identify my cgroup for subsystem {0} although it should be there'.format(subsystem))
-        return None
+    ownCgroups = {}
+    try:
+        with open('/proc/self/cgroup', 'rt') as ownCgroupsFile:
+            for ownCgroup in ownCgroupsFile:
+                #each line is "id:subsystem,subsystem:path"
+                ownCgroup = ownCgroup.strip().split(':')
+                path = ownCgroup[2][1:] # remove leading /
+                for subsystem in ownCgroup[1].split(','):
+                    ownCgroups[subsystem] = path
+    except IOError as e:
+        logging.exception('Cannot read /proc/self/cgroup')
+    return ownCgroups
 
 
 def createCgroup(cgroupsParents, *subsystems):
@@ -122,7 +126,8 @@ def createCgroup(cgroupsParents, *subsystems):
     createdCgroupsPerSubsystem = {}
     createdCgroupsPerParent = {}
     for subsystem in subsystems:
-        initCgroup(cgroupsParents, subsystem)
+        if not subsystem in cgroupsParents:
+            initCgroup(cgroupsParents, subsystem)
 
         parentCgroup = cgroupsParents.get(subsystem)
         if not parentCgroup:
