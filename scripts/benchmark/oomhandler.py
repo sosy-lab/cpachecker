@@ -85,7 +85,7 @@ class KillProcessOnOomThread(threading.Thread):
                 # This is not allowed if memory.use_hierarchy is enabled,
                 # but we don't care.
                 try:
-                    os.write(ofd, '1')
+                    os.write(ofd, '1'.encode('ascii'))
                 except OSError:
                     pass
             except EnvironmentError as e:
