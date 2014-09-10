@@ -277,6 +277,9 @@ class RunExecutor():
                 logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
+            wallTimeAfter = time.time()
+            
+
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.discard(p)
 
@@ -294,7 +297,6 @@ class RunExecutor():
             for cgroup in set(cgroups.values()):
                 killAllTasksInCgroup(cgroup)
 
-        wallTimeAfter = time.time()
         energy = Util.getEnergy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
