@@ -148,7 +148,7 @@ class _Worker(threading.Thread):
             try:
                 self.execute(currentRun)
             except BaseException as e:
-                print(e)
+                logging.exception('Exception during run execution')
             _Worker.workingQueue.task_done()
 
 
