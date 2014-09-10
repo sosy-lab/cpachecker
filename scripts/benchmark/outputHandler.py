@@ -467,8 +467,10 @@ class OutputHandler:
         for elem in list(runElem):
             runElem.remove(elem)
         self.addColumnToXML(runElem, 'status',    run.status)
-        self.addColumnToXML(runElem, 'cputime',   str(run.cpuTime) + 's')
-        self.addColumnToXML(runElem, 'walltime',  str(run.wallTime) + 's')
+        if run.cpuTime is not None:
+            self.addColumnToXML(runElem, 'cputime',   str(run.cpuTime) + 's')
+        if run.wallTime is not None:
+            self.addColumnToXML(runElem, 'walltime',  str(run.wallTime) + 's')
         self.addColumnToXML(runElem, '@category', run.category) # hidden
         self.addColumnToXML(runElem, '',          run.values)
 
