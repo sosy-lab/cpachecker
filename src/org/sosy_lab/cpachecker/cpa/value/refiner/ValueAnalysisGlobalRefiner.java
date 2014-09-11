@@ -148,7 +148,24 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
   }
 
-  private TreeSet<MemoryLocation> staticCandidates = null;
+  @Option(description="find itps statically")
+  private boolean findItpsStatically = true;
+
+  private TreeSet<MemoryLocation> staticCandidates = new TreeSet<>(new Comparator<MemoryLocation>() {
+
+    @Override
+    public int compare(MemoryLocation pO1, MemoryLocation pO2) {
+      Integer val1 = VariableClassification.memLocInAssign.containsKey(pO1) ? VariableClassification.memLocInAssign.get(pO1) : 0;
+      Integer val2 = VariableClassification.memLocInAssign.containsKey(pO2) ? VariableClassification.memLocInAssign.get(pO2) : 0;
+
+      if(val1 < val2) {
+        return -1;
+      }
+      if(val1 > val2) {
+        return 1;
+      }
+      return 0;
+    }});
 
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
@@ -167,24 +184,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     InterpolationTree interpolationTree = new InterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
-    if(staticCandidates == null) {
-
-      staticCandidates = new TreeSet<>(new Comparator<MemoryLocation>() {
-
-        @Override
-        public int compare(MemoryLocation pO1, MemoryLocation pO2) {
-          Integer val1 = VariableClassification.memLocInAssign.containsKey(pO1) ? VariableClassification.memLocInAssign.get(pO1) : 0;
-          Integer val2 = VariableClassification.memLocInAssign.containsKey(pO2) ? VariableClassification.memLocInAssign.get(pO2) : 0;
-
-          if(val1 < val2) {
-            return -1;
-          }
-          if(val1 > val2) {
-            return 1;
-          }
-          return 0;
-        }});
-
+    if(findItpsStatically) {
+      findItpsStatically = false;
       interpolationTree.hasNextPathForInterpolation();
       MutableARGPath errP = interpolationTree.getNextPathForInterpolation();
 
@@ -279,6 +280,8 @@ System.out.println("picked candidate " + candidate);
 
     Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+      int d = ARGUtils.getOnePathTo(root).size();
+      System.out.println("depth is " + d);
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
