@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,21 +68,20 @@ public class FunctionCallUnwinder {
   private final static String RECURSION_SEPARATOR = "__recursive_call__";
 
   private final MutableCFA cfa;
-  private final LogManager logger;
 
   public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config, final LogManager pLogger)
           throws InvalidConfigurationException {
     config.inject(this);
     this.cfa = pCfa;
-    this.logger = pLogger;
+
+    if (cfa.getLanguage() != Language.C) {
+      throw new InvalidConfigurationException(
+          "Function-call unwinding is only supported for C code.");
+    }
   }
 
   public MutableCFA unwindRecursion() {
-    if (cfa.getLanguage() != Language.C) {
-      // TODO throw exception?
-      logger.log(Level.INFO, "FunctionCallUnwinder does only support C.");
-      return cfa;
-    }
+    assert cfa.getLanguage() == Language.C;
 
     // copy content of old CFAs
     final SortedMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());

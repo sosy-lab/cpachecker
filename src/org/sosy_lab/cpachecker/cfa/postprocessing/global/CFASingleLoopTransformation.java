@@ -121,7 +121,7 @@ import com.google.common.collect.TreeMultimap;
  * Instances of this class are used to apply single loop transformation to
  * control flow automata.
  */
-@Options
+@Options(prefix="cfa.transformIntoSingleLoop")
 public class CFASingleLoopTransformation {
 
   public static final String ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME = " ";
@@ -158,7 +158,7 @@ public class CFASingleLoopTransformation {
    */
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(name="cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption",
+  @Option(
       description="Single loop transformation builds a decision tree based on" +
         " the program counter values. This option causes the last program" +
         " counter value not to be explicitly assumed in the decision tree," +
@@ -166,12 +166,12 @@ public class CFASingleLoopTransformation {
         " falsehood for all other assumptions in the decision tree.")
   private boolean omitExplicitLastProgramCounterAssumption = false;
 
-  @Option(name="cfa.transformIntoSingleLoop.programCounterValueProviderFactory",
+  @Option(
       description="This option controls what program counter values are used" +
           ". Possible values are INCREMENTAL and NODE_NUMBER.")
   private ProgramCounterValueProviderFactories programCounterValueProviderFactory = ProgramCounterValueProviderFactories.INCREMENTAL;
 
-  @Option(name="cfa.transformIntoSingleLoop.subgraphGrowthStrategy",
+  @Option(
       description="This option controls the size of the subgraphs referred" +
           " to by program counter values. The larger the subgraphs, the" +
           " fewer program counter values are required. Possible values are " +
