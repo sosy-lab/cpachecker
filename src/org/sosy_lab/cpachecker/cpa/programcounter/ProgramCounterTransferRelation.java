@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssignmentEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -72,8 +74,8 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
         }
         break;
       case AssumeEdge:
-        if (pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
-          CFASingleLoopTransformation.ProgramCounterValueAssumeEdge edge = (CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) pCfaEdge;
+        if (pCfaEdge instanceof ProgramCounterValueAssumeEdge) {
+          ProgramCounterValueAssumeEdge edge = (ProgramCounterValueAssumeEdge) pCfaEdge;
           BigInteger value = BigInteger.valueOf(edge.getProgramCounterValue());
           if (edge.getTruthAssumption()) {
             if (state.containsValue(value)) {
@@ -90,8 +92,8 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
         }
         break;
       case StatementEdge:
-        if (pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge) {
-          CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge edge = (CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge) pCfaEdge;
+        if (pCfaEdge instanceof ProgramCounterValueAssignmentEdge) {
+          ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pCfaEdge;
           state = ProgramCounterState.getStateForValue(BigInteger.valueOf(edge.getProgramCounterValue()));
         }
         break;

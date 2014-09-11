@@ -44,7 +44,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -97,7 +98,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
       boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
-      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
+      boolean isArtificialPCVEdge = pCfaEdge instanceof ProgramCounterValueAssumeEdge;
       boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
       boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
       boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
