@@ -148,7 +148,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private Path testsuiteFile = Paths.get("testsuite.txt");
 
   @Option(name = "useInfeasibilityPropagation", description = "Map information on infeasibility of one test goal to other test goals.")
-  private boolean useInfeasibilityPropagation = true;
+  private boolean useInfeasibilityPropagation = false;
 
   enum TimeoutStrategy {
     SKIP_AFTER_TIMEOUT,
@@ -402,13 +402,17 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         testsuite.addInfeasibleGoal(lGoal);
 
-        lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+        if (lGoalPrediction != null) {
+          lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+        }
 
         continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
       }
 
       if (checkCoverage && isCovered(goalIndex, lGoal)) {
-        lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
+        if (lGoalPrediction != null) {
+          lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
+        }
         continue;
       }
 
@@ -692,7 +696,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         // test goal is not feasible
         logger.logf(Level.INFO, "Test goal infeasible.");
 
-        lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+        if (lGoalPrediction != null) {
+          lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
+        }
 
         testsuite.addInfeasibleGoal(pGoal);
         // TODO add missing soundness checks!
@@ -755,8 +761,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         // TODO add missing soundness checks!
 
-
-        lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
+        if (lGoalPrediction != null) {
+          lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
+        }
 
         assert counterexamples.size() == 1;
 
