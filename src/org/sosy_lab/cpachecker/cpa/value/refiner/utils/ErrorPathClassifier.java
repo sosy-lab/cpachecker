@@ -57,6 +57,7 @@ public class ErrorPathClassifier {
     DEFAULT,
     SHORTEST,
     LONGEST,
+    MOST_LOCAL,
     MEDIAN,
     MIDDLE,
     BEST,
@@ -87,6 +88,9 @@ public class ErrorPathClassifier {
     case WORST:
       return obtainWorstPrefix(pPrefixes);
 
+    case MOST_LOCAL:
+      return obtainMostLocalPrefix(pPrefixes);
+
     default:
       return errorPath;
     }
@@ -98,6 +102,37 @@ public class ErrorPathClassifier {
 
   public MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes) {
     return buildPath(pPrefixes.size() - 1, pPrefixes);
+  }
+
+  public MutableARGPath obtainMostLocalPrefix(List<MutableARGPath> pPrefixes) {
+
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Long bestScore                  = null;
+    int bestIndex                   = 0;
+
+    for (MutableARGPath currentPrefix : pPrefixes) {
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(currentPrefix);
+
+      // gets the score for the prefix of how "local" it is
+      AssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
+      collector.obtainUseDefInformation(currentErrorPath);
+      Long score = Long.valueOf(collector.getDependenciesResolvedOffset()) * (-1);
+
+      // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
+      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
+      if (bestScore == null || score <= bestScore) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+    }
+
+    return buildPath(bestIndex, pPrefixes);
   }
 
   public MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes) {
@@ -129,9 +164,9 @@ public class ErrorPathClassifier {
       return concatPrefixes(pPrefixes);
     }
 
-    MutableARGPath currentErrorPath  = new MutableARGPath();
-    Long bestScore            = null;
-    int bestIndex             = 0;
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Long bestScore                  = null;
+    int bestIndex                   = 0;
 
     for (MutableARGPath currentPrefix : pPrefixes) {
       assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
