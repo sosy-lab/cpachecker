@@ -1820,6 +1820,9 @@ tiger.testsuiteFile = "testsuite.txt"
 tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
   enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
 
+# Map information on infeasibility of one test goal to other test goals.
+tiger.useInfeasibilityPropagation = false
+
 # Enforce the original order each time a new round of re-processing of
 # timed-out goals begins.
 tiger.useOrder = true

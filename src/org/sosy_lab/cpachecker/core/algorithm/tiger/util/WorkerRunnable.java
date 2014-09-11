@@ -42,7 +42,7 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
   private Algorithm algorithm;
   private ReachedSet localReachedSet;
   private boolean soundAnalysis = true;
-  private Exception caughtException = null;
+  private Throwable caughtThrowable = null;
   private ResourceLimitChecker limitChecker;
   private boolean timeoutOccured = false;
 
@@ -73,17 +73,17 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
     } catch (InterruptedException e) {
       soundAnalysis = false;
       timeoutOccured = true;
-    } catch (Exception e) {
-      caughtException = e;
+    } catch (Throwable t) {
+      caughtThrowable = t;
     }
   }
 
-  public boolean exceptionWasCaught() {
-    return (caughtException != null);
+  public boolean throwableWasCaught() {
+    return (caughtThrowable != null);
   }
 
-  public Exception getCaughtException() {
-    return caughtException;
+  public Throwable getCaughtThrowable() {
+    return caughtThrowable;
   }
 
   public boolean analysisWasSound() {

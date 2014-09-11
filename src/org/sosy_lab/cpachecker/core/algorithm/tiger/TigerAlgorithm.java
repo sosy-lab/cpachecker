@@ -662,8 +662,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       workerThread.start();
       workerThread.join();
 
-      if (workerRunnable.exceptionWasCaught()) {
-        throw new RuntimeException(workerRunnable.getCaughtException());
+      if (workerRunnable.throwableWasCaught()) {
+        throw new RuntimeException(workerRunnable.getCaughtThrowable());
       }
       else {
         analysisWasSound = workerRunnable.analysisWasSound();
