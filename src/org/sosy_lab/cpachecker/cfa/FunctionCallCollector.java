@@ -21,10 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.manipulation;
+package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -34,14 +35,14 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 
 /** This Visitor collects all functioncalls.
  *  It should visit the CFA of each functions BEFORE creating super-edges (functioncall- and return-edges). */
-class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
+public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
   // TODO this class is copied from CFASecondPassBuilder, can we merge this class with the other visitor?
   // TODO in FunctionCallDumper there exists a similiar class, should we merge?
 
   private final List<AStatementEdge> functionCalls = new ArrayList<>();
 
   public Collection<AStatementEdge> getFunctionCalls() {
-    return functionCalls;
+    return Collections.unmodifiableCollection(functionCalls);
   }
 
   @Override
