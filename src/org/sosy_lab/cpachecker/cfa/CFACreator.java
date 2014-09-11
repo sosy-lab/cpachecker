@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation.MutableCFAWithOptionalLoopStructure;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -371,6 +370,7 @@ public class CFACreator {
       // get loop information
       // (needs post-order information)
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+      cfa.setLoopStructure(loopStructure);
 
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -400,13 +400,8 @@ public class CFACreator {
 
       // optionally transform CFA so that there is only one single loop
       if (transformIntoSingleLoop) {
-        MutableCFAWithOptionalLoopStructure cfaWithLoopStructure =
-            CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure);
-        cfa = cfaWithLoopStructure.getCFA();
+        cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
         mainFunction = cfa.getMainFunction();
-        if (cfaWithLoopStructure.isLoopStructurePresent()) {
-          loopStructure = Optional.of(cfaWithLoopStructure.getLoopStructure());
-        }
       }
 
       // SIXTH, get information about the CFA,
@@ -414,13 +409,13 @@ public class CFACreator {
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
-          = loopStructure.isPresent() && (language == Language.C)
-          ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+          = cfa.getLoopStructure().isPresent() && (language == Language.C)
+          ? Optional.of(new VariableClassification(cfa, config, logger, cfa.getLoopStructure().get()))
           : Optional.<VariableClassification>absent();
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
       // check the super CFA starting at the main function
       stats.checkTime.start();

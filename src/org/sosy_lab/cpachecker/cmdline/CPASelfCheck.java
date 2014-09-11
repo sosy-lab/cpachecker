@@ -54,11 +54,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
@@ -134,8 +132,7 @@ public class CPASelfCheck {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     ParseResult cfas = parser.parseString("", code, sourceOriginMapping);
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
-    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
-        Optional.<VariableClassification>absent());
+    return cfa.makeImmutableCFA(Optional.<VariableClassification>absent());
   }
 
   private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa,

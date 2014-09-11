@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -36,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -48,6 +52,7 @@ public class MutableCFA implements CFA {
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Language language;
+  private Optional<ImmutableMultimap<String, Loop>> loopStructure = Optional.absent();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -137,17 +142,32 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
-    return Optional.absent();
+    return loopStructure;
+  }
+
+  public void setLoopStructure(Optional<ImmutableMultimap<String, Loop>> pLoopStructure) {
+    loopStructure = checkNotNull(pLoopStructure);
   }
 
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    if (loopStructure.isPresent()) {
+      ImmutableSet<CFANode> loopHeads = from(loopStructure.get().values())
+          .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
+            @Override
+            public Iterable<CFANode> apply(Loop loop) {
+              return loop.getLoopHeads();
+            }
+          }).toSet();
+      return Optional.of(loopHeads);
+    }
     return Optional.absent();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
-      Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language);
+  public ImmutableCFA makeImmutableCFA(
+      Optional<VariableClassification> pVarClassification) {
+    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
+        loopStructure, pVarClassification, language);
   }
 
   @Override
