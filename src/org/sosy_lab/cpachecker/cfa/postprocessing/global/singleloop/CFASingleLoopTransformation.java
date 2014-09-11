@@ -1549,27 +1549,9 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Instances of implementing classes are factories for program counter value
-   * providers.
-   */
-  private static interface AbstractProgramCounterValueProviderFactory {
-
-    /**
-     * Creates a new or immutable program counter value provider. This implies
-     * that the returned program counter value provider cannot be modified by
-     * any other modification source but the caller unless shared by the
-     * caller.
-     *
-     * @return a new or immutable program counter value provider.
-     */
-    @Nonnull ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider();
-
-  }
-
-  /**
    * Elements of this enumeration are program counter value provider factories.
    */
-  private static enum ProgramCounterValueProviderFactories implements AbstractProgramCounterValueProviderFactory {
+  private static enum ProgramCounterValueProviderFactories {
 
     /**
      * This program counter value provider factory creates immutable program
@@ -1590,30 +1572,6 @@ public class CFASingleLoopTransformation {
      */
     INCREMENTAL {
 
-      class IncrementalProgramCounterValueProvider implements ProgramCounterValueProvider {
-
-        /**
-         * The previously provided program counter values.
-         */
-        private final Map<CFANode, Integer> providedPCValues = new HashMap<>();
-
-        /**
-         * The last program counter value provided.
-         */
-        private int lastPCValue = -1;
-
-        @Override
-        public int getPCValueFor(CFANode pCFANode) {
-          Integer storedPCValue = providedPCValues.get(pCFANode);
-          if (storedPCValue == null) {
-            storedPCValue = ++lastPCValue;
-            providedPCValues.put(pCFANode, storedPCValue);
-          }
-          return storedPCValue;
-        }
-
-      }
-
       @Override
       public ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider() {
         return new IncrementalProgramCounterValueProvider();
@@ -1621,8 +1579,40 @@ public class CFASingleLoopTransformation {
 
     };
 
+    /**
+     * Creates a new or immutable program counter value provider. This implies
+     * that the returned program counter value provider cannot be modified by
+     * any other modification source but the caller unless shared by the
+     * caller.
+     *
+     * @return a new or immutable program counter value provider.
+     */
+    abstract @Nonnull ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider();
   }
 
+  private static class IncrementalProgramCounterValueProvider implements ProgramCounterValueProvider {
+
+    /**
+     * The previously provided program counter values.
+     */
+    private final Map<CFANode, Integer> providedPCValues = new HashMap<>();
+
+    /**
+     * The last program counter value provided.
+     */
+    private int lastPCValue = -1;
+
+    @Override
+    public int getPCValueFor(CFANode pCFANode) {
+      Integer storedPCValue = providedPCValues.get(pCFANode);
+      if (storedPCValue == null) {
+        storedPCValue = ++lastPCValue;
+        providedPCValues.put(pCFANode, storedPCValue);
+      }
+      return storedPCValue;
+    }
+
+  }
   /**
    * The singleton element of this enumeration is a program counter value
    * provider that uses the node numbers as program counter values.
