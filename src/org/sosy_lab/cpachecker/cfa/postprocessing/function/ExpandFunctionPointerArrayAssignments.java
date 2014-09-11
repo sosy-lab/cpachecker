@@ -21,13 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.math.BigInteger;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -67,11 +69,11 @@ import com.google.common.collect.ImmutableList;
  * - "array" has a statically known length
  * - "i" is a simple variable (CIdExpression)
  */
-class ExpandFunctionPointerArrayAssignments {
+public class ExpandFunctionPointerArrayAssignments {
 
   private final LogManager logger;
 
-  ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     logger = pLogger;
   }
 

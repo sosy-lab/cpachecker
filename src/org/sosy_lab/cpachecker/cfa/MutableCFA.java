@@ -66,17 +66,17 @@ public class MutableCFA implements CFA {
     assert functions.get(mainFunction.getFunctionName()) == mainFunction;
   }
 
-  void addNode(CFANode pNode) {
+  public void addNode(CFANode pNode) {
     assert functions.containsKey(pNode.getFunctionName());
     allNodes.put(pNode.getFunctionName(), pNode);
   }
 
-  void clear() {
+  public void clear() {
     functions.clear();
     allNodes.clear();
   }
 
-  void removeNode(CFANode pNode) {
+  public void removeNode(CFANode pNode) {
     SortedSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
     functionNodes.remove(pNode);

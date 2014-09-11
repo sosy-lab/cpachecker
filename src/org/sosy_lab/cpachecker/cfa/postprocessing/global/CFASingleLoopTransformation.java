@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
@@ -58,6 +58,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -177,7 +180,7 @@ public class CFASingleLoopTransformation {
           " counter values) and SINGLE_EDGE has the smallest subgraphs (and" +
           " most program counter values). The larger the subgraphs, the" +
           " closer the resulting graph will look like the original CFA.")
-  private AcyclicGraph.AcyclicGrowthStrategies subgraphGrowthStrategy = org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.AcyclicGraph.AcyclicGrowthStrategies.MULTIPLE_PATHS;
+  private AcyclicGraph.AcyclicGrowthStrategies subgraphGrowthStrategy = org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation.AcyclicGraph.AcyclicGrowthStrategies.MULTIPLE_PATHS;
 
   /**
    * Creates a new single loop transformer.
@@ -205,7 +208,7 @@ public class CFASingleLoopTransformation {
    *
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  static CFASingleLoopTransformation getSingleLoopTransformation(LogManager pLogger, Configuration pConfig, @Nullable ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public static CFASingleLoopTransformation getSingleLoopTransformation(LogManager pLogger, Configuration pConfig, @Nullable ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     return new CFASingleLoopTransformation(pLogger, pConfig, pShutdownNotifier);
   }
 

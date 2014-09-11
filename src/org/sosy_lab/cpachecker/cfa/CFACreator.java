@@ -52,7 +52,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.MutableCFAWithOptionalLoopStructure;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
-import org.sosy_lab.cpachecker.cfa.manipulation.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -71,6 +69,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation.MutableCFAWithOptionalLoopStructure;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -497,8 +505,8 @@ public class CFACreator {
     }
 
     if (checkNullPointers) {
-      CFATransformations transformations = new CFATransformations(logger, config);
-      transformations.detectNullPointers(cfa);
+      NullPointerChecks nullPointerCheck = new NullPointerChecks(logger, config);
+      nullPointerCheck.addNullPointerChecks(cfa);
     }
 
     if (expandFunctionPointerArrayAssignments) {

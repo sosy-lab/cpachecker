@@ -28,13 +28,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

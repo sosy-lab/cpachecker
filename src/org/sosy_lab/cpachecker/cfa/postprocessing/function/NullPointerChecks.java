@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
@@ -34,6 +34,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -84,7 +86,7 @@ import com.google.common.collect.Lists;
  * p == 0 in order to detect null pointers.
  */
 @Options(prefix="cfa.checkNullPointers")
-class CFATransformations {
+public class NullPointerChecks {
 
   @Option(description="Whether to have a single target node per function"
       + " for all invalid null pointer dereferences or to have separate nodes for each dereference")
@@ -92,12 +94,12 @@ class CFATransformations {
 
   private final LogManager logger;
 
-  CFATransformations(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  public NullPointerChecks(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
   }
 
-  public void detectNullPointers(final MutableCFA cfa) throws CParserException {
+  public void addNullPointerChecks(final MutableCFA cfa) throws CParserException {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 

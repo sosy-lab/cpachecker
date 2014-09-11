@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 /*
  *  CPAchecker is a tool for configurable software verification.
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
  * not counting those that are called directly.
  * (Only functions that have their address taken (implicitly) are returned.)
  */
-public class CReferencedFunctionsCollector {
+class CReferencedFunctionsCollector {
 
   private final Set<String> collectedFunctions = new HashSet<>();
   private final CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.manipulation;
+package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import java.util.ArrayDeque;
 import java.util.Collection;

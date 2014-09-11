@@ -21,13 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -42,9 +43,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
  * Class which tries to find all sequences of simple edges in the CFA and
  * replaces them by {@link MultiEdge}s.
  */
-class MultiEdgeCreator extends DefaultCFAVisitor {
+public class MultiEdgeCreator extends DefaultCFAVisitor {
 
-  static void createMultiEdges(MutableCFA cfa) {
+  public static void createMultiEdges(MutableCFA cfa) {
     final MultiEdgeCreator visitor = new MultiEdgeCreator(cfa);
     for (final CFANode functionStart : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(functionStart, visitor);

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.manipulation;
+package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,7 +113,7 @@ import com.google.common.collect.ImmutableList;
  * There should not be any functioncall- or return-edges.
  * Currently only the language C is supported.
  */
-public class FunctionCloner implements CFAVisitor {
+class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";
