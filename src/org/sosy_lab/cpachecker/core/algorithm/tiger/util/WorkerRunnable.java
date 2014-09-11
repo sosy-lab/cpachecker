@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -74,10 +73,8 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
     } catch (InterruptedException e) {
       soundAnalysis = false;
       timeoutOccured = true;
-    } catch (CPAException e) {
+    } catch (Exception e) {
       caughtException = e;
-      // TODO replace by proper handling
-      throw new RuntimeException(e);
     }
   }
 
