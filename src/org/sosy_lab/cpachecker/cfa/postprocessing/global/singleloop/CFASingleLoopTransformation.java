@@ -146,11 +146,6 @@ public class CFASingleLoopTransformation {
   private final LogManager logger;
 
   /**
-   * The configuration used.
-   */
-  private final Configuration config;
-
-  /**
    * The shutdown notifier used.
    */
   private final ShutdownNotifier shutdownNotifier;
@@ -172,7 +167,7 @@ public class CFASingleLoopTransformation {
           " counter values) and SINGLE_EDGE has the smallest subgraphs (and" +
           " most program counter values). The larger the subgraphs, the" +
           " closer the resulting graph will look like the original CFA.")
-  private AcyclicGraph.AcyclicGrowthStrategies subgraphGrowthStrategy = org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.AcyclicGraph.AcyclicGrowthStrategies.MULTIPLE_PATHS;
+  private SubGraphGrowthStrategy subgraphGrowthStrategy = SubGraphGrowthStrategy.MULTIPLE_PATHS;
 
   /**
    * Creates a new single loop transformer.
@@ -184,9 +179,8 @@ public class CFASingleLoopTransformation {
    */
   private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     this.logger = pLogger;
-    this.config = pConfig;
     this.shutdownNotifier = pShutdownNotifier;
-    config.inject(this);
+    pConfig.inject(this);
   }
 
   /**
@@ -515,7 +509,7 @@ public class CFASingleLoopTransformation {
       }
 
       // Get an acyclic sub graph
-      subgraph = subgraph == null ? new AcyclicGraph(subgraphRoot, subgraphGrowthStrategy) : subgraph.reset(subgraphRoot);
+      subgraph = subgraph == null ? new AcyclicGraph(subgraphRoot) : subgraph.reset(subgraphRoot);
 
       Deque<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
@@ -539,7 +533,7 @@ public class CFASingleLoopTransformation {
           if ((!visited.contains(next) || subgraph.containsNode(next))
               && (edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
                 || next instanceof CFATerminationNode
-                || subgraph.isFurtherGrowthDesired())
+                || subgraphGrowthStrategy.isFurtherGrowthDesired(subgraph))
               && subgraph.offerEdge(edge, shutdownNotifier)) {
             if (visited.add(next)) {
               newWaitlistNodes.add(next);
@@ -1568,5 +1562,64 @@ public class CFASingleLoopTransformation {
       return pArg0 != null && pArg0.getEdgeType() == edgeType;
     }
 
+  }
+
+  /**
+   * This enum contains different strategies
+   * that decide how large the individual parts of the body of the new loop become.
+   */
+  private static enum SubGraphGrowthStrategy {
+
+    /**
+     * This growth strategy allows for infinite growth.
+     */
+    MULTIPLE_PATHS {
+
+      @Override
+      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+        return true;
+      }
+
+    },
+
+    /**
+     * This growth strategy allows for growth along an arbitrary single
+     * finite path.
+     */
+    SINGLE_PATH {
+
+      @Override
+      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+        for (CFANode node : pGraph.getNodes()) {
+          if (node.getNumLeavingEdges() > 1) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+    },
+
+    /**
+     * This growth strategy advises against any kind of growth.
+     */
+    SINGLE_EDGE {
+
+      @Override
+      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
+        return false;
+      }
+
+    };
+
+    /**
+     * Decides whether or not further growth is desired for the given graph.
+     *
+     * @param pGraph the current graph.
+     *
+     * @return {@code true} if further growth of the graph is desired,
+     * @{code false} otherwise.
+     */
+    abstract boolean isFurtherGrowthDesired(AcyclicGraph pGraph);
   }
 }

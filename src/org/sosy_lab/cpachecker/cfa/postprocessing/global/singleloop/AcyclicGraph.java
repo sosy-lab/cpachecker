@@ -72,11 +72,6 @@ class AcyclicGraph {
   private final Multimap<CFANode, CFAEdge> uncommittedEdges = LinkedHashMultimap.create();
 
   /**
-   * The growth strategy.
-   */
-  private final AcyclicGraph.AcyclicGrowthStrategy growthStrategy;
-
-  /**
    * A predicate that matches edges contained in the subgraph.
    */
   private final Predicate<CFAEdge> CONTAINS_EDGE = new Predicate<CFAEdge>() {
@@ -125,9 +120,8 @@ class AcyclicGraph {
    * @param pRoot the root node.
    * @param pGrowthStrategy the growth strategy.
    */
-  public AcyclicGraph(CFANode pRoot, AcyclicGraph.AcyclicGrowthStrategy pGrowthStrategy) {
+  public AcyclicGraph(CFANode pRoot) {
     this.nodes.add(pRoot);
-    this.growthStrategy = pGrowthStrategy;
   }
 
   /**
@@ -210,16 +204,6 @@ class AcyclicGraph {
   }
 
   /**
-   * Checks if further growth of the graph is desirable.
-   *
-   * @return {@code true} if further growth is desirable, {@code false}
-   * otherwise.
-   */
-  public boolean isFurtherGrowthDesired() {
-    return this.growthStrategy.isFurtherGrowthDesired(this);
-  }
-
-  /**
    * Commits all changes.
    */
   public void commit() {
@@ -283,72 +267,4 @@ class AcyclicGraph {
     this.nodes.add(pNewRootNode);
     return this;
   }
-
-  /**
-   * Instances of implementing classes are used as growth strategies for
-   * acyclic graphs.
-   */
-  public static interface AcyclicGrowthStrategy {
-
-    /**
-     * Decides whether or not further growth is desired for the given graph.
-     *
-     * @param pGraph the current graph.
-     *
-     * @return {@code true} if further growth of the graph is desired,
-     * @{code false} otherwise.
-     */
-    boolean isFurtherGrowthDesired(AcyclicGraph pGraph);
-
-  }
-
-  /**
-   * This enum contains different acyclic growth strategies.
-   */
-  public static enum AcyclicGrowthStrategies implements AcyclicGraph.AcyclicGrowthStrategy {
-
-    /**
-     * This growth strategy allows for infinite growth.
-     */
-    MULTIPLE_PATHS {
-
-      @Override
-      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
-        return true;
-      }
-
-    },
-
-    /**
-     * This growth strategy allows for growth along an arbitrary single
-     * finite path.
-     */
-    SINGLE_PATH {
-
-      @Override
-      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
-        for (CFANode node : pGraph.getNodes()) {
-          if (node.getNumLeavingEdges() > 1) {
-            return false;
-          }
-        }
-        return true;
-      }
-
-    },
-
-    /**
-     * This growth strategy advises against any kind of growth.
-     */
-    SINGLE_EDGE {
-
-      @Override
-      public boolean isFurtherGrowthDesired(AcyclicGraph pGraph) {
-        return false;
-      }
-
-    };
-
-  }
-
 }
