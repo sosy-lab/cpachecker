@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -70,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -101,7 +103,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final FormulaManagerView formulaManagerView;
   private final BooleanFormulaManager booleanManager;
   private final PredicateAbstractionManager predAbsManager;
-  private final VariableClassification varClasses;
+  private final Optional<LoopStructure> loopStructure;
   private final Solver solver;
   private final CFA cfa;
 
@@ -120,8 +122,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     pConfig.inject(this);
 
     this.cfa = pCfa;
-    assert cfa.getVarClassification().isPresent();
-    this.varClasses = cfa.getVarClassification().get();
+    this.loopStructure = cfa.getLoopStructure();
 
     this.pathFormulaManager = pPathFormulaManager;
     this.predAbsManager = pPredAbsManager;
@@ -135,10 +136,13 @@ public class PredicateStaticRefiner extends StaticRefiner {
   }
 
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
+    if (!loopStructure.isPresent()) {
+      return false;
+    }
+    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
 
     for (String var: referenced) {
-      if (varClasses.getLoopExitConditionVariables().contains(var)) {
+      if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
         return true;
       }
     }
@@ -207,7 +211,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Collection<String> referenced = varClasses.getVariablesOfExpression((CExpression) e.getExpression());
+    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
     for (String varName: referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
       for (AStatementEdge stmtEdge: affectedByStmts) {

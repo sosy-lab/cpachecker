@@ -405,8 +405,8 @@ public class CFACreator {
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
-          = cfa.getLoopStructure().isPresent() && (language == Language.C)
-          ? Optional.of(new VariableClassification(cfa, config, logger, cfa.getLoopStructure().get()))
+          = (language == Language.C)
+          ? Optional.of(new VariableClassification(cfa, config, logger))
           : Optional.<VariableClassification>absent();
 
       stats.processingTime.stop();

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -52,6 +53,7 @@ public class ErrorPathClassifier {
   private static final int MAX_PREFIX_LENGTH = 1000;
 
   private final Optional<VariableClassification> classification;
+  private final Optional<LoopStructure> loopStructure;
 
   public static enum ErrorPathPrefixPreference {
     DEFAULT,
@@ -64,8 +66,10 @@ public class ErrorPathClassifier {
     WORST
   }
 
-  public ErrorPathClassifier(Optional<VariableClassification> pClassification) throws InvalidConfigurationException {
+  public ErrorPathClassifier(Optional<VariableClassification> pClassification,
+      Optional<LoopStructure> pLoopStructure) throws InvalidConfigurationException {
     classification = pClassification;
+    loopStructure = pLoopStructure;
   }
 
   public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference, MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
@@ -260,7 +264,8 @@ public class ErrorPathClassifier {
 
       score = score * factor;
 
-      if (classification.get().getLoopIncDecVariables().contains(variableName)) {
+      if (loopStructure.isPresent()
+          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
         score = score + Integer.MAX_VALUE;
       }
     }

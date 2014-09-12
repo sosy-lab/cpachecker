@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -84,7 +83,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -112,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -163,9 +160,6 @@ public class VariableClassification {
   private Set<String> intEqualVars;
   private Set<String> intAddVars;
 
-  private Set<String> loopExitConditionVariables;
-  private Set<String> loopIncDecVariables;
-
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
    *  not to break the classification of Int variables.*/
@@ -193,15 +187,13 @@ public class VariableClassification {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final CFA cfa;
-  private final LoopStructure loopStructure;
   private final LogManager logger;
 
-  public VariableClassification(CFA cfa, Configuration config, LogManager pLogger,
-      LoopStructure pLoopStructure) throws InvalidConfigurationException {
+  public VariableClassification(CFA cfa, Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
     config.inject(this);
     this.cfa = cfa;
-    this.loopStructure = pLoopStructure;
     this.logger = pLogger;
 
     if (printStatsOnStartup) {
@@ -268,9 +260,6 @@ public class VariableClassification {
       intEqualVars = new HashSet<>();
       intAddVars = new HashSet<>();
 
-      loopExitConditionVariables = new HashSet<>();
-      loopIncDecVariables = new HashSet<>();
-
       assignedVariables = new HashSet<>();
       relevantVariables = new HashSet<>();
       irrelevantVariables = new HashSet<>();
@@ -291,9 +280,6 @@ public class VariableClassification {
 
       // we have collected the nonBooleanVars, lets build the needed booleanVars.
       buildOpposites();
-
-      // collect loop condition variables
-      collectLoopCondVars();
 
       // add last vars to dependencies,
       // this allows to get partitions for all vars,
@@ -367,7 +353,7 @@ public class VariableClassification {
     }
   }
 
-  public Set<String> getVariablesOfExpression(CExpression expr) {
+  public static Set<String> getVariablesOfExpression(CExpression expr) {
     Set<String> result = new HashSet<>();
     CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
 
@@ -381,75 +367,6 @@ public class VariableClassification {
     return result;
   }
 
-  private void collectLoopCondVars() {
-      for (Loop l : loopStructure.getAllLoops()) {
-        // Get all variables that are used in exit-conditions
-        for (CFAEdge e : l.getOutgoingEdges()) {
-          if (e instanceof CAssumeEdge) {
-            CExpression expr = ((CAssumeEdge) e).getExpression();
-            loopExitConditionVariables.addAll(getVariablesOfExpression(expr));
-          }
-        }
-
-        // Get all variables that are incremented or decrement by literal values
-        for (CFAEdge e : l.getInnerLoopEdges()) {
-          if (e instanceof MultiEdge) {
-            for (CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
-              obtainIncDecVariables(singleEdge);
-            }
-
-          } else {
-            obtainIncDecVariables(e);
-          }
-        }
-      }
-  }
-
-  /**
-   * This method obtains variables referenced in this edge that are incremented or decremented by a constant.
-   * @param e the edge from which to obtain variables
-   */
-  private void obtainIncDecVariables(CFAEdge e) {
-    if (e instanceof CStatementEdge) {
-      CStatementEdge stmtEdge = (CStatementEdge) e;
-      if (stmtEdge.getStatement() instanceof CAssignment) {
-        CAssignment assign = (CAssignment) stmtEdge.getStatement();
-
-        if (assign.getLeftHandSide() instanceof CIdExpression) {
-          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-          String assignToVar = scopeVar(assignementToId);
-
-          if (assign.getRightHandSide() instanceof CBinaryExpression) {
-            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-            BinaryOperator op = binExpr.getOperator();
-
-            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
-
-              if (binExpr.getOperand1() instanceof CLiteralExpression
-                  || binExpr.getOperand2() instanceof CLiteralExpression) {
-                CIdExpression operandId = null;
-
-                if (binExpr.getOperand1() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand1();
-                }
-                if (binExpr.getOperand2() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand2();
-                }
-
-                if (operandId != null) {
-                  String operandVar = scopeVar(operandId);
-                  if (assignToVar.equals(operandVar)) {
-                    loopIncDecVariables.add(assignToVar);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
   public void dumpVariableTypeMapping(Path target) {
     try (Writer w = Files.openOutputFile(target)) {
         for (String var : getAllVars()) {
@@ -460,12 +377,6 @@ public class VariableClassification {
             type += 2 + 4; // IntEqual is subset of IntAddEqBool
           } else if (getIntAddVars().contains(var)) {
             type += 4;
-          }
-          if (loopExitConditionVariables.contains(var)) {
-            type += 8;
-          }
-          if (loopIncDecVariables.contains(var)) {
-            type += 16;
           }
           w.append(String.format("%s\t%d%n", var, type));
       }
@@ -565,24 +476,6 @@ public class VariableClassification {
   public Multimap<CCompositeType, String> getIrrelevantFields() {
     build();
     return irrelevantFields;
-  }
-
-  /**
-   * Possible loop variables of the program
-   * in form of a collection of (functionName, varNames)
-   */
-  public Set<String> getLoopExitConditionVariables() {
-    build();
-    return loopExitConditionVariables;
-  }
-
-  /**
-   * Possible loop variables of the program that are increment or decremented by a constant
-   * in form of a collection of (functionName, varNames)
-   */
-  public Set<String> getLoopIncDecVariables() {
-    build();
-    return loopIncDecVariables;
   }
 
   /** This function returns a collection of scoped names.
@@ -1104,7 +997,7 @@ public class VariableClassification {
   }
 
   /** Returns a scoped name for a given IdExpression. */
-  private static String scopeVar(final CIdExpression exp) {
+  static String scopeVar(final CIdExpression exp) {
     return exp.getDeclaration().getQualifiedName();
   }
 

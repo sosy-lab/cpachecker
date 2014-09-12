@@ -46,9 +46,18 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -187,6 +196,10 @@ public final class LoopStructure {
 
   private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
+  // computed lazily
+  private @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private @Nullable ImmutableSet<String> loopIncDecVariables;
+
   private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
     loops = pLoops;
   }
@@ -228,6 +241,119 @@ public final class LoopStructure {
           .toSet();
     }
     return loopHeads;
+  }
+
+
+  /**
+   * Return all variables appearing in loop exit conditions.
+   * The variable names are scoped in the same way as {@link VariableClassification}
+   * does.
+   */
+  public Set<String> getLoopExitConditionVariables() {
+    if (loopExitConditionVariables == null) {
+      loopExitConditionVariables = collectLoopCondVars();
+    }
+    return loopExitConditionVariables;
+  }
+
+  private ImmutableSet<String> collectLoopCondVars() {
+    ImmutableSet.Builder<String> result = ImmutableSet.builder();
+    for (Loop l : loops.values()) {
+      // Get all variables that are used in exit-conditions
+      for (CFAEdge e : l.getOutgoingEdges()) {
+        if (e instanceof CAssumeEdge) {
+          CExpression expr = ((CAssumeEdge) e).getExpression();
+          result.addAll(VariableClassification.getVariablesOfExpression(expr));
+        }
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * Return all variables that are incremented or decremented by a fixed constant
+   * inside loops.
+   * The variable names are scoped in the same way as {@link VariableClassification}
+   * does.
+   */
+  public Set<String> getLoopIncDecVariables() {
+    if (loopIncDecVariables == null) {
+      loopIncDecVariables = collectLoopIncDecVariables();
+    }
+    return loopIncDecVariables;
+  }
+
+  private ImmutableSet<String> collectLoopIncDecVariables() {
+    ImmutableSet.Builder<String> result = ImmutableSet.builder();
+    for (Loop l : loops.values()) {
+     // Get all variables that are incremented or decrement by literal values
+      for (CFAEdge e : l.getInnerLoopEdges()) {
+        if (e instanceof MultiEdge) {
+          for (CFAEdge singleEdge: ((MultiEdge)e).getEdges()) {
+            String var = obtainIncDecVariable(singleEdge);
+            if (var != null) {
+              result.add(var);
+            }
+          }
+
+        } else {
+          String var = obtainIncDecVariable(e);
+          if (var != null) {
+            result.add(var);
+          }
+        }
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * This method obtains a variable referenced in this edge that are incremented or decremented by a constant
+   * (if there is one such variable).
+   * @param e the edge from which to obtain variables
+   * @return a variable name or null
+   */
+  @Nullable
+  private static String obtainIncDecVariable(CFAEdge e) {
+    if (e instanceof CStatementEdge) {
+      CStatementEdge stmtEdge = (CStatementEdge) e;
+      if (stmtEdge.getStatement() instanceof CAssignment) {
+        CAssignment assign = (CAssignment) stmtEdge.getStatement();
+
+        if (assign.getLeftHandSide() instanceof CIdExpression) {
+          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+          String assignToVar = VariableClassification.scopeVar(assignementToId);
+
+          if (assign.getRightHandSide() instanceof CBinaryExpression) {
+            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+            BinaryOperator op = binExpr.getOperator();
+
+            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+
+              if (binExpr.getOperand1() instanceof CLiteralExpression
+                  || binExpr.getOperand2() instanceof CLiteralExpression) {
+                CIdExpression operandId = null;
+
+                if (binExpr.getOperand1() instanceof CIdExpression) {
+                  operandId = (CIdExpression) binExpr.getOperand1();
+                }
+                if (binExpr.getOperand2() instanceof CIdExpression) {
+                  operandId = (CIdExpression) binExpr.getOperand2();
+                }
+
+                if (operandId != null) {
+                  String operandVar = VariableClassification.scopeVar(operandId);
+                  if (assignToVar.equals(operandVar)) {
+                    return assignToVar;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
   }
 
 
