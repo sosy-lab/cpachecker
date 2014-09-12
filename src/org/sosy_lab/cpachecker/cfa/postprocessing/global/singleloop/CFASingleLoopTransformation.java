@@ -49,7 +49,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
@@ -163,11 +162,6 @@ public class CFASingleLoopTransformation {
         " so that it is only indirectly represented by the assumption of" +
         " falsehood for all other assumptions in the decision tree.")
   private boolean omitExplicitLastProgramCounterAssumption = false;
-
-  @Option(
-      description="This option controls what program counter values are used" +
-          ". Possible values are INCREMENTAL and NODE_NUMBER.")
-  private ProgramCounterValueProviderFactories programCounterValueProviderFactory = ProgramCounterValueProviderFactories.INCREMENTAL;
 
   @Option(
       description="This option controls the size of the subgraphs referred" +
@@ -494,7 +488,6 @@ public class CFASingleLoopTransformation {
     Map<CFANode, CFANode> tmpMap = new LinkedHashMap<>();
     AcyclicGraph subgraph = null;
     int pcValueOfStart = -1;
-    ProgramCounterValueProvider programCounterValueProvider = this.programCounterValueProviderFactory.newOrImmutableProgramCounterValueProvider();
 
     Set<CFANode> newWaitlistNodes = new LinkedHashSet<>();
     List<Pair<CFANode, CFANode>> predecessorsAndSuccessors = new ArrayList<>();
@@ -516,7 +509,7 @@ public class CFASingleLoopTransformation {
         subgraphRoot = new CFANode(subgraphRoot.getFunctionName());
         replaceInStructure(pOldMainFunctionEntryNode, subgraphRoot);
         CFANode newSubgraphRoot = getOrCreateNewFromOld(subgraphRoot, pGlobalNewToOld);
-        pcValueOfStart = programCounterValueProvider.getPCValueFor(newSubgraphRoot);
+        pcValueOfStart = getPCValueFor(newSubgraphRoot);
         pNewSuccessorsToPC.put(pcValueOfStart, newSubgraphRoot);
         visited.add(subgraphRoot);
       }
@@ -622,7 +615,7 @@ public class CFASingleLoopTransformation {
         for (Pair<CFANode, CFANode> predecessorAndSuccessor : predecessorsAndSuccessors) {
           CFANode predecessor = predecessorAndSuccessor.getFirst();
           CFANode successor = predecessorAndSuccessor.getSecond();
-          registerTransitionThroughLoopHead(programCounterValueProvider, predecessor, successor, pNewPredecessorsToPC, pNewSuccessorsToPC);
+          registerTransitionThroughLoopHead(predecessor, successor, pNewPredecessorsToPC, pNewSuccessorsToPC);
         }
         for (CFAEdge edgeToRemove : edgesToRemove) {
           removeFromNodes(edgeToRemove);
@@ -640,13 +633,13 @@ public class CFASingleLoopTransformation {
     return pcValueOfStart;
   }
 
-  private void registerTransitionThroughLoopHead(ProgramCounterValueProvider pProgramCounterValueProvider,
+  private void registerTransitionThroughLoopHead(
       CFANode pPredecessor,
       CFANode pSuccessor,
       Multimap<Integer, CFANode> pPredecessorsToPC,
       Map<Integer, CFANode> pSuccessorsToPC) {
     if (!(pPredecessor instanceof CFATerminationNode)) {
-      int pcToSuccessor = pProgramCounterValueProvider.getPCValueFor(pSuccessor);
+      int pcToSuccessor = getPCValueFor(pSuccessor);
       pPredecessorsToPC.put(pcToSuccessor, pPredecessor);
       pSuccessorsToPC.put(pcToSuccessor, pSuccessor);
     }
@@ -1535,100 +1528,14 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Instances of implementing classes provide program counter values for
-   * target control flow nodes.
+   * Gets the program counter value for the given target CFA node.
+   *
+   * @param pCFANode the target CFA node.
+   *
+   * @return the program counter value for the given target CFA node.
    */
-  private static interface ProgramCounterValueProvider {
-
-    /**
-     * Gets the program counter value for the given target CFA node.
-     *
-     * @param pCFANode the target CFA node.
-     *
-     * @return the program counter value for the given target CFA node.
-     */
-    int getPCValueFor(CFANode pCFANode);
-
-  }
-
-  /**
-   * Elements of this enumeration are program counter value provider factories.
-   */
-  private static enum ProgramCounterValueProviderFactories {
-
-    /**
-     * This program counter value provider factory creates immutable program
-     * counter value providers based on CFA node numbers.
-     */
-    NODE_NUMBER {
-
-      @Override
-      public ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider() {
-        return NodeNumberProgramCounterValueProvider.INSTANCE;
-      }
-
-    },
-
-    /**
-     * This program counter value provider factory creates new program counter
-     * value providers based on internal counters.
-     */
-    INCREMENTAL {
-
-      @Override
-      public ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider() {
-        return new IncrementalProgramCounterValueProvider();
-      }
-
-    };
-
-    /**
-     * Creates a new or immutable program counter value provider. This implies
-     * that the returned program counter value provider cannot be modified by
-     * any other modification source but the caller unless shared by the
-     * caller.
-     *
-     * @return a new or immutable program counter value provider.
-     */
-    abstract @Nonnull ProgramCounterValueProvider newOrImmutableProgramCounterValueProvider();
-  }
-
-  private static class IncrementalProgramCounterValueProvider implements ProgramCounterValueProvider {
-
-    /**
-     * The previously provided program counter values.
-     */
-    private final Map<CFANode, Integer> providedPCValues = new HashMap<>();
-
-    /**
-     * The last program counter value provided.
-     */
-    private int lastPCValue = -1;
-
-    @Override
-    public int getPCValueFor(CFANode pCFANode) {
-      Integer storedPCValue = providedPCValues.get(pCFANode);
-      if (storedPCValue == null) {
-        storedPCValue = ++lastPCValue;
-        providedPCValues.put(pCFANode, storedPCValue);
-      }
-      return storedPCValue;
-    }
-
-  }
-  /**
-   * The singleton element of this enumeration is a program counter value
-   * provider that uses the node numbers as program counter values.
-   */
-  private static enum NodeNumberProgramCounterValueProvider implements ProgramCounterValueProvider {
-
-    INSTANCE;
-
-    @Override
-    public int getPCValueFor(CFANode pCFANode) {
-      return pCFANode.getNodeNumber();
-    }
-
+  private static int getPCValueFor(CFANode pCFANode) {
+    return pCFANode.getNodeNumber();
   }
 
   /**

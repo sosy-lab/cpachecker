@@ -376,11 +376,6 @@ cfa.transformIntoSingleLoop = false
 # decision tree.
 cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
 
-# This option controls what program counter values are used. Possible values
-# are INCREMENTAL and NODE_NUMBER.
-cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
-  enum:     [NODE_NUMBER, INCREMENTAL]
-
 # This option controls the size of the subgraphs referred to by program
 # counter values. The larger the subgraphs, the fewer program counter values
 # are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
@@ -388,7 +383,7 @@ cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
 # program counter values) and SINGLE_EDGE has the smallest subgraphs (and
 # most program counter values). The larger the subgraphs, the closer the
 # resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
+cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
   enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # unwind recursive functioncalls (bounded to max call stack size)
@@ -1571,7 +1566,7 @@ cpa.value.refiner.performInitialStaticRefinement = false
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = BEST
-  enum:     [DEFAULT, SHORTEST, LONGEST, MEDIAN, MIDDLE, BEST, WORST]
+  enum:     [DEFAULT, SHORTEST, LONGEST, MOST_LOCAL, MEDIAN, MIDDLE, BEST, WORST]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
