@@ -158,6 +158,23 @@ def addTaskToCgroup(cgroup, pid):
         with open(os.path.join(cgroup, 'tasks'), 'w') as tasksFile:
             tasksFile.write(str(pid))
 
+
+def killAllTasksInCgroupRecursively(cgroup):
+    """
+    Iterate through a cgroup and all its children cgroups
+    and kill all processes in any of these cgroups forcefully.
+    Additionally, the children cgroups will be deleted.
+    """
+    files = [os.path.join(cgroup,f) for f in os.listdir(cgroup)]
+    subdirs = filter(os.path.isdir, files)
+
+    for subCgroup in subdirs:
+        _killAllTasksInCgroupRecursively(subCgroup)
+        removeCgroup(subCgroup)
+
+    killAllTasksInCgroup(cgroup)
+
+
 def killAllTasksInCgroup(cgroup):
     tasksFile = os.path.join(cgroup, 'tasks')
 
