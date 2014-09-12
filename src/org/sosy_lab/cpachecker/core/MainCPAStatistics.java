@@ -48,7 +48,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -102,7 +101,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   @Option(name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate outputCoverageFile = PathTemplate.ofFormatString("coverage.%s.info");
+  private Path outputCoverageFile = Paths.get("coverage.info");
 
   @Option(name="statistics.memory",
     description="track memory usage of JVM during runtime")
