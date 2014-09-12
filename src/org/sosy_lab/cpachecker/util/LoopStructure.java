@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
 import static org.sosy_lab.cpachecker.util.CFAUtils.*;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +41,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -44,15 +54,26 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 
-
+/**
+ * Class collecting and containing information about all loops in a CFA.
+ */
+@Immutable
 public final class LoopStructure {
 
+  /**
+   * Class representing one loop in a CFA.
+   */
   public static class Loop {
+    // Technically not immutable, but all modifying methods are private
+    // and never called after the LoopStructure information has been collected.
 
     // loopHeads is a sub-set of nodes such that all infinite paths through
     // the set nodes will pass through at least one node in loopHeads infinitively often
@@ -66,7 +87,7 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
-    public Loop(CFANode loopHead, Set<CFANode> pNodes) {
+    private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
                                 .addAll(pNodes)
@@ -98,7 +119,7 @@ public final class LoopStructure {
       this.outgoingEdges = ImmutableSet.copyOf(outgoingEdges);
     }
 
-    void addNodes(Loop l) {
+    private void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder()
                                 .addAll(nodes)
                                 .addAll(l.nodes)
@@ -109,7 +130,7 @@ public final class LoopStructure {
       outgoingEdges = null;
     }
 
-    void mergeWith(Loop l) {
+    private void mergeWith(Loop l) {
       loopHeads = Sets.union(loopHeads, l.loopHeads).immutableCopy();
       addNodes(l);
     }
@@ -162,6 +183,120 @@ public final class LoopStructure {
     }
   }
 
+  private final ImmutableMultimap<String, Loop> loops;
+
+  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+
+  private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
+    loops = pLoops;
+  }
+
+  /**
+   * Get the total number of loops in the program.
+   */
+  public int getCount() {
+    return loops.size();
+  }
+
+  /**
+   * Get all {@link Loop}s in one function.
+   */
+  public ImmutableCollection<Loop> getLoopsForFunction(String function) {
+    return loops.get(checkNotNull(function));
+  }
+
+  /**
+   * Get all {@link Loop}s in the program.
+   */
+  public ImmutableCollection<Loop> getAllLoops() {
+    return loops.values();
+  }
+
+  /**
+   * Get all loop head nodes (as returned by {@link Loop#getLoopHeads()})
+   * for all loops in the program.
+   */
+  public ImmutableSet<CFANode> getAllLoopHeads() {
+    if (loopHeads != null) {
+      loopHeads = from(loops.values())
+          .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
+            @Override
+            public Iterable<CFANode> apply(Loop loop) {
+              return loop.getLoopHeads();
+            }
+          })
+          .toSet();
+    }
+    return loopHeads;
+  }
+
+
+  /**
+   * Gets the loop structure of a control flow automaton with one single loop.
+   *
+   * @param pSingleLoopHead the loop head of the single loop.
+   *
+   * @return the loop structure of the control flow automaton.
+   */
+  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) throws InterruptedException {
+    Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(FunctionReturnEdge));
+
+    // First, find all nodes reachable via the loop head
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    Set<CFANode> reachableSuccessors = new HashSet<>();
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.push(pSingleLoopHead);
+    boolean firstIteration = true;
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.pop();
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {
+        CFANode successor = leavingEdge.getSuccessor();
+        if (visited.add(successor)) {
+          waitlist.push(successor);
+        }
+      }
+      if (firstIteration) {
+        firstIteration = false;
+      } else {
+        reachableSuccessors.add(current);
+      }
+    }
+
+    // If the loop head cannot reach itself, there is no loop
+    if (!reachableSuccessors.contains(pSingleLoopHead)) {
+      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+    }
+
+    /*
+     * Now, Find all loop nodes by checking which of the nodes reachable via
+     * the loop head, the loop head itself is reachable from.
+     */
+    visited.clear();
+    waitlist.offer(pSingleLoopHead);
+    Set<CFANode> loopNodes = new HashSet<>();
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      if (reachableSuccessors.contains(current)) {
+        loopNodes.add(current);
+        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
+          CFANode predecessor = enteringEdge.getPredecessor();
+          if (visited.add(predecessor)) {
+            waitlist.offer(predecessor);
+          }
+        }
+      }
+    }
+    String loopFunction = pSingleLoopHead.getFunctionName();
+    // A size of one means only the loop head is contained
+    if (loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)) {
+      return new LoopStructure(ImmutableMultimap.<String, Loop>of());
+    }
+
+    return new LoopStructure(ImmutableMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));
+  }
+
+
+  // -------- Code related to retrieving LoopStructure information in gneral case --------
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {
@@ -178,6 +313,19 @@ public final class LoopStructure {
     private Set<CFANode> asNodeSet() {
       return nodes;
     }
+  }
+
+  /**
+   * Build loop-structure information for a CFA.
+   * @throws ParserException If the structure of the CFA is too complex for determining loops.
+   */
+  public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
+    ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
+    for (String functionName : cfa.getAllFunctionNames()) {
+      SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
+      loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
+    }
+    return new LoopStructure(loops.build());
   }
 
   /**

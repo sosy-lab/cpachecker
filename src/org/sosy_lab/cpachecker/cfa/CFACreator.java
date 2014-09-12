@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.LoopStructure.findLoops;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -37,7 +35,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -95,12 +92,11 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -369,7 +365,7 @@ public class CFACreator {
 
       // get loop information
       // (needs post-order information)
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+      Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
       cfa.setLoopStructure(loopStructure);
 
       // FOURTH, insert call and return edges and build the supergraph
@@ -659,14 +655,9 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
+  private Optional<LoopStructure> getLoopStructure(MutableCFA cfa) {
     try {
-      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      for (String functionName : cfa.getAllFunctionNames()) {
-        SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-        loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
-      }
-      return Optional.of(loops.build());
+      return Optional.of(LoopStructure.getLoopStructure(cfa));
 
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue

@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableCollection;
 
 @Options(prefix="cpa.loopstack")
 public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
@@ -120,7 +119,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     functionNames.add(pNode.getFunctionName());
     functionNames.add(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     for (String functionName : functionNames) {
-      ImmutableCollection<Loop> loops = cfa.getLoopStructure().get().get(functionName);
+      Collection<Loop> loops = cfa.getLoopStructure().get().getLoopsForFunction(functionName);
       if (loops != null) {
         for (Loop l : loops) {
           if (l.getLoopNodes().contains(pNode)) {

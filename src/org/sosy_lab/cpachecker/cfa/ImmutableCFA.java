@@ -24,20 +24,17 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -53,18 +50,16 @@ class ImmutableCFA implements CFA {
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
-  private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  private final Optional<LoopStructure> loopStructure;
   private final Optional<VariableClassification> varClassification;
   private final Language language;
-
-  private ImmutableSet<CFANode> loopHeads = null;
 
   ImmutableCFA(
       MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
+      Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Language pLanguage) {
 
@@ -139,23 +134,14 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
+  public Optional<LoopStructure> getLoopStructure() {
     return loopStructure;
   }
 
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      if (loopHeads == null) {
-        loopHeads = from(loopStructure.get().values())
-            .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-              @Override
-              public Iterable<CFANode> apply(Loop loop) {
-                return loop.getLoopHeads();
-              }
-            }).toSet();
-      }
-      return Optional.of(loopHeads);
+      return Optional.of(loopStructure.get().getAllLoopHeads());
     }
     return Optional.absent();
   }

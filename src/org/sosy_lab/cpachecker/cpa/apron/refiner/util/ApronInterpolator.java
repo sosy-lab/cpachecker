@@ -369,7 +369,7 @@ public class ApronInterpolator {
    * This method initializes the loop-information which is used during interpolation.
    */
   private void initializeLoopInformation() {
-    for (Loop l : cfa.getLoopStructure().get().values()) {
+    for (Loop l : cfa.getLoopStructure().get().getAllLoops()) {
       for (CFAEdge currentEdge : l.getOutgoingEdges()) {
         if (currentEdge instanceof CAssumeEdge) {
           loopExitAssumes.add((CAssumeEdge)currentEdge);

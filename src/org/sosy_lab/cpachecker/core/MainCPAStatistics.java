@@ -396,7 +396,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       out.println("Number of functions:             " + cfa.getNumberOfFunctions());
 
       if (cfa.getLoopStructure().isPresent()) {
-        int loops = cfa.getLoopStructure().get().values().size();
+        int loops = cfa.getLoopStructure().get().getCount();
         out.println("Number of loops:                 " + loops);
       }
     }

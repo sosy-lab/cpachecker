@@ -36,11 +36,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -72,9 +72,9 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
     if (pNode instanceof SingleLoopHead) {
       singleLoopHead = (SingleLoopHead) pNode;
     } else if (cfa.getLoopStructure().isPresent()) {
-      ImmutableMultimap<String, Loop> loopStructure = cfa.getLoopStructure().get();
-      if (loopStructure.values().size() == 1) {
-        Loop singleLoop = Iterables.getOnlyElement(loopStructure.values());
+      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      if (loopStructure.getCount() == 1) {
+        Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
         if (singleLoop.getLoopHeads().size() == 1) {
           CFANode loopHead = Iterables.getOnlyElement(singleLoop.getLoopHeads());
           if (loopHead instanceof SingleLoopHead) {

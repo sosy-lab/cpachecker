@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -99,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
@@ -107,7 +107,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -213,15 +212,19 @@ public class CFASingleLoopTransformation {
 
     // If the transformation is not necessary, return the original graph
     if (pInputCFA.getLoopStructure().isPresent()) {
-      Collection<Loop> loops = pInputCFA.getLoopStructure().get().values();
-      boolean modificationRequired = !loops.isEmpty();
-      if (modificationRequired && loops.size() == 1) {
-        Loop singleLoop = Iterables.getOnlyElement(loops);
-        modificationRequired = singleLoop.getLoopHeads().size() > 1
-            || from(singleLoop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).size() > 1;
-      }
-      if (!modificationRequired) {
+      LoopStructure loopStructure = pInputCFA.getLoopStructure().get();
+      if (loopStructure.getCount() == 0) {
+        // no loops, nothing to do
         return pInputCFA;
+      }
+
+      if (loopStructure.getCount() == 1) {
+        Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
+        boolean modificationRequired = singleLoop.getLoopHeads().size() > 1
+            || from(singleLoop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).size() > 1;
+        if (!modificationRequired) {
+          return pInputCFA;
+        }
       }
     }
 
@@ -752,9 +755,8 @@ public class CFASingleLoopTransformation {
     MutableCFA cfa = new MutableCFA(pMachineModel, functions, allNodes, pStartNode, pLanguage);
 
     // Get information about the loop structure
-    Optional<ImmutableMultimap<String, Loop>> loopStructure =
-        getLoopStructure(pLoopHead);
-    cfa.setLoopStructure(loopStructure);
+    LoopStructure loopStructure = LoopStructure.getLoopStructureForSingleLoop(pLoopHead);
+    cfa.setLoopStructure(Optional.of(loopStructure));
 
     // Finalize the transformed CFA
     return cfa;
@@ -1405,72 +1407,6 @@ public class CFASingleLoopTransformation {
     CFANode newPredecessor = getOrCreateNewFromOld(pEdge.getPredecessor(), pNewToOldMapping);
     CFANode newSuccessor = getOrCreateNewFromOld(pEdge.getSuccessor(), pNewToOldMapping);
     return copyCFAEdgeWithNewNodes(pEdge, newPredecessor, newSuccessor, pNewToOldMapping);
-  }
-
-  /**
-   * Gets the loop structure of a control flow automaton with one single loop.
-   *
-   * @param pSingleLoopHead the loop head of the single loop.
-   *
-   * @return the loop structure of the control flow automaton.
-   * @throws InterruptedException if a shutdown has been requested by the registered shutdown notifier.
-   */
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) throws InterruptedException {
-
-    Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(CFAEdgeType.FunctionReturnEdge));
-
-    // First, find all nodes reachable via the loop head
-    Deque<CFANode> waitlist = new ArrayDeque<>();
-    Set<CFANode> reachableSuccessors = new HashSet<>();
-    Set<CFANode> visited = new HashSet<>();
-    waitlist.push(pSingleLoopHead);
-    boolean firstIteration = true;
-    while (!waitlist.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      CFANode current = waitlist.pop();
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {
-        CFANode successor = leavingEdge.getSuccessor();
-        if (visited.add(successor)) {
-          waitlist.push(successor);
-        }
-      }
-      if (firstIteration) {
-        firstIteration = false;
-      } else {
-        reachableSuccessors.add(current);
-      }
-    }
-
-    // If the loop head cannot reach itself, there is no loop
-    if (!reachableSuccessors.contains(pSingleLoopHead)) {
-      return Optional.of(ImmutableMultimap.<String, Loop>of());
-    }
-
-    /*
-     * Now, Find all loop nodes by checking which of the nodes reachable via
-     * the loop head, the loop head itself is reachable from.
-     */
-    visited.clear();
-    waitlist.offer(pSingleLoopHead);
-    Set<CFANode> loopNodes = new HashSet<>();
-    while (!waitlist.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      CFANode current = waitlist.poll();
-      if (reachableSuccessors.contains(current)) {
-        loopNodes.add(current);
-        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          if (visited.add(predecessor)) {
-            waitlist.offer(predecessor);
-          }
-        }
-      }
-    }
-    String loopFunction = pSingleLoopHead.getFunctionName();
-    // A size of one means only the loop head is contained
-    return Optional.of(loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)
-        ? ImmutableMultimap.<String, Loop>of()
-        : ImmutableMultimap.<String, Loop>builder().put(loopFunction, new Loop(pSingleLoopHead, loopNodes)).build());
   }
 
   /**

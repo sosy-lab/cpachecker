@@ -116,7 +116,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -194,11 +193,11 @@ public class VariableClassification {
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final CFA cfa;
-  private final ImmutableMultimap<String, Loop> loopStructure;
+  private final LoopStructure loopStructure;
   private final LogManager logger;
 
   public VariableClassification(CFA cfa, Configuration config, LogManager pLogger,
-      ImmutableMultimap<String, Loop> pLoopStructure) throws InvalidConfigurationException {
+      LoopStructure pLoopStructure) throws InvalidConfigurationException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
     config.inject(this);
     this.cfa = cfa;
@@ -383,8 +382,7 @@ public class VariableClassification {
   }
 
   private void collectLoopCondVars() {
-    for (Collection<Loop> localLoops : loopStructure.asMap().values()) {
-      for (Loop l : localLoops) {
+      for (Loop l : loopStructure.getAllLoops()) {
         // Get all variables that are used in exit-conditions
         for (CFAEdge e : l.getOutgoingEdges()) {
           if (e instanceof CAssumeEdge) {
@@ -405,7 +403,6 @@ public class VariableClassification {
           }
         }
       }
-    }
   }
 
   /**
