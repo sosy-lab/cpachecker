@@ -182,7 +182,7 @@ def killAllTasksInCgroup(cgroup):
         with open(tasksFile, 'rt') as tasks:
             task = None
             for task in tasks:
-                logging.warning('Run has left-over process with pid {0}, sending signal {1} (try {2}).'.format(task, sig, i+1))
+                logging.debug('Run has left-over process with pid {0}, sending signal {1} (try {2}).'.format(task, sig, i+1))
                 Util.killProcess(int(task), sig)
 
             if task is None:
