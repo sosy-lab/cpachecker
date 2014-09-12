@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -102,7 +103,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -1417,7 +1417,7 @@ public class CFASingleLoopTransformation {
    */
   private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(CFANode pSingleLoopHead) throws InterruptedException {
 
-    Predicate<CFAEdge> noFunctionReturnEdge = not(new EdgeTypePredicate(CFAEdgeType.FunctionReturnEdge));
+    Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(CFAEdgeType.FunctionReturnEdge));
 
     // First, find all nodes reachable via the loop head
     Deque<CFANode> waitlist = new ArrayDeque<>();
@@ -1535,33 +1535,6 @@ public class CFASingleLoopTransformation {
       int pPCValue,
       boolean pTruthAssumption) {
     return new CProgramCounterValueAssumeEdge(pExpressionBuilder, pPredecessor, pSuccessor, pPCIdExpression, pPCValue, pTruthAssumption);
-  }
-
-  /**
-   * Instances of this class are predicates for CFA edges based on edge types.
-   */
-  private static class EdgeTypePredicate implements Predicate<CFAEdge> {
-
-    /**
-     * The edge type matched on.
-     */
-    private final CFAEdgeType edgeType;
-
-    /**
-     * Creates a new predicate for CFA edges with the given edge type.
-     *
-     * @param pEdgeType the edge type matched on.
-     */
-    public EdgeTypePredicate(CFAEdgeType pEdgeType) {
-      Preconditions.checkNotNull(pEdgeType);
-      this.edgeType = pEdgeType;
-    }
-
-    @Override
-    public boolean apply(@Nullable CFAEdge pArg0) {
-      return pArg0 != null && pArg0.getEdgeType() == edgeType;
-    }
-
   }
 
   /**

@@ -35,6 +35,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -236,6 +238,24 @@ public class CFAUtils {
       return Integer.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
     }
   };
+
+  /**
+   * Returns a predicate for CFA edges with the given edge type.
+   * The predicate is not null safe.
+   *
+   * @param pEdgeType the edge type matched on.
+   */
+  public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
+    checkNotNull(pType);
+    return new Predicate<CFAEdge>() {
+
+      @Override
+      public boolean apply(CFAEdge pInput) {
+        return pInput.getEdgeType() == pType;
+      }
+
+    };
+  }
 
   /**
    * Returns the other AssumeEdge (with the negated condition)
