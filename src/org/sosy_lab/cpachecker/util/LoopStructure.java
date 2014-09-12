@@ -42,7 +42,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -74,7 +73,6 @@ import com.google.common.collect.Sets;
 /**
  * Class collecting and containing information about all loops in a CFA.
  */
-@Immutable
 public final class LoopStructure {
 
   /**
