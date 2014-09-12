@@ -34,7 +34,7 @@ import sys
 import threading
 import time
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import util as Util
 from .cgroups import *
 from . import filewriter
@@ -256,7 +256,7 @@ class RunExecutor():
             if TIMELIMIT in rlimits and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits, p, myCpuCount)
                 timelimitThread.start()
 
             if MEMLIMIT in rlimits:
@@ -493,12 +493,13 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, timelimit, process, cpuCount=1):
+    def __init__(self, cgroupCpuacct, rlimits, process, cpuCount=1):
         super(_TimelimitThread, self).__init__()
         daemon = True
         self.cgroupCpuacct = cgroupCpuacct
-        self.timelimit = timelimit
-        self.latestKillTime = time.time() + timelimit + _WALLTIME_LIMIT_OVERHEAD
+        self.timelimit = rlimits[TIMELIMIT]
+        self.softtimelimit = rlimits.get(SOFTTIMELIMIT, self.timelimit)
+        self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
         self.finished = threading.Event()
@@ -528,6 +529,11 @@ class _TimelimitThread(threading.Thread):
                 Util.killProcess(self.process.pid)
                 self.finished.set()
                 return
+
+            if (self.softtimelimit - usedCpuTime) <= 0:
+                # soft time limit violated, ask process to terminate
+                Util.killProcess(self.process.pid, signal.SIGTERM)
+                self.softtimelimit = self.timelimit
 
             remainingTime = min(remainingCpuTime/self.cpuCount, remainingWallTime)
             self.finished.wait(remainingTime + 1)
