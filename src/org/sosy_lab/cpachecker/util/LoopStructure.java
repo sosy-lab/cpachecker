@@ -230,7 +230,7 @@ public final class LoopStructure {
    * for all loops in the program.
    */
   public ImmutableSet<CFANode> getAllLoopHeads() {
-    if (loopHeads != null) {
+    if (loopHeads == null) {
       loopHeads = from(loops.values())
           .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
             @Override
