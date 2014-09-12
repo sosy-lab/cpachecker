@@ -53,6 +53,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -235,7 +237,8 @@ public class CFASingleLoopTransformation {
       }
     }
 
-    Map<CFANode, CFANode> globalNewToOld = new LinkedHashMap<>();
+    CopyOnWriteSortedMap<CFANode, CFANode> globalNewToOld =
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CFANode, CFANode>of());
 
     // Create new main function entry and initialize the program counter there
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
@@ -486,7 +489,7 @@ public class CFASingleLoopTransformation {
       Iterable<CFANode> pNodes,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
       Map<Integer, CFANode> pNewSuccessorsToPC,
-      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      CopyOnWriteSortedMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
     Map<CFANode, CFANode> tmpMap = new LinkedHashMap<>();
     AcyclicGraph subgraph = null;
@@ -523,7 +526,7 @@ public class CFASingleLoopTransformation {
 
       Deque<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
-      Map<CFANode, CFANode> newToOld = new LinkedHashMap<>(pGlobalNewToOld);
+      CopyOnWriteSortedMap<CFANode, CFANode> newToOld = CopyOnWriteSortedMap.copyOf(pGlobalNewToOld);
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         assert subgraph.containsNode(current) && visited.contains(current);
@@ -561,7 +564,7 @@ public class CFASingleLoopTransformation {
               newWaitlistNodes.clear();
               predecessorsAndSuccessors.clear();
               subgraph.abort();
-              newToOld = new LinkedHashMap<>(pGlobalNewToOld);
+              newToOld = CopyOnWriteSortedMap.copyOf(pGlobalNewToOld);
               edgesToAdd.clear();
               edgesToRemove.clear();
 
@@ -613,8 +616,7 @@ public class CFASingleLoopTransformation {
             tmpMap.clear();
           }
         }
-        pGlobalNewToOld.putAll(newToOld);
-        assert pGlobalNewToOld.equals(newToOld);
+        pGlobalNewToOld = CopyOnWriteSortedMap.copyOf(newToOld);
         subgraph.commit();
         waitlist.addAll(newWaitlistNodes);
         for (Pair<CFANode, CFANode> predecessorAndSuccessor : predecessorsAndSuccessors) {
