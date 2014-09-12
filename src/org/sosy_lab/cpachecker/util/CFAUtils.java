@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -258,6 +261,44 @@ public class CFAUtils {
     return (AssumeEdge)Iterables.getOnlyElement(
         CFAUtils.leavingEdges(edge.getPredecessor())
                 .filter(not(Predicates.<CFAEdge>equalTo(edge))));
+  }
+
+  /**
+   * Checks if a path from the source to the target exists, using the given
+   * function to obtain the edges leaving a node.
+   *
+   * @param pSource the search start node.
+   * @param pTarget the target.
+   * @param pGetLeavingEdges the function used to obtain leaving edges and thus
+   * the successors of a node.
+   * @param pShutdownNotifier the shutdown notifier to be checked.
+   *
+   * @return {@code true} if a path from the source to the target exists,
+   * {@code false} otherwise.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the given
+   * shutdown notifier.
+   */
+  public static boolean existsPath(CFANode pSource,
+      CFANode pTarget, Function<CFANode, Iterable<CFAEdge>> pGetLeavingEdges,
+      ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    Set<CFANode> visited = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    waitlist.offer(pSource);
+    while (!waitlist.isEmpty()) {
+      pShutdownNotifier.shutdownIfNecessary();
+      CFANode current = waitlist.poll();
+      if (current.equals(pTarget)) {
+        return true;
+      }
+      if (visited.add(current)) {
+        for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
+          CFANode succ = leavingEdge.getSuccessor();
+          waitlist.offer(succ);
+        }
+      }
+    }
+    return false;
   }
 
 

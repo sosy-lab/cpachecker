@@ -1480,44 +1480,6 @@ public class CFASingleLoopTransformation {
   }
 
   /**
-   * Checks if a path from the source to the target exists, using the given
-   * function to obtain the edges leaving a node.
-   *
-   * @param pSource the search start node.
-   * @param pTarget the target.
-   * @param pGetLeavingEdges the function used to obtain leaving edges and thus
-   * the successors of a node.
-   * @param pShutdownNotifier the shutdown notifier to be checked.
-   *
-   * @return {@code true} if a path from the source to the target exists,
-   * {@code false} otherwise.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the given
-   * shutdown notifier.
-   */
-  static boolean existsPath(CFANode pSource,
-      CFANode pTarget, Function<? super CFANode, Iterable<? extends CFAEdge>> pGetLeavingEdges,
-      ShutdownNotifier pShutdownNotifier) throws InterruptedException {
-    Set<CFANode> visited = new HashSet<>();
-    Queue<CFANode> waitlist = new ArrayDeque<>();
-    waitlist.offer(pSource);
-    while (!waitlist.isEmpty()) {
-      pShutdownNotifier.shutdownIfNecessary();
-      CFANode current = waitlist.poll();
-      if (current.equals(pTarget)) {
-        return true;
-      }
-      if (visited.add(current)) {
-        for (CFAEdge leavingEdge : pGetLeavingEdges.apply(current)) {
-          CFANode succ = leavingEdge.getSuccessor();
-          waitlist.offer(succ);
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
    * Checks if the given edge is a dummy edge.
    *
    * @param pEdge the edge to check.

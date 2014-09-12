@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -91,8 +92,8 @@ class AcyclicGraph {
    * A function producing those edges leaving a node that are contained in
    * this subgraph.
    */
-  private final Function<? super CFANode, Iterable<? extends CFAEdge>> GET_CONTAINED_LEAVING_EDGES =
-      new Function<CFANode, Iterable<? extends CFAEdge>>() {
+  private final Function<CFANode, Iterable<CFAEdge>> GET_CONTAINED_LEAVING_EDGES =
+      new Function<CFANode, Iterable<CFAEdge>>() {
 
     @Override
     @Nullable
@@ -254,7 +255,7 @@ class AcyclicGraph {
    * shutdown notifier.
    */
   public boolean introducesLoop(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
-    return CFASingleLoopTransformation.existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier);
+    return CFAUtils.existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier);
   }
 
   /**
