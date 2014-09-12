@@ -110,18 +110,21 @@ class KillProcessOnOomThread(threading.Thread):
 
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
-                # 10MB ought to be enough
-                limitFile = 'memory.memsw.limit_in_bytes'
-                if not os.path.exists(os.path.join(self._cgroup, limitFile)):
-                    limitFile = 'memory.limit_in_bytes'
-                try:
-                    filewriter.writeFile(str((self._memlimit + 10) * _BYTE_FACTOR * _BYTE_FACTOR),
-                                         self._cgroup, limitFile)
-                except IOError as e:
-                    logging.warning('Failed to increase memory limit after OOM: error {0} ({1})'.format(e.errno, e.strerror))
+                self._resetMemoryLimit('memory.memsw.limit_in_bytes')
+                self._resetMemoryLimit('memory.limit_in_bytes')
 
         finally:
             os.close(self._efd)
+
+    def _resetMemoryLimit(self, limitFile):
+        if os.path.exists(os.path.join(self._cgroup, limitFile)):
+            try:
+                # Write a high value (1 PB) as the limit
+                filewriter.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
+                                     self._cgroup, limitFile)
+            except IOError as e:
+                logging.warning('Failed to increase {0} after OOM: error {1} ({2})'.format(limitFile, e.errno, e.strerror))
+
 
     def cancel(self):
         self._finished.set()
