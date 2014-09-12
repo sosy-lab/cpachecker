@@ -147,6 +147,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       innerPostProcessor = null;
     }
     postProcessors = new ArrayList<>();
+    postProcessors.add(new ARGDuplicateEdgeRemover());
     if (!disableRVARGSimplification) {
       postProcessors.add(new RVARGSimplifier(config, this, pShutdownNotifier));
     }
