@@ -31,7 +31,7 @@ import sys
 import os
 import xml.etree.ElementTree as ET
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import filewriter
 from . import result
 from . import util as Util
@@ -94,7 +94,9 @@ class OutputHandler:
         corelimit = None
         if MEMLIMIT in self.benchmark.rlimits:
             memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
-        if TIMELIMIT in self.benchmark.rlimits:
+        if SOFTTIMELIMIT in self.benchmark.rlimits:
+            timelimit = str(self.benchmark.rlimits[SOFTTIMELIMIT]) + " s"
+        elif TIMELIMIT in self.benchmark.rlimits:
             timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
         if CORELIMIT in self.benchmark.rlimits:
             corelimit = str(self.benchmark.rlimits[CORELIMIT])
