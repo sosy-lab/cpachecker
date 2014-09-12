@@ -623,7 +623,7 @@ class Run():
                 and MEMLIMIT in rlimits \
                 and 'memUsage' in self.values \
                 and not self.values['memUsage'] is None \
-                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.999):
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.99):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 
