@@ -38,6 +38,7 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
 
   @Override
   public void postProcess(ReachedSet pReached) throws InterruptedException {
+    // assume that used transfer relation is indeed a transfer function
     Collection<ARGState> visited = new HashSet<>();
     Queue<ARGState> toVisit = new ArrayDeque<>();
     ARGState currentVisit;
