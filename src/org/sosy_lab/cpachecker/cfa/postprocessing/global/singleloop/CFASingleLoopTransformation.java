@@ -235,7 +235,7 @@ public class CFASingleLoopTransformation {
       }
     }
 
-    SimpleMap<CFANode, CFANode> globalNewToOld = SimpleMapAdapter.createSimpleHashMap();
+    Map<CFANode, CFANode> globalNewToOld = new LinkedHashMap<>();
 
     // Create new main function entry and initialize the program counter there
     FunctionEntryNode oldMainFunctionEntryNode = pInputCFA.getMainFunction();
@@ -306,7 +306,7 @@ public class CFASingleLoopTransformation {
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
       Map<Integer, CFANode> pNewSuccessorsToPC,
       BiMap<Integer, CFANode> pImmutableNewSuccessorsToPC,
-      SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     Map<CFANode, Integer> pcToNewSuccessors = pImmutableNewSuccessorsToPC.inverse();
 
     for (int replaceablePCValue : new ArrayList<>(pNewPredecessorsToPC.keySet())) {
@@ -385,7 +385,7 @@ public class CFASingleLoopTransformation {
    */
   private void fixSummaryEdges(FunctionEntryNode pStartNode,
       ImmutableBiMap<Integer, CFANode> pNewSuccessorsToPC,
-      SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
@@ -486,9 +486,9 @@ public class CFASingleLoopTransformation {
       Iterable<CFANode> pNodes,
       Multimap<Integer, CFANode> pNewPredecessorsToPC,
       Map<Integer, CFANode> pNewSuccessorsToPC,
-      SimpleMap<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
+      Map<CFANode, CFANode> pGlobalNewToOld) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
-    SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
+    Map<CFANode, CFANode> tmpMap = new LinkedHashMap<>();
     AcyclicGraph subgraph = null;
     int pcValueOfStart = -1;
     ProgramCounterValueProvider programCounterValueProvider = this.programCounterValueProviderFactory.newOrImmutableProgramCounterValueProvider();
@@ -523,7 +523,7 @@ public class CFASingleLoopTransformation {
 
       Deque<CFANode> waitlist = new ArrayDeque<>();
       waitlist.add(subgraphRoot);
-      SimpleTransactionMap<CFANode, CFANode> newToOld = new SimpleTransactionMap<>(pGlobalNewToOld);
+      Map<CFANode, CFANode> newToOld = new LinkedHashMap<>(pGlobalNewToOld);
       while (!waitlist.isEmpty()) {
         CFANode current = waitlist.poll();
         assert subgraph.containsNode(current) && visited.contains(current);
@@ -561,7 +561,7 @@ public class CFASingleLoopTransformation {
               newWaitlistNodes.clear();
               predecessorsAndSuccessors.clear();
               subgraph.abort();
-              newToOld.abort();
+              newToOld = new LinkedHashMap<>(pGlobalNewToOld);
               edgesToAdd.clear();
               edgesToRemove.clear();
 
@@ -613,7 +613,8 @@ public class CFASingleLoopTransformation {
             tmpMap.clear();
           }
         }
-        newToOld.commit();
+        pGlobalNewToOld.putAll(newToOld);
+        assert pGlobalNewToOld.equals(newToOld);
         subgraph.commit();
         waitlist.addAll(newWaitlistNodes);
         for (Pair<CFANode, CFANode> predecessorAndSuccessor : predecessorsAndSuccessors) {
@@ -649,13 +650,13 @@ public class CFASingleLoopTransformation {
     }
   }
 
-  private CFAEdge replaceAndCopy(CFAEdge pOriginalEdge, @Nullable SimpleMap<CFANode, CFANode> pOldToOld, SimpleMap<CFANode, CFANode> pGlobalNewToOld, Set<CFAEdge> pEdgesToRemove, Set<CFAEdge> pEdgesToAdd) {
+  private CFAEdge replaceAndCopy(CFAEdge pOriginalEdge, @Nullable Map<CFANode, CFANode> pOldToOld, Map<CFANode, CFANode> pGlobalNewToOld, Set<CFAEdge> pEdgesToRemove, Set<CFAEdge> pEdgesToAdd) {
       CFANode replacementPredecessor = getOrCreateNewFromOld(pOriginalEdge.getPredecessor(), pOldToOld);
       CFANode replacementSuccessor = getOrCreateNewFromOld(pOriginalEdge.getSuccessor(), pOldToOld);
       return replaceAndCopy(pOriginalEdge, replacementPredecessor,  replacementSuccessor, pOldToOld, pGlobalNewToOld, pEdgesToRemove, pEdgesToAdd);
   }
 
-  private CFAEdge replaceAndCopy(CFAEdge pOriginalEdge, CFANode pReplacementPredecessor, CFANode pReplacementSuccessor, @Nullable SimpleMap<CFANode, CFANode> pOldToOld, SimpleMap<CFANode, CFANode> pGlobalNewToOld, Set<CFAEdge> pEdgesToRemove, Set<CFAEdge> pEdgesToAdd) {
+  private CFAEdge replaceAndCopy(CFAEdge pOriginalEdge, CFANode pReplacementPredecessor, CFANode pReplacementSuccessor, @Nullable Map<CFANode, CFANode> pOldToOld, Map<CFANode, CFANode> pGlobalNewToOld, Set<CFAEdge> pEdgesToRemove, Set<CFAEdge> pEdgesToAdd) {
     pEdgesToRemove.add(pOriginalEdge);
 
     // Replace the edge in the old graph, as there is a new predecessor
@@ -688,7 +689,7 @@ public class CFASingleLoopTransformation {
         if (successor == node) {
           removeFromNodes(edge);
 
-          SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
+          Map<CFANode, CFANode> tmpMap = new LinkedHashMap<>();
           CFANode dummy = getOrCreateNewFromOld(successor, tmpMap);
 
           tmpMap.put(node, node);
@@ -722,7 +723,7 @@ public class CFASingleLoopTransformation {
               removeFromNodes(toRemove);
             }
             CFANode terminationNode = new CFATerminationNode(assumePredecessor.getFunctionName());
-            CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, assumePredecessor, terminationNode, SimpleMapAdapter.<CFANode, CFANode>createSimpleHashMap());
+            CFAEdge newEdge = copyCFAEdgeWithNewNodes(edge, assumePredecessor, terminationNode, new LinkedHashMap<CFANode, CFANode>());
             addToNodes(newEdge);
             toAdd.add(terminationNode);
           }
@@ -964,7 +965,7 @@ public class CFASingleLoopTransformation {
       CBinaryExpressionBuilder pExpressionBuilder) {
     List<ProgramCounterValueAssumeEdge> toAdd = new ArrayList<>();
     CFANode decisionTreeNode = pLoopHead;
-    SimpleMap<CFANode, CFANode> tmpMap = SimpleMapAdapter.createSimpleHashMap();
+    Map<CFANode, CFANode> tmpMap = new LinkedHashMap<>();
     for (Entry<Integer, CFANode> pcToNewSuccessorMapping : newSuccessorToPCMapping.entrySet()) {
       CFANode newSuccessor = pcToNewSuccessorMapping.getValue();
       int pcToSet = pcToNewSuccessorMapping.getKey();
@@ -1113,7 +1114,7 @@ public class CFASingleLoopTransformation {
    * @param pNewNode the node to add the edges to.
    */
   private void replaceInStructure(CFANode pOldNode, CFANode pNewNode) {
-    SimpleMap<CFANode, CFANode> newToOld = SimpleMapAdapter.createSimpleHashMap();
+    Map<CFANode, CFANode> newToOld = new LinkedHashMap<>();
     newToOld.put(pOldNode, pNewNode);
     CFAEdge oldEdge;
     while ((oldEdge = removeNextEnteringEdge(pOldNode)) != null && constantTrue(newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor()))
@@ -1200,7 +1201,7 @@ public class CFASingleLoopTransformation {
    * mapping or the identity of the given node if the provided mapping is
    * {@code null}.
    */
-  private CFANode getOrCreateNewFromOld(CFANode pNode, @Nullable SimpleMap<CFANode, CFANode> pNewToOldMapping) {
+  private CFANode getOrCreateNewFromOld(CFANode pNode, @Nullable Map<CFANode, CFANode> pNewToOldMapping) {
     if (pNewToOldMapping == null) {
       return pNode;
     }
@@ -1318,7 +1319,7 @@ public class CFASingleLoopTransformation {
    *
    * @return a new edge with the given predecessor and successor.
    */
-  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final SimpleMap<CFANode, CFANode> pNewToOldMapping) {
+  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, CFANode pNewPredecessor, CFANode pNewSuccessor, final Map<CFANode, CFANode> pNewToOldMapping) {
     String rawStatement = pEdge.getRawStatement();
     FileLocation fileLocation = pEdge.getFileLocation();
     switch (pEdge.getEdgeType()) {
@@ -1411,7 +1412,7 @@ public class CFASingleLoopTransformation {
    *
    * @return a new edge with the given predecessor and successor.
    */
-  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final SimpleMap<CFANode, CFANode> pNewToOldMapping) {
+  private CFAEdge copyCFAEdgeWithNewNodes(CFAEdge pEdge, final Map<CFANode, CFANode> pNewToOldMapping) {
     CFANode newPredecessor = getOrCreateNewFromOld(pEdge.getPredecessor(), pNewToOldMapping);
     CFANode newSuccessor = getOrCreateNewFromOld(pEdge.getSuccessor(), pNewToOldMapping);
     return copyCFAEdgeWithNewNodes(pEdge, newPredecessor, newSuccessor, pNewToOldMapping);
