@@ -524,7 +524,7 @@ class _TimelimitThread(threading.Thread):
                 self.finished.set()
                 return
 
-            remainingTime = max(remainingCpuTime/self.cpuCount, remainingWallTime)
+            remainingTime = min(remainingCpuTime/self.cpuCount, remainingWallTime)
             self.finished.wait(remainingTime + 1)
 
     def cancel(self):
