@@ -47,7 +47,7 @@ def forceLinuxPath(path):
         return path.replace('\\', '/')
     return path
 
-def killProcess(pid, sig=signal.SIGTERM):
+def killProcess(pid, sig=signal.SIGKILL):
     '''
     This function kills the process and the children in its process group.
     '''

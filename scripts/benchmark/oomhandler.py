@@ -102,11 +102,11 @@ class KillProcessOnOomThread(threading.Thread):
             # It does so either on OOM or if the cgroup is removed.
             if not self._finished.is_set():
                 logging.debug('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
-                util.killProcess(self._process.pid, signal.SIGKILL)
+                util.killProcess(self._process.pid)
                 # Also kill all children of subprocesses directly.
                 with open(os.path.join(self._cgroup, 'tasks'), 'rt') as tasks:
                     for task in tasks:
-                        util.killProcess(int(task), signal.SIGKILL)
+                        util.killProcess(int(task))
 
                 # We now need to increase the memory limit of this cgroup
                 # to give the process a chance to terminate
