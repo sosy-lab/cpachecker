@@ -706,7 +706,6 @@ public abstract class AbstractExpressionValueVisitor
     JType lValType = lVarInBinaryExp.getExpressionType();
     JType rValType = rVarInBinaryExp.getExpressionType();
 
-    // TODO: for logical expressions, work with unknown values (for example 'true || unknown' is 'true')
     // Get the concrete values of the lefthandside and righthandside
     final Value lValue = lVarInBinaryExp.accept(this);
     if (lValue.isUnknown()) {
