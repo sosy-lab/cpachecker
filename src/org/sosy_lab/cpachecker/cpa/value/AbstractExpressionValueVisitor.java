@@ -705,6 +705,7 @@ public abstract class AbstractExpressionValueVisitor
     JExpression rVarInBinaryExp = pE.getOperand2();
     JType lValType = lVarInBinaryExp.getExpressionType();
     JType rValType = rVarInBinaryExp.getExpressionType();
+    JType expressionType = pE.getExpressionType();
 
     // Get the concrete values of the lefthandside and righthandside
     final Value lValue = lVarInBinaryExp.accept(this);
@@ -718,21 +719,21 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     // Calculate the result of the expression
-    if (lValue instanceof NumericValue && rValue instanceof NumericValue) {
+    if (lValue instanceof NumericValue) {
 
-      // calculate the result for double values
+      assert rValue instanceof NumericValue;
+      assert lValType instanceof JSimpleType && rValType instanceof JSimpleType;
+      assert expressionType instanceof JSimpleType;
+
+      JBasicType basicExpressionType = ((JSimpleType) expressionType).getType();
+
       if (isFloatType(lValType) || isFloatType(rValType)) {
-        final double lVal = ((NumericValue) lValue).doubleValue();
-        final double rVal = ((NumericValue) rValue).doubleValue();
+        return calculateFloatOperation((NumericValue) lValue, (NumericValue) rValue,
+            binaryOperator, basicExpressionType);
 
-        return calculateBinaryOperation(lVal, rVal, binaryOperator);
-
-      // calculate the result for integer values
       } else {
-        final long lVal = ((NumericValue) lValue).longValue();
-        final long rVal = ((NumericValue) rValue).longValue();
-
-        return calculateBinaryOperation(lVal, rVal, binaryOperator);
+        return calculateIntegerOperation((NumericValue) lValue, (NumericValue) rValue,
+            binaryOperator, basicExpressionType);
       }
 
     // calculate the result for enum constant and null values
@@ -770,7 +771,18 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value calculateBinaryOperation(long lVal, long rVal, JBinaryExpression.BinaryOperator binaryOperator) {
+  /*
+   * Calculates the result of the given operation for the given integer values.
+   * The given values have to be of a Java integer type, that is long, int, short, or byte.
+   */
+  private Value calculateIntegerOperation(NumericValue pLeftValue, NumericValue pRightValue,
+      JBinaryExpression.BinaryOperator binaryOperator, JBasicType pCalculationType) {
+
+    assert isOfIntegerType(pCalculationType) || pCalculationType.equals(JBasicType.BOOLEAN);
+
+    long lVal = pLeftValue.longValue();
+    long rVal = pRightValue.longValue();
+    long numResult;
 
     switch (binaryOperator) {
     case PLUS:
@@ -787,44 +799,73 @@ public abstract class AbstractExpressionValueVisitor
 
       switch (binaryOperator) {
       case PLUS:
-        return new NumericValue(lVal + rVal);
+        numResult = lVal + rVal;
+        break;
 
       case MINUS:
-        return new NumericValue(lVal - rVal);
+        numResult = lVal - rVal;
+        break;
 
       case DIVIDE:
         if (rVal == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
           return UnknownValue.getInstance();
         }
-        return new NumericValue(lVal / rVal);
+
+        numResult = lVal / rVal;
+        break;
 
       case MULTIPLY:
-        return new NumericValue(lVal * rVal);
-
-      case SHIFT_LEFT:
-        return new NumericValue(lVal << rVal);
+        numResult = lVal * rVal;
+        break;
 
       case BINARY_AND:
-        return new NumericValue(lVal & rVal);
+        numResult = lVal & rVal;
+        break;
 
       case BINARY_OR:
-        return new NumericValue(lVal | rVal);
+        numResult = lVal | rVal;
+        break;
 
       case BINARY_XOR:
-        return new NumericValue(lVal ^ rVal);
+        numResult = lVal ^ rVal;
+        break;
 
       case MODULO:
-        return new NumericValue(lVal % rVal);
+        numResult = lVal % rVal;
+        break;
+
+      // shift operations' behaviour is determined by whether the left hand side value is of type
+      // int or long, so we have to cast if the actual type is int.
+      case SHIFT_LEFT:
+        if (pCalculationType.equals(JBasicType.INT)) {
+          numResult = ((int) lVal) << rVal;
+        } else {
+          numResult = lVal << rVal;
+        }
+        break;
 
       case SHIFT_RIGHT_SIGNED:
-        return new NumericValue(lVal >> rVal);
+        if (pCalculationType.equals(JBasicType.INT)) {
+          numResult = ((int) lVal) >> rVal;
+        } else {
+          numResult = lVal >> rVal;
+        }
+        break;
+
       case SHIFT_RIGHT_UNSIGNED:
-        return new NumericValue(lVal >>> rVal);
+        if (pCalculationType.equals(JBasicType.INT)) {
+          numResult = ((int) lVal) >>> rVal;
+        } else {
+          numResult = lVal >>> rVal;
+        }
+        break;
 
       default:
-        throw new AssertionError();
+        throw new AssertionError("Unhandled operator " + binaryOperator);
       }
+
+      return new NumericValue(numResult);
     }
 
     case EQUALS:
@@ -871,7 +912,29 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value calculateBinaryOperation(double lVal, double rVal, JBinaryExpression.BinaryOperator binaryOperator) {
+  // used for assertion only
+  private boolean isOfIntegerType(JBasicType pValueType) {
+    switch (pValueType) {
+    case LONG:
+    case INT:
+    case SHORT:
+    case BYTE:
+      return true;
+
+    default:
+      return false;
+    }
+  }
+
+  /*
+   * Calculates the result of the given operation for the given floating point values.
+   * The given values have to be of Java types float or double.
+   */
+  private Value calculateFloatOperation(NumericValue pLeftValue, NumericValue pRightValue,
+      JBinaryExpression.BinaryOperator binaryOperator, JBasicType pCalculationType) {
+
+    double lVal = pLeftValue.doubleValue();
+    double rVal = pRightValue.doubleValue();
 
     switch (binaryOperator) {
     case PLUS:
