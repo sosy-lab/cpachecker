@@ -100,15 +100,6 @@ public class CFAGenerationRuntimeException extends RuntimeException {
   }
 
   private static String createMessage(String msg, ASTNode node) {
-    // search the ast node for the whole statement / declaration / line
-    ASTNode fullLine = node;
-    while ((fullLine != null)
-        && !(fullLine instanceof Statement)
-        && !(fullLine instanceof BodyDeclaration)) {
-
-      fullLine = fullLine.getParent();
-    }
-
     String rawSignature = node.toString();
     StringBuilder sb = new StringBuilder();
 
@@ -125,6 +116,15 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     sb.append("\n");
     sb.append(rawSignature);
 
+    // search the ast node for the whole statement / declaration / line
+    ASTNode fullLine = node;
+    while ((fullLine != null)
+        && !(fullLine instanceof Statement)
+        && !(fullLine instanceof BodyDeclaration)) {
+
+      fullLine = fullLine.getParent();
+    }
+    
     if (fullLine != null && fullLine != node) {
       String lineRawSignature = fullLine.toString();
 
