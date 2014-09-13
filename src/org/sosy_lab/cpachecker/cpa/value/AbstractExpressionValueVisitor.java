@@ -764,7 +764,7 @@ public abstract class AbstractExpressionValueVisitor
       boolean lVal = ((BooleanValue) lValue).isTrue();
       boolean rVal = ((BooleanValue) rValue).isTrue();
 
-      return calculateBinaryOperation(lVal, rVal, binaryOperator);
+      return calculateBooleanOperation(lVal, rVal, binaryOperator);
 
     } else {
       return UnknownValue.getInstance();
@@ -1012,7 +1012,8 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value calculateBinaryOperation(boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
+  private Value calculateBooleanOperation(boolean lVal, boolean rVal,
+      JBinaryExpression.BinaryOperator operator) {
 
     switch (operator) {
     case CONDITIONAL_AND:
