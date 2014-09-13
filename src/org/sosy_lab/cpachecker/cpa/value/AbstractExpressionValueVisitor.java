@@ -776,15 +776,15 @@ public abstract class AbstractExpressionValueVisitor
    * The given values have to be of a Java integer type, that is long, int, short, or byte.
    */
   private Value calculateIntegerOperation(NumericValue pLeftValue, NumericValue pRightValue,
-      JBinaryExpression.BinaryOperator binaryOperator, JBasicType pCalculationType) {
+      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pCalculationType) {
 
     assert isOfIntegerType(pCalculationType) || pCalculationType.equals(JBasicType.BOOLEAN);
 
-    long lVal = pLeftValue.longValue();
-    long rVal = pRightValue.longValue();
-    long numResult;
+    final long lVal = pLeftValue.longValue();
+    final long rVal = pRightValue.longValue();
+    final long numResult;
 
-    switch (binaryOperator) {
+    switch (pBinaryOperator) {
     case PLUS:
     case MINUS:
     case DIVIDE:
@@ -797,7 +797,7 @@ public abstract class AbstractExpressionValueVisitor
     case SHIFT_RIGHT_SIGNED:
     case SHIFT_RIGHT_UNSIGNED: {
 
-      switch (binaryOperator) {
+      switch (pBinaryOperator) {
       case PLUS:
         numResult = lVal + rVal;
         break;
@@ -862,7 +862,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       default:
-        throw new AssertionError("Unhandled operator " + binaryOperator);
+        throw new AssertionError("Unhandled operator " + pBinaryOperator);
       }
 
       return new NumericValue(numResult);
@@ -875,32 +875,29 @@ public abstract class AbstractExpressionValueVisitor
     case LESS_THAN:
     case LESS_EQUAL: {
 
-      final long l = lVal;
-      final long r = rVal;
-
       final boolean result;
-      switch (binaryOperator) {
+      switch (pBinaryOperator) {
       case EQUALS:
-        result = (l == r);
+        result = (lVal == rVal);
         break;
       case NOT_EQUALS:
-        result = (l != r);
+        result = (lVal != rVal);
         break;
       case GREATER_THAN:
-        result = (l > r);
+        result = (lVal > rVal);
         break;
       case GREATER_EQUAL:
-        result = (l >= r);
+        result = (lVal >= rVal);
         break;
       case LESS_THAN:
-        result = (l < r);
+        result = (lVal < rVal);
         break;
       case LESS_EQUAL:
-        result = (l <= r);
+        result = (lVal <= rVal);
         break;
 
       default:
-        throw new AssertionError();
+        throw new AssertionError("Unhandled operation " + pBinaryOperator);
       }
 
       // return 1 if expression holds, 0 otherwise
@@ -931,19 +928,19 @@ public abstract class AbstractExpressionValueVisitor
    * The given values have to be of Java types float or double.
    */
   private Value calculateFloatOperation(NumericValue pLeftValue, NumericValue pRightValue,
-      JBinaryExpression.BinaryOperator binaryOperator, JBasicType pCalculationType) {
+      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pCalculationType) {
 
-    double lVal = pLeftValue.doubleValue();
-    double rVal = pRightValue.doubleValue();
+    final double lVal = pLeftValue.doubleValue();
+    final double rVal = pRightValue.doubleValue();
 
-    switch (binaryOperator) {
+    switch (pBinaryOperator) {
     case PLUS:
     case MINUS:
     case DIVIDE:
     case MULTIPLY:
     case MODULO: {
 
-      switch (binaryOperator) {
+      switch (pBinaryOperator) {
       case PLUS:
         return new NumericValue(lVal + rVal);
 
@@ -964,7 +961,7 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(lVal % rVal);
 
       default:
-        throw new AssertionError("Unsupported binary operation " + binaryOperator.toString() + " on double values");
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString() + " on double values");
       }
     }
 
@@ -975,32 +972,29 @@ public abstract class AbstractExpressionValueVisitor
     case LESS_THAN:
     case LESS_EQUAL: {
 
-      final double l = lVal;
-      final double r = rVal;
-
       final boolean result;
-      switch (binaryOperator) {
+      switch (pBinaryOperator) {
       case EQUALS:
-        result = (l == r);
+        result = (lVal == rVal);
         break;
       case NOT_EQUALS:
-        result = (l != r);
+        result = (lVal != rVal);
         break;
       case GREATER_THAN:
-        result = (l > r);
+        result = (lVal > rVal);
         break;
       case GREATER_EQUAL:
-        result = (l >= r);
+        result = (lVal >= rVal);
         break;
       case LESS_THAN:
-        result = (l < r);
+        result = (lVal < rVal);
         break;
       case LESS_EQUAL:
-        result = (l <= r);
+        result = (lVal <= rVal);
         break;
 
       default:
-        throw new AssertionError("Unsupported binary operation " + binaryOperator.toString() + " on double values");
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString() + " on double values");
       }
 
       // return 1 if expression holds, 0 otherwise
