@@ -839,7 +839,7 @@ public class ASTConverter {
     //TODO  All Expression Implementation
 
     if (e == null) {
-      logger.log(Level.INFO, "Expression to convert is null");
+      logger.log(Level.FINE, "Expression to convert is null");
       return null;
     }
 
