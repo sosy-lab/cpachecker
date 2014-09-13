@@ -40,22 +40,60 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 
+  /**
+   * Creates a new <code>CFAGenerationRuntimeException</code> with the provided detail message.
+   *
+   * @param msg the message the exception should save as detail message for later use
+   * @see RuntimeException#RuntimeException(String)
+   */
   public CFAGenerationRuntimeException(String msg) {
     super(msg);
   }
 
+  /**
+   * Creates a new <code>CFAGenerationRuntimeException</code> with the given cause of the exception.
+   *
+   * This is useful for wrapping more detailed exceptions or errors.
+   *
+   * @param cause the cause this exception wraps
+   * @see RuntimeException#RuntimeException(Throwable)
+   */
   public CFAGenerationRuntimeException(Throwable cause) {
     super(cause.getMessage(), cause);
   }
 
+  /**
+   * Creates a new <code>CFAGenerationRuntimeException</code> with the provided detail message
+   * and the given cause.
+   *
+   * @param message the detail message to save for later use
+   * @param cause the cause of this exception
+   * @see RuntimeException#RuntimeException(String, Throwable)
+   */
   public CFAGenerationRuntimeException(String message, Throwable cause) {
     super(message, cause);
   }
 
+  /**
+   * Creates a new <code>CFAGenerationRuntimeException</code> with the provided message and a
+   * detailed description of the given node as detail message.
+   *
+   * The description of the given node follows the message in a new line.
+   *
+   * @param msg the message that precedes a description of the given node
+   * @param astNode the node that will be described in this exception's message
+   */
   public CFAGenerationRuntimeException(String msg, ASTNode astNode) {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }
 
+  /**
+   * Creates a new <code>CFAGenerationRuntimeException</code> with the provided message and details
+   * about the given {@link JAstNode} as detail message.
+   *
+   * @param msg the message that precedes a description of the given node
+   * @param astNode the node that will be described in this exception's message
+   */
   public CFAGenerationRuntimeException(String msg, JAstNode astNode) {
     this(astNode == null ? msg :
       (astNode.getFileLocation() + ": " + msg + ": " + astNode.toASTString()));
@@ -73,14 +111,18 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
     String rawSignature = node.toString();
     StringBuilder sb = new StringBuilder();
+
+    sb.append("Line ");
+    sb.append(node.getStartPosition());
+    sb.append(": ");
+
     if (Strings.isNullOrEmpty(msg)) {
-      sb.append("Problem");
+      sb.append("An unspecified problem occurred.");
     } else {
       sb.append(msg);
     }
-    sb.append(" in line ");
-    sb.append(node.getStartPosition());
-    sb.append(": ");
+
+    sb.append("\n");
     sb.append(rawSignature);
 
     if (fullLine != null && fullLine != node) {

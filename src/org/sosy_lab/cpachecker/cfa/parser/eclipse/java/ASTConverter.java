@@ -1177,7 +1177,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1193,7 +1193,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1201,7 +1201,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
     return new JFieldAccess(idExpIdentifier.getFileLocation(),
@@ -1403,7 +1403,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1419,7 +1419,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1427,7 +1427,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
 
@@ -1616,7 +1616,7 @@ public class ASTConverter {
 
     if (!vb.isField()) {
       throw new CFAGenerationRuntimeException("Declaration of Variable "
-        + e.getIdentifier() + " not found. \n", e);
+        + e.getIdentifier() + " not found.", e);
     }
 
     String name = NameConverter.convertName(vb);
@@ -2085,7 +2085,8 @@ public class ASTConverter {
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
     if (!(iterable instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly proccessed." , pExpr);
+      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly processed.",
+          pExpr);
     }
 
     FileLocation fileLoc = getFileLocation(pExpr);
