@@ -900,8 +900,7 @@ public abstract class AbstractExpressionValueVisitor
         throw new AssertionError("Unhandled operation " + pBinaryOperator);
       }
 
-      // return 1 if expression holds, 0 otherwise
-      return (result ? new NumericValue(1L) : new NumericValue(0L));
+      return BooleanValue.valueOf(result);
     }
     default:
       // TODO check which cases can be handled
@@ -998,7 +997,7 @@ public abstract class AbstractExpressionValueVisitor
       }
 
       // return 1 if expression holds, 0 otherwise
-      return (result ? new NumericValue(1L) : new NumericValue(0L));
+      return BooleanValue.valueOf(result);
     }
     default:
       // TODO check which cases can be handled
