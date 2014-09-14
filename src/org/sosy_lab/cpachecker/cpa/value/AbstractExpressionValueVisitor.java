@@ -782,7 +782,7 @@ public abstract class AbstractExpressionValueVisitor
 
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
-    final long numResult;
+    long numResult;
 
     switch (pBinaryOperator) {
     case PLUS:
@@ -863,6 +863,20 @@ public abstract class AbstractExpressionValueVisitor
 
       default:
         throw new AssertionError("Unhandled operator " + pBinaryOperator);
+      }
+
+      switch (pCalculationType) {
+      case INT:
+        numResult = (int) numResult;
+        break;
+      case SHORT:
+        numResult = (short) numResult;
+        break;
+      case BYTE:
+        numResult = (byte) numResult;
+        break;
+      default:
+        // do nothing, last possibility is long, which the value already is
       }
 
       return new NumericValue(numResult);
