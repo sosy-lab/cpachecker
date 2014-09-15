@@ -713,7 +713,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       return isOnFunctionStack() ? (functionName + "::" + simpleName) : simpleName;
       */
 
-      return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier) + " / " + offset;
+      return isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
     }
 
     public String serialize() {

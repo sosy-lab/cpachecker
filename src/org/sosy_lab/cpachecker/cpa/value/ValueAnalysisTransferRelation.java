@@ -567,7 +567,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
             MemoryLocation original = MemoryLocation.valueOf(init.toASTString(), i * 4);
             MemoryLocation newMem = MemoryLocation.valueOf(varName, i * 4);
 
-            newElement.assignConstant(newMem, newElement.getValueFor(original));
+            if(newElement.contains(original)) {
+              newElement.assignConstant(newMem, newElement.getValueFor(original));
+            }
           }
         }
         return newElement;
