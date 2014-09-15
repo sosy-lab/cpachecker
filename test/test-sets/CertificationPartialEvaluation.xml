@@ -9913,7 +9913,7 @@
 </sourcefiles>
 </rundefinition>
 
-<rundefinition name="IntervalSignDF_MONOTONE">
+<rundefinition name="IntervalSignDF_Partial">
 	<option name="-setprop">cpa.propertychecker.className=SingleSignInIntervalChecker</option>
 	<option name="-setprop">cpa.interval.merge=JOIN</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
