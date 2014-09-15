@@ -36,18 +36,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-public class LoopstackTransferRelation implements TransferRelation {
+public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<CFAEdge, Loop> loopEntryEdges = null;
   private Map<CFAEdge, Loop> loopExitEdges = null;
@@ -61,13 +62,13 @@ public class LoopstackTransferRelation implements TransferRelation {
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("LoopstackCPA does not work without loop information!");
     }
-    Multimap<String, Loop> loops = pCfa.getLoopStructure().get();
+    LoopStructure loops = pCfa.getLoopStructure().get();
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
     ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
-    for (Loop l : loops.values()) {
+    for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
                                                not(instanceOf(CFunctionReturnEdge.class)));
@@ -91,7 +92,7 @@ public class LoopstackTransferRelation implements TransferRelation {
 
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 

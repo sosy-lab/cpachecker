@@ -23,18 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static org.junit.Assert.*;
+
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -60,14 +62,21 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
@@ -75,6 +84,45 @@ import com.google.common.collect.TreeMultimap;
  * Testing the custom SSA implementation.
  */
 public class PathFormulaManagerImplTest {
+
+  private FormulaManager __formulaManager;
+  private FormulaManagerView fmgr;
+  private Solver solver;
+  private PathFormulaManager pfmgr;
+
+  @Before
+  public void setup() throws Exception {
+    Configuration.defaultConfiguration();
+    Configuration config = Configuration
+        .builder()
+        .setOption("cpa.predicate.solver", "smtinterpol") // only solver guaranteed on all platforms
+        .build();
+
+    FormulaManagerFactory factory = new FormulaManagerFactory(
+        config, TestLogManager.getInstance(), ShutdownNotifier.create());
+    __formulaManager = factory.getFormulaManager();
+    fmgr = new FormulaManagerView(__formulaManager,
+        config, TestLogManager.getInstance());
+    solver = new Solver(fmgr, factory);
+
+    pfmgr = new PathFormulaManagerImpl(
+        fmgr,
+        config,
+        TestLogManager.getInstance(),
+        ShutdownNotifier.create(),
+        MachineModel.LINUX32,
+        Optional.<VariableClassification>absent(),
+        false
+        );
+  }
+
+  @After
+  public void closeFormulaManager() throws Exception {
+    if (__formulaManager instanceof AutoCloseable) {
+      ((AutoCloseable)__formulaManager).close();
+    }
+  }
+
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
 
@@ -187,8 +235,7 @@ public class PathFormulaManagerImplTest {
   }
 
   private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = new CFunctionType(false, false, CNumericTypes.BOOL,
-        Collections.<CType>emptyList(), false);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
     FunctionEntryNode main = new FunctionEntryNode(
         FileLocation.DUMMY,
@@ -204,36 +251,14 @@ public class PathFormulaManagerImplTest {
     return main;
   }
 
-  private PathFormulaManager getPathFormulaManager(CFA cfa) throws InvalidConfigurationException {
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(), ShutdownNotifier.create());
-
-    FormulaManager formulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManagerView = new FormulaManagerView(formulaManager,
-        Configuration.defaultConfiguration(), TestLogManager.getInstance());
-
-    return new PathFormulaManagerImpl(
-        formulaManagerView,
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        cfa,
-        false
-    );
-  }
-
   @Test
   public void testCustomSSAIdx() throws Exception {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFA cfa = data.getThird();
     CFAEdge a_to_b = data.getFirst();
-
-    PathFormulaManager pathFormulaManager = getPathFormulaManager(cfa);
 
     int customIdx = 1337;
     PathFormula p = makePathFormulaWithCustomIdx(
-        a_to_b, customIdx, pathFormulaManager);
+        a_to_b, customIdx);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
     Assert.assertEquals(customIdx + SSAMap.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
@@ -244,13 +269,111 @@ public class PathFormulaManagerImplTest {
    * from the specified value.
    * Useful for more fine-grained control over SSA indexes.
    */
-  private static PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx,
-      PathFormulaManager pathFormulaManager) throws CPATransferException, InterruptedException {
-    PathFormula empty = pathFormulaManager.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pathFormulaManager.makeNewPathFormula(
+  private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+      throws CPATransferException, InterruptedException {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
         empty,
         SSAMap.emptySSAMap().withDefault(ssaIdx));
 
-    return pathFormulaManager.makeAnd(emptyWithCustomSSA, edge);
+    return pfmgr.makeAnd(emptyWithCustomSSA, edge);
+  }
+
+  @Test
+  public void testEmpty() {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula expected = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0);
+    assertEquals(expected, empty);
+  }
+
+  private PathFormula makePathFormulaWithVariable(String var, int index) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    BooleanFormula f = rfmgr.equal(rfmgr.makeVariable(var, index), rfmgr.makeNumber(0));
+
+    SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, CNumericTypes.DOUBLE, index).build();
+
+    return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
+  }
+
+  private BooleanFormula makeVariableEquality(String var, int index1, int index2) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    return rfmgr.equal(rfmgr.makeVariable(var, index2), rfmgr.makeVariable(var, index1));
+  }
+
+  // The following tests test the disjunction of the Formulas
+  // as well as the merge of the SSAMaps within makeOr().
+
+  @Test
+  public void testMakeOrBothEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula result = pfmgr.makeOr(empty, empty);
+
+    assertEquals(empty, result);
+  }
+
+  @Test
+  public void testMakeOrLeftEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgr.makeOr(empty, pf);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrRightEmpty() throws Exception {
+    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgr.makeOr(pf, empty);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOr() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("a", 3);
+
+    PathFormula result = pfmgr.makeOr(pf1, pf2);
+
+    BooleanFormula left = fmgr.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
+    BooleanFormula right = pf2.getFormula();
+
+    PathFormula expected = new PathFormula(fmgr.makeOr(left, right),
+        pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrCommutative() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("b", 3);
+
+    PathFormula resultA = pfmgr.makeOr(pf1, pf2);
+    PathFormula resultB = pfmgr.makeOr(pf2, pf1);
+
+    BooleanFormula equiv = fmgr.makeEqual(resultA.getFormula(), resultB.getFormula());
+
+    // check for tautology of equiv
+    assertTrue(solver.isUnsat(fmgr.makeNot(equiv)));
   }
 }

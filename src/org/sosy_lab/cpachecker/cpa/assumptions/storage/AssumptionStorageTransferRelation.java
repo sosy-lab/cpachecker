@@ -29,9 +29,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
  */
-public class AssumptionStorageTransferRelation implements TransferRelation {
+public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CtoFormulaConverter converter;
   private final FormulaManagerView formulaManager;
@@ -62,7 +62,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
     AssumptionStorageState element = (AssumptionStorageState)pElement;
 

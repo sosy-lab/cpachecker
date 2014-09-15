@@ -30,9 +30,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -43,10 +43,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
 public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
@@ -72,17 +71,15 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   @Override
   public AbstractState getInitialState(CFANode pNode) {
     if (cfa.getLoopStructure().isPresent()) {
-      ImmutableMultimap<String, Loop> loopStructure = cfa.getLoopStructure().get();
-      if (loopStructure.size() == 1) {
-        String functionName = Iterables.getOnlyElement(loopStructure.keys());
-        if (functionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
-          ImmutableCollection<Loop> loops = loopStructure.get(functionName);
-          if (loops.size() == 1) {
-            Loop loop = Iterables.getOnlyElement(loops);
-            if (loop.getLoopNodes().contains(pNode)) {
-              return new CallstackState(null, functionName, pNode);
-            }
-          }
+      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
+          CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+
+      if (!artificialLoops.isEmpty()) {
+        Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
+        if (singleLoop.getLoopNodes().contains(pNode)) {
+          return new CallstackState(null,
+              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode);
         }
       }
     }
@@ -93,7 +90,7 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> computedSuccessors =
-        getTransferRelation().getAbstractSuccessors(
+        getTransferRelation().getAbstractSuccessorsForEdge(
             pElement, SingletonPrecision.getInstance(), pCfaEdge);
     if (!(pSuccessors instanceof Set) || !(computedSuccessors instanceof Set)
         || pSuccessors.size() != computedSuccessors.size()) { return false; }

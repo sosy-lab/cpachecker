@@ -60,7 +60,7 @@ class Tool(benchmark.tools.template.BaseTool):
         verificationSuccessfulFound = False
         verificationFailedFound     = False
 
-        for line in output.splitlines():
+        for line in output:
             if 'A real bug found.' in line:
                 status = result.STATUS_FALSE_REACH
             elif 'VERIFICATION SUCCESSFUL' in line:

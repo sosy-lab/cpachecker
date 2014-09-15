@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -113,7 +112,7 @@ public class CFASecondPassBuilder {
     }
 
     // 2.Step: replace functionCalls with functioncall- and return-edges
-    for (final AStatementEdge functionCall: visitor.functionCalls) {
+    for (final AStatementEdge functionCall: visitor.getFunctionCalls()) {
       insertCallEdges(functionCall);
     }
   }
@@ -317,30 +316,5 @@ public class CFASecondPassBuilder {
     cfa.addNode(elseNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
-  }
-
-  /** This Visitor collects all functioncalls.
-   *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
-  private static class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
-
-    final List<AStatementEdge> functionCalls = new ArrayList<>();
-
-    @Override
-    public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
-      switch (pEdge.getEdgeType()) {
-        case StatementEdge: {
-          final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            functionCalls.add(edge);
-          }
-          break;
-        }
-
-        case FunctionCallEdge:
-        case CallToReturnEdge:
-          throw new AssertionError("functioncall- and return-edges should not exist at this time.");
-      }
-      return CFATraversal.TraversalProcess.CONTINUE;
-    }
   }
 }

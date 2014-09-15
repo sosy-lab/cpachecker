@@ -284,6 +284,31 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
+  public boolean isShiftRight(Long pBits, boolean signed) {
+    return isOP(z3context, pBits, signed ? Z3_OP_BASHR : Z3_OP_BLSHR);
+  }
+
+  @Override
+  public boolean isShiftLeft(Long pBits) {
+    return isOP(z3context, pBits, Z3_OP_BSHL);
+  }
+
+  @Override
+  public boolean isConcat(Long pBits) {
+    return isOP(z3context, pBits, Z3_OP_CONCAT);
+  }
+
+  @Override
+  public boolean isExtract(Long pBits) {
+    return isOP(z3context, pBits, Z3_OP_EXTRACT);
+  }
+
+  @Override
+  public boolean isExtend(Long pBits, boolean signed) {
+    return isOP(z3context, pBits, signed ? Z3_OP_SIGN_EXT : Z3_OP_ZERO_EXT);
+  }
+
+  @Override
   public int getLength(Long pParam) {
     long sort = get_sort(z3context, pParam);
     Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);

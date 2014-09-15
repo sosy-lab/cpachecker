@@ -91,7 +91,7 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       stats.increaseIteration();
 
       try {
-        successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec, null);
+        successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec);
 
         for (AbstractState succ : successors) {
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
@@ -148,7 +148,7 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       for (int i=start;i<start+numElem;i++) {
 
         try {
-          successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec, null);
+          successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec);
 
           for (AbstractState succ : successors) {
 

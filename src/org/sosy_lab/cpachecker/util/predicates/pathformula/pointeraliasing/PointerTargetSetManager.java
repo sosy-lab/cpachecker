@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
 
@@ -377,7 +376,7 @@ public class PointerTargetSetManager {
    * @param cType
    * @return
    */
-  public int getSize(CType cType) {
+  int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
@@ -387,7 +386,7 @@ public class PointerTargetSetManager {
    * @param memberName
    * @return
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 

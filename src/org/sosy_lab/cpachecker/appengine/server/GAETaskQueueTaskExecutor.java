@@ -69,14 +69,6 @@ public class GAETaskQueueTaskExecutor implements TaskExecutor {
   private InstanceType instanceType = InstanceType.FRONTEND;
 
   /**
-   * Constructs a new instance.
-   * The {@link Task} submitted via {@link #execute(Task)} will be enqueued immediately.
-   */
-  public GAETaskQueueTaskExecutor() {
-    instanceType = InstanceType.FRONTEND;
-  }
-
-  /**
    * Constructs a new instance that enqueues the {@link Task} submitted via
    * {@link #execute(Task)} immediately.
    *

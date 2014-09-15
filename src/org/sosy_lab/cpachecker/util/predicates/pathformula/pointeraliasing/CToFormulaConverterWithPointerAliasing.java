@@ -162,7 +162,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
   }
 
-  public static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
+  static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
       throws UnrecognizedCCodeException {
     if (e.isPointerDereference()) {
       final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());

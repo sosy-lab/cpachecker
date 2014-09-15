@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
@@ -69,10 +70,10 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   private final PathCondition condition;
 
   private final AbstractDomain domain = new FlatLatticeDomain();
-  private final TransferRelation transfer = new TransferRelation() {
+  private final TransferRelation transfer = new SingleEdgeTransferRelation() {
       @Override
-      public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
-          CFAEdge pCfaEdge) {
+      public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+          AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
         return Collections.singleton(condition.getAbstractSuccessor(pElement, pCfaEdge));
       }
 

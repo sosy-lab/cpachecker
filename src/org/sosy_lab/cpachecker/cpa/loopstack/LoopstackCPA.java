@@ -44,12 +44,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,12 +63,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableCollection;
 
 @Options(prefix="cpa.loopstack")
 public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
@@ -119,7 +119,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     functionNames.add(pNode.getFunctionName());
     functionNames.add(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     for (String functionName : functionNames) {
-      ImmutableCollection<Loop> loops = cfa.getLoopStructure().get().get(functionName);
+      Collection<Loop> loops = cfa.getLoopStructure().get().getLoopsForFunction(functionName);
       if (loops != null) {
         for (Loop l : loops) {
           if (l.getLoopNodes().contains(pNode)) {
@@ -317,7 +317,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   }
 
-  private static class DelegatingTransferRelation implements TransferRelation {
+  private static class DelegatingTransferRelation extends SingleEdgeTransferRelation {
 
     private TransferRelation delegate = null;
 
@@ -334,10 +334,11 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     }
 
     @Override
-    public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-        CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+        AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+            throws CPATransferException, InterruptedException {
       Preconditions.checkState(delegate != null);
-      return this.delegate.getAbstractSuccessors(pState, pPrecision, pCfaEdge);
+      return this.delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
     }
 
     @Override

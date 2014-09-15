@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCo
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -258,7 +258,7 @@ public class ApronInterpolator {
   private ValueAnalysisState getInitialSuccessor(ValueAnalysisState initialState, CFAEdge initialEdge)
       throws CPATransferException {
 
-    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,
         precision,
         initialEdge);
@@ -284,7 +284,7 @@ public class ApronInterpolator {
         continue;
       }
 
-      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+      Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         state,
         precision,
         currentEdge);
@@ -369,7 +369,7 @@ public class ApronInterpolator {
    * This method initializes the loop-information which is used during interpolation.
    */
   private void initializeLoopInformation() {
-    for (Loop l : cfa.getLoopStructure().get().values()) {
+    for (Loop l : cfa.getLoopStructure().get().getAllLoops()) {
       for (CFAEdge currentEdge : l.getOutgoingEdges()) {
         if (currentEdge instanceof CAssumeEdge) {
           loopExitAssumes.add((CAssumeEdge)currentEdge);

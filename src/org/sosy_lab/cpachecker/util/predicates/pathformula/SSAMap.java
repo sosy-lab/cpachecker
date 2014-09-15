@@ -127,7 +127,7 @@ public class SSAMap implements Serializable {
       return varTypes.get(name);
     }
 
-    public void setIndex(String name, CType type, int idx) {
+    public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
@@ -147,9 +147,11 @@ public class SSAMap implements Serializable {
         }
         varsHashCode += mapEntryHashCode(name, idx);
       }
+
+      return this;
     }
 
-    public void deleteVariable(String variable) {
+    public SSAMapBuilder deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
@@ -157,6 +159,8 @@ public class SSAMap implements Serializable {
 
         varTypes = varTypes.removeAndCopy(variable);
       }
+
+      return this;
     }
 
     public SortedSet<String> allVariables() {

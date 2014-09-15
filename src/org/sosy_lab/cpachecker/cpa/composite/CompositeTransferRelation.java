@@ -72,29 +72,36 @@ public class CompositeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<CompositeState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
+  public Collection<CompositeState> getAbstractSuccessors(
+      AbstractState element, Precision precision)
         throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
 
-    if (cfaEdge == null) {
-      AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
-      if (locState == null) {
-        throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
-      }
-
-      results = new ArrayList<>(2);
-
-      for (CFAEdge edge : locState.getOutgoingEdges()) {
-        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
-      }
-
-    } else {
-      results = new ArrayList<>(1);
-      getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
-
+    AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
+    if (locState == null) {
+      throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
     }
+
+    results = new ArrayList<>(2);
+
+    for (CFAEdge edge : locState.getOutgoingEdges()) {
+      getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+    }
+
+    return results;
+  }
+
+  @Override
+  public Collection<CompositeState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+        throws CPATransferException, InterruptedException {
+    CompositeState compositeState = (CompositeState) element;
+    CompositePrecision compositePrecision = (CompositePrecision)precision;
+
+    Collection<CompositeState> results = new ArrayList<>(1);
+    getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     return results;
   }
@@ -114,7 +121,8 @@ public class CompositeTransferRelation implements TransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, cfaEdge);
+      Collection<? extends AbstractState> componentSuccessors =
+          lCurrentTransfer.getAbstractSuccessorsForEdge(lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {

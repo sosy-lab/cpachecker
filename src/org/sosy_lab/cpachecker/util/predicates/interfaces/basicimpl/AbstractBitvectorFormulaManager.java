@@ -438,6 +438,40 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
   protected abstract TFormulaInfo extend(TFormulaInfo pNumber, int pExtensionBits, boolean pSigned) ;
 
+  @Override
+  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
+    TFormulaInfo param = extractInfo(pBits);
+    return isShiftRight(param, signed);
+  }
+  protected abstract boolean isShiftRight(TFormulaInfo pParam, boolean signed) ;
+
+  @Override
+  public boolean isShiftLeft(BitvectorFormula pBits) {
+    TFormulaInfo param = extractInfo(pBits);
+    return isShiftLeft(param);
+  }
+  protected abstract boolean isShiftLeft(TFormulaInfo pParam) ;
+
+  @Override
+  public boolean isConcat(BitvectorFormula pBits) {
+    TFormulaInfo param = extractInfo(pBits);
+    return isConcat(param);
+  }
+  protected abstract boolean isConcat(TFormulaInfo pParam) ;
+
+  @Override
+  public boolean isExtract(BitvectorFormula pBits) {
+    TFormulaInfo param = extractInfo(pBits);
+    return isExtract(param);
+  }
+  protected abstract boolean isExtract(TFormulaInfo pParam) ;
+
+  @Override
+  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
+    TFormulaInfo param = extractInfo(pBits);
+    return isExtend(param, signed);
+  }
+  protected abstract boolean isExtend(TFormulaInfo pParam, boolean signed) ;
 
   @Override
   public int getLength(BitvectorFormula pNumber) {

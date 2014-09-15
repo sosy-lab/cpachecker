@@ -104,7 +104,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import apron.DoubleScalar;
 import apron.Interval;
@@ -122,7 +123,6 @@ import apron.Texpr0UnNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Multimap;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, IApronPrecision> {
 
@@ -156,10 +156,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
     }
 
-    Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+    LoopStructure loops = cfa.getLoopStructure().get();
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
-    for (Loop l : loops.values()) {
+    for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
           builder.addAll(l.getLoopHeads());
     }
@@ -169,7 +169,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
   boolean done = false;
 
   @Override
-  public Collection<ApronState> getAbstractSuccessors(
+  public Collection<ApronState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 

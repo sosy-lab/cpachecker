@@ -1251,10 +1251,21 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
+    // Do post processing
+    final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
+    for (ValueAnalysisState rawResult : result) {
+      // The original state has already been post-processed
+      if (rawResult == element) {
+        postProcessedResult.add(element);
+      } else {
+        postProcessedResult.addAll(postProcessing(rawResult));
+      }
+    }
+
     super.resetInfo();
     oldState = null;
 
-    return result;
+    return postProcessedResult;
   }
 
   private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {

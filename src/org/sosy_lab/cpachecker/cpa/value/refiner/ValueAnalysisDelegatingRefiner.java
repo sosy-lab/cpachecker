@@ -287,16 +287,16 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
-    ValueAnalysisPrecision refinedValueAnalysisPrecision;
+    Multimap<CFANode, MemoryLocation> increment;
     Pair<ARGState, CFAEdge> refinementRoot;
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
-      refinementRoot                = errorPath.get(1);
-      refinedValueAnalysisPrecision = staticRefiner.extractPrecisionFromCfa(reachedSet, errorPath);
-      initialStaticRefinementDone   = true;
+      initialStaticRefinementDone = true;
+      refinementRoot              = errorPath.get(1);
+      increment                   = staticRefiner.extractPrecisionIncrementFromCfa(errorPath);
     } else {
-      Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-      refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+      increment       = interpolatingRefiner.determinePrecisionIncrement(errorPath);
+      refinementRoot  = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
       // no increment - value-analysis refinement was not successful
       if (increment.isEmpty()) {
@@ -307,18 +307,16 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
         refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
       }
+    }
 
-      //      if (valueAnalysisPrecision != null) { // TODO ValueAnalysisRefiner without ValueAnalysisPresicion, possible?
-      refinedValueAnalysisPrecision  = new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
-      refinedPrecisions.add(refinedValueAnalysisPrecision);
-      newPrecisionTypes.add(ValueAnalysisPrecision.class);
-      //      }
+    ValueAnalysisPrecision refinedValueAnalysisPrecision  = new ValueAnalysisPrecision(valueAnalysisPrecision, increment);
+    refinedPrecisions.add(refinedValueAnalysisPrecision);
+    newPrecisionTypes.add(ValueAnalysisPrecision.class);
 
-      if (bddPrecision != null) {
-        BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-        refinedPrecisions.add(refinedBDDPrecision);
-        newPrecisionTypes.add(BDDPrecision.class);
-      }
+    if (bddPrecision != null) {
+      BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
+      refinedPrecisions.add(refinedBDDPrecision);
+      newPrecisionTypes.add(BDDPrecision.class);
     }
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, valueAnalysisPrecision, refinedValueAnalysisPrecision)) {

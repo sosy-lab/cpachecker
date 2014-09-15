@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -38,13 +39,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * not produce any successors, for other edges it returns the singleton edge
  * exclusion (top) state.
  */
-enum EdgeExclusionTransferRelation implements TransferRelation {
+class EdgeExclusionTransferRelation extends SingleEdgeTransferRelation {
 
-  INSTANCE;
+  static final TransferRelation INSTANCE = new EdgeExclusionTransferRelation();
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
     assert pState == EdgeExclusionState.TOP;
     EdgeExclusionPrecision precision = (EdgeExclusionPrecision) pPrecision;
     if (precision.isExcluded(pCfaEdge)) {

@@ -32,7 +32,7 @@ import com.google.common.collect.Iterables;
 
 public class FileLocation {
 
-  private final int endineLine;
+  private final int endingLine;
   private final String fileName;
   private final String niceFileName;
   private final int length;
@@ -40,14 +40,14 @@ public class FileLocation {
   private final int startingLine;
   private final int startingLineInOrigin;
 
-  public FileLocation(int pEndineLine, String pFileName, int pLength,
+  public FileLocation(int pEndingLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
-    this(pEndineLine, pFileName, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+    this(pEndingLine, pFileName, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
   }
 
-  public FileLocation(int pEndineLine, String pFileName, String pNiceFileName,
+  public FileLocation(int pEndingLine, String pFileName, String pNiceFileName,
       int pLength, int pOffset, int pStartingLine, int pStartingLineInOrigin) {
-    endineLine = pEndineLine;
+    endingLine = pEndingLine;
     fileName = checkNotNull(pFileName);
     niceFileName = checkNotNull(pNiceFileName);
     length = pLength;
@@ -106,7 +106,7 @@ public class FileLocation {
   }
 
   public int getEndingLineNumber() {
-    return endineLine;
+    return endingLine;
   }
 
   public String getFileName() {
@@ -132,7 +132,7 @@ public class FileLocation {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + endineLine;
+    result = prime * result + endingLine;
     result = prime * result + Objects.hashCode(fileName);
     result = prime * result + length;
     result = prime * result + offset;
@@ -155,7 +155,7 @@ public class FileLocation {
 
     FileLocation other = (FileLocation) obj;
 
-    return other.endineLine == endineLine
+    return other.endingLine == endingLine
             && other.startingLine == startingLine
             && other.length == length
             && other.offset == offset
@@ -167,11 +167,11 @@ public class FileLocation {
     String prefix = niceFileName.isEmpty()
         ? ""
         : niceFileName + ", ";
-    if (startingLine == endineLine) {
+    if (startingLine == endingLine) {
       return prefix + "line " + startingLineInOrigin;
     } else {
       // TODO ending line number could be wrong
-      return prefix + "lines " + startingLineInOrigin + "-" + (endineLine-startingLine+startingLineInOrigin);
+      return prefix + "lines " + startingLineInOrigin + "-" + (endingLine -startingLine+startingLineInOrigin);
     }
   }
 }

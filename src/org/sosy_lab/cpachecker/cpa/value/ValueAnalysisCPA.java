@@ -174,7 +174,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
-      return new ValueAnalysisStaticRefiner(config, logger, precision);
+      return new ValueAnalysisStaticRefiner(config, logger);
     }
 
     return null;
@@ -326,7 +326,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
       Collection<? extends AbstractState> computedSuccessors =
-          transferRelation.getAbstractSuccessors(
+          transferRelation.getAbstractSuccessorsForEdge(
               pState, SingletonPrecision.getInstance(), pCfaEdge);
       boolean found;
       for (AbstractState comp:computedSuccessors) {

@@ -46,6 +46,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if 'SSSAFE' in output:
             status = result.STATUS_TRUE_PROP
         elif 'UNSAFE' in output:

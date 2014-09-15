@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.invariants.GraphUtil;
 import org.sosy_lab.cpachecker.util.invariants.choosers.SingleLoopTemplateChooser;
 import org.sosy_lab.cpachecker.util.invariants.choosers.TemplateChooser;
@@ -148,7 +148,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     SortedSet<CFANode> nodes = new TreeSet<>(getAllNodes());
     // Now ask CFAUtils to find any and all the loops in the counterexample path.
     try {
-      Collection<Loop> loops = CFAUtils.findLoops(nodes, Language.C);
+      Collection<Loop> loops = LoopStructure.findLoops(nodes, Language.C);
 
       if (loops.size() > 1) {
         // there are too many loops

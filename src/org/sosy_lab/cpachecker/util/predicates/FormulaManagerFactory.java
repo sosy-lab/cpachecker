@@ -61,6 +61,9 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessInterpolatingProver;
+import org.sosy_lab.cpachecker.util.predicates.princess.PrincessTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3OptProver;
@@ -75,6 +78,7 @@ public class FormulaManagerFactory {
     MATHSAT5,
     SMTINTERPOL,
     Z3,
+    PRINCESS
     ;
   }
 
@@ -155,6 +159,9 @@ public class FormulaManagerFactory {
           }
         }
 
+      case PRINCESS:
+        return PrincessFormulaManager.create(config, logger, shutdownNotifier, logfile);
+
       default:
         throw new AssertionError("no solver selected");
       }
@@ -182,6 +189,9 @@ public class FormulaManagerFactory {
       break;
     case Z3:
       pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      break;
+    case PRINCESS:
+      pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);
       break;
     default:
       throw new AssertionError("no solver selected");
@@ -233,6 +243,9 @@ public class FormulaManagerFactory {
       break;
     case Z3:
       ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+      break;
+    case PRINCESS:
+      ipe = new PrincessInterpolatingProver((PrincessFormulaManager) fmgr);
       break;
     default:
       throw new AssertionError("no solver selected");

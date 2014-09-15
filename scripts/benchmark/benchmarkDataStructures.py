@@ -584,10 +584,20 @@ class Run():
         return args;
 
 
-    def afterExecution(self, returnvalue, output, forceTimeout=False):
+    def afterExecution(self, returnvalue, forceTimeout=False):
 
         rlimits = self.runSet.benchmark.rlimits
         isTimeout = forceTimeout or self._isTimeout()
+
+        # read output
+        try:
+            with open(self.logFile, 'rt') as outputFile:
+                output = outputFile.readlines()
+                # first 6 lines are for logging, rest is output of subprocess, see runexecutor.py for details
+                output = output[6:]
+        except IOError as e:
+            logging.warning("Cannot read log file: " + e.strerror)
+            output = []
 
         if returnvalue is not None:
             # calculation: returnvalue == (returncode * 256) + returnsignal
@@ -613,7 +623,7 @@ class Run():
                 and MEMLIMIT in rlimits \
                 and 'memUsage' in self.values \
                 and not self.values['memUsage'] is None \
-                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.999):
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.99):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 

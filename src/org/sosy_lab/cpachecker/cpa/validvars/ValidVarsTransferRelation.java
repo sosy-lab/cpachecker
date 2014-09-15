@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ValidVarsTransferRelation implements TransferRelation{
+public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
 
   private final TransferRelation wrappedTransfer;
 
@@ -54,8 +55,9 @@ public class ValidVarsTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
 
     ValidVarsState state = (ValidVarsState)pState;
     ValidVars validVariables = state.getValidVariables();
@@ -68,7 +70,7 @@ public class ValidVarsTransferRelation implements TransferRelation{
       for (CFAEdge edge: ((MultiEdge)pCfaEdge).getEdges()) {
         successors = new ArrayList<>();
         for (AbstractState predState: predecessors) {
-          successors.addAll(getAbstractSuccessors(predState, pPrecision, edge));
+          successors.addAll(getAbstractSuccessorsForEdge(predState, pPrecision, edge));
         }
 
         predecessors = successors;
@@ -101,7 +103,7 @@ public class ValidVarsTransferRelation implements TransferRelation{
     }
       // consider successors of wrapped state
       Collection<? extends AbstractState> wrappedSuccessors =
-          wrappedTransfer.getAbstractSuccessors(state.getWrappedState(), pPrecision, pCfaEdge);
+          wrappedTransfer.getAbstractSuccessorsForEdge(state.getWrappedState(), pPrecision, pCfaEdge);
 
     if (wrappedSuccessors == null || wrappedSuccessors.size() == 0) { return Collections.emptySet(); }
 

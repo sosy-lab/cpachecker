@@ -274,4 +274,9 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   substitute(T1 f, List<T2> changeFrom, List<T2> changeTo) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public Formula simplify(Formula pF) {
+    throw new UnsupportedOperationException();
+  }
 }

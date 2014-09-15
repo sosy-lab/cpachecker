@@ -170,12 +170,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     // refinement
     OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(errorPath);
 
-    // we cannot rely on the results of the feasibility check if it was interrupted
-    // this we report a spurious counterexample
-    if (octChecker.wasInterrupted()) {
-      return CounterexampleInfo.spurious();
-    }
-
     if (!octChecker.isFeasible()) {
       if (performOctagonAnalysisRefinement(reached, octChecker)) {
         existsExplicitOctagonRefinement = true;
