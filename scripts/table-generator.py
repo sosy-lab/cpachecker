@@ -484,7 +484,7 @@ def mergeFilelists(runSetResults, filenames):
             fileResult = dic.get(filename)
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
-                fileResultset('logfile', None)
+                fileResult.set('logfile', None)
                 fileResult.set('name', filename)
                 print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
