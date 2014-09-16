@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="10" hardtimelimit="30">
+<benchmark tool="cpachecker" timelimit="10" hardtimelimit="30" memlimit="500" cpuCores="1">
 
   <option name="-noout"/>
   <option name="-heap">150M</option>
