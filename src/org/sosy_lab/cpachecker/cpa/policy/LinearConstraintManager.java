@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
@@ -52,7 +52,7 @@ import com.google.common.base.Preconditions;
 public class LinearConstraintManager {
 
   private final BooleanFormulaManagerView bfmgr;
-  private final NumeralFormulaManager<
+  private final NumeralFormulaManagerView<
       NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
   private final LogManager logger;
 
@@ -126,10 +126,8 @@ public class LinearConstraintManager {
       ExtendedRational coeff = entry.getValue();
       String origVarName = entry.getKey();
 
-      // Return the variable name according to the SSA map.
-      String varName = customPrefix + FormulaManagerView.makeName(
-          origVarName, pSSAMap.getIndex(origVarName)
-      );
+      // The variable name for the formula
+      String varName = customPrefix + origVarName;
       NumeralFormula item;
       if (coeff.getType() != ExtendedRational.NumberType.RATIONAL) {
         throw new UnsupportedOperationException(
@@ -137,12 +135,12 @@ public class LinearConstraintManager {
       } else if (coeff.equals(ExtendedRational.ZERO)) {
         continue;
       } else if (coeff.equals(ExtendedRational.ONE)) {
-        item = rfmgr.makeVariable(varName);
+        item = rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName));
       } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
-        item = rfmgr.negate(rfmgr.makeVariable(varName));
+        item = rfmgr.negate(rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName)));
       } else {
         item = rfmgr.multiply(
-            rfmgr.makeVariable(varName),
+            rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName)),
             rfmgr.makeNumber(entry.getValue().toString())
         );
       }

@@ -255,13 +255,11 @@ public class ValueDeterminationFormulaManager {
       }
 
       fromVars.add(
-          rfmgr.makeVariable(formulaVarName(varName, oldIdx, ""))
+          rfmgr.makeVariable(formulaVarName(varName, ""), oldIdx)
       );
 
       toVars.add(
-          rfmgr.makeVariable(
-              formulaVarName(varName, newIdx, customPrefix)
-          )
+          rfmgr.makeVariable(formulaVarName(varName, customPrefix), newIdx)
       );
     }
 
@@ -276,10 +274,8 @@ public class ValueDeterminationFormulaManager {
         p.getLength());
   }
 
-  private String formulaVarName(String variable, int idx, String namespace) {
-    return String.format(
-        "%s%s", namespace, FormulaManagerView.makeName(variable, idx)
-    );
+  private String formulaVarName(String variable, String namespace) {
+    return String.format("%s%s", namespace, variable);
   }
 
   /**
