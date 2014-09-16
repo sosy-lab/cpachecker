@@ -70,6 +70,7 @@ public class ErrorPathClassifier {
     MEDIAN,
     MIDDLE,
     BEST,
+    BEST_RERS14,
     WORST
   }
 
@@ -95,6 +96,9 @@ public class ErrorPathClassifier {
 
     case BEST:
       return obtainBestPrefix(pPrefixes);
+
+    case BEST_RERS14:
+      return obtainBestPrefixRers14(pPrefixes);
 
     case WORST:
       return obtainWorstPrefix(pPrefixes);
@@ -170,6 +174,36 @@ public class ErrorPathClassifier {
   }
 
   public MutableARGPath obtainBestPrefix(List<MutableARGPath> pPrefixes) {
+
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
+
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Long bestScore                  = null;
+    int bestIndex                   = 0;
+
+    for (MutableARGPath currentPrefix : pPrefixes) {
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(currentPrefix);
+
+      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+
+      Long score = obtainScoreForVariables(useDefinitionInformation);
+
+      // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
+      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
+      if (bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+    }
+
+    return buildPath(bestIndex, pPrefixes);
+  }
+
+  public MutableARGPath obtainBestPrefixRers14(List<MutableARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);

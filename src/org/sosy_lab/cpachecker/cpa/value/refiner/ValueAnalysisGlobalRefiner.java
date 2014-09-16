@@ -218,8 +218,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
             memloc = MemoryLocation.valueOf(functionName, id.getName(), 0);
           }
 
-          if(VariableClassification.memLocInAssign.containsKey(memloc)
-              && VariableClassification.memLocInAssign.get(memloc) < 100) {
+          if(!VariableClassification.memLocInAssign.containsKey(memloc)) {
+            staticCandidates.add(memloc);
+          }
+
+          else if(VariableClassification.memLocInAssign.get(memloc) < 100) {
             staticCandidates.add(memloc);
           }
         }
