@@ -220,14 +220,11 @@ public class ErrorPathClassifier {
 
       currentErrorPath.addAll(currentPrefix);
 
-      //Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
-
       CIdExpressionCollectingVisitor visitor = new CIdExpressionCollectingVisitor();
 
       Set<CIdExpression> exprs = ((CAssumeEdge)currentPrefix.getLast().getSecond()).getExpression().accept(visitor);
 
-      Long score/* = obtainScoreForVariables(useDefinitionInformation)*/;
-      score = 0L;
+      Long score = 0L;
 
       String functionName = currentPrefix.getLast().getSecond().getPredecessor().getFunctionName();
       for(CIdExpression id : exprs) {
@@ -244,15 +241,18 @@ public class ErrorPathClassifier {
           score = score + VariableClassification.memLocInAssign.get(memloc);
         }
 
+        // penalty for cf flag ...
         if(id.getName().equals("cf")) {
           //score = Long.MAX_VALUE / 2; // half, to avoid overflow
         }
 
+        // and input variables
         else if(id.getName().contains("input")) {
           score = Long.MAX_VALUE / 2; // half, to avoid overflow
         }
       }
 
+      // penalty for variables not guarding the error location
       if(currentPrefix.getLast().getSecond().getLineNumber() != lastFailingAssume.getLineNumber()) {
         score = score + 15;
       }
