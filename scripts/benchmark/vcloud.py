@@ -266,8 +266,13 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
             dataFile = run.logFile + ".data"
             if os.path.exists(dataFile):
-                outputHandler.allCreatedFiles.append(dataFile)
-                run.values.update(parseCloudRunResultFile(dataFile))
+                try:
+                    run.values.update(parseCloudRunResultFile(dataFile))
+                    os.remove(dataFile)
+                except IOError as e:
+                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
+                                    outputHandler.formatSourceFileName(run.identifier), e))
+                    outputHandler.allCreatedFiles.append(dataFile)
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
