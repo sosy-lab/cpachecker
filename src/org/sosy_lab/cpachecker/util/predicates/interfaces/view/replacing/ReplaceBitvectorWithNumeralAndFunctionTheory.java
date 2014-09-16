@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
 
@@ -71,14 +72,21 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     this.functionManager = rawFunctionManager;
 
     formulaType = pNumericFormulaManager.getFormulaType();
-    bitwiseAndUfDecl = functionManager.createFunction(BitwiseAndUfName, formulaType, formulaType, formulaType);
-    bitwiseOrUfDecl = functionManager.createFunction(BitwiseOrUfName, formulaType, formulaType, formulaType);
-    bitwiseXorUfDecl = functionManager.createFunction(BitwiseXorUfName, formulaType, formulaType, formulaType);
-    bitwiseNotUfDecl = functionManager.createFunction(BitwiseNotUfName, formulaType, formulaType);
+    bitwiseAndUfDecl = createBinaryFunction(BitwiseAndUfName);
+    bitwiseOrUfDecl = createBinaryFunction(BitwiseOrUfName);
+    bitwiseXorUfDecl = createBinaryFunction(BitwiseXorUfName);
+    bitwiseNotUfDecl = createUnaryFunction(BitwiseNotUfName);
 
+    leftShiftUfDecl = createBinaryFunction("_<<_");
+    rightShiftUfDecl = createBinaryFunction("_>>_");
+  }
 
-    leftShiftUfDecl = functionManager.createFunction("_<<_", formulaType, formulaType, formulaType);
-    rightShiftUfDecl = functionManager.createFunction("_>>_", formulaType, formulaType, formulaType);
+  private FunctionFormulaType<T> createUnaryFunction(String name) {
+    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
+  }
+
+  private FunctionFormulaType<T> createBinaryFunction(String name) {
+    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
@@ -106,7 +114,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<T> value = extractMethods.get(hasKey);
     if (value == null) {
-      value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, formulaType);
+      value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
       extractMethods.put(hasKey, value);
     }
     return value;
@@ -118,7 +126,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
     FunctionFormulaType<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, formulaType);
+      value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
@@ -133,13 +141,13 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     if (pSigned) {
       value = extendSignedMethods.get(hasKey);
       if (value == null) {
-        value = functionManager.createFunction("_extendSigned("+ extensionBits + ")_", formulaType, formulaType);
+        value = createUnaryFunction("_extendSigned("+ extensionBits + ")_");
         extendSignedMethods.put(hasKey, value);
       }
     } else {
       value = extendUnsignedMethods.get(hasKey);
       if (value == null) {
-        value = functionManager.createFunction("_extendUnsigned("+ extensionBits + ")_", formulaType, formulaType);
+        value = createUnaryFunction("_extendUnsigned("+ extensionBits + ")_");
         extendUnsignedMethods.put(hasKey, value);
       }
     }
