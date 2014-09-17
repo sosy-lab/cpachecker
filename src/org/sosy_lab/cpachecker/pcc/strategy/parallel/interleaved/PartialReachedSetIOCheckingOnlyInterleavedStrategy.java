@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -46,18 +45,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
@@ -85,12 +86,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    AtomicBoolean checkResult = new AtomicBoolean(true);
+    final AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionsAvailable = new Semaphore(0);
 
-    List<AbstractState> certificate = new ArrayList<>(ioHelper.getSavedReachedSetSize());
     Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new HashSet<>();
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getSavedReachedSetSize());
 
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
@@ -100,11 +101,20 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     try {
       readingThread.start();
 
-      int index;
-      AbstractState checkedState;
-      Collection<? extends AbstractState> successors;
+      PartitioningCheckingHelper checkInfo = new PartitioningCheckingHelper() {
+        @Override
+        public int getCurrentCertificateSize() {
+          return 0;
+        }
 
-      Multimap<CFANode, AbstractState> coveringInCurrentPartition = HashMultimap.create();
+        @Override
+        public void abortCheckingPreparation() {
+          checkResult.set(false);
+        }
+      };
+      PartitionChecker checker =
+          new PartitionChecker(initPrec, cpa.getStopOperator(), cpa.getTransferRelation(), ioHelper, checkInfo,
+              shutdownNotifier, logger);
 
       for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
         partitionsAvailable.acquire();
@@ -113,56 +123,15 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
           return false;
         }
 
-        index = certificate.size();
-        coveringInCurrentPartition.clear();
-
-        // add nodes of partition
-        addToCurrentCoveringNodes(coveringInCurrentPartition, ioHelper.getPartition(i).getFirst());
-        inPartition.putAll(coveringInCurrentPartition);
-        for (AbstractState checkState : ioHelper.getPartition(i).getFirst()) {
-          certificate.add(checkState);
-        }
-
-        // add adjacent nodes of other partition
-        addToCurrentCoveringNodes(coveringInCurrentPartition, ioHelper.getPartition(i).getSecond());
-        for (AbstractState state : ioHelper.getPartition(i).getSecond()) {
-          inOtherPartition.add(state);
-        }
-
-        while (index < certificate.size() && checkResult.get()) {
-          shutdownNotifier.shutdownIfNecessary();
-
-          checkedState = certificate.get(index++);
-
-          // compute successors
-          try {
-            successors = cpa.getTransferRelation().getAbstractSuccessors(checkedState, initPrec);
-
-
-            for (AbstractState successor : successors) {
-              // check if covered
-              if (!cpa.getStopOperator().stop(successor,
-                  coveringInCurrentPartition.get(AbstractStates.extractLocation(successor)), initPrec)) {
-                certificate.add(successor);
-                if (certificate.size() > ioHelper.getSavedReachedSetSize()) {
-                  logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
-                  return false;
-                }
-              }
-            }
-          } catch (CPATransferException | InterruptedException e) {
-            logger.log(Level.SEVERE, "Checking failed, successor computation failed");
-            return false;
-          } catch (CPAException e) {
-            logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
-            return false;
-          }
-
-        }
-
+        checker.checkPartition(i);
+        checker.addCertificatePartsToCertificate(certificate);
+        checker.clearPartitionElementsSavedForInspection();
       }
 
       if (!checkResult.get()) { return false; }
+
+      checker.addPartitionElements(inPartition);
+      checker.addElementsCheckedInOtherPartitions(inOtherPartition);
 
       logger.log(Level.INFO, "Check if all are checked");
       for (AbstractState outState : inOtherPartition) {
@@ -196,15 +165,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     } finally {
       checkResult.set(false);
       readingThread.interrupt();
-    }
-  }
-
-  private void addToCurrentCoveringNodes(Multimap<CFANode, AbstractState> coveringInCurrentPartition,
-      AbstractState[] nodes) {
-    CFANode node;
-    for (AbstractState internalNode : nodes) {
-      node = AbstractStates.extractLocation(internalNode);
-      coveringInCurrentPartition.put(node, internalNode);
     }
   }
 

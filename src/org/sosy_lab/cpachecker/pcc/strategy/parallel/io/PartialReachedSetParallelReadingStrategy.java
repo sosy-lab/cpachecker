@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -50,7 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitonChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -90,7 +91,10 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
+    AtomicInteger availablePartitions = new AtomicInteger(0);
+    AtomicInteger id = new AtomicInteger(0);
     Semaphore partitionChecked = new Semaphore(0);
+    Semaphore readPartitions = new Semaphore(ioHelper.getNumPartitions());
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
@@ -98,11 +102,13 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(enableParallelCheck ? numThreads : 1);
+    int threads = enableParallelCheck ? numThreads : 1;
+    ExecutorService executor = Executors.newFixedThreadPool(threads);
     try {
-      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
-            partitionNodes, initPrec, cpa, lock, ioHelper, shutdownNotifier, logger));
+      for (int i = 0; i < threads; i++) {
+        executor.execute(new ParallelPartitonChecker(availablePartitions, id, checkResult, readPartitions,
+            partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
+                .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
@@ -171,11 +177,12 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     try {
       AtomicBoolean success = new AtomicBoolean(true);
+      AtomicInteger nextId = new AtomicInteger(0);
       Semaphore waitRead = new Semaphore(0);
       int numPartition = ioHelper.getNumPartitions();
 
-      for (int i = 0; i < numPartition; i++) {
-        executor.execute(new ParallelPartitionReader(i, success, waitRead, this, ioHelper, true, stats));
+      for (int i = 0; i < numThreads; i++) {
+        executor.execute(new ParallelPartitionReader(success,waitRead, nextId, this, ioHelper, stats));
       }
 
       try {

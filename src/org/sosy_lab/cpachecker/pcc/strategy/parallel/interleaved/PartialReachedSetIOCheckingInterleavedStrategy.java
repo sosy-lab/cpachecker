@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -45,6 +45,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -55,8 +56,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitonChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -64,14 +65,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-
+@Options(prefix = "pcc.interleaved")
 public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
-  private final Condition partitionReady = lock.newCondition();
 
   public PartialReachedSetIOCheckingInterleavedStrategy(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa)
@@ -81,6 +81,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
     addPCCStatistic(ioHelper.getPartitioningStatistc());
+
   }
 
   @Override
@@ -93,6 +94,9 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
+    AtomicInteger nextId = new AtomicInteger(0);
+    AtomicInteger availableForChecking =new AtomicInteger(0);
+    Semaphore partitionsRead = new Semaphore(0);
     Semaphore partitionChecked = new Semaphore(0);
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
@@ -101,12 +105,13 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
    logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, numThreads-1));
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     try {
-      executor.execute(new PartitionReader(checkResult, partitionChecked));
-      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
-            inPartition, initPrec, cpa, lock, partitionReady, ioHelper, shutdownNotifier, logger));
+      executor.execute(new PartitionReader(checkResult, partitionsRead, partitionChecked));
+      for (int i = 0; i < numThreads; i++) {
+        executor.execute(new ParallelPartitonChecker(availableForChecking, nextId, checkResult, partitionsRead,
+            partitionChecked, lock, ioHelper, inPartition, certificate, inOtherPartition, initPrec, cpa
+                .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
@@ -163,32 +168,19 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   @Override
   protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
-    ioHelper.readMetadata(pIn, true);
-  }
-
-  private void giveSignal() {
-    lock.lock();
-    try {
-      partitionReady.signalAll();
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  private void giveSignalAndPrepareAbortion(final AtomicBoolean pValue, final Semaphore pForRelease) {
-    pValue.set(false);
-    giveSignal();
-    pForRelease.release(ioHelper.getNumPartitions());
   }
 
   private class PartitionReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore;
+    private final Semaphore partitionsRead;
+    private final Semaphore checkedPartitions;
 
-    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
+    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionsRead,
+        final Semaphore pCheckedPartitions) {
       checkResult = pCheckResult;
-      mainSemaphore = pPartitionChecked;
+      partitionsRead = pPartitionsRead;
+      checkedPartitions = pCheckedPartitions;
     }
 
     @Override
@@ -201,18 +193,18 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
           ioHelper.readPartition(o, stats);
           if (shutdownNotifier.shouldShutdown()) {
-            abortPreparation();
+            abort();
             break;
           }
-          giveSignal();
+          partitionsRead.release();
         }
       } catch (IOException | ClassNotFoundException e) {
         logger.log(Level.SEVERE, "Partition reading failed. Stop checking");
-        abortPreparation();
+        abort();
       } catch (Exception e2) {
         logger.log(Level.SEVERE, "Unexpected failure during proof reading");
         e2.printStackTrace();
-        abortPreparation();
+        abort();
       } finally {
         if (streams != null) {
           try {
@@ -225,8 +217,10 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
       }
     }
 
-    private void abortPreparation() {
-      giveSignalAndPrepareAbortion(checkResult, mainSemaphore);
+    private void abort() {
+      checkResult.set(false);
+      partitionsRead.release(ioHelper.getNumPartitions());
+      checkedPartitions.release(ioHelper.getNumPartitions());
     }
 
   }
