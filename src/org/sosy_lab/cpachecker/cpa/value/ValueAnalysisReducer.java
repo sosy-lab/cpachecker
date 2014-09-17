@@ -137,7 +137,7 @@ public class ValueAnalysisReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState, CFANode exitLocation) {
 
     ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;

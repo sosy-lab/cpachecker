@@ -471,7 +471,8 @@ public class BAMTransferRelation implements TransferRelation {
     logger.log(Level.ALL, "rebuilding state with root state", rootState);
     logger.log(Level.ALL, "rebuilding state with entry state", entryState);
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
-    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState);
+    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(
+            rootState, entryState, expandedState, extractLocation(expandedState));
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
@@ -484,21 +485,29 @@ public class BAMTransferRelation implements TransferRelation {
     ((ARGState)expandedState).removeFromARG();
     ((ARGState)rebuildState).addParent((ARGState)entryState);
 
+    assert expandedToBlockCache.get(expandedState) == currentBlock : "returning from wrong block?";
+
     // also clean up local data structures
-    assert expandedToReducedCache.containsKey(expandedState) : "expanded state should be part of the cache: " + expandedState;
-    final AbstractState reducedState = expandedToReducedCache.remove(expandedState);
-    expandedToReducedCache.put(rebuildState, reducedState);
-
-    assert expandedToBlockCache.containsKey(expandedState) : "expanded state should be part of the cache: " + expandedState;
-    final Block innerBlock = expandedToBlockCache.remove(expandedState);
-    assert innerBlock == currentBlock : "returning from wrong block?";
-    expandedToBlockCache.put(rebuildState, innerBlock);
-
-    assert forwardPrecisionToExpandedPrecision.containsKey(expandedState) : "expanded state should map to some precision: " + expandedState;
-    final Precision expandedPrecision = forwardPrecisionToExpandedPrecision.remove(expandedState);
-    forwardPrecisionToExpandedPrecision.put(rebuildState, expandedPrecision);
+    replaceStateInCaches(expandedState, rebuildState, true);
 
     return rebuildState;
+  }
+
+  void replaceStateInCaches(AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
+    if (oldStateMustExist || expandedToReducedCache.containsKey(oldState)) {
+      final AbstractState reducedState = expandedToReducedCache.remove(oldState);
+      expandedToReducedCache.put(newState, reducedState);
+    }
+
+    if (oldStateMustExist || expandedToBlockCache.containsKey(oldState)) {
+      final Block innerBlock = expandedToBlockCache.remove(oldState);
+      expandedToBlockCache.put(newState, innerBlock);
+    }
+
+    if (oldStateMustExist || forwardPrecisionToExpandedPrecision.containsKey(oldState)) {
+      final Precision expandedPrecision = forwardPrecisionToExpandedPrecision.remove(oldState);
+      forwardPrecisionToExpandedPrecision.put(newState, expandedPrecision);
+    }
   }
 
   /** Enters a new block and performs a new analysis or returns result from cache. */
