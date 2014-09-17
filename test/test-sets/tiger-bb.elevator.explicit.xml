@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="3700" memlimit="15000" cpuCores="4">
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000M</option>
-  <option name="-config">config/tiger.explicit.0001.properties</option>
+  <option name="-config">config/tiger-explicit-0001.properties</option>
 
   <rundefinition>
     <sourcefiles>
