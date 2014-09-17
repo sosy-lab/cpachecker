@@ -65,6 +65,12 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final ARGCPA cpa;
 
+  @Option(name = "path.file",
+      description = "File name where to put the path specification that is generated "
+      + "as input for the counterexample check. A temporary file is used if this is unspecified.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path specFile;
+
   @Option(name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
@@ -97,23 +103,30 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
-    // This temp file will be automatically deleted when the try block terminates.
-    try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
-
-      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates,
-            "CounterexampleToCheck", cpa.getCounterexamples().get(pErrorState));
+    try {
+      if (specFile != null) {
+        return checkCounterexample(pRootState, pErrorState, pErrorPathStates, specFile);
       }
 
-      return checkCounterexample(pRootState, automatonFile.toPath());
+      // This temp file will be automatically deleted when the try block terminates.
+      try (DeleteOnCloseFile automatonFile = Files.createTempFile("counterexample-automaton", ".txt")) {
+
+        return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
+            automatonFile.toPath());
+      }
 
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
   }
 
-  private boolean checkCounterexample(ARGState pRootState, Path automatonFile)
-      throws CPAException, InterruptedException {
+  private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
+      Path automatonFile) throws IOException, CPAException, InterruptedException {
+
+    try (Writer w = Files.openOutputFile(automatonFile)) {
+      ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates,
+          "CounterexampleToCheck", cpa.getCounterexamples().get(pErrorState));
+    }
 
     CFANode entryNode = extractLocation(pRootState);
 
