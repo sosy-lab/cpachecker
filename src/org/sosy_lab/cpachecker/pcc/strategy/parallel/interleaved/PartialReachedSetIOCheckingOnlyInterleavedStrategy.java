@@ -29,6 +29,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
@@ -89,7 +90,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     List<AbstractState> certificate = new ArrayList<>(ioHelper.getSavedReachedSetSize());
     Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
-    Collection<AbstractState> inOtherPartition = new ArrayList<>();
+    Collection<AbstractState> inOtherPartition = new HashSet<>();
 
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
@@ -108,6 +109,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
         partitionsAvailable.acquire();
 
+        if(!checkResult.get()){
+          return false;
+        }
+
         index = certificate.size();
         coveringInCurrentPartition.clear();
 
@@ -120,6 +125,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
         // add adjacent nodes of other partition
         addToCurrentCoveringNodes(coveringInCurrentPartition, ioHelper.getPartition(i).getSecond());
+        for (AbstractState state : ioHelper.getPartition(i).getSecond()) {
+          inOtherPartition.add(state);
+        }
 
         while (index < certificate.size() && checkResult.get()) {
           shutdownNotifier.shutdownIfNecessary();
