@@ -208,10 +208,12 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
+        if (!ignoreRefInMerge && mergedInterval != reachedState.getInterval(variableName)
+            && newRefCount > reachedState.getReferenceCount(variableName)) {
           changed = true;
+          newReferences = newReferences.putAndCopy(variableName, newRefCount);
         }
-        newReferences = newReferences.putAndCopy(variableName, newRefCount);
+
       } else {
         newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         changed = true;
