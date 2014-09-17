@@ -60,6 +60,9 @@ public interface Reducer {
    * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
    * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
    * @param expandedState expanded state at function-return, before the function-return-dge.
+   * @param exitLocation location of expandedState and also reducedExitState,
+*                     must be the location of rebuildState,
+*                     TODO should be instance of FunctionExitNode?
    *
    *                                             +---------- BLOCK ----------+
    *                                             |                           |
@@ -75,5 +78,6 @@ public interface Reducer {
    *     V     functionReturnEdge  V V V         +---------------------------+
    * returnState <------------  rebuildState
    */
-  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState);
+  AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
+                                              AbstractState expandedState, CFANode exitLocation);
   }
