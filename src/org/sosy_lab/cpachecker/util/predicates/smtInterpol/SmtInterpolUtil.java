@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -102,17 +104,17 @@ class SmtInterpolUtil {
 
   /** converts a term to a number,
    * currently only Double is supported. */
-  public static double toNumber(Term t) {
+  public static Number toNumber(Term t) {
     assert isNumber(t) : "term is not a number: " + t;
 
     // ConstantTerm with Number --> "123"
     if (t instanceof ConstantTerm) {
       Object value = ((ConstantTerm) t).getValue();
       if (value instanceof Number) {
-        return ((Number) value).doubleValue();
+        return (Number) value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational) value;
-        return rat.numerator().divide(rat.denominator()).doubleValue();
+        return new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator()));
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -120,10 +122,20 @@ class SmtInterpolUtil {
       ApplicationTerm at = (ApplicationTerm) t;
 
       if ("-".equals(at.getFunction().getName())) {
-        return - toNumber(at.getParameters()[0]);
-//      } else if ("/".equals(at.getFunction().getName())) {
-//        return toNumber(at.getParameters()[0]) /
-//          toNumber(at.getParameters()[1]);
+        Number value = toNumber(at.getParameters()[0]);
+        if (value instanceof BigDecimal) {
+          return ((BigDecimal)value).negate();
+        } else if (value instanceof BigInteger) {
+          return ((BigInteger)value).negate();
+        } else if (value instanceof Long) {
+          return -value.longValue();
+        } else if (value instanceof Integer) {
+          return -value.intValue();
+        } else if (value instanceof Double) {
+          return -value.doubleValue();
+        } else if (value instanceof Float) {
+          return -value.floatValue();
+        }
       }
     }
 

@@ -83,7 +83,7 @@ abstract class SmtInterpolNumeralFormulaManager
     Term arg = SmtInterpolUtil.getArg(pNumber, 0);
     if (SmtInterpolUtil.isNumber(arg)) {
       // TODO: BUG: possible bug
-      return SmtInterpolUtil.toNumber(arg) == -1;
+      return SmtInterpolUtil.toNumber(arg).doubleValue() == -1;
     }
     return false;
   }
