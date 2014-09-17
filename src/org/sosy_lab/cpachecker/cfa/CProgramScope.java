@@ -58,6 +58,7 @@ import com.google.common.collect.Multimap;
 public class CProgramScope implements Scope {
 
   private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
+  //private final Map<String, CTypeDeclaration> typeDeclarations;
   private Map<String, CSimpleDeclaration> qualifiedDeclarations;
 
   /**
@@ -143,20 +144,34 @@ public class CProgramScope implements Scope {
       }
     };
 
+    //    FluentIterable<CSimpleDeclaration> nonTypeDecls = dcls.filter(Predicates.not(Predicates.instanceOf(CTypeDeclaration.class)));
+    //  FluentIterable<CTypeDeclaration> typeDecls = dcls.filter(CTypeDeclaration.class);
+
     simpleDeclarations = ImmutableListMultimap.copyOf(dcls.index(transformToMultiMap));
 
     //TODO qualified Names not unique?
-    //Function<? super CDeclaration, String> transformToMap = new Function<CDeclaration, String>() {
+    /*Function<? super CSimpleDeclaration, String> transformToMap = new Function<CSimpleDeclaration, String>() {
 
-      //@Override
-      //public String apply(CDeclaration dcl) {
-        //return dcl.getQualifiedName();
-      //}
-    //};
+      @Override
+      public String apply(CSimpleDeclaration dcl) {
+        return dcl.getQualifiedName();
+      }
+    };*/
 
-    //qualifiedDeclarations = dcls.uniqueIndex(transformToMap);
+    //qualifiedDeclarations = nonTypeDecls.uniqueIndex(transformToMap);
+
+    /*Function<? super CTypeDeclaration, String> transformToTypeMap = new Function<CTypeDeclaration, String>() {
+
+      @Override
+      public String apply(CTypeDeclaration dcl) {
+        return dcl.getQualifiedName();
+      }
+    };*/
 
     qualifiedDeclarations = Collections.emptyMap();
+    //typeDeclarations = Collections.emptyMap();
+
+    //typeDeclarations = typeDecls.uniqueIndex(transformToTypeMap);
   }
 
   /**
@@ -165,6 +180,7 @@ public class CProgramScope implements Scope {
   private CProgramScope() {
     qualifiedDeclarations = Collections.emptyMap();
     simpleDeclarations = ImmutableListMultimap.of();
+    //typeDeclarations = ImmutableMap.of();
   }
 
   private boolean hasUniqueDeclarationForSimpleName(String simpleName) {
