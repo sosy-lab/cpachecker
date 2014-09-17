@@ -120,7 +120,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     reducer = new TimedReducer(wrappedReducer);
     final BAMCache cache = new BAMCache(config, reducer);
     transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
-    prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), transfer);
+    prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), transfer, logger);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
 

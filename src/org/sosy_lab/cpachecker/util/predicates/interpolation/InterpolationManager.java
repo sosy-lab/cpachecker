@@ -705,6 +705,9 @@ public final class InterpolationManager {
     return A;
   }
 
+  /** This function implements the paper "Nested Interpolants" with a small modification:
+   * instead of call- and return-edges, we use dummy-edges with simple pathformula "true".
+   * Actually the implementation does not use "true", but omits it completely. */
   private <T> BooleanFormula getNestedInterpolant2(
           final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
           final List<BooleanFormula> interpolants,
@@ -718,17 +721,20 @@ public final class InterpolationManager {
     final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
     final CFANode node = AbstractStates.extractLocation(abstractionState);
 
+    if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+      // && (positionOfA > 0)) {
+      // case 2 from paper
+      final BooleanFormula call = orderedFormulas.get(positionOfA).getFirst();
+      callstack.addLast(Triple.of(lastItp, call, node));
+      logger.log(Level.ALL, "CALL:", call, node);
+      final BooleanFormula itp = bfmgr.makeBoolean(true);
+      interpolants.add(itp);
+      return itp; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
+    }
+
     A.add(itpProver.push(lastItp));
     A.add(itpProver.push(orderedFormulas.get(positionOfA).getFirst()));
     logger.log(Level.ALL, "\n1. A =", lastItp, "+", orderedFormulas.get(positionOfA).getFirst());
-
-    if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
-      // case 4, we are returning from a function,
-      A.add(itpProver.push(callstack.getLast().getFirst()));
-      A.add(itpProver.push(callstack.getLast().getSecond()));
-      logger.log(Level.ALL, "\n4. A +=", callstack.getLast());
-      callstack.removeLast();
-    }
 
     // add all remaining PHI_j
     for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
@@ -754,13 +760,19 @@ public final class InterpolationManager {
     final BooleanFormula itp = itpProver.getInterpolant(A);
     logger.log(Level.ALL, "Received interpolant", itp);
 
-    interpolants.add(itp);
+    if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
+      // case 4, we are returning from a function, rule 4
+      Triple<BooleanFormula, BooleanFormula, CFANode> scopingItp = callstack.removeLast();
+      A.add(itpProver.push(scopingItp.getFirst()));
+      A.add(itpProver.push(scopingItp.getSecond()));
+      logger.log(Level.ALL, "\n4. A +=", scopingItp);
+      final BooleanFormula rebuildItp = bfmgr.and(ImmutableList.of(
+              itp, scopingItp.getFirst(), scopingItp.getSecond()));
+      interpolants.add(rebuildItp);
+      return rebuildItp;
 
-    if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
-      // case 2 from paper
-      callstack.addLast(Triple.of(lastItp, orderedFormulas.get(positionOfA).getFirst(), node));
-      return bfmgr.makeBoolean(true); // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
     } else {
+      interpolants.add(itp);
       return itp;
     }
   }

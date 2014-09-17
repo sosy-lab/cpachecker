@@ -45,7 +45,13 @@ public class BAMBlockOperator extends BlockOperator {
   public boolean isBlockEnd(CFAEdge pEdge, PathFormula pPf) {
     CFANode succLoc = pEdge.getSuccessor();
 
-    return super.isBlockEnd(pEdge, pPf) || partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc);
+    return super.isBlockEnd(pEdge, pPf) ||
+            partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc) ||
+            isBeforeFunctionCall(succLoc);
+  }
+
+  private boolean isBeforeFunctionCall(CFANode succLoc) {
+    return succLoc.getLeavingSummaryEdge() != null;
   }
 
   public BlockPartitioning getPartitioning() {

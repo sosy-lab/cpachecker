@@ -148,7 +148,11 @@ public class SSAMap implements Serializable {
       }
     }
 
-    /** Warning: do not use out of order! */
+    /**
+     * Set a new index (7) for an old index (3),
+     * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
+     * Warning: do not use out of order!
+     */
     public void setLatestUsedIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);

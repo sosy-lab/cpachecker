@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -60,6 +63,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
 
+  private final BAMCPA bamCpa;
   private final BAMTransferRelation transfer;
   private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
@@ -69,7 +73,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       throws InvalidConfigurationException {
     super(pCpa);
 
-    BAMCPA bamCpa = (BAMCPA)pCpa;
+    bamCpa = (BAMCPA)pCpa;
     transfer = bamCpa.getTransferRelation();
     bamCpa.getStatistics().addRefiner(this);
   }
@@ -120,6 +124,14 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
         logger.log(Level.ALL, "root of subgraph", subgraph);
         final ARGPath path = ARGUtils.getRandomPath(subgraph);
         logger.log(Level.ALL, "computed path from subgraph", path);
+
+        String prefix = "output/subgraphs/sub" + pLastElement.getStateId() + "/";
+        Path allArgsFile = Paths.get(prefix + "_ALL" + pLastElement.getStateId() + ".dot");
+        Path usedArgsFile = Paths.get(prefix + "_USED" + pLastElement.getStateId() + ".dot");
+        PathTemplate indexedArgFile = PathTemplate.ofFormatString(prefix + "ARG_%d.dot");
+        bamCpa.getStatistics().exportAllReachedSets(allArgsFile, indexedArgFile, pReachedSet.asReachedSet());
+        bamCpa.getStatistics().exportUsedReachedSets(usedArgsFile, pReachedSet.asReachedSet());
+
         return path;
       } finally {
         computeCounterexampleTimer.stop();

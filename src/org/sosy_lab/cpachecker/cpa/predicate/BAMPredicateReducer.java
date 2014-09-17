@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -434,43 +435,75 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState, AbstractState pExpandedState) {
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
+                                                     AbstractState pExpandedState,
+                                                     CFANode exitLocation) {
     final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
+    final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
 
     // TODO why did I copy the next if-statement? when is it used?
     if (!expandedState.isAbstractionState()) {
       return expandedState;
     }
 
-    // rebuild indices from outer scope
-    final SSAMap newSSA = updateIndices(rootState.getPathFormula().getSsa(), expandedState.getPathFormula().getSsa());
+    // we have:
+    // - abstraction of rootState with ssa                --> use as it is
+    // - callEdge-pathFormula with ssa (from rootState)   --> use as it is, with updated SSAMap
+    // - abstraction of functioncall (expandedSSA)        --> instantiate, with updated SSAMap, so that:
+    //           - only param and return-var overlap to callEdge
+    //           - all other vars are distinct
+    final PathFormula functionCall = entryState.getAbstractionFormula().getBlockFormula();
+    final SSAMapBuilder entrySsaWithRet = functionCall.getSsa().builder();
+    final SSAMapBuilder summSsa = functionCall.getSsa().builder();
 
-    final PathFormula newPathFormula = pmgr.makeNewPathFormula(
-            expandedState.getAbstractionFormula().getBlockFormula(), newSSA);
+    final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
+    for (String var : expandedSSA.allVariables()) {
+      if (entrySsaWithRet.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+        // non-existent index for variable only used in functioncall, just copy
+        final int newIndex = expandedSSA.getIndex(var);
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
-    final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
-    final AbstractionFormula expandedFormula = expandedState.getAbstractionFormula();
-    final AbstractionFormula entryFormula = entryState.getAbstractionFormula();
+      } else if (var.endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME)) {
+        final int newIndex = entrySsaWithRet.getIndex(var);
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
-    final AbstractionFormula rebuildFormula = pamgr.makeAnd(
-            new AbstractionFormula(fmgr,
-                    entryFormula.asRegion(),
-                    entryFormula.asFormula(),
-                    entryFormula.asInstantiatedFormula(),
-                    newPathFormula,
-                    entryFormula.getIdsOfStoredAbstractionReused()),
-            new AbstractionFormula(fmgr,
-                    expandedFormula.asRegion(),
-                    expandedFormula.asFormula(),
-                    expandedFormula.asInstantiatedFormula(),
-                    newPathFormula,
-                    expandedFormula.getIdsOfStoredAbstractionReused())
-    );
+      } else if (var.endsWith(CtoFormulaConverter.RETURN_VARIABLE_NAME)) {
+        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
-    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-            rebuildFormula, abstractionLocations);
+      } else {
+        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
+        entrySsaWithRet.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
+      }
+    }
+
+    final SSAMap newEntrySsaWithRet = entrySsaWithRet.build();
+    final SSAMap newSummSsa = summSsa.build();
+
+    logger.log(Level.ALL, "\nentrySsaRet", newEntrySsaWithRet);
+    logger.log(Level.ALL, "\nsummSsaRet", newSummSsa);
+
+    BooleanFormula summaryFormula = fmgr.instantiate(
+            expandedState.getAbstractionFormula().asFormula(), newSummSsa);
+    PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
+            functionCall.getPointerTargetSet(), functionCall.getLength());
+    PathFormula executedFunction = pmgr.makeAnd(functionCallWithSSA, summaryFormula);
+
+    PredicateAbstractState rebuildState = new PredicateAbstractState.ComputeAbstractionState(
+            executedFunction, rootState.getAbstractionFormula(), exitLocation, abstractionLocations);
+
+    logger.log(Level.ALL,
+            "oldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),
+            "\ncall: ", functionCallWithSSA,
+            "\nsumm: ", summaryFormula);
+
+    return rebuildState;
   }
 
   /**
