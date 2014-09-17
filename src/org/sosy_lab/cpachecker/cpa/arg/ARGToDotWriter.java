@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState;
@@ -285,6 +286,12 @@ public class ARGToDotWriter {
     if (rtt != null) {
       builder.append("\\n");
       appendTo(builder, rtt);
+    }
+
+    CallstackState css = AbstractStates.extractStateByType(currentElement, CallstackState.class);
+    if (css != null) {
+      builder.append("\\n");
+      builder.append(css.getStack());
     }
 
     SeplogicState sls = AbstractStates.extractStateByType(currentElement, SeplogicState.class);

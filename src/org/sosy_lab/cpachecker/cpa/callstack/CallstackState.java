@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,6 +72,17 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
 
   public int getDepth() {
     return depth;
+  }
+
+  /** for logging and debugging */
+  public List<String> getStack() {
+    final List<String> stack = new ArrayList<>();
+    CallstackState state = this;
+    while (state != null) {
+      stack.add(state.getCurrentFunction());
+      state = state.getPreviousState();
+    }
+    return Lists.reverse(stack);
   }
 
   @Override
