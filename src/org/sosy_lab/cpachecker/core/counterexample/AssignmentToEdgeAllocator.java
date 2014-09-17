@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
@@ -129,6 +131,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 /**
  * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
@@ -163,34 +166,36 @@ public class AssignmentToEdgeAllocator {
     List<IAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
     String comment = createComment(cfaEdge);
 
-    return new CFAEdgeWithAssignments(cfaEdge, resolveTypeDefs(assignmentsAtEdge), comment);
+    return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
   }
 
+  @SuppressWarnings("unused")
   private List<IAssignment> resolveTypeDefs(List<IAssignment> pAssignmentsAtEdge) {
     return FluentIterable.from(pAssignmentsAtEdge).transform(
         new Function<IAssignment, IAssignment>() {
 
         @Override
         public IAssignment apply(IAssignment pArg0) {
+          ExpressionTypedefResolver typdefResolver = new ExpressionTypedefResolver();
           if (pArg0 instanceof CExpressionAssignmentStatement) {
             CExpressionAssignmentStatement ass = (CExpressionAssignmentStatement) pArg0;
             return new CExpressionAssignmentStatement(
                 pArg0.getFileLocation(),
-                (CLeftHandSide) ass.getLeftHandSide().accept(ExpressionTypedefResolver.INSTANCE),
-                ass.getRightHandSide().accept(ExpressionTypedefResolver.INSTANCE));
+                (CLeftHandSide) ass.getLeftHandSide().accept(typdefResolver),
+                ass.getRightHandSide().accept(typdefResolver));
           }
           if (pArg0 instanceof CFunctionCallAssignmentStatement) {
             CFunctionCallAssignmentStatement ass = (CFunctionCallAssignmentStatement) pArg0;
             CFunctionCallExpression rhs = ass.getFunctionCallExpression();
             rhs = new CFunctionCallExpression(
                 rhs.getFileLocation(),
-                rhs.getExpressionType().accept(TypedefResolver.INSTANCE),
+                rhs.getExpressionType().accept(typdefResolver.typedefResolver),
                 rhs.getFunctionNameExpression(),
                 rhs.getParameterExpressions(),
-                SimpleDeclarationTypedefResolveVisitor.INSTANCE.visit(rhs.getDeclaration()));
+                typdefResolver.declarationTypedefResolver.visit(rhs.getDeclaration()));
             return new CFunctionCallAssignmentStatement(
                 pArg0.getFileLocation(),
-                (CLeftHandSide) ass.getLeftHandSide().accept(ExpressionTypedefResolver.INSTANCE),
+                (CLeftHandSide) ass.getLeftHandSide().accept(typdefResolver),
                 rhs);
           }
           throw new AssertionError("Unsupported assignment type");
@@ -1908,26 +1913,39 @@ public class AssignmentToEdgeAllocator {
     }
   }
 
-  private static enum TypedefResolver implements CTypeVisitor<CType, RuntimeException> {
+  private static class TypedefResolver implements CTypeVisitor<CType, RuntimeException> {
 
-    INSTANCE;
+    private final Map<CType, CType> done = Maps.newHashMap();
 
     @Override
     public CType visit(CArrayType pArrayType) throws RuntimeException {
-      return new CArrayType(
+      CType result = done.get(pArrayType);
+      if (result != null) {
+        return result;
+      }
+      result = new CArrayType(
           pArrayType.isConst(),
           pArrayType.isVolatile(),
           pArrayType.getType().accept(this),
           pArrayType.getLength());
+      done.put(pArrayType, result);
+      return result;
     }
 
     @Override
     public CType visit(CCompositeType pCompositeType) throws RuntimeException {
-      return new CCompositeType(
+      CCompositeType result = (CCompositeType) done.get(pCompositeType);
+      if (result != null) {
+        return result;
+      }
+      result = new CCompositeType(
           pCompositeType.isConst(),
           pCompositeType.isVolatile(),
           pCompositeType.getKind(),
-          FluentIterable.from(pCompositeType.getMembers()).transform(new Function<CCompositeTypeMemberDeclaration, CCompositeTypeMemberDeclaration>() {
+          Collections.<CCompositeTypeMemberDeclaration>emptyList(),
+          pCompositeType.getName());
+      done.put(pCompositeType, result);
+      result.setMembers(FluentIterable.from(pCompositeType.getMembers()).transform(new Function<CCompositeTypeMemberDeclaration, CCompositeTypeMemberDeclaration>() {
 
             @Override
             public CCompositeTypeMemberDeclaration apply(CCompositeTypeMemberDeclaration pArg0) {
@@ -1936,18 +1954,27 @@ public class AssignmentToEdgeAllocator {
                       pArg0.getName());
             }
 
-          }).toList(),
-          pCompositeType.getName());
+          }).toList());
+      return result;
     }
 
     @Override
     public CType visit(CElaboratedType pElaboratedType) throws RuntimeException {
-      return new CElaboratedType(
+      CElaboratedType result = (CElaboratedType) done.get(pElaboratedType);
+      if (result != null) {
+        return result;
+      }
+      result = new CElaboratedType(
           pElaboratedType.isConst(),
           pElaboratedType.isVolatile(),
           pElaboratedType.getKind(),
           pElaboratedType.getName(),
-          (CComplexType) pElaboratedType.getRealType().accept(this));
+          null);
+      done.put(pElaboratedType, result);
+      if (pElaboratedType.getRealType() != null) {
+        result.setRealType((CComplexType) pElaboratedType.getRealType().accept(this));
+      }
+      return result;
     }
 
     @Override
@@ -1957,7 +1984,11 @@ public class AssignmentToEdgeAllocator {
 
     @Override
     public CFunctionType visit(CFunctionType pFunctionType) throws RuntimeException {
-      return new CFunctionType(
+      CFunctionType result = (CFunctionType) done.get(pFunctionType);
+      if (result != null) {
+        return result;
+      }
+      result = new CFunctionType(
           pFunctionType.isConst(),
           pFunctionType.isVolatile(),
           pFunctionType.getReturnType().accept(this),
@@ -1970,14 +2001,22 @@ public class AssignmentToEdgeAllocator {
 
           }).toList(),
           pFunctionType.takesVarArgs());
+      done.put(pFunctionType, result);
+      return result;
     }
 
     @Override
     public CType visit(CPointerType pPointerType) throws RuntimeException {
-      return new CPointerType(
+      CType result = done.get(pPointerType);
+      if (result != null) {
+        return result;
+      }
+      result = new CPointerType(
           pPointerType.isConst(),
           pPointerType.isVolatile(),
           pPointerType.getType().accept(this));
+      done.put(pPointerType, result);
+      return result;
     }
 
     @Override
@@ -1992,20 +2031,44 @@ public class AssignmentToEdgeAllocator {
 
     @Override
     public CType visit(CTypedefType pTypedefType) throws RuntimeException {
-      return pTypedefType.getRealType().accept(this);
+      CType result = done.get(pTypedefType);
+      if (result != null) {
+        return result;
+      }
+      result = pTypedefType.getRealType().accept(this);
+      done.put(pTypedefType, result);
+      return result;
     }
 
   }
 
-  private static enum ExpressionTypedefResolver implements CExpressionVisitor<CExpression, RuntimeException> {
+  private static class ExpressionTypedefResolver implements CExpressionVisitor<CExpression, RuntimeException> {
 
-    INSTANCE;
+    private final SimpleDeclarationTypedefResolveVisitor declarationTypedefResolver;
+
+    private final TypedefResolver typedefResolver;
+
+    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
+
+    private final InitializerTypdefResolver initializerTypdefResolver;
+
+    public ExpressionTypedefResolver() {
+      this.typedefResolver = new TypedefResolver();
+      this.designatorTypedefResolveVisitor = new DesignatorTypedefResolveVisitor(this);
+      this.initializerTypdefResolver = new InitializerTypdefResolver(this, designatorTypedefResolveVisitor);
+      this.declarationTypedefResolver =
+          new SimpleDeclarationTypedefResolveVisitor(
+              this.typedefResolver,
+              this,
+              designatorTypedefResolveVisitor,
+              initializerTypdefResolver);
+    }
 
     @Override
     public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
       return new CArraySubscriptExpression(
           pIastArraySubscriptExpression.getFileLocation(),
-          pIastArraySubscriptExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastArraySubscriptExpression.getExpressionType().accept(typedefResolver),
           pIastArraySubscriptExpression.getArrayExpression().accept(this),
           pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
     }
@@ -2014,7 +2077,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CFieldReference pIastFieldReference) throws RuntimeException {
       return new CFieldReference(
           pIastFieldReference.getFileLocation(),
-          pIastFieldReference.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastFieldReference.getExpressionType().accept(typedefResolver),
           pIastFieldReference.getFieldName(),
           pIastFieldReference.getFieldOwner().accept(this),
           pIastFieldReference.isPointerDereference());
@@ -2024,16 +2087,16 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CIdExpression pIastIdExpression) throws RuntimeException {
       return new CIdExpression(
           pIastIdExpression.getFileLocation(),
-          pIastIdExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastIdExpression.getExpressionType().accept(typedefResolver),
           pIastIdExpression.getName(),
-          pIastIdExpression.getDeclaration().accept(SimpleDeclarationTypedefResolveVisitor.INSTANCE));
+          pIastIdExpression.getDeclaration().accept(declarationTypedefResolver));
     }
 
     @Override
     public CExpression visit(CPointerExpression pPointerExpression) throws RuntimeException {
       return new CPointerExpression(
           pPointerExpression.getFileLocation(),
-          pPointerExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pPointerExpression.getExpressionType().accept(typedefResolver),
           pPointerExpression.getOperand().accept(this));
     }
 
@@ -2041,9 +2104,9 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
       return new CComplexCastExpression(
           pComplexCastExpression.getFileLocation(),
-          pComplexCastExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pComplexCastExpression.getExpressionType().accept(typedefResolver),
           pComplexCastExpression.getOperand().accept(this),
-          pComplexCastExpression.getType().accept(TypedefResolver.INSTANCE),
+          pComplexCastExpression.getType().accept(typedefResolver),
           pComplexCastExpression.isRealCast());
     }
 
@@ -2051,8 +2114,8 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
       return new CBinaryExpression(
           pIastBinaryExpression.getFileLocation(),
-          pIastBinaryExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
-          pIastBinaryExpression.getCalculationType().accept(TypedefResolver.INSTANCE),
+          pIastBinaryExpression.getExpressionType().accept(typedefResolver),
+          pIastBinaryExpression.getCalculationType().accept(typedefResolver),
           pIastBinaryExpression.getOperand1().accept(this),
           pIastBinaryExpression.getOperand2().accept(this),
           pIastBinaryExpression.getOperator());
@@ -2062,7 +2125,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CCastExpression pIastCastExpression) throws RuntimeException {
       return new CCastExpression(
           pIastCastExpression.getFileLocation(),
-          pIastCastExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastCastExpression.getExpressionType().accept(typedefResolver),
           pIastCastExpression.getOperand().accept(this));
     }
 
@@ -2070,7 +2133,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
       return new CCharLiteralExpression(
           pIastCharLiteralExpression.getFileLocation(),
-          pIastCharLiteralExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastCharLiteralExpression.getExpressionType().accept(typedefResolver),
           pIastCharLiteralExpression.getValue());
     }
 
@@ -2078,7 +2141,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
       return new CFloatLiteralExpression(
           pIastFloatLiteralExpression.getFileLocation(),
-          pIastFloatLiteralExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastFloatLiteralExpression.getExpressionType().accept(typedefResolver),
           pIastFloatLiteralExpression.getValue());
     }
 
@@ -2086,7 +2149,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
       return new CIntegerLiteralExpression(
           pIastIntegerLiteralExpression.getFileLocation(),
-          pIastIntegerLiteralExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastIntegerLiteralExpression.getExpressionType().accept(typedefResolver),
           pIastIntegerLiteralExpression.getValue());
     }
 
@@ -2094,7 +2157,7 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
       return new CStringLiteralExpression(
           pIastStringLiteralExpression.getFileLocation(),
-          pIastStringLiteralExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pIastStringLiteralExpression.getExpressionType().accept(typedefResolver),
           pIastStringLiteralExpression.getContentString());
     }
 
@@ -2102,25 +2165,25 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CTypeIdExpression pTypeIdExpression) throws RuntimeException {
       return new CTypeIdExpression(
           pTypeIdExpression.getFileLocation(),
-          pTypeIdExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pTypeIdExpression.getExpressionType().accept(typedefResolver),
           pTypeIdExpression.getOperator(),
-          pTypeIdExpression.getType().accept(TypedefResolver.INSTANCE));
+          pTypeIdExpression.getType().accept(typedefResolver));
     }
 
     @Override
     public CExpression visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws RuntimeException {
       return new CTypeIdInitializerExpression(
           pCTypeIdInitializerExpression.getFileLocation(),
-          pCTypeIdInitializerExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
-          handle(pCTypeIdInitializerExpression.getInitializer()),
-          pCTypeIdInitializerExpression.getType().accept(TypedefResolver.INSTANCE));
+          pCTypeIdInitializerExpression.getExpressionType().accept(typedefResolver),
+          handle(pCTypeIdInitializerExpression.getInitializer(), this, designatorTypedefResolveVisitor, initializerTypdefResolver),
+          pCTypeIdInitializerExpression.getType().accept(typedefResolver));
     }
 
     @Override
     public CExpression visit(CUnaryExpression pUnaryExpression) throws RuntimeException {
       return new CUnaryExpression(
           pUnaryExpression.getFileLocation(),
-          pUnaryExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pUnaryExpression.getExpressionType().accept(typedefResolver),
           pUnaryExpression.getOperand().accept(this),
           pUnaryExpression.getOperator());
     }
@@ -2129,30 +2192,34 @@ public class AssignmentToEdgeAllocator {
     public CExpression visit(CImaginaryLiteralExpression pLiteralExpression) throws RuntimeException {
       return new CImaginaryLiteralExpression(
           pLiteralExpression.getFileLocation(),
-          pLiteralExpression.getExpressionType().accept(TypedefResolver.INSTANCE),
+          pLiteralExpression.getExpressionType().accept(typedefResolver),
           pLiteralExpression.getValue(),
           pLiteralExpression.getImaginaryString());
     }
 
   }
 
-  private static enum DesignatorTypedefResolveVisitor implements CDesignatorVisitor<CDesignator, RuntimeException> {
+  private static class DesignatorTypedefResolveVisitor implements CDesignatorVisitor<CDesignator, RuntimeException> {
 
-    INSTANCE;
+    private final ExpressionTypedefResolver expressionTypedefResolver;
+
+    public DesignatorTypedefResolveVisitor(ExpressionTypedefResolver pExpressionTypedefResolver) {
+      this.expressionTypedefResolver = pExpressionTypedefResolver;
+    }
 
     @Override
     public CDesignator visit(CArrayDesignator pArrayDesignator) throws RuntimeException {
       return new CArrayDesignator(
           pArrayDesignator.getFileLocation(),
-          pArrayDesignator.getSubscriptExpression().accept(ExpressionTypedefResolver.INSTANCE));
+          pArrayDesignator.getSubscriptExpression().accept(expressionTypedefResolver));
     }
 
     @Override
     public CDesignator visit(CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
       return new CArrayRangeDesignator(
           pArrayRangeDesignator.getFileLocation(),
-          pArrayRangeDesignator.getFloorExpression().accept(ExpressionTypedefResolver.INSTANCE),
-          pArrayRangeDesignator.getCeilExpression().accept(ExpressionTypedefResolver.INSTANCE));
+          pArrayRangeDesignator.getFloorExpression().accept(expressionTypedefResolver),
+          pArrayRangeDesignator.getCeilExpression().accept(expressionTypedefResolver));
     }
 
     @Override
@@ -2162,21 +2229,37 @@ public class AssignmentToEdgeAllocator {
 
   }
 
-  private static enum SimpleDeclarationTypedefResolveVisitor implements CSimpleDeclarationVisitor<CSimpleDeclaration, RuntimeException> {
+  private static class SimpleDeclarationTypedefResolveVisitor implements CSimpleDeclarationVisitor<CSimpleDeclaration, RuntimeException> {
 
-    INSTANCE;
+    private final TypedefResolver typedefResolver;
+
+    private final ExpressionTypedefResolver expressionTypedefResolver;
+
+    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
+
+    private final InitializerTypdefResolver initializerTypdefResolver;
+
+    public SimpleDeclarationTypedefResolveVisitor(TypedefResolver pTypedefResolver,
+        ExpressionTypedefResolver pExpressionTypedefResolver,
+        DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor,
+        InitializerTypdefResolver pInitializerTypdefResolver) {
+      this.typedefResolver = pTypedefResolver;
+      this.expressionTypedefResolver = pExpressionTypedefResolver;
+      this.designatorTypedefResolveVisitor = pDesignatorTypedefResolveVisitor;
+      this.initializerTypdefResolver = pInitializerTypdefResolver;
+    }
 
     @Override
     public CFunctionDeclaration visit(CFunctionDeclaration pDecl) throws RuntimeException {
       return new CFunctionDeclaration(
           pDecl.getFileLocation(),
-          TypedefResolver.INSTANCE.visit(pDecl.getType()),
+          typedefResolver.visit(pDecl.getType()),
           pDecl.getName(),
           FluentIterable.from(pDecl.getParameters()).transform(new Function<CParameterDeclaration, CParameterDeclaration>() {
 
             @Override
             public CParameterDeclaration apply(CParameterDeclaration pArg0) {
-              return SimpleDeclarationTypedefResolveVisitor.INSTANCE.visit(pArg0);
+              return SimpleDeclarationTypedefResolveVisitor.this.visit(pArg0);
             }
 
           }).toList());
@@ -2187,7 +2270,7 @@ public class AssignmentToEdgeAllocator {
       return new CComplexTypeDeclaration(
           pDecl.getFileLocation(),
           pDecl.isGlobal(),
-          (CComplexType) pDecl.getType().accept(TypedefResolver.INSTANCE));
+          (CComplexType) pDecl.getType().accept(typedefResolver));
     }
 
     @Override
@@ -2197,13 +2280,13 @@ public class AssignmentToEdgeAllocator {
         return new CComplexTypeDeclaration(
             complexTypeDeclaration.getFileLocation(),
             complexTypeDeclaration.isGlobal(),
-            (CComplexType) complexTypeDeclaration.getType().accept(TypedefResolver.INSTANCE));
+            (CComplexType) complexTypeDeclaration.getType().accept(typedefResolver));
       }
       CTypeDefDeclaration typeDefDeclaration = (CTypeDefDeclaration) pDecl;
       return new CTypeDefDeclaration(
           typeDefDeclaration.getFileLocation(),
           typeDefDeclaration.isGlobal(),
-          typeDefDeclaration.getType().accept(TypedefResolver.INSTANCE),
+          typeDefDeclaration.getType().accept(typedefResolver),
           typeDefDeclaration.getName(),
           typeDefDeclaration.getQualifiedName());
 
@@ -2215,18 +2298,21 @@ public class AssignmentToEdgeAllocator {
           pDecl.getFileLocation(),
           pDecl.isGlobal(),
           pDecl.getCStorageClass(),
-          pDecl.getType().accept(TypedefResolver.INSTANCE),
+          pDecl.getType().accept(typedefResolver),
           pDecl.getName(),
           pDecl.getOrigName(),
           pDecl.getQualifiedName(),
-          handle(pDecl.getInitializer()));
+          handle(pDecl.getInitializer(),
+              expressionTypedefResolver,
+              designatorTypedefResolveVisitor,
+              initializerTypdefResolver));
     }
 
     @Override
     public CParameterDeclaration visit(CParameterDeclaration pDecl) throws RuntimeException {
       CParameterDeclaration result = new CParameterDeclaration(
           pDecl.getFileLocation(),
-          pDecl.getType().accept(TypedefResolver.INSTANCE),
+          pDecl.getType().accept(typedefResolver),
           pDecl.getName());
       result.setQualifiedName(pDecl.getQualifiedName());
       return result;
@@ -2239,50 +2325,71 @@ public class AssignmentToEdgeAllocator {
           pDecl.getName(),
           pDecl.getQualifiedName(),
           pDecl.getValue());
-      result.setEnum((CEnumType) pDecl.getEnum().accept(TypedefResolver.INSTANCE));
+      result.setEnum((CEnumType) pDecl.getEnum().accept(typedefResolver));
       return result;
     }
   }
 
-  private static @Nullable CInitializer handle(@Nullable CInitializer pInitializer) {
+  private static @Nullable CInitializer handle(@Nullable CInitializer pInitializer,
+      final ExpressionTypedefResolver pExpressionTypedefResolver,
+      final DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor,
+      final InitializerTypdefResolver initializerTypdefResolver) {
     if (pInitializer == null) {
       return null;
     }
-    if (pInitializer instanceof CInitializerExpression) {
-      CInitializerExpression initExpr = (CInitializerExpression) pInitializer;
-      return new CInitializerExpression(
-          initExpr.getFileLocation(),
-          initExpr.getExpression().accept(ExpressionTypedefResolver.INSTANCE));
+
+    return pInitializer.accept(initializerTypdefResolver);
+
+  }
+
+  private static class InitializerTypdefResolver implements CInitializerVisitor<CInitializer, RuntimeException> {
+
+    private final ExpressionTypedefResolver expressionTypedefResolver;
+
+    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
+
+    public InitializerTypdefResolver(ExpressionTypedefResolver pExpressionTypedefResolver,
+        DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor) {
+      this.expressionTypedefResolver = pExpressionTypedefResolver;
+      this.designatorTypedefResolveVisitor = pDesignatorTypedefResolveVisitor;
     }
-    if (pInitializer instanceof CInitializerList) {
-      CInitializerList initializerList = (CInitializerList) pInitializer;
+
+    @Override
+    public CInitializer visit(CInitializerExpression pInitializerExpression) throws RuntimeException {
+      return new CInitializerExpression(
+          pInitializerExpression.getFileLocation(),
+          pInitializerExpression.getExpression().accept(expressionTypedefResolver));
+    }
+
+    @Override
+    public CInitializer visit(CInitializerList pInitializerList) throws RuntimeException {
       return new CInitializerList(
-          initializerList.getFileLocation(),
-          FluentIterable.from(initializerList.getInitializers()).transform(new Function<CInitializer, CInitializer>() {
+          pInitializerList.getFileLocation(),
+          FluentIterable.from(pInitializerList.getInitializers()).transform(new Function<CInitializer, CInitializer>() {
 
             @Override
             public CInitializer apply(CInitializer pArg0) {
-              return handle(pArg0);
+              return handle(pArg0, expressionTypedefResolver, designatorTypedefResolveVisitor, InitializerTypdefResolver.this);
             }
 
           }).toList());
     }
-    if (pInitializer instanceof CDesignatedInitializer) {
-      CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) pInitializer;
-      CInitializer right = handle(designatedInitializer.getRightHandSide());
+
+    @Override
+    public CInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws RuntimeException {
+      CInitializer right = handle(pDesignatedInitializer.getRightHandSide(), expressionTypedefResolver, designatorTypedefResolveVisitor, this);
       return new CDesignatedInitializer(
-          designatedInitializer.getFileLocation(),
-          FluentIterable.from(designatedInitializer.getDesignators()).transform(new Function<CDesignator, CDesignator>() {
+          pDesignatedInitializer.getFileLocation(),
+          FluentIterable.from(pDesignatedInitializer.getDesignators()).transform(new Function<CDesignator, CDesignator>() {
 
             @Override
             public CDesignator apply(CDesignator pArg0) {
-              return pArg0.accept(DesignatorTypedefResolveVisitor.INSTANCE);
+              return pArg0.accept(designatorTypedefResolveVisitor);
             }
 
           }).toList(),
           right);
     }
-    throw new AssertionError("Unsupported initializer type");
 
   }
 
