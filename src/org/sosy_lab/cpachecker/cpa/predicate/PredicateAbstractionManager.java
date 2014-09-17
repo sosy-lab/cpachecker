@@ -475,7 +475,7 @@ public class PredicateAbstractionManager {
                                         stats.abstractionEnumTime.getLengthOfLastOuterInterval())
                                    .asMillis();
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
-    logger.log(Level.ALL, "Abstraction result is", result);
+    logger.log(Level.ALL, "Abstraction result is", result.asFormula());
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
