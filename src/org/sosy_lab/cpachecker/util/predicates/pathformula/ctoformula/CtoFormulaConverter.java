@@ -274,7 +274,9 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for an assignment,
    * but does _not_ update the SSA map.
    * Usually you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)}
-   * instead.
+   * instead, because using variables with indices that are not stored in the SSAMap
+   * is not a good idea (c.f. the comment inside getIndex()).
+   * If you use this method, you need to make sure to update the SSAMap correctly.
    */
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, ssa.getType(name));
@@ -297,6 +299,13 @@ public class CtoFormulaConverter {
     if (idx <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
       idx = VARIABLE_UNINITIALIZED;
+
+      // It is important to store the index in the variable here.
+      // If getIndex() was called with a specific name,
+      // this means that name@idx will appear in formulas.
+      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // will also add indices for this name,
+      // which it does exactly if the name is in the SSAMap.
       ssa.setIndex(name, type, idx);
     }
 
