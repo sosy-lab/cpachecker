@@ -74,6 +74,8 @@ public class PartitioningIOHelper {
 
   public enum PartitioningHeuristics {
     RANDOM,
+    DFS,
+    BFS,
     OPTIMAL
   }
 
@@ -109,6 +111,12 @@ public class PartitioningIOHelper {
     switch (partitioningStrategy) {
     case OPTIMAL:
       partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
+      break;
+    case BFS:
+      partitioner = new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
+      break;
+    case DFS:
+      partitioner = new ExplorationOrderBalancedGraphPartitioner(true, pShutdownNotifier);
       break;
     default: // RANDOM
       partitioner = new RandomBalancedGraphPartitioner();
