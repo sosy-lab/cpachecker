@@ -1570,8 +1570,10 @@ cpa.value.refiner.performInitialStaticRefinement = false
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refiner.prefixPreference = BEST
-  enum:     [DEFAULT, SHORTEST, LONGEST, MOST_LOCAL, MEDIAN, MIDDLE, BEST, WORST]
+cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1699,7 +1701,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, OPTIMAL]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the size of certificate
