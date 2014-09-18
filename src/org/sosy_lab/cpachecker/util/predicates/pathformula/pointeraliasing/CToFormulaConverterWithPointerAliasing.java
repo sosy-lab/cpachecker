@@ -152,12 +152,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return symbol.startsWith(UF_NAME_PREFIX);
   }
 
-  @Override
-  @Deprecated
-  protected int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    throw new UnsupportedOperationException("Use more specific methods instead");
-  }
-
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
   }
@@ -767,6 +761,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  @Override
+  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshIndex(pName, pType, pSsa);
   }
 
   @Override

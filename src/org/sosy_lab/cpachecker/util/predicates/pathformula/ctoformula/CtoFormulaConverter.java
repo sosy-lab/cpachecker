@@ -161,9 +161,11 @@ public class CtoFormulaConverter {
 
   protected final boolean backwards;
 
-  public static final int          VARIABLE_UNSET          = SSAMap.DEFAULT_DEFAULT_IDX;
-  static final int                 VARIABLE_INSTANTIATED   = 1;
-  static final int                 VARIABLE_UNINITIALIZED  = VARIABLE_INSTANTIATED + SSAMap.DEFAULT_INCREMENT;
+  // Index that is used to read from variables that were not assigned yet
+  private static final int VARIABLE_UNINITIALIZED = 1;
+
+  // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
+  private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   private final FunctionFormulaType<?> stringUfDecl;
 
@@ -263,15 +265,24 @@ public class CtoFormulaConverter {
    * and updates the SSA map.
    */
   protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, true, true);
+    int idx = getFreshIndex(name, type, ssa);
+    ssa.setIndex(name, type, idx);
+    return idx;
   }
 
   /**
    * Produces a fresh new SSA index for an assignment,
    * but does _not_ update the SSA map.
+   * Usually you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)}
+   * instead.
    */
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, true, false);
+    checkSsaSavedType(name, type, ssa.getType(name));
+    int idx = ssa.getFreshIndex(name);
+    if (idx <= 0) {
+      idx = VARIABLE_FIRST_ASSIGNMENT;
+    }
+    return idx;
   }
 
   /**
@@ -281,31 +292,12 @@ public class CtoFormulaConverter {
    * @return the index of the variable
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    return getIndex(name, type, ssa, false, true);
-  }
-
-  private int getIndex(String name, CType type, SSAMapBuilder ssa, boolean makeFresh, boolean set) {
-    int idx = ssa.getIndex(name);
     checkSsaSavedType(name, type, ssa.getType(name));
-    if (makeFresh) {
-      if (idx > 0) {
-        idx = ssa.getFreshIndex(name);
-      } else {
-        idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
-        // not from 1, because this is an assignment,
-        // so the SSA index must be fresh.
-      }
-      if (set) {
-        ssa.setIndex(name, type, idx);
-      }
-    } else {
-      if (idx <= 0) {
-        logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-        idx = VARIABLE_INSTANTIATED;
-        if (set) {
-          ssa.setIndex(name, type, idx);
-        }
-      }
+    int idx = ssa.getIndex(name);
+    if (idx <= 0) {
+      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
+      idx = VARIABLE_UNINITIALIZED;
+      ssa.setIndex(name, type, idx);
     }
 
     return idx;
@@ -350,33 +342,8 @@ public class CtoFormulaConverter {
    * This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    return makeVariable(name, type, ssa, false, false);
-  }
-
-  /**
-   * Create a formula for a given variable with a fresh index if needed.
-   * This method does not handle scoping and the NON_DET_VARIABLE!
-   */
-  private Formula makeVariable(String name, CType type, SSAMapBuilder ssa,
-      boolean makeFreshIndex, boolean postponeMakeFresh) {
-
-    // TODO: Write a unit test for this method
-
-    int useIndex;
-
-    if (makeFreshIndex && !postponeMakeFresh) {
-      useIndex = getIndex(name, type, ssa, makeFreshIndex, true);
-    } else {
-      useIndex = getIndex(name, type, ssa);
-    }
-
-    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
-
-    if (postponeMakeFresh && makeFreshIndex) {
-      getIndex(name, type, ssa, makeFreshIndex, true);
-    }
-
-    return result;
+    int useIndex = getIndex(name, type, ssa);
+    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
   }
 
   /**
@@ -384,8 +351,24 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa, boolean postponeMakeFresh) {
-    return makeVariable(name, type, ssa, true, postponeMakeFresh);
+  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa,
+      boolean postponeMakeFresh) {
+    int useIndex;
+
+    // TODO replace postponeMakeFresh with backwards?
+    if (postponeMakeFresh) {
+      useIndex = getIndex(name, type, ssa);
+    } else {
+      useIndex = makeFreshIndex(name, type, ssa);
+    }
+
+    Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+
+    if (postponeMakeFresh) {
+      makeFreshIndex(name, type, ssa);
+    }
+
+    return result;
   }
 
   Formula makeStringLiteral(String literal) {
@@ -1254,6 +1237,10 @@ public class CtoFormulaConverter {
         exp.getFileLocation(), exp.toASTString());
 
     String var = scoped(exprToVarName(exp), function);
-    return makeVariable(var, exp.getExpressionType(), ssa, makeFresh, postponeMakeFresh);
+    if (makeFresh) {
+      return makeFreshVariable(var, exp.getExpressionType(), ssa, postponeMakeFresh);
+    } else {
+      return makeVariable(var, exp.getExpressionType(), ssa);
+    }
   }
 }

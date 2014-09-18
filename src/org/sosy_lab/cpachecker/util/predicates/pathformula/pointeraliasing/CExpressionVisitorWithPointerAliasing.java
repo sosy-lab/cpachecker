@@ -351,7 +351,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                          ssa,
                                          constraints,
                                          pts);
-          if (ssa.getIndex(base.getName()) != CToFormulaConverterWithPointerAliasing.VARIABLE_UNSET) {
+          if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
             ssa.deleteVariable(base.getName());
           }
           conv.addPreFilledBase(base.getName(),

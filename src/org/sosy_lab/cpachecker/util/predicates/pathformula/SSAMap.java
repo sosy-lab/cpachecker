@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -63,7 +64,8 @@ public class SSAMap implements Serializable {
   public static final int DEFAULT_DEFAULT_IDX = -1;
 
   // Default difference for two SSA-indizes of the same name.
-  public static final int DEFAULT_INCREMENT   =  1;
+  @VisibleForTesting
+  static final int DEFAULT_INCREMENT = 1;
 
   private final int defaultValue;
 
