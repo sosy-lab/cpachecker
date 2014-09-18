@@ -85,7 +85,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
-  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
 
   public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {

@@ -29,9 +29,11 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
@@ -67,23 +70,96 @@ public class ErrorPathClassifier {
   private final Optional<LoopStructure> loopStructure;
 
   public static enum ErrorPathPrefixPreference {
-    DEFAULT,
-    SHORTEST,
-    LONGEST,
-    MOST_LOCAL,
-    MEDIAN,
-    MIDDLE,
-    BEST,
-    WORST
+    // returns the original error path
+    DEFAULT(),
+
+    // sensible alternative options
+    SHORTEST(),
+    LONGEST(),
+
+    // heuristics based on approximating cost via variable domain types
+    DOMAIN_BEST_SHALLOW(FIRST_LOWEST_SCORE),
+    DOMAIN_BEST_BOUNDED(FINAL_LOWEST_SCORE_BOUNDED),
+    DOMAIN_BEST_DEEP(FINAL_LOWEST_SCORE),
+
+    // heuristics based on approximating the depth of the refinement root
+    REFINE_SHALLOW(FIRST_HIGHEST_SCORE),
+    REFINE_DEEP(FINAL_LOWEST_SCORE),
+
+    // use these only if you are feeling lucky
+    RANDOM(),
+    MEDIAN(),
+    MIDDLE(),
+
+    // use these if you want to go for a coffee or ten
+    DOMAIN_WORST_SHALLOW(FIRST_HIGHEST_SCORE),
+    DOMAIN_WORST_DEEP(FINAL_HIGHEST_SCORE);
+
+    private ErrorPathPrefixPreference () {}
+
+    private ErrorPathPrefixPreference (Function<Triple<Long, Long, Integer>, Boolean> scorer) {
+      this.scorer = scorer;
+    }
+
+    private Function<Triple<Long, Long, Integer>, Boolean> scorer = INDIFFERENT_SCOREKEEPER;
   }
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> INDIFFERENT_SCOREKEEPER = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      return Boolean.TRUE;
+    }};
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> FIRST_HIGHEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() > prefixParameters.getSecond();
+    }};
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_HIGHEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() >= prefixParameters.getSecond();
+    }};
+
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> FIRST_LOWEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() < prefixParameters.getSecond();
+    }};
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_LOWEST_SCORE = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      return prefixParameters.getSecond() == null
+          || prefixParameters.getFirst() <= prefixParameters.getSecond();
+    }};
+
+  private static final Function<Triple<Long, Long, Integer>, Boolean> FINAL_LOWEST_SCORE_BOUNDED = new Function<Triple<Long, Long, Integer>, Boolean>() {
+    @Override
+    public Boolean apply(Triple<Long, Long, Integer> prefixParameters) {
+      if (prefixParameters.getSecond() == null) {
+        return true;
+      } else if (prefixParameters.getThird() < MAX_PREFIX_LENGTH) {
+        return prefixParameters.getFirst() <= prefixParameters.getSecond();
+      } else {
+        return prefixParameters.getFirst() < prefixParameters.getSecond();
+      }
+    }};
 
   public ErrorPathClassifier(Optional<VariableClassification> pClassification,
       Optional<LoopStructure> pLoopStructure) throws InvalidConfigurationException {
-    classification = pClassification;
-    loopStructure = pLoopStructure;
+    classification  = pClassification;
+    loopStructure   = pLoopStructure;
   }
 
-  public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference, MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
+  public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference,
+      MutableARGPath errorPath,
+      List<MutableARGPath> pPrefixes) {
 
     switch (preference) {
     case SHORTEST:
@@ -92,20 +168,22 @@ public class ErrorPathClassifier {
     case LONGEST:
       return obtainLongestPrefix(pPrefixes);
 
+    case DOMAIN_BEST_SHALLOW:
+    case DOMAIN_WORST_SHALLOW:
+      return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference);
+
+    case REFINE_SHALLOW:
+    case REFINE_DEEP:
+      return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference);
+
+    case RANDOM:
+      return obtainRandomPrefix(pPrefixes);
+
     case MEDIAN:
       return obtainMedianPrefix(pPrefixes);
 
     case MIDDLE:
       return obtainMiddlePrefix(pPrefixes);
-
-    case BEST:
-      return obtainBestPrefix(pPrefixes);
-
-    case WORST:
-      return obtainWorstPrefix(pPrefixes);
-
-    case MOST_LOCAL:
-      return obtainMostLocalPrefix(pPrefixes);
 
     default:
       return errorPath;
@@ -120,8 +198,34 @@ public class ErrorPathClassifier {
     return buildPath(pPrefixes.size() - 1, pPrefixes);
   }
 
-  private MutableARGPath obtainMostLocalPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainDomainTypeHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+    if (!classification.isPresent()) {
+      return concatPrefixes(pPrefixes);
+    }
 
+    MutableARGPath currentErrorPath = new MutableARGPath();
+    Long bestScore                  = null;
+    int bestIndex                   = 0;
+
+    for (MutableARGPath currentPrefix : pPrefixes) {
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+
+      currentErrorPath.addAll(currentPrefix);
+
+      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
+
+      Long score = obtainDomainTypeScoreForVariables(useDefinitionInformation);
+
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
+        bestScore = score;
+        bestIndex = pPrefixes.indexOf(currentPrefix);
+      }
+    }
+
+    return buildPath(bestIndex, pPrefixes);
+  }
+
+  private MutableARGPath obtainRefinementRootHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -138,11 +242,9 @@ public class ErrorPathClassifier {
       // gets the score for the prefix of how "local" it is
       AssumptionUseDefinitionCollector collector = new InitialAssumptionUseDefinitionCollector();
       collector.obtainUseDefInformation(currentErrorPath);
-      Long score = Long.valueOf(collector.getDependenciesResolvedOffset()) * (-1);
+      Long score = Long.valueOf(collector.getDependenciesResolvedOffset() * (-1));
 
-      // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
-      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
-      if (bestScore == null || score <= bestScore) {
+      if (preference.scorer.apply(Triple.of(score, bestScore, currentErrorPath.size()))) {
         bestScore = score;
         bestIndex = pPrefixes.indexOf(currentPrefix);
       }
@@ -151,10 +253,17 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
+  // not really a sensible heuristic at all, just here for comparison reasons
+  private MutableARGPath obtainRandomPrefix(List<MutableARGPath> pPrefixes) {
+    return buildPath(new Random().nextInt(pPrefixes.size()), pPrefixes);
+  }
+
+  // not really a sensible heuristic at all, just here for comparison reasons
   private MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes) {
     return buildPath(pPrefixes.size() / 2, pPrefixes);
   }
 
+  // not really a sensible heuristic at all, just here for comparison reasons
   private MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
     int totalLength = 0;
     for (MutableARGPath p : pPrefixes) {
@@ -174,96 +283,12 @@ public class ErrorPathClassifier {
     return buildPath(index, pPrefixes);
   }
 
-  private MutableARGPath obtainBestPrefix(List<MutableARGPath> pPrefixes) {
-
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
-    }
-
-    MutableARGPath currentErrorPath = new MutableARGPath();
-    Long bestScore                  = null;
-    int bestIndex                   = 0;
-
-    for (MutableARGPath currentPrefix : pPrefixes) {
-      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(currentPrefix);
-
-      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
-
-      Long score = obtainScoreForVariables(useDefinitionInformation);
-
-      // score <= bestScore chooses the last, based on iteration order, that has the best or equal-to-best score
-      // maybe a real tie-breaker rule would be better, e.g. total number of variables, number of references, etc.
-      if (bestScore == null || isBestScore(score, bestScore, currentErrorPath)) {
-        bestScore = score;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
-      }
-    }
-
-    return buildPath(bestIndex, pPrefixes);
-  }
-
-  private MutableARGPath obtainWorstPrefix(List<MutableARGPath> pPrefixes) {
-
-    if (!classification.isPresent()) {
-      return concatPrefixes(pPrefixes);
-    }
-
-    MutableARGPath currentErrorPath  = new MutableARGPath();
-    Long bestScore            = null;
-    int bestIndex             = 0;
-
-    for (MutableARGPath currentPrefix : pPrefixes) {
-      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
-
-      currentErrorPath.addAll(currentPrefix);
-
-      Set<String> useDefinitionInformation = obtainUseDefInformationOfErrorPath(currentErrorPath);
-
-      Long score = obtainScoreForVariables(useDefinitionInformation);
-
-      if (bestScore == null || isWorstScore(score, bestScore)) {
-        bestScore = score;
-        bestIndex = pPrefixes.indexOf(currentPrefix);
-      }
-    }
-
-    return buildPath(bestIndex, pPrefixes);
-  }
-
-  /**
-   * This method checks if the currentScore is better then the current optimum.
-   *
-   * A lower score is always favored. In case of a draw, the later, deeper score
-   * is favored, unless the error path exceeds the {@link #MAX_PREFIX_LENGTH} limit,
-   * then the earlier, more shallow score is favored. This avoids extremely long
-   * error traces (that take longer during interpolation).
-   *
-   * @param currentScore the current score
-   * @param currentBestScore the current optimum
-   * @param currentErrorPath the current error path
-   * @return true, if the current score is a new optimum, else false
-   */
-  private boolean isBestScore(Long currentScore, Long currentBestScore, MutableARGPath currentErrorPath) {
-    if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
-      return currentScore <= currentBestScore;
-
-    } else {
-      return currentScore < currentBestScore;
-    }
-  }
-
-  private boolean isWorstScore(Long currentScore, Long currentBestScore) {
-    return currentScore >= currentBestScore;
-  }
-
   private Set<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
     return new InitialAssumptionUseDefinitionCollector().obtainUseDefInformation(currentErrorPath);
   }
 
-  private Long obtainScoreForVariables(Set<String> useDefinitionInformation) {
-    Long score = 1L;
+  private Long obtainDomainTypeScoreForVariables(Set<String> useDefinitionInformation) {
+    Long domainTypeScore = 1L;
     for (String variableName : useDefinitionInformation) {
       int factor = UNKNOWN_VAR;
 
@@ -274,15 +299,15 @@ public class ErrorPathClassifier {
         factor = INTEQUAL_VAR;
       }
 
-      score = score * factor;
+      domainTypeScore = domainTypeScore * factor;
 
       if (loopStructure.isPresent()
           && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        score = score + Integer.MAX_VALUE;
+        domainTypeScore = domainTypeScore + Integer.MAX_VALUE;
       }
     }
 
-    return score;
+    return domainTypeScore;
   }
 
   /**
