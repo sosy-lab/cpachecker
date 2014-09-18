@@ -23,11 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -43,6 +50,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 
 public class ErrorPathClassifier {
 
@@ -51,6 +60,8 @@ public class ErrorPathClassifier {
   private static final int UNKNOWN_VAR   = 16;
 
   private static final int MAX_PREFIX_LENGTH = 1000;
+
+  private static int invocationCounter = 0;
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
@@ -73,6 +84,7 @@ public class ErrorPathClassifier {
   }
 
   public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference, MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
+
     switch (preference) {
     case SHORTEST:
       return obtainShortestPrefix(pPrefixes);
@@ -100,15 +112,15 @@ public class ErrorPathClassifier {
     }
   }
 
-  public MutableARGPath obtainShortestPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainShortestPrefix(List<MutableARGPath> pPrefixes) {
     return buildPath(0, pPrefixes);
   }
 
-  public MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes) {
     return buildPath(pPrefixes.size() - 1, pPrefixes);
   }
 
-  public MutableARGPath obtainMostLocalPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainMostLocalPrefix(List<MutableARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
@@ -139,11 +151,11 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
-  public MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes) {
     return buildPath(pPrefixes.size() / 2, pPrefixes);
   }
 
-  public MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
     int totalLength = 0;
     for (MutableARGPath p : pPrefixes) {
       totalLength += p.size();
@@ -162,7 +174,7 @@ public class ErrorPathClassifier {
     return buildPath(index, pPrefixes);
   }
 
-  public MutableARGPath obtainBestPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainBestPrefix(List<MutableARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
@@ -192,7 +204,7 @@ public class ErrorPathClassifier {
     return buildPath(bestIndex, pPrefixes);
   }
 
-  public MutableARGPath obtainWorstPrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainWorstPrefix(List<MutableARGPath> pPrefixes) {
 
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
@@ -341,4 +353,78 @@ public class ErrorPathClassifier {
    * blank edge, due to implementation details)
    */
   private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null, BOGUS_EDGE);
+
+  /**
+   * This method export the current error path, visualizing the individual prefixes.
+   *
+   * @param errorPath the original error path
+   * @param pPrefixes the list of prefixes
+   */
+  private void exportToDot(MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
+    SetMultimap<ARGState, ARGState> successorRelation = buildSuccessorRelation(errorPath.getLast().getFirst());
+
+    Set<ARGState> failingStates = new HashSet<>();
+    for(MutableARGPath path : pPrefixes) {
+      failingStates.add(path.getLast().getFirst());
+    }
+
+    int assertFailCnt = failingStates.size();
+    StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
+    for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
+      result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + "\"]" + "\n");
+      result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
+
+      CFAEdge edge = current.getKey().getEdgeToChild(current.getValue());
+
+      if(failingStates.contains(current.getValue())) {
+        result.append(current.getKey().getStateId() + " [shape=diamond, style=filled, fillcolor=\"red\"]" + "\n");
+        result.append(current.getKey().getStateId() + " -> stop" + assertFailCnt + "\n");
+        result.append("stop" + assertFailCnt + " [shape=point]\n");
+        assertFailCnt--;
+      }
+
+      else if(edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        result.append(current.getKey().getStateId() + " [shape=diamond]" + "\n");
+      }
+
+      assert (!current.getKey().isTarget());
+    }
+    result.append("}");
+
+    try {
+      Files.writeFile(Paths.get("output/itpPaths" + (invocationCounter++) + ".dot"), result.toString());
+    } catch (IOException e) {
+      throw new IllegalArgumentException();
+    }
+  }
+
+  /**
+   * This method creates a successor relation from the root to the target state.
+   *
+   * @param target the state to which the successor relation should be built.
+   * @return the successor relation from the root state to the given target state
+   */
+  private SetMultimap<ARGState, ARGState> buildSuccessorRelation(ARGState target) {
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(target);
+    ARGState itpTreeRoot = null;
+
+    SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
+
+    // build the tree, bottom-up, starting from the target states
+    while (!todo.isEmpty()) {
+      final ARGState currentState = todo.removeFirst();
+
+      if (currentState.getParents().iterator().hasNext()) {
+        ARGState parentState = currentState.getParents().iterator().next();
+        todo.add(parentState);
+        successorRelation.put(parentState, currentState);
+
+      } else if (itpTreeRoot == null) {
+        itpTreeRoot = currentState;
+      }
+    }
+
+    return successorRelation;
+  }
 }
