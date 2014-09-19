@@ -42,6 +42,11 @@ public class DummyErrorState extends AbstractSingleWrapperState {
   }
 
   @Override
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    return "";
+  }
+
+  @Override
   public Object getPartitionKey() {
     return null;
   }
