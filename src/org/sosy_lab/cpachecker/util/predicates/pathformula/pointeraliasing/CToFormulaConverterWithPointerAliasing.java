@@ -196,17 +196,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ssa.getIndex(name) > 0;
   }
 
-  @Override
-  protected Formula makeFreshVariable(final String name,
-                            final CType type,
-                            final SSAMapBuilder ssa
-                            ) {
-    // TODO: Does this also work backwards?
-    final int newIndex = makeFreshIndex(name, type, ssa);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type),
-                             name + FRESH_INDEX_SEPARATOR + newIndex);
-  }
-
   Formula makeDereference(CType type,
                          final Formula address,
                          final SSAMapBuilder ssa,
@@ -759,6 +748,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  @Override
+  protected Formula makeFreshVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshVariable(pName, pType, pSsa);
   }
 
   @Override
