@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -408,12 +407,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
-          throws UnrecognizedCCodeException {
         return LocationSetBot.INSTANCE;
       }
 

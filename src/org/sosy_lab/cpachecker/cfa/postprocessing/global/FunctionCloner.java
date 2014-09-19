@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -536,12 +535,6 @@ class FunctionCloner implements CFAVisitor {
     @Override
     public CExpression visit(CCastExpression exp) {
       return new CCastExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CTypeIdInitializerExpression exp) {
-      return new CTypeIdInitializerExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-              cloneAst(exp.getInitializer()), exp.getType());
     }
 
     @Override

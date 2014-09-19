@@ -40,8 +40,6 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
 
   R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
 
-  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
-
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
   R visit (CImaginaryLiteralExpression PIastLiteralExpression) throws X;

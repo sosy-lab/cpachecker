@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -125,12 +124,6 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   @Override
   public Variable visit(final CTypeIdExpression e) throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("TypeId in place of lvalue", cfaEdge, e);
-  }
-
-  @Override
-  public Variable visit(final CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
-    // TODO: Type id initializers should be supported
-    throw new UnrecognizedCCodeException("Typeid initializers are currently unsupported", cfaEdge);
   }
 
   @Override

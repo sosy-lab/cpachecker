@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -2168,15 +2167,6 @@ public class AssignmentToEdgeAllocator {
           pTypeIdExpression.getExpressionType().accept(typedefResolver),
           pTypeIdExpression.getOperator(),
           pTypeIdExpression.getType().accept(typedefResolver));
-    }
-
-    @Override
-    public CExpression visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws RuntimeException {
-      return new CTypeIdInitializerExpression(
-          pCTypeIdInitializerExpression.getFileLocation(),
-          pCTypeIdInitializerExpression.getExpressionType().accept(typedefResolver),
-          handle(pCTypeIdInitializerExpression.getInitializer(), this, designatorTypedefResolveVisitor, initializerTypdefResolver),
-          pCTypeIdInitializerExpression.getType().accept(typedefResolver));
     }
 
     @Override

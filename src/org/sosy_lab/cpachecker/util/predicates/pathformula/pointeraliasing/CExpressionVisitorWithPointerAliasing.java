@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -293,11 +292,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                                 CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);
     }
-  }
-
-  @Override
-  public Expression visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Unhandled initializer", edge, e);
   }
 
   @Override

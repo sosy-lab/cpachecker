@@ -162,11 +162,6 @@ public class CIdExpressionCollectingVisitor implements
   }
 
   @Override
-  public Set<CIdExpression> visit(CTypeIdInitializerExpression pE) throws RuntimeException {
-    return Collections.emptySet();
-  }
-
-  @Override
   public Set<CIdExpression> visit(CImaginaryLiteralExpression pE) throws RuntimeException {
     return Collections.emptySet();
   }
