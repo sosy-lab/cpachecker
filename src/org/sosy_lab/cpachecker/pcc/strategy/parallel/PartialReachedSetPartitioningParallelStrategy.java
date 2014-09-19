@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -107,21 +107,15 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
 
       if (!checkResult.get()) { return false; }
 
-      logger.log(Level.INFO, "Check if all are checked");
-      for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
-          logger
-              .log(Level.SEVERE,
-                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
-                  outState);
-          return false;
-        }
-      }
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
+      if (!PartitionChecker.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 

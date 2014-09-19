@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -89,7 +88,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     final AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionsAvailable = new Semaphore(0);
 
-    Multimap<CFANode, AbstractState> inPartition = HashMultimap.create();
+    Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new HashSet<>();
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getSavedReachedSetSize());
 
@@ -130,24 +129,18 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
       if (!checkResult.get()) { return false; }
 
-      checker.addPartitionElements(inPartition);
+      checker.addPartitionElements(partitionNodes);
       checker.addElementsCheckedInOtherPartitions(inOtherPartition);
 
-      logger.log(Level.INFO, "Check if all are checked");
-      for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, inPartition.get(AbstractStates.extractLocation(outState)), initPrec)) {
-          logger
-              .log(Level.SEVERE,
-                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
-                  outState);
-          return false;
-        }
-      }
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, inPartition.get(AbstractStates.extractLocation(initialState)),
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
+      if (!PartitionChecker.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 

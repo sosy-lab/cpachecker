@@ -168,4 +168,13 @@ public class PartitionChecker {
       mustBeInCertificate.add(element);
     }
   }
+
+  public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
+      Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
+      throws CPAException, InterruptedException {
+    for (AbstractState outState : pInOtherPartitions) {
+      if (!pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) { return false; }
+    }
+    return true;
+  }
 }
