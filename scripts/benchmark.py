@@ -82,7 +82,7 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        if "http" in config.cloudMaster:
+        if config.cloudMaster and "http" in config.cloudMaster:
             result = webclient.executeBenchmarkInCloud(benchmark, outputHandler)
         else:
             result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)        
@@ -276,7 +276,7 @@ def main(argv=None):
             pass # this does not work on Windows
 
     if config.cloud:
-        if "http" in config.cloudMaster:
+        if config.cloudMaster and "http" in config.cloudMaster:
             global webclient
             import benchmark.webclient as webclient
         else:
