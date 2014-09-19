@@ -49,13 +49,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -88,7 +88,10 @@ public class PathFormulaManagerImplTest {
   private FormulaManager __formulaManager;
   private FormulaManagerView fmgr;
   private Solver solver;
-  private PathFormulaManager pfmgr;
+  private PathFormulaManager pfmgrFwd;
+  private PathFormulaManager pfmgrBwd;
+
+  private CDeclarationEdge x_decl;
 
   @Before
   public void setup() throws Exception {
@@ -105,7 +108,7 @@ public class PathFormulaManagerImplTest {
         config, TestLogManager.getInstance());
     solver = new Solver(fmgr, factory);
 
-    pfmgr = new PathFormulaManagerImpl(
+    pfmgrFwd = new PathFormulaManagerImpl(
         fmgr,
         config,
         TestLogManager.getInstance(),
@@ -113,6 +116,16 @@ public class PathFormulaManagerImplTest {
         MachineModel.LINUX32,
         Optional.<VariableClassification>absent(),
         false
+        );
+
+    pfmgrBwd = new PathFormulaManagerImpl(
+        fmgr,
+        config,
+        TestLogManager.getInstance(),
+        ShutdownNotifier.create(),
+        MachineModel.LINUX32,
+        Optional.<VariableClassification>absent(),
+        true
         );
   }
 
@@ -146,7 +159,7 @@ public class PathFormulaManagerImplTest {
 
     // Declaration of the variable "X".
     // Equivalent to "int x = 0".
-    CSimpleDeclaration xDeclaration = new CVariableDeclaration(
+    CVariableDeclaration xDeclaration = new CVariableDeclaration(
         FileLocation.DUMMY,
         false,
         CStorageClass.AUTO,
@@ -159,6 +172,14 @@ public class PathFormulaManagerImplTest {
             CNumericTypes.ZERO
         )
     );
+
+    x_decl = new CDeclarationEdge(
+        "int x = 0",
+        FileLocation.DUMMY,
+        a,
+        b,
+        xDeclaration
+        );
 
     // x + 1
     CExpression rhs = expressionBuilder.buildBinaryExpression(
@@ -264,6 +285,69 @@ public class PathFormulaManagerImplTest {
     Assert.assertEquals(customIdx + SSAMap.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
 
+  @Test
+  public void testAssignmentSSABackward() throws Exception {
+    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
+    CFAEdge a_to_b = data.getFirst();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, a_to_b);
+
+    Assert.assertEquals("(= x@10 (+ x@11 1.0))", pf.toString());
+  }
+
+  @Test
+  public void testDeclarationSSABackward() throws Exception {
+    createCFA();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, x_decl);
+
+    Assert.assertEquals(9, pf.getSsa().getIndex("x"));
+  }
+
+  @Test
+  public void testDeclarationSSAForward() throws Exception {
+    createCFA();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, x_decl);
+
+    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+  }
+
+  @Test
+  public void testAssignmentSSAForward() throws Exception {
+    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
+    CFAEdge a_to_b = data.getFirst();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, a_to_b);
+
+    Assert.assertEquals("(= x@11 (+ x@10 1.0))", pf.toString());
+  }
+
+
   /**
    * Creates a {@link PathFormula} with SSA indexing starting
    * from the specified value.
@@ -271,17 +355,17 @@ public class PathFormulaManagerImplTest {
    */
   private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
       throws CPATransferException, InterruptedException {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pfmgr.makeNewPathFormula(
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA = pfmgrFwd.makeNewPathFormula(
         empty,
         SSAMap.emptySSAMap().withDefault(ssaIdx));
 
-    return pfmgr.makeAnd(emptyWithCustomSSA, edge);
+    return pfmgrFwd.makeAnd(emptyWithCustomSSA, edge);
   }
 
   @Test
   public void testEmpty() {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula expected = new PathFormula(
         fmgr.getBooleanFormulaManager().makeBoolean(true),
         SSAMap.emptySSAMap(),
@@ -313,18 +397,18 @@ public class PathFormulaManagerImplTest {
 
   @Test
   public void testMakeOrBothEmpty() throws Exception {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
-    PathFormula result = pfmgr.makeOr(empty, empty);
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula result = pfmgrFwd.makeOr(empty, empty);
 
     assertEquals(empty, result);
   }
 
   @Test
   public void testMakeOrLeftEmpty() throws Exception {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula pf = makePathFormulaWithVariable("a", 2);
 
-    PathFormula result = pfmgr.makeOr(empty, pf);
+    PathFormula result = pfmgrFwd.makeOr(empty, pf);
 
     PathFormula expected = new PathFormula(
         fmgr.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
@@ -335,10 +419,10 @@ public class PathFormulaManagerImplTest {
 
   @Test
   public void testMakeOrRightEmpty() throws Exception {
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula pf = makePathFormulaWithVariable("a", 2);
 
-    PathFormula result = pfmgr.makeOr(pf, empty);
+    PathFormula result = pfmgrFwd.makeOr(pf, empty);
 
     PathFormula expected = new PathFormula(
         fmgr.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
@@ -352,7 +436,7 @@ public class PathFormulaManagerImplTest {
     PathFormula pf1 = makePathFormulaWithVariable("a", 2);
     PathFormula pf2 = makePathFormulaWithVariable("a", 3);
 
-    PathFormula result = pfmgr.makeOr(pf1, pf2);
+    PathFormula result = pfmgrFwd.makeOr(pf1, pf2);
 
     BooleanFormula left = fmgr.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
     BooleanFormula right = pf2.getFormula();
@@ -368,8 +452,8 @@ public class PathFormulaManagerImplTest {
     PathFormula pf1 = makePathFormulaWithVariable("a", 2);
     PathFormula pf2 = makePathFormulaWithVariable("b", 3);
 
-    PathFormula resultA = pfmgr.makeOr(pf1, pf2);
-    PathFormula resultB = pfmgr.makeOr(pf2, pf1);
+    PathFormula resultA = pfmgrFwd.makeOr(pf1, pf2);
+    PathFormula resultB = pfmgrFwd.makeOr(pf2, pf1);
 
     BooleanFormula equiv = fmgr.makeEqual(resultA.getFormula(), resultB.getFormula());
 
