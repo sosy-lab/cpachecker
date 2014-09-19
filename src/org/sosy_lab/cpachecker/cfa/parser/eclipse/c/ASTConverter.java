@@ -1063,26 +1063,25 @@ class ASTConverter {
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
 
-    // if this variable is a static variable it is in the scope
-    if (scope.lookupVariable(staticVariablePrefix + name) != null ||
-        scope.lookupFunction(staticVariablePrefix + name) != null) {
-      name = staticVariablePrefix + name;
-    }
-
     // Try to find declaration.
     // Variables per se actually do not bind stronger than function,
     // but local variables do.
     // Furthermore, a global variable and a function with the same name
     // cannot exist, so the following code works correctly.
-    CSimpleDeclaration declaration = scope.lookupVariable(name);
+    // We first try to lookup static variables.
+    CSimpleDeclaration declaration = scope.lookupVariable(staticVariablePrefix + name);
+    if (declaration == null) {
+      declaration = scope.lookupVariable(name);
+    }
+    if (declaration == null) {
+      declaration = scope.lookupFunction(staticVariablePrefix + name);
+    }
     if (declaration == null) {
       declaration = scope.lookupFunction(name);
     }
 
-
     // declaration may still be null here,
     // for example when parsing AST patterns for the AutomatonCPA.
-
 
     if (declaration != null) {
       name = declaration.getName(); // may have been renamed
