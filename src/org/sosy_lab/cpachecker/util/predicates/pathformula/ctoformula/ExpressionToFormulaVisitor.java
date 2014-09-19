@@ -87,7 +87,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   @Override
   protected Formula visitDefault(CExpression exp)
       throws UnrecognizedCCodeException {
-    return conv.makeVariableUnsafe(exp, function, ssa, false, false);
+    return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
   protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
@@ -594,6 +594,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   protected Formula makeNondet(final String varName, final CType type) {
-    return conv.makeFreshVariable(varName, type, ssa, false);
+    return conv.makeFreshVariable(varName, type, ssa);
   }
 }

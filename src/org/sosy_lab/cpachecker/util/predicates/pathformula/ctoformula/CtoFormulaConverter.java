@@ -360,12 +360,10 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa,
-      boolean postponeMakeFresh) {
+  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex;
 
-    // TODO replace postponeMakeFresh with backwards?
-    if (postponeMakeFresh) {
+    if (backwards) {
       useIndex = getIndex(name, type, ssa);
     } else {
       useIndex = makeFreshIndex(name, type, ssa);
@@ -373,7 +371,7 @@ public class CtoFormulaConverter {
 
     Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
 
-    if (postponeMakeFresh) {
+    if (backwards) {
       makeFreshIndex(name, type, ssa);
     }
 
@@ -1054,7 +1052,7 @@ public class CtoFormulaConverter {
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
-    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions, backwards));
+    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
@@ -1237,7 +1235,7 @@ public class CtoFormulaConverter {
    * We call this method for unsupported Expressions and just make a new Variable.
    */
   Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
-      boolean makeFresh, boolean postponeMakeFresh) {
+      boolean makeFresh) {
 
     if (makeFresh) {
       logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
@@ -1247,7 +1245,7 @@ public class CtoFormulaConverter {
 
     String var = scoped(exprToVarName(exp), function);
     if (makeFresh) {
-      return makeFreshVariable(var, exp.getExpressionType(), ssa, postponeMakeFresh);
+      return makeFreshVariable(var, exp.getExpressionType(), ssa);
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }

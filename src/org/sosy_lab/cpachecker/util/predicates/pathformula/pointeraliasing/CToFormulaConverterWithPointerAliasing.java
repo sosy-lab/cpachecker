@@ -199,10 +199,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeFreshVariable(final String name,
                             final CType type,
-                            final SSAMapBuilder ssa,
-                            boolean postponeMakeFresh
+                            final SSAMapBuilder ssa
                             ) {
-    // TODO: Does this also work backwards? Consider flag postponeMakeFresh
+    // TODO: Does this also work backwards?
     final int newIndex = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, newIndex);
     return fmgr.makeVariable(getFormulaTypeFromCType(type),
