@@ -96,9 +96,15 @@ public class PathFormulaManagerImplTest {
   @Before
   public void setup() throws Exception {
     Configuration.defaultConfiguration();
+
     Configuration config = Configuration
         .builder()
         .setOption("cpa.predicate.solver", "smtinterpol") // only solver guaranteed on all platforms
+        .build();
+
+    Configuration configBackwards = Configuration.builder()
+        .setOption("cpa.predicate.solver", "smtinterpol")
+        .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
         .build();
 
     FormulaManagerFactory factory = new FormulaManagerFactory(
@@ -120,7 +126,7 @@ public class PathFormulaManagerImplTest {
 
     pfmgrBwd = new PathFormulaManagerImpl(
         fmgr,
-        config,
+        configBackwards,
         TestLogManager.getInstance(),
         ShutdownNotifier.create(),
         MachineModel.LINUX32,
@@ -313,20 +319,20 @@ public class PathFormulaManagerImplTest {
 
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
-    Assert.assertEquals(9, pf.getSsa().getIndex("x"));
+    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
   }
 
   @Test
   public void testDeclarationSSAForward() throws Exception {
     createCFA();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
     pf = pfmgrBwd.makeNewPathFormula(pf,
         pf.getSsa().builder()
         .setIndex("x", CNumericTypes.INT, 10)
         .build());
 
-    pf = pfmgrBwd.makeAnd(pf, x_decl);
+    pf = pfmgrFwd.makeAnd(pf, x_decl);
 
     Assert.assertEquals(11, pf.getSsa().getIndex("x"));
   }
@@ -336,13 +342,13 @@ public class PathFormulaManagerImplTest {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
     CFAEdge a_to_b = data.getFirst();
 
-    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
     pf = pfmgrBwd.makeNewPathFormula(pf,
         pf.getSsa().builder()
         .setIndex("x", CNumericTypes.INT, 10)
         .build());
 
-    pf = pfmgrBwd.makeAnd(pf, a_to_b);
+    pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
     Assert.assertEquals("(= x@11 (+ x@10 1.0))", pf.toString());
   }
