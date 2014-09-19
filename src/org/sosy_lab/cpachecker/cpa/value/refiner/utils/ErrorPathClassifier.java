@@ -169,7 +169,10 @@ public class ErrorPathClassifier {
       return obtainLongestPrefix(pPrefixes);
 
     case DOMAIN_BEST_SHALLOW:
+    case DOMAIN_BEST_BOUNDED:
+    case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
+    case DOMAIN_WORST_DEEP:
       return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference);
 
     case REFINE_SHALLOW:
