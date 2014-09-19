@@ -172,9 +172,16 @@ public class PartitionChecker {
   public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
       Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
       throws CPAException, InterruptedException {
+    HashSet<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
+
     for (AbstractState outState : pInOtherPartitions) {
-      if (!pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) { return false; }
+      if (!partitionNodes.contains(outState)
+          && !pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) {
+        return false;
+      }
     }
+
     return true;
   }
+
 }
