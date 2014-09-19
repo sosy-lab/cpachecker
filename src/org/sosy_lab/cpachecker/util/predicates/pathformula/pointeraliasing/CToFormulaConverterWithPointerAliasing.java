@@ -717,8 +717,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   static final String FIELD_NAME_SEPARATOR = "$";
 
-  static final String FRESH_INDEX_SEPARATOR = "#";
-
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
 

@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -65,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -76,6 +76,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
+
+  private static final String MALLOC_INDEX_SEPARATOR = "#";
+
+  // The counter that guarantees a unique name for each allocated memory region.
+  private static final UniqueIdGenerator dynamicAllocationCounter = new UniqueIdGenerator();
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
@@ -296,10 +301,12 @@ class DynamicMemoryHandler {
     return result;
   }
 
-  static String makeAllocVariableName(final String functionName,
-                               final CType type) {
-    final String allocVariableName = functionName + "_" + CToFormulaConverterWithPointerAliasing.getUFName(type);
-    return  allocVariableName + CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
+  static String makeAllocVariableName(final String functionName, final CType type) {
+    return functionName
+        + "_"
+        + CToFormulaConverterWithPointerAliasing.getUFName(type)
+        + MALLOC_INDEX_SEPARATOR
+        + dynamicAllocationCounter.getFreshId();
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {
