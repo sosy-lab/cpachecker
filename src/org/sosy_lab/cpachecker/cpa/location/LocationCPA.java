@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -62,7 +63,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, false);
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -72,7 +73,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(false);
+    return new LocationCPAFactory(LocationStateType.FORWARD);
   }
 
   @Override
