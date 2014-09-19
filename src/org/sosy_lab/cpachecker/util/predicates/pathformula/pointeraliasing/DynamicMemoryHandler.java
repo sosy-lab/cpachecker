@@ -228,15 +228,12 @@ class DynamicMemoryHandler {
     }
     Formula address;
     if (newType != null) {
-      final CType newBaseType = CTypeUtils.getBaseType(newType);
-      final String newBase = makeAllocVariableName(functionName, newType, newBaseType);
+      final String newBase = makeAllocVariableName(functionName, newType);
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName,
-                                                            CNumericTypes.VOID,
-                                                            CPointerType.POINTER_TO_VOID);
+      final String newBase = makeAllocVariableName(functionName, CNumericTypes.VOID);
       pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                          size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                       parameter.getExpressionType(),
@@ -299,9 +296,8 @@ class DynamicMemoryHandler {
     return result;
   }
 
-  private String makeAllocVariableName(final String functionName,
-                               final CType type,
-                               final CType baseType) {
+  static String makeAllocVariableName(final String functionName,
+                               final CType type) {
     final String allocVariableName = functionName + "_" + CToFormulaConverterWithPointerAliasing.getUFName(type);
     return  allocVariableName + CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
   }

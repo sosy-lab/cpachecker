@@ -165,10 +165,8 @@ public class PointerTargetSetManager {
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
     } else {
       final CType fakeBaseType = getFakeBaseType(0);
-      final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
-                                  CToFormulaConverterWithPointerAliasing.getUFName(fakeBaseType) +
-                                  CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR +
-                                  RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
+      final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType);
       mergedBases =
         Triple.of(mergedBases.getFirst(),
                   mergedBases.getSecond(),
