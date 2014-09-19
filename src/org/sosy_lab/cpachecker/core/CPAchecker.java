@@ -400,7 +400,7 @@ public class CPAchecker {
       initialLocations = tlp.tryGetAutomatonTargetLocations(analysisEntryFunction);
 
     } else {
-      if (initialStatesFor == InitialStatesFor.END) {
+      if (initialStatesFor == InitialStatesFor.EXIT) {
         initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
       } else {
         initialLocations = ImmutableSet.of(analysisEntryFunction);
