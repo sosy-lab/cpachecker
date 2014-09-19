@@ -114,7 +114,7 @@ public class CPAchecker {
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  public static enum InitialStatesFor { ENTRY, TARGET, END }
+  public static enum InitialStatesFor { ENTRY, TARGET, EXIT }
   @Option(name="initialStatesFor",
       description="What CFA nodes should be the starting point of the analysis?")
   private InitialStatesFor initialStatesFor = InitialStatesFor.ENTRY;
