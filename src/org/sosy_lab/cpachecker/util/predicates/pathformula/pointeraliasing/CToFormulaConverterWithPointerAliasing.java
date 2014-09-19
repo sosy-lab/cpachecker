@@ -202,8 +202,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                             final SSAMapBuilder ssa
                             ) {
     // TODO: Does this also work backwards?
-    final int newIndex = getFreshIndex(name, type, ssa);
-    ssa.setIndex(name, type, newIndex);
+    final int newIndex = makeFreshIndex(name, type, ssa);
     return fmgr.makeVariable(getFormulaTypeFromCType(type),
                              name + FRESH_INDEX_SEPARATOR + newIndex);
   }
