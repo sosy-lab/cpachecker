@@ -319,7 +319,7 @@ public class PathFormulaManagerImplTest {
 
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
-    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+    Assert.assertEquals(12, pf.getSsa().getIndex("x"));
   }
 
   @Test
