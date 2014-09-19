@@ -327,7 +327,7 @@ public class PathFormulaManagerImplTest {
     createCFA();
 
     PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
+    pf = pfmgrFwd.makeNewPathFormula(pf,
         pf.getSsa().builder()
         .setIndex("x", CNumericTypes.INT, 10)
         .build());
@@ -343,7 +343,7 @@ public class PathFormulaManagerImplTest {
     CFAEdge a_to_b = data.getFirst();
 
     PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
-    pf = pfmgrBwd.makeNewPathFormula(pf,
+    pf = pfmgrFwd.makeNewPathFormula(pf,
         pf.getSsa().builder()
         .setIndex("x", CNumericTypes.INT, 10)
         .build());
