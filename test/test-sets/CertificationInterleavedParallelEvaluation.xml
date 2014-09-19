@@ -31,7 +31,7 @@
 
 <rundefinition name="ReachingDefDF">
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 	<option name="-setprop">pcc.partial.certificateType=ALL</option>
 	<sourcefiles>
 <option name="-reachingdefinitionARG"/>
@@ -802,7 +802,7 @@
 
 <rundefinition name="ReachingDefDF_Partial">
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 <sourcefiles>
 <option name="-reachingdefinitionARG"/>
 <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
@@ -1624,7 +1624,7 @@
 <rundefinition name="IntervalDF">
 	<option name="-setprop">cpa.propertychecker.className=InIntervalChecker</option>
 	<option name="-setprop">cpa.interval.merge=JOIN</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 	<option name="-setprop">pcc.partial.certificateType=ALL</option>
 <sourcefiles>
 <option name="-intervalAnalysisARG-propertycheck"/>
@@ -2592,7 +2592,7 @@
 <rundefinition name="IntervalDF_Partial">
 	<option name="-setprop">cpa.propertychecker.className=InIntervalChecker</option>
 	<option name="-setprop">cpa.interval.merge=JOIN</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 <sourcefiles>
 <option name="-intervalAnalysisARG-propertycheck"/>
 <option name="-setprop">pcc.partial.certificateType=HEURISTIC</option>
@@ -3621,7 +3621,7 @@
 
 <rundefinition name="IntervalMC">
 	<option name="-setprop">cpa.propertychecker.className=InIntervalChecker</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 	<option name="-setprop">pcc.partial.certificateType=ALL</option>
 <sourcefiles>
 <option name="-intervalAnalysisARG-propertycheck"/>
@@ -4318,7 +4318,7 @@
 <rundefinition name="IntervalMC_Partial">
 	<option name="-setprop">cpa.propertychecker.className=InIntervalChecker</option>
 	<option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
-	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetParallelIOCheckingInterleavedStrategy</option>
+	<option name="-setprop">pcc.strategy=parallel.interleaved.PartialReachedSetIOCheckingInterleavedStrategy</option>
 <sourcefiles>
 <option name="-intervalAnalysisARG-propertycheck"/>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::tmp___0,end,1,0,0,</option>
