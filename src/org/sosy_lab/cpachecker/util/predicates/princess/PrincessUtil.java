@@ -74,7 +74,6 @@ class PrincessUtil {
 
   public static boolean isVariable(IExpression t) {
     return t instanceof IAtom || t instanceof IConstant;
-    // wrong for ints: return !isTrue(t) && !isFalse(t) && t.length() == 0;
   }
 
   public static boolean isUIF(IExpression t) {
@@ -85,7 +84,6 @@ class PrincessUtil {
    * ApplicationTerm with negative Number */
   public static boolean isNumber(IExpression t) {
     return t instanceof IIntLit;
-    // todo negative Number --> "-123"
   }
 
   /** converts a term to a number,
@@ -97,7 +95,6 @@ class PrincessUtil {
     if (t instanceof IIntLit) {
       IdealInt value = ((IIntLit) t).value();
       return value.longValue();
-      // todo negative Number --> "-123"
     }
 
     throw new NumberFormatException("unknown format of numeric term: " + t);
@@ -143,7 +140,7 @@ class PrincessUtil {
   }
 
   /** t1 = t2 */
-  public static boolean isEqual(IExpression t) {
+  public static boolean isEquivalence(IExpression t) {
     return isBinaryFunction(t, IBinJunctor.Eqv());
   }
 
@@ -260,4 +257,5 @@ class PrincessUtil {
   public static String prettyPrint(IExpression t) {
     return t.toString();
   }
+
 }

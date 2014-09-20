@@ -115,7 +115,10 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long,
 
   @Override
   protected boolean isEquivalence(Long pParam) {
-    return isOP(z3context, pParam, Z3_OP_EQ);
+    return isOP(z3context, pParam, Z3_OP_EQ)
+        && get_app_num_args(z3context,pParam) == 2
+        && get_sort(z3context, get_app_arg(z3context, pParam, 0)) == Z3_BOOL_SORT
+        && get_sort(z3context, get_app_arg(z3context, pParam, 1)) == Z3_BOOL_SORT;
   }
 
   @Override

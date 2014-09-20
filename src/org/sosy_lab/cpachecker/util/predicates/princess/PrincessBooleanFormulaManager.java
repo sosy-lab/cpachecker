@@ -160,7 +160,7 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
 
   @Override
   protected boolean isEquivalence(IExpression pBits) {
-    return PrincessUtil.isEqual(pBits);
+    return PrincessUtil.isEquivalence(pBits);
   }
 
   @Override

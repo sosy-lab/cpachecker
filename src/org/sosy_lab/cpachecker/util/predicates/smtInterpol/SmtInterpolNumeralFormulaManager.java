@@ -164,7 +164,7 @@ abstract class SmtInterpolNumeralFormulaManager
 
   @Override
   public boolean isEqual(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "=");
+    return SmtInterpolUtil.isNumeralEqual(pNumber);
   }
 
   @Override

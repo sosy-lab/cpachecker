@@ -178,8 +178,13 @@ class SmtInterpolUtil {
   }
 
   /** t1 = t2 */
-  public static boolean isEqual(Term t) {
-    return isFunction(t, "=");
+  public static boolean isEquivalence(Term t) {
+    return isFunction(t, "=") && getArity(t) == 2 && isBoolean(getArg(t, 0)) && isBoolean(getArg(t, 1));
+  }
+
+  /** num1 = num2, non-boolean version */
+  public static boolean isNumeralEqual(Term t) {
+    return isFunction(t, "=") && getArity(t) == 2 && !isBoolean(getArg(t, 0)) && !isBoolean(getArg(t, 1));
   }
 
   public static boolean isFunction(Term t, String name) {
@@ -190,15 +195,6 @@ class SmtInterpolUtil {
   public static boolean isFunction(Term t, FunctionSymbol func) {
     return (t instanceof ApplicationTerm)
         && func == ((ApplicationTerm) t).getFunction();
-  }
-
-  public static Term[] getArgs(Term t) {
-    if (t instanceof ApplicationTerm) {
-      return ((ApplicationTerm) t).getParameters();
-    } else {
-      throw new IllegalArgumentException("Cannot get children of term type "
-          + t.getClass().getSimpleName() + " in term " + t.toStringDirect());
-    }
   }
 
   public static int getArity(Term t) {
