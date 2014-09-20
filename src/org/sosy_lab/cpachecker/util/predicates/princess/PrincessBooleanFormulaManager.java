@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 import scala.Enumeration;
@@ -37,7 +38,7 @@ import ap.parser.IFormulaITE;
 import ap.parser.INot;
 import ap.parser.ITermITE;
 
-class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   PrincessBooleanFormulaManager(PrincessFormulaCreator creator) {
     super(creator);

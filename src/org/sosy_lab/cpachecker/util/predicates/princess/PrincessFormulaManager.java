@@ -34,13 +34,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
 
-public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   private PrincessFormulaManager(
           PrincessEnvironment pEnv,
@@ -58,7 +59,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
-        PrincessEnvironment.Type.BOOL, PrincessEnvironment.Type.INT, PrincessEnvironment.Type.INT);
+        TermType.Boolean, TermType.Integer);
 
     // Create managers
     PrincessUnsafeFormulaManager unsafeManager = new PrincessUnsafeFormulaManager(creator);

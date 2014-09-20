@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -46,7 +47,7 @@ import com.google.common.collect.ImmutableList;
 
 abstract class PrincessNumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-        extends AbstractNumeralFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment, ParamFormulaType, ResultFormulaType> {
+        extends AbstractNumeralFormulaManager<IExpression, TermType, PrincessEnvironment, ParamFormulaType, ResultFormulaType> {
 
   private final PrincessFunctionType<ResultFormulaType> multUfDecl;
   private final PrincessFunctionType<ResultFormulaType> divUfDecl;

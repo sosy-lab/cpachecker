@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
@@ -64,7 +65,7 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predica
 
   @Override
   protected IExpression makeVariableImpl(String varName) {
-    PrincessEnvironment.Type t = getFormulaCreator().getIntegerType();
+    TermType t = getFormulaCreator().getIntegerType();
     return getFormulaCreator().makeVariable(t, varName);
   }
 }

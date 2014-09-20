@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 
 import ap.parser.IExpression;
 
-class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   private final PrincessUnsafeFormulaManager unsafeManager;
 
@@ -58,11 +59,11 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   public <T extends Formula> PrincessFunctionType<T> createFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
-    List<PrincessEnvironment.Type> types = new ArrayList<>(pArgs.size());
+    List<TermType> types = new ArrayList<>(pArgs.size());
     for (FormulaType<?> type : pArgs) {
       types.add(toSolverType(type));
     }
-    PrincessEnvironment.Type returnType = toSolverType(pReturnType);
+    TermType returnType = toSolverType(pReturnType);
     PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().declareFun(pName, returnType, types);
 
     return new PrincessFunctionType<>(pReturnType, pArgs, funcDecl);
