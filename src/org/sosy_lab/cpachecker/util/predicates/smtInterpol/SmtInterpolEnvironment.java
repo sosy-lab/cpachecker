@@ -49,6 +49,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -77,28 +78,6 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
  */
 @Options(prefix="cpa.predicate.solver.smtinterpol")
 class SmtInterpolEnvironment {
-
-  /**
-   * Enum listing possible types for SmtInterpol.
-   */
-  static enum Type {
-    BOOL("Bool"),
-    INT("Int"),
-    REAL("Real");
-    // TODO more types?
-    // TODO merge enum with ModelTypes?
-
-    private final String name;
-
-    private Type(String s) {
-      name = s;
-    }
-
-    @Override
-    public String toString() {
-      return name;
-    }
-  }
 
   @Option(description="Double check generated results like interpolants and models whether they are correct")
   private boolean checkResults = false;
@@ -436,8 +415,17 @@ class SmtInterpolEnvironment {
   }
 
   /** This function returns the Sort for a Type. */
-  public Sort sort(Type type) {
-    return sort(type.toString());
+  public Sort sort(Model.TermType type) {
+    switch (type) {
+      case Boolean:
+        return sort("Bool");
+      case Integer:
+        return sort("Int");
+      case Real:
+        return sort("Real");
+      default:
+        throw new AssertionError("SmtInterpol does not support this theory: " + type);
+    }
   }
 
   /** This function returns an n-ary sort with given parameters. */
