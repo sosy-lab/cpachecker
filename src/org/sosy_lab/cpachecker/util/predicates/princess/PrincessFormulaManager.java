@@ -48,9 +48,8 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
           PrincessUnsafeFormulaManager pUnsafeManager,
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
-          PrincessIntegerFormulaManager pIntegerManager,
-          PrincessRationalFormulaManager pRationalManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
+          PrincessIntegerFormulaManager pIntegerManager) {
+    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
@@ -66,10 +65,9 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessFunctionFormulaManager functionTheory = new PrincessFunctionFormulaManager(creator, unsafeManager);
     PrincessBooleanFormulaManager booleanTheory = new PrincessBooleanFormulaManager(creator);
     PrincessIntegerFormulaManager integerTheory = new PrincessIntegerFormulaManager(creator, functionTheory);
-    PrincessRationalFormulaManager rationalTheory = new PrincessRationalFormulaManager(creator, functionTheory);
 
     return new PrincessFormulaManager(env, creator, unsafeManager, functionTheory,
-            booleanTheory, integerTheory, rationalTheory);
+            booleanTheory, integerTheory);
   }
 
   BooleanFormula encapsulateBooleanFormula(IExpression t) {
