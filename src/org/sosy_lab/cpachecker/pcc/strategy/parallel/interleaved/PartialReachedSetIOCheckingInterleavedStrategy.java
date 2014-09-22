@@ -162,6 +162,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   @Override
   protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
+    ioHelper.readMetadata(pIn, true);
   }
 
   private class PartitionReader implements Runnable {
