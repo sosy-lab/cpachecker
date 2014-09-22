@@ -69,6 +69,11 @@ class WebClientError(Exception):
          return repr(self.value)
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
+
+    if (benchmark.toolName != 'CPAchecker'):
+        logging.warn("The web client does only support the CPAchecker.")
+        return
+
     if not benchmark.config.cloudMaster[-1] == '/':
         benchmark.config.cloudMaster += '/'
     webclient = benchmark.config.cloudMaster   

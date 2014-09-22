@@ -144,7 +144,7 @@ class Benchmark:
         self.toolName = self.tool.getName()
         self.toolVersion = ''
         self.executable = ''
-        if not config.appengine:
+        if not (config.appengine or (config.cloud and config.cloudMaster and "http" in config.cloudMaster)):
             self.executable = self.tool.getExecutable()
             self.toolVersion = self.tool.getVersion(self.executable)
 
