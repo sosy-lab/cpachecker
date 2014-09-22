@@ -48,6 +48,7 @@ except ImportError:
 
 try:
     from concurrent.futures import ThreadPoolExecutor
+    from concurrent.futures import as_completed
 except:
     pass
 
@@ -68,6 +69,11 @@ class WebClientError(Exception):
          return repr(self.value)
 
 def executeBenchmarkInCloud(benchmark, outputHandler):
+
+    if (benchmark.toolName != 'CPAchecker'):
+        logging.warn("The web client does only support the CPAchecker.")
+        return
+
     if not benchmark.config.cloudMaster[-1] == '/':
         benchmark.config.cloudMaster += '/'
     webclient = benchmark.config.cloudMaster   
@@ -112,16 +118,21 @@ def _submitRunsPrallel(runSet, webclient, benchmark):
     executor.shutdown(wait=False)
 
     #collect results to executor
-    for future in runIDsFutures.keys():
+    for future in as_completed(runIDsFutures.keys()):
         try:
-            runID = future.result().decode("utf-8")
             run = runIDsFutures[future]
-            runIDs.update({future.result():run})
+            runID = future.result().decode("utf-8")
+            runIDs.update({runID:run})
             logging.info('Submitted run {0}/{1} with id {2}'.\
                 format(submissonCounter, len(runSet.runs), runID)) 
  
         except (urllib2.HTTPError, WebClientError) as e:
-            logging.warning('Could not submit run {0}: {1}'.format(run.identifier, e))
+            try:
+                message = e.read() #not all HTTPErrors have a read() method
+            except:
+                message = ""
+            logging.warning('Could not submit run {0}: {1} {2}'.\
+                format(run.identifier, e, message))
         finally:
             submissonCounter += 1
 
@@ -140,7 +151,12 @@ def _submitRuns(runSet, webclient, benchmark):
                 format(submissonCounter, len(runSet.runs), runID))  
 
         except (urllib2.HTTPError, WebClientError) as e:
-            logging.warning('Could not submit run {0}: {1}'.format(run.identifier, e))
+            try:
+                message = e.read() #not all HTTPErrors have a read() method
+            except:
+                message = ""
+            logging.warning('Could not submit run {0}: {1} {2}'.\
+                format(run.identifier, e, message))
         finally:
             submissonCounter += 1
         
@@ -155,6 +171,12 @@ def _submitRun(run, webclient, benchmark):
             programText = programFile.read()
             programTexts.append(programText)
     params = {'programText': programTexts}
+
+    if benchmark.config.revision:
+        tokens = benchmark.config.revision.split(':')
+        params.update({'svnBranch':tokens[0]})
+        if len(tokens)>1:
+            params.update({'revision':tokens[1]})
 
     if run.propertyfile:
         with open(run.propertyfile, 'r') as propertyFile:
@@ -206,8 +228,8 @@ def _submitRun(run, webclient, benchmark):
         raise urllib2.HTTPError(response.read(), response.getcode())
 
 def _handleOptions(run, params):
+    options = ["statistics.print=true"]
     if run.options:
-        options = []
         option = ""
         i = iter(run.options)
         while True: 
@@ -218,6 +240,9 @@ def _handleOptions(run, params):
 
                 elif option == "-noout":
                     options.append("output.disable=true")
+                elif option == "-stat":
+                    #ignore, is always set by this script
+                    pass
                 elif option == "-java":
                     options.append("language=JAVA")
                 elif option == "-32":
@@ -252,9 +277,7 @@ def _handleOptions(run, params):
             except StopIteration: 
                 break
 
-        if len(options) > 0:
-            params.update({'option':options})
-
+    params.update({'option':options})
     return False   
 
 def _getResults(runIDs, outputHandler, webclient, benchmark):
@@ -281,6 +304,10 @@ def _isFinished(runID, webclient, benchmark):
     
     if response.getcode() == 200:
         state = response.read()
+        
+        if PYTHON_VERSION == 3:
+            state = state.decode('utf-8')
+        
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))  
             return True
@@ -326,9 +353,13 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        os.remove(zipFilePath)
        
        # move logfile and stderr
-       logFile = resultDir + "/stdout"
-       if os.path.isfile(logFile):
-           shutil.move(logFile, run.logFile)
+       with open(run.logFile, 'w') as logFile:
+           logFile.write(" ".join(run.getCmdline()) + "\n\n\n\n\n------------------------------------------\n")
+           stdout = resultDir + "/stdout"
+           if os.path.isfile(stdout):
+               for line in open(stdout):
+                   logFile.write(line)
+               os.remove(stdout)
        stderr = resultDir + "/stderr"
        if os.path.isfile(stderr):
            shutil.move(stderr, run.logFile + ".stdError")

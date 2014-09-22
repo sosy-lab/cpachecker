@@ -76,6 +76,11 @@ def executeBenchmark(benchmarkFile):
     # settings must be retrieved here to set the correct tool version
     if config.appengine:
         appengine.setupBenchmarkForAppengine(benchmark)
+    elif config.cloud and config.cloudMaster and "http" in config.cloudMaster:
+        if config.revision:
+            benchmark.toolVersion = config.revision
+        else:
+            benchmark.toolVersion = "trunk:HEAD"
     outputHandler = OutputHandler(benchmark)
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
@@ -204,6 +209,11 @@ def main(argv=None):
                       dest="cloudUser",
                       metavar="USER:PWD",
                       help="The user and password for the cloud.")
+
+    parser.add_argument("--revision",
+                      dest="revision",
+                      metavar="BRANCH:REVISION",
+                      help="The svn revision used by the web client mode.")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
