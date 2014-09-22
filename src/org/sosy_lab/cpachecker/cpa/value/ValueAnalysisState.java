@@ -514,7 +514,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return the current delta of this state
    */
-  Collection<MemoryLocation> getDelta() {
+  public Collection<MemoryLocation> getDelta() {
     return ImmutableSet.copyOf(delta);
   }
 

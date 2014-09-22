@@ -37,13 +37,14 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -123,7 +124,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     RefinablePrecision joinedPrecision = null;
     for (Precision precision : reached.getPrecisions()) {
       if (precision instanceof WrapperPrecision) {
-        ValueAnalysisPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ValueAnalysisPrecision.class);
+        VariableTrackingPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(VariableTrackingPrecision.class);
         if (joinedPrecision == null) {
           joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, MemoryLocation>create());
         } else {

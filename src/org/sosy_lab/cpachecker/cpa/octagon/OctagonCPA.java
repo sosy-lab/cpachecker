@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -43,18 +45,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.RefineableOctagonPrecision;
-import org.sosy_lab.cpachecker.cpa.octagon.precision.StaticFullOctagonPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
+
+import com.google.common.base.Optional;
 
 @Options(prefix="cpa.octagon")
 public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(OctagonCPA.class).withOptions(OctagonOptions.class);
+    return AutomaticCPAFactory.forType(OctagonCPA.class);
   }
 
   @Option(name="octagonLibrary", toUppercase=true, values={"INT", "FLOAT"},
@@ -66,23 +69,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
-  /**
-   * In this inner class the options which are needed in several classes of this
-   * cpa are kept.
-   */
-  @Options(prefix="cpa.octagon")
-  public static class OctagonOptions {
-
-    @Option(name="handleFloats",
-        description="with this option the evaluation of float variables can be toggled.")
-    private boolean handleFloats = false;
-
-    public boolean shouldHandleFloats() {
-      return handleFloats;
-    }
-  }
-
-  private final OctagonOptions octagonOptions;
+  private final VariableTrackingPrecisionOptions octagonOptions;
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -96,11 +83,10 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final OctagonManager octagonManager;
 
   private OctagonCPA(Configuration config, LogManager log,
-                     ShutdownNotifier shutdownNotifier, CFA cfa,
-                     OctagonOptions pOctagonOptions)
+                     ShutdownNotifier shutdownNotifier, CFA cfa)
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
-    octagonOptions = pOctagonOptions;
+    octagonOptions = new VariableTrackingPrecisionOptions(config);
     logger = log;
     OctagonDomain octagonDomain = new OctagonDomain(logger);
 
@@ -125,11 +111,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableOctagonPrecision(config);
+      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent());
 
       // static full precision is default
     } else {
-      precision = new StaticFullOctagonPrecision(octagonOptions);
+      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
     }
 
   }
@@ -189,7 +175,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     return cfa;
   }
 
-  public OctagonOptions getOctagonOptions() {
+  public VariableTrackingPrecisionOptions getOctagonOptions() {
     return octagonOptions;
   }
 }

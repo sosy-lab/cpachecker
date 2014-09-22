@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.Octagon;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
@@ -117,8 +118,8 @@ public class OctagonState implements AbstractState {
   private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(0.000000000000001);
 
   // mapping from variable name to its identifier
-  private BiMap<String, Integer> variableToIndexMap;
-  private Map<String, Type> variableToTypeMap;
+  private BiMap<MemoryLocation, Integer> variableToIndexMap;
+  private Map<MemoryLocation, Type> variableToTypeMap;
   private final boolean isLoopHead;
 
   private LogManager logger;
@@ -136,7 +137,7 @@ public class OctagonState implements AbstractState {
     Octagon.removePhantomReferences();
   }
 
-  public OctagonState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, LogManager log) {
+  public OctagonState(Octagon oct, BiMap<MemoryLocation, Integer> map, Map<MemoryLocation, Type> typeMap, LogManager log) {
     octagon = oct;
     octagonManager = octagon.getManager();
     variableToIndexMap = map;
@@ -148,7 +149,7 @@ public class OctagonState implements AbstractState {
     Octagon.removePhantomReferences();
   }
 
-  private OctagonState(Octagon oct, BiMap<String, Integer> map, Map<String, Type> typeMap, LogManager log, boolean pIsLoopHead) {
+  private OctagonState(Octagon oct, BiMap<MemoryLocation, Integer> map, Map<MemoryLocation, Type> typeMap, LogManager log, boolean pIsLoopHead) {
     octagon = oct;
     octagonManager = octagon.getManager();
     variableToIndexMap = map;
@@ -212,8 +213,8 @@ public class OctagonState implements AbstractState {
    */
   public Pair<OctagonState, OctagonState> shrinkToFittingSize(OctagonState oct) {
     int maxEqualIndex = oct.sizeOfVariables()-1;
-    BiMap<Integer, String> inverseThis = variableToIndexMap.inverse();
-    BiMap<Integer, String> inverseOther = oct.variableToIndexMap.inverse();
+    BiMap<Integer, MemoryLocation> inverseThis = variableToIndexMap.inverse();
+    BiMap<Integer, MemoryLocation> inverseOther = oct.variableToIndexMap.inverse();
     for (int i = maxEqualIndex; i >= 0; i--) {
       if (!inverseThis.get(i).equals(inverseOther.get(i))) {
         maxEqualIndex = i-1;
@@ -222,8 +223,8 @@ public class OctagonState implements AbstractState {
 
     OctagonState newState1;
     if (variableToIndexMap.size() != maxEqualIndex +1) {
-      BiMap<String, Integer> newMap1 = HashBiMap.<String, Integer>create(variableToIndexMap);
-      Map<String, Type> newTypeMap1 = new HashMap<>(variableToTypeMap);
+      BiMap<MemoryLocation, Integer> newMap1 = HashBiMap.<MemoryLocation, Integer>create(variableToIndexMap);
+      Map<MemoryLocation, Type> newTypeMap1 = new HashMap<>(variableToTypeMap);
       for (int i = variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
         newTypeMap1.remove(newMap1.inverse().remove(i));
       }
@@ -235,8 +236,8 @@ public class OctagonState implements AbstractState {
 
     OctagonState newState2;
     if (oct.variableToIndexMap.size() != maxEqualIndex +1) {
-      BiMap<String, Integer> newMap2 = HashBiMap.<String, Integer>create(oct.variableToIndexMap);
-      Map<String, Type> newTypeMap2 = new HashMap<>(oct.variableToTypeMap);
+      BiMap<MemoryLocation, Integer> newMap2 = HashBiMap.<MemoryLocation, Integer>create(oct.variableToIndexMap);
+      Map<MemoryLocation, Type> newTypeMap2 = new HashMap<>(oct.variableToTypeMap);
       for (int i = oct.variableToIndexMap.size()-1; i > maxEqualIndex; i--) {
         newTypeMap2.remove(newMap2.inverse().remove(i));
       }
@@ -273,11 +274,11 @@ public class OctagonState implements AbstractState {
     return variableToIndexMap.size();
   }
 
-  public BiMap<String, Integer> getVariableToIndexMap() {
+  public BiMap<MemoryLocation, Integer> getVariableToIndexMap() {
     return variableToIndexMap;
   }
 
-  public Map<String, Type> getVariableToTypeMap() {
+  public Map<MemoryLocation, Type> getVariableToTypeMap() {
     return variableToTypeMap;
   }
 
@@ -288,7 +289,7 @@ public class OctagonState implements AbstractState {
   /**
    * This method sets the coefficients/ the value of a variable to undefined.
    */
-  public OctagonState forget(String pVariableName) {
+  public OctagonState forget(MemoryLocation pVariableName) {
     int varIdx = getVariableIndexFor(pVariableName);
 
     if (varIdx == -1) {
@@ -304,7 +305,7 @@ public class OctagonState implements AbstractState {
   /**
    * Returns the index of the variable, if the variable is not in the map -1 is returned.
    */
-  protected int getVariableIndexFor(String pVariableName) {
+  protected int getVariableIndexFor(MemoryLocation pVariableName) {
     Integer result = variableToIndexMap.get(pVariableName);
     if (result == null) {
       return -1;
@@ -312,39 +313,39 @@ public class OctagonState implements AbstractState {
     return result;
   }
 
-  protected String getVariableNameFor(int index) {
-    String result = variableToIndexMap.inverse().get(index);
+  protected MemoryLocation getVariableNameFor(int index) {
+    MemoryLocation result = variableToIndexMap.inverse().get(index);
     if (result == null) {
       throw new IllegalArgumentException();
     }
     return result;
   }
 
-  protected boolean existsVariable(String variableName) {
-    return variableToIndexMap.containsKey(variableName);
+  protected boolean existsVariable(MemoryLocation pTempVarName) {
+    return variableToIndexMap.containsKey(pTempVarName);
   }
 
-  public OctagonState declareVariable(String varName, Type type) {
-    assert !variableToIndexMap.containsKey(varName);
+  public OctagonState declareVariable(MemoryLocation pTempVarName, Type type) {
+    assert !variableToIndexMap.containsKey(pTempVarName);
     OctagonState newState = new OctagonState(octagonManager.addDimensionAndEmbed(octagon, 1),
                                      HashBiMap.create(variableToIndexMap),
                                      new HashMap<>(variableToTypeMap),
                                      logger);
-    newState.variableToIndexMap.put(varName, sizeOfVariables());
-    newState.variableToTypeMap.put(varName, type);
+    newState.variableToIndexMap.put(pTempVarName, sizeOfVariables());
+    newState.variableToTypeMap.put(pTempVarName, type);
     return newState;
   }
 
-  public OctagonState makeAssignment(String leftVarName, IOctagonCoefficients oct) {
-    if (getVariableIndexFor(leftVarName) == -1) {
+  public OctagonState makeAssignment(MemoryLocation pTempVarName, IOctagonCoefficients oct) {
+    if (getVariableIndexFor(pTempVarName) == -1) {
       return this;
     }
     if (oct instanceof OctagonSimpleCoefficients) {
-      return makeAssignment(leftVarName, (OctagonSimpleCoefficients)oct);
+      return makeAssignment(pTempVarName, (OctagonSimpleCoefficients)oct);
     } else if (oct instanceof OctagonIntervalCoefficients) {
-      return makeAssignment(leftVarName, (OctagonIntervalCoefficients)oct);
+      return makeAssignment(pTempVarName, (OctagonIntervalCoefficients)oct);
     } else if (oct instanceof OctagonUniversalCoefficients) {
-      return forget(leftVarName);
+      return forget(pTempVarName);
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients.");
   }
@@ -352,7 +353,7 @@ public class OctagonState implements AbstractState {
   /**
    * This method makes an assignment to a variable
    */
-  private OctagonState makeAssignment(String leftVarName, OctagonSimpleCoefficients oct) {
+  private OctagonState makeAssignment(MemoryLocation leftVarName, OctagonSimpleCoefficients oct) {
     assert sizeOfVariables() == oct.size() : "coefficients do not have the right size";
 
     if (getVariableIndexFor(leftVarName) == -1) {
@@ -378,7 +379,7 @@ public class OctagonState implements AbstractState {
    * This method makes an interval assignment to a variable. The OctCoefficients
    * need to be twice as long as for normal assignments! (upper and lower bound)
    */
-  private OctagonState makeAssignment(String leftVarName, OctagonIntervalCoefficients oct) {
+  private OctagonState makeAssignment(MemoryLocation leftVarName, OctagonIntervalCoefficients oct) {
     assert sizeOfVariables() == oct.size() : "coefficients do not have the right size";
 
     if (getVariableIndexFor(leftVarName) == -1) {
@@ -426,12 +427,12 @@ public class OctagonState implements AbstractState {
    * This method adds a smaller constraint between two variables (p.e. a <= b).
    * Note that this only works with integers!
    */
-  public OctagonState addSmallerEqConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctagonState addSmallerEqConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
     // use 0 as constant value, we don't need it
-    return addSmallerEqConstraint0(pRightVariableName, pLeftVariableName, OctagonIntValue.ZERO);
+    return addSmallerEqConstraint0(pLeftVarName, pRightVarName, OctagonIntValue.ZERO);
   }
 
-  private OctagonState addSmallerEqConstraint0(String pRightVariableName, String pLeftVariableName, OctagonNumericValue pConstant) {
+  private OctagonState addSmallerEqConstraint0(MemoryLocation pRightVariableName, MemoryLocation pLeftVariableName, OctagonNumericValue pConstant) {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -446,7 +447,7 @@ public class OctagonState implements AbstractState {
    * This method adds a smaller equal constraint between a variable and a long (p.e. a <= 3).
    * Note that this only works with integers!
    */
-  public OctagonState addSmallerEqConstraint(String pVariableName, OctagonNumericValue pValueOfLiteral) {
+  public OctagonState addSmallerEqConstraint(MemoryLocation pVariableName, OctagonNumericValue pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
 
     if (varIdx == -1) {
@@ -456,7 +457,7 @@ public class OctagonState implements AbstractState {
     return addConstraint(BinaryConstraints.PX, varIdx, -1, pValueOfLiteral);
   }
 
-  public OctagonState addSmallerEqConstraint(String pVariableName, IOctagonCoefficients oct) {
+  public OctagonState addSmallerEqConstraint(MemoryLocation pVariableName, IOctagonCoefficients oct) {
     if (oct instanceof OctagonUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctagonSimpleCoefficients) {
@@ -472,18 +473,18 @@ public class OctagonState implements AbstractState {
    * This method adds a smaller constraint between two variables (p.e. a < b).
    * Note that this only works with integers!
    */
-  public OctagonState addSmallerConstraint(String pRightVariableName, String pLeftVariableName) {
-    int rVarIdx = getVariableIndexFor(pRightVariableName);
-    int lVarIdx = getVariableIndexFor(pLeftVariableName);
+  public OctagonState addSmallerConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
+    int rVarIdx = getVariableIndexFor(pLeftVarName);
+    int lVarIdx = getVariableIndexFor(pRightVarName);
 
     if (rVarIdx == -1 || lVarIdx == -1) {
       return this;
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
-          || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-        return addSmallerEqConstraint0(pRightVariableName, pLeftVariableName, ASSUMPTION_DELTA);
+    if (variableToTypeMap.get(pLeftVarName) == Type.FLOAT
+          || variableToTypeMap.get(pRightVarName) == Type.FLOAT) {
+        return addSmallerEqConstraint0(pLeftVarName, pRightVarName, ASSUMPTION_DELTA);
     }
 
     // we want the lefthandside to be really smaller than the righthandside
@@ -495,7 +496,7 @@ public class OctagonState implements AbstractState {
    * This method adds a smaller constraint between a variable and a long (p.e. a < 3).
    * Note that this only works with integers!
    */
-  public OctagonState addSmallerConstraint(String pVariableName, OctagonNumericValue pValueOfLiteral) {
+  public OctagonState addSmallerConstraint(MemoryLocation pVariableName, OctagonNumericValue pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
 
     if (varIdx == -1) {
@@ -511,7 +512,7 @@ public class OctagonState implements AbstractState {
     return addConstraint(BinaryConstraints.PX, varIdx, -1, pValueOfLiteral.subtract(OctagonIntValue.ONE));
   }
 
-  public OctagonState addSmallerConstraint(String pVariableName, IOctagonCoefficients oct) {
+  public OctagonState addSmallerConstraint(MemoryLocation pVariableName, IOctagonCoefficients oct) {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
@@ -533,12 +534,12 @@ public class OctagonState implements AbstractState {
    * This method adds a greater equal constraint between two variables (p.e. a >= b).
    * Note that this only works with integers!
    */
-  public OctagonState addGreaterEqConstraint(String pRightVariableName, String pLeftVariableName) {
+  public OctagonState addGreaterEqConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
     // use 0 as constant value, we don't need it
-    return addGreaterEqConstraint0(pRightVariableName, pLeftVariableName, OctagonIntValue.ZERO);
+    return addGreaterEqConstraint0(pLeftVarName, pRightVarName, OctagonIntValue.ZERO);
   }
 
-  private OctagonState addGreaterEqConstraint0(String pRightVariableName, String pLeftVariableName, OctagonNumericValue pConstant) {
+  private OctagonState addGreaterEqConstraint0(MemoryLocation pRightVariableName, MemoryLocation pLeftVariableName, OctagonNumericValue pConstant) {
     int rVarIdx = getVariableIndexFor(pRightVariableName);
     int lVarIdx = getVariableIndexFor(pLeftVariableName);
 
@@ -553,7 +554,7 @@ public class OctagonState implements AbstractState {
    * This method adds a greater equal constraint between a variable and a literal (p.e. a >= 3).
    * Note that this only works with integers!
    */
-  public OctagonState addGreaterEqConstraint(String pVariableName, OctagonNumericValue pValueOfLiteral) {
+  public OctagonState addGreaterEqConstraint(MemoryLocation pVariableName, OctagonNumericValue pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
 
     if (varIdx == -1) {
@@ -564,7 +565,7 @@ public class OctagonState implements AbstractState {
     return addConstraint(BinaryConstraints.MX, varIdx, -1, pValueOfLiteral.mul(-1));
   }
 
-  public OctagonState addGreaterEqConstraint(String pVariableName, IOctagonCoefficients oct) {
+  public OctagonState addGreaterEqConstraint(MemoryLocation pVariableName, IOctagonCoefficients oct) {
     if (oct instanceof OctagonUniversalCoefficients) {
       return this;
     } else if (oct instanceof OctagonSimpleCoefficients) {
@@ -579,18 +580,18 @@ public class OctagonState implements AbstractState {
    * This method adds a greater constraint between two variables (p.e. a > b).
    * Note that this only works with integers!
    */
-  public OctagonState addGreaterConstraint(String pRightVariableName, String pLeftVariableName) {
-    int rVarIdx = getVariableIndexFor(pRightVariableName);
-    int lVarIdx = getVariableIndexFor(pLeftVariableName);
+  public OctagonState addGreaterConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
+    int rVarIdx = getVariableIndexFor(pLeftVarName);
+    int lVarIdx = getVariableIndexFor(pRightVarName);
 
     if (rVarIdx == -1 || lVarIdx == -1) {
       return this;
     }
 
     // the octagon library can only handle <= and >= constraints on floats
-    if (variableToTypeMap.get(pRightVariableName) == Type.FLOAT
-          || variableToTypeMap.get(pLeftVariableName) == Type.FLOAT) {
-      return addGreaterEqConstraint0(pRightVariableName, pLeftVariableName, ASSUMPTION_DELTA.mul(-1));
+    if (variableToTypeMap.get(pLeftVarName) == Type.FLOAT
+          || variableToTypeMap.get(pRightVarName) == Type.FLOAT) {
+      return addGreaterEqConstraint0(pLeftVarName, pRightVarName, ASSUMPTION_DELTA.mul(-1));
     }
 
     // we want the lefthandside to be really greater than the righthandside
@@ -602,7 +603,7 @@ public class OctagonState implements AbstractState {
    * This method adds a greater constraint between a variable and a literal (p.e. a > 3).
    * Note that this only works with integers!
    */
-  public OctagonState addGreaterConstraint(String pVariableName, OctagonNumericValue pValueOfLiteral) {
+  public OctagonState addGreaterConstraint(MemoryLocation pVariableName, OctagonNumericValue pValueOfLiteral) {
     int varIdx = getVariableIndexFor(pVariableName);
 
     if (varIdx == -1) {
@@ -618,7 +619,7 @@ public class OctagonState implements AbstractState {
     return addConstraint(BinaryConstraints.MX, varIdx, -1, pValueOfLiteral.add(OctagonIntValue.ONE).mul(-1));
   }
 
-  public OctagonState addGreaterConstraint(String pVariableName, IOctagonCoefficients oct) {
+  public OctagonState addGreaterConstraint(MemoryLocation pVariableName, IOctagonCoefficients oct) {
 
     // the octagon library can only handle <= and >= constraints on floats
     if (variableToTypeMap.get(pVariableName) == Type.FLOAT) {
@@ -641,21 +642,21 @@ public class OctagonState implements AbstractState {
    * This method adds an equality constraint between two variables (p.e. a == b).
    * Note that this only works with integers!
    */
-  public OctagonState addEqConstraint(String pRightVariableName, String pLeftVariableName) {
-    return addSmallerEqConstraint(pRightVariableName, pLeftVariableName)
-           .addGreaterEqConstraint(pRightVariableName, pLeftVariableName);
+  public OctagonState addEqConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
+    return addSmallerEqConstraint(pLeftVarName, pRightVarName)
+           .addGreaterEqConstraint(pLeftVarName, pRightVarName);
   }
 
   /**
    * This method adds an equality constraint between a variable and a literal (p.e. a == 3).
    * Note that this only works with integers!
    */
-  public OctagonState addEqConstraint(String pVariableName, OctagonNumericValue constantValue) {
+  public OctagonState addEqConstraint(MemoryLocation pVariableName, OctagonNumericValue constantValue) {
     return addSmallerEqConstraint(pVariableName, constantValue)
            .addGreaterEqConstraint(pVariableName, constantValue);
   }
 
-  public OctagonState addEqConstraint(String pVariableName, IOctagonCoefficients coeffs) {
+  public OctagonState addEqConstraint(MemoryLocation pVariableName, IOctagonCoefficients coeffs) {
     OctagonState assignedState = makeAssignment(pVariableName, coeffs);
     return assignedState.intersect(this);
   }
@@ -666,10 +667,10 @@ public class OctagonState implements AbstractState {
    * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
    * Note that it only works if both variables are Integers!
    */
-  public Set<OctagonState> addIneqConstraint(String rightVarName, String leftVarName) {
+  public Set<OctagonState> addIneqConstraint(MemoryLocation pLeftVarName, MemoryLocation pRightVarName) {
     Set<OctagonState> set = new HashSet<>();
-    set.add(addSmallerConstraint(rightVarName, leftVarName));
-    set.add(addGreaterConstraint(rightVarName, leftVarName));
+    set.add(addSmallerConstraint(pLeftVarName, pRightVarName));
+    set.add(addGreaterConstraint(pLeftVarName, pRightVarName));
     return set;
   }
 
@@ -680,14 +681,14 @@ public class OctagonState implements AbstractState {
    * as workaraound we added a state for a smaller constraint, and a state for a greater constraint.
    * Note that it only works if both variables are Integers!
    */
-  public Set<OctagonState> addIneqConstraint(String varname, OctagonNumericValue value) {
+  public Set<OctagonState> addIneqConstraint(MemoryLocation varname, OctagonNumericValue value) {
     Set<OctagonState> set = new HashSet<>();
     set.add(addSmallerConstraint(varname, value));
     set.add(addGreaterConstraint(varname, value));
     return set;
   }
 
-  public Set<OctagonState> addIneqConstraint(String varname, IOctagonCoefficients oct) {
+  public Set<OctagonState> addIneqConstraint(MemoryLocation varname, IOctagonCoefficients oct) {
     Set<OctagonState> set = new HashSet<>();
     set.add(addSmallerConstraint(varname, oct));
     set.add(addGreaterConstraint(varname, oct));
@@ -702,16 +703,16 @@ public class OctagonState implements AbstractState {
   }
 
   public OctagonState removeTempVars(String functionName, String varPrefix) {
-    return removeVars(functionName, varPrefix);
+    return removeVars(functionName + "::" + varPrefix);
   }
 
   public OctagonState removeLocalVars(String functionName) {
-    return removeVars(functionName, "");
+    return removeVars(functionName + "::");
   }
 
-  public Map<String, OctagonInterval> getVariablesWithBounds() {
-    Map<String, OctagonInterval> vars = new HashMap<>();
-    for (String varName : variableToIndexMap.keySet()) {
+  public Map<MemoryLocation, OctagonInterval> getVariablesWithBounds() {
+    Map<MemoryLocation, OctagonInterval> vars = new HashMap<>();
+    for (MemoryLocation varName : variableToIndexMap.keySet()) {
       vars.put(varName, octagonManager.getVariableBounds(octagon, getVariableIndexFor(varName)));
     }
     return vars;
@@ -722,10 +723,10 @@ public class OctagonState implements AbstractState {
     return octagonManager.getVariableBounds(octagon, index);
   }
 
-  private OctagonState removeVars(String functionName, String varPrefix) {
-    List<String> keysToRemove = new ArrayList<>();
-    for (String var : variableToIndexMap.keySet()) {
-      if (var.startsWith(functionName+"::"+varPrefix)) {
+  private OctagonState removeVars(String varPrefix) {
+    List<MemoryLocation> keysToRemove = new ArrayList<>();
+    for (MemoryLocation var : variableToIndexMap.keySet()) {
+      if (var.getAsSimpleString().startsWith(varPrefix)) {
         keysToRemove.add(var);
       }
     }
@@ -742,7 +743,9 @@ public class OctagonState implements AbstractState {
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);
 
     for (int i = 0; i < newState.variableToIndexMap.size(); i++) {
-      assert newState.variableToIndexMap.inverse().get(i) != null;
+      if (newState.variableToIndexMap.inverse().get(i) == null) {
+        assert false;
+      }
     }
     assert octagonManager.dimension(newState.octagon) == newState.sizeOfVariables();
     return newState;

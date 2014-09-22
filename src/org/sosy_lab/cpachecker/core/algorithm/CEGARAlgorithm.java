@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
@@ -261,7 +261,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
           new ARGReachedSet(reached).removeSubtree(firstChild,
               ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
-              ValueAnalysisPrecision.class);
+              VariableTrackingPrecision.class);
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;
         }

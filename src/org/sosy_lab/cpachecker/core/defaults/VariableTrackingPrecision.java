@@ -21,12 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,11 +33,11 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -49,8 +48,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 
-@Options(prefix="cpa.value.precision")
-public class ValueAnalysisPrecision implements Precision {
+public class VariableTrackingPrecision implements Precision {
 
   /**
    * the pattern describing variable names that are not being tracked - if it is null, no variables are black-listed
@@ -61,60 +59,37 @@ public class ValueAnalysisPrecision implements Precision {
    * the component responsible for variables that need to be tracked, according to refinement
    */
   private RefinablePrecision refinablePrecision = null;
-
-  @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
-  private int reachedSetThreshold = -1;
-
-  @Option(values={"location", "scope"},
-      description = "whether to track relevant variables only at the exact program location (sharing=location), " +
-          "or within their respective (function-/global-) scope (sharing=scoped).")
-  private String sharing = "scope";
-
-  @Option(description = "ignore boolean variables. if this option is used, "
-      + "booleans from the cfa should tracked with another CPA, "
-      + "i.e. with BDDCPA.")
-  private boolean ignoreBoolean = false;
-
-  @Option(description = "ignore variables, that are only compared for equality. "
-      + "if this option is used, these variables from the cfa should "
-      + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreIntEqual = false;
-
-  @Option(description = "ignore variables, that are only used in simple " +
-      "calculations (add, sub, lt, gt, eq). "
-      + "if this option is used, these variables from the cfa should "
-      + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreIntAdd = false;
+  private VariableTrackingPrecisionOptions options;
 
   private final Optional<VariableClassification> varClass;
 
-  public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
+  public VariableTrackingPrecision(String variableBlacklist, VariableTrackingPrecisionOptions pOptions,
       Optional<VariableClassification> vc, RefinablePrecision pRefinablePrecision)
           throws InvalidConfigurationException {
-    config.inject(this);
 
-    blackListPattern    = Pattern.compile(variableBlacklist);
-    varClass            = vc;
-    refinablePrecision  = pRefinablePrecision;
+    options            = pOptions;
+    blackListPattern   = Pattern.compile(variableBlacklist);
+    varClass           = vc;
+    refinablePrecision = pRefinablePrecision;
   }
 
-  public ValueAnalysisPrecision(String variableBlacklist, Configuration config,
+  public VariableTrackingPrecision(String variableBlacklist, VariableTrackingPrecisionOptions pOptions,
       Optional<VariableClassification> vc)
           throws InvalidConfigurationException {
-    config.inject(this);
 
-    blackListPattern    = Pattern.compile(variableBlacklist);
-    varClass            = vc;
+    blackListPattern = Pattern.compile(variableBlacklist);
+    varClass         = vc;
+    options          = pOptions;
 
-    if (sharing.equals("scope")) {
+    switch (options.getSharingStrategy()) {
+    case SCOPE:
       refinablePrecision = new ScopedRefinablePrecision();
-
-    } else if(sharing.equals("location")) {
+      break;
+    case LOCATION:
       refinablePrecision = new LocalizedRefinablePrecision();
-
-    } else {
-      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
-          "or allowed options out-dated.");
+      break;
+    default:
+      throw new AssertionError("Unhandled enumerator for sharing strategy: " + options.getSharingStrategy());
     }
   }
 
@@ -124,19 +99,14 @@ public class ValueAnalysisPrecision implements Precision {
    * @param original the value-analysis precision to refine
    * @param increment the increment to refine with
    */
-  public ValueAnalysisPrecision(ValueAnalysisPrecision original, Multimap<CFANode, MemoryLocation> increment) {
+  public VariableTrackingPrecision(VariableTrackingPrecision original, Multimap<CFANode, MemoryLocation> increment) {
     // refine the refinable component precision with the given increment
-    refinablePrecision    = original.refinablePrecision.refine(increment);
+    refinablePrecision = original.refinablePrecision.refine(increment);
 
     // copy remaining fields from original
-    blackListPattern      = original.blackListPattern;
-    reachedSetThreshold   = original.reachedSetThreshold;
-
-    sharing               = original.sharing;
-    varClass              = original.varClass;
-    ignoreBoolean         = original.ignoreBoolean;
-    ignoreIntEqual        = original.ignoreIntEqual;
-    ignoreIntAdd          = original.ignoreIntAdd;
+    blackListPattern   = original.blackListPattern;
+    varClass           = original.varClass;
+    options            = original.options;
   }
 
   /**
@@ -146,11 +116,11 @@ public class ValueAnalysisPrecision implements Precision {
    * @return the default precision object
    * @throws InvalidConfigurationException
    */
-  public static ValueAnalysisPrecision createDefaultPrecision() throws InvalidConfigurationException {
-    return new ValueAnalysisPrecision("",
-        Configuration.builder().build(),
+  public static VariableTrackingPrecision createDefaultPrecision() throws InvalidConfigurationException {
+    return new VariableTrackingPrecision("",
+        VariableTrackingPrecisionOptions.getDefaultOptions(),
         Optional.<VariableClassification>absent(),
-        new ValueAnalysisPrecision.FullPrecision());
+        new VariableTrackingPrecision.FullPrecision());
   }
 
   /**
@@ -160,8 +130,10 @@ public class ValueAnalysisPrecision implements Precision {
    *
    * @return true, if this precision allows for abstraction, else false
    */
-  boolean allowsAbstraction() {
-     return ignoreBoolean || ignoreIntAdd || ignoreIntEqual
+  public boolean allowsAbstraction() {
+     return options.ignoreBooleanVariables()
+         || options.ignoreIntAddVariables()
+         || options.ignoreIntEqualVariables()
          || !(refinablePrecision instanceof FullPrecision)
          || !blackListPattern.toString().equals("");
   }
@@ -174,12 +146,12 @@ public class ValueAnalysisPrecision implements Precision {
     return this.blackListPattern.matcher(variable).matches();
   }
 
-  boolean variableExceedsReachedSetThreshold(int numberOfDifferentValues) {
-    return numberOfDifferentValues > reachedSetThreshold;
+  public boolean variableExceedsReachedSetThreshold(int numberOfDifferentValues) {
+    return numberOfDifferentValues > options.getReachedSetThreshold();
   }
 
-  boolean isReachedSetThresholdActive() {
-    return reachedSetThreshold > -1;
+  public boolean isReachedSetThresholdActive() {
+    return options.getReachedSetThreshold() > -1;
   }
 
   public int getSize() {
@@ -189,19 +161,6 @@ public class ValueAnalysisPrecision implements Precision {
   @Override
   public String toString() {
     return refinablePrecision.toString();
-  }
-
-  public ValueAnalysisState computeAbstraction(ValueAnalysisState state, CFANode location) {
-    refinablePrecision.setLocation(location);
-
-    Collection<MemoryLocation> candidates = refinablePrecision.getAbstractionCandidates(state);
-    for (MemoryLocation memoryLocation : candidates) {
-      if (!isTracking(memoryLocation)) {
-        state.forget(memoryLocation);
-      }
-    }
-
-    return state;
   }
 
   /**
@@ -221,6 +180,17 @@ public class ValueAnalysisPrecision implements Precision {
     return result;
   }
 
+  public boolean isTracking(MemoryLocation variable, CType type) {
+    if (options.ignoreFloatVariables()) {
+      return !(type instanceof CSimpleType
+                 && (((CSimpleType)type).getType() == CBasicType.FLOAT
+                 || ((CSimpleType)type).getType() == CBasicType.DOUBLE))
+             && isTracking(variable);
+    } else {
+      return isTracking(variable);
+    }
+  }
+
   /** returns true, iff the variable is in an varClass, that should be ignored. */
   private boolean isInIgnoredVarClass(final MemoryLocation variable) {
     if (varClass==null || !varClass.isPresent()) { return false; }
@@ -229,9 +199,9 @@ public class ValueAnalysisPrecision implements Precision {
     final boolean isIntEqual = varClass.get().getIntEqualVars().contains(variable.getAsSimpleString());
     final boolean isIntAdd = varClass.get().getIntAddVars().contains(variable.getAsSimpleString());
 
-    final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
-    final boolean isIgnoredIntEqual = ignoreIntEqual && isIntEqual;
-    final boolean isIgnoredIntAdd = ignoreIntAdd && isIntAdd;
+    final boolean isIgnoredBoolean = options.ignoreBooleanVariables() && isBoolean;
+    final boolean isIgnoredIntEqual = options.ignoreIntEqualVariables() && isIntEqual;
+    final boolean isIgnoredIntAdd = options.ignoreIntAddVariables() && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
   }
@@ -249,7 +219,7 @@ public class ValueAnalysisPrecision implements Precision {
      *
      * @param node the location to be set
      */
-    private void setLocation(CFANode node) {
+    public void setLocation(CFANode node) {
       location = node;
     }
 
@@ -267,7 +237,7 @@ public class ValueAnalysisPrecision implements Precision {
      * @param increment the increment to refine the precision with
      * @return the refined precision
      */
-    abstract protected RefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment);
+    public abstract RefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment);
 
     /**
      * This method returns the size of the refinable precision, i.e., the number of elements contained.
@@ -281,7 +251,7 @@ public class ValueAnalysisPrecision implements Precision {
      * @param writer the write to write the precision to
      * @throws IOException
      */
-    abstract void serialize(Writer writer) throws IOException;
+    public abstract void serialize(Writer writer) throws IOException;
 
     /**
      * This method joins this precision with another precision
@@ -289,16 +259,6 @@ public class ValueAnalysisPrecision implements Precision {
      * @param otherPrecision the precision to join with
      */
     public abstract void join(RefinablePrecision otherPrecision);
-
-    /**
-     * This method returns a set of variables that are candidates for being abstracted.
-     *
-     * The size (from empty to delta of state to whole state) of the set of candidates depend on the instance of the refinable precision.
-     *
-     * @param state the state for which to compute the abstraction candidates
-     * @return the set of the abstraction candidates
-     */
-    abstract protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state);
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -327,6 +287,7 @@ public class ValueAnalysisPrecision implements Precision {
     }
 
     @Override
+    public
     void serialize(Writer writer) throws IOException {
       for (CFANode currentLocation : rawPrecision.keySet()) {
         writer.write("\n" + currentLocation + ":\n");
@@ -346,11 +307,6 @@ public class ValueAnalysisPrecision implements Precision {
     @Override
     int getSize() {
       return rawPrecision.size();
-    }
-
-    @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
-      return new HashSet<>(state.getTrackedMemoryLocations());
     }
 
     @Override
@@ -384,6 +340,7 @@ public class ValueAnalysisPrecision implements Precision {
     }
 
     @Override
+    public
     void serialize(Writer writer) throws IOException {
       SortedSet<MemoryLocation> sortedPrecision = new TreeSet<>(rawPrecision);
 
@@ -423,11 +380,6 @@ public class ValueAnalysisPrecision implements Precision {
     }
 
     @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
-      return new HashSet<>(state.getDelta());
-    }
-
-    @Override
     public String toString() {
       return new TreeSet<>(rawPrecision).toString();
     }
@@ -445,7 +397,7 @@ public class ValueAnalysisPrecision implements Precision {
     }
 
     @Override
-    void serialize(Writer writer) throws IOException {
+    public void serialize(Writer writer) throws IOException {
       writer.write("# full precision used - nothing to show here");
     }
 
@@ -457,11 +409,6 @@ public class ValueAnalysisPrecision implements Precision {
     @Override
     int getSize() {
       return -1;
-    }
-
-    @Override
-    protected Collection<MemoryLocation> getAbstractionCandidates(ValueAnalysisState state) {
-      return new HashSet<>(state.getDelta());
     }
   }
 }
