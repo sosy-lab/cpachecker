@@ -308,6 +308,8 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(parser.generateASTPattern(expr.toString())); :}
             | MATCH SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
+            | MATCH LABEL STRING_LITERAL:lit
+              {: RESULT = new AutomatonBoolExpr.MatchLabelExact(lit.toString()); :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | MATCH ASSERT

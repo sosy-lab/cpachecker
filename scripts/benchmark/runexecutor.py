@@ -34,7 +34,7 @@ import sys
 import threading
 import time
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import util as Util
 from .cgroups import *
 from . import filewriter
@@ -212,7 +212,7 @@ class RunExecutor():
                 pass
                 #print('libcgroup is not available: {}'.format(e.strerror))
 
-            for cgroup in cgroups.values():
+            for cgroup in set(cgroups.values()):
                 addTaskToCgroup(cgroup, pid)
 
 
@@ -256,7 +256,7 @@ class RunExecutor():
             if TIMELIMIT in rlimits and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits, p, myCpuCount)
                 timelimitThread.start()
 
             if MEMLIMIT in rlimits:
@@ -277,6 +277,9 @@ class RunExecutor():
                 logging.critical("OSError {0} while waiting for termination of {1} ({2}): {3}.".format(e.errno, args[0], p.pid, e.strerror))
 
         finally:
+            wallTimeAfter = time.time()
+            
+
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.discard(p)
 
@@ -291,10 +294,9 @@ class RunExecutor():
             logging.debug("size of logfile '{0}': {1}".format(outputFileName, str(os.path.getsize(outputFileName))))
 
             # kill all remaining processes if some managed to survive
-            for cgroup in cgroups.values():
+            for cgroup in set(cgroups.values()):
                 killAllTasksInCgroup(cgroup)
 
-        wallTimeAfter = time.time()
         energy = Util.getEnergy(energyBefore)
         wallTime = wallTimeAfter - wallTimeBefore
         cpuTime = ru_child.ru_utime + ru_child.ru_stime if ru_child else 0
@@ -392,21 +394,14 @@ class RunExecutor():
 
         reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
-        logging.debug("executeRun: reading output.")
-        outputFile = open(outputFileName, 'rt') # re-open file for reading output
-        output = list(map(Util.decodeToString, outputFile.readlines()))
-        outputFile.close()
-
-        logging.debug("executeRun: analysing output for crash-info.")
-        getDebugOutputAfterCrash(output, outputFileName)
-
-        output = output[6:] # first 6 lines are for logging, rest is output of subprocess
-
+        if returnvalue not in [0,1]:
+            logging.debug("executeRun: analysing output for crash-info.")
+            getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
                       .format(returnvalue, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output), energy)
+        return (wallTime, cpuTime, memUsage, returnvalue, energy)
 
 
     def kill(self):
@@ -464,24 +459,25 @@ def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
             outputFile.truncate()
 
 
-def getDebugOutputAfterCrash(output, outputFileName):
+def getDebugOutputAfterCrash(outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
     with more information. We append this file to the log.
     """
     next = False
-    for line in output:
-        if next:
-            try:
-                dumpFile = line.strip(' #\n')
-                Util.appendFileToFile(dumpFile, outputFileName)
-                os.remove(dumpFile)
-            except IOError as e:
-                logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
-            break
-        if line.startswith('# An error report file with more information is saved as:'):
-            logging.debug('Going to append error report file')
-            next = True
+    with open(outputFileName, 'r') as outputFile:
+        for line in outputFile:
+            if next:
+                try:
+                    dumpFile = line.strip(' #\n')
+                    Util.appendFileToFile(dumpFile, outputFileName)
+                    os.remove(dumpFile)
+                except IOError as e:
+                    logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
+                break
+            if line.startswith('# An error report file with more information is saved as:'):
+                logging.debug('Going to append error report file')
+                next = True
 
 
 def _readCpuTime(cgroupCpuacct):
@@ -497,12 +493,13 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, timelimit, process, cpuCount=1):
+    def __init__(self, cgroupCpuacct, rlimits, process, cpuCount=1):
         super(_TimelimitThread, self).__init__()
         daemon = True
         self.cgroupCpuacct = cgroupCpuacct
-        self.timelimit = timelimit
-        self.latestKillTime = time.time() + timelimit + _WALLTIME_LIMIT_OVERHEAD
+        self.timelimit = rlimits[TIMELIMIT]
+        self.softtimelimit = rlimits.get(SOFTTIMELIMIT, self.timelimit)
+        self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
         self.finished = threading.Event()
@@ -520,15 +517,25 @@ class _TimelimitThread(threading.Thread):
                     pass
             remainingCpuTime = self.timelimit - usedCpuTime
             remainingWallTime = self.latestKillTime - time.time()
-            logging.debug("TimelimitThread for process {0}: used cpu time: {1}, remaining cpu time: {2}, remaining wall time: {3}."
+            logging.debug("TimelimitThread for process {0}: used CPU time: {1}, remaining CPU time: {2}, remaining wall time: {3}."
                           .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
-            if remainingCpuTime <= 0 or remainingWallTime <= 0:
-                logging.debug('Killing process {0} due to timeout.'.format(self.process.pid))
+            if remainingCpuTime <= 0:
+                logging.debug('Killing process {0} due to CPU time timeout.'.format(self.process.pid))
+                Util.killProcess(self.process.pid)
+                self.finished.set()
+                return
+            if remainingWallTime <= 0:
+                logging.warning('Killing process {0} due to wall time timeout.'.format(self.process.pid))
                 Util.killProcess(self.process.pid)
                 self.finished.set()
                 return
 
-            remainingTime = max(remainingCpuTime/self.cpuCount, remainingWallTime)
+            if (self.softtimelimit - usedCpuTime) <= 0:
+                # soft time limit violated, ask process to terminate
+                Util.killProcess(self.process.pid, signal.SIGTERM)
+                self.softtimelimit = self.timelimit
+
+            remainingTime = min(remainingCpuTime/self.cpuCount, remainingWallTime)
             self.finished.wait(remainingTime + 1)
 
     def cancel(self):

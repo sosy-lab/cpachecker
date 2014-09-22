@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -60,7 +60,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   private void initLoopMap() {
     loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
-      for (Loop loop : cfa.getLoopStructure().get().values()) {
+      for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
         if (loop.getLoopHeads().size() == 1) {
           //currently only loops with single loop heads supported
           loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());

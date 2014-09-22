@@ -85,6 +85,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
   private final Set<String> dependingVariables = new HashSet<>();
 
   /**
+   * after the assumption closure has been determined, this value states at which offset all dependencies are resolved
+   */
+  private int dependenciesResolvedOffset = 0;
+
+  /**
    * the last traversed function return edge - needed as we go backwards through the edges to obtain the
    * FunctionSummaryEdge corresponding to a currently visited ReturnStatementEdge
    */
@@ -111,6 +116,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     for (int i = path.size() - 1; i >= 0; i--) {
       CFAEdge edge = path.get(i);
       collectVariables(edge, collectedVariables);
+
+      if(dependingVariables.isEmpty()) {
+        dependenciesResolvedOffset = i;
+        return collectedVariables;
+      }
     }
 
     // for full paths, the set of depending variables always has be empty at this point,
@@ -133,6 +143,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
    */
   public Set<String> obtainUseDefInformation(MutableARGPath pFullArgPath) {
     return obtainUseDefInformation(from(pFullArgPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList());
+  }
+
+  public int getDependenciesResolvedOffset() {
+    return dependenciesResolvedOffset;
   }
 
   /**

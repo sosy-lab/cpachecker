@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.invariants.choosers.TemplateChooser;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuilder;
@@ -70,7 +70,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   private Collection<Loop> findLoops() {
     Collection<Loop> loops;
     try {
-      loops = CFAUtils.findLoops(nodeSet, Language.C);
+      loops = LoopStructure.findLoops(nodeSet, Language.C);
     } catch (Exception e) {
       logger.log(Level.FINEST, "While constructing path program, could not detect all loops.");
       loops = null;

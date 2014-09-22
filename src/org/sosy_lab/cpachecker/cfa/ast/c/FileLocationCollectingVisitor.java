@@ -157,11 +157,6 @@ public class FileLocationCollectingVisitor implements CAstNodeVisitor<Set<FileLo
   }
 
   @Override
-  public Set<FileLocation> visit(CTypeIdInitializerExpression pE) throws RuntimeException {
-    return Collections.singleton(pE.getFileLocation());
-  }
-
-  @Override
   public Set<FileLocation> visit(CImaginaryLiteralExpression pE) throws RuntimeException {
     return Collections.singleton(pE.getFileLocation());
   }

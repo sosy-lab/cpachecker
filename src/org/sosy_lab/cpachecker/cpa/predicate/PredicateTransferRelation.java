@@ -83,7 +83,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
   final Timer abstractionCheckTimer = new Timer();
-  final Timer pathFormulaCheckTimer = new Timer();
 
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;

@@ -148,7 +148,7 @@ class _Worker(threading.Thread):
             try:
                 self.execute(currentRun)
             except BaseException as e:
-                print(e)
+                logging.exception('Exception during run execution')
             _Worker.workingQueue.task_done()
 
 
@@ -160,7 +160,7 @@ class _Worker(threading.Thread):
         self.outputHandler.outputBeforeRun(run)
 
         benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, memUsage, returnvalue, output, energy) = \
+        (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpuIndex=self.numberOfThread,
@@ -183,7 +183,7 @@ class _Worker(threading.Thread):
                 pass
             return
 
-        run.afterExecution(returnvalue, output)
+        run.afterExecution(returnvalue)
         self.outputHandler.outputAfterRun(run)
 
 

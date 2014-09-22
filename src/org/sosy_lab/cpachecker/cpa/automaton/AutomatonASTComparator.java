@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -324,11 +323,6 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CTypeIdExpression exp) {
       return new TypeIdExpressionMatcher(exp);
-    }
-
-    @Override
-    public ASTMatcher visit(CTypeIdInitializerExpression exp) throws InvalidAutomatonException {
-      throw new InvalidAutomatonException("Type-id initializer expressions of the form " + exp.toASTString() + " are currently not supported in automata.");
     }
 
     @Override

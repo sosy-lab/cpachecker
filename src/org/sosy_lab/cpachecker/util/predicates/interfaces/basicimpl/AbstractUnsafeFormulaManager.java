@@ -208,14 +208,37 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
         outClass2, newExpression);
   }
 
+  protected <T extends Formula> T encapsulateWithType(T f, TFormulaInfo e) {
+    // NOTE: the code below is very hacky, yet currently I do not see any
+    // better way to get the parent type of the formula.
+    Class<? extends Formula> outClass;
+    if (f instanceof BooleanFormula) {
+      outClass = BooleanFormula.class;
+    } else if (f instanceof BitvectorFormula) {
+      outClass = BitvectorFormula.class;
+    } else if (f instanceof NumeralFormula.IntegerFormula) {
+      outClass = NumeralFormula.IntegerFormula.class;
+    } else if (f instanceof NumeralFormula.RationalFormula) {
+      outClass = NumeralFormula.RationalFormula.class;
+    } else {
+      throw new IllegalArgumentException("Unexpected input formula");
+    }
+
+    @SuppressWarnings("unchecked")
+    Class<T> outClass2 = (Class<T>) outClass;
+    return getFormulaCreator().encapsulate(
+        outClass2, e);
+  }
+
   protected abstract TFormulaInfo substitute(
       TFormulaInfo expr,
       List<TFormulaInfo> substituteFrom,
       List<TFormulaInfo> substituteTo);
 
   @Override
-  public Formula simplify(Formula f) {
-    return encapsulateUnsafe(simplify(getTerm(f)));
+  public <T extends Formula> T simplify(T f) {
+    return encapsulateWithType(f, simplify(getTerm(f)));
+    //return encapsulateUnsafe();
   }
 
   protected abstract TFormulaInfo simplify(TFormulaInfo f);

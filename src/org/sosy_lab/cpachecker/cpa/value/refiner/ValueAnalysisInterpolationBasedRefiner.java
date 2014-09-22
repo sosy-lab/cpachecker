@@ -101,7 +101,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private boolean avoidAssumes = false;
 
   @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
-  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -286,7 +286,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
       List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
-      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
 
     } catch (InvalidConfigurationException e) {

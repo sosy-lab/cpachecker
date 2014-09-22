@@ -166,7 +166,7 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):
@@ -221,7 +221,7 @@ class Tool(benchmark.tools.template.BaseTool):
             # search for the text in output and get its value,
             # stop after the first line, that contains the searched text
             column.value = "-" # default value
-            for line in output.splitlines():
+            for line in output:
                 if column.text in line:
                     startPosition = line.find(':') + 1
                     endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)

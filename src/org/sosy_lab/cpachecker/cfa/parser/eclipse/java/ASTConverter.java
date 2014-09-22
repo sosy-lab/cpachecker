@@ -839,7 +839,7 @@ public class ASTConverter {
     //TODO  All Expression Implementation
 
     if (e == null) {
-      logger.log(Level.INFO, "Expression to convert is null");
+      logger.log(Level.FINE, "Expression to convert is null");
       return null;
     }
 
@@ -1177,7 +1177,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1193,7 +1193,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1201,7 +1201,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
     return new JFieldAccess(idExpIdentifier.getFileLocation(),
@@ -1403,7 +1403,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1419,7 +1419,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1427,7 +1427,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
 
@@ -1616,7 +1616,7 @@ public class ASTConverter {
 
     if (!vb.isField()) {
       throw new CFAGenerationRuntimeException("Declaration of Variable "
-        + e.getIdentifier() + " not found. \n", e);
+        + e.getIdentifier() + " not found.", e);
     }
 
     String name = NameConverter.convertName(vb);
@@ -2038,16 +2038,10 @@ public class ASTConverter {
 
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {
-    int last = s.length() - 1;
-    int bits = 32;
+    assert !s.endsWith("l") && !s.endsWith("L");
 
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
-      last--;
-      bits = 64;
-    }
+    final BigInteger result;
 
-    s = s.substring(0, last + 1);
-    BigInteger result;
     try {
       if (s.startsWith("0x") || s.startsWith("0X")) {
         // this should be in hex format, remove "0x" from the string
@@ -2064,18 +2058,20 @@ public class ASTConverter {
         result = new BigInteger(s, 10);
       }
     } catch (NumberFormatException e1) {
-      throw new CFAGenerationRuntimeException("Invalid number", e1);
+      throw new CFAGenerationRuntimeException("Invalid int [" + s + "]", e1);
     }
 
-    check(result.compareTo(BigInteger.ZERO) >= 0, "Invalid number", e);
-
-    // clear the bits that don't fit in the type
-    // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
-    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
-    result = result.and(mask);
-    assert result.bitLength() <= bits;
+    check(isInIntegerRange(result), "Invalid int [" + s + "]", e);
 
     return result;
+  }
+
+  private boolean isInIntegerRange(BigInteger value) {
+    final BigInteger smallestPossibleValue = BigInteger.valueOf(Integer.MIN_VALUE);
+    final BigInteger biggestPossibleValue = BigInteger.valueOf(Integer.MAX_VALUE);
+
+    return value.compareTo(smallestPossibleValue) >= 0
+        && value.compareTo(biggestPossibleValue) <= 0;
   }
 
 
@@ -2085,7 +2081,8 @@ public class ASTConverter {
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
     if (!(iterable instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly proccessed." , pExpr);
+      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly processed.",
+          pExpr);
     }
 
     FileLocation fileLoc = getFileLocation(pExpr);

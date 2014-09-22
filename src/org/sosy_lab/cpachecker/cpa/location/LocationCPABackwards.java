@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 
 public class LocationCPABackwards implements ConfigurableProgramAnalysis {
 
@@ -49,12 +50,12 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPABackwards(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, true);
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.BACKWARD);
     transferRelation = new LocationTransferRelationBackwards(stateFactory);
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(true);
+    return new LocationCPAFactory(LocationStateType.BACKWARD);
   }
 
   @Override

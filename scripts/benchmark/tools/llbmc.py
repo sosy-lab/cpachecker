@@ -54,7 +54,7 @@ class Tool(benchmark.tools.template.BaseTool):
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = result.STATUS_UNKNOWN
 
-        for line in output.splitlines():
+        for line in output:
             if 'Error detected.' in line:
                 status = result.STATUS_FALSE_REACH
             elif 'No error detected.' in line:

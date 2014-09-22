@@ -152,12 +152,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return symbol.startsWith(UF_NAME_PREFIX);
   }
 
-  @Override
-  @Deprecated
-  protected int makeFreshIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    throw new UnsupportedOperationException("Use more specific methods instead");
-  }
-
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ffmgr.createFuncAndCall("__BASE_ADDRESS_OF__", voidPointerFormulaType, ImmutableList.of(address));
   }
@@ -200,19 +194,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, ssa.getType(name));
     return ssa.getIndex(name) > 0;
-  }
-
-  @Override
-  protected Formula makeFreshVariable(final String name,
-                            final CType type,
-                            final SSAMapBuilder ssa,
-                            boolean postponeMakeFresh
-                            ) {
-    // TODO: Does this also work backwards? Consider flag postponeMakeFresh
-    final int newIndex = getFreshIndex(name, type, ssa);
-    ssa.setIndex(name, type, newIndex);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type),
-                             name + FRESH_INDEX_SEPARATOR + newIndex);
   }
 
   Formula makeDereference(CType type,
@@ -736,8 +717,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   static final String FIELD_NAME_SEPARATOR = "$";
 
-  static final String FRESH_INDEX_SEPARATOR = "#";
-
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
 
@@ -767,6 +746,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  @Override
+  protected Formula makeFreshVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshVariable(pName, pType, pSsa);
+  }
+
+  @Override
+  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshIndex(pName, pType, pSsa);
   }
 
   @Override

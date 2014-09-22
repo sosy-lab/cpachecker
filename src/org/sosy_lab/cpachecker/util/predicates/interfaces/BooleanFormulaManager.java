@@ -59,12 +59,18 @@ public interface BooleanFormulaManager {
    */
   public BooleanFormula equivalence(BooleanFormula formula1, BooleanFormula formula2);
 
+  /** Check, if the formula is of the form "a==b" with two boolean args. */
   public boolean isEquivalence(BooleanFormula formula);
 
+  /** Check, if the formula is of the form "a=>b" with two boolean args. */
   public boolean isImplication(BooleanFormula formula);
 
+  /** Check, if the formula is the formula "TRUE".
+   * This does match a formula like "1==1". */
   public boolean isTrue(BooleanFormula formula);
 
+  /** Check, if the formula is the formula "FALSE".
+   * This does match an unsatisfiable formula like "1==2". */
   public boolean isFalse(BooleanFormula formula);
 
 
@@ -77,7 +83,7 @@ public interface BooleanFormulaManager {
    */
   public <T extends Formula> T ifThenElse(BooleanFormula cond, T f1, T f2);
 
-
+  /** Check, if the formula matches ITE(cond,t1,t2) with three args. */
   public <T extends Formula> boolean isIfThenElse(T f);
 
   /**
@@ -107,12 +113,16 @@ public interface BooleanFormulaManager {
   public BooleanFormula xor(BooleanFormula bits1, BooleanFormula bits2);
 
 
+  /** Check, if the formula matches NOT(f) with one boolean arg. */
   public boolean isNot(BooleanFormula bits);
 
+  /** Check, if the formula matches AND(a,b) with two (or more) boolean args. */
   public boolean isAnd(BooleanFormula bits);
 
+  /** Check, if the formula matches OR(a,b) with two (or more) boolean args. */
   public boolean isOr(BooleanFormula bits);
 
+  /** Check, if the formula matches XOR(a,b) with two (or more) boolean args. */
   public boolean isXor(BooleanFormula bits);
 
 }

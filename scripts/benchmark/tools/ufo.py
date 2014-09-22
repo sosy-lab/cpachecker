@@ -12,6 +12,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if returnsignal == 9 or returnsignal == (128+9):
             if isTimeout:
                 status = "TIMEOUT"

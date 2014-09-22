@@ -82,7 +82,10 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)
+        if config.cloudMaster and "http" in config.cloudMaster:
+            result = webclient.executeBenchmarkInCloud(benchmark, outputHandler)
+        else:
+            result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)        
     elif config.appengine:
         result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
@@ -196,6 +199,11 @@ def main(argv=None):
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
+   
+    parser.add_argument("--cloudUser",
+                      dest="cloudUser",
+                      metavar="USER:PWD",
+                      help="The user and password for the cloud.")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
@@ -268,9 +276,13 @@ def main(argv=None):
             pass # this does not work on Windows
 
     if config.cloud:
-        global vcloud
-        import benchmark.vcloud as vcloud
-        killScriptSpecific = vcloud.killScriptCloud
+        if config.cloudMaster and "http" in config.cloudMaster:
+            global webclient
+            import benchmark.webclient as webclient
+        else:
+            global vcloud
+            import benchmark.vcloud as vcloud
+            killScriptSpecific = vcloud.killScriptCloud        
     elif config.appengine:
         global appengine
         import benchmark.appengine as appengine

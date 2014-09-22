@@ -241,7 +241,7 @@ class AssignmentHandler {
         for (final Variable variable : updatedVariables) {
           final String name = variable.getName();
           final CType type = variable.getType();
-          ssa.setIndex(name, type, conv.getFreshIndex(name, type, ssa));
+          conv.makeFreshIndex(name, type, ssa); // increment index in SSAMap
         }
       }
     }
@@ -606,8 +606,7 @@ class AssignmentHandler {
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
-      final int newIndex = conv.getFreshIndex(ufName, type, ssa);
-      ssa.setIndex(ufName, type, newIndex);
+      conv.makeFreshIndex(ufName, type, ssa);
     }
   }
 

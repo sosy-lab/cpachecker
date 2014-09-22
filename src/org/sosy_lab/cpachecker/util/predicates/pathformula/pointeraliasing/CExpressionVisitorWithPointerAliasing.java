@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -296,11 +295,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   @Override
-  public Expression visit(CTypeIdInitializerExpression e) throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Unhandled initializer", edge, e);
-  }
-
-  @Override
   public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
     if (e.getOperator() == UnaryOperator.AMPER) {
       final CExpression operand = e.getOperand();
@@ -351,7 +345,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                          ssa,
                                          constraints,
                                          pts);
-          if (ssa.getIndex(base.getName()) != CToFormulaConverterWithPointerAliasing.VARIABLE_UNSET) {
+          if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
             ssa.deleteVariable(base.getName());
           }
           conv.addPreFilledBase(base.getName(),

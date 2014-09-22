@@ -67,6 +67,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+/**
+ * This class is the central entry point for all formula creation
+ * and manipulation operations for client code.
+ * It delegates to the actual solver package
+ * and provides additional utilities.
+ *
+ *  This class and some of its related class have supporting operations
+ *  for creating and manipulation formulas with SSA indices:
+ *  - {@link #makeVariable(FormulaType, String, int)} creates a variable with an SSA index
+ *  - {@link #instantiate(Formula, SSAMap)} adds SSA indices to variables in a formula
+ *  - {@link #uninstantiate(Formula)} removes all SSA indices from a formula
+ *
+ *  The method {@link #parseName(String)} is also related to this, but should not be used!
+ */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
 
@@ -758,21 +772,21 @@ public class FormulaManagerView {
 
   public <T extends Formula> T  instantiate(T fView, SSAMap ssa) {
     T f = extractFromView(fView);
-    T endResult = myInstanciate(ssa, f);
+    T endResult = myInstantiate(ssa, f);
     return wrapInView(endResult);
   }
 
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
-  public static String makeName(String name, int idx) {
+  static String makeName(String name, int idx) {
     if (idx < 0) {
       return name;
     }
     return name + INDEX_SEPARATOR + idx;
   }
 
-  private <T extends Formula> T myInstanciate(SSAMap ssa, T f) {
+  private <T extends Formula> T myInstantiate(SSAMap ssa, T f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Deque<Formula> toProcess = new ArrayDeque<>();
     Map<Formula, Formula> cache = new HashMap<>();
@@ -862,6 +876,11 @@ public class FormulaManagerView {
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<>();
 
+  /**
+   * Only use inside this package and for solver-specific classes
+   * when creating a {@link Model}.
+   * Do not use in client code!
+   */
   public static Pair<String, Integer> parseName(final String name) {
     String[] s = name.split(INDEX_SEPARATOR);
     if (s.length == 2) {
@@ -1259,7 +1278,7 @@ public class FormulaManagerView {
     return wrapInView(myCreatePredicateVariable(pName));
   }
 
-  public Formula simplify(Formula input) {
+  public BooleanFormula simplify(BooleanFormula input) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     return unsafeManager.simplify(input);
   }

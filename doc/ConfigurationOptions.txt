@@ -115,7 +115,7 @@ analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARA
 
 # What CFA nodes should be the starting point of the analysis?
 analysis.initialStatesFor = ENTRY
-  enum:     [ENTRY, TARGET]
+  enum:     [ENTRY, TARGET, EXIT]
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -376,11 +376,6 @@ cfa.transformIntoSingleLoop = false
 # decision tree.
 cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
 
-# This option controls what program counter values are used. Possible values
-# are INCREMENTAL and NODE_NUMBER.
-cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
-  enum:     [NODE_NUMBER, INCREMENTAL]
-
 # This option controls the size of the subgraphs referred to by program
 # counter values. The larger the subgraphs, the fewer program counter values
 # are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
@@ -388,7 +383,7 @@ cfa.transformIntoSingleLoop.programCounterValueProviderFactory = INCREMENTAL
 # program counter values) and SINGLE_EDGE has the smallest subgraphs (and
 # most program counter values). The larger the subgraphs, the closer the
 # resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = no default value
+cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
   enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # unwind recursive functioncalls (bounded to max call stack size)
@@ -420,6 +415,11 @@ counterexample.checker = "CBMC"
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
 
+# File name where to put the path specification that is generated as input
+# for the counterexample check. A temporary file is used if this is
+# unspecified.
+counterexample.checker.path.file = no default value
+
 # continue analysis after an counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
@@ -435,7 +435,7 @@ counterexample.removeInfeasibleErrors = false
 
 # print coverage info to file
 coverage.export = true
-coverage.file = "coverage.%s.info"
+coverage.file = "coverage.info"
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
@@ -1019,7 +1019,7 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 cpa.predicate.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -1200,7 +1200,7 @@ cpa.predicate.satCheck = 0
 # Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
 # FOCI library from http://www.kenmcmil.com/foci2/).
 cpa.predicate.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.solver.logAllQueries = false
@@ -1562,8 +1562,10 @@ cpa.value.refiner.performInitialStaticRefinement = false
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refiner.prefixPreference = BEST
-  enum:     [DEFAULT, SHORTEST, LONGEST, MEDIAN, MIDDLE, BEST, WORST]
+cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -1691,7 +1693,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, OPTIMAL]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the size of certificate
