@@ -57,7 +57,7 @@ import com.google.common.base.Optional;
 public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(OctagonCPA.class).withOptions(OctagonOptions.class);
+    return AutomaticCPAFactory.forType(OctagonCPA.class);
   }
 
   @Option(name="octagonLibrary", toUppercase=true, values={"INT", "FLOAT"},
@@ -69,19 +69,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
-  /**
-   * In this inner class the options which are needed in several classes of this
-   * cpa are kept.
-   */
-  @Options(prefix="cpa.octagon")
-  public static class OctagonOptions extends VariableTrackingPrecisionOptions {
-
-    @Option(name="handleFloats",
-        description="with this option the evaluation of float variables can be toggled.")
-    private boolean handleFloats = false;
-  }
-
-  private final OctagonOptions octagonOptions;
+  private final VariableTrackingPrecisionOptions octagonOptions;
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -95,11 +83,10 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final OctagonManager octagonManager;
 
   private OctagonCPA(Configuration config, LogManager log,
-                     ShutdownNotifier shutdownNotifier, CFA cfa,
-                     OctagonOptions pOctagonOptions)
+                     ShutdownNotifier shutdownNotifier, CFA cfa)
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
-    octagonOptions = pOctagonOptions;
+    octagonOptions = new VariableTrackingPrecisionOptions(config);
     logger = log;
     OctagonDomain octagonDomain = new OctagonDomain(logger);
 
@@ -188,7 +175,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     return cfa;
   }
 
-  public OctagonOptions getOctagonOptions() {
+  public VariableTrackingPrecisionOptions getOctagonOptions() {
     return octagonOptions;
   }
 }

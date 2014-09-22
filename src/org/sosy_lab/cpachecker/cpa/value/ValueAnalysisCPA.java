@@ -79,37 +79,6 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
-  @Options(prefix="cpa.value.precision")
-  public static class ValueAnalaysisPrecisionOptions extends VariableTrackingPrecisionOptions {
-    @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
-    private int reachedSetThreshold = -1;
-
-    @Option(values={"location", "scope"},
-        description = "whether to track relevant variables only at the exact program location (sharing=location), " +
-            "or within their respective (function-/global-) scope (sharing=scoped).")
-    private String sharing = "scope";
-
-    @Option(description = "ignore boolean variables. if this option is used, "
-        + "booleans from the cfa should tracked with another CPA, "
-        + "i.e. with BDDCPA.")
-    private boolean ignoreBoolean = false;
-
-    @Option(description = "ignore variables, that are only compared for equality. "
-        + "if this option is used, these variables from the cfa should "
-        + "tracked with another CPA, i.e. with BDDCPA.")
-    private boolean ignoreIntEqual = false;
-
-    @Option(description = "ignore variables, that are only used in simple " +
-        "calculations (add, sub, lt, gt, eq). "
-        + "if this option is used, these variables from the cfa should "
-        + "tracked with another CPA, i.e. with BDDCPA.")
-    private boolean ignoreIntAdd = false;
-
-    public ValueAnalaysisPrecisionOptions() {
-      super();
-    }
-  }
-
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
@@ -138,7 +107,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private Path initialPrecisionFile = null;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class).withOptions(ValueAnalaysisPrecisionOptions.class);
+    return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
 
   private AbstractDomain abstractDomain;
@@ -146,7 +115,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private VariableTrackingPrecision precision;
-  private ValueAnalaysisPrecisionOptions precisionOptions;
+  private VariableTrackingPrecisionOptions precisionOptions;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
   private final ValueAnalysisReducer reducer;
@@ -158,7 +127,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private final CFA cfa;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, ValueAnalaysisPrecisionOptions pOptions) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
@@ -168,7 +137,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
-    precisionOptions    = pOptions;
+    precisionOptions    = new VariableTrackingPrecisionOptions(config);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();

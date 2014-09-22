@@ -99,9 +99,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA.OctagonOptions;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState.Type;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.IOctagonCoefficients;
 import org.sosy_lab.cpachecker.cpa.octagon.coefficients.OctagonIntervalCoefficients;
@@ -144,7 +144,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       = ImmutableMap.of("pthread_create", "threads");
 
   private final LogManager logger;
-  private final OctagonOptions octagonOptions;
+  private final VariableTrackingPrecisionOptions octagonOptions;
 
   private final Set<CFANode> loopHeads;
 
@@ -153,7 +153,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public OctagonTransferRelation(LogManager log, CFA cfa, OctagonOptions options) throws InvalidCFAException {
+  public OctagonTransferRelation(LogManager log, CFA cfa, VariableTrackingPrecisionOptions options) throws InvalidCFAException {
     logger = log;
     octagonOptions = options;
 

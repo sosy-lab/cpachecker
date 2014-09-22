@@ -23,63 +23,63 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-public abstract class VariableTrackingPrecisionOptions {
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+
+@Options(prefix="precision")
+public final class VariableTrackingPrecisionOptions {
 
   enum Sharing {
     SCOPE, LOCATION;
   }
 
-  /**
-   * the threshold which controls whether or not variable
-   * valuations ought to be abstracted once the specified
-   * number of valuations per variable is reached in the set of reached states
-   */
+  public VariableTrackingPrecisionOptions(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+  }
+
+  @Option(description = "the threshold which controls whether or not variable"
+      + "valuations ought to be abstracted once the specified number of valuations"
+      + "per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
 
-  /**
-   * whether to track relevant variables only at the
-   * exact program location (sharing=location),
-   * or within their respective (function-/global-) scope (sharing=scoped).
-   */
-  private Sharing sharing = Sharing.SCOPE;
+  @Option(values={"location", "scope"},
+      description = "whether to track relevant variables only at the exact program"
+          + "location (sharing=location), or within their respective"
+          + "(function-/global-) scope (sharing=scoped).")
+  private String sharing = "scope";
 
-  /**
-   * ignore boolean variables. if this option is used,
-   * booleans from the cfa should tracked with another CPA,
-   * i.e. with BDDCPA.
-   */
+  @Option(description = "ignore boolean variables. if this option is used, "
+      + "booleans from the cfa should tracked with another CPA, "
+      + "i.e. with BDDCPA.")
   private boolean ignoreBoolean = false;
 
-  /**
-   * ignore variables, that are only compared for equality
-   * if this option is used, these variables from the cfa should
-   * tracked with another CPA, i.e. with BDDCPA.
-   */
+  @Option(description = "ignore variables, that are only compared for equality. "
+      + "if this option is used, these variables from the cfa should "
+      + "tracked with another CPA, i.e. with BDDCPA.")
   private boolean ignoreIntEqual = false;
 
-  /**
-   * ignore variables, that are only used in simple
-   * calculations (add, sub, lt, gt, eq)
-   * if this option is used, these variables from the cfa should
-   * tracked with another CPA, i.e. with BDDCPA.
-   */
+  @Option(description = "ignore variables, that are only used in simple " +
+      "calculations (add, sub, lt, gt, eq). "
+      + "if this option is used, these variables from the cfa should "
+      + "tracked with another CPA, i.e. with BDDCPA.")
   private boolean ignoreIntAdd = false;
 
-  /**
-   * ignore variables that have type double or float
-   */
+  @Option(description ="Ignore variables that have type double or float.")
   private boolean ignoreFloats = true;
-
-  public static final VariableTrackingPrecisionOptions getDefaultOptions() {
-    return new VariableTrackingPrecisionOptions(){};
-  }
 
   public final int getReachedSetThreshold() {
     return reachedSetThreshold;
   }
 
   public final Sharing getSharingStrategy() {
-    return sharing;
+    if (sharing.equals("location")) {
+      return Sharing.LOCATION;
+    } else if (sharing.equals("scope")){
+      return Sharing.SCOPE;
+    }
+    throw new IllegalStateException("sharing is set to an illegal value: " + sharing);
   }
 
   public final boolean ignoreBooleanVariables() {
@@ -96,5 +96,14 @@ public abstract class VariableTrackingPrecisionOptions {
 
   public final boolean ignoreFloatVariables() {
     return ignoreFloats;
+  }
+
+  public static VariableTrackingPrecisionOptions getDefaultOptions() {
+    try {
+      return new VariableTrackingPrecisionOptions(Configuration.defaultConfiguration());
+    } catch (InvalidConfigurationException e) {
+      // as we just use the default configuration this will never happen
+      throw new RuntimeException();
+    }
   }
 }
