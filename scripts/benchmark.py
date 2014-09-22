@@ -76,7 +76,7 @@ def executeBenchmark(benchmarkFile):
     # settings must be retrieved here to set the correct tool version
     if config.appengine:
         appengine.setupBenchmarkForAppengine(benchmark)
-    elif config.cloud and "http" in config.cloudMaster:
+    elif config.cloud and config.cloudMaster and "http" in config.cloudMaster:
         if config.revision:
             benchmark.toolVersion = config.revision
         else:
