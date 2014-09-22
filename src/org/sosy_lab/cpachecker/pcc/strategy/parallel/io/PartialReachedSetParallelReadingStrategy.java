@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
-import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitonChecker;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 
@@ -106,7 +106,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ExecutorService executor = Executors.newFixedThreadPool(threads);
     try {
       for (int i = 0; i < threads; i++) {
-        executor.execute(new ParallelPartitonChecker(availablePartitions, id, checkResult, readPartitions,
+        executor.execute(new ParallelPartitionChecker(availablePartitions, id, checkResult, readPartitions,
             partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
                 .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }

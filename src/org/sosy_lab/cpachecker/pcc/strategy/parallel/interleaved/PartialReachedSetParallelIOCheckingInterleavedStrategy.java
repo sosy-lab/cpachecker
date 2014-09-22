@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
-import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitonChecker;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.io.ParallelPartitionReader;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
@@ -182,7 +182,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     AtomicInteger availablePartitions = new AtomicInteger(0);
     AtomicInteger nextId = new AtomicInteger(0);
     for (int i = 0; i < threads; i++) {
-      pCheckingExecutor.execute(new ParallelPartitonChecker(availablePartitions, nextId, pCheckResult, pPartitionsRead,
+      pCheckingExecutor.execute(new ParallelPartitionChecker(availablePartitions, nextId, pCheckResult, pPartitionsRead,
           pPartitionChecked, pLock, ioHelper, pInPartition, pCertificate, pInOtherPartition, pInitialPrecision, cpa
               .getStopOperator(), cpa.getTransferRelation(), shutdown, logger));
     }

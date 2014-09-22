@@ -98,7 +98,7 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
     ExecutorService executor = Executors.newFixedThreadPool(numThreads );
     try {
       for (int i = 0; i < numThreads; i++) {
-        executor.execute(new ParallelPartitonChecker(availablePartitions, nextId, checkResult, readButUnprocessed,
+        executor.execute(new ParallelPartitionChecker(availablePartitions, nextId, checkResult, readButUnprocessed,
             partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec,
             cpa.getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }

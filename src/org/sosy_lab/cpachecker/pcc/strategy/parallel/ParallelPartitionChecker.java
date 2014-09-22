@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import com.google.common.collect.Multimap;
 
 
-public class ParallelPartitonChecker implements Runnable, PartitioningCheckingHelper {
+public class ParallelPartitionChecker implements Runnable, PartitioningCheckingHelper {
 
   private final AtomicInteger numPartitionsAcquiredForChecking;
   private final AtomicInteger nextPartition;
@@ -61,7 +61,7 @@ public class ParallelPartitonChecker implements Runnable, PartitioningCheckingHe
 
   private final ShutdownNotifier shutdownNotifier;
 
-  public ParallelPartitonChecker(final AtomicInteger pAvailablePartitions, final AtomicInteger pNextId,
+  public ParallelPartitionChecker(final AtomicInteger pAvailablePartitions, final AtomicInteger pNextId,
       final AtomicBoolean pCheckResult, final Semaphore pReadButUnprocessed, final Semaphore pPartitionsChecked,
       final Lock pMutex, final PartitioningIOHelper pIOHelper,
       final Multimap<CFANode, AbstractState> partitionElements, final Collection<AbstractState> pCertificate,
