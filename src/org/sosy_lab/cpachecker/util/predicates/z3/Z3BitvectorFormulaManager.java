@@ -30,8 +30,6 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
-import com.google.common.base.Preconditions;
-
 class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Long, Long> {
 
   private final long z3context;
@@ -309,12 +307,5 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   @Override
   public boolean isExtend(Long pBits, boolean signed) {
     return isOP(z3context, pBits, signed ? Z3_OP_SIGN_EXT : Z3_OP_ZERO_EXT);
-  }
-
-  @Override
-  public int getLength(Long pParam) {
-    long sort = get_sort(z3context, pParam);
-    Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
-    return get_bv_sort_size(z3context, sort);
   }
 }

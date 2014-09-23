@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -65,6 +67,25 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   @Override
   public TFormulaInfo extractInfo(Formula pT) {
     return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    checkNotNull(formula);
+    FormulaType<?> t;
+    if (formula instanceof BooleanFormula) {
+      t = FormulaType.BooleanType;
+    } else if (formula instanceof IntegerFormula) {
+      t = FormulaType.IntegerType;
+    } else if (formula instanceof RationalFormula) {
+      t = FormulaType.RationalType;
+    } else if (formula instanceof BitvectorFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
+    } else {
+      throw new IllegalArgumentException("Formula with unexpected type " + formula.getClass());
+    }
+    return (FormulaType<T>) t;
   }
 
   @Override

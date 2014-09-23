@@ -37,4 +37,9 @@ public interface FormulaCreator<TFormulaInfo> {
   public <T extends Formula> T encapsulate(FormulaType<T> type, TFormulaInfo pTerm);
 
   public TFormulaInfo extractInfo(Formula t);
+
+  /**
+   * Returns the type of the given Formula.
+   */
+  public <T extends Formula> FormulaType<T> getFormulaType(T formula);
 }

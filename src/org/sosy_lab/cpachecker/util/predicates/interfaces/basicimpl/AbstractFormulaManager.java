@@ -189,25 +189,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return dumpFormula(formulaCreator.extractInfo(t));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
-    checkNotNull(formula);
-    Class<T> clazz = getInterfaceHelper(formula);
-    FormulaType<?> t;
-    if (clazz==BooleanFormula.class) {
-      t = FormulaType.BooleanType;
-    } else if (clazz == IntegerFormula.class) {
-      t = integerManager.getFormulaType();
-    } else if (clazz == RationalFormula.class) {
-      t = rationalManager.getFormulaType();
-    } else if (clazz == BitvectorFormula.class) {
-      int size = bitvectorManager.getLength((BitvectorFormula)formula);
-      t = FormulaType.getBitvectorTypeWithSize(size);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return (FormulaType<T>) t;
+  public final <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    return formulaCreator.getFormulaType(checkNotNull(formula));
   }
-
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_BV_SORT;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -33,6 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+
+import com.google.common.base.Preconditions;
 
 public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
@@ -63,6 +66,20 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   @Override
   public Long extractInfo(Formula pT) {
     return Z3FormulaManager.getZ3Expr(pT);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    if (pFormula instanceof BitvectorFormula) {
+      long term = extractInfo(pFormula);
+      long z3context = getEnv();
+      long sort = get_sort(z3context, term);
+      Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
+      return (FormulaType<T>) FormulaType.getBitvectorTypeWithSize(
+          get_bv_sort_size(z3context, sort));
+    }
+    return super.getFormulaType(pFormula);
   }
 
   @SuppressWarnings("unchecked")

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -52,6 +53,19 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   @Override
   public Long extractInfo(Formula pT) {
     return Mathsat5FormulaManager.getMsatTerm(pT);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    if (pFormula instanceof BitvectorFormula) {
+      long type = msat_term_get_type(extractInfo(pFormula));
+      checkArgument(msat_is_bv_type(getEnv(), type),
+          "BitvectorFormula with actual type " + msat_type_repr(type) + ": " + pFormula);
+      return (FormulaType<T>) FormulaType.getBitvectorTypeWithSize(
+          msat_get_bv_type_size(getEnv(), type));
+    }
+    return super.getFormulaType(pFormula);
   }
 
   @Override

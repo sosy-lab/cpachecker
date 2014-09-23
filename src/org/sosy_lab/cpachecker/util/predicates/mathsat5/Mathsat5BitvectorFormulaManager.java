@@ -315,12 +315,4 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   protected boolean isExtend(Long pBits, boolean signed) {
     return signed ? msat_term_is_bv_sext(mathsatEnv, pBits) : msat_term_is_bv_zext(mathsatEnv, pBits);
   }
-
-  @Override
-  public int getLength(Long pParam) {
-    long type = msat_term_get_type(pParam);
-    assert msat_is_bv_type(mathsatEnv, type);
-    return msat_get_bv_type_size(mathsatEnv, type);
-  }
-
 }
