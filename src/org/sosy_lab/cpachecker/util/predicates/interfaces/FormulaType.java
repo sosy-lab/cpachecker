@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  */
 public abstract class FormulaType<T extends Formula> {
 
-  FormulaType() {}
+  private FormulaType() {}
 
   public boolean isBitvectorType() {
     return false;
