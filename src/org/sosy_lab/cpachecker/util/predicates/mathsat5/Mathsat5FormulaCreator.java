@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
@@ -76,4 +77,18 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     return (T)f;
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, Long pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new Mathsat5BooleanFormula(pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new Mathsat5IntegerFormula(pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new Mathsat5RationalFormula(pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new Mathsat5BitvectorFormula(pTerm);
+    }
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
+  }
 }

@@ -55,7 +55,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, pTerm);
+    return getFormulaCreator().encapsulate(FormulaType.BooleanType, pTerm);
   }
 
   @Override

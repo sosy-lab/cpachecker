@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 
 /**
@@ -32,6 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  */
 public interface FormulaCreator<TFormulaInfo> {
   public <T extends Formula> T encapsulate(Class<T> clazz, TFormulaInfo pTerm);
+
+  public <T extends Formula> T encapsulate(FormulaType<T> type, TFormulaInfo pTerm);
 
   public TFormulaInfo extractInfo(Formula t);
 }

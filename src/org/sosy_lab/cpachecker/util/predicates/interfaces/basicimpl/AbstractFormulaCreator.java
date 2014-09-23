@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -83,6 +84,21 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     }
 
     return (T)f;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new BooleanFormulaImpl<>(pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new IntegerFormulaImpl<>(pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new RationalFormulaImpl<>(pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new BitvectorFormulaImpl<>(pTerm);
+    }
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }
 
   public abstract TType getBittype(int bitwidth);

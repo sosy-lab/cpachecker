@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
@@ -80,6 +81,21 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
       throw new IllegalArgumentException("invalid interface type");
     }
     return (T) f;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, Long pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new Z3BooleanFormula(getEnv(), pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new Z3IntegerFormula(getEnv(), pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new Z3RationalFormula(getEnv(), pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new Z3BitvectorFormula(getEnv(), pTerm);
+    }
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in Z3");
   }
 
   @Override
