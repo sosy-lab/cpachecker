@@ -137,14 +137,6 @@ public class VariableTrackingPrecision implements Precision {
     return options.getVariableBlacklist().matcher(variable).matches();
   }
 
-  public boolean variableExceedsReachedSetThreshold(int numberOfDifferentValues) {
-    return numberOfDifferentValues > options.getReachedSetThreshold();
-  }
-
-  public boolean isReachedSetThresholdActive() {
-    return options.getReachedSetThreshold() > -1;
-  }
-
   public int getSize() {
     return refinablePrecision.getSize();
   }

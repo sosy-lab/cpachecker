@@ -41,11 +41,6 @@ public final class VariableTrackingPrecisionOptions {
     config.inject(this);
   }
 
-  @Option(description = "the threshold which controls whether or not variable"
-      + "valuations ought to be abstracted once the specified number of valuations"
-      + "per variable is reached in the set of reached states")
-  private int reachedSetThreshold = -1;
-
   @Option(name="variableBlacklist",
       description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
   private Pattern variableBlacklist = Pattern.compile("");
@@ -70,10 +65,6 @@ public final class VariableTrackingPrecisionOptions {
   @Option(description ="If this option is used, variables that have type double"
       + " or float are tracked.")
   private boolean trackFloatVariables = true;
-
-  public final int getReachedSetThreshold() {
-    return reachedSetThreshold;
-  }
 
   public Pattern getVariableBlacklist() {
     return variableBlacklist;
