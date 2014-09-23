@@ -134,7 +134,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(loc, predloc, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);
 
       return createState(element, pathFormula, loc, doAbstraction);
 
