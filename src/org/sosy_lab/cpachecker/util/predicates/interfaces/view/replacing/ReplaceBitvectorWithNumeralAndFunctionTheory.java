@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
@@ -441,8 +441,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   private boolean isUf(BitvectorFormula pBits, String prefix) {
     for (FunctionFormulaType<T> value : concatMethods.values()) {
       // TODO prefix-check working??
-      if (value instanceof FunctionFormulaTypeImpl
-          && ((FunctionFormulaTypeImpl)value).getFuncDecl().toString().startsWith(prefix)
+      if (value instanceof AbstractFunctionFormulaType
+          && ((AbstractFunctionFormulaType)value).getFuncDecl().toString().startsWith(prefix)
           && isUf(value, pBits)) {
         return true;
       }

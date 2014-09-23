@@ -27,9 +27,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 
-class SmtInterpolFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, String> {
+class SmtInterpolFunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, String> {
 
   SmtInterpolFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, String funcDecl) {
     super(pReturnType, funcDecl, pArgumentTypes);

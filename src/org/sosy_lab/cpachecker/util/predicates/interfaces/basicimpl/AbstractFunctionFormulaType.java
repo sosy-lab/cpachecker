@@ -21,17 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.mathsat5;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 
-class Mathsat5FunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, Long> {
+/**
+ * A simple straightforward implementation of FunctionFormulaType<T>
+ */
+public abstract class AbstractFunctionFormulaType<T extends Formula, TFuncDecl> extends FunctionFormulaType<T> {
 
-  public Mathsat5FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
-    super(pReturnType, funcDecl, pArgumentTypes);
+  private final TFuncDecl funcDecl;
+
+  public AbstractFunctionFormulaType(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
+    super(returnType, argumentTypes);
+    this.funcDecl = checkNotNull(funcDecl);
+  }
+
+  public TFuncDecl getFuncDecl() {
+    return funcDecl;
   }
 }
