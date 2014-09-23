@@ -59,11 +59,6 @@ public class FunctionFormulaTypeImpl<T extends Formula, TFuncDecl> extends Funct
     return returnType;
   }
 
-  @Override
-  public Class<T> getInterfaceType() {
-    return returnType.getInterfaceType();
-  }
-
   public TFuncDecl getFuncDecl() {
     return funcDecl;
   }

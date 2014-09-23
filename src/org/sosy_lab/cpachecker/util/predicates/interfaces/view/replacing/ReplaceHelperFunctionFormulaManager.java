@@ -68,11 +68,6 @@ class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
     }
 
     @Override
-    public Class<T> getInterfaceType() {
-      return ret.getInterfaceType();
-    }
-
-    @Override
     public List<FormulaType<?>> getArgumentTypes() {
       return args;
     }

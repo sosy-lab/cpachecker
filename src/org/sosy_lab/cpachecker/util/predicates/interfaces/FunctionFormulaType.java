@@ -29,7 +29,7 @@ import java.util.List;
  * Represents a uninterpreted function type.
  * @param <T> The type of the return value
  */
-public abstract class FunctionFormulaType<T extends Formula> extends FormulaType<T> {
+public abstract class FunctionFormulaType<T extends Formula> {
 
   public FunctionFormulaType() {}
   /**
