@@ -44,11 +44,11 @@ public final class VariableTrackingPrecisionOptions {
       + "per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
 
-  @Option(values={"location", "scope"},
+  @Option(values={"LOCATION", "SCOPE"},
       description = "whether to track relevant variables only at the exact program"
           + "location (sharing=location), or within their respective"
           + "(function-/global-) scope (sharing=scoped).")
-  private String sharing = "scope";
+  private Sharing sharing = Sharing.SCOPE;
 
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
@@ -74,12 +74,7 @@ public final class VariableTrackingPrecisionOptions {
   }
 
   public final Sharing getSharingStrategy() {
-    if (sharing.equals("location")) {
-      return Sharing.LOCATION;
-    } else if (sharing.equals("scope")){
-      return Sharing.SCOPE;
-    }
-    throw new IllegalStateException("sharing is set to an illegal value: " + sharing);
+    return sharing;
   }
 
   public final boolean ignoreBooleanVariables() {
