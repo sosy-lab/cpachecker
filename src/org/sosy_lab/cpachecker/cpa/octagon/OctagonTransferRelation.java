@@ -480,7 +480,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (octagonOptions.ignoreFloatVariables() && var instanceof CFloatLiteralExpression)
+        || (!octagonOptions.trackFloatVariables() && var instanceof CFloatLiteralExpression)
         || var instanceof CStringLiteralExpression
         || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
@@ -552,7 +552,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       rightVal = OctagonIntValue.of(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = OctagonIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression && !octagonOptions.ignoreFloatVariables()) {
+    } else if (right instanceof CFloatLiteralExpression && octagonOptions.trackFloatVariables()) {
       rightVal = new OctagonDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
 
     // we cannot handle strings, so just return the previous state
@@ -1564,10 +1564,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFloatLiteralExpression e) throws CPATransferException {
       // only handle floats when specified in the configuration
-      if (octagonOptions.ignoreFloatVariables()) {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
-      } else {
+      if (octagonOptions.trackFloatVariables()) {
         return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
+      } else {
+        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
       }
     }
 

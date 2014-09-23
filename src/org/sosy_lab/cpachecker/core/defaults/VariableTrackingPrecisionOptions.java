@@ -50,24 +50,20 @@ public final class VariableTrackingPrecisionOptions {
           + "(function-/global-) scope (sharing=scoped).")
   private Sharing sharing = Sharing.SCOPE;
 
-  @Option(description = "ignore boolean variables. if this option is used, "
-      + "booleans from the cfa should tracked with another CPA, "
-      + "i.e. with BDDCPA.")
-  private boolean ignoreBoolean = false;
+  @Option(description = "If this option is used, booleans from the cfa are tracked.")
+  private boolean trackBooleanVariables = true;
 
-  @Option(description = "ignore variables, that are only compared for equality. "
-      + "if this option is used, these variables from the cfa should "
-      + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreIntEqual = false;
+  @Option(description = "If this option is used, variables that are only compared"
+      + " for equality are tracked.")
+  private boolean trackIntEqualVariables = true;
 
-  @Option(description = "ignore variables, that are only used in simple " +
-      "calculations (add, sub, lt, gt, eq). "
-      + "if this option is used, these variables from the cfa should "
-      + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreIntAdd = false;
+  @Option(description = "If this option is used, variables, that are only used in"
+      + " simple calculations (add, sub, lt, gt, eq) are tracked.")
+  private boolean trackIntAddVariables = true;
 
-  @Option(description ="Ignore variables that have type double or float.")
-  private boolean ignoreFloats = true;
+  @Option(description ="If this option is used, variables that have type double"
+      + " or float are tracked.")
+  private boolean trackFloatVariables = true;
 
   public final int getReachedSetThreshold() {
     return reachedSetThreshold;
@@ -77,20 +73,20 @@ public final class VariableTrackingPrecisionOptions {
     return sharing;
   }
 
-  public final boolean ignoreBooleanVariables() {
-    return ignoreBoolean;
+  public final boolean trackBooleanVariables() {
+    return trackBooleanVariables;
   }
 
-  public final boolean ignoreIntEqualVariables() {
-    return ignoreIntEqual;
+  public final boolean trackIntEqualVariables() {
+    return trackIntEqualVariables;
   }
 
-  public final boolean ignoreIntAddVariables() {
-    return ignoreIntAdd;
+  public final boolean trackIntAddVariables() {
+    return trackIntAddVariables;
   }
 
-  public final boolean ignoreFloatVariables() {
-    return ignoreFloats;
+  public final boolean trackFloatVariables() {
+    return trackFloatVariables;
   }
 
   public static VariableTrackingPrecisionOptions getDefaultOptions() {

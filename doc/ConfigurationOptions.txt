@@ -1686,23 +1686,6 @@ pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
-# ignore boolean variables. if this option is used, booleans from the cfa
-# should tracked with another CPA, i.e. with BDDCPA.
-precision.ignoreBoolean = false
-
-# Ignore variables that have type double or float.
-precision.ignoreFloats = true
-
-# ignore variables, that are only used in simple calculations (add, sub, lt,
-# gt, eq). if this option is used, these variables from the cfa should
-# tracked with another CPA, i.e. with BDDCPA.
-precision.ignoreIntAdd = false
-
-# ignore variables, that are only compared for equality. if this option is
-# used, these variables from the cfa should tracked with another CPA, i.e.
-# with BDDCPA.
-precision.ignoreIntEqual = false
-
 # the threshold which controls whether or not variablevaluations ought to be
 # abstracted once the specified number of valuationsper variable is reached
 # in the set of reached states
@@ -1711,8 +1694,24 @@ precision.reachedSetThreshold = -1
 # whether to track relevant variables only at the exact programlocation
 # (sharing=location), or within their respective(function-/global-) scope
 # (sharing=scoped).
-precision.sharing = "scope"
-  allowed values: [location, scope]
+precision.sharing = SCOPE
+  enum:     [SCOPE, LOCATION]
+  allowed values: [LOCATION, SCOPE]
+
+# If this option is used, booleans from the cfa are tracked.
+precision.trackBooleanVariables = true
+
+# If this option is used, variables that have type double or float are
+# tracked.
+precision.trackFloatVariables = true
+
+# If this option is used, variables, that are only used in simple
+# calculations (add, sub, lt, gt, eq) are tracked.
+precision.trackIntAddVariables = true
+
+# If this option is used, variables that are only compared for equality are
+# tracked.
+precision.trackIntEqualVariables = true
 
 # print reached set to text file
 reachedSet.export = true

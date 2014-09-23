@@ -131,9 +131,9 @@ public class VariableTrackingPrecision implements Precision {
    * @return true, if this precision allows for abstraction, else false
    */
   public boolean allowsAbstraction() {
-     return options.ignoreBooleanVariables()
-         || options.ignoreIntAddVariables()
-         || options.ignoreIntEqualVariables()
+     return !options.trackBooleanVariables()
+         || !options.trackIntAddVariables()
+         || !options.trackIntEqualVariables()
          || !(refinablePrecision instanceof FullPrecision)
          || !blackListPattern.toString().equals("");
   }
@@ -181,13 +181,13 @@ public class VariableTrackingPrecision implements Precision {
   }
 
   public boolean isTracking(MemoryLocation variable, CType type) {
-    if (options.ignoreFloatVariables()) {
-      return !(type instanceof CSimpleType
-                 && (((CSimpleType)type).getType() == CBasicType.FLOAT
-                 || ((CSimpleType)type).getType() == CBasicType.DOUBLE))
-             && isTracking(variable);
-    } else {
+    if (options.trackFloatVariables()) {
       return isTracking(variable);
+    } else {
+      return !(type instanceof CSimpleType
+          && (((CSimpleType)type).getType() == CBasicType.FLOAT
+          || ((CSimpleType)type).getType() == CBasicType.DOUBLE))
+      && isTracking(variable);
     }
   }
 
@@ -199,9 +199,9 @@ public class VariableTrackingPrecision implements Precision {
     final boolean isIntEqual = varClass.get().getIntEqualVars().contains(variable.getAsSimpleString());
     final boolean isIntAdd = varClass.get().getIntAddVars().contains(variable.getAsSimpleString());
 
-    final boolean isIgnoredBoolean = options.ignoreBooleanVariables() && isBoolean;
-    final boolean isIgnoredIntEqual = options.ignoreIntEqualVariables() && isIntEqual;
-    final boolean isIgnoredIntAdd = options.ignoreIntAddVariables() && isIntAdd;
+    final boolean isIgnoredBoolean = !options.trackBooleanVariables() && isBoolean;
+    final boolean isIgnoredIntEqual = !options.trackIntEqualVariables() && isIntEqual;
+    final boolean isIgnoredIntAdd = !options.trackIntAddVariables() && isIntAdd;
 
     return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
   }
