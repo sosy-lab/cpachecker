@@ -45,11 +45,11 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   protected BitvectorFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BitvectorFormula.class, pTerm);
+    return getFormulaCreator().encapsulateBitvector(pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(FormulaType.BooleanType, pTerm);
+    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override

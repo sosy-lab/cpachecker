@@ -51,7 +51,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   private BooleanFormula wrap(TFormulaInfo formulaInfo) {
-    return getFormulaCreator().encapsulate(FormulaType.BooleanType, formulaInfo);
+    return getFormulaCreator().encapsulateBoolean(formulaInfo);
   }
 
   private TFormulaInfo extractInfo(Formula pBits) {

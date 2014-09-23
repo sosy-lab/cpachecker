@@ -38,7 +38,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
@@ -212,7 +211,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   }
 
   protected BooleanFormula encapsulateBooleanFormula(long t) {
-    return getFormulaCreator().encapsulate(FormulaType.BooleanType, t);
+    return getFormulaCreator().encapsulateBoolean(t);
   }
 
   @Override

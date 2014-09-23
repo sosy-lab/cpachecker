@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 import com.google.common.base.Preconditions;
@@ -80,24 +78,6 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
           get_bv_sort_size(z3context, sort));
     }
     return super.getFormulaType(pFormula);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
-    Z3Formula f;
-    if (pClazz == BitvectorFormula.class) {
-      f = new Z3BitvectorFormula(getEnv(), pTerm);
-    } else if (pClazz == IntegerFormula.class) {
-      f = new Z3IntegerFormula(getEnv(), pTerm);
-    } else if (pClazz == RationalFormula.class) {
-      f = new Z3RationalFormula(getEnv(), pTerm);
-    } else if (pClazz == BooleanFormula.class) {
-      f = new Z3BooleanFormula(getEnv(), pTerm);
-    } else {
-      throw new IllegalArgumentException("invalid interface type");
-    }
-    return (T) f;
   }
 
   @SuppressWarnings("unchecked")

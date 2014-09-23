@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 
@@ -71,24 +69,6 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   @Override
   public Long getBittype(int pBitwidth) {
     return msat_get_bv_type(getEnv(), pBitwidth);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
-    Mathsat5Formula f;
-    if (pClazz == BitvectorFormula.class) {
-      f = new Mathsat5BitvectorFormula(pTerm);
-    } else if (pClazz == IntegerFormula.class) {
-      f = new Mathsat5IntegerFormula(pTerm);
-    } else if (pClazz == RationalFormula.class) {
-      f = new Mathsat5RationalFormula(pTerm);
-    } else if (pClazz == BooleanFormula.class) {
-      f = new Mathsat5BooleanFormula(pTerm);
-    } else {
-      throw new IllegalArgumentException("invalid interface type: " + pClazz);
-    }
-    return (T)f;
   }
 
   @SuppressWarnings("unchecked")

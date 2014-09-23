@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
  * @param <TFormulaInfo>  the solver specific type.
  */
 public interface FormulaCreator<TFormulaInfo> {
-  public <T extends Formula> T encapsulate(Class<T> clazz, TFormulaInfo pTerm);
 
   public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm);
 
