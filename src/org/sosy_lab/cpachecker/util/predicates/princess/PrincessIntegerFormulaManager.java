@@ -40,7 +40,7 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predica
   PrincessIntegerFormulaManager(
           PrincessFormulaCreator pCreator,
           PrincessFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager, IntegerFormula.class);
+    super(pCreator, pFunctionManager);
   }
 
   @Override

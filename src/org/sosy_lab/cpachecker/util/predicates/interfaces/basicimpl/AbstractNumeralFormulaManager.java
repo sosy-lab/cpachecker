@@ -41,13 +41,9 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
-  // it is not possible to get a Class from Generics,so we need this field.
-  private final Class<ResultFormulaType> formulaType;
-
   protected AbstractNumeralFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator, Class<ResultFormulaType> pType) {
+      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
-    formulaType = pType;
   }
 
 
@@ -56,7 +52,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   }
 
   protected ResultFormulaType wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(formulaType, pTerm);
+    return getFormulaCreator().encapsulate(getFormulaType(), pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {

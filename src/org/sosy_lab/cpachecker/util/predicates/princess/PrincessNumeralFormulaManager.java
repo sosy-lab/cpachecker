@@ -56,9 +56,8 @@ abstract class PrincessNumeralFormulaManager
 
   PrincessNumeralFormulaManager(
           PrincessFormulaCreator pCreator,
-          PrincessFunctionFormulaManager pFunctionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          PrincessFunctionFormulaManager pFunctionManager) {
+    super(pCreator);
     functionManager = pFunctionManager;
 
     FormulaType<ResultFormulaType> formulaType = getFormulaType();

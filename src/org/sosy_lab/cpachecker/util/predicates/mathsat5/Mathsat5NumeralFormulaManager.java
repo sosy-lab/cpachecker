@@ -49,9 +49,8 @@ abstract class Mathsat5NumeralFormulaManager
 
   public Mathsat5NumeralFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          Mathsat5FunctionFormulaManager functionManager) {
+    super(pCreator);
 
     this.mathsatEnv = pCreator.getEnv();
     this.functionManager = functionManager;

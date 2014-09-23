@@ -49,9 +49,8 @@ abstract class SmtInterpolNumeralFormulaManager
 
   SmtInterpolNumeralFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          SmtInterpolFunctionFormulaManager pFunctionManager) {
+    super(pCreator);
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 

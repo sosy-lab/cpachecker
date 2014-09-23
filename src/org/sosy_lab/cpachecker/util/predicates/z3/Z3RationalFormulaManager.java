@@ -32,7 +32,7 @@ public class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFor
   public Z3RationalFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager, RationalFormula.class);
+    super(pCreator, pFunctionManager);
   }
 
   @Override

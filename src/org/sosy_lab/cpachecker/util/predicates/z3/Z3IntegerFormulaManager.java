@@ -31,7 +31,7 @@ public class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerForm
   public Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager, IntegerFormula.class);
+    super(pCreator, pFunctionManager);
   }
 
   @Override

@@ -50,9 +50,8 @@ abstract class Z3NumeralFormulaManager
 
   public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager functionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          Z3FunctionFormulaManager functionManager) {
+    super(pCreator);
 
     this.z3context = pCreator.getEnv();
     FormulaType<ResultFormulaType> formulaType = getFormulaType();

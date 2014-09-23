@@ -34,7 +34,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
   public Mathsat5RationalFormulaManager(
           Mathsat5FormulaCreator pCreator,
           Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager, RationalFormula.class);
+    super(pCreator, functionManager);
   }
 
   @Override
