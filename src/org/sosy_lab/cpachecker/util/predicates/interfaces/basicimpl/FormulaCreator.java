@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
@@ -34,7 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 public interface FormulaCreator<TFormulaInfo> {
   public <T extends Formula> T encapsulate(Class<T> clazz, TFormulaInfo pTerm);
 
+  public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm);
+
+  public BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm);
+
   public <T extends Formula> T encapsulate(FormulaType<T> type, TFormulaInfo pTerm);
+
+
 
   public TFormulaInfo extractInfo(Formula t);
 

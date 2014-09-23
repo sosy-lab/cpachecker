@@ -122,6 +122,16 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }
 
+  @Override
+  public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
+    return new BooleanFormulaImpl<>(pTerm);
+  }
+
+  @Override
+  public BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm) {
+    return new BitvectorFormulaImpl<>(pTerm);
+  }
+
   public abstract TType getBittype(int bitwidth);
 
   public TType getBoolType() {

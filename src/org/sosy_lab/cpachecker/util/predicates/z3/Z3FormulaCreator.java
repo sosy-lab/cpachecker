@@ -116,6 +116,16 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   }
 
   @Override
+  public BooleanFormula encapsulateBoolean(Long pTerm) {
+    return new Z3BooleanFormula(getEnv(), pTerm);
+  }
+
+  @Override
+  public BitvectorFormula encapsulateBitvector(Long pTerm) {
+    return new Z3BitvectorFormula(getEnv(), pTerm);
+  }
+
+  @Override
   public Long getBittype(int pBitwidth) {
     checkArgument(pBitwidth > 0, "Cannot use bitvector type with size %s", pBitwidth);
     long bvSort = mk_bv_sort(getEnv(), pBitwidth);

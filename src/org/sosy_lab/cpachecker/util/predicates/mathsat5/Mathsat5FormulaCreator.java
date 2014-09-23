@@ -105,4 +105,14 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     }
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }
+
+  @Override
+  public BooleanFormula encapsulateBoolean(Long pTerm) {
+    return new Mathsat5BooleanFormula(pTerm);
+  }
+
+  @Override
+  public BitvectorFormula encapsulateBitvector(Long pTerm) {
+    return new Mathsat5BitvectorFormula(pTerm);
+  }
 }
