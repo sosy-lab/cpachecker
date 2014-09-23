@@ -135,11 +135,6 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    return AbstractFormulaManager.getInterfaceHelper(pInstance);
-  }
-
-  @Override
   public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerManager == null) {
       // TODO fallback to rationalManager?
@@ -198,7 +193,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
     checkNotNull(formula);
-    Class<T> clazz = getInterface(formula);
+    Class<T> clazz = getInterfaceHelper(formula);
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {
       t = FormulaType.BooleanType;

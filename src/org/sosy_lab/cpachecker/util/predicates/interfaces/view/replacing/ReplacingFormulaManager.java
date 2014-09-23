@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
 
 import com.google.common.base.Function;
@@ -140,13 +139,13 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> type, T2 toWrap) {
-    Class<T2> toWrapClazz = getInterface(toWrap);
+  public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    FormulaType<T2> toWrapType = rawFormulaManager.getFormulaType(toWrap);
 
-    if (replacedBitvectorTheory && type.isBitvectorType()
-        || replacedRationalTheory && type.isRationalType()) {
-      return simpleWrap(type, toWrap);
-    } else if (toWrapClazz == type.getInterfaceType()) {
+    if (replacedBitvectorTheory && targetType.isBitvectorType()
+        || replacedRationalTheory && targetType.isRationalType()) {
+      return simpleWrap(targetType, toWrap);
+    } else if (toWrapType.equals(targetType)) {
       return (T1) toWrap;
     } else {
       throw new IllegalArgumentException("invalid wrap call");
@@ -209,15 +208,6 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
     return rawFormulaManager.parse(pS);
-  }
-
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    if (pInstance instanceof WrappingFormula<?, ?>) {
-      return AbstractFormulaManager.getInterfaceHelper(pInstance);
-    } else {
-      return rawFormulaManager.getInterface(pInstance);
-    }
   }
 
   @Override

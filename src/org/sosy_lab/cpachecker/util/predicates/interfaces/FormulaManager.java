@@ -84,10 +84,6 @@ public interface FormulaManager {
   public BooleanFormula parse(String s) throws IllegalArgumentException;
 
   /**
-   * Returns the Interface-Class of the given Formula. For example BitvectorFormula.class.
-   */
-  public <T extends Formula> Class<T> getInterface(T pInstance);
-  /**
    * Create string representation of a formula in a format which may be dumped
    * to a file. To get a String, simply call {@link Object#toString()}
    * on the returned object.

@@ -119,11 +119,6 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    return getFormulaType(pInstance).getInterfaceType();
-  }
-
-  @Override
   public Appender dumpFormula(Formula pT) {
     // TODO Auto-generated method stub
     return null;

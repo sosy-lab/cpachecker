@@ -763,7 +763,7 @@ public class FormulaManagerView {
   }
 
   <T extends Formula> Class<T> getInterface(T pInstance) {
-    return manager.getInterface(extractFromView(pInstance));
+    return AbstractFormulaManager.getInterfaceHelper(extractFromView(pInstance));
   }
 
   public BooleanFormula parse(String pS) throws IllegalArgumentException {

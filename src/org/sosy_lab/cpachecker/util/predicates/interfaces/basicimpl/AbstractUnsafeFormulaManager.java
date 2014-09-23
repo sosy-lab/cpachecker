@@ -58,9 +58,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   protected <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
-    FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
-    Class<T> clazz = type.getInterfaceType();
-    return creator.encapsulate(clazz, formulaInfo);
+    return getFormulaCreator().encapsulate(type, formulaInfo);
   }
 
   private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {

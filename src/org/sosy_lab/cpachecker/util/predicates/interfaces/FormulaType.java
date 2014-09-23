@@ -37,8 +37,6 @@ public abstract class FormulaType<T extends Formula> {
 
   FormulaType() {}
 
-  public abstract Class<T> getInterfaceType();
-
   public boolean isBitvectorType() {
     return false;
   }
@@ -73,11 +71,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<RationalFormula> RationalType = new NumeralType<RationalFormula>() {
 
     @Override
-    public Class<RationalFormula> getInterfaceType() {
-      return RationalFormula.class;
-    }
-
-    @Override
     public boolean isRationalType() {
       return true;
     }
@@ -91,11 +84,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
 
     @Override
-    public Class<IntegerFormula> getInterfaceType() {
-      return IntegerFormula.class;
-    }
-
-    @Override
     public boolean isIntegerType() {
       return true;
     }
@@ -107,11 +95,6 @@ public abstract class FormulaType<T extends Formula> {
   };
 
   public static final FormulaType<BooleanFormula> BooleanType = new FormulaType<BooleanFormula>() {
-
-    @Override
-    public Class<BooleanFormula> getInterfaceType() {
-      return BooleanFormula.class;
-    }
 
     @Override
     public boolean isBooleanType() {
@@ -161,11 +144,6 @@ public abstract class FormulaType<T extends Formula> {
 
     public BitvectorType withSize(int size) {
       return getBitvectorType(size);
-    }
-
-    @Override
-    public Class<BitvectorFormula> getInterfaceType() {
-      return BitvectorFormula.class;
     }
 
     @Override
