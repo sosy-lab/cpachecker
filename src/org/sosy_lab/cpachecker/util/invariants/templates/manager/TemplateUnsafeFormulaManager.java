@@ -217,54 +217,56 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula replaceArgsAndName(Formula pF, String pNewName, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, Formula[] pArgs) {
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Formula replaceArgs(Formula pF, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
     if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
         TemplateUIF oldUif = tt.getUIF();
         TemplateUIF newUif = new TemplateUIF(oldUif.getName(), oldUif.getFormulaType(), new TemplateSumList(new TemplateFormulaList(pArgs)));
-        return new TemplateTerm(newUif);
+        return (T) new TemplateTerm(newUif);
       }
     }
 
     if (pF instanceof TemplateUIF) {
       TemplateUIF oldUif = (TemplateUIF)pF;
       TemplateUIF newUif = new TemplateUIF(oldUif.getName(), oldUif.getFormulaType(), new TemplateSumList(new TemplateFormulaList(pArgs)));
-      return new TemplateTerm(newUif);
+      return (T) new TemplateTerm(newUif);
     }
 
     throw new IllegalArgumentException("Can't replace the args of the given formula!");
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Formula replaceName(Formula pF, String pNewName) {
+  public <T extends Formula> T replaceName(T pF, String pNewName) {
     if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       if (!tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable()) {
         TemplateTerm newtt = new TemplateTerm(tt.getFormulaType());
         newtt.setVariable(new TemplateVariable(tt.getVariable().getFormulaType(), pNewName));
-        return newtt;
+        return (T) newtt;
       }
       if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
         TemplateUIF oldUif = tt.getUIF();
         TemplateUIF newUif = new TemplateUIF(pNewName, oldUif.getFormulaType(), oldUif.getArgs());
-        return new TemplateTerm(newUif);
+        return (T) new TemplateTerm(newUif);
       }
     }
 
     if (pF instanceof TemplateVariable) {
       TemplateVariable tv = (TemplateVariable)pF;
-      return new TemplateVariable(tv.getFormulaType(), pNewName);
+      return (T) new TemplateVariable(tv.getFormulaType(), pNewName);
     }
     if (pF instanceof TemplateUIF) {
       TemplateUIF oldUif = (TemplateUIF)pF;
       TemplateUIF newUif = new TemplateUIF(pNewName, oldUif.getFormulaType(), oldUif.getArgs());
-      return new TemplateTerm(newUif);
+      return (T) new TemplateTerm(newUif);
     }
     throw new IllegalArgumentException("Can't set the name from the given formula!");
   }
@@ -276,7 +278,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula simplify(Formula pF) {
+  public <T extends Formula> T simplify(T pF) {
     throw new UnsupportedOperationException();
   }
 }

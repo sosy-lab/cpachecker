@@ -55,6 +55,11 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
            rawUnsafeManager.typeFormula(unwrapped, replaceManager.unwrap(pF)));
   }
 
+  private <T extends Formula> T encapsulateWithTypeOf(T wrapped, Formula unwrapped) {
+    FormulaType<T> type = replaceManager.getFormulaType(wrapped);
+    return replaceManager.wrap(type, unwrapped);
+  }
+
   @Override
   public int getArity(Formula pF) {
     return rawUnsafeManager.getArity(replaceManager.unwrap(pF));
@@ -99,25 +104,28 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula replaceArgsAndName(Formula pF, String pNewName, Formula[] pArgs) {
-    return rawUnsafeManager.replaceArgsAndName(
-        replaceManager.unwrap(pF),
-        pNewName,
-        unwrapArgs(pArgs));
+  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, Formula[] pArgs) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceArgsAndName(
+          replaceManager.unwrap(pF),
+          pNewName,
+          unwrapArgs(pArgs)));
   }
 
   @Override
-  public Formula replaceArgs(Formula pF, Formula[] pArgs) {
-    return rawUnsafeManager.replaceArgs(
-        replaceManager.unwrap(pF),
-        unwrapArgs(pArgs));
+  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceArgs(
+          replaceManager.unwrap(pF),
+          unwrapArgs(pArgs)));
   }
 
   @Override
-  public Formula replaceName(Formula pF, String pNewName) {
-    return rawUnsafeManager.replaceName(
-        replaceManager.unwrap(pF),
-        pNewName);
+  public <T extends Formula> T replaceName(T pF, String pNewName) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceName(
+          replaceManager.unwrap(pF),
+          pNewName));
   }
 
   @Override
@@ -127,9 +135,9 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula simplify(Formula pF) {
-    return rawUnsafeManager.simplify(
-        replaceManager.unwrap(pF));
+  public <T extends Formula> T simplify(T pF) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.simplify(replaceManager.unwrap(pF)));
   }
 
 }

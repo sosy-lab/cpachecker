@@ -147,8 +147,9 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   protected abstract String getName(TFormulaInfo pT);
 
   @Override
-  public Formula replaceArgsAndName(Formula f, String newName, Formula[] args) {
-    return encapsulateUnsafe(replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
+  public <T extends Formula> T replaceArgsAndName(T f, String newName, Formula[] args) {
+    return encapsulateWithTypeOf(f,
+        replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
   }
 
   protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs) {
@@ -157,15 +158,15 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   @Override
-  public Formula replaceArgs(Formula pF, Formula[] pArgs) {
-    return encapsulateUnsafe(replaceArgs(getTerm(pF), toFormulaInfo(pArgs)));
+  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
+    return encapsulateWithTypeOf(pF, replaceArgs(getTerm(pF), toFormulaInfo(pArgs)));
   }
 
   protected abstract TFormulaInfo replaceArgs(TFormulaInfo pT, List<TFormulaInfo> newArgs);
 
   @Override
-  public Formula replaceName(Formula pF, String pNewName) {
-    return encapsulateUnsafe(replaceName(getTerm(pF), pNewName));
+  public <T extends Formula> T replaceName(T pF, String pNewName) {
+    return encapsulateWithTypeOf(pF, replaceName(getTerm(pF), pNewName));
   }
 
   protected abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
