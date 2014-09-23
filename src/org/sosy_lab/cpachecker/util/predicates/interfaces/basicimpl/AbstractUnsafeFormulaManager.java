@@ -47,6 +47,25 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return getFormulaCreator().extractInfo(f);
   }
 
+  private final Function<Formula, TFormulaInfo> getTermFunction
+    = new Function<Formula, TFormulaInfo>() {
+        @Override
+        public TFormulaInfo apply(Formula pArg0) {
+          return getTerm(pArg0);
+        }
+      };
+
+  private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
+    return from(Arrays.asList(formulas))
+        .transform(getTermFunction)
+        .toList();
+  }
+
+  private <T extends Formula> T encapsulateWithTypeOf(T f, TFormulaInfo e) {
+    FormulaType<T> type = getFormulaCreator().getFormulaType(f);
+    return typeFormula(type, e);
+  }
+
   @Override
   public <T extends Formula> T typeFormula(FormulaType<T> type, Formula f) {
     TFormulaInfo formulaInfo = getTerm(f);
@@ -56,16 +75,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   protected <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
     return getFormulaCreator().encapsulate(type, formulaInfo);
-  }
-
-  private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
-    List<TFormulaInfo> returns = from(Arrays.asList(formulas))
-        .transform(new Function<Formula, TFormulaInfo>() {
-          @Override
-          public TFormulaInfo apply(Formula pArg0) {
-            return getTerm(pArg0);
-          }}).toList();
-    return returns;
   }
 
   protected Formula encapsulateUnsafe(TFormulaInfo pL) {
@@ -169,26 +178,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
       List<ParamFormulaType> changeFrom,
       List<ParamFormulaType> changeTo) {
 
-    Function<Formula, TFormulaInfo> toPtr = new Function<Formula, TFormulaInfo>() {
-      @Override
-      public TFormulaInfo apply(Formula f) {
-        return getFormulaCreator().extractInfo(f);
-      }
-    };
-
     TFormulaInfo newExpression = substitute(
         getFormulaCreator().extractInfo(f),
-        Lists.transform(changeFrom, toPtr),
-        Lists.transform(changeTo, toPtr)
+        Lists.transform(changeFrom, getTermFunction),
+        Lists.transform(changeTo, getTermFunction)
     );
 
     FormulaType<ResultFormulaType> type = getFormulaCreator().getFormulaType(f);
     return getFormulaCreator().encapsulate(type, newExpression);
-  }
-
-  protected <T extends Formula> T encapsulateWithType(T f, TFormulaInfo e) {
-    FormulaType<T> type = getFormulaCreator().getFormulaType(f);
-    return getFormulaCreator().encapsulate(type, e);
   }
 
   protected abstract TFormulaInfo substitute(
@@ -198,9 +195,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public <T extends Formula> T simplify(T f) {
-    FormulaType<T> type = getFormulaCreator().getFormulaType(f);
-    TFormulaInfo result = simplify(getTerm(f));
-    return getFormulaCreator().encapsulate(type, result);
+    return encapsulateWithTypeOf(f, simplify(getTerm(f)));
   }
 
   protected abstract TFormulaInfo simplify(TFormulaInfo f);
