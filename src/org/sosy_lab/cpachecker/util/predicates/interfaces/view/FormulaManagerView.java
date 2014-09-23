@@ -1030,37 +1030,6 @@ public class FormulaManagerView {
     return manager.dumpFormula(extractFromView(pT));
   }
 
-  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula) {
-    return myCheckSyntacticEntails(extractFromView(leftFormula), extractFromView(rightFormula));
-  }
-
-  private boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
-
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-    Deque<Formula> toProcess = new ArrayDeque<>();
-    Set<Formula> seen = new HashSet<>();
-
-    toProcess.push(rightFormula);
-    while (!toProcess.isEmpty()) {
-      final Formula rightSubFormula = toProcess.pop();
-
-      if (rightSubFormula.equals(leftFormula)) { return true; }
-
-      if (! unsafeManager.isVariable(rightSubFormula)) {
-        int args = unsafeManager.getArity(rightSubFormula);
-        for (int i = 0; i < args; ++i) {
-          Formula arg = unsafeManager.getArg(rightSubFormula, i);
-          if (!seen.contains(arg)) {
-            toProcess.add(arg);
-            seen.add(arg);
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
   public boolean isPurelyConjunctive(BooleanFormula t) {
     return myIsPurelyConjunctive(extractFromView(t));
   }
