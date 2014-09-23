@@ -79,7 +79,7 @@ public class ExternModelLoader {
        //var ids in dimacs files start with 1, so we want the first var at position 1
        predicates.add("RheinDummyVar");
        BooleanFormula externalModel = bfmgr.makeBoolean(true);
-       Formula zero = fmgr.makeNumber(FormulaType.BitvectorType.getBitvectorType(32), 0);
+       Formula zero = fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(32), 0);
 
        String line = "";
        while ((line = br.readLine()) != null) {

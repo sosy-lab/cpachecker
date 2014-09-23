@@ -112,11 +112,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
   }
 
   @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return manager.getFormulaType();
-  }
-
-  @Override
   public BooleanFormula makeBoolean(boolean pValue) {
     return wrapInView(manager.makeBoolean(pValue));
   }

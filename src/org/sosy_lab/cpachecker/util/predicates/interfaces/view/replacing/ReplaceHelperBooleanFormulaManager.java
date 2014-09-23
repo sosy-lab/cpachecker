@@ -28,7 +28,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager {
 
@@ -45,11 +44,6 @@ class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager {
   @Override
   public boolean isBoolean(Formula pF) {
     return rawBooleanManager.isBoolean(replaceManager.unwrap(pF));
-  }
-
-  @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return rawBooleanManager.getFormulaType();
   }
 
   @Override

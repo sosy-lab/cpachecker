@@ -124,22 +124,25 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
+  public static BitvectorType getBitvectorTypeWithSize(int size) {
+    return BitvectorType.getBitvectorType(size);
+  }
+
   public static final class BitvectorType extends FormulaType<BitvectorFormula> {
     private final int size;
 
     private BitvectorType(int size) {
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new HashMap<>();
+    private static Map<Integer, BitvectorType> table = new HashMap<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
-     * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.
      * @param size
      * @return
      */
-    public static FormulaType<BitvectorFormula> getBitvectorType(int size) {
+    private static BitvectorType getBitvectorType(int size) {
       int hashValue = size;
-      FormulaType<BitvectorFormula> value = table.get(hashValue);
+      BitvectorType value = table.get(hashValue);
       if (value == null) {
         value = new BitvectorType(size);
         table.put(hashValue, value);
@@ -157,7 +160,7 @@ public abstract class FormulaType<T extends Formula> {
     }
 
     public BitvectorType withSize(int size) {
-      return (BitvectorType) getBitvectorType(size);
+      return getBitvectorType(size);
     }
 
     @Override

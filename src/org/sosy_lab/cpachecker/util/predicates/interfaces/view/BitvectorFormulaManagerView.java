@@ -243,10 +243,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   }
 
   @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-    return manager.getFormulaType(pLength);
-  }
-  @Override
   public int getLength(BitvectorFormula pNumber) {
     return manager.getLength(extractFromView(pNumber));
   }

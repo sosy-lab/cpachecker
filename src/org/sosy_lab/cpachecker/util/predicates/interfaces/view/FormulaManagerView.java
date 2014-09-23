@@ -1007,7 +1007,7 @@ public class FormulaManagerView {
           } else if (rawBitpreciseManager.isEqual(tt)) {
             // NOTE: the type doesn't matter in the current implementations under this situation,
             // however if it does in the future we will have to add an (unsafe) api to read the bitlength (at least)
-            FormulaType<BitvectorFormula> type = FormulaType.BitvectorType.getBitvectorType(32);
+            FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(32);
             BitvectorFormula a0 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 0));
             BitvectorFormula a1 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 1));
 
@@ -1225,7 +1225,7 @@ public class FormulaManagerView {
       // Note: We can assume that we have no real bitvectors here, so size should be not important
       // If it ever should be we can just add an method to the unsafe-manager to read the size.
       BitvectorFormula z = bitMgr.makeBitvector(1, 0);
-      FormulaType<BitvectorFormula> type = FormulaType.BitvectorType.getBitvectorType(1);
+      FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(1);
       //Term z = env.numeral("0");
       for (Formula nn : allLiterals) {
         BitvectorFormula n = unsafeManager.typeFormula(type, nn);

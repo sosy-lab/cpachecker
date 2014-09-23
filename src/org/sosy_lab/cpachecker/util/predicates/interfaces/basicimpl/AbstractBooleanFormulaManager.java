@@ -192,11 +192,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   }
   protected abstract boolean isFalse(TFormulaInfo bits);
 
-  @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return FormulaType.BooleanType;
-  }
-
 
   /**
    * Creates a formula representing "IF cond THEN f1 ELSE f2"

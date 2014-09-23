@@ -201,14 +201,14 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     Class<T> clazz = getInterface(formula);
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {
-      t = booleanManager.getFormulaType();
+      t = FormulaType.BooleanType;
     } else if (clazz == IntegerFormula.class) {
       t = integerManager.getFormulaType();
     } else if (clazz == RationalFormula.class) {
       t = rationalManager.getFormulaType();
     } else if (clazz == BitvectorFormula.class) {
       int size = bitvectorManager.getLength((BitvectorFormula)formula);
-      t = bitvectorManager.getFormulaType(size);
+      t = FormulaType.getBitvectorTypeWithSize(size);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

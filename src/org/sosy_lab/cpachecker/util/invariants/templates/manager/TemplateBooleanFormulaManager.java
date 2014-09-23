@@ -76,7 +76,7 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
       F = TemplateNegation.negate(b);
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
-      F = new NonTemplate(getFormulaType());
+      F = new NonTemplate(FormulaType.BooleanType);
     }
     return F;
   }
@@ -96,7 +96,7 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
       F = TemplateConjunction.conjoin(b1, b2);
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
-      F = new NonTemplate(getFormulaType());
+      F = new NonTemplate(FormulaType.BooleanType);
     }
     // Below is the old method, in which we make True of anything
     // that won't case to a Boolean. It shouldn't be necessary, but
@@ -142,7 +142,7 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
       F = TemplateDisjunction.disjoin(b1, b2);
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
-      F = new NonTemplate(getFormulaType());
+      F = new NonTemplate(FormulaType.BooleanType);
     }
     return F;
   }
@@ -166,7 +166,7 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
       F = TemplateDisjunction.disjoin(both, neither);
     } catch (ClassCastException e) {
       System.err.println(e.getMessage());
-      F = new NonTemplate(getFormulaType());
+      F = new NonTemplate(FormulaType.BooleanType);
     }
     return F;
   }
@@ -214,13 +214,8 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
   }
 
   @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return FormulaType.BooleanType;
-  }
-
-  @Override
   public BooleanFormula makeVariable(String pVar) {
-    return new NonTemplate(getFormulaType());
+    return new NonTemplate(FormulaType.BooleanType);
     //return manager.makeVariable(getFormulaType(), pVar, null);
   }
 

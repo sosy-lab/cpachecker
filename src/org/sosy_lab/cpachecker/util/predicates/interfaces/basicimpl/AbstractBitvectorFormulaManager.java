@@ -40,12 +40,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     super(pCreator);
   }
 
-
-  @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-      return FormulaType.BitvectorType.getBitvectorType(pLength);
-  }
-
   protected TFormulaInfo extractInfo(Formula pNumber) {
     return getFormulaCreator().extractInfo(pNumber);
   }

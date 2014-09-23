@@ -39,8 +39,6 @@ public interface BooleanFormulaManager {
    */
   public boolean isBoolean(Formula pF);
 
-  public FormulaType<BooleanFormula> getFormulaType();
-
   /**
    * Returns a {@link BooleanFormula} representing the given value.
    *

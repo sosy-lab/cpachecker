@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 
 import java.math.BigInteger;
@@ -157,19 +158,19 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, String pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, T number) {
@@ -181,12 +182,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
-    return wrap(getFormulaType(pLength), numericFormulaManager.makeVariable(pVar));
-  }
-
-  @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-    return FormulaType.BitvectorType.getBitvectorType(pLength);
+    return wrap(getBitvectorTypeWithSize(pLength), numericFormulaManager.makeVariable(pVar));
   }
 
   @Override
@@ -201,7 +197,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private FormulaType<BitvectorFormula> getFormulaType(BitvectorFormula pNumber) {
-    return getFormulaType(getLength(pNumber));
+    return getBitvectorTypeWithSize(getLength(pNumber));
   }
 
 
@@ -334,7 +330,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   public BitvectorFormula concat(BitvectorFormula pFirst, BitvectorFormula pSecound) {
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
-    FormulaType<BitvectorFormula> returnType = getFormulaType(firstLength + secoundLength);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(firstLength + secoundLength);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
@@ -344,7 +340,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
-    FormulaType<BitvectorFormula> returnType = getFormulaType(pMsb + 1 - pLsb);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
@@ -354,7 +350,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
-    FormulaType<BitvectorFormula> returnType = getFormulaType(getLength(pNumber) + pExtensionBits);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }

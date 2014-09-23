@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
@@ -43,8 +42,6 @@ public class CtoFormulaTypeHandler {
 
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-
-  private final BitvectorFormulaManagerView efmgr;
 
   private final BaseSizeofVisitor sizeofVisitor;
 
@@ -56,13 +53,12 @@ public class CtoFormulaTypeHandler {
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    efmgr = pFmgr.getBitvectorFormulaManager();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
-    pointerType = efmgr.getFormulaType(pointerSize * bitsPerByte);
+    pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
   }
 
   /**
@@ -96,7 +92,7 @@ public class CtoFormulaTypeHandler {
 
       int bitsPerByte = machineModel.getSizeofCharInBits();
       // byte to bits
-      result = efmgr.getFormulaType(byteSize * bitsPerByte);
+      result = FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
       typeCache.put(type, result);
     }
     return result;
