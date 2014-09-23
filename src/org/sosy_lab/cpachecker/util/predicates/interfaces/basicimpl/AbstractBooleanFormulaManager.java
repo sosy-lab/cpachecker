@@ -202,13 +202,16 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
    */
   @Override
   public final <T extends Formula> T ifThenElse(BooleanFormula pBits, T f1, T f2) {
-    if (AbstractFormulaManager.getInterfaceHelper(f1) != AbstractFormulaManager.getInterfaceHelper(f2)) {
-      throw new IllegalArgumentException("f1 and f2 can't be from differen interface types!");
+    FormulaType<T> t1 = getFormulaCreator().getFormulaType(f1);
+    FormulaType<T> t2 = getFormulaCreator().getFormulaType(f2);
+    if (!t1.equals(t2)) {
+      throw new IllegalArgumentException("Cannot create if-then-else formula with branches of different types: "
+          + f1 + " is of type " + t1 + "; "
+          + f2 + " is of type " + t2);
     }
     FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
-    Class<T> clazz = AbstractFormulaManager.getInterfaceHelper(f1);
     TFormulaInfo result = ifThenElse(extractInfo(pBits), extractInfo(f1), extractInfo(f2));
-    return creator.encapsulate(clazz, result);
+    return creator.encapsulate(t1, result);
   }
   protected abstract TFormulaInfo ifThenElse(TFormulaInfo cond, TFormulaInfo f1, TFormulaInfo f2);
 
