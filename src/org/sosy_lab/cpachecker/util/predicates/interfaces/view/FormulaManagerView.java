@@ -774,9 +774,11 @@ public class FormulaManagerView {
       }
     }
 
-    Formula result = cache.get(f);
+    @SuppressWarnings("unchecked")
+    T result = (T)cache.get(f);
     assert result != null;
-    return unsafeManager.typeFormula(manager.getFormulaType(f), result);
+    assert manager.getFormulaType(f).equals(manager.getFormulaType(result));
+    return result;
   }
 
   private boolean ufCanBeLvalue(String name) {
@@ -869,9 +871,11 @@ public class FormulaManagerView {
       }
     }
 
-    Formula result = cache.get(f);
+    @SuppressWarnings("unchecked")
+    T result = (T)cache.get(f);
     assert result != null;
-    return unsafeManager.typeFormula(manager.getFormulaType(f), result);
+    assert manager.getFormulaType(f).equals(manager.getFormulaType(result));
+    return result;
   }
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
@@ -951,9 +955,10 @@ public class FormulaManagerView {
       } else {
         // ok, go into this formula
         for (int i = 0; i < unsafeManager.getArity(tt); ++i) {
-          BooleanFormula c = unsafeManager.typeFormula(FormulaType.BooleanType, unsafeManager.getArg(tt, i));
-          if (handled.add(c)) {
-            toProcess.push(c);
+          Formula c = unsafeManager.getArg(tt, i);
+          assert manager.getFormulaType(c).isBooleanType();
+          if (handled.add((BooleanFormula)c)) {
+            toProcess.push((BooleanFormula)c);
           }
         }
       }
@@ -1044,12 +1049,12 @@ public class FormulaManagerView {
       return true;
 
     } else if (rawBooleanManager.isNot(t)) {
-      t = unsafeManager.typeFormula(FormulaType.BooleanType, unsafeManager.getArg(t, 0));
+      t = (BooleanFormula)unsafeManager.getArg(t, 0);
       return (unsafeManager.isUF(t) || unsafeManager.isAtom(t));
 
     } else if (rawBooleanManager.isAnd(t)) {
       for (int i = 0; i < unsafeManager.getArity(t); ++i) {
-        if (!myIsPurelyConjunctive(unsafeManager.typeFormula(FormulaType.BooleanType, unsafeManager.getArg(t, i)))) {
+        if (!myIsPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
           return false;
         }
       }

@@ -33,7 +33,6 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
@@ -154,7 +153,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     FormulaManagerView fmgr = getViewManager();
     assert unsafe.getArity(pF) == 3;
 
-    BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
+    BooleanFormula cond = wrapInView((BooleanFormula)unsafe.getArg(pF, 0));
     T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
     T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
 
@@ -240,7 +239,9 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     }
 
     private final BooleanFormula getArg(BooleanFormula pF, int i) {
-      return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
+      Formula arg = unsafe.getArg(pF, i);
+      assert fmgr.getFormulaType(arg).isBooleanType();
+      return (BooleanFormula)arg;
     }
 
     private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
