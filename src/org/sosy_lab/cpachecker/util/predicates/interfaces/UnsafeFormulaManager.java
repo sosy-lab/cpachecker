@@ -95,14 +95,14 @@ public interface UnsafeFormulaManager {
    * @param args
    * @return
    */
-  <T extends Formula> T replaceArgsAndName(T f, String newName, Formula[] args);
+  <T extends Formula> T replaceArgsAndName(T f, String newName, List<Formula> args);
   /**
   * Replaces the arguments of the given formula
   * @param f
   * @param args
   * @return
   */
-  <T extends Formula> T replaceArgs(T f, Formula[] args);
+  <T extends Formula> T replaceArgs(T f, List<Formula> args);
   /**
    * Replaces the name of the given formula
    * The old and the new name need to be of the same type.

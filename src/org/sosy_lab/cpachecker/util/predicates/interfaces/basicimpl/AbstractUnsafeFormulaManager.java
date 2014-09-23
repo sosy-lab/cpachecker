@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -54,12 +51,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
           return getTerm(pArg0);
         }
       };
-
-  private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
-    return from(Arrays.asList(formulas))
-        .transform(getTermFunction)
-        .toList();
-  }
 
   private <T extends Formula> T encapsulateWithTypeOf(T f, TFormulaInfo e) {
     FormulaType<T> type = getFormulaCreator().getFormulaType(f);
@@ -144,9 +135,9 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   protected abstract String getName(TFormulaInfo pT);
 
   @Override
-  public <T extends Formula> T replaceArgsAndName(T f, String newName, Formula[] args) {
+  public <T extends Formula> T replaceArgsAndName(T f, String newName, List<Formula> args) {
     return encapsulateWithTypeOf(f,
-        replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
+        replaceArgsAndName(getTerm(f), newName, Lists.transform(args, getTermFunction)));
   }
 
   protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs) {
@@ -155,8 +146,8 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   @Override
-  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
-    return encapsulateWithTypeOf(pF, replaceArgs(getTerm(pF), toFormulaInfo(pArgs)));
+  public <T extends Formula> T replaceArgs(T pF, List<Formula> pArgs) {
+    return encapsulateWithTypeOf(pF, replaceArgs(getTerm(pF), Lists.transform(pArgs, getTermFunction)));
   }
 
   protected abstract TFormulaInfo replaceArgs(TFormulaInfo pT, List<TFormulaInfo> newArgs);

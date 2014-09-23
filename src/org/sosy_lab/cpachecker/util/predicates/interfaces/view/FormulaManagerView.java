@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.collect.Lists;
+
 /**
  * This class is the central entry point for all formula creation
  * and manipulation operations for client code.
@@ -732,12 +734,12 @@ public class FormulaManagerView {
       } else {
         boolean childrenDone = true;
         int arity = unsafeManager.getArity(tt);
-        Formula[] newargs = new Formula[arity];
-        for (int i = 0; i < newargs.length; ++i) {
+        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
+        for (int i = 0; i < arity; ++i) {
           Formula c = unsafeManager.getArg(tt, i);
           Formula newC = cache.get(c);
           if (newC != null) {
-            newargs[i] = newC;
+            newargs.add(newC);
           } else {
             toProcess.push(c);
             childrenDone = false;
@@ -832,12 +834,12 @@ public class FormulaManagerView {
       } else {
         boolean childrenDone = true;
         int arity = unsafeManager.getArity(tt);
-        Formula[] newargs = new Formula[arity];
-        for (int i = 0; i < newargs.length; ++i) {
+        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
+        for (int i = 0; i < arity; ++i) {
           Formula c = unsafeManager.getArg(tt, i);
           Formula newC = cache.get(c);
           if (newC != null) {
-            newargs[i] = newC;
+            newargs.add(newC);
           } else {
             toProcess.push(c);
             childrenDone = false;

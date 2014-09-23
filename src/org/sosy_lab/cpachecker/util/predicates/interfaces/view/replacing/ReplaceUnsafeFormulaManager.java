@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
@@ -98,16 +99,17 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     return rawUnsafeManager.getName(replaceManager.unwrap(pF));
   }
 
-  private Formula[] unwrapArgs(Formula[] wrapped) {
-    Formula[] unwrapped = new Formula[wrapped.length];
-    for (int i = 0; i < unwrapped.length; i++) {
-      unwrapped[i] = replaceManager.unwrap(wrapped[i]);
-    }
-    return unwrapped;
+  private List<Formula> unwrapArgs(List<Formula> wrapped) {
+    return Lists.transform(wrapped, new Function<Formula, Formula>() {
+          @Override
+          public Formula apply(Formula pInput) {
+            return replaceManager.unwrap(pInput);
+          }
+        });
   }
 
   @Override
-  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, List<Formula> pArgs) {
     return encapsulateWithTypeOf(pF,
         rawUnsafeManager.replaceArgsAndName(
           replaceManager.unwrap(pF),
@@ -116,7 +118,7 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgs(T pF, List<Formula> pArgs) {
     return encapsulateWithTypeOf(pF,
         rawUnsafeManager.replaceArgs(
           replaceManager.unwrap(pF),

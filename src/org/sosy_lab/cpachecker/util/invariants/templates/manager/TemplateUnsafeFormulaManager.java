@@ -217,13 +217,13 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, List<Formula> pArgs) {
     return null;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> T replaceArgs(T pF, Formula[] pArgs) {
+  public <T extends Formula> T replaceArgs(T pF, List<Formula> pArgs) {
     if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
