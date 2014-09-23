@@ -29,11 +29,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
@@ -185,47 +182,13 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
         Lists.transform(changeTo, toPtr)
     );
 
-    // NOTE: the code below is very hacky, yet currently I do not see any
-    // better way to get the parent type of the formula.
-    Class<? extends Formula> outClass;
-    if (f instanceof BooleanFormula) {
-      outClass = BooleanFormula.class;
-    } else if (f instanceof BitvectorFormula) {
-      outClass = BitvectorFormula.class;
-    } else if (f instanceof NumeralFormula.IntegerFormula) {
-      outClass = NumeralFormula.IntegerFormula.class;
-    } else if (f instanceof NumeralFormula.RationalFormula) {
-      outClass = NumeralFormula.RationalFormula.class;
-    } else {
-      throw new IllegalArgumentException("Unexpected input formula");
-    }
-
-    @SuppressWarnings("unchecked")
-    Class<ResultFormulaType> outClass2 = (Class<ResultFormulaType>) outClass;
-    return getFormulaCreator().encapsulate(
-        outClass2, newExpression);
+    FormulaType<ResultFormulaType> type = getFormulaCreator().getFormulaType(f);
+    return getFormulaCreator().encapsulate(type, newExpression);
   }
 
   protected <T extends Formula> T encapsulateWithType(T f, TFormulaInfo e) {
-    // NOTE: the code below is very hacky, yet currently I do not see any
-    // better way to get the parent type of the formula.
-    Class<? extends Formula> outClass;
-    if (f instanceof BooleanFormula) {
-      outClass = BooleanFormula.class;
-    } else if (f instanceof BitvectorFormula) {
-      outClass = BitvectorFormula.class;
-    } else if (f instanceof NumeralFormula.IntegerFormula) {
-      outClass = NumeralFormula.IntegerFormula.class;
-    } else if (f instanceof NumeralFormula.RationalFormula) {
-      outClass = NumeralFormula.RationalFormula.class;
-    } else {
-      throw new IllegalArgumentException("Unexpected input formula");
-    }
-
-    @SuppressWarnings("unchecked")
-    Class<T> outClass2 = (Class<T>) outClass;
-    return getFormulaCreator().encapsulate(
-        outClass2, e);
+    FormulaType<T> type = getFormulaCreator().getFormulaType(f);
+    return getFormulaCreator().encapsulate(type, e);
   }
 
   protected abstract TFormulaInfo substitute(
@@ -235,8 +198,9 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public <T extends Formula> T simplify(T f) {
-    return encapsulateWithType(f, simplify(getTerm(f)));
-    //return encapsulateUnsafe();
+    FormulaType<T> type = getFormulaCreator().getFormulaType(f);
+    TFormulaInfo result = simplify(getTerm(f));
+    return getFormulaCreator().encapsulate(type, result);
   }
 
   protected abstract TFormulaInfo simplify(TFormulaInfo f);
