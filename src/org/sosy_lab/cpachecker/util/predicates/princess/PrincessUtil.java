@@ -105,8 +105,7 @@ class PrincessUtil {
   }
 
   public static boolean hasIntegerType(IExpression t) {
-    // TODO please implement
-    throw new UnsupportedOperationException();
+    return t instanceof ITerm;
   }
 
   /** t1 and t2 */
