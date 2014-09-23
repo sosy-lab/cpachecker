@@ -65,12 +65,26 @@ public interface BooleanFormulaManager {
   /** Check, if the formula is of the form "a=>b" with two boolean args. */
   public boolean isImplication(BooleanFormula formula);
 
-  /** Check, if the formula is the formula "TRUE".
-   * This does match a formula like "1==1". */
+  /**
+   * Check, if the formula is the formula "TRUE".
+   * This does not include a satisfiability check,
+   * but only a syntactical matching.
+   * However, depending on the SMT solver,
+   * there might be some pre-processing of formulas such that trivial cases
+   * like "1==1" are recognized and rewritten as "TRUE",
+   * and thus such formulas might also be matched.
+   */
   public boolean isTrue(BooleanFormula formula);
 
-  /** Check, if the formula is the formula "FALSE".
-   * This does match an unsatisfiable formula like "1==2". */
+  /**
+   * Check, if the formula is the formula "FALSE".
+   * This does not include a satisfiability check,
+   * but only a syntactical matching.
+   * However, depending on the SMT solver,
+   * there might be some pre-processing of formulas such that trivial cases
+   * like "1==2" are recognized and rewritten as "FALSE",
+   * and thus such formulas might also be matched.
+   */
   public boolean isFalse(BooleanFormula formula);
 
 
