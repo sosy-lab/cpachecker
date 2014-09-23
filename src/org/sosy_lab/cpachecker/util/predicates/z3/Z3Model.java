@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
@@ -232,7 +231,7 @@ public class Z3Model {
     }
 
     // TODO unused, remove and cleanup
-    mgr.encapsulate(BooleanFormula.class, modelFormula);
+    mgr.encapsulateBooleanFormula(modelFormula);
 
     // cleanup
     model_dec_ref(z3context, z3model);

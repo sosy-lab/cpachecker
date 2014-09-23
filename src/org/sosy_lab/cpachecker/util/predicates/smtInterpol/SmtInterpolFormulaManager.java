@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
@@ -96,7 +97,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulate(FormulaType.BooleanType, t);
   }
 
   @Override

@@ -141,7 +141,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
 
     assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-    BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
+    BooleanFormula f = mgr.encapsulateBooleanFormula(itps[0]);
 
     // cleanup
     dec_ref(z3context, fA);
