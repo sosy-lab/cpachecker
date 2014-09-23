@@ -73,7 +73,7 @@ public class OctagonAnalysisFeasabilityChecker {
     transfer  = new OctagonTransferRelation(logger, cfa, cpa.getOctagonOptions());
     checkedPath = path;
 
-    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision("", cpa.getOctagonOptions(), Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision()),
+    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision(cpa.getOctagonOptions(), Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision()),
                                     new OctagonState(logger, cpa.getManager()));
   }
 

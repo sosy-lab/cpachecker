@@ -111,11 +111,11 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent());
+      precision = new VariableTrackingPrecision(octagonOptions, Optional.<VariableClassification>absent());
 
       // static full precision is default
     } else {
-      precision = new VariableTrackingPrecision("", octagonOptions, Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
+      precision = new VariableTrackingPrecision(octagonOptions, Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
     }
 
   }

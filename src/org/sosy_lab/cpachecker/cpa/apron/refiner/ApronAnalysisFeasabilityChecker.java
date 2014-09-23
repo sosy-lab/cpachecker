@@ -79,7 +79,7 @@ public class ApronAnalysisFeasabilityChecker {
 
     // use a new configuration which only has the default values for the precision
     // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision("", VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent()),
+    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision(VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent()),
                                     new ApronState(logger, cpa.getManager()));
   }
 

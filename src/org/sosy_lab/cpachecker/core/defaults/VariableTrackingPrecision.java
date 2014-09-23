@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,10 +49,6 @@ import com.google.common.collect.TreeMultimap;
 
 public class VariableTrackingPrecision implements Precision {
 
-  /**
-   * the pattern describing variable names that are not being tracked - if it is null, no variables are black-listed
-   */
-  private final Pattern blackListPattern;
 
   /**
    * the component responsible for variables that need to be tracked, according to refinement
@@ -63,21 +58,19 @@ public class VariableTrackingPrecision implements Precision {
 
   private final Optional<VariableClassification> varClass;
 
-  public VariableTrackingPrecision(String variableBlacklist, VariableTrackingPrecisionOptions pOptions,
+  public VariableTrackingPrecision(VariableTrackingPrecisionOptions pOptions,
       Optional<VariableClassification> vc, RefinablePrecision pRefinablePrecision)
           throws InvalidConfigurationException {
 
     options            = pOptions;
-    blackListPattern   = Pattern.compile(variableBlacklist);
     varClass           = vc;
     refinablePrecision = pRefinablePrecision;
   }
 
-  public VariableTrackingPrecision(String variableBlacklist, VariableTrackingPrecisionOptions pOptions,
+  public VariableTrackingPrecision(VariableTrackingPrecisionOptions pOptions,
       Optional<VariableClassification> vc)
           throws InvalidConfigurationException {
 
-    blackListPattern = Pattern.compile(variableBlacklist);
     varClass         = vc;
     options          = pOptions;
 
@@ -104,7 +97,6 @@ public class VariableTrackingPrecision implements Precision {
     refinablePrecision = original.refinablePrecision.refine(increment);
 
     // copy remaining fields from original
-    blackListPattern   = original.blackListPattern;
     varClass           = original.varClass;
     options            = original.options;
   }
@@ -117,8 +109,7 @@ public class VariableTrackingPrecision implements Precision {
    * @throws InvalidConfigurationException
    */
   public static VariableTrackingPrecision createDefaultPrecision() throws InvalidConfigurationException {
-    return new VariableTrackingPrecision("",
-        VariableTrackingPrecisionOptions.getDefaultOptions(),
+    return new VariableTrackingPrecision(VariableTrackingPrecisionOptions.getDefaultOptions(),
         Optional.<VariableClassification>absent(),
         new VariableTrackingPrecision.FullPrecision());
   }
@@ -135,7 +126,7 @@ public class VariableTrackingPrecision implements Precision {
          || !options.trackIntAddVariables()
          || !options.trackIntEqualVariables()
          || !(refinablePrecision instanceof FullPrecision)
-         || !blackListPattern.toString().equals("");
+         || !options.getVariableBlacklist().toString().isEmpty();
   }
 
   public RefinablePrecision getRefinablePrecision() {
@@ -143,7 +134,7 @@ public class VariableTrackingPrecision implements Precision {
   }
 
   boolean isOnBlacklist(String variable) {
-    return this.blackListPattern.matcher(variable).matches();
+    return options.getVariableBlacklist().matcher(variable).matches();
   }
 
   public boolean variableExceedsReachedSetThreshold(int numberOfDifferentValues) {

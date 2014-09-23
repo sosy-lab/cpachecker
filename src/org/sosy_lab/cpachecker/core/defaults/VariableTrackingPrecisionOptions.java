@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -43,6 +45,10 @@ public final class VariableTrackingPrecisionOptions {
       + "valuations ought to be abstracted once the specified number of valuations"
       + "per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
+
+  @Option(name="variableBlacklist",
+      description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
+  private Pattern variableBlacklist = Pattern.compile("");
 
   @Option(values={"LOCATION", "SCOPE"},
       description = "whether to track relevant variables only at the exact program"
@@ -67,6 +73,10 @@ public final class VariableTrackingPrecisionOptions {
 
   public final int getReachedSetThreshold() {
     return reachedSetThreshold;
+  }
+
+  public Pattern getVariableBlacklist() {
+    return variableBlacklist;
   }
 
   public final Sharing getSharingStrategy() {

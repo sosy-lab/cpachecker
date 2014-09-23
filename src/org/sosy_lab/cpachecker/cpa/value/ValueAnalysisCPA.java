@@ -87,10 +87,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(name="variableBlacklist",
-      description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
-  private String variableBlacklist = "";
-
   @Option(description="enables target checking for value-analysis, needed for predicate-analysis")
   private boolean doTargetCheck = false;
 
@@ -187,11 +183,11 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification(), new VariableTrackingPrecision.FullPrecision());
+      return new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification(), new VariableTrackingPrecision.FullPrecision());
 
     } else {
       // create precision with empty, refinable component precision
-      VariableTrackingPrecision precision = new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification());
+      VariableTrackingPrecision precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
 
       // refine the refinable component precision with increment from file
       return new VariableTrackingPrecision(precision, restoreMappingFromFile(cfa));
@@ -248,7 +244,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null) {
-      precision = new VariableTrackingPrecision(variableBlacklist, precisionOptions, cfa.getVarClassification());
+      precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
     }
   }
 
