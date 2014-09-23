@@ -34,7 +34,7 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
 
   private final long z3context;
 
-  protected Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
+  Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }

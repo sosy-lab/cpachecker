@@ -37,12 +37,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
+class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
 
-  private Set<Long> uifs = new HashSet<>();
-  private long z3context;
+  private final Set<Long> uifs = new HashSet<>();
+  private final long z3context;
 
-  public Z3UnsafeFormulaManager(
+  Z3UnsafeFormulaManager(
       Z3FormulaCreator pCreator) {
     super(pCreator);
     this.z3context = pCreator.getEnv();

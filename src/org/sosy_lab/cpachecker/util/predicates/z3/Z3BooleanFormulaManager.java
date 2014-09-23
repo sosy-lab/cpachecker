@@ -28,12 +28,11 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
-
-public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
+class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
   private final long z3context;
 
-  protected Z3BooleanFormulaManager(Z3FormulaCreator creator) {
+  Z3BooleanFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }

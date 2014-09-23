@@ -46,7 +46,7 @@ import com.google.common.base.Preconditions;
 
 public class Z3TheoremProver implements ProverEnvironment {
 
-  private Z3FormulaManager mgr;
+  private final Z3FormulaManager mgr;
   private long z3context;
   private long z3solver;
   private final Z3SmtLogger smtLogger;

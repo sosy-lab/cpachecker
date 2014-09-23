@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-public class Z3Model {
+class Z3Model {
   private static TermType toZ3Type(long z3context, long sort) {
     int sortKind = get_sort_kind(z3context, sort);
     switch (sortKind) {

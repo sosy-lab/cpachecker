@@ -48,7 +48,7 @@ abstract class Z3NumeralFormulaManager
   private final Z3FunctionType<ResultFormulaType> modUfDecl;
   private final Z3FunctionFormulaManager functionManager;
 
-  public Z3NumeralFormulaManager(
+  Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager functionManager) {
     super(pCreator);

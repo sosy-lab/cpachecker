@@ -45,7 +45,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.FileWriteMode;
 
-public class Z3SmtLogger {
+class Z3SmtLogger {
 
   @Options(prefix="cpa.predicate.solver.z3.logger")
   private static class Z3Settings {
@@ -77,7 +77,7 @@ public class Z3SmtLogger {
   private int itpIndex = 0; // each interpolation gets its own index
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
-  public Z3SmtLogger(long z3context, Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
+  Z3SmtLogger(long z3context, Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
     this(z3context, new Z3Settings(config, logfile));
   }
 
