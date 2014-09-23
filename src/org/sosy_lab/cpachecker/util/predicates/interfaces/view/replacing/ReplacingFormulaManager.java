@@ -50,7 +50,6 @@ public class ReplacingFormulaManager implements FormulaManager {
   private final BitvectorFormulaManager bitvectorTheory;
   private final boolean replacedBitvectorTheory;
   private final boolean replacedRationalTheory;
-  private final boolean replacedBooleanTheory;
   private final FunctionFormulaManager functionTheory;
   private final BooleanFormulaManager booleanTheory;
   private final UnsafeFormulaManager unsafeManager;
@@ -61,7 +60,6 @@ public class ReplacingFormulaManager implements FormulaManager {
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
     replacedRationalTheory = false;
-    replacedBooleanTheory = false;
 
     final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
 
@@ -146,7 +144,6 @@ public class ReplacingFormulaManager implements FormulaManager {
     Class<T2> toWrapClazz = getInterface(toWrap);
 
     if (replacedBitvectorTheory && type.isBitvectorType()
-        || replacedBooleanTheory && type.isBooleanType()
         || replacedRationalTheory && type.isRationalType()) {
       return simpleWrap(type, toWrap);
     } else if (toWrapClazz == type.getInterfaceType()) {
@@ -211,10 +208,6 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    if (replacedBooleanTheory) {
-      throw new IllegalArgumentException("Can't parse a replaced theory, please change the replacement settings");
-    }
-
     return rawFormulaManager.parse(pS);
   }
 
