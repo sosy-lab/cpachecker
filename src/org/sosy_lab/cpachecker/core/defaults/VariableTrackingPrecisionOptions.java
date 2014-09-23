@@ -45,10 +45,9 @@ public final class VariableTrackingPrecisionOptions {
       description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
   private Pattern variableBlacklist = Pattern.compile("");
 
-  @Option(values={"LOCATION", "SCOPE"},
-      description = "whether to track relevant variables only at the exact program"
-          + "location (sharing=location), or within their respective"
-          + "(function-/global-) scope (sharing=scoped).")
+  @Option(description = "whether to track relevant variables only at the exact "
+          + "program location (sharing=location), or within their respective"
+          + " (function-/global-) scope (sharing=scoped).")
   private Sharing sharing = Sharing.SCOPE;
 
   @Option(description = "If this option is used, booleans from the cfa are tracked.")
