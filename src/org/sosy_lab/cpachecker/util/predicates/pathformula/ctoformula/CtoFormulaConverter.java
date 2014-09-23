@@ -806,10 +806,6 @@ public class CtoFormulaConverter {
       result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
     }
 
-    if (backwards) {
-      makeFreshIndex(varName, decl.getType(), ssa);
-    }
-
     return result;
   }
 
