@@ -234,7 +234,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
           CExpression expression = (CExpression) assignment.getRightHandSide();
           CBinaryExpression assumeExp =
-              new CBinaryExpression(assignment.getFileLocation(), CNumericTypes.BOOL, CNumericTypes.INT, assignment.getLeftHandSide(),
+              new CBinaryExpression(
+                  assignment.getFileLocation(),
+                  CNumericTypes.BOOL,
+                  assignment.getLeftHandSide().getExpressionType(),
+                  assignment.getLeftHandSide(),
                   expression, CBinaryExpression.BinaryOperator.EQUALS);
 
           result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
