@@ -67,6 +67,22 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   }
 
   @Override
+  public FormulaType<?> getFormulaType(Long pFormula) {
+    long env = getEnv();
+    long type = msat_term_get_type(pFormula);
+    if (msat_is_bool_type(env, type)) {
+      return FormulaType.BooleanType;
+    } else if (msat_is_integer_type(env, type)) {
+      return FormulaType.IntegerType;
+    } else if (msat_is_rational_type(env, type)) {
+      return FormulaType.RationalType;
+    } else if (msat_is_bv_type(env, type)) {
+      return FormulaType.getBitvectorTypeWithSize(msat_get_bv_type_size(env, type));
+    }
+    throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  @Override
   public Long getBittype(int pBitwidth) {
     return msat_get_bv_type(getEnv(), pBitwidth);
   }

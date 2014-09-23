@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_BV_SORT;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -78,6 +78,23 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
           get_bv_sort_size(z3context, sort));
     }
     return super.getFormulaType(pFormula);
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Long pFormula) {
+    long z3context = getEnv();
+    long sort = get_sort(z3context, pFormula);
+    long sortKind = get_sort_kind(z3context, sort);
+    if (sortKind == Z3_BOOL_SORT) {
+      return FormulaType.BooleanType;
+    } else if (sortKind == Z3_INT_SORT) {
+      return FormulaType.IntegerType;
+    } else if (sortKind == Z3_REAL_SORT) {
+      return FormulaType.RationalType;
+    } else if (sortKind == Z3_BV_SORT) {
+      return FormulaType.getBitvectorTypeWithSize(get_bv_sort_size(z3context, sort));
+    }
+    throw new IllegalArgumentException("Unknown formula type");
   }
 
   @SuppressWarnings("unchecked")

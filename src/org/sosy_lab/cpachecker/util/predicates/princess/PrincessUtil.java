@@ -30,8 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import ap.parser.IIntFormula;
-import ap.parser.ITimes;
 import scala.Enumeration;
 import scala.collection.Iterator;
 import scala.collection.JavaConversions;
@@ -45,10 +43,12 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
+import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+import ap.parser.ITimes;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */
@@ -102,6 +102,11 @@ class PrincessUtil {
 
   public static boolean isBoolean(IExpression t) {
     return t instanceof IFormula;
+  }
+
+  public static boolean hasIntegerType(IExpression t) {
+    // TODO please implement
+    throw new UnsupportedOperationException();
   }
 
   /** t1 and t2 */

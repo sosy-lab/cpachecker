@@ -77,10 +77,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return getFormulaCreator().encapsulate(type, formulaInfo);
   }
 
-  protected Formula encapsulateUnsafe(TFormulaInfo pL) {
-    return new AbstractFormula<>(pL);
-  }
-
   protected List<TFormulaInfo> getArguments(TFormulaInfo pT) {
     int arity = getArity(pT);
     List<TFormulaInfo> rets = new ArrayList<>(arity);
@@ -108,7 +104,8 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   @Override
   public Formula getArg(Formula pF, int pN) {
     TFormulaInfo t = getTerm(pF);
-    return encapsulateUnsafe(getArg(t, pN));
+    TFormulaInfo arg = getArg(t, pN);
+    return typeFormula(getFormulaCreator().getFormulaType(arg), arg);
   }
 
   protected abstract TFormulaInfo getArg(TFormulaInfo pT, int n);

@@ -67,6 +67,9 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public Formula getArg(Formula pF, int pN) {
+    // TODO how to determine type of argument?
+    // E.g., if it is a rational, it might either be a real rational
+    // or a bitvector that was replaced with a rational.
     return rawUnsafeManager.getArg(replaceManager.unwrap(pF), pN);
   }
 

@@ -146,6 +146,14 @@ class SmtInterpolUtil {
     return t.getTheory().getBooleanSort() == t.getSort();
   }
 
+  public static boolean hasIntegerType(Term t) {
+    return t.getTheory().getNumericSort() == t.getSort();
+  }
+
+  public static boolean hasRationalType(Term t) {
+    return t.getTheory().getRealSort() == t.getSort();
+  }
+
   /** t1 and t2 */
   public static boolean isAnd(Term t) {
     return isFunction(t, t.getTheory().mAnd);

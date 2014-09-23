@@ -49,4 +49,6 @@ public interface FormulaCreator<TFormulaInfo> {
    * Returns the type of the given Formula.
    */
   public <T extends Formula> FormulaType<T> getFormulaType(T formula);
+
+  public FormulaType<?> getFormulaType(TFormulaInfo formula);
 }

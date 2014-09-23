@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-public class Z3Formula implements Formula {
+public abstract class Z3Formula implements Formula {
 
   public final long z3expr;
   public final long z3context;

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 import ap.parser.IExpression;
@@ -35,6 +36,16 @@ class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, TermTyp
           TermType pBoolType,
           TermType pIntegerType) {
     super(pEnv, pBoolType, pIntegerType, null);
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(IExpression pFormula) {
+    if (PrincessUtil.isBoolean(pFormula)) {
+      return FormulaType.BooleanType;
+    } else if (PrincessUtil.hasIntegerType(pFormula)) {
+      return FormulaType.IntegerType;
+    }
+    throw new IllegalArgumentException("Unknown formula type");
   }
 
   @Override

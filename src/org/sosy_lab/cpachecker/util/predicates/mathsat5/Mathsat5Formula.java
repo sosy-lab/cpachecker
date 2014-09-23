@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-class Mathsat5Formula implements Formula {
+abstract class Mathsat5Formula implements Formula {
 
   private final long msatTerm;
 

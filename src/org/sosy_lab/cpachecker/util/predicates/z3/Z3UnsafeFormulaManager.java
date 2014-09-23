@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -51,11 +50,6 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
 
   private final static Collection<Integer> nonAtomicOpTypes =
       Sets.newHashSet(Z3_OP_AND, Z3_OP_OR, Z3_OP_IMPLIES, Z3_OP_ITE, Z3_OP_NOT);
-
-  @Override
-  public Formula encapsulateUnsafe(Long pL) {
-    return new Z3Formula(z3context, pL);
-  }
 
   @Override
   public boolean isAtom(Long t) {
