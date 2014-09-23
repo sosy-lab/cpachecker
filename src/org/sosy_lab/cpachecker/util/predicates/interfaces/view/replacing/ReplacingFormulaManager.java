@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import java.util.List;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 
 public class ReplacingFormulaManager implements FormulaManager {
@@ -152,13 +155,21 @@ public class ReplacingFormulaManager implements FormulaManager {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  public <T extends Formula> T unwrap(Formula f) {
+  public Formula unwrap(Formula f) {
     if (f instanceof WrappingFormula<?, ?>) {
-      return ((WrappingFormula<T, ?>)f).getWrapped();
+      return ((WrappingFormula<?, ?>)f).getWrapped();
     } else {
-      return (T) f;
+      return f;
     }
+  }
+
+  List<Formula> unwrap(List<? extends Formula> f) {
+    return Lists.transform(f, new Function<Formula, Formula>() {
+      @Override
+      public Formula apply(Formula pInput) {
+        return unwrap(pInput);
+      }
+    });
   }
 
   @Override

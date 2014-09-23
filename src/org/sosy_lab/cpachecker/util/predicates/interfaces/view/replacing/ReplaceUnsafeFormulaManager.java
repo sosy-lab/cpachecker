@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
@@ -99,22 +98,13 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     return rawUnsafeManager.getName(replaceManager.unwrap(pF));
   }
 
-  private List<Formula> unwrapArgs(List<Formula> wrapped) {
-    return Lists.transform(wrapped, new Function<Formula, Formula>() {
-          @Override
-          public Formula apply(Formula pInput) {
-            return replaceManager.unwrap(pInput);
-          }
-        });
-  }
-
   @Override
   public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, List<Formula> pArgs) {
     return encapsulateWithTypeOf(pF,
         rawUnsafeManager.replaceArgsAndName(
           replaceManager.unwrap(pF),
           pNewName,
-          unwrapArgs(pArgs)));
+          replaceManager.unwrap(pArgs)));
   }
 
   @Override
@@ -122,7 +112,7 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     return encapsulateWithTypeOf(pF,
         rawUnsafeManager.replaceArgs(
           replaceManager.unwrap(pF),
-          unwrapArgs(pArgs)));
+          replaceManager.unwrap(pArgs)));
   }
 
   @Override

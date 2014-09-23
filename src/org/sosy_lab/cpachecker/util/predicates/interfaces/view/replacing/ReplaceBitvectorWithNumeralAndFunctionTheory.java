@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 
@@ -39,13 +38,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
@@ -91,17 +89,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
-    List<BitvectorFormula> wrapped = Arrays.<BitvectorFormula>asList(t1);
+    List<Formula> args = replaceManager.unwrap(Arrays.<Formula>asList(t1));
 
-    List<Formula> unwrapped = from(wrapped)
-      .transform(new Function<BitvectorFormula, Formula>() {
-        @Override
-        public Formula apply(BitvectorFormula pInput) {
-          return unwrap(pInput);
-        }
-      }).toList();
-
-    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, unwrapped));
+    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, args));
   }
 
   private boolean isUf(FunctionFormulaType<T> funcDecl, BitvectorFormula pBits) {
@@ -177,9 +167,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     return replaceManager.wrap(pFormulaType, number);
   }
 
+  @SuppressWarnings("unchecked")
   private T unwrap(BitvectorFormula pNumber) {
-    return replaceManager.unwrap(pNumber);
+    return (T)replaceManager.unwrap(pNumber);
   }
+
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
     return wrap(getBitvectorTypeWithSize(pLength), numericFormulaManager.makeVariable(pVar));
