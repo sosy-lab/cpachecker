@@ -471,11 +471,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
-      final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(functionName,
+      final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               newIndex,
                                                                               returnFormulaType,
                                                                               ImmutableList.of(targetAddress)),
-                                                      ffmgr.createFuncAndCall(functionName,
+                                                      ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               oldIndex,
                                                                               returnFormulaType,
                                                                               ImmutableList.of(targetAddress)));

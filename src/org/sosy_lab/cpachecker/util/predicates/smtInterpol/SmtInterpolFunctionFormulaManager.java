@@ -54,7 +54,7 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
   }
 
   @Override
-  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
+  public <T extends Formula> SmtInterpolFunctionType<T> declareUninterpretedFunction(
           String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     Sort[] types = new Sort[pArgs.size()];
     for (int i = 0; i < types.length; i++) {

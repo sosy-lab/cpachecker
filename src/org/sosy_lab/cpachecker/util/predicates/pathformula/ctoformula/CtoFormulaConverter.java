@@ -192,7 +192,7 @@ public class CtoFormulaConverter {
 
     this.direction = pDirection;
 
-    stringUfDecl = ffmgr.createFunction(
+    stringUfDecl = ffmgr.declareUninterpretedFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
   }
 
@@ -385,7 +385,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.createUninterpretedFunctionCall(
+      result = ffmgr.callUninterpretedFunction(
           stringUfDecl, ImmutableList.of(nfmgr.makeNumber(n)));
       stringLitToFormula.put(literal, result);
     }

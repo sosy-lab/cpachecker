@@ -61,7 +61,7 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
   }
 
   @Override
-  public <T extends Formula> Z3FunctionType<T> createFunction(
+  public <T extends Formula> Z3FunctionType<T> declareUninterpretedFunction(
         String pName,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgs) {

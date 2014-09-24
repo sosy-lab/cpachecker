@@ -34,8 +34,10 @@ public interface FunctionFormulaManager {
   /**
    * Creates a functiontype
    */
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String name, FormulaType<T> returnType, List<FormulaType<?>> args);
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String name, FormulaType<T> returnType, FormulaType<?>... args);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String name, FormulaType<T> returnType, List<FormulaType<?>> args);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String name, FormulaType<T> returnType, FormulaType<?>... args);
 
   /**
    * Create a uninterpreted function call.
@@ -43,5 +45,6 @@ public interface FunctionFormulaManager {
    * @param args
    * @return
    */
-  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> funcType, List<? extends Formula> args);
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> funcType, List<? extends Formula> args);
 }

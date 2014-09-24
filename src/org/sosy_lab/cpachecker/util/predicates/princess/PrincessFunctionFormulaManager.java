@@ -55,7 +55,7 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   }
 
   @Override
-  public <T extends Formula> PrincessFunctionType<T> createFunction(
+  public <T extends Formula> PrincessFunctionType<T> declareUninterpretedFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
     List<TermType> types = new ArrayList<>(pArgs.size());

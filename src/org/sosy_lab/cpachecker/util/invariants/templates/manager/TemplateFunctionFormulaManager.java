@@ -77,24 +77,24 @@ public class TemplateFunctionFormulaManager implements FunctionFormulaManager {
 //    return F;
 //  }
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(String pName, FormulaType<T> pReturnType,
       List<FormulaType<?>> pArgs) {
     return new TemplateFunctionFormulaTypeImpl<>(pName, pReturnType, pArgs);
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
       String pName,
       FormulaType<T> pReturnType,
       FormulaType<?>... pArgs) {
 
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T
-    createUninterpretedFunctionCall(
+    callUninterpretedFunction(
         FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     TemplateFunctionFormulaTypeImpl<T> funcType = (TemplateFunctionFormulaTypeImpl<T>) pFuncType;
     Formula F = null;

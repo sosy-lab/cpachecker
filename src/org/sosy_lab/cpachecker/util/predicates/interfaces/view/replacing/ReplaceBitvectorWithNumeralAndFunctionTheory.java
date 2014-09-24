@@ -80,17 +80,17 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private FunctionFormulaType<T> createUnaryFunction(String name) {
-    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
   }
 
   private FunctionFormulaType<T> createBinaryFunction(String name) {
-    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
     List<Formula> args = replaceManager.unwrap(Arrays.<Formula>asList(t1));
 
-    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, args));
+    return wrap(realreturn, functionManager.callUninterpretedFunction(decl, args));
   }
 
   private final Map<Integer[], FunctionFormulaType<T>> extractMethods = new HashMap<>();

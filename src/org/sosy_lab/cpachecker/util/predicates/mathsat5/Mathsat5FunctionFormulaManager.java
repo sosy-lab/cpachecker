@@ -60,7 +60,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   @Override
-  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
+  public <T extends Formula> Mathsat5FunctionType<T> declareUninterpretedFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     long[] types = new long[pArgs.size()];
     for (int i = 0; i < types.length; i++) {

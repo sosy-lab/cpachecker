@@ -71,9 +71,9 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     functionManager = pFunctionManager;
 
     FormulaType<ResultFormulaType> resultType = getFormulaType();
-    multUfDecl = functionManager.createFunction(resultType + "_" + UF_MULTIPLY_NAME, resultType, resultType, resultType);
-    divUfDecl = functionManager.createFunction(resultType + "_" + UF_DIVIDE_NAME, resultType, resultType, resultType);
-    modUfDecl = functionManager.createFunction(resultType + "_" + UF_MODULO_NAME, resultType, resultType, resultType);
+    multUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_MULTIPLY_NAME, resultType, resultType, resultType);
+    divUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_DIVIDE_NAME, resultType, resultType, resultType);
+    modUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_MODULO_NAME, resultType, resultType, resultType);
   }
 
   private TFormulaInfo makeUf(FunctionFormulaType<?> decl, TFormulaInfo t1, TFormulaInfo t2) {

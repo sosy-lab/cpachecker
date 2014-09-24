@@ -436,7 +436,7 @@ class AssignmentHandler {
         updatedVariables.add(Variable.create(targetName, lvalueType));
       }
     } else { // Aliased LHS
-      final Formula lhs = ffmgr.createFuncAndCall(targetName,
+      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
                                                   newIndex,
                                                   targetType,
                                                   ImmutableList.of(lvalue.asAliased().getAddress()));
@@ -513,11 +513,11 @@ class AssignmentHandler {
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
-        final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+        final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 newIndex,
                                                                                 returnType,
                                                                                 ImmutableList.of(targetAddress)),
-                                                        ffmgr.createFuncAndCall(ufName,
+                                                        ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 oldIndex,
                                                                                 returnType,
                                                                                 ImmutableList.of(targetAddress)));
@@ -528,11 +528,11 @@ class AssignmentHandler {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                   fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
-      constraints.addConstraint(fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+      constraints.addConstraint(fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        newIndex,
                                                                        returnType,
                                                                        ImmutableList.of(targetAddress)),
-                                               ffmgr.createFuncAndCall(ufName,
+                                               ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        oldIndex,
                                                                        returnType,
                                                                        ImmutableList.of(targetAddress))));
@@ -561,11 +561,11 @@ class AssignmentHandler {
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
           final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
                                                       fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
-          consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+          consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     newIndex,
                                                                                     returnType,
                                                                                     ImmutableList.of(targetAddress)),
-                                                            ffmgr.createFuncAndCall(ufName,
+                                                            ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     oldIndex,
                                                                                     returnType,
                                                                                     ImmutableList.of(targetAddress))));
@@ -591,11 +591,11 @@ class AssignmentHandler {
         final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
         constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                                                      fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
-                                           fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+                                           fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                   newIndex,
                                                                                   returnType,
                                                                                   ImmutableList.of(targetAddress)),
-                                           ffmgr.createFuncAndCall(ufName,
+                                           ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                    oldIndex,
                                                                    returnType,
                                                                    ImmutableList.of(targetAddress)))));

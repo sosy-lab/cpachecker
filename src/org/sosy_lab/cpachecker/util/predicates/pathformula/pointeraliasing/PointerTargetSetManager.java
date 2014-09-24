@@ -364,7 +364,7 @@ public class PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
-    return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
+    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, ImmutableList.of(address));
   }
 
 

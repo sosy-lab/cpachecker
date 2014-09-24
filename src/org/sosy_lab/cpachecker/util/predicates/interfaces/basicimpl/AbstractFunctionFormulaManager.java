@@ -54,17 +54,17 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
 
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   protected abstract <TFormula extends Formula> TFormulaInfo
     createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType, List<TFormulaInfo> pArgs);
 
   @Override
-  public final <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
+  public final <T extends Formula> T callUninterpretedFunction(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();
     List<TFormulaInfo> list = Lists.transform(pArgs,
         new Function<Formula, TFormulaInfo>() {
