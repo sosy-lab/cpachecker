@@ -23,40 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-
-import com.google.common.collect.ImmutableList;
 
 abstract class Z3NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
   private final long z3context;
-  private final Z3FunctionType<ResultFormulaType> multUfDecl;
-  private final Z3FunctionType<ResultFormulaType> divUfDecl;
-  private final Z3FunctionType<ResultFormulaType> modUfDecl;
-  private final Z3FunctionFormulaManager functionManager;
 
-  Z3NumeralFormulaManager(
+  public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager functionManager) {
-    super(pCreator);
+    super(pCreator, functionManager);
 
     this.z3context = pCreator.getEnv();
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    this.functionManager = functionManager;
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
   }
 
   abstract protected long getNumeralType();
@@ -84,10 +70,6 @@ abstract class Z3NumeralFormulaManager
     return getFormulaCreator().makeVariable(type, varName);
   }
 
-  private Long makeUf(FunctionFormulaType<ResultFormulaType> decl, Long t1, Long t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
   @Override
   public Long negate(Long pNumber) {
     long sort = get_sort(z3context, pNumber);
@@ -111,14 +93,9 @@ abstract class Z3NumeralFormulaManager
     if (is_numeral_ast(z3context, pNumber2)) {
       result = mk_div(z3context, pNumber1, pNumber2);
     } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
+      result = super.divide(pNumber1, pNumber2);
     }
     return result;
-  }
-
-  @Override
-  public Long modulo(Long pNumber1, Long pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
   }
 
   @Override
@@ -127,7 +104,7 @@ abstract class Z3NumeralFormulaManager
     if (is_numeral_ast(z3context, pNumber1) || is_numeral_ast(z3context, pNumber2)) {
       result = mk_mul(z3context, pNumber1, pNumber2);
     } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
+      result = super.multiply(pNumber1, pNumber2);
     }
     return result;
   }

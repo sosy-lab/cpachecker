@@ -1069,9 +1069,6 @@ public class FormulaManagerView {
   public static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
   public static final String BitwiseXorUfName ="_^_";
   public static final String BitwiseNotUfName ="_~_";
-  public static final String MultUfName ="_*_";
-  public static final String DivUfName ="_/_";
-  public static final String ModUfName ="_%_";
 
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"

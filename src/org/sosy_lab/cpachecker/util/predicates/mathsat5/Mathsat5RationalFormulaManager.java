@@ -70,7 +70,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
       t2 = msat_make_number(mathsatEnv, n);
       result = msat_make_times(mathsatEnv, t2, t1);
     } else {
-      result = makeUf(divUfDecl, t1, t2);
+      return super.divide(pNumber1, pNumber2);
     }
 
     return result;

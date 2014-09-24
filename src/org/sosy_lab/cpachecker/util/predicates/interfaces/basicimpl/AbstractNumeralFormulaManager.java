@@ -27,24 +27,58 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
+import com.google.common.collect.ImmutableList;
+
 /**
- * This AbstractNumericFormulaManager allows you to implement the Rational-Theory by
- * providing a NumericBaseFormulaManager<TFormulaInfo,TFormulaInfo> and implementing 3 methods.
- * @param <TFormulaInfo> the Solver specific type.
+ * Similar to the other Abstract*FormulaManager classes in this package,
+ * this class serves as a helper for implementing {@link NumeralFormulaManager}.
+ * It handles all the unwrapping and wrapping from and to the {@link Formula}
+ * instances, such that the concrete class needs to handle only its own internal types.
+ *
+ * For {@link #multiply(NumeralFormula, NumeralFormula)},
+ * {@link #divide(NumeralFormula, NumeralFormula)}, and
+ * {@link #modulo(NumeralFormula, NumeralFormula)},
+ * this class even offers an implementation based on UFs.
+ * Sub-classes are supposed to override them
+ * if they can implement these operations more precisely
+ * (for example multiplication with constants should be supported by all solvers
+ * and implemented by all sub-classes).
  */
 public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
         ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
+  private static final String UF_MULTIPLY_NAME = "_*_";
+  private static final String UF_DIVIDE_NAME = "_/_";
+  private static final String UF_MODULO_NAME = "_%_";
+
+  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+
+  private final FunctionFormulaType<ResultFormulaType> multUfDecl;
+  private final FunctionFormulaType<ResultFormulaType> divUfDecl;
+  private final FunctionFormulaType<ResultFormulaType> modUfDecl;
+
   protected AbstractNumeralFormulaManager(
-      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
+      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> pFunctionManager) {
     super(pCreator);
+    functionManager = pFunctionManager;
+
+    FormulaType<ResultFormulaType> resultType = getFormulaType();
+    multUfDecl = functionManager.createFunction(resultType + "_" + UF_MULTIPLY_NAME, resultType, resultType, resultType);
+    divUfDecl = functionManager.createFunction(resultType + "_" + UF_DIVIDE_NAME, resultType, resultType, resultType);
+    modUfDecl = functionManager.createFunction(resultType + "_" + UF_MODULO_NAME, resultType, resultType, resultType);
   }
 
+  private TFormulaInfo makeUf(FunctionFormulaType<?> decl, TFormulaInfo t1, TFormulaInfo t2) {
+    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
+  }
 
   protected TFormulaInfo extractInfo(Formula pNumber) {
     return getFormulaCreator().extractInfo(pNumber);
@@ -122,7 +156,9 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(divide(param1, param2));
   }
 
-  protected abstract TFormulaInfo divide(TFormulaInfo pParam1, TFormulaInfo pParam2);
+  protected TFormulaInfo divide(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return makeUf(divUfDecl, pParam1, pParam2);
+  }
 
 
   @Override
@@ -133,7 +169,9 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(modulo(param1, param2));
   }
 
-  protected abstract TFormulaInfo modulo(TFormulaInfo pParam1, TFormulaInfo pParam2);
+  protected TFormulaInfo modulo(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return makeUf(modUfDecl, pParam1, pParam2);
+  }
 
 
   @Override
@@ -144,7 +182,9 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return wrap(multiply(param1, param2));
   }
 
-  protected abstract TFormulaInfo multiply(TFormulaInfo pParam1, TFormulaInfo pParam2);
+  protected TFormulaInfo multiply(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return makeUf(multUfDecl, pParam1, pParam2);
+  }
 
 
   @Override

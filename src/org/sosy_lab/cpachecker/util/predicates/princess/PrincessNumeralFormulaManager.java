@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
@@ -40,32 +37,15 @@ import ap.parser.IIntLit;
 import ap.parser.IIntRelation;
 import ap.parser.ITerm;
 
-import com.google.common.collect.ImmutableList;
-
 
 abstract class PrincessNumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<IExpression, TermType, PrincessEnvironment, ParamFormulaType, ResultFormulaType> {
 
-  private final PrincessFunctionType<ResultFormulaType> multUfDecl;
-  private final PrincessFunctionType<ResultFormulaType> divUfDecl;
-  private final PrincessFunctionType<ResultFormulaType> modUfDecl;
-  private final PrincessFunctionFormulaManager functionManager;
-
   PrincessNumeralFormulaManager(
           PrincessFormulaCreator pCreator,
           PrincessFunctionFormulaManager pFunctionManager) {
-    super(pCreator);
-    functionManager = pFunctionManager;
-
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
-  }
-
-  private IExpression makeUf(FunctionFormulaType<?> decl, IExpression t1, IExpression t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
+    super(pCreator, pFunctionManager);
   }
 
   @Override
@@ -90,15 +70,10 @@ abstract class PrincessNumeralFormulaManager
       result = castToTerm(pNumber1).$times(IdealInt.ONE().$div(((IIntLit) pNumber2).value()));
       // TODO div is the euclidian division (with remainder), do we want this here?
     } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
+      result = super.divide(pNumber1, pNumber2);
     }
 
     return result;
-  }
-
-  @Override
-  public IExpression modulo(IExpression pNumber1, IExpression pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
   }
 
   @Override
@@ -107,7 +82,7 @@ abstract class PrincessNumeralFormulaManager
     if (isNumber(pNumber1) || isNumber(pNumber2)) {
       result = castToTerm(pNumber1).$times(castToTerm(pNumber2));
     } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
+      result = super.multiply(pNumber1, pNumber2);
     }
 
     return result;
