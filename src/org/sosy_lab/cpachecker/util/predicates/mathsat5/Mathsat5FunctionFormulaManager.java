@@ -87,12 +87,4 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     long decl = msat_declare_function(mathsatEnv, pName, msatFuncType);
     return decl;
   }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long pF) {
-    Mathsat5FunctionType<?> mathsatType = (Mathsat5FunctionType<?>) pFuncType;
-    return mathsatType.getFuncDecl() == msat_term_get_decl(pF);
-  }
-
-
 }

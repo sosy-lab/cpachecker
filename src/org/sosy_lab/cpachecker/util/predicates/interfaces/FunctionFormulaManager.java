@@ -44,13 +44,4 @@ public interface FunctionFormulaManager {
    * @return
    */
   public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> funcType, List<? extends Formula> args);
-
-  /**
-   * Checks if the given formula is a uninterpreted function call of the given type.
-   * @param funcType
-   * @param f
-   * @return
-   */
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> funcType, Formula f);
-
 }

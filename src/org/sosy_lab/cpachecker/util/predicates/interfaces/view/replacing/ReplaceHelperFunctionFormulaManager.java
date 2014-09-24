@@ -104,13 +104,4 @@ class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
 
     return replaceManager.wrap(pFuncType.getReturnType(), f);
   }
-
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-
-    ReplaceFunctionFormulaType<?> rep = (ReplaceFunctionFormulaType<?>)pFuncType;
-    return
-        rawFunctionFormulaManager.isUninterpretedFunctionCall(rep.wrapped, replaceManager.unwrap(pF));
-  }
-
 }

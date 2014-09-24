@@ -72,13 +72,6 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
-  protected abstract boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, TFormulaInfo pF);
-
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-    return isUninterpretedFunctionCall(pFuncType, getFormulaCreator().extractInfo(pF));
-  }
-
   public TType toSolverType(FormulaType<?> formulaType) {
     TType t;
     if (formulaType.isBooleanType()) {

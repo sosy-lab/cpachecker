@@ -89,16 +89,4 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
 
     return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long f) {
-    boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) {
-      return false;
-    }
-
-    // TODO check if exactly the given func
-    return isUf;
-  }
-
 }
