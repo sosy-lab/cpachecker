@@ -231,7 +231,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    preconditions = new WeakestPreconditionWriter(cfa, config, logger, shutdownNotifier, solver, formulaManagerFactory, abstractionManager, pathFormulaManager, formulaManager, regionManager);
+    preconditions = new WeakestPreconditionWriter(cfa, config, logger, formulaManager);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
