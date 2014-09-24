@@ -36,7 +36,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
@@ -97,11 +96,5 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   @Override
   public String getVersion() {
     return getEnvironment().getVersion();
-  }
-
-  @Override
-  protected IExpression getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
   }
 }

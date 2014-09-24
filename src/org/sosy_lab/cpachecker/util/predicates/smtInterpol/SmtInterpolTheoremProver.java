@@ -80,7 +80,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
-    final Term t = mgr.getTerm(f);
+    final Term t = mgr.extractInfo(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
@@ -126,7 +126,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     int i = 0;
     for (BooleanFormula impF : formulas) {
 
-      importantTerms[i++] = mgr.getTerm(impF);
+      importantTerms[i++] = mgr.extractInfo(impF);
     }
 
     solveTime.start();

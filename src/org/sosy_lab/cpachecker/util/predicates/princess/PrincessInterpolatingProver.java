@@ -56,7 +56,7 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
 
   @Override
   public Integer push(BooleanFormula f) {
-    IFormula t = (IFormula)mgr.getTerm(f);
+    IFormula t = (IFormula)mgr.extractInfo(f);
     int termIndex = counter.getFreshId();
 
     stack.push(1);

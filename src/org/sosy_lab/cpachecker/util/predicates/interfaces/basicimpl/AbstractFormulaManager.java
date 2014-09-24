@@ -100,12 +100,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   }
 
-  protected FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
+  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
-  }
-
-  public TEnv getEnvironment() {
-    return getFormulaCreator().getEnv();
   }
 
   @Override
@@ -150,11 +146,6 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return unsafeManager;
   }
 
-  @SuppressWarnings("unchecked")
-  protected TFormulaInfo getTerm(Formula f) {
-    return ((AbstractFormula<TFormulaInfo>)f).getFormulaInfo();
-  }
-
 
   public abstract Appender dumpFormula(TFormulaInfo t);
 
@@ -166,5 +157,15 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public final <T extends Formula> FormulaType<T> getFormulaType(T formula) {
     return formulaCreator.getFormulaType(checkNotNull(formula));
+  }
+
+  // Utility methods that are handy for subclasses
+
+  public final TEnv getEnvironment() {
+    return getFormulaCreator().getEnv();
+  }
+
+  public final TFormulaInfo extractInfo(Formula f) {
+    return formulaCreator.extractInfo(f);
   }
 }

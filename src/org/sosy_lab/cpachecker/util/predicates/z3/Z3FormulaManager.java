@@ -213,12 +213,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     return getFormulaCreator().encapsulateBoolean(t);
   }
 
-  @Override
-  protected Long getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
-  }
-
   //  @Override
   //  protected void finalize() {
   //    close_log();
