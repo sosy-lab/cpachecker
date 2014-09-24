@@ -40,7 +40,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
     BooleanFormulaManager {
 
   protected AbstractBooleanFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 
@@ -209,9 +209,8 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
           + f1 + " is of type " + t1 + "; "
           + f2 + " is of type " + t2);
     }
-    FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
     TFormulaInfo result = ifThenElse(extractInfo(pBits), extractInfo(f1), extractInfo(f2));
-    return creator.encapsulate(t1, result);
+    return getFormulaCreator().encapsulate(t1, result);
   }
   protected abstract TFormulaInfo ifThenElse(TFormulaInfo cond, TFormulaInfo f1, TFormulaInfo f2);
 

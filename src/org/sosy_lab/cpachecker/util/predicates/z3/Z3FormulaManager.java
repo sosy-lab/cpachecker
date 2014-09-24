@@ -68,7 +68,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
-      long z3context,
       Z3FormulaCreator pFormulaCreator,
       Z3UnsafeFormulaManager pUnsafeManager,
       Z3FunctionFormulaManager pFunctionManager,
@@ -78,7 +77,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
-    super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager,
+    super(pFormulaCreator, pUnsafeManager, pFunctionManager,
             pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager);
     config.inject(this);
     this.z3smtLogger = smtLogger;
@@ -158,7 +157,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
-        context, creator,
+        creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, smtLogger, config);
     return instance;

@@ -78,7 +78,7 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
 
   @Override
   public Long makeVariableImpl(int length, String varName) {
-    long type = getFormulaCreator().getBittype(length);
+    long type = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(type, varName);
   }
 

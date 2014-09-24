@@ -36,7 +36,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   implements BitvectorFormulaManager {
 
   protected AbstractBitvectorFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 

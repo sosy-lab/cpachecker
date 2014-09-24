@@ -42,6 +42,6 @@ class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFormula, R
 
   @Override
   protected long getNumeralType() {
-    return getFormulaCreator().getRealType();
+    return getFormulaCreator().getRationalType();
   }
 }

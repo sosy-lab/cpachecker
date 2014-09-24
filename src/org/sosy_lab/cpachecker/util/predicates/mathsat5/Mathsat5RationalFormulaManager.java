@@ -39,7 +39,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
 
   @Override
   protected long getNumeralType() {
-    return getFormulaCreator().getRealType();
+    return getFormulaCreator().getRationalType();
   }
 
   @Override

@@ -41,7 +41,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
   protected AbstractNumeralFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 

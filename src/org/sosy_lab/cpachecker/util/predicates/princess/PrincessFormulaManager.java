@@ -44,13 +44,12 @@ import ap.parser.IExpression;
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   private PrincessFormulaManager(
-          PrincessEnvironment pEnv,
           PrincessFormulaCreator pCreator,
           PrincessUnsafeFormulaManager pUnsafeManager,
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
           PrincessIntegerFormulaManager pIntegerManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
@@ -67,7 +66,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessBooleanFormulaManager booleanTheory = new PrincessBooleanFormulaManager(creator);
     PrincessIntegerFormulaManager integerTheory = new PrincessIntegerFormulaManager(creator, functionTheory);
 
-    return new PrincessFormulaManager(env, creator, unsafeManager, functionTheory,
+    return new PrincessFormulaManager(creator, unsafeManager, functionTheory,
             booleanTheory, integerTheory);
   }
 

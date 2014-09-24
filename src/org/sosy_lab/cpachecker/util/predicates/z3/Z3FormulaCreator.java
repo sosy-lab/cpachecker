@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 import com.google.common.base.Preconditions;
 
-class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
+class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
 
@@ -123,7 +123,7 @@ class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   }
 
   @Override
-  public Long getBittype(int pBitwidth) {
+  public Long getBitvectorType(int pBitwidth) {
     checkArgument(pBitwidth > 0, "Cannot use bitvector type with size %s", pBitwidth);
     long bvSort = mk_bv_sort(getEnv(), pBitwidth);
     inc_ref(getEnv(), sort_to_ast(getEnv(), bvSort));

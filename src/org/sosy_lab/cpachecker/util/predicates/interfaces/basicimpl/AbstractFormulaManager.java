@@ -49,11 +49,9 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
 
-  private final FormulaCreator<TFormulaInfo> formulaCreator;
-
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
-  private final TEnv environment;
+  private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
   /**
    * Builds a solver from the given theory implementations
@@ -65,8 +63,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
    * @param bitvectorManager the bitvector theory
    */
   protected AbstractFormulaManager(
-      TEnv pEnvironment,
-      FormulaCreator<TFormulaInfo> pFormulaCreator,
+      FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
@@ -89,8 +86,6 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
     this.unsafeManager = unsafeManager;
 
-    this.environment = pEnvironment;
-
     this.formulaCreator = pFormulaCreator;
 
     if (booleanManager.getFormulaCreator() != formulaCreator
@@ -105,12 +100,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   }
 
-  protected FormulaCreator<TFormulaInfo> getFormulaCreator() {
+  protected FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 
   public TEnv getEnvironment() {
-    return environment;
+    return getFormulaCreator().getEnv();
   }
 
   @Override

@@ -46,7 +46,7 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
   protected AbstractFunctionFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager) {
     super(pCreator);
     this.unsafeManager = unsafeManager;
@@ -86,10 +86,10 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     } else if (formulaType.isIntegerType()) {
       t = getFormulaCreator().getIntegerType();
     } else if (formulaType.isRationalType()) {
-      t = getFormulaCreator().getRealType();
+      t = getFormulaCreator().getRationalType();
     } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = getFormulaCreator().getBittype(bitPreciseType.getSize());
+      t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

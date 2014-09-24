@@ -57,14 +57,13 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private SmtInterpolFormulaManager(
-      SmtInterpolEnvironment pEnv,
       SmtInterpolFormulaCreator pCreator,
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolIntegerFormulaManager pIntegerManager,
       SmtInterpolRationalFormulaManager pRationalManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -83,7 +82,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
     SmtInterpolIntegerFormulaManager integerTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
     SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
 
-    return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory,
+    return new SmtInterpolFormulaManager(creator, unsafeManager, functionTheory,
             booleanTheory, integerTheory, rationalTheory);
   }
 

@@ -23,32 +23,114 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 
 /**
- * This is a helper interface to allow the implementation of basicimpl to encapsulate their own additional info in the typed instances
- * @param <TFormulaInfo>  the solver specific type.
+ * This is a helper class with several methods that are commonly used
+ * throughout the basicimpl package and may have solver-specific implementations.
+ * Each solver package is expected to provide an instance of this class,
+ * with the appropriate methods overwritten.
+ * Depending on the solver, some or all non-final methods in this class
+ * may need to be overwritten.
+ * @param <TFormulaInfo> the solver specific type for formulas.
+ * @param <TType> the solver specific type for formula types.
+ * @param <TEnv> the solver specific type for the environment/context.
  */
-public interface FormulaCreator<TFormulaInfo> {
+public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
-  public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm);
+  private final TType boolType;
+  private final TType integerType;
+  private final TType rationalType;
+  private final TEnv environment;
 
-  public BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm);
+  protected FormulaCreator(
+      TEnv env,
+      TType boolType,
+      TType pIntegerType,
+      TType pRationalType
+      ) {
+    this.environment = env;
+    this.boolType = boolType;
+    this.integerType = pIntegerType;
+    this.rationalType = pRationalType;
+  }
 
-  public <T extends Formula> T encapsulate(FormulaType<T> type, TFormulaInfo pTerm);
+  public final TEnv getEnv() {
+    return environment;
+  }
 
+  public TType getBoolType() {
+    return boolType;
+  }
 
+  public TType getIntegerType() {
+    return integerType;
+  }
 
-  public TFormulaInfo extractInfo(Formula t);
+  public TType getRationalType() {
+    return rationalType;
+  }
+
+  public abstract TType getBitvectorType(int bitwidth);
+
+  public abstract TFormulaInfo makeVariable(TType type, String varName);
+
+  public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
+    return new BooleanFormulaImpl<>(pTerm);
+  }
+
+  protected BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm) {
+    return new BitvectorFormulaImpl<>(pTerm);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new BooleanFormulaImpl<>(pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new IntegerFormulaImpl<>(pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new RationalFormulaImpl<>(pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new BitvectorFormulaImpl<>(pTerm);
+    }
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
+  }
+
+  @SuppressWarnings("unchecked")
+  protected TFormulaInfo extractInfo(Formula pT) {
+    return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
+  }
+
 
   /**
    * Returns the type of the given Formula.
    */
-  public <T extends Formula> FormulaType<T> getFormulaType(T formula);
+  @SuppressWarnings("unchecked")
+  protected <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    checkNotNull(formula);
+    FormulaType<?> t;
+    if (formula instanceof BooleanFormula) {
+      t = FormulaType.BooleanType;
+    } else if (formula instanceof IntegerFormula) {
+      t = FormulaType.IntegerType;
+    } else if (formula instanceof RationalFormula) {
+      t = FormulaType.RationalType;
+    } else if (formula instanceof BitvectorFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
+    } else {
+      throw new IllegalArgumentException("Formula with unexpected type " + formula.getClass());
+    }
+    return (FormulaType<T>) t;
+  }
 
-  public FormulaType<?> getFormulaType(TFormulaInfo formula);
+  protected abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
 }
