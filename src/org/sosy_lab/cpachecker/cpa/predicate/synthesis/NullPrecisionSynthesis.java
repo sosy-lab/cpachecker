@@ -33,6 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -48,8 +49,9 @@ public class NullPrecisionSynthesis extends AbstractPrecisionSynthesis {
 
   public NullPrecisionSynthesis(Configuration pConfig, LogManager pLogger, FormulaManagerView pFmgr,
       Optional<VariableClassification> pVariableClassification, FormulaManager pRawFmgr, AbstractionManager pAmgr,
-      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationStore pRelStore) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pFmgr, pVariableClassification, pRawFmgr, pAmgr, pMachineModel, pShutdownNotifier, pCfa, pRelStore);
+      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationView pRelView, AnalysisDirection pDirection)
+          throws InvalidConfigurationException {
+    super(pConfig, pLogger, pFmgr, pVariableClassification, pRawFmgr, pAmgr, pMachineModel, pShutdownNotifier, pCfa, pRelView, pDirection);
   }
 
   @Override

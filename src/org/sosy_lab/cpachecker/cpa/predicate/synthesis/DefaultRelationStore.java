@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.CExpressionInliner.SubstitutionProvider;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -60,7 +61,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 @Options
-public class DefaultRelationStore implements RelationStore {
+public class DefaultRelationStore implements RelationStore, RelationView {
 
   public static enum RelationMode {
     BACKWARDS_SEQUENCE,
@@ -87,17 +88,17 @@ public class DefaultRelationStore implements RelationStore {
 
   private final Table<CExpression, CExpression, Relation> store;
   private final Map<BinaryOperator, Relation> operatorRelationMap;
-  private final boolean backwards;
+  private final AnalysisDirection direction;
   private boolean instanciateVars = true;
 
-  public DefaultRelationStore(Configuration pConfig, LogManager pLogger, CFA pCfa, boolean backwards) throws InvalidConfigurationException {
+  public DefaultRelationStore(Configuration pConfig, LogManager pLogger, CFA pCfa, AnalysisDirection pDirection) throws InvalidConfigurationException {
     pConfig.inject(this);
 
     this.log = pLogger;
 
     this.store = HashBasedTable.create();
     this.operatorRelationMap = Maps.newTreeMap(); //TODO: Ensure deterministic behavior!!!
-    this.backwards = backwards;
+    this.direction = pDirection;
 
     for (Relation r: Relation.values()) {
       operatorRelationMap.put(r.binaryOperator, r);
@@ -187,7 +188,7 @@ public class DefaultRelationStore implements RelationStore {
 
   public void addFact(CAssignment pA, SSAMap pSsaMap) {
     if (instanciateVars && pSsaMap != null) {
-      pA = instanciateAssign(pA, pSsaMap, backwards);
+      pA = instanciateAssign(pA, pSsaMap, direction);
     }
 
     if (pA.getLeftHandSide() instanceof CIdExpression) {

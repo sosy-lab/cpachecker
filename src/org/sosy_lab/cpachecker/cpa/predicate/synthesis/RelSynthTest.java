@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
@@ -92,7 +93,7 @@ public class RelSynthTest {
         config,
         logger,
         mock(CFA.class),
-        true);
+        AnalysisDirection.BACKWARD);
 
     relsynth = new RelationSynthesis(logger, relstoreBwd);
 
@@ -172,7 +173,7 @@ public class RelSynthTest {
         .setIndex("a", CNumericTypes.INT, 10).build();
 
     CAssignment assign_a_7 = new CExpressionAssignmentStatement(a.getFileLocation(), a, l7);
-    CAssignment in = instanciateAssign(assign_a_7, ssa, true);
+    CAssignment in = instanciateAssign(assign_a_7, ssa, AnalysisDirection.BACKWARD);
 
     assertEquals("(a@10 = 7;)", in.toParenthesizedASTString());
   }
@@ -190,7 +191,7 @@ public class RelSynthTest {
         .setIndex("a", CNumericTypes.INT, 10).build();
 
     CAssignment assign_a_7 = new CExpressionAssignmentStatement(a.getFileLocation(), a, l7);
-    CAssignment in = instanciateAssign(assign_a_7, ssa, false);
+    CAssignment in = instanciateAssign(assign_a_7, ssa, AnalysisDirection.FORWARD);
 
     assertEquals("(a@11 = 7;)", in.toParenthesizedASTString());
   }

@@ -45,11 +45,11 @@ import com.google.common.collect.Sets;
 
 public class RelationSynthesis {
 
-  private final RelationStore relstore;
   private final LogManager logger;
+  private final RelationView relview;
 
-  public RelationSynthesis(LogManager pLogger, RelationStore pRelstore) {
-    relstore = pRelstore;
+  public RelationSynthesis(LogManager pLogger, RelationView pRelView) {
+    relview = pRelView;
     logger = pLogger;
   }
 
@@ -65,16 +65,16 @@ public class RelationSynthesis {
 
     Collection<CBinaryExpression> result = Lists.newArrayList();
 
-    for (CExpression lhs: relstore.getStoredExpressionsWith(pIdExprs)) {
-      Pair<CExpression, Set<CIdExpression>> inlinedLhs = relstore.getInlined(lhs, pIdExprs);
-      Map<CExpression, Relation> row = relstore.getRelationTo(lhs);
+    for (CExpression lhs: relview.getStoredExpressionsWith(pIdExprs)) {
+      Pair<CExpression, Set<CIdExpression>> inlinedLhs = relview.getInlined(lhs, pIdExprs);
+      Map<CExpression, Relation> row = relview.getRelationTo(lhs);
 
       if (inlinedLhs.getSecond().size() > 0) { // only if all substitutions were possible
         continue;
       }
 
       for (CExpression rhs: row.keySet()) {
-        Pair<CExpression, Set<CIdExpression>> inlinedRhs = relstore.getInlined(rhs, pIdExprs);
+        Pair<CExpression, Set<CIdExpression>> inlinedRhs = relview.getInlined(rhs, pIdExprs);
         Relation rel = row.get(rhs);
 
         if (inlinedRhs.getSecond().size() > 0) { // only if all substitutions were possible

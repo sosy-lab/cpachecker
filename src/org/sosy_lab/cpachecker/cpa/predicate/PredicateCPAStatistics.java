@@ -125,7 +125,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Timer pInvariantGeneratorTimer, Configuration pConfig)
+      WeakestPreconditionWriter pPreconditions, Timer pInvariantGeneratorTimer, Configuration pConfig)
           throws InvalidConfigurationException {
 
     cpa = pCpa;
@@ -138,7 +138,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
-    preconditionWriter = new WeakestPreconditionWriter(pCfa, pConfig, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
+    preconditionWriter = checkNotNull(pPreconditions);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());

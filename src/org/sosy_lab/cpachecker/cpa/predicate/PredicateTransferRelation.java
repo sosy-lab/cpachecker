@@ -44,12 +44,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -93,15 +95,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final BlockOperator blk;
 
+  private final RelationStore relstore;
+
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
-  private final boolean backwards;
+  private final AnalysisDirection direction;
 
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config, boolean pBackwards) throws InvalidConfigurationException {
+      Configuration config, RelationStore pRelStore, AnalysisDirection pDirection) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -110,7 +114,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
-    backwards = pBackwards;
+    direction = pDirection;
+    relstore = pRelStore;
   }
 
   @Override
@@ -133,6 +138,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
+      // After updating the SSAs... add the operation to the relation store...
+      relstore.addFact(edge, element.getPathFormula().getSsa());
+
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);
 
@@ -144,7 +152,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
-    if (backwards) {
+    if (direction == AnalysisDirection.BACKWARD) {
       return pEdge.getPredecessor();
     } else {
       return pEdge.getSuccessor();
@@ -152,7 +160,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private CFANode getAnalysisPredecessor(CFAEdge pEdge) {
-    if (backwards) {
+    if (direction == AnalysisDirection.BACKWARD) {
       return pEdge.getSuccessor();
     } else {
       return pEdge.getPredecessor();

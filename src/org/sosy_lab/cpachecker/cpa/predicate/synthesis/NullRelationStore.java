@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 
-public class NullRelationStore implements RelationStore {
+public class NullRelationStore implements RelationStore, RelationView {
 
   @Override
   public void addFact(CFAEdge pEdge, SSAMap pSsa) throws UnrecognizedCCodeException {

@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -50,12 +51,13 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
   protected final BooleanFormulaManagerView bfmgr;
   protected  final CFA cfa;
   protected final CtoFormulaConverter converter;
-  protected final RelationStore relstore;
+  protected final RelationView relview;
 
   public AbstractPrecisionSynthesis(Configuration pConfig, LogManager pLogger,
       FormulaManagerView pFmgr, Optional<VariableClassification> pVariableClassification,
       FormulaManager pRawFmgr, AbstractionManager pAmgr,
-      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationStore pRelStore)
+      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationView pRelView,
+      AnalysisDirection pDirection)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -66,7 +68,7 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
     amgr = pAmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     cfa = pCfa;
-    relstore = pRelStore;
+    relview = pRelView;
 
     FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
@@ -75,7 +77,7 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
         options, fmgr,
         pMachineModel, pVariableClassification,
         logger, pShutdownNotifier,
-        typeHandler, false);
+        typeHandler, pDirection);
   }
 
 }

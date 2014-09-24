@@ -23,13 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore.Relation;
 
 
-public interface RelationStore {
+public interface RelationView {
 
-  public void addFact(CFAEdge pEdge, SSAMap pSsa) throws UnrecognizedCCodeException;
+  public  Map<CExpression, Relation> getRelationTo(CExpression pLhs);
 
+  public Pair<CExpression, Set<CIdExpression>> getInlined(CExpression pLhs, Set<CIdExpression> pIdExprs);
+
+  public Set<CExpression> getStoredExpressionsWith(Set<CIdExpression> ids);
 }

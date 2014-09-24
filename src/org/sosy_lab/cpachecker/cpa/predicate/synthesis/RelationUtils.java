@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.CExpressionInliner.SubstitutionProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -115,9 +116,9 @@ public enum RelationUtils {
     return (R) pExpr.accept(inliner).getSecond();
   }
 
-  public static CAssignment instanciateAssign(CAssignment pAssign, final SSAMap pSsaMap, boolean backwards) {
-    final int lhsSsaDelta = backwards ? 0 : +1;
-    final int rhsSsaDelta = backwards ? +1 : 0;
+  public static CAssignment instanciateAssign(CAssignment pAssign, final SSAMap pSsaMap, AnalysisDirection direction) {
+    final int lhsSsaDelta = direction == AnalysisDirection.BACKWARD ? 0 : +1;
+    final int rhsSsaDelta = direction == AnalysisDirection.BACKWARD ? +1 : 0;
 
     if (pAssign instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement assign = (CExpressionAssignmentStatement) pAssign;
