@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
@@ -67,14 +66,5 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
     PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().declareFun(pName, returnType, types);
 
     return new PrincessFunctionType<>(pReturnType, pArgs, funcDecl);
-  }
-
-  @Override
-  public <T extends Formula> PrincessFunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 }

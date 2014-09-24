@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -50,6 +51,13 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager) {
     super(pCreator);
     this.unsafeManager = unsafeManager;
+  }
+
+  @Override
+  public <T extends Formula> FunctionFormulaType<T> createFunction(
+      String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
+
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   protected abstract <TFormula extends Formula> TFormulaInfo

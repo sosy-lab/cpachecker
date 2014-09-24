@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -65,14 +64,5 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
     getFormulaCreator().getEnv().declareFun(pName, types, returnType);
 
     return new SmtInterpolFunctionType<>(pReturnType, pArgs, pName);
-  }
-
-  @Override
-  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 }
