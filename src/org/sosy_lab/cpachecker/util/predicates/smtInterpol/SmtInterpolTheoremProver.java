@@ -67,7 +67,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
-    return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
+    return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);
   }
 
   @Override

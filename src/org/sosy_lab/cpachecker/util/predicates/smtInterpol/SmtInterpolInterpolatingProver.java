@@ -153,6 +153,6 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     Preconditions.checkNotNull(env);
     assert assertedFormulas.size() == annotatedTerms.size();
 
-    return SmtInterpolModel.createSmtInterpolModel(mgr, annotatedTerms.values());
+    return SmtInterpolModel.createSmtInterpolModel(env, annotatedTerms.values());
   }
 }

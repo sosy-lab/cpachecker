@@ -131,8 +131,7 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnvironment();
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 
