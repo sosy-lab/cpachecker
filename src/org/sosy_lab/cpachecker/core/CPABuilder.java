@@ -153,7 +153,7 @@ public class CPABuilder {
 
     switch (usedLanguage) {
     case C:
-      return new CProgramScope(cfa);
+      return new CProgramScope(cfa, logger);
 
     default:
       return DummyScope.getInstance();
