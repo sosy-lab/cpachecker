@@ -910,15 +910,16 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
+# Simplify the abstraction formula that is stored to represent the state
+# space. Helpful when debugging (formulas get smaller).
+cpa.predicate.abstraction.simplify = false
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, SYLVAN, FORMULA]
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
-
-# Run the predicate analysis backwards?
-cpa.predicate.backwards = false
 
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
@@ -929,6 +930,13 @@ cpa.predicate.blk.alwaysAfterThreshold = true
 
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
+
+# force abstractions at each branch node, regardless of threshold
+cpa.predicate.blk.alwaysAtBranch = false
+
+# force abstractions at each function head (first node in the body),
+# regardless of threshold
+cpa.predicate.blk.alwaysAtFunctionHeads = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
@@ -971,6 +979,10 @@ cpa.predicate.defaultArrayLength = 20
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
+
+# Direction of the analisis?
+cpa.predicate.direction = FORWARD
+  enum:     [FORWARD, BACKWARD]
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
@@ -1240,6 +1252,10 @@ cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
+
+# Dynamically synthesize additional precision elements during precision
+# adjustment.
+cpa.predicate.synthesizePrecisionOnAbstraction = false
 
 # check satisfiability when a target state has been found (should be true)
 cpa.predicate.targetStateSatCheck = true
@@ -1550,9 +1566,6 @@ cpa.value.symbolicValues = false
 # globally a certain value 
 cpa.value.varName = ""
 
-# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
-cpa.value.variableBlacklist = ""
-
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
@@ -1686,17 +1699,11 @@ pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
-# the threshold which controls whether or not variablevaluations ought to be
-# abstracted once the specified number of valuationsper variable is reached
-# in the set of reached states
-precision.reachedSetThreshold = -1
-
-# whether to track relevant variables only at the exact programlocation
-# (sharing=location), or within their respective(function-/global-) scope
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
-  allowed values: [LOCATION, SCOPE]
 
 # If this option is used, booleans from the cfa are tracked.
 precision.trackBooleanVariables = true
@@ -1712,6 +1719,9 @@ precision.trackIntAddVariables = true
 # If this option is used, variables that are only compared for equality are
 # tracked.
 precision.trackIntEqualVariables = true
+
+# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+precision.variableBlacklist = ""
 
 # print reached set to text file
 reachedSet.export = true
