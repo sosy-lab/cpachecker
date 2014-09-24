@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -42,35 +41,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
@@ -79,14 +63,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -109,14 +88,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -126,11 +103,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 /**
  * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
@@ -145,7 +119,6 @@ public class AssignmentToEdgeAllocator {
   private final ConcreteState modelAtEdge;
 
   private static final int FIRST = 0;
-  private static final CSimpleType UNSIGNED_INT = new CSimpleType(false, false, CBasicType.INT, false, false, false, true, false, false, false);
   private static final CSimpleType UNSIGNED_DOUBLE = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, true, false, false, false);
 
   public AssignmentToEdgeAllocator(LogManager pLogger,
@@ -166,42 +139,6 @@ public class AssignmentToEdgeAllocator {
     String comment = createComment(cfaEdge);
 
     return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
-  }
-
-  @SuppressWarnings("unused")
-  private List<IAssignment> resolveTypeDefs(List<IAssignment> pAssignmentsAtEdge) {
-    return FluentIterable.from(pAssignmentsAtEdge).transform(
-        new Function<IAssignment, IAssignment>() {
-
-        @Override
-        public IAssignment apply(IAssignment pArg0) {
-          ExpressionTypedefResolver typdefResolver = new ExpressionTypedefResolver();
-          if (pArg0 instanceof CExpressionAssignmentStatement) {
-            CExpressionAssignmentStatement ass = (CExpressionAssignmentStatement) pArg0;
-            return new CExpressionAssignmentStatement(
-                pArg0.getFileLocation(),
-                (CLeftHandSide) ass.getLeftHandSide().accept(typdefResolver),
-                ass.getRightHandSide().accept(typdefResolver));
-          }
-          if (pArg0 instanceof CFunctionCallAssignmentStatement) {
-            CFunctionCallAssignmentStatement ass = (CFunctionCallAssignmentStatement) pArg0;
-            CFunctionCallExpression rhs = ass.getFunctionCallExpression();
-            rhs = new CFunctionCallExpression(
-                rhs.getFileLocation(),
-                rhs.getExpressionType().accept(typdefResolver.typedefResolver),
-                rhs.getFunctionNameExpression(),
-                rhs.getParameterExpressions(),
-                typdefResolver.declarationTypedefResolver.visit(rhs.getDeclaration()));
-            return new CFunctionCallAssignmentStatement(
-                pArg0.getFileLocation(),
-                (CLeftHandSide) ass.getLeftHandSide().accept(typdefResolver),
-                rhs);
-          }
-          throw new AssertionError("Unsupported assignment type");
-        }
-        }
-
-    ).toList();
   }
 
   private String createComment(CFAEdge pCfaEdge) {
@@ -1214,13 +1151,12 @@ public class AssignmentToEdgeAllocator {
 
     protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
 
-
       CBasicType basicType = pSimpleType.getType();
 
       switch (basicType) {
       case BOOL:
       case INT:
-        return handleIntegerNumbers(pValue, pSimpleType.isSigned());
+        return handleIntegerNumbers(pValue, pSimpleType);
       case FLOAT:
       case DOUBLE:
         return handleFloatingPointNumbers(pValue, pSimpleType.isSigned());
@@ -1267,18 +1203,14 @@ public class AssignmentToEdgeAllocator {
       type.accept(v);
     }
 
-    private ValueLiteral handleIntegerNumbers(Object pValue, boolean isSigned) {
+    private ValueLiteral handleIntegerNumbers(Object pValue, CSimpleType pType) {
 
       String value = pValue.toString();
 
       if (value.matches("((-)?)\\d*")) {
         BigInteger integerValue = new BigInteger(value);
 
-        if (!isSigned && integerValue.signum() == -1) {
-          return ExplicitValueLiteral.valueOf(integerValue).addCast(UNSIGNED_INT);
-        } else {
-          return ExplicitValueLiteral.valueOf(integerValue);
-        }
+        return handlePotentialIntegerOverflow(integerValue, pType);
       } else {
         String[] numberParts = value.split("\\.");
 
@@ -1288,25 +1220,48 @@ public class AssignmentToEdgeAllocator {
 
           BigInteger integerValue = new BigInteger(numberParts[0]);
 
-          if (!isSigned && integerValue.signum() == -1) {
-            return ExplicitValueLiteral.valueOf(integerValue).addCast(UNSIGNED_INT);
-          } else {
-            return ExplicitValueLiteral.valueOf(integerValue);
-          }
+          return handlePotentialIntegerOverflow(integerValue, pType);
         }
       }
 
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, isSigned);
+      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType.isSigned());
 
       if (valueLiteral.isUnknown()) {
         return valueLiteral;
       } else {
-        if (isSigned) {
-          return valueLiteral.addCast(CNumericTypes.INT);
-        } else {
-          return valueLiteral.addCast(UNSIGNED_INT);
-        }
+        return valueLiteral.addCast(pType);
       }
+    }
+
+    /**
+     * Creates a value literal for the given value and adds a cast if the value
+     * does not fit into the specified type.
+     *
+     * @param pIntegerValue the value.
+     * @param pType the type.
+     *
+     * @return the value literal.
+     */
+    private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
+      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue);
+
+      int bitLength = machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
+
+      BigInteger lowerInclusiveBound = BigInteger.ZERO;
+      BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitLength);
+      if (pType.isSigned()) {
+        upperExclusiveBound = upperExclusiveBound.shiftRight(1);
+        lowerInclusiveBound = upperExclusiveBound.negate();
+      }
+
+      assert lowerInclusiveBound.compareTo(upperExclusiveBound) < 0;
+
+      if (pIntegerValue.compareTo(lowerInclusiveBound) < 0
+          || pIntegerValue.compareTo(upperExclusiveBound) >= 0) {
+        result = result.addCast(pType);
+      }
+
+      return result;
     }
 
     /**
@@ -1910,477 +1865,6 @@ public class AssignmentToEdgeAllocator {
     public CLeftHandSide getSubExpression() {
       return subExpression;
     }
-  }
-
-  private static class TypedefResolver implements CTypeVisitor<CType, RuntimeException> {
-
-    private final Map<CType, CType> done = Maps.newHashMap();
-
-    @Override
-    public CType visit(CArrayType pArrayType) throws RuntimeException {
-      CType result = done.get(pArrayType);
-      if (result != null) {
-        return result;
-      }
-      result = new CArrayType(
-          pArrayType.isConst(),
-          pArrayType.isVolatile(),
-          pArrayType.getType().accept(this),
-          pArrayType.getLength());
-      done.put(pArrayType, result);
-      return result;
-    }
-
-    @Override
-    public CType visit(CCompositeType pCompositeType) throws RuntimeException {
-      CCompositeType result = (CCompositeType) done.get(pCompositeType);
-      if (result != null) {
-        return result;
-      }
-      result = new CCompositeType(
-          pCompositeType.isConst(),
-          pCompositeType.isVolatile(),
-          pCompositeType.getKind(),
-          Collections.<CCompositeTypeMemberDeclaration>emptyList(),
-          pCompositeType.getName());
-      done.put(pCompositeType, result);
-      result.setMembers(FluentIterable.from(pCompositeType.getMembers()).transform(new Function<CCompositeTypeMemberDeclaration, CCompositeTypeMemberDeclaration>() {
-
-            @Override
-            public CCompositeTypeMemberDeclaration apply(CCompositeTypeMemberDeclaration pArg0) {
-              return new CCompositeTypeMemberDeclaration(
-                      pArg0.getType().accept(TypedefResolver.this),
-                      pArg0.getName());
-            }
-
-          }).toList());
-      return result;
-    }
-
-    @Override
-    public CType visit(CElaboratedType pElaboratedType) throws RuntimeException {
-      CElaboratedType result = (CElaboratedType) done.get(pElaboratedType);
-      if (result != null) {
-        return result;
-      }
-      result = new CElaboratedType(
-          pElaboratedType.isConst(),
-          pElaboratedType.isVolatile(),
-          pElaboratedType.getKind(),
-          pElaboratedType.getName(),
-          null);
-      done.put(pElaboratedType, result);
-      if (pElaboratedType.getRealType() != null) {
-        result.setRealType((CComplexType) pElaboratedType.getRealType().accept(this));
-      }
-      return result;
-    }
-
-    @Override
-    public CType visit(CEnumType pEnumType) throws RuntimeException {
-      return pEnumType;
-    }
-
-    @Override
-    public CFunctionType visit(CFunctionType pFunctionType) throws RuntimeException {
-      CFunctionType result = (CFunctionType) done.get(pFunctionType);
-      if (result != null) {
-        return result;
-      }
-      result = new CFunctionType(
-          pFunctionType.isConst(),
-          pFunctionType.isVolatile(),
-          pFunctionType.getReturnType().accept(this),
-          FluentIterable.from(pFunctionType.getParameters()).transform(new Function<CType, CType>() {
-
-            @Override
-            public CType apply(CType pArg0) {
-              return pArg0.accept(TypedefResolver.this);
-            }
-
-          }).toList(),
-          pFunctionType.takesVarArgs());
-      done.put(pFunctionType, result);
-      return result;
-    }
-
-    @Override
-    public CType visit(CPointerType pPointerType) throws RuntimeException {
-      CType result = done.get(pPointerType);
-      if (result != null) {
-        return result;
-      }
-      result = new CPointerType(
-          pPointerType.isConst(),
-          pPointerType.isVolatile(),
-          pPointerType.getType().accept(this));
-      done.put(pPointerType, result);
-      return result;
-    }
-
-    @Override
-    public CType visit(CProblemType pProblemType) throws RuntimeException {
-      return pProblemType;
-    }
-
-    @Override
-    public CType visit(CSimpleType pSimpleType) throws RuntimeException {
-      return pSimpleType;
-    }
-
-    @Override
-    public CType visit(CTypedefType pTypedefType) throws RuntimeException {
-      CType result = done.get(pTypedefType);
-      if (result != null) {
-        return result;
-      }
-      result = pTypedefType.getRealType().accept(this);
-      done.put(pTypedefType, result);
-      return result;
-    }
-
-  }
-
-  private static class ExpressionTypedefResolver implements CExpressionVisitor<CExpression, RuntimeException> {
-
-    private final SimpleDeclarationTypedefResolveVisitor declarationTypedefResolver;
-
-    private final TypedefResolver typedefResolver;
-
-    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
-
-    private final InitializerTypdefResolver initializerTypdefResolver;
-
-    public ExpressionTypedefResolver() {
-      this.typedefResolver = new TypedefResolver();
-      this.designatorTypedefResolveVisitor = new DesignatorTypedefResolveVisitor(this);
-      this.initializerTypdefResolver = new InitializerTypdefResolver(this, designatorTypedefResolveVisitor);
-      this.declarationTypedefResolver =
-          new SimpleDeclarationTypedefResolveVisitor(
-              this.typedefResolver,
-              this,
-              designatorTypedefResolveVisitor,
-              initializerTypdefResolver);
-    }
-
-    @Override
-    public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
-      return new CArraySubscriptExpression(
-          pIastArraySubscriptExpression.getFileLocation(),
-          pIastArraySubscriptExpression.getExpressionType().accept(typedefResolver),
-          pIastArraySubscriptExpression.getArrayExpression().accept(this),
-          pIastArraySubscriptExpression.getSubscriptExpression().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CFieldReference pIastFieldReference) throws RuntimeException {
-      return new CFieldReference(
-          pIastFieldReference.getFileLocation(),
-          pIastFieldReference.getExpressionType().accept(typedefResolver),
-          pIastFieldReference.getFieldName(),
-          pIastFieldReference.getFieldOwner().accept(this),
-          pIastFieldReference.isPointerDereference());
-    }
-
-    @Override
-    public CExpression visit(CIdExpression pIastIdExpression) throws RuntimeException {
-      return new CIdExpression(
-          pIastIdExpression.getFileLocation(),
-          pIastIdExpression.getExpressionType().accept(typedefResolver),
-          pIastIdExpression.getName(),
-          pIastIdExpression.getDeclaration().accept(declarationTypedefResolver));
-    }
-
-    @Override
-    public CExpression visit(CPointerExpression pPointerExpression) throws RuntimeException {
-      return new CPointerExpression(
-          pPointerExpression.getFileLocation(),
-          pPointerExpression.getExpressionType().accept(typedefResolver),
-          pPointerExpression.getOperand().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
-      return new CComplexCastExpression(
-          pComplexCastExpression.getFileLocation(),
-          pComplexCastExpression.getExpressionType().accept(typedefResolver),
-          pComplexCastExpression.getOperand().accept(this),
-          pComplexCastExpression.getType().accept(typedefResolver),
-          pComplexCastExpression.isRealCast());
-    }
-
-    @Override
-    public CExpression visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-      return new CBinaryExpression(
-          pIastBinaryExpression.getFileLocation(),
-          pIastBinaryExpression.getExpressionType().accept(typedefResolver),
-          pIastBinaryExpression.getCalculationType().accept(typedefResolver),
-          pIastBinaryExpression.getOperand1().accept(this),
-          pIastBinaryExpression.getOperand2().accept(this),
-          pIastBinaryExpression.getOperator());
-    }
-
-    @Override
-    public CExpression visit(CCastExpression pIastCastExpression) throws RuntimeException {
-      return new CCastExpression(
-          pIastCastExpression.getFileLocation(),
-          pIastCastExpression.getExpressionType().accept(typedefResolver),
-          pIastCastExpression.getOperand().accept(this));
-    }
-
-    @Override
-    public CExpression visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
-      return new CCharLiteralExpression(
-          pIastCharLiteralExpression.getFileLocation(),
-          pIastCharLiteralExpression.getExpressionType().accept(typedefResolver),
-          pIastCharLiteralExpression.getValue());
-    }
-
-    @Override
-    public CExpression visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
-      return new CFloatLiteralExpression(
-          pIastFloatLiteralExpression.getFileLocation(),
-          pIastFloatLiteralExpression.getExpressionType().accept(typedefResolver),
-          pIastFloatLiteralExpression.getValue());
-    }
-
-    @Override
-    public CExpression visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
-      return new CIntegerLiteralExpression(
-          pIastIntegerLiteralExpression.getFileLocation(),
-          pIastIntegerLiteralExpression.getExpressionType().accept(typedefResolver),
-          pIastIntegerLiteralExpression.getValue());
-    }
-
-    @Override
-    public CExpression visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
-      return new CStringLiteralExpression(
-          pIastStringLiteralExpression.getFileLocation(),
-          pIastStringLiteralExpression.getExpressionType().accept(typedefResolver),
-          pIastStringLiteralExpression.getContentString());
-    }
-
-    @Override
-    public CExpression visit(CTypeIdExpression pTypeIdExpression) throws RuntimeException {
-      return new CTypeIdExpression(
-          pTypeIdExpression.getFileLocation(),
-          pTypeIdExpression.getExpressionType().accept(typedefResolver),
-          pTypeIdExpression.getOperator(),
-          pTypeIdExpression.getType().accept(typedefResolver));
-    }
-
-    @Override
-    public CExpression visit(CUnaryExpression pUnaryExpression) throws RuntimeException {
-      return new CUnaryExpression(
-          pUnaryExpression.getFileLocation(),
-          pUnaryExpression.getExpressionType().accept(typedefResolver),
-          pUnaryExpression.getOperand().accept(this),
-          pUnaryExpression.getOperator());
-    }
-
-    @Override
-    public CExpression visit(CImaginaryLiteralExpression pLiteralExpression) throws RuntimeException {
-      return new CImaginaryLiteralExpression(
-          pLiteralExpression.getFileLocation(),
-          pLiteralExpression.getExpressionType().accept(typedefResolver),
-          pLiteralExpression.getValue(),
-          pLiteralExpression.getImaginaryString());
-    }
-
-  }
-
-  private static class DesignatorTypedefResolveVisitor implements CDesignatorVisitor<CDesignator, RuntimeException> {
-
-    private final ExpressionTypedefResolver expressionTypedefResolver;
-
-    public DesignatorTypedefResolveVisitor(ExpressionTypedefResolver pExpressionTypedefResolver) {
-      this.expressionTypedefResolver = pExpressionTypedefResolver;
-    }
-
-    @Override
-    public CDesignator visit(CArrayDesignator pArrayDesignator) throws RuntimeException {
-      return new CArrayDesignator(
-          pArrayDesignator.getFileLocation(),
-          pArrayDesignator.getSubscriptExpression().accept(expressionTypedefResolver));
-    }
-
-    @Override
-    public CDesignator visit(CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
-      return new CArrayRangeDesignator(
-          pArrayRangeDesignator.getFileLocation(),
-          pArrayRangeDesignator.getFloorExpression().accept(expressionTypedefResolver),
-          pArrayRangeDesignator.getCeilExpression().accept(expressionTypedefResolver));
-    }
-
-    @Override
-    public CDesignator visit(CFieldDesignator pFieldDesignator) throws RuntimeException {
-      return pFieldDesignator;
-    }
-
-  }
-
-  private static class SimpleDeclarationTypedefResolveVisitor implements CSimpleDeclarationVisitor<CSimpleDeclaration, RuntimeException> {
-
-    private final TypedefResolver typedefResolver;
-
-    private final ExpressionTypedefResolver expressionTypedefResolver;
-
-    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
-
-    private final InitializerTypdefResolver initializerTypdefResolver;
-
-    public SimpleDeclarationTypedefResolveVisitor(TypedefResolver pTypedefResolver,
-        ExpressionTypedefResolver pExpressionTypedefResolver,
-        DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor,
-        InitializerTypdefResolver pInitializerTypdefResolver) {
-      this.typedefResolver = pTypedefResolver;
-      this.expressionTypedefResolver = pExpressionTypedefResolver;
-      this.designatorTypedefResolveVisitor = pDesignatorTypedefResolveVisitor;
-      this.initializerTypdefResolver = pInitializerTypdefResolver;
-    }
-
-    @Override
-    public CFunctionDeclaration visit(CFunctionDeclaration pDecl) throws RuntimeException {
-      return new CFunctionDeclaration(
-          pDecl.getFileLocation(),
-          typedefResolver.visit(pDecl.getType()),
-          pDecl.getName(),
-          FluentIterable.from(pDecl.getParameters()).transform(new Function<CParameterDeclaration, CParameterDeclaration>() {
-
-            @Override
-            public CParameterDeclaration apply(CParameterDeclaration pArg0) {
-              return SimpleDeclarationTypedefResolveVisitor.this.visit(pArg0);
-            }
-
-          }).toList());
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CComplexTypeDeclaration pDecl) throws RuntimeException {
-      return new CComplexTypeDeclaration(
-          pDecl.getFileLocation(),
-          pDecl.isGlobal(),
-          (CComplexType) pDecl.getType().accept(typedefResolver));
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CTypeDeclaration pDecl) throws RuntimeException {
-      if (pDecl instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDecl;
-        return new CComplexTypeDeclaration(
-            complexTypeDeclaration.getFileLocation(),
-            complexTypeDeclaration.isGlobal(),
-            (CComplexType) complexTypeDeclaration.getType().accept(typedefResolver));
-      }
-      CTypeDefDeclaration typeDefDeclaration = (CTypeDefDeclaration) pDecl;
-      return new CTypeDefDeclaration(
-          typeDefDeclaration.getFileLocation(),
-          typeDefDeclaration.isGlobal(),
-          typeDefDeclaration.getType().accept(typedefResolver),
-          typeDefDeclaration.getName(),
-          typeDefDeclaration.getQualifiedName());
-
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CVariableDeclaration pDecl) throws RuntimeException {
-      return new CVariableDeclaration(
-          pDecl.getFileLocation(),
-          pDecl.isGlobal(),
-          pDecl.getCStorageClass(),
-          pDecl.getType().accept(typedefResolver),
-          pDecl.getName(),
-          pDecl.getOrigName(),
-          pDecl.getQualifiedName(),
-          handle(pDecl.getInitializer(),
-              expressionTypedefResolver,
-              designatorTypedefResolveVisitor,
-              initializerTypdefResolver));
-    }
-
-    @Override
-    public CParameterDeclaration visit(CParameterDeclaration pDecl) throws RuntimeException {
-      CParameterDeclaration result = new CParameterDeclaration(
-          pDecl.getFileLocation(),
-          pDecl.getType().accept(typedefResolver),
-          pDecl.getName());
-      result.setQualifiedName(pDecl.getQualifiedName());
-      return result;
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CEnumerator pDecl) throws RuntimeException {
-      CEnumerator result = new CEnumerator(
-          pDecl.getFileLocation(),
-          pDecl.getName(),
-          pDecl.getQualifiedName(),
-          pDecl.getValue());
-      result.setEnum((CEnumType) pDecl.getEnum().accept(typedefResolver));
-      return result;
-    }
-  }
-
-  private static @Nullable CInitializer handle(@Nullable CInitializer pInitializer,
-      final ExpressionTypedefResolver pExpressionTypedefResolver,
-      final DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor,
-      final InitializerTypdefResolver initializerTypdefResolver) {
-    if (pInitializer == null) {
-      return null;
-    }
-
-    return pInitializer.accept(initializerTypdefResolver);
-
-  }
-
-  private static class InitializerTypdefResolver implements CInitializerVisitor<CInitializer, RuntimeException> {
-
-    private final ExpressionTypedefResolver expressionTypedefResolver;
-
-    private final DesignatorTypedefResolveVisitor designatorTypedefResolveVisitor;
-
-    public InitializerTypdefResolver(ExpressionTypedefResolver pExpressionTypedefResolver,
-        DesignatorTypedefResolveVisitor pDesignatorTypedefResolveVisitor) {
-      this.expressionTypedefResolver = pExpressionTypedefResolver;
-      this.designatorTypedefResolveVisitor = pDesignatorTypedefResolveVisitor;
-    }
-
-    @Override
-    public CInitializer visit(CInitializerExpression pInitializerExpression) throws RuntimeException {
-      return new CInitializerExpression(
-          pInitializerExpression.getFileLocation(),
-          pInitializerExpression.getExpression().accept(expressionTypedefResolver));
-    }
-
-    @Override
-    public CInitializer visit(CInitializerList pInitializerList) throws RuntimeException {
-      return new CInitializerList(
-          pInitializerList.getFileLocation(),
-          FluentIterable.from(pInitializerList.getInitializers()).transform(new Function<CInitializer, CInitializer>() {
-
-            @Override
-            public CInitializer apply(CInitializer pArg0) {
-              return handle(pArg0, expressionTypedefResolver, designatorTypedefResolveVisitor, InitializerTypdefResolver.this);
-            }
-
-          }).toList());
-    }
-
-    @Override
-    public CInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws RuntimeException {
-      CInitializer right = handle(pDesignatedInitializer.getRightHandSide(), expressionTypedefResolver, designatorTypedefResolveVisitor, this);
-      return new CDesignatedInitializer(
-          pDesignatedInitializer.getFileLocation(),
-          FluentIterable.from(pDesignatedInitializer.getDesignators()).transform(new Function<CDesignator, CDesignator>() {
-
-            @Override
-            public CDesignator apply(CDesignator pArg0) {
-              return pArg0.accept(designatorTypedefResolveVisitor);
-            }
-
-          }).toList(),
-          right);
-    }
-
   }
 
 }
