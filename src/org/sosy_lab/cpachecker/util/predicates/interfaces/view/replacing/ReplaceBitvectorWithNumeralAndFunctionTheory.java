@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
-import com.google.common.collect.ImmutableList;
-
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
 
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
@@ -80,11 +78,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private FunctionFormulaType<T> createUnaryFunction(String name) {
-    return functionManager.declareUninterpretedFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType);
   }
 
   private FunctionFormulaType<T> createBinaryFunction(String name) {
-    return functionManager.declareUninterpretedFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType, formulaType);
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {

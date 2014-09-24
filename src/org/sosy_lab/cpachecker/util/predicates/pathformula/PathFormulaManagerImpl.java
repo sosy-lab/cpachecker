@@ -82,7 +82,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 /**
@@ -474,11 +473,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               newIndex,
                                                                               returnFormulaType,
-                                                                              ImmutableList.of(targetAddress)),
+                                                                              targetAddress),
                                                       ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               oldIndex,
                                                                               returnFormulaType,
-                                                                              ImmutableList.of(targetAddress)));
+                                                                              targetAddress));
       result = fmgr.makeAnd(result, retention);
     }
 

@@ -439,7 +439,7 @@ class AssignmentHandler {
       final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
                                                   newIndex,
                                                   targetType,
-                                                  ImmutableList.of(lvalue.asAliased().getAddress()));
+                                                  lvalue.asAliased().getAddress());
       if (rhs != null) {
         result = fmgr.makeEqual(lhs, rhs);
       } else {
@@ -516,11 +516,11 @@ class AssignmentHandler {
         final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 newIndex,
                                                                                 returnType,
-                                                                                ImmutableList.of(targetAddress)),
+                                                                                targetAddress),
                                                         ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 oldIndex,
                                                                                 returnType,
-                                                                                ImmutableList.of(targetAddress)));
+                                                                                targetAddress));
        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
@@ -531,11 +531,11 @@ class AssignmentHandler {
       constraints.addConstraint(fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        newIndex,
                                                                        returnType,
-                                                                       ImmutableList.of(targetAddress)),
+                                                                       targetAddress),
                                                ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        oldIndex,
                                                                        returnType,
-                                                                       ImmutableList.of(targetAddress))));
+                                                                       targetAddress)));
     }
   }
 
@@ -564,11 +564,11 @@ class AssignmentHandler {
           consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     newIndex,
                                                                                     returnType,
-                                                                                    ImmutableList.of(targetAddress)),
+                                                                                    targetAddress),
                                                             ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     oldIndex,
                                                                                     returnType,
-                                                                                    ImmutableList.of(targetAddress))));
+                                                                                    targetAddress)));
         }
       }
       constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
@@ -594,11 +594,11 @@ class AssignmentHandler {
                                            fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                   newIndex,
                                                                                   returnType,
-                                                                                  ImmutableList.of(targetAddress)),
+                                                                                  targetAddress),
                                            ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                    oldIndex,
                                                                    returnType,
-                                                                   ImmutableList.of(targetAddress)))));
+                                                                   targetAddress))));
       }
     }
   }

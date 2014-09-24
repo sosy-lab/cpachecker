@@ -112,7 +112,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -386,7 +385,7 @@ public class CtoFormulaConverter {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
       result = ffmgr.callUninterpretedFunction(
-          stringUfDecl, ImmutableList.of(nfmgr.makeNumber(n)));
+          stringUfDecl, nfmgr.makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
 
