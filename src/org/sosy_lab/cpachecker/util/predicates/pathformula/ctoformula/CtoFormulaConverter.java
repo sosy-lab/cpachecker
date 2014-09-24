@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -159,7 +160,7 @@ public class CtoFormulaConverter {
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  protected final boolean backwards;
+  protected final AnalysisDirection direction;
 
   // Index that is used to read from variables that were not assigned yet
   private static final int VARIABLE_UNINITIALIZED = 1;
@@ -174,7 +175,7 @@ public class CtoFormulaConverter {
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
-      CtoFormulaTypeHandler pTypeHandler, boolean pBackwards) {
+      CtoFormulaTypeHandler pTypeHandler, AnalysisDirection pDirection) {
 
     this.fmgr = fmgr;
     this.options = pOptions;
@@ -189,7 +190,7 @@ public class CtoFormulaConverter {
     this.logger = new LogManagerWithoutDuplicates(logger);
     this.shutdownNotifier = pShutdownNotifier;
 
-    this.backwards = pBackwards;
+    this.direction = pDirection;
 
     stringUfDecl = ffmgr.createFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
@@ -363,7 +364,7 @@ public class CtoFormulaConverter {
   protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex;
 
-    if (backwards) {
+    if (direction == AnalysisDirection.BACKWARD) {
       useIndex = getIndex(name, type, ssa);
     } else {
       useIndex = makeFreshIndex(name, type, ssa);
@@ -371,7 +372,7 @@ public class CtoFormulaConverter {
 
     Formula result = fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
 
-    if (backwards) {
+    if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);
     }
 
@@ -782,7 +783,7 @@ public class CtoFormulaConverter {
     // In case of an existing initializer, we increment the index twice
     // (here and below) so that the index 2 only occurs for uninitialized variables.
     // DO NOT OMIT THIS CALL, even without an initializer!
-    if (!backwards) {
+    if (direction == AnalysisDirection.FORWARD) {
       makeFreshIndex(varName, decl.getType(), ssa);
     }
 
@@ -1020,7 +1021,7 @@ public class CtoFormulaConverter {
     }
 
     Formula l = null, r = null;
-    if (backwards) {
+    if (direction == AnalysisDirection.BACKWARD) {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     } else {

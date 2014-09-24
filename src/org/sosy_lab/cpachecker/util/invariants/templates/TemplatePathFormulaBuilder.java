@@ -30,6 +30,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager.TemplateParseMode;
@@ -53,7 +54,7 @@ public class TemplatePathFormulaBuilder {
       logger = new BasicLogManager(config);
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), MachineModel.LINUX32, false);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), MachineModel.LINUX32, AnalysisDirection.FORWARD);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }
@@ -68,7 +69,7 @@ public class TemplatePathFormulaBuilder {
     try {
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
-      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), machineModel, false);
+      pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, ShutdownNotifier.create(), machineModel, AnalysisDirection.FORWARD);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

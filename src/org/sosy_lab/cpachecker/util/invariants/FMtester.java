@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -79,7 +80,7 @@ public class FMtester {
       FormulaManagerView emgr = new FormulaManagerView(fmgr, config, logger);
       //
 
-      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, shutdownNotifier, cfa, false);
+      pfmgr = new PathFormulaManagerImpl(emgr, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
     } catch (Exception e) {
       System.err.println(e.getMessage());
     }

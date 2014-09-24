@@ -6,6 +6,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -59,7 +60,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
     FormulaManagerView formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, config, logger, shutdownNotifier, cfa, false);
+        formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
     LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
         pathFormulaManager,

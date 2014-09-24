@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
@@ -118,31 +119,32 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
-  private final boolean backwards;
+  private final AnalysisDirection direction;
 
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel, boolean pBackwards)
+      MachineModel pMachineModel, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
 
     this(pFmgr, config, pLogger, pShutdownNotifier,
-        pMachineModel, Optional.<VariableClassification>absent(), pBackwards);
+        pMachineModel, Optional.<VariableClassification>absent(), pDirection);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa, boolean pBackwards)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      CFA pCfa, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
 
     this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(),
-        pCfa.getVarClassification(), pBackwards);
+        pCfa.getVarClassification(), pDirection);
   }
 
   @VisibleForTesting
   PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification, boolean pBackwards)
+      Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
@@ -153,7 +155,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    backwards = pBackwards;
+    direction = pDirection;
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
@@ -179,7 +181,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       CtoFormulaTypeHandler pTypeHandler) {
 
     return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pTypeHandler, backwards);
+        logger, shutdownNotifier, pTypeHandler, direction);
   }
 
   private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
@@ -189,7 +191,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     return new CToFormulaConverterWithPointerAliasing(
         pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
-        logger, shutdownNotifier, pAliasingTypeHandler, backwards);
+        logger, shutdownNotifier, pAliasingTypeHandler, direction);
   }
 
   @Override

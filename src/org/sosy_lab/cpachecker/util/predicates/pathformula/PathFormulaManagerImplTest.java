@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -121,7 +122,7 @@ public class PathFormulaManagerImplTest {
         ShutdownNotifier.create(),
         MachineModel.LINUX32,
         Optional.<VariableClassification>absent(),
-        false
+        AnalysisDirection.FORWARD
         );
 
     pfmgrBwd = new PathFormulaManagerImpl(
@@ -131,7 +132,7 @@ public class PathFormulaManagerImplTest {
         ShutdownNotifier.create(),
         MachineModel.LINUX32,
         Optional.<VariableClassification>absent(),
-        true
+        AnalysisDirection.BACKWARD
         );
   }
 

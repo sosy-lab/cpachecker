@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -125,9 +126,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                    final LogManager logger,
                                    final ShutdownNotifier pShutdownNotifier,
                                    final TypeHandlerWithPointerAliasing pTypeHandler,
-                                   final boolean pBackwards)
+                                   final AnalysisDirection pDirection)
   throws InvalidConfigurationException {
-    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pBackwards);
+    super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
     variableClassification = pVariableClassification;
     options = pOptions;
     ptsMgr = pPtsMgr;
