@@ -64,27 +64,9 @@ abstract class SmtInterpolNumeralFormulaManager
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(SmtInterpolFunctionType<?> funcDecl, Term pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
   @Override
   public Term negate(Term pNumber) {
     return env.term("*", env.numeral("-1"), pNumber);
-  }
-
-  @Override
-  public boolean isNegate(Term pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) {
-      return false;
-    }
-    Term arg = SmtInterpolUtil.getArg(pNumber, 0);
-    if (SmtInterpolUtil.isNumber(arg)) {
-      // TODO: BUG: possible bug
-      return SmtInterpolUtil.toNumber(arg).doubleValue() == -1;
-    }
-    return false;
   }
 
   @Override
@@ -93,18 +75,8 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isAdd(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "+");
-  }
-
-  @Override
   public Term subtract(Term pNumber1, Term pNumber2) {
     return env.term("-", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isSubtract(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "-");
   }
 
   @Override
@@ -125,18 +97,8 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isDivide(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "/") || isUf(divUfDecl, pNumber);
-  }
-
-  @Override
   public Term modulo(Term pNumber1, Term pNumber2) {
     return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(Term pNumber) {
-    return isUf(modUfDecl, pNumber);
   }
 
   @Override
@@ -149,11 +111,6 @@ abstract class SmtInterpolNumeralFormulaManager
     }
 
     return result;
-  }
-
-  @Override
-  public boolean isMultiply(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "*") || isUf(multUfDecl, pNumber);
   }
 
   @Override
@@ -172,18 +129,8 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isGreaterThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">");
-  }
-
-  @Override
   public Term greaterOrEquals(Term pNumber1, Term pNumber2) {
     return env.term(">=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">=");
   }
 
   @Override
@@ -192,17 +139,7 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isLessThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<");
-  }
-
-  @Override
   public Term lessOrEquals(Term pNumber1, Term pNumber2) {
     return env.term("<=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<=");
   }
 }

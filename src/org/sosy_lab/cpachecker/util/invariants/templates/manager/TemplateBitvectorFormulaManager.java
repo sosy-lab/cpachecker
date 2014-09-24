@@ -53,18 +53,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   }
 
   @Override
-  public boolean isNegate(BitvectorFormula pNumber) {
-    return baseManager.isNegate(pNumber);
-  }
-
-  @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     return (BitvectorFormula) baseManager.add(pNumber1, pNumber1);
-  }
-
-  @Override
-  public boolean isAdd(BitvectorFormula pNumber) {
-    return baseManager.isAdd(pNumber);
   }
 
   @Override
@@ -73,18 +63,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   }
 
   @Override
-  public boolean isSubtract(BitvectorFormula pNumber) {
-    return baseManager.isSubtract(pNumber);
-  }
-
-  @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     return (BitvectorFormula) baseManager.divide(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isDivide(BitvectorFormula pNumber, boolean signed) {
-    return baseManager.isDivide(pNumber);
   }
 
   @Override
@@ -93,18 +73,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   }
 
   @Override
-  public boolean isModulo(BitvectorFormula pNumber, boolean signed) {
-    return baseManager.isModulo(pNumber);
-  }
-
-  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     return (BitvectorFormula) baseManager.multiply(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isMultiply(BitvectorFormula pNumber) {
-    return baseManager.isMultiply(pNumber);
   }
 
   @Override
@@ -123,18 +93,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   }
 
   @Override
-  public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
-    return baseManager.isGreaterThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     return baseManager.greaterOrEquals(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
-    return baseManager.isGreaterOrEquals(pNumber);
   }
 
   @Override
@@ -143,18 +103,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   }
 
   @Override
-  public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
-    return baseManager.isLessThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     return baseManager.lessOrEquals(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
-    return baseManager.isLessOrEquals(pNumber);
   }
 
 
@@ -185,35 +135,6 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   public BitvectorFormula xor(BitvectorFormula pBits1, BitvectorFormula pBits2) {
     return new NonTemplate(getType(pBits1));
   }
-
-
-  @Override
-  public boolean isNot(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-
-  @Override
-  public boolean isAnd(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-
-  @Override
-  public boolean isOr(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-
-  @Override
-  public boolean isXor(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
@@ -276,35 +197,5 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     BitvectorType t = getType(pNumber);
     return new NonTemplate(t.withSize(t.getSize() + pExtensionBits));
-  }
-
-  @Override
-  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public boolean isShiftLeft(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public boolean isConcat(BitvectorFormula pBits) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public boolean isExtract(BitvectorFormula pBits) {
-   // TODO Auto-generated method stub
-   return false;
-  }
-
-  @Override
-  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
-    // TODO Auto-generated method stub
-    return false;
   }
 }

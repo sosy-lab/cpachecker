@@ -98,61 +98,10 @@ public class NumeralFormulaManagerView
 
 
   @Override
-  public boolean isNegate(ParamFormulaType pNumber) {
-    return manager.isNegate(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isAdd(ParamFormulaType pNumber) {
-    return manager.isAdd(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isSubtract(ParamFormulaType pNumber) {
-    return manager.isSubtract(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isDivide(ParamFormulaType pNumber) {
-    return manager.isDivide(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isModulo(ParamFormulaType pNumber) {
-    return manager.isModulo(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isMultiply(ParamFormulaType pNumber) {
-    return manager.isMultiply(extractFromView(pNumber));
-  }
-
-  @Override
   public boolean isEqual(BooleanFormula pNumber) {
     return manager.isEqual(extractFromView(pNumber));
   }
 
-
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber) {
-    return manager.isGreaterThan(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber) {
-    return manager.isGreaterOrEquals(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber) {
-    return manager.isLessThan(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber) {
-    return manager.isLessOrEquals(extractFromView(pNumber));
-  }
 
   @Override
   public ResultFormulaType makeNumber(long pI) {

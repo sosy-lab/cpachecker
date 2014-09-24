@@ -120,26 +120,6 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
-  public boolean isNot(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BNOT);
-  }
-
-  @Override
-  public boolean isAnd(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BAND);
-  }
-
-  @Override
-  public boolean isOr(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BOR);
-  }
-
-  @Override
-  public boolean isXor(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BXOR);
-  }
-
-  @Override
   public Long negate(Long pNumber) {
     return mk_bvneg(z3context, pNumber);
   }
@@ -211,101 +191,10 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BNOT);
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BADD);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BSUB);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_BSDIV);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_BUDIV);
-    }
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_BSREM);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_BUREM);
-    }
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BMUL);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
     return isOP(z3context, pNumber, Z3_OP_EQ)
         && get_app_num_args(z3context, pNumber) == 2
         && get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_BV_SORT
         && get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_BV_SORT;
-  }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber, boolean signed) {
-    return isLessThan(pNumber, signed);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber, boolean signed) {
-    return isLessOrEquals(pNumber, signed);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_SLT);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_ULT);
-    }
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_SLEQ);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_ULEQ);
-    }
-  }
-
-  @Override
-  public boolean isShiftRight(Long pBits, boolean signed) {
-    return isOP(z3context, pBits, signed ? Z3_OP_BASHR : Z3_OP_BLSHR);
-  }
-
-  @Override
-  public boolean isShiftLeft(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BSHL);
-  }
-
-  @Override
-  public boolean isConcat(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_CONCAT);
-  }
-
-  @Override
-  public boolean isExtract(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_EXTRACT);
-  }
-
-  @Override
-  public boolean isExtend(Long pBits, boolean signed) {
-    return isOP(z3context, pBits, signed ? Z3_OP_SIGN_EXT : Z3_OP_ZERO_EXT);
   }
 }

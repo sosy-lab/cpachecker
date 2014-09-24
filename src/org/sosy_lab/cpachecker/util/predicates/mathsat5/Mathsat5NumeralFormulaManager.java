@@ -65,10 +65,6 @@ abstract class Mathsat5NumeralFormulaManager
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(Mathsat5FunctionType<?> funcDecl, Long pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
   @Override
   public Long makeNumberImpl(long pI) {
     return msat_make_number(mathsatEnv, Long.toString(pI));
@@ -158,94 +154,7 @@ abstract class Mathsat5NumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    boolean isMult = isMultiply(pNumber);
-    if (!isMult) {
-      return false;
-    }
-    long arg = msat_term_get_arg(pNumber, 1);
-    if (msat_term_is_number(mathsatEnv, arg)) {
-      String n = msat_term_repr(arg);
-      if (n.startsWith("(")) {
-        n = n.substring(1, n.length() - 1);
-      }
-      if (n.equals("-1")) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return msat_term_is_plus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    boolean isPlus = isAdd(pNumber);
-    if (!isPlus) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 1);
-    return isNegate(arg);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber) {
-    return isMultiply(pNumber) || isUf(divUfDecl, pNumber);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber) {
-    return isUf(modUfDecl, pNumber);
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return msat_term_is_times(mathsatEnv, pNumber) || isUf(multUfDecl, pNumber);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
     return msat_term_is_equal(mathsatEnv, pNumber);
   }
-
-  private boolean isBoolNot(long n) {
-    return msat_term_is_not(mathsatEnv, n);
-  }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber) {
-    boolean isNot = isBoolNot(pNumber);
-    if (!isNot) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 0);
-    return isLessOrEquals(arg);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber) {
-    return isLessOrEquals(pNumber);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber) {
-    boolean isNot = isBoolNot(pNumber);
-    if (!isNot) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 0);
-    return isLessOrEquals(arg);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber) {
-    return msat_term_is_leq(mathsatEnv, pNumber);
-  }
-
 }

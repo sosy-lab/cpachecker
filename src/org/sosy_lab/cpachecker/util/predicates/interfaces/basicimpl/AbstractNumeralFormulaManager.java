@@ -200,53 +200,6 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
-  @Override
-  public boolean isNegate(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isNegate(param);
-  }
-  protected abstract boolean isNegate(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isAdd(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isAdd(param);
-  }
-  protected abstract boolean isAdd(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isSubtract(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isSubtract(param);
-  }
-
-  protected abstract boolean isSubtract(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isDivide(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isDivide(param);
-  }
-  protected  abstract boolean isDivide(TFormulaInfo pParam) ;
-
-
-  @Override
-  public boolean isModulo(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isModulo(param);
-  }
-
-  protected  abstract boolean isModulo(TFormulaInfo pParam) ;
-
-
-  @Override
-  public boolean isMultiply(ParamFormulaType pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isMultiply(param);
-  }
-  protected abstract boolean isMultiply(TFormulaInfo pParam) ;
 
   @Override
   public boolean isEqual(BooleanFormula pNumber) {
@@ -254,33 +207,4 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return isEqual(param);
   }
   protected abstract boolean isEqual(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterThan(param);
-  }
-  protected abstract boolean isGreaterThan(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterOrEquals(param);
-  }
-  protected abstract boolean isGreaterOrEquals(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessThan(param);
-  }
-  protected abstract boolean isLessThan(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessOrEquals(param);
-  }
-  protected abstract boolean isLessOrEquals(TFormulaInfo pParam) ;
-
 }

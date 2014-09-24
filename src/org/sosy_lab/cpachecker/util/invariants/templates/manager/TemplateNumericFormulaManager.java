@@ -80,18 +80,8 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   }
 
   @Override
-  public boolean isNegate(NumeralFormula pNumber) {
-    return baseManager.isNegate(pNumber);
-  }
-
-  @Override
   public RationalFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return (RationalFormula) baseManager.add(pNumber1, pNumber1);
-  }
-
-  @Override
-  public boolean isAdd(NumeralFormula pNumber) {
-    return baseManager.isAdd(pNumber);
   }
 
   @Override
@@ -100,18 +90,8 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   }
 
   @Override
-  public boolean isSubtract(NumeralFormula pNumber) {
-    return baseManager.isSubtract(pNumber);
-  }
-
-  @Override
   public RationalFormula divide(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return (RationalFormula) baseManager.divide(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isDivide(NumeralFormula pNumber) {
-    return baseManager.isDivide(pNumber);
   }
 
   @Override
@@ -120,18 +100,8 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   }
 
   @Override
-  public boolean isModulo(NumeralFormula pNumber) {
-    return baseManager.isModulo(pNumber);
-  }
-
-  @Override
   public RationalFormula multiply(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return (RationalFormula) baseManager.multiply(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isMultiply(NumeralFormula pNumber) {
-    return baseManager.isMultiply(pNumber);
   }
 
   @Override
@@ -150,18 +120,8 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   }
 
   @Override
-  public boolean isGreaterThan(BooleanFormula pNumber) {
-    return baseManager.isGreaterThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula greaterOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.greaterOrEquals(pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber) {
-    return baseManager.isGreaterOrEquals(pNumber);
   }
 
   @Override
@@ -170,18 +130,7 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   }
 
   @Override
-  public boolean isLessThan(BooleanFormula pNumber) {
-    return baseManager.isLessThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula lessOrEquals(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return baseManager.lessOrEquals(pNumber1, pNumber2);
   }
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber) {
-    return baseManager.isLessOrEquals(pNumber);
-  }
-
 }

@@ -199,53 +199,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2, boolean signed);
 
-  @Override
-  public boolean isNegate(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isNegate(param);
-  }
-  protected abstract boolean isNegate(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isAdd(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isAdd(param);
-  }
-  protected abstract boolean isAdd(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isSubtract(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isSubtract(param);
-  }
-
-  protected abstract boolean isSubtract(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isDivide(BitvectorFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isDivide(param, signed);
-  }
-  protected abstract boolean isDivide(TFormulaInfo pParam, boolean signed) ;
-
-
-  @Override
-  public boolean isModulo(BitvectorFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isModulo(param, signed);
-  }
-
-  protected abstract boolean isModulo(TFormulaInfo pParam, boolean signed) ;
-
-
-  @Override
-  public boolean isMultiply(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isMultiply(param);
-  }
-  protected abstract boolean isMultiply(TFormulaInfo pParam) ;
 
   @Override
   public boolean isEqual(BooleanFormula pNumber) {
@@ -253,34 +206,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     return isEqual(param);
   }
   protected abstract boolean isEqual(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterThan(param, signed);
-  }
-  protected abstract boolean isGreaterThan(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterOrEquals(param, signed);
-  }
-  protected abstract boolean isGreaterOrEquals(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessThan(param, signed);
-  }
-  protected abstract boolean isLessThan(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessOrEquals(param, signed);
-  }
-  protected abstract boolean isLessOrEquals(TFormulaInfo pParam, boolean signed) ;
 
 
   @Override
@@ -324,35 +249,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   protected abstract TFormulaInfo xor(TFormulaInfo pParam1, TFormulaInfo pParam2);
-
-  @Override
-  public boolean isNot(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isNot(param);
-  }
-
-  protected abstract boolean isNot(TFormulaInfo pParam) ;
-
-
-  @Override
-  public boolean isAnd(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isAnd(param);
-  }
-  protected abstract boolean isAnd(TFormulaInfo pParam) ;
-  @Override
-  public boolean isOr(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isOr(param);
-  }
-  protected abstract boolean isOr(TFormulaInfo pParam) ;
-  @Override
-  public boolean isXor(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isXor(param);
-  }
-  protected abstract boolean isXor(TFormulaInfo pParam) ;
-
 
 
   @Override
@@ -431,41 +327,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     return wrap(extend(param, pExtensionBits, pSigned));
   }
   protected abstract TFormulaInfo extend(TFormulaInfo pNumber, int pExtensionBits, boolean pSigned) ;
-
-  @Override
-  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isShiftRight(param, signed);
-  }
-  protected abstract boolean isShiftRight(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isShiftLeft(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isShiftLeft(param);
-  }
-  protected abstract boolean isShiftLeft(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isConcat(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isConcat(param);
-  }
-  protected abstract boolean isConcat(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isExtract(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isExtract(param);
-  }
-  protected abstract boolean isExtract(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isExtend(param, signed);
-  }
-  protected abstract boolean isExtend(TFormulaInfo pParam, boolean signed) ;
 
   @Override
   public int getLength(BitvectorFormula pNumber) {

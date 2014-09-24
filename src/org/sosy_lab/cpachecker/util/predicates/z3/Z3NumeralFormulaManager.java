@@ -33,9 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 abstract class Z3NumeralFormulaManager
@@ -90,10 +88,6 @@ abstract class Z3NumeralFormulaManager
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  private boolean isUf(Z3FunctionType<ResultFormulaType> funcDecl, Long pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
   @Override
   public Long negate(Long pNumber) {
     long sort = get_sort(z3context, pNumber);
@@ -102,50 +96,13 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) { return false; }
-    long arg = get_app_arg(z3context, pNumber, 0);
-    if (is_numeral_ast(z3context, arg)) {
-      long sort = get_sort(z3context, arg);
-      int sortKind = get_sort_kind(z3context, sort);
-      switch (sortKind) {
-      case Z3_INT_SORT: {
-        PointerToInt p = new PointerToInt();
-        boolean check = get_numeral_int(z3context, arg, p);
-        Preconditions.checkState(check);
-        return p.value == -1;
-      }
-      case Z3_REAL_SORT: {
-        long numerator = get_numerator(z3context, arg);
-        long denominator = get_denominator(z3context, arg);
-        return (numerator == -denominator); // (a/b==-1) <--> (a==-b)
-      }
-      default:
-        return false;
-      }
-    }
-    return false;
-  }
-
-  @Override
   public Long add(Long pNumber1, Long pNumber2) {
     return mk_add(z3context, pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isAdd(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_ADD);
-  }
-
-  @Override
   public Long subtract(Long pNumber1, Long pNumber2) {
     return mk_sub(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_SUB);
   }
 
   @Override
@@ -160,20 +117,8 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isDivide(Long pNumber) {
-    if (isOP(z3context, pNumber, Z3_OP_DIV)) { return true; }
-    long decl = get_app_decl(z3context, pNumber);
-    return is_eq_func_decl(z3context, decl, divUfDecl.getFuncDecl());
-  }
-
-  @Override
   public Long modulo(Long pNumber1, Long pNumber2) {
     return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber) {
-    return isUf(modUfDecl, pNumber);
   }
 
   @Override
@@ -185,13 +130,6 @@ abstract class Z3NumeralFormulaManager
       result = makeUf(multUfDecl, pNumber1, pNumber2);
     }
     return result;
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    if (isOP(z3context, pNumber, Z3_OP_MUL)) { return true; }
-    long decl = get_app_decl(z3context, pNumber);
-    return is_eq_func_decl(z3context, decl, multUfDecl.getFuncDecl());
   }
 
   @Override
@@ -215,18 +153,8 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isGreaterThan(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_GT);
-  }
-
-  @Override
   public Long greaterOrEquals(Long pNumber1, Long pNumber2) {
     return mk_ge(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_GE);
   }
 
   @Override
@@ -235,17 +163,7 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isLessThan(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_LT);
-  }
-
-  @Override
   public Long lessOrEquals(Long pNumber1, Long pNumber2) {
     return mk_le(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_LE);
   }
 }

@@ -127,60 +127,10 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
     return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
 
-  @Override
-  public boolean isNegate(BitvectorFormula pNumber) {
-    return manager.isNegate(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isAdd(BitvectorFormula pNumber) {
-    return manager.isAdd(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isSubtract(BitvectorFormula pNumber) {
-    return manager.isSubtract(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isDivide(BitvectorFormula pNumber, boolean signed) {
-    return manager.isDivide(extractFromView(pNumber), signed);
-  }
-
-  @Override
-  public boolean isModulo(BitvectorFormula pNumber, boolean signed) {
-    return manager.isModulo(extractFromView(pNumber), signed);
-  }
-
-  @Override
-  public boolean isMultiply(BitvectorFormula pNumber) {
-    return manager.isMultiply(extractFromView(pNumber));
-  }
 
   @Override
   public boolean isEqual(BooleanFormula pNumber) {
     return manager.isEqual(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
-    return manager.isGreaterThan(extractFromView(pNumber), signed);
-  }
-
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
-    return manager.isGreaterOrEquals(extractFromView(pNumber), signed);
-  }
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
-    return manager.isLessThan(extractFromView(pNumber), signed);
-  }
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
-    return manager.isLessOrEquals(extractFromView(pNumber), signed);
   }
 
 
@@ -199,26 +149,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   @Override
   public BitvectorFormula xor(BitvectorFormula pBits1, BitvectorFormula pBits2) {
     return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));
-  }
-
-  @Override
-  public boolean isNot(BitvectorFormula pBits) {
-    return manager.isNot(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isAnd(BitvectorFormula pBits) {
-    return manager.isAnd(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isOr(BitvectorFormula pBits) {
-    return manager.isOr(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isXor(BitvectorFormula pBits) {
-    return manager.isXor(extractFromView(pBits));
   }
 
 
@@ -269,30 +199,5 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     return wrapInView(manager.extend(extractFromView(pNumber), pExtensionBits, pSigned));
-  }
-
-  @Override
-  public boolean isShiftRight(BitvectorFormula pBits, boolean signed) {
-    return manager.isShiftRight(extractFromView(pBits), signed);
-  }
-
-  @Override
-  public boolean isShiftLeft(BitvectorFormula pBits) {
-    return manager.isShiftLeft(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isConcat(BitvectorFormula pBits) {
-    return manager.isConcat(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isExtract(BitvectorFormula pBits) {
-    return manager.isExtract(extractFromView(pBits));
-  }
-
-  @Override
-  public boolean isExtend(BitvectorFormula pBits, boolean signed) {
-    return manager.isExtend(extractFromView(pBits), signed);
   }
 }
