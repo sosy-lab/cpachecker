@@ -87,12 +87,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   @Option(name="reachedSet.export",
       description="print reached set to text file")
-  private boolean exportReachedSet = true;
+  private boolean exportReachedSet = false;
 
   @Option(name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Paths.get("reached.txt");
 
   @Option(name="coverage.export",
       description="print coverage info to file")
@@ -271,8 +271,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   private void dumpReachedSet(ReachedSet reached) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
-    if (exportReachedSet && outputFile != null) {
-      try (Writer w = Files.openOutputFile(outputFile)) {
+    if (exportReachedSet && reachedSetFile != null) {
+      try (Writer w = Files.openOutputFile(reachedSetFile)) {
         Joiner.on('\n').appendTo(w, reached);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write reached set to file");

@@ -1724,7 +1724,7 @@ precision.trackIntEqualVariables = true
 precision.variableBlacklist = ""
 
 # print reached set to text file
-reachedSet.export = true
+reachedSet.export = false
 reachedSet.file = "reached.txt"
 
 # List of files with configurations to use. A filename can be suffixed with
