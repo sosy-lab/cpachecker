@@ -162,7 +162,7 @@ def _submitRuns(runSet, webclient, benchmark):
         
     return runIDs
     
-def _submitRun(run, webclient, benchmark):
+def _submitRun(run, webclient, benchmark, counter = 0):
     invalidParams = False    
     programTexts = []
     for programPath in run.sourcefiles:
@@ -216,9 +216,13 @@ def _submitRun(run, webclient, benchmark):
     # send request
     try:
          response = urllib2.urlopen(resquest)
+
     except urllib2.HTTPError as e:
-        _auth(webclient, benchmark)
-        raise e
+        if (e.code == 401 and counter < 3):
+            _auth(webclient, benchmark)
+            return _submitRun(run, webclient, benchmark, counter + 1)
+        else:
+            raise e
 
     if response.getcode() == 200:
         runID = response.read()
