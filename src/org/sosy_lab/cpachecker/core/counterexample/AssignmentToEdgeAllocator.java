@@ -334,6 +334,44 @@ public class AssignmentToEdgeAllocator {
     if (value == null) {
       return Collections.emptyList();
     }
+    // FIXME:
+    // We currently incorrectly assign the address of a struct to the struct:
+    // See for example
+    //  ldv-linux-3.4-simple/32_7_cilled_false-unreach-call_const_ok_linux-32_1-drivers--media--video--vivi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c,
+    // where
+    //   *vfd = vivi_template;
+    // becomes
+    //   *vfd = 8388480;
+    // when actually, we want to express that
+    //   vdf == 8388480;
+    // Expression statements are currently not supported, though:
+    // This whole interface is based on assignments.
+    // So if the left hand side is not a pointer expression
+    // or its operand is not a left hand side, for now, just return no assignments.
+    if (isStructOrUnionType(leftHandSide.getExpressionType())) {
+      if (leftHandSide instanceof CPointerExpression) {
+        CExpression lhs = ((CPointerExpression) leftHandSide).getOperand();
+        if (lhs instanceof CLeftHandSide) {
+          leftHandSide = (CLeftHandSide) lhs;
+        } else {
+          return Collections.emptyList();
+        }
+      } else {
+        return Collections.emptyList();
+      }
+    }
+
+    // FIXME:
+    // Assuming that printing pointer values to the error path
+    // is helpful, it would kind of make sense to express
+    //   &(a[0]) == 50
+    // as
+    //   a = 50;
+    // but it is illegal C code.
+    // For now, just return no assignments
+    if (leftHandSide.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      return Collections.emptyList();
+    }
 
     Type expectedType = leftHandSide.getExpressionType();
     ValueLiterals valueAsCode = getValueAsCode(value, expectedType, leftHandSide, functionName);
@@ -402,6 +440,35 @@ public class AssignmentToEdgeAllocator {
       Object value = getValueObject(cDcl, pFunctionName);
 
       if (value == null) {
+        return Collections.emptyList();
+      }
+      // FIXME:
+      // We currently incorrectly assign the address of a struct to the struct:
+      // See for example ssh/s3_clnt.blast.01_false-unreach-call.i.cil.c,
+      // where
+      //   SSL_METHOD SSLv3_client_data = {  };
+      // becomes
+      //   SSLv3_client_data = 536870813;
+      // when actually, we want to express that
+      //   &(SSLv3_client_data) == 536870813
+      // Expression statements are currently not supported, though:
+      // This whole interface is based on assignments.
+      // For now, just return no assignments.
+      if (isStructOrUnionType(dclType)) {
+        return Collections.emptyList();
+      }
+
+      // FIXME:
+      // Say a is an array declared as
+      //   char a[80U];
+      // Assuming that printing pointer values to the error path
+      // is helpful, it would kind of make sense to express
+      //   &(a[0]) == 50
+      // as
+      //   a = 50;
+      // but it is illegal C code.
+      // For now, just return no assignments
+      if (dclType.getCanonicalType() instanceof CArrayType) {
         return Collections.emptyList();
       }
 
