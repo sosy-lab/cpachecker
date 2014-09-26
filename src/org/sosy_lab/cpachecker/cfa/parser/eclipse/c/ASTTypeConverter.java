@@ -478,13 +478,25 @@ class ASTTypeConverter {
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
-  CTypedefType convert(final IASTNamedTypeSpecifier d) {
-    org.eclipse.cdt.core.dom.ast.IASTName name = d.getName();
-    org.eclipse.cdt.core.dom.ast.IBinding binding = name.resolveBinding();
+  CType convert(final IASTNamedTypeSpecifier d) {
+    org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
+    String name = ASTConverter.convert(astName);
+    org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
     if (!(binding instanceof IType)) {
       throw new CFAGenerationRuntimeException("Unknown binding of typedef", d);
     }
-    return new CTypedefType(d.isConst(), d.isVolatile(), ASTConverter.convert(name), convert((IType)binding));
+    CType type = null;
+    if (binding instanceof IProblemBinding) {
+      type = scope.lookupTypedef(name);
+      if (type == null) {
+        type = scope.lookupType(name);
+      }
+    }
+    if (type == null) {
+      type = convert((IType) binding);
+    }
+
+    return new CTypedefType(d.isConst(), d.isVolatile(), name, type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
