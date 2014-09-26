@@ -68,7 +68,7 @@ public class CFAEdgeWithAssignments {
 
     for (IAssignment assignment : assignments) {
       if (assignment instanceof CAssignment) {
-        result.append(assignment.toASTString());
+        result.append(((CAssignment) assignment).accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
         return null;
       }
@@ -77,6 +77,13 @@ public class CFAEdgeWithAssignments {
     return result.toString();
   }
 
+  /**
+   * Print code for user output only. Typedefs are not resolved.
+   * Should not be parsed.
+   *
+   * @param numberOfTabsPerLine the number of tabs per line.
+   * @return pretty-printed code
+   */
   @Nullable
   public String prettyPrintCode(int numberOfTabsPerLine) {
 
