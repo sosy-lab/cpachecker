@@ -397,6 +397,8 @@ public class AssignmentToEdgeAllocator {
 
       CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
 
+      CType dclType = cDcl.getType();
+
       Object value = getValueObject(cDcl, pFunctionName);
 
       if (value == null) {
@@ -405,12 +407,11 @@ public class AssignmentToEdgeAllocator {
 
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
 
-      Type dclType = cDcl.getType();
       ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, pFunctionName);
 
-      CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, cDcl);
+      CLeftHandSide leftHandSide = new CIdExpression(FileLocation.DUMMY, cDcl);
 
-      return handleSimpleValueLiteralsAssignments(valueAsCode, idExp);
+      return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
     }
 
     return Collections.emptyList();
@@ -1150,16 +1151,16 @@ public class AssignmentToEdgeAllocator {
     }
 
     protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
-
-      CBasicType basicType = pSimpleType.getType();
+      CSimpleType simpleType = pSimpleType.getCanonicalType();
+      CBasicType basicType = simpleType.getType();
 
       switch (basicType) {
       case BOOL:
       case INT:
-        return handleIntegerNumbers(pValue, pSimpleType);
+        return handleIntegerNumbers(pValue, simpleType);
       case FLOAT:
       case DOUBLE:
-        return handleFloatingPointNumbers(pValue, pSimpleType.isSigned());
+        return handleFloatingPointNumbers(pValue, simpleType);
       }
 
       return UnknownValueLiteral.getInstance();
@@ -1169,12 +1170,12 @@ public class AssignmentToEdgeAllocator {
       return new ValueLiterals();
     }
 
-    private ValueLiteral handleFloatingPointNumbers(Object pValue, boolean isSigned) {
+    private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
       if (pValue instanceof ExtendedRational) {
         double val = ((ExtendedRational) pValue).toDouble();
         // TODO should we handle infinity and NaN here?
-        return ExplicitValueLiteral.valueOf(new BigDecimal(val));
+        return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
       }
 
       String value = pValue.toString();
@@ -1189,10 +1190,10 @@ public class AssignmentToEdgeAllocator {
         return UnknownValueLiteral.getInstance();
       }
 
-      if (!isSigned && val.signum() == -1) {
-        return ExplicitValueLiteral.valueOf(val).addCast(UNSIGNED_DOUBLE);
+      if (!pType.isSigned() && val.signum() == -1) {
+        return ExplicitValueLiteral.valueOf(val, pType).addCast(UNSIGNED_DOUBLE);
       } else {
-        return ExplicitValueLiteral.valueOf(val);
+        return ExplicitValueLiteral.valueOf(val, pType);
       }
     }
 
@@ -1224,7 +1225,7 @@ public class AssignmentToEdgeAllocator {
         }
       }
 
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType.isSigned());
+      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType);
 
       if (valueLiteral.isUnknown()) {
         return valueLiteral;
@@ -1243,7 +1244,7 @@ public class AssignmentToEdgeAllocator {
      * @return the value literal.
      */
     private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
-      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue);
+      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
 
       int bitLength = machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
 
@@ -1768,6 +1769,12 @@ public class AssignmentToEdgeAllocator {
 
       Number number = address.getAsNumber();
 
+      if (number instanceof Long) {
+        number = BigInteger.valueOf((Long) number);
+      } else if (number instanceof Integer) {
+        number = BigInteger.valueOf((Integer) number);
+      }
+
       if (number instanceof BigInteger) {
         CLiteralExpression lit = new CIntegerLiteralExpression(
             FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, (BigInteger) number);
@@ -1798,14 +1805,14 @@ public class AssignmentToEdgeAllocator {
       return new CastedExplicitValueLiteral(explicitValueLiteral, castExpression);
     }
 
-    public static ValueLiteral valueOf(BigInteger value) {
-      CIntegerLiteralExpression literal = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, value);
+    public static ValueLiteral valueOf(BigInteger value, CSimpleType pType) {
+      CIntegerLiteralExpression literal = new CIntegerLiteralExpression(FileLocation.DUMMY, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(BigDecimal value) {
+    public static ValueLiteral valueOf(BigDecimal value, CSimpleType pType) {
 
-      CFloatLiteralExpression literal = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.DOUBLE, value);
+      CFloatLiteralExpression literal = new CFloatLiteralExpression(FileLocation.DUMMY, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 
