@@ -72,6 +72,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   private final CFA cfa;
 
   private final LogManager logger;
+  private final Configuration config;
 
   private int previousErrorPathId = -1;
 
@@ -119,6 +120,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
     super(pCpa);
 
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    config                = pConfig;
     cfa                   = pCfa;
     logger                = pLogger;
   }
@@ -205,7 +207,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
       return checker.isFeasible(path);
     }

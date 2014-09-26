@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -59,11 +60,28 @@ public class ValueAnalysisFeasibilityChecker {
    * @param pInitial the initial state for starting the exploration
    * @throws InvalidConfigurationException
    */
-  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
+  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa, ValueAnalysisCPA cpa) throws InvalidConfigurationException {
     logger    = pLogger;
 
     transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = VariableTrackingPrecision.createDefaultPrecision();
+    //TODO config
+    precision = VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(), pCfa.getVarClassification());
+  }
+
+  /**
+   * This method acts as the constructor of the class.
+   *
+   * @param pLogger the logger to use
+   * @param pCfa the cfa in use
+   * @param pInitial the initial state for starting the exploration
+   * @throws InvalidConfigurationException
+   */
+  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
+    logger    = pLogger;
+
+    transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
+    //TODO config
+    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification());
   }
 
   /**

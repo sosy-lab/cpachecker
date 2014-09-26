@@ -81,6 +81,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   private final CFA cfa;
 
+  private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -125,6 +126,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     super(pCpa);
 
     pConfig.inject(this);
+    config = pConfig;
 
     cfa               = pCfa;
     logger            = pLogger;
@@ -164,7 +166,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     numberOfRefinements++;
 
     try {
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
       List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState());
 
       ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
@@ -184,7 +186,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
     VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     reached.removeSubtree(errorPath.get(1).getFirst(),
-        new VariableTrackingPrecision(valueAnalysisPrecision, increment),
+       valueAnalysisPrecision.withIncrement(increment),
         VariableTrackingPrecision.class);
 
     numberOfSuccessfulRefinements++;
@@ -234,7 +236,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
    */
   boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
-      return new ValueAnalysisFeasibilityChecker(logger, cfa).isFeasible(path);
+      return new ValueAnalysisFeasibilityChecker(logger, cfa, config).isFeasible(path);
     }
     catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);

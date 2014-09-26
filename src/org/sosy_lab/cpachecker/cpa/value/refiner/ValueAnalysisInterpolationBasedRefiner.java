@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -122,6 +123,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
 
   private final ValueAnalysisInterpolator interpolator;
 
@@ -130,6 +132,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       final CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    config = pConfig;
 
     logger           = pLogger;
     cfa              = pCfa;
@@ -283,7 +286,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
           throws CPAException, InterruptedException {
 
     try {
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
       List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
       ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
@@ -410,6 +413,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      * the variable assignment of the interpolant
      */
     private @Nullable final Map<MemoryLocation, Value> assignment;
+    private @Nullable final Map<MemoryLocation, Type> assignmentTypes;
 
     /**
      * the interpolant representing "true"
@@ -419,13 +423,14 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     /**
      * the interpolant representing "false"
      */
-    public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null);
+    public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null,(Map<MemoryLocation, Type>)null);
 
     /**
      * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
      */
     private ValueAnalysisInterpolant() {
       assignment = new HashMap<>();
+      assignmentTypes = new HashMap<>();
     }
 
     /**
@@ -433,8 +438,9 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      *
      * @param pAssignment the variable assignment to be represented by the interpolant
      */
-    public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment) {
+    public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment, Map<MemoryLocation, Type> pAssignmentToType) {
       assignment = pAssignment;
+      assignmentTypes = pAssignmentToType;
     }
 
     /**
@@ -478,13 +484,22 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         newAssignment.put(entry.getKey(), entry.getValue());
       }
 
+      Map<MemoryLocation, Type> newAssignmentTypes = new HashMap<>();
+      for (MemoryLocation loc : newAssignment.keySet()) {
+        if (assignmentTypes.containsKey(loc)) {
+          newAssignmentTypes.put(loc, assignmentTypes.get(loc));
+        } else {
+          newAssignmentTypes.put(loc, other.assignmentTypes.get(loc));
+        }
+      }
 
-      return new ValueAnalysisInterpolant(newAssignment);
+
+      return new ValueAnalysisInterpolant(newAssignment, newAssignmentTypes);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(assignment);
+      return Objects.hashCode(assignment) + Objects.hashCode(assignmentTypes);
     }
 
     @Override
@@ -502,7 +517,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
       }
 
       ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-      return Objects.equals(assignment, other.assignment);
+      return Objects.equals(assignment, other.assignment) && Objects.equals(assignmentTypes, other.assignmentTypes);
     }
 
     /**
@@ -538,7 +553,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
      * @return a value-analysis state that represents the same variable assignment as the interpolant
      */
     public ValueAnalysisState createValueAnalysisState() {
-      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment));
+      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
     }
 
     @Override
@@ -563,7 +578,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
       for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
         if (!valueState.contains(itp.getKey())) {
-          valueState.assignConstant(itp.getKey(), itp.getValue());
+          valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
           strengthened = true;
 
         } else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
@@ -588,7 +603,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
         return this;
       }
 
-      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment));
+      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment), new HashMap<>(assignmentTypes));
 
       for (Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
         MemoryLocation current = it.next();

@@ -34,10 +34,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -85,6 +87,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * the map that keeps the name of variables and their constant values
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
+  private PersistentMap<MemoryLocation, Type> memLocToType;
 
   /**
    * the current delta of this state to the previous state
@@ -93,14 +96,16 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
+    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 
-  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap) {
+  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     this.constantsMap = pConstantsMap;
+    this.memLocToType = pLocToTypeMap;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap);
+    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
   }
 
   /**
@@ -117,18 +122,24 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
         MemoryLocation.valueOf(variableName), checkNotNull(value));
   }
 
+  Type getTypeForMemoryLocation(MemoryLocation loc) {
+    Type t = memLocToType.get(loc);
+    return t;
+  }
+
   /**
    * This method assigns a value to the variable and puts it in the map.
    *
    * @param pMemoryLocation the location in the memory.
    * @param value value to be assigned.
+   * @param pCType
    */
-  public void assignConstant(MemoryLocation pMemoryLocation, Value value) {
+  public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
-    constantsMap = constantsMap.putAndCopy(
-        pMemoryLocation, checkNotNull(value));
+    constantsMap = constantsMap.putAndCopy(pMemoryLocation, checkNotNull(value));
+    memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
   }
 
   /**
@@ -137,7 +148,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param variableName the name of the variable to remove
    * @return the value of the removed variable
    */
-  public Value forget(String variableName) {
+  public Pair<Value, Type> forget(String variableName) {
     return forget(MemoryLocation.valueOf(variableName));
   }
 
@@ -147,11 +158,13 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @param variableName the name of the memory location to remove
    * @return the value of the removed memory location
    */
-  public Value forget(MemoryLocation pMemoryLocation) {
+  public Pair<Value, Type> forget(MemoryLocation pMemoryLocation) {
     Value value = constantsMap.get(pMemoryLocation);
+    Type type = memLocToType.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
+    memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
-    return value;
+    return Pair.of(value, type);
   }
 
   /**
@@ -181,6 +194,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (MemoryLocation variableName : constantsMap.keySet()) {
       if (variableName.isOnFunctionStack(functionName)) {
         constantsMap = constantsMap.removeAndCopy(variableName);
+        memLocToType = memLocToType.removeAndCopy(variableName);
       }
     }
   }
@@ -263,12 +277,14 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public ValueAnalysisState join(ValueAnalysisState reachedState) {
     PersistentMap<MemoryLocation, Value> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
 
     for (Map.Entry<MemoryLocation, Value> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
       if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
         newConstantsMap = newConstantsMap.putAndCopy(key, otherEntry.getValue());
+        newlocToTypeMap = newlocToTypeMap.putAndCopy(key, memLocToType.get(key));
       }
     }
 
@@ -276,7 +292,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(newConstantsMap);
+      return new ValueAnalysisState(newConstantsMap, newlocToTypeMap);
     }
   }
 
@@ -323,7 +339,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
     ValueAnalysisState otherElement = (ValueAnalysisState) other;
 
-    return otherElement.constantsMap.equals(constantsMap);
+    return otherElement.constantsMap.equals(constantsMap) && Objects.equals(memLocToType, otherElement.memLocToType);
   }
 
   @Override
@@ -600,7 +616,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
   public ValueAnalysisInterpolant createInterpolant() {
-    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap));
+    return new ValueAnalysisInterpolant(new HashMap<>(constantsMap), new HashMap<>(memLocToType));
   }
 
   public static class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
@@ -824,6 +840,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     for (MemoryLocation memoryLocation : constantsMap.keySet()) {
       if (memoryLocation.getIdentifier().equals(pIdentifier)) {
         constantsMap = constantsMap.removeAndCopy(memoryLocation);
+        memLocToType = memLocToType.removeAndCopy(memoryLocation);
       }
     }
   }

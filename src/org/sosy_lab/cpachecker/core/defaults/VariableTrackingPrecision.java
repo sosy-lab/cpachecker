@@ -23,95 +23,76 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
 
-public class VariableTrackingPrecision implements Precision {
-
-
-  /**
-   * the component responsible for variables that need to be tracked, according to refinement
-   */
-  private RefinablePrecision refinablePrecision = null;
-  private VariableTrackingPrecisionOptions options;
-
-  private final Optional<VariableClassification> varClass;
-
-  public VariableTrackingPrecision(VariableTrackingPrecisionOptions pOptions,
-      Optional<VariableClassification> vc, RefinablePrecision pRefinablePrecision)
-          throws InvalidConfigurationException {
-
-    options            = pOptions;
-    varClass           = vc;
-    refinablePrecision = pRefinablePrecision;
-  }
-
-  public VariableTrackingPrecision(VariableTrackingPrecisionOptions pOptions,
-      Optional<VariableClassification> vc)
-          throws InvalidConfigurationException {
-
-    varClass         = vc;
-    options          = pOptions;
-
-    switch (options.getSharingStrategy()) {
-    case SCOPE:
-      refinablePrecision = new ScopedRefinablePrecision();
-      break;
-    case LOCATION:
-      refinablePrecision = new LocalizedRefinablePrecision();
-      break;
-    default:
-      throw new AssertionError("Unhandled enumerator for sharing strategy: " + options.getSharingStrategy());
-    }
-  }
+public abstract class VariableTrackingPrecision implements Precision {
 
   /**
-   * This constructor is used for refining the refinable component precision with the given increment.
+   * This method creates a precision which cannot be refined, all decisions about
+   * the tracking of variables depend on the configuration options and the variable
+   * classification.
    *
-   * @param original the value-analysis precision to refine
-   * @param increment the increment to refine with
-   */
-  public VariableTrackingPrecision(VariableTrackingPrecision original, Multimap<CFANode, MemoryLocation> increment) {
-    // refine the refinable component precision with the given increment
-    refinablePrecision = original.refinablePrecision.refine(increment);
-
-    // copy remaining fields from original
-    varClass           = original.varClass;
-    options            = original.options;
-  }
-
-  /**
-   * This method acts as factory method for a default precision object, using the standard, i.e. empty, configuration,
-   * no variable classification and a full, i.e., non-refinable precision.
-   *
-   * @return the default precision object
+   * @param config
+   * @param vc the variable classification that should be used
+   * @return
    * @throws InvalidConfigurationException
    */
-  public static VariableTrackingPrecision createDefaultPrecision() throws InvalidConfigurationException {
-    return new VariableTrackingPrecision(VariableTrackingPrecisionOptions.getDefaultOptions(),
-        Optional.<VariableClassification>absent(),
-        new VariableTrackingPrecision.FullPrecision());
+  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc)
+          throws InvalidConfigurationException {
+    return new ConfigurablePrecision(config, vc);
+  }
+
+  /**
+   * This method creates a refinable precision. The baseline should usually be
+   * a static precision, where the most configuration options are handled.
+   *
+   * @param config
+   * @param pBaseline The precision which should be used as baseline.
+   * @return
+   * @throws InvalidConfigurationException
+   */
+  public static VariableTrackingPrecision createRefineablePrecision(Configuration config, VariableTrackingPrecision pBaseline) throws InvalidConfigurationException {
+    Preconditions.checkNotNull(pBaseline);
+    RefinablePrecisionOptions options = new RefinablePrecisionOptions(config);
+    switch (options.sharing) {
+    case LOCATION:
+      return new LocalizedRefinablePrecision(pBaseline);
+    case SCOPE:
+      return new ScopedRefinablePrecision(pBaseline);
+      default:
+        throw new AssertionError("Unhandled case in switch statement");
+    }
   }
 
   /**
@@ -121,152 +102,224 @@ public class VariableTrackingPrecision implements Precision {
    *
    * @return true, if this precision allows for abstraction, else false
    */
-  public boolean allowsAbstraction() {
-     return !options.trackBooleanVariables()
-         || !options.trackIntAddVariables()
-         || !options.trackIntEqualVariables()
-         || !(refinablePrecision instanceof FullPrecision)
-         || !options.getVariableBlacklist().toString().isEmpty();
-  }
-
-  public RefinablePrecision getRefinablePrecision() {
-    return refinablePrecision;
-  }
-
-  boolean isOnBlacklist(String variable) {
-    return options.getVariableBlacklist().matcher(variable).matches();
-  }
-
-  public int getSize() {
-    return refinablePrecision.getSize();
-  }
-
-  @Override
-  public String toString() {
-    return refinablePrecision.toString();
-  }
+  public abstract boolean allowsAbstraction();
 
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
-   * A variable is demanded to be tracked if it does not exceed a threshold (when given),
+   * A variable is demanded to be tracked if
    * it is on the white-list (when not null), and is not on the black-list.
    *
    * @param variable the scoped name of the variable to check
+   * @param pType the type of the variable, necessary for checking if the variable
+   *              should be handled (necessary for floats / doubles)
+   * @param location the location of the variable
    * @return true, if the variable has to be tracked, else false
    */
-  public boolean isTracking(MemoryLocation variable) {
-    boolean result = refinablePrecision.contains(variable)
-            && !isOnBlacklist(variable.getIdentifier())
-            && !isInIgnoredVarClass(variable);
+  public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
 
-    return result;
-  }
 
-  public boolean isTracking(MemoryLocation variable, CType type) {
-    if (options.trackFloatVariables()) {
-      return isTracking(variable);
-    } else {
-      return !(type instanceof CSimpleType
-          && (((CSimpleType)type).getType() == CBasicType.FLOAT
-          || ((CSimpleType)type).getType() == CBasicType.DOUBLE))
-      && isTracking(variable);
+  /**
+   * This method refines the precision with the given increment.
+   *
+   * @param increment the increment to refine the precision with
+   * @return the refined precision
+   */
+  public abstract VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> increment);
+
+  /**
+   * This method returns the size of the refinable precision, i.e., the number of elements contained.
+   * @return
+   */
+  public abstract int getSize();
+
+  /**
+   * This method transforms the precision and writes it using the given writer.
+   *
+   * @param writer the write to write the precision to
+   * @throws IOException
+   */
+  public abstract void serialize(Writer writer) throws IOException;
+
+  /**
+   * This method joins this precision with another precision
+   *
+   * @param otherPrecision the precision to join with
+   */
+  public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
+
+
+  @Options(prefix="precision")
+  private static class RefinablePrecisionOptions {
+
+    enum Sharing {
+      SCOPE,
+      LOCATION;
+    }
+
+    @Option(description = "whether to track relevant variables only at the exact "
+        + "program location (sharing=location), or within their respective"
+        + " (function-/global-) scope (sharing=scoped).")
+    private Sharing sharing = Sharing.SCOPE;
+
+    private RefinablePrecisionOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
     }
   }
 
-  /** returns true, iff the variable is in an varClass, that should be ignored. */
-  private boolean isInIgnoredVarClass(final MemoryLocation variable) {
-    if (varClass==null || !varClass.isPresent()) { return false; }
+  @Options(prefix="precision")
+  public static class ConfigurablePrecision extends VariableTrackingPrecision{
 
-    final boolean isBoolean = varClass.get().getIntBoolVars().contains(variable.getAsSimpleString());
-    final boolean isIntEqual = varClass.get().getIntEqualVars().contains(variable.getAsSimpleString());
-    final boolean isIntAdd = varClass.get().getIntAddVars().contains(variable.getAsSimpleString());
+    @Option(name="variableBlacklist",
+        description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
+    private Pattern variableBlacklist = Pattern.compile("");
 
-    final boolean isIgnoredBoolean = !options.trackBooleanVariables() && isBoolean;
-    final boolean isIgnoredIntEqual = !options.trackIntEqualVariables() && isIntEqual;
-    final boolean isIgnoredIntAdd = !options.trackIntAddVariables() && isIntAdd;
+    @Option(description = "If this option is used, booleans from the cfa are tracked.")
+    private boolean trackBooleanVariables = true;
 
-    return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
-  }
+    @Option(description = "If this option is used, variables that are only compared"
+        + " for equality are tracked.")
+    private boolean trackIntEqualVariables = true;
 
-  abstract public static class RefinablePrecision {
-    public static final String DELIMITER = ", ";
+    @Option(description = "If this option is used, variables, that are only used in"
+        + " simple calculations (add, sub, lt, gt, eq) are tracked.")
+    private boolean trackIntAddVariables = true;
 
-    /**
-     * the current location needed for checking containment
-     */
-    CFANode location = null;
+    @Option(description ="If this option is used, variables that have type double"
+        + " or float are tracked.")
+    private boolean trackFloatVariables = true;
 
-    /**
-     * This method sets the location for the refinable precision.
-     *
-     * @param node the location to be set
-     */
-    public void setLocation(CFANode node) {
-      location = node;
+    private Optional<VariableClassification> vc;
+
+    private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc) throws InvalidConfigurationException {
+      super();
+      config.inject(this);
+      this.vc = pVc;
     }
 
-    /**
-     * This method decides whether or not a variable is being tracked by this precision.
-     *
-     * @param variable the scoped name of the variable for which to make the decision
-     * @return true, when the variable is allowed to be tracked, else false
-     */
-    abstract public boolean contains(MemoryLocation variable);
+    @Override
+    public boolean allowsAbstraction() {
+    return !trackBooleanVariables
+      || !trackIntEqualVariables
+      || !trackIntAddVariables
+      || variableBlacklist.toString().isEmpty();
+    }
 
-    /**
-     * This method refines the precision with the given increment.
-     *
-     * @param increment the increment to refine the precision with
-     * @return the refined precision
-     */
-    public abstract RefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment);
+    @Override
+    public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
+      if (trackFloatVariables) {
+        return isTracking(pVariable);
+      } else {
+        return !(pType instanceof CSimpleType
+                    && (((CSimpleType)pType).getType() == CBasicType.FLOAT
+                    || ((CSimpleType)pType).getType() == CBasicType.DOUBLE)
+                  || pType instanceof JSimpleType
+                    && (((JSimpleType)pType).getType() == JBasicType.FLOAT
+                    || ((JSimpleType)pType).getType() == JBasicType.DOUBLE))
+                && isTracking(pVariable);
+      }
+    }
 
-    /**
-     * This method returns the size of the refinable precision, i.e., the number of elements contained.
-     * @return
-     */
-    abstract int getSize();
+    private boolean isTracking(MemoryLocation pVariable) {
+      return !isOnBlacklist(pVariable.getIdentifier())
+              && !isInIgnoredVarClass(pVariable);
+    }
 
-    /**
-     * This method transforms the precision and writes it using the given writer.
-     *
-     * @param writer the write to write the precision to
-     * @throws IOException
-     */
-    public abstract void serialize(Writer writer) throws IOException;
+    private boolean isOnBlacklist(String variable) {
+      return variableBlacklist.matcher(variable).matches();
+    }
 
-    /**
-     * This method joins this precision with another precision
-     *
-     * @param otherPrecision the precision to join with
-     */
-    public abstract void join(RefinablePrecision otherPrecision);
+    /** returns true, iff the variable is in an varClass, that should be ignored. */
+    private boolean isInIgnoredVarClass(final MemoryLocation variable) {
+      if (!vc.isPresent()) { return false; }
+      VariableClassification varClass = vc.get();
+
+      final boolean isBoolean = varClass.getIntBoolVars().contains(variable.getAsSimpleString());
+      final boolean isIntEqual = varClass.getIntEqualVars().contains(variable.getAsSimpleString());
+      final boolean isIntAdd = varClass.getIntAddVars().contains(variable.getAsSimpleString());
+
+      final boolean isIgnoredBoolean = !trackBooleanVariables && isBoolean;
+      final boolean isIgnoredIntEqual = !trackIntEqualVariables && isIntEqual;
+      final boolean isIgnoredIntAdd = !trackIntAddVariables && isIntAdd;
+
+      return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
+    }
+
+    @Override
+    public VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> pIncrement) {
+      return this;
+    }
+
+    @Override
+    public void serialize(Writer writer) throws IOException {
+      writer.write("# configured precision used - nothing to show here");
+    }
+
+    @Override
+    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+      Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
+      return this;
+    }
+
+    @Override
+    public int getSize() {
+      return -1;
+    }
+  }
+
+
+  public static abstract class RefinablePrecision extends VariableTrackingPrecision {
+
+    private VariableTrackingPrecision baseline;
+
+    private RefinablePrecision(VariableTrackingPrecision pBaseline) {
+      super();
+      baseline = pBaseline;
+    }
+
+    @Override
+    public final boolean allowsAbstraction() {
+      return true;
+    }
+
+    @Override
+    public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+      return baseline.isTracking(pVariable, pType, pLocation);
+    }
+
+    protected VariableTrackingPrecision getBaseline() {
+      return baseline;
+    }
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
     /**
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
-    private HashMultimap<CFANode, MemoryLocation> rawPrecision = HashMultimap.create();
+    private final ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
 
-    @Override
-    public LocalizedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
-      if (this.rawPrecision.entries().containsAll(increment.entries())) {
-        return this;
-      } else {
-        LocalizedRefinablePrecision refinedPrecision = new LocalizedRefinablePrecision();
 
-        refinedPrecision.rawPrecision = HashMultimap.create(rawPrecision);
-        refinedPrecision.rawPrecision.putAll(increment);
+    private LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
+      super(pBaseline);
+      rawPrecision = ImmutableMultimap.of();
+    }
 
-        return refinedPrecision;
-      }
+    private LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline, ImmutableMultimap<CFANode, MemoryLocation> pRawPrecision) {
+      super(pBaseline);
+      rawPrecision = pRawPrecision;
     }
 
     @Override
-    public boolean contains(MemoryLocation variable) {
-      return rawPrecision.containsEntry(location, variable);
+    public LocalizedRefinablePrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
+      if (this.rawPrecision.entries().containsAll(increment.entries())) {
+        return this;
+      } else {
+        // sorted multimap so that we have deterministic output
+        SetMultimap<CFANode, MemoryLocation> refinedPrec = TreeMultimap.create(rawPrecision);
+        refinedPrec.putAll(increment);
+
+        return new LocalizedRefinablePrecision(super.baseline, ImmutableMultimap.copyOf(refinedPrec));
+      }
     }
 
     @Override
@@ -282,19 +335,29 @@ public class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public void join(RefinablePrecision consolidatedPrecision) {
-      assert (getClass().equals(consolidatedPrecision.getClass()));
-      this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
+    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+      checkArgument(getClass().equals(consolidatedPrecision.getClass()));
+      checkArgument(super.baseline.equals(((LocalizedRefinablePrecision)consolidatedPrecision).getBaseline()));
+
+      SetMultimap<CFANode, MemoryLocation> joinedPrec = TreeMultimap.create(rawPrecision);
+      joinedPrec.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
+      return new LocalizedRefinablePrecision(super.baseline, ImmutableMultimap.copyOf(joinedPrec));
     }
 
     @Override
-    int getSize() {
+    public int getSize() {
       return rawPrecision.size();
     }
 
     @Override
     public String toString() {
-      return TreeMultimap.create(rawPrecision).toString();
+      return rawPrecision.toString();
+    }
+
+    @Override
+    public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+      return super.isTracking(pVariable, pType, pLocation)
+              && rawPrecision.containsValue(pVariable);
     }
   }
 
@@ -302,35 +365,38 @@ public class VariableTrackingPrecision implements Precision {
     /**
      * the collection that determines which variables are tracked within a specific scope
      */
-    private Set<MemoryLocation> rawPrecision = new HashSet<>();
+    private ImmutableSortedSet<MemoryLocation> rawPrecision;
 
-    @Override
-    public boolean contains(MemoryLocation variable) {
-      return rawPrecision.contains(variable);
+    private ScopedRefinablePrecision(VariableTrackingPrecision pBaseline) {
+      super(pBaseline);
+      rawPrecision = ImmutableSortedSet.of();
+    }
+
+    private ScopedRefinablePrecision(VariableTrackingPrecision pBaseline, ImmutableSortedSet<MemoryLocation> pRawPrecision) {
+      super(pBaseline);
+      rawPrecision = pRawPrecision;
     }
 
     @Override
-    public ScopedRefinablePrecision refine(Multimap<CFANode, MemoryLocation> increment) {
+    public ScopedRefinablePrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
       if (this.rawPrecision.containsAll(increment.values())) {
         return this;
       } else {
-        ScopedRefinablePrecision refinedPrecision = new ScopedRefinablePrecision();
+        SortedSet<MemoryLocation> refinedPrec = new TreeSet<>(rawPrecision);
+        refinedPrec.addAll(increment.values());
 
-        refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
-        refinedPrecision.rawPrecision.addAll(increment.values());
-        return refinedPrecision;
+        return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
       }
     }
 
     @Override
     public
     void serialize(Writer writer) throws IOException {
-      SortedSet<MemoryLocation> sortedPrecision = new TreeSet<>(rawPrecision);
 
       List<String> globals = new ArrayList<>();
       String previousScope = null;
 
-      for (MemoryLocation variable : sortedPrecision) {
+      for (MemoryLocation variable : rawPrecision) {
         if (variable.isOnFunctionStack()) {
           String functionName = variable.getFunctionName();
           if (!functionName.equals(previousScope)) {
@@ -352,46 +418,30 @@ public class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public void join(RefinablePrecision consolidatedPrecision) {
-      assert (getClass().equals(consolidatedPrecision.getClass()));
-      this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
+    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+      Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
+      checkArgument(super.baseline.equals(((ScopedRefinablePrecision)consolidatedPrecision).getBaseline()));
+
+      SortedSet<MemoryLocation> joinedPrec = new TreeSet<>(rawPrecision);
+      joinedPrec.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
+      return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(joinedPrec));
     }
 
     @Override
-    int getSize() {
+    public int getSize() {
       return rawPrecision.size();
     }
 
     @Override
     public String toString() {
-      return new TreeSet<>(rawPrecision).toString();
+      return rawPrecision.toString();
+    }
+
+    @Override
+    public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+      return super.isTracking(pVariable, pType, pLocation)
+              && rawPrecision.contains(pVariable);
     }
   }
 
-  public static class FullPrecision extends RefinablePrecision {
-    @Override
-    public boolean contains(MemoryLocation variable) {
-      return true;
-    }
-
-    @Override
-    public FullPrecision refine(Multimap<CFANode, MemoryLocation> additionalMapping) {
-      return this;
-    }
-
-    @Override
-    public void serialize(Writer writer) throws IOException {
-      writer.write("# full precision used - nothing to show here");
-    }
-
-    @Override
-    public void join(RefinablePrecision consolidatedPrecision) {
-      assert (getClass().equals(consolidatedPrecision.getClass()));
-    }
-
-    @Override
-    int getSize() {
-      return -1;
-    }
-  }
 }

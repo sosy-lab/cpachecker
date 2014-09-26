@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState.Type;
@@ -144,7 +143,6 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       = ImmutableMap.of("pthread_create", "threads");
 
   private final LogManager logger;
-  private final VariableTrackingPrecisionOptions octagonOptions;
 
   private final Set<CFANode> loopHeads;
 
@@ -153,9 +151,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
    * @throws InvalidCFAException
    * @throws InvalidConfigurationException
    */
-  public OctagonTransferRelation(LogManager log, CFA cfa, VariableTrackingPrecisionOptions options) throws InvalidCFAException {
+  public OctagonTransferRelation(LogManager log, CFA cfa) throws InvalidCFAException {
     logger = log;
-    octagonOptions = options;
 
     if (!cfa.getLoopStructure().isPresent()) {
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
@@ -480,7 +477,6 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     if (var instanceof CArraySubscriptExpression
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
-        || (!octagonOptions.trackFloatVariables() && var instanceof CFloatLiteralExpression)
         || var instanceof CStringLiteralExpression
         || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
       return false;
@@ -552,7 +548,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       rightVal = OctagonIntValue.of(((CIntegerLiteralExpression) right).asLong());
     } else if (right instanceof CCharLiteralExpression) {
       rightVal = OctagonIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression && octagonOptions.trackFloatVariables()) {
+    } else if (right instanceof CFloatLiteralExpression) {
       rightVal = new OctagonDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
 
     // we cannot handle strings, so just return the previous state
@@ -946,13 +942,14 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       }
 
       MemoryLocation nameOfParam = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
+      CType typeOfParam = parameters.get(i).getType();
 
-      if (!precision.isTracking(nameOfParam)
+      if (!precision.isTracking(nameOfParam, typeOfParam, functionEntryNode)
           || !isHandleAbleType(parameters.get(i).getType())) {
         continue;
       }
 
-      state = state.declareVariable(nameOfParam, getCorrespondingOctStateType(parameters.get(i).getType()));
+      state = state.declareVariable(nameOfParam, getCorrespondingOctStateType(typeOfParam));
       handleAbleParams.add(Pair.of(nameOfParam, arguments.get(i)));
     }
 
@@ -996,7 +993,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
       if (!isHandleableVariable(op1)
-          || !precision.isTracking(assignedVarName)) {
+          || !precision.isTracking(assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
@@ -1043,7 +1040,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
         variableName = MemoryLocation.valueOf(declaration.getName());
       }
 
-      if (!precision.isTracking(variableName)) {
+      if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);
       }
 
@@ -1119,7 +1116,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
-          || !precision.isTracking(variableName)) {
+          || !precision.isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
         assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {
@@ -1563,12 +1560,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFloatLiteralExpression e) throws CPATransferException {
-      // only handle floats when specified in the configuration
-      if (octagonOptions.trackFloatVariables()) {
         return Collections.singleton(Pair.of((IOctagonCoefficients)new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), new OctagonDoubleValue(e.getValue().doubleValue()), visitorState), visitorState));
-      } else {
-        return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
-      }
     }
 
     @Override

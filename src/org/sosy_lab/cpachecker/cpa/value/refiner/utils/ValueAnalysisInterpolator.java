@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -91,9 +92,9 @@ public class ValueAnalysisInterpolator {
 
     try {
       shutdownNotifier  = pShutdownNotifier;
-      checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
+      checker           = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
       transfer          = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-      precision         = VariableTrackingPrecision.createDefaultPrecision();
+      precision         = VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification());
     }
     catch (InvalidConfigurationException e) {
       throw new InvalidConfigurationException("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -155,11 +156,11 @@ public class ValueAnalysisInterpolator {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate interpolant
-      Value value = initialSuccessor.forget(currentMemoryLocation);
+      Pair<Value, Type> value = initialSuccessor.forget(currentMemoryLocation);
 
       // check if the remaining path now becomes feasible
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-        initialSuccessor.assignConstant(currentMemoryLocation, value);
+        initialSuccessor.assignConstant(currentMemoryLocation, value.getFirst(), value.getSecond());
       }
     }
 

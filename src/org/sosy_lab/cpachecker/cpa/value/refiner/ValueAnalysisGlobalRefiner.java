@@ -136,7 +136,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     logger                = pLogger;
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
+    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
   }
 
   @Override
@@ -196,7 +196,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       // join the precisions of the subtree of this roots into a single precision
       final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-      refinementInformation.put(root, new VariableTrackingPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
+      refinementInformation.put(root, subTreePrecision.withIncrement(interpolationTree.extractPrecisionIncrement(root)));
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
@@ -223,11 +223,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
   private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
-    final VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
     for (ARGState target : targetsReachableFromRoot) {
       VariableTrackingPrecision precisionOfTarget = extractPrecision(pReached, target);
-      precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
+      precision = precision.join(precisionOfTarget);
     }
 
     return precision;

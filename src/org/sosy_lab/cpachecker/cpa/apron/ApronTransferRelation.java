@@ -666,7 +666,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
 
-      if (!precision.isTracking(formalParamName, parameters.get(i).getType())) {
+      if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
       }
 
@@ -711,7 +711,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
       if (!isHandleableVariable(op1)
-          || !precision.isTracking(assignedVarName, op1.getExpressionType())) {
+          || !precision.isTracking(assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
@@ -753,7 +753,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         variableName = MemoryLocation.valueOf(functionName, decl.getName(), 0);
       }
 
-      if (!precision.isTracking(variableName, declaration.getType())) {
+      if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);
       }
 
@@ -835,7 +835,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
-          || !precision.isTracking(variableName, left.getExpressionType())) {
+          || !precision.isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
         assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {

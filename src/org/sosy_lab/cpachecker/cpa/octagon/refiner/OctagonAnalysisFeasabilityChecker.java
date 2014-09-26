@@ -42,15 +42,12 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -70,10 +67,11 @@ public class OctagonAnalysisFeasabilityChecker {
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctagonTransferRelation(logger, cfa, cpa.getOctagonOptions());
+    transfer  = new OctagonTransferRelation(logger, cfa);
     checkedPath = path;
 
-    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision(cpa.getOctagonOptions(), Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision()),
+    foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
+                                                                                    cfa.getVarClassification()),
                                     new OctagonState(logger, cpa.getManager()));
   }
 
@@ -91,7 +89,7 @@ public class OctagonAnalysisFeasabilityChecker {
 
   public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision pOctPrecision) {
     if (isFeasible()) {
-      return ArrayListMultimap.<CFANode, ValueAnalysisState.MemoryLocation>create();
+      return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
       Set<MemoryLocation> varNames = new HashSet<>();
       LinkedList<CFAEdge> edgesList = new LinkedList<>(foundPath.asEdgesList());
@@ -109,7 +107,7 @@ public class OctagonAnalysisFeasabilityChecker {
         }
       } while (varNames.isEmpty() && !edgesList.isEmpty());
 
-      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, ValueAnalysisState.MemoryLocation>create();
+      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
 
       for (MemoryLocation loc : varNames) {
         increment.put(new CFANode("BOGUS-NODE"), loc);

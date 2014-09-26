@@ -131,6 +131,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private final CFA cfa;
 
   private final LogManager logger;
+  private final Configuration config;
 
   public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -231,6 +232,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    config = pConfig;
     shutDownNotifier = pShutdownNotifier;
 
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
@@ -309,7 +311,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
     }
 
-    VariableTrackingPrecision refinedValueAnalysisPrecision  = new VariableTrackingPrecision(valueAnalysisPrecision, increment);
+    VariableTrackingPrecision refinedValueAnalysisPrecision  = valueAnalysisPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedValueAnalysisPrecision);
     newPrecisionTypes.add(VariableTrackingPrecision.class);
 
@@ -396,7 +398,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
       return checker.isFeasible(path);
     }

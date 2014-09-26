@@ -270,7 +270,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           addMissingInformation(formalParamName, exp);
         }
       } else {
-        newElement.assignConstant(formalParamName, value);
+        newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
       }
 
       visitor.reset();
@@ -358,7 +358,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           }
         } else if (valueExists) {
           Value value = state.getValueFor(returnVarName);
-          newElement.assignConstant(assignedVarName, value);
+          newElement.assignConstant(assignedVarName, value, state.getTypeForMemoryLocation(returnVarName));
         } else {
           newElement.forget(assignedVarName);
         }
@@ -432,7 +432,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
               SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
               Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
               if (newValue != trackedValue) {
-                element.assignConstant(memloc, newValue);
+                element.assignConstant(memloc, newValue, state.getTypeForMemoryLocation(memloc));
               }
             }
           }
@@ -568,7 +568,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
-        newElement.assignConstant(memoryLocation, initialValue);
+        newElement.assignConstant(memoryLocation, initialValue, decl.getType());
       } else {
         missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
       }
@@ -755,7 +755,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
          newElement.forget(assignedVar);
         }
       } else {
-        newElement.assignConstant(assignedVar, value);
+        newElement.assignConstant(assignedVar, value, lType);
       }
 
     }
@@ -819,10 +819,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
+          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue, pE.getExpressionType());
 
         } else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
+          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue, pE.getExpressionType());
         }
       }
 
@@ -831,14 +831,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
+            assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
 
         } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
+            assignableState.assignConstant(rightMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
         }
       }
@@ -1389,7 +1389,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return pNewElement;
     }
 
-    pNewElement.assignConstant(memoryLocation, value);
+    pNewElement.assignConstant(memoryLocation, value, pNewElement.getTypeForMemoryLocation(memoryLocation));
 
     return pNewElement;
   }

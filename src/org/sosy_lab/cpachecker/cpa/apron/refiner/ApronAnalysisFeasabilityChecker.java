@@ -38,23 +38,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import apron.ApronException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -77,9 +73,9 @@ public class ApronAnalysisFeasabilityChecker {
     transfer  = new ApronTransferRelation(logger, cfa);
     checkedPath = path;
 
-    // use a new configuration which only has the default values for the precision
-    // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new VariableTrackingPrecision(VariableTrackingPrecisionOptions.getDefaultOptions(), Optional.<VariableClassification>absent()),
+    // use a new configuration which only has a static precision
+    foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
+                                                                                    cfa.getVarClassification()),
                                     new ApronState(logger, cpa.getManager()));
   }
 
@@ -97,7 +93,7 @@ public class ApronAnalysisFeasabilityChecker {
 
   public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision precision) {
     if (isFeasible()) {
-      return ArrayListMultimap.<CFANode, ValueAnalysisState.MemoryLocation>create();
+      return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
       Set<MemoryLocation> varNames = new HashSet<>();
       LinkedList<CFAEdge> edgesList = new LinkedList<>(foundPath.asEdgesList());
@@ -115,7 +111,7 @@ public class ApronAnalysisFeasabilityChecker {
         }
       } while (varNames.isEmpty() && !edgesList.isEmpty());
 
-      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, ValueAnalysisState.MemoryLocation>create();
+      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
 
       for (MemoryLocation loc : varNames) {
         increment.put(new CFANode("BOGUS-NODE"), loc);
