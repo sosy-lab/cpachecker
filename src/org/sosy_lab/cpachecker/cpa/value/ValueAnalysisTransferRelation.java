@@ -1167,7 +1167,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           super.setInfo(element, precision, cfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
           Collection<ValueAnalysisState> ret = automatonAssumesAsStatements ?
-              strengthenAutomatonStatement(autoState, cfaEdge) : strengthenAutomatonAssume(autoState, cfaEdge);
+              strengthenAutomatonStatement(autoState, state, cfaEdge) : strengthenAutomatonAssume(autoState, state, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1196,11 +1196,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return postProcessedResult;
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
-    ValueAnalysisState state = this.state;
+    ValueAnalysisState state = pState;
 
     for (CStatementEdge stmtEdge : statementEdges) {
       state = handleStatementEdge((AStatementEdge)stmtEdge, (IAStatement)stmtEdge.getStatement());
@@ -1221,11 +1221,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private static final CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
-    ValueAnalysisState state = this.state;
+    ValueAnalysisState state = pState;
 
 
     for (AssumeEdge assumeEdge : assumeEdges) {
