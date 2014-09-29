@@ -365,6 +365,7 @@ public class SSAMap implements Serializable {
     return vars.keySet();
   }
 
+  @Deprecated // unsafe usage combined with vars, if lastUsedVars was updated
   public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
     return varTypes.entrySet();
   }

@@ -144,11 +144,11 @@ public class BAMPredicateReducer implements Reducer {
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
-      for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
+      for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var.getKey()) == SSAMap.DEFAULT_DEFAULT_IDX) {
+        if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
           //add an index (with the value of rootSSA)
-          builder.setIndex(var.getKey(), var.getValue(), rootSSA.getIndex(var.getKey()));
+          builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
         }
       }
       SSAMap newSSA = builder.build();
@@ -410,11 +410,11 @@ public class BAMPredicateReducer implements Reducer {
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
+    for (String var : rootSSA.allVariables()) {
       //if we do not have the index in the reduced map..
-      if (oldSSA.getIndex(var.getKey()) == -1) {
+      if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
         //add an index (with the value of rootSSA)
-        builder.setIndex(var.getKey(), var.getValue(), rootSSA.getIndex(var.getKey()));
+        builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
       }
     }
     SSAMap newSSA = builder.build();
@@ -524,22 +524,23 @@ public class BAMPredicateReducer implements Reducer {
 
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
-    for (Map.Entry<String, CType> var : expandedSSA.allVariablesWithTypes()) {
+    for (String var : expandedSSA.allVariables()) {
 
-      final int expIndex = expandedSSA.getLastUsedIndex(var.getKey());
-      final int rootIndex = rootSSA.getIndex(var.getKey());
+      final CType type = expandedSSA.getType(var);
+      final int expIndex = expandedSSA.getLastUsedIndex(var);
+      final int rootIndex = rootSSA.getIndex(var);
       final int maxIndex = Math.max(expIndex, rootIndex);
       // maxIndex is the target value, that must be set.
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
 
       if (expIndex != SSAMap.DEFAULT_DEFAULT_IDX) {
-        if (var.getKey().contains("::") && !isReturnVar(var.getKey())) { // var is scoped -> not global
+        if (var.contains("::") && !isReturnVar(var)) { // var is scoped -> not global
 
           if (rootIndex == SSAMap.DEFAULT_DEFAULT_IDX) { // inner local variable, never seen before
-            rootBuilder.setIndex(var.getKey(), var.getValue(), maxIndex);
+            rootBuilder.setIndex(var, type, maxIndex);
 
           } else { // outer variable or inner variable from previous function call
-            rootBuilder.setLatestUsedIndex(var.getKey(), var.getValue(), maxIndex);
+            rootBuilder.setLatestUsedIndex(var, type, maxIndex);
           }
 
         } else {
@@ -553,7 +554,7 @@ public class BAMPredicateReducer implements Reducer {
           // in this case the index is irrelevant and can be set to MAX (TODO really?).
           // Otherwise (the important case, MAX == expIndex)
           // we are in the refinement step and build the CEX-path.
-          rootBuilder.setIndex(var.getKey(), var.getValue(), maxIndex);
+          rootBuilder.setIndex(var, type, maxIndex);
         }
       }
     }
