@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -454,54 +453,71 @@ public class BAMPredicateReducer implements Reducer {
     // - abstraction of functioncall (expandedSSA)        --> instantiate, with updated SSAMap, so that:
     //           - only param and return-var overlap to callEdge
     //           - all other vars are distinct
+    final String calledFunction = exitLocation.getFunctionName();
     final PathFormula functionCall = entryState.getAbstractionFormula().getBlockFormula();
     final SSAMapBuilder entrySsaWithRet = functionCall.getSsa().builder();
-    final SSAMapBuilder summSsa = functionCall.getSsa().builder();
+    final SSAMapBuilder summSsa = rootState.getAbstractionFormula().getBlockFormula().getSsa().builder();
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
-      if (entrySsaWithRet.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+      if (var.startsWith(calledFunction + "::")
+              && var.endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME)) {
+        int newIndex = entrySsaWithRet.getIndex(var);
+        assert newIndex != SSAMap.DEFAULT_DEFAULT_IDX : "param for function is not used in functioncall";
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
+
+      } else if (var.startsWith(calledFunction + "::")
+              && var.endsWith(CtoFormulaConverter.RETURN_VARIABLE_NAME)) {
+        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
+
+      } else if (entrySsaWithRet.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
         // non-existent index for variable only used in functioncall, just copy
         final int newIndex = expandedSSA.getIndex(var);
         entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
-      } else if (var.endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME)) {
-        final int newIndex = entrySsaWithRet.getIndex(var);
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
-
-      } else if (var.endsWith(CtoFormulaConverter.RETURN_VARIABLE_NAME)) {
-        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
-
       } else {
-        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
-        entrySsaWithRet.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
+        final int newIndex = entrySsaWithRet.getFreshIndex(var);
+        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
       }
     }
 
     final SSAMap newEntrySsaWithRet = entrySsaWithRet.build();
     final SSAMap newSummSsa = summSsa.build();
 
-    logger.log(Level.ALL, "\nentrySsaRet", newEntrySsaWithRet);
-    logger.log(Level.ALL, "\nsummSsaRet", newSummSsa);
-
-    BooleanFormula summaryFormula = fmgr.instantiate(
-            expandedState.getAbstractionFormula().asFormula(), newSummSsa);
+    // function-call needs have new retvars-indices.
+    // TODO called function only?
     PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
             functionCall.getPointerTargetSet(), functionCall.getLength());
-    PathFormula executedFunction = pmgr.makeAnd(functionCallWithSSA, summaryFormula);
 
+    // concat function-call with function-summary,
+    // function-summary will be instantiated with indices for params and retvars.
+    PathFormula executedFunction = pmgr.makeAnd(functionCallWithSSA,
+            expandedState.getAbstractionFormula().asFormula());
+
+    // after function-execution we have to re-use the previous indices (fromouter scope),
+    // thus lets change the SSAmap.
+    PathFormula executedFunctionWithSSA = new PathFormula(executedFunction.getFormula(), newSummSsa,
+            executedFunction.getPointerTargetSet(), executedFunction.getLength());
+
+    // everything is prepared, so build a new AbstractionState.
+    // we do this as 'future abstraction', because we do not have enough information
+    // (necessary classes and managers) for the abstraction-process at this place.
     PredicateAbstractState rebuildState = new PredicateAbstractState.ComputeAbstractionState(
-            executedFunction, rootState.getAbstractionFormula(), exitLocation, abstractionLocations);
+            executedFunctionWithSSA, rootState.getAbstractionFormula(), exitLocation, abstractionLocations);
 
     logger.log(Level.ALL,
-            "oldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),
+            "\noldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),
             "\ncall: ", functionCallWithSSA,
-            "\nsumm: ", summaryFormula);
+            "\nsumm: ", expandedState.getAbstractionFormula().asFormula(),
+            "\nexe: ", executedFunction,
+            "\nentrySsaRet", newEntrySsaWithRet,
+            "\nsummSsaRet", newSummSsa
+    );
 
     return rebuildState;
   }

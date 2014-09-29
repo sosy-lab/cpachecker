@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import com.google.common.base.Joiner;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.Pair;
@@ -158,7 +159,7 @@ public final class InterpolationManager {
           "NESTED2: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants'," +
               "with modification: pathformulas for call and return are True).")
   private InterpolationStrategy strategy = InterpolationStrategy.SEQUENCE;
-  private static enum InterpolationStrategy { SEQUENCE, WELLSCOPED, NESTED, NESTED2 }
+  private static enum InterpolationStrategy { SEQUENCE, WELLSCOPED, NESTED, NESTED2, NESTED3}
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -304,7 +305,7 @@ public final class InterpolationManager {
       }
 
       f = Collections.unmodifiableList(f);
-      logger.log(Level.ALL, "Counterexample trace formulas:", f);
+      logger.log(Level.ALL, "Counterexample trace formulas:", Joiner.on("\n").join(f));
 
       // now f is the DAG formula which is satisfiable iff there is a
       // concrete counterexample
@@ -610,6 +611,19 @@ public final class InterpolationManager {
         break;
       }
 
+      case NESTED3: {
+
+        BooleanFormula lastItp = bfmgr.makeBoolean(true); // PSI_0 = True
+        final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
+
+        for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
+
+          // use a new prover, because we use several distinct queries
+          lastItp = getNestedInterpolant3(orderedFormulas, interpolants,callstack, interpolator, positionOfA, lastItp);
+        }
+        break;
+      }
+
       default:
         throw new AssertionError("should not happen");
     }
@@ -766,14 +780,127 @@ public final class InterpolationManager {
       A.add(itpProver.push(scopingItp.getFirst()));
       A.add(itpProver.push(scopingItp.getSecond()));
       logger.log(Level.ALL, "\n4. A +=", scopingItp);
+      // we want many atoms here, the formula itself is irrelevant
       final BooleanFormula rebuildItp = bfmgr.and(ImmutableList.of(
-              itp, scopingItp.getFirst(), scopingItp.getSecond()));
+              itp, scopingItp.getFirst(), scopingItp.getSecond(), lastItp));
       interpolants.add(rebuildItp);
       return rebuildItp;
 
     } else {
       interpolants.add(itp);
       return itp;
+    }
+  }
+
+  /** This function implements the paper "Nested Interpolants" with a small modification:
+   * instead of a return-edge, we use dummy-edges with simple pathformula "true".
+   * Actually the implementation does not use "true", but omits it completely and
+   * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge). */
+  private <T> BooleanFormula getNestedInterpolant3(
+          final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
+          final List<BooleanFormula> interpolants,
+          final Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack,
+          final Interpolator<T> interpolator,
+          int positionOfA, BooleanFormula lastItp) throws InterruptedException {
+    try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
+
+      final boolean log = false;
+
+      final List<T> A = new ArrayList<>();
+      final List<T> B = new ArrayList<>();
+
+      // If we have entered or exited a function, update the stack of entry points
+      final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
+
+      if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+        // && (positionOfA > 0)) {
+        // case 2 from paper
+        final BooleanFormula call = orderedFormulas.get(positionOfA).getFirst();
+        callstack.addLast(Triple.of(lastItp, call, node));
+        if (log) logger.log(Level.ALL, "CALL:", call, node);
+        final BooleanFormula itp = bfmgr.makeBoolean(true);
+        interpolants.add(itp);
+        return itp; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
+      }
+
+      A.add(itpProver.push(lastItp));
+      A.add(itpProver.push(orderedFormulas.get(positionOfA).getFirst()));
+      if (log) logger.log(Level.ALL, "\n1. A =", lastItp, "+", orderedFormulas.get(positionOfA).getFirst());
+
+      // add all remaining PHI_j
+      for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
+        B.add(itpProver.push(t.getFirst()));
+        //logger.log(Level.ALL, "\n1. B +=", t.getFirst()); // disabled, too many lines
+      }
+
+      // add all previous function calls
+      for (Triple<BooleanFormula,BooleanFormula, CFANode> t : callstack) {
+        B.add(itpProver.push(t.getFirst())); // add PSI_k
+        B.add(itpProver.push(t.getSecond())); // ... and PHI_k
+        if (log) logger.log(Level.ALL, "\n2. B +=", t.getFirst());
+      }
+
+      // update prover with new formulas.
+      // this is the expensive step, that is distinct from other strategies.
+      // TODO improve! example: reverse ordering of formulas for re-usage of the solver-stack
+      boolean unsat = itpProver.isUnsat();
+      assert unsat : "formulas were unsat before, they have to be unsat now.";
+
+      // get interpolant of A and B, for B we use the complementary set of A
+      if (log) logger.log(Level.ALL, "Looking for interpolant for formulas at position", positionOfA, "(depth", callstack.size(), ")");
+      final BooleanFormula itp = itpProver.getInterpolant(A);
+      if (log) logger.log(Level.ALL, "Received interpolant", itp);
+
+      if (!callstack.isEmpty() && node instanceof FunctionExitNode) {
+        // case 4, we are returning from a function, rule 4
+        Triple<BooleanFormula, BooleanFormula, CFANode> scopingItp = callstack.removeLast();
+
+        final InterpolatingProverEnvironment<T> itpProver2 = interpolator.newEnvironment();
+        final List<T> A2 = new ArrayList<>();
+        final List<T> B2 = new ArrayList<>();
+
+        A2.add(itpProver2.push(itp));
+        //A2.add(itpProver2.push(orderedFormulas.get(positionOfA).getFirst()));
+        if (log) logger.log(Level.ALL, "\n1. A2 =", itp, "+", orderedFormulas.get(positionOfA).getFirst());
+
+        A2.add(itpProver2.push(scopingItp.getFirst()));
+        A2.add(itpProver2.push(scopingItp.getSecond()));
+        if (log) logger.log(Level.ALL, "\n4. A2 +=", scopingItp);
+
+        // add all remaining PHI_j
+        for (Triple<BooleanFormula, AbstractState, Integer> t : Iterables.skip(orderedFormulas, positionOfA + 1)) {
+          B2.add(itpProver2.push(t.getFirst()));
+          if (log) logger.log(Level.ALL, "\n1. B2 +=", t.getFirst()); // disabled, too many lines
+        }
+
+        // add all previous function calls
+        for (Triple<BooleanFormula, BooleanFormula, CFANode> t : callstack) {
+          B2.add(itpProver2.push(t.getFirst())); // add PSI_k
+          B2.add(itpProver2.push(t.getSecond())); // ... and PHI_k
+          if (log) logger.log(Level.ALL, "\n2. B2 +=", t.getFirst());
+        }
+
+        boolean unsat2 = itpProver2.isUnsat();
+        assert unsat2 : "formulas2 were unsat before, they have to be unsat now.";
+
+        // get interpolant of A and B, for B we use the complementary set of A
+        if (log) logger.log(Level.ALL, "Looking for interpolant2 for formulas at position", positionOfA, "(depth", callstack.size(), ")");
+        BooleanFormula itp2 = itpProver2.getInterpolant(A2);
+        if (log) logger.log(Level.ALL, "Received interpolant2", itp2);
+
+        itpProver2.close();
+
+        final BooleanFormula rebuildItp = bfmgr.and(bfmgr.or(itp, itp2), scopingItp.getFirst());
+        if (log) logger.log(Level.ALL, "\nrebuild itp =", itp, "and", itp2, "=", rebuildItp);
+
+        interpolants.add(rebuildItp);
+        return itp2;
+
+      } else {
+        interpolants.add(itp);
+        return itp;
+      }
     }
   }
 
@@ -1122,10 +1249,7 @@ public final class InterpolationManager {
           }
 
           if (logger.wouldBeLogged(Level.ALL)) {
-            int i = 1;
-            for (BooleanFormula itp : interpolants) {
-              logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-            }
+            logger.log(Level.ALL, "interpolants", Joiner.on("\n").join(interpolants));
           }
 
           info = CounterexampleTraceInfo.infeasible(interpolants);
