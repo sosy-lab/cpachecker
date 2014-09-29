@@ -87,10 +87,12 @@ public class ARGSubtreeRemover {
 
     List<ARGState> path = trimPath(pPath, element);
     assert path.get(path.size() - 1).equals(element);
+    assert path.size() >= 2; // extreme case of length 2: [root, target]
 
     List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
     assert path.containsAll(relevantCallNodes) : "only nodes of path are relevant";
     assert relevantCallNodes.get(0) == path.get(0) : "root should be relevant";
+    assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
 
     Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new LinkedHashSet<>();
 
@@ -109,12 +111,19 @@ public class ARGSubtreeRemover {
     }
 
     final ARGState lastRelevantNode = pPathElementToReachedState.get(Iterables.getLast(relevantCallNodes));
+    final ARGState target = pPathElementToReachedState.get(element);
     for (final Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
       final List<Precision> newPrecisions;
       if (removeCachedSubtreeArguments.getSecond() == lastRelevantNode) { // last iteration
         newPrecisions = pNewPrecisions;
       } else {
-        newPrecisions = null; // ignore newPrecisions for all iterations except the last one
+        ReachedSet nextReachedSet = abstractStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
+        assert nextReachedSet != null : "call-state does not match reachedset";
+        if (target.getParents().contains(nextReachedSet.getFirstState())) {
+          newPrecisions = pNewPrecisions;
+        } else {
+          newPrecisions = null; // ignore newPrecisions for all iterations except the last one
+        }
       }
       removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), newPrecisions, pNewPrecisionTypes);
     }
@@ -166,12 +175,14 @@ public class ARGSubtreeRemover {
       CFANode rootNode = extractLocation(rootState);
       Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
-      logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
+      logger.log(Level.FINER, "Remove cached subtree for", removeElement,
+              "(rootNode: ", rootNode, ") issued with precision", pNewPrecisions);
 
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
       ReachedSet reachedSet = abstractStateToReachedSet.get(rootState);
 
       if (removeElement.isDestroyed()) {
+        logger.log(Level.FINER, "state was destroyed before");
         //apparently, removeElement was removed due to prior deletions
         return;
       }
@@ -202,6 +213,7 @@ public class ARGSubtreeRemover {
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
       if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionTypes)) {
+        logger.log(Level.FINER, "updating cache");
         bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision.get(0));
       }
 
