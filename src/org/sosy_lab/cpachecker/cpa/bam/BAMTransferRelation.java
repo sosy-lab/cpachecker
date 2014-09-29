@@ -307,6 +307,7 @@ public class BAMTransferRelation implements TransferRelation {
     throws CPAException, InterruptedException {
     for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
       if (level.getThird() == currentLevel.getThird()
+              // && level.getSecond().equals(currentLevel.getSecond())
               && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
         // From currentState we could reach the levelState again (with further unrolling).
@@ -460,8 +461,10 @@ public class BAMTransferRelation implements TransferRelation {
       }
       rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
     }
+
     argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, reducedResult, rootOfBlock);
 
+    // TODO optimisation: in case of recursion only return 'new' states, the old ones were visited before
     return imbueAbstractStatesWithPrecision(reached, reducedResult);
   }
 
@@ -529,7 +532,7 @@ public class BAMTransferRelation implements TransferRelation {
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
 
-    logger.log(Level.ALL, "Reducing state", initialState);
+    logger.log(Level.ALL, "Reducing state", initialState, "with precision", pPrecision);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 

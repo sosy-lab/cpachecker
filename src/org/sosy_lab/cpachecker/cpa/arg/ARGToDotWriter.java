@@ -273,7 +273,7 @@ public class ARGToDotWriter {
     PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
     if (abstraction != null && abstraction.isAbstractionState()) {
       builder.append("\\n");
-      builder.append(abstraction.getAbstractionFormula());
+      builder.append(abstraction.getAbstractionFormula().toString().replace("(`and` ","\\n(`and` "));
     }
 
     ValueAnalysisState explicit = AbstractStates.extractStateByType(currentElement, ValueAnalysisState.class);
