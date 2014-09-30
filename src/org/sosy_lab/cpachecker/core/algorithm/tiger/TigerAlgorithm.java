@@ -45,6 +45,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -59,11 +61,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
@@ -176,6 +179,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Option(name = "useOrder", description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
   private boolean useOrder = true;
 
+  @Option(name = "algorithmConfigurationFile", description = "Configuration file for internal cpa algorithm.")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path algorithmConfigurationFile = Paths.get("tiger-internal-algorithm.properties");
+
   private LogManager logger;
   private StartupConfig startupConfig;
 
@@ -201,8 +208,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private Prediction[] lGoalPrediction;
 
+  private String programDenotation;
+  private MainCPAStatistics stats;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+      CFA pCfa, Configuration pConfig, LogManager pLogger, String programDenotation, @Nullable final MainCPAStatistics stats) throws InvalidConfigurationException {
+
+    this.programDenotation = programDenotation;
+    this.stats = stats;
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
@@ -606,7 +619,50 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
 
-    CPAAlgorithm cpaAlg;
+    startupConfig.getConfig();
+
+    Algorithm algorithm;
+
+    try {
+      Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+
+      CoreComponentsFactory factory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
+
+      algorithm = factory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
+
+      if (algorithm instanceof CEGARAlgorithm) {
+        CEGARAlgorithm cegarAlg = (CEGARAlgorithm)algorithm;
+
+        Refiner refiner = cegarAlg.getRefiner();
+        if (refiner instanceof PredicateCPARefiner) {
+          PredicateCPARefiner predicateRefiner = (PredicateCPARefiner)refiner;
+
+          if (reusePredicates) {
+            RefinementStrategy strategy = predicateRefiner.getRefinementStrategy();
+            assert(strategy instanceof PredicateAbstractionRefinementStrategy);
+
+            PredicateAbstractionRefinementStrategy refinementStrategy = (PredicateAbstractionRefinementStrategy)strategy;
+            refinementStrategy.setPrecisionCallback(this);
+          }
+        }
+
+        ARGStatistics lARTStatistics;
+        try {
+          lARTStatistics = new ARGStatistics(internalConfiguration, lARTCPA);
+        } catch (InvalidConfigurationException e) {
+          throw new RuntimeException(e);
+        }
+        Set<Statistics> lStatistics = new HashSet<>();
+        lStatistics.add(lARTStatistics);
+        cegarAlg.collectStatistics(lStatistics);
+      }
+
+    } catch (IOException | InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+
+
+    /*CPAAlgorithm cpaAlg;
 
     try {
       cpaAlg = CPAAlgorithm.create(lARTCPA, logger, startupConfig.getConfig(), algNotifier);
@@ -643,7 +699,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }
     Set<Statistics> lStatistics = new HashSet<>();
     lStatistics.add(lARTStatistics);
-    cegarAlg.collectStatistics(lStatistics);
+    cegarAlg.collectStatistics(lStatistics);*/
 
 
     boolean analysisWasSound = false;
@@ -651,11 +707,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
-      analysisWasSound = cegarAlg.run(reachedSet);
+      analysisWasSound = algorithm.run(reachedSet);
     }
     else {
       // run algorithm with time limit
-      WorkerRunnable workerRunnable = new WorkerRunnable(cegarAlg, reachedSet, cpuTimelimitPerGoal, algNotifier);
+      WorkerRunnable workerRunnable = new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
 
       Thread workerThread = new Thread(workerRunnable);
 
