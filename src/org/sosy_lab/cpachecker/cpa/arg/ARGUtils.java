@@ -104,6 +104,26 @@ public class ARGUtils {
   }
 
   /**
+   * Get all abstract states without parents.
+   */
+  public static Set<AbstractState> getRootStates(ReachedSet pReached) {
+
+    Set<AbstractState> result = new HashSet<>();
+
+    Iterator<AbstractState> it = pReached.iterator();
+    while (it.hasNext()) {
+      AbstractState e = it.next();
+      ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
+
+      if (state.getParents().isEmpty()) {
+        result.add(state);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Create a path in the ARG from root to the given element.
    * If there are several such paths, one is chosen randomly.
    *
@@ -474,48 +494,50 @@ public class ARGUtils {
 
   public static boolean checkARG(ReachedSet pReached) {
 
-      Deque<AbstractState> workList = new ArrayDeque<>();
-      Set<ARGState> arg = new HashSet<>();
+    // Please consider following facts:
+    // * An ARG can have multiple root nodes (for example, error locations of a backwards analysis)
+    // * The set 'reached' might have been initialized with arbitrary states that are in disjuncted ARGs
 
-      workList.add(pReached.getFirstState());
-      while (!workList.isEmpty()) {
-        ARGState currentElement = (ARGState)workList.removeFirst();
-        assert !currentElement.isDestroyed();
+    Iterator<AbstractState> it = pReached.iterator();
+    while (it.hasNext()) {
+      ARGState e = AbstractStates.extractStateByType(it.next(), ARGState.class);
 
-        for (ARGState parent : currentElement.getParents()) {
-          assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ARG";
-        }
-        for (ARGState child : currentElement.getChildren()) {
-          assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ARG";
-        }
+      assert !e.isDestroyed();
 
-        // check if (e \in ARG) => (e \in Reached || e.isCovered())
-        if (currentElement.isCovered()) {
-          // Assertion removed because now covered states are allowed to be in the reached set.
-          // But they don't need to be!
-  //        assert !pReached.contains(currentElement) : "Reached set contains covered element";
-
-        } else {
-          // There is a special case here:
-          // If the element is the sibling of the target state, it might have not
-          // been added to the reached set if CPAAlgorithm stopped before.
-          // But in this case its parent is in the waitlist.
-
-          assert pReached.contains(currentElement)
-              || pReached.getWaitlist().containsAll(currentElement.getParents())
-              : "Element in ARG but not in reached set";
-        }
-
-        if (arg.add(currentElement)) {
-          workList.addAll(currentElement.getChildren());
-        }
+      for (ARGState parent : e.getParents()) {
+        assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
+        assert pReached.contains(parent) : "Referenced parent is missing in reached";
       }
 
-      // check if (e \in Reached) => (e \in ARG)
-      assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
+      for (ARGState child : e.getChildren()) {
+        assert child.getParents().contains(e) : "Reference from child to parent is missing in ARG";
+        assert pReached.contains(child) : "Referenced parent is missing in reached";
+      }
 
-      return true;
+      // check if (e \in ARG) => (e \in Reached || e.isCovered())
+      if (e.isCovered()) {
+        // Assertion removed because now covered states are allowed to be in the reached set.
+        // But they don't need to be!
+  //        assert !pReached.contains(currentElement) : "Reached set contains covered element";
+
+      } else {
+        // There is a special case here:
+        // If the element is the sibling of the target state, it might have not
+        // been added to the reached set if CPAAlgorithm stopped before.
+        // But in this case its parent is in the waitlist.
+
+        assert pReached.contains(e)
+            || pReached.getWaitlist().containsAll(e.getParents())
+            : "Element in ARG but not in reached set";
+      }
     }
+
+    // Following check is hard to implement because the ARGs might be disjoined:
+    // check if (e \in Reached) => (e \in ARG)
+    //  assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
+
+    return true;
+  }
 
 
   public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
