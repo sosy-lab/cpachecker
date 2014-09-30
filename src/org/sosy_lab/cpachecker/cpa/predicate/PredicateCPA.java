@@ -141,7 +141,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
 
-  private final WeakestPreconditionWriter preconditions;
+  private final PreconditionWriter preconditions;
   private final RelationStore relstore;
   private final RelationView relview;
 
@@ -231,7 +231,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    preconditions = new WeakestPreconditionWriter(cfa, config, logger, formulaManager);
+    preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
