@@ -104,7 +104,7 @@ public class CProgramScope implements Scope {
               if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
                 FunctionCallEdge fce = (FunctionCallEdge) pEdge;
                 AFunctionDeclaration decl = fce.getSuccessor().getFunctionDefinition();
-                return from(decl.getParameters()).filter(CSimpleDeclaration.class).toList();
+                return from(decl.getParameters()).filter(CSimpleDeclaration.class);
               }
 
               if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -219,8 +219,7 @@ public class CProgramScope implements Scope {
      */
     Collection<CFANode> nodes = cfa.getAllNodes();
 
-    final FluentIterable<CSimpleDeclaration> dcls =
-        from(FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS).filter(HAS_NAME).toSet());
+    FluentIterable<CSimpleDeclaration> dcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS).filter(HAS_NAME);
 
     FluentIterable<CFunctionDeclaration> functionDcls = dcls.filter(CFunctionDeclaration.class);
     FluentIterable<CSimpleDeclaration> nonFunctionDcls = dcls.filter(not(instanceOf(CFunctionDeclaration.class)));
