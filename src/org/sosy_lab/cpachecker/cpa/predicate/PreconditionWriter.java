@@ -92,8 +92,9 @@ public class PreconditionWriter {
     Preconditions.checkNotNull(pWriteTo);
     Preconditions.checkNotNull(pReached);
 
-    BooleanFormula targetAbstraction = fmgr.getBooleanFormulaManager().makeBoolean(true);
+    BooleanFormula conjunctiveWp = fmgr.getBooleanFormulaManager().makeBoolean(true);
 
+    // Also for backwards analysis can exist multiple target states (for the same CFA location)
     FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
     for (AbstractState s: targetStates) {
       final ARGState target = (ARGState) s;
@@ -109,11 +110,11 @@ public class PreconditionWriter {
           PredicateAbstractState.class);
 
       // The last abstraction state before the target location contains the negation of the WP
-      targetAbstraction = fmgr.makeAnd(targetAbstraction, fmgr.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula()));
+      conjunctiveWp = fmgr.makeAnd(conjunctiveWp, fmgr.makeNot(fmgr.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula())));
     }
 
     // The WP is the negation of targetAbstraction
-    BooleanFormula wp = fmgr.simplify(fmgr.makeNot(targetAbstraction));
+    BooleanFormula wp = fmgr.simplify(conjunctiveWp);
 
     // Write the formula in the SMT-LIB2 format to the target stream
     pWriteTo.append(wp.toString());
