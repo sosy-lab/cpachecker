@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
@@ -92,21 +92,28 @@ public class WeakestPreconditionWriter {
     Preconditions.checkNotNull(pWriteTo);
     Preconditions.checkNotNull(pReached);
 
-    FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
-    assert targetStates.size() == 1 : "We need exactly one target state to dump a weakest precondition.";
-    final ARGState target = (ARGState) targetStates.first().get();
-    final ARGPath pathToTarget = ARGUtils.getOnePathTo(target);
-    assert pathToTarget != null : "The abstract target-state must be on an abstract path!";
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the target location (which is the entry location of a backwards analysis)
-    final List<ARGState> abstractionStatesTrace = transformPath(pathToTarget);
-    assert abstractionStatesTrace.size() > 1;
-    PredicateAbstractState stateWithWp = AbstractStates.extractStateByType(
-        abstractionStatesTrace.get(abstractionStatesTrace.size()-2),
-        PredicateAbstractState.class);
+    BooleanFormula targetAbstraction = fmgr.getBooleanFormulaManager().makeBoolean(true);
 
-    // The last abstraction state before the target location contains the negation of the WP
-    Formula wp = fmgr.uninstantiate(fmgr.simplify(fmgr.makeNot(stateWithWp.getAbstractionFormula().asFormula())));
+    FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
+    for (AbstractState s: targetStates) {
+      final ARGState target = (ARGState) s;
+      final ARGPath pathToTarget = ARGUtils.getOnePathTo(target);
+      assert pathToTarget != null : "The abstract target-state must be on an abstract path!";
+
+      // create path with all abstraction location elements (excluding the initial element)
+      // the last element is the element corresponding to the target location (which is the entry location of a backwards analysis)
+      final List<ARGState> abstractionStatesTrace = transformPath(pathToTarget);
+      assert abstractionStatesTrace.size() > 1;
+      PredicateAbstractState stateWithAbstraction = AbstractStates.extractStateByType(
+          abstractionStatesTrace.get(abstractionStatesTrace.size()-2),
+          PredicateAbstractState.class);
+
+      // The last abstraction state before the target location contains the negation of the WP
+      targetAbstraction = fmgr.makeAnd(targetAbstraction, fmgr.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula()));
+    }
+
+    // The WP is the negation of targetAbstraction
+    BooleanFormula wp = fmgr.simplify(fmgr.makeNot(targetAbstraction));
 
     // Write the formula in the SMT-LIB2 format to the target stream
     pWriteTo.append(wp.toString());
