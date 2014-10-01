@@ -523,15 +523,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
-
-      if (init == null) {
-        if (decl.getType() instanceof JClassOrInterfaceType) {
-          initialValue = NullValue.getInstance();
-        } else {
-          // numeric variables without initializer are set to 0 in C and Java
-          initialValue = new NumericValue(0L);
-        }
-      }
     }
 
     MemoryLocation memoryLocation;
@@ -1133,7 +1124,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     toStrengthen.add((ValueAnalysisState) element);
     result.add((ValueAnalysisState) element);
 
-    //
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
         result.clear();
