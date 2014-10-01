@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
@@ -492,17 +493,26 @@ public class ARGUtils {
     };
   }
 
+  /**
+   * Check consistency of ARG, and consistency between ARG and reached set.
+   *
+   * Checks we do here currently:
+   * - child-parent relationship of ARG states
+   * - states in ARG are also in reached set and vice versa (as far as possible to check)
+   * - no destroyed states present
+   *
+   * This method is potentially expensive,
+   * and should be called only from an assert statement.
+   * @return <code>true</code>
+   * @throws AssertionError If any consistency check is violated.
+   */
   public static boolean checkARG(ReachedSet pReached) {
+    // Not all states in ARG might be reachable from a single root state
+    // in case of multiple initial states and disjoint ARGs.
 
-    // Please consider following facts:
-    // * An ARG can have multiple root nodes (for example, error locations of a backwards analysis)
-    // * The set 'reached' might have been initialized with arbitrary states that are in disjuncted ARGs
-
-    Iterator<AbstractState> it = pReached.iterator();
-    while (it.hasNext()) {
-      ARGState e = AbstractStates.extractStateByType(it.next(), ARGState.class);
-
-      assert !e.isDestroyed();
+    for (ARGState e : from(pReached).transform(toState(ARGState.class))) {
+      assert e != null : "Reached set contains abstract state without ARGState.";
+      assert !e.isDestroyed() : "Reached set contains destroyed ARGState, which should have been removed.";
 
       for (ARGState parent : e.getParents()) {
         assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
@@ -512,31 +522,20 @@ public class ARGUtils {
       for (ARGState child : e.getChildren()) {
         assert child.getParents().contains(e) : "Reference from child to parent is missing in ARG";
 
-        // The following assertions is violated in most programs. Why?
-        //    assert pReached.contains(child) : "Referenced child is missing in reached";
-      }
-
-      // check if (e \in ARG) => (e \in Reached || e.isCovered())
-      if (e.isCovered()) {
-        // Assertion removed because now covered states are allowed to be in the reached set.
-        // But they don't need to be!
-  //        assert !pReached.contains(currentElement) : "Reached set contains covered element";
-
-      } else {
-        // There is a special case here:
-        // If the element is the sibling of the target state, it might have not
+        // Usually, all children should be in reached set, with two exceptions.
+        // 1) Covered states need not be in the reached set (this depends on cpa.arg.keepCoveredStatesInReached),
+        // but if they are not in the reached set, they may not have children.
+        // 2) If the state is the sibling of the target state, it might have not
         // been added to the reached set if CPAAlgorithm stopped before.
         // But in this case its parent is in the waitlist.
 
-        assert pReached.contains(e)
-            || pReached.getWaitlist().containsAll(e.getParents())
-            : "Element in ARG but not in reached set";
+        if (!pReached.contains(child)) {
+          assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
+              || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+              : "Referenced child is missing in reached set.";
+        }
       }
     }
-
-    // Following check is hard to implement because the ARGs might be disjoined:
-    // check if (e \in Reached) => (e \in ARG)
-    //  assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
 
     return true;
   }
