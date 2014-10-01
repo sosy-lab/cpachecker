@@ -88,7 +88,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     // process stop flag
     boolean stop = false;
 
-    for (AbstractState element : AbstractStates.asIterable(others)) {
+    for (AbstractState element : AbstractStates.asFlatIterable(others)) {
       if (element instanceof AssumptionReportingState) {
         List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
         for (CExpression inv : assumptions) {

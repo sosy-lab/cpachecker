@@ -45,7 +45,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -55,10 +54,6 @@ public final class AbstractStates {
 
   private AbstractStates() { }
 
-  private static <T1, T2> FluentIterable<T2> transformAndConcat(Iterable<T1> input, Function<T1, ? extends Iterable<T2>> transform) {
-    return from(Iterables.concat(Iterables.transform(input, transform)));
-  }
-
   /**
    * Retrieve one of the wrapped abstract states by type. If the hierarchy of
    * (wrapped) abstract states has several levels, this method searches through
@@ -66,6 +61,9 @@ public final class AbstractStates {
    *
    * The type does not need to match exactly, the returned state has just to
    * be a sub-type of the type passed as argument.
+   *
+   * If you want to get all wrapped states with this type,
+   * use <code>asIterable(pState).filter(pType)</code>.
    *
    * @param <T> The type of the wrapped state.
    * @param pState An abstract state
@@ -95,6 +93,13 @@ public final class AbstractStates {
   /**
    * Applies {@link #extractStateByType(AbstractState, Class)} to all states
    * of a given {@link Iterable}.
+   * There is one state in the output for every state in the input
+   * that has a wrapped state with a matching type, in the same order.
+   * Input states without a matching wrapped state are silently ignored.
+   *
+   * If you want to get all wrapped states with the given type,
+   * even if a single state in the input has several of them,
+   * use <code>asFlatIterable(states).filter(pType)</code>.   *
    *
    * @param states an <code>Iterable</code> over all the states
    *        <code>extractStateByType(AbstractState, Class)</code>
@@ -138,12 +143,12 @@ public final class AbstractStates {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
       final LocationMappedReachedSet states = (LocationMappedReachedSet)pStates;
-      return transformAndConcat(pLocs, new Function<CFANode, Iterable<AbstractState>>() {
-        @Override
-        public Iterable<AbstractState> apply(CFANode location) {
-          return states.getReached(location);
-        }
-      });
+      return from(pLocs).transformAndConcat(new Function<CFANode, Iterable<AbstractState>>() {
+                  @Override
+                  public Iterable<AbstractState> apply(CFANode location) {
+                    return states.getReached(location);
+                  }
+                });
     }
 
     Predicate<AbstractState> statesWithRightLocation = Predicates.compose(in(pLocs), EXTRACT_LOCATION);
@@ -233,8 +238,15 @@ public final class AbstractStates {
       }
     };
 
-  public static FluentIterable<AbstractState> asIterable(final Iterable<AbstractState> pStates) {
-    return transformAndConcat(pStates, AS_ITERABLE);
+  /**
+   * Apply {@link #asIterable(AbstractState)} to several abstract states at once
+   * and provide an iterable for all resulting component abstract states.
+   * There is no distinction from which state in the input iterable
+   * a state in the output iterable results,
+   * and there is no guaranteed order.
+   */
+  public static FluentIterable<AbstractState> asFlatIterable(final Iterable<AbstractState> pStates) {
+    return from(pStates).transformAndConcat(AS_ITERABLE);
   }
 
   /**
