@@ -202,7 +202,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     return !trackBooleanVariables
       || !trackIntEqualVariables
       || !trackIntAddVariables
-      || variableBlacklist.toString().isEmpty();
+      || !variableBlacklist.toString().isEmpty();
     }
 
     @Override
