@@ -725,6 +725,12 @@ final class Z3NativeApi {
   public static native int solver_check_assumptions(long context, long solver, int len, long[] assumptions);
   public static native long solver_get_model(long context, long solver);
   public static native long solver_get_proof(long context, long solver);
+
+  /**
+   * Return the unsatisfiable core for the problem.
+   *
+   * @return Z3_ast_vector
+   */
   public static native long solver_get_unsat_core(long context, long solver);
   public static native String solver_get_reason_unknown(long context, long solver);
   public static native long solver_get_statistics(long context, long solver);
