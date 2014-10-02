@@ -189,7 +189,7 @@ public class SSAMap implements Serializable {
         return ssa;
       }
 
-      ssa = new SSAMap(vars, varsHashCode, varTypes);
+      ssa = new SSAMap(vars, varsHashCode, varTypes, ssa.defaultValue);
       return ssa;
     }
 
