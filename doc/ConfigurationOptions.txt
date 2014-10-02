@@ -1235,6 +1235,9 @@ cpa.predicate.solver.useLogger = false
 cpa.predicate.solver.z3.logger.target = Z3
   allowed values: [Z3, MATHSAT5]
 
+# produce unsatisfiable core
+cpa.predicate.solver.z3.produceUnsatCore = false
+
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
@@ -1456,6 +1459,12 @@ cpa.statistics.printOut = true
 
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
+
+# Generate templates for the lower bounds of each variable
+cpa.stator.policy.generateLowerBound = true
+
+# Generate templates for the upper bounds of each variable
+cpa.stator.policy.generateUpperBound = true
 
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
@@ -1722,6 +1731,9 @@ precision.trackIntEqualVariables = true
 
 # blacklist regex for variables that won't be tracked by ValueAnalysisCPA
 precision.variableBlacklist = ""
+
+# print reached set to graph file
+reachedSet.dot = "reached.dot"
 
 # print reached set to text file
 reachedSet.export = false
