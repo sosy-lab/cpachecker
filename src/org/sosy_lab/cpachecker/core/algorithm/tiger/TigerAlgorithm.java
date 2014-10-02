@@ -120,6 +120,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
@@ -704,133 +705,146 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
     }
 
-    // TODO maybe we should check for this: from(reached).anyMatch(IS_TARGET_STATE)
-    Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
-
     if (!hasTimedOut) {
-      if (counterexamples.isEmpty()) {
-        // test goal is not feasible
-        logger.logf(Level.INFO, "Test goal infeasible.");
+      // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
+      AbstractState lastState = reachedSet.getLastState();
 
-        if (lGoalPrediction != null) {
-          lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
-        }
+      if (lastState != null) {
+        if (AbstractStates.isTargetState(lastState)) {
+          // we consider the test goal as feasible
 
-        testsuite.addInfeasibleGoal(pGoal);
-        // TODO add missing soundness checks!
+          logger.logf(Level.INFO, "Test goal is feasible.");
 
-        if (pInfeasibilityPropagation.getFirst()) {
-          logger.logf(Level.INFO, "Do infeasibility propagation!");
+          // TODO add missing soundness checks!
 
-
-
-          HashSet<CFAEdge> lTargetEdges = new HashSet<>();
-
-          ClusteredElementaryCoveragePattern lClusteredPattern = (ClusteredElementaryCoveragePattern)pGoal.getPattern();
-
-          ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
-
-          int lTmpIndex = goalIndex - 1; // caution lIndex starts at 0
-
-          while (lRemainingPatterns.hasNext()) {
-            Prediction lPrediction = lGoalPrediction[lTmpIndex];
-
-            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
-
-            if (lPrediction.equals(Prediction.UNKNOWN)) {
-              lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
-            }
-
-            lTmpIndex++;
+          if (lGoalPrediction != null) {
+            lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
           }
 
-          Collection<CFAEdge> lFoundEdges = InfeasibilityPropagation.dfs2(lClusteredPattern.getCFANode(), lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
+          // can we obtain a counterexample to check coverage for other test goals?
+          Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
-          lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+          if (counterexamples.isEmpty()) {
+            logger.logf(Level.INFO, "Counterexample is not available.");
+          }
+          else {
+            // test goal is feasible
+            logger.logf(Level.INFO, "Counterexample is available.");
 
-          lTmpIndex = goalIndex - 1;
+            assert counterexamples.size() == 1;
 
-          while (lRemainingPatterns.hasNext()) {
-            Prediction lPrediction = lGoalPrediction[lTmpIndex];
+            for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+              CounterexampleInfo cex = lEntry.getValue();
 
-            ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+              if (cex.isSpurious()) {
+                logger.logf(Level.WARNING, "Counterexample is spurious!");
+              }
+              else {
+                Model model = cex.getTargetPathModel();
 
-            if (lPrediction.equals(Prediction.UNKNOWN)) {
-              if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
-                //mFeasibilityInformation.setStatus(lTmpIndex+1, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
-                // TODO remove ???
+                Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
 
-                lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
+                  @Override
+                  public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+                    assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+                    assert pArg0.getKey() instanceof Model.Variable;
+                    assert pArg1.getKey() instanceof Model.Variable;
+
+                    Model.Variable v0 = (Model.Variable)pArg0.getKey();
+                    Model.Variable v1 = (Model.Variable)pArg1.getKey();
+
+                    return (v0.getSSAIndex() - v1.getSSAIndex());
+                  }
+
+                };
+
+                TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+
+                for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
+                  if (e.getKey() instanceof Model.Variable) {
+                    Model.Variable v = (Model.Variable)e.getKey();
+
+                    if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
+                      inputs.add(e);
+                    }
+                  }
+                }
+
+                List<BigInteger> inputValues = new ArrayList<>(inputs.size());
+
+                for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
+                  assert e.getValue() instanceof BigInteger;
+                  inputValues.add((BigInteger)e.getValue());
+                }
+
+                TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
+                testsuite.addTestCase(testcase, pGoal);
               }
             }
+          }
+        }
+        else {
+          // we consider the test goals is infeasible
 
-            lTmpIndex++;
+          logger.logf(Level.INFO, "Test goal infeasible.");
+
+          if (lGoalPrediction != null) {
+            lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
           }
 
+          testsuite.addInfeasibleGoal(pGoal);
+          // TODO add missing soundness checks!
 
+          if (pInfeasibilityPropagation.getFirst()) {
+            logger.logf(Level.INFO, "Do infeasibility propagation!");
 
+            HashSet<CFAEdge> lTargetEdges = new HashSet<>();
+
+            ClusteredElementaryCoveragePattern lClusteredPattern = (ClusteredElementaryCoveragePattern)pGoal.getPattern();
+
+            ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+            int lTmpIndex = goalIndex - 1; // caution lIndex starts at 0
+
+            while (lRemainingPatterns.hasNext()) {
+              Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+              ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+              if (lPrediction.equals(Prediction.UNKNOWN)) {
+                lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
+              }
+
+              lTmpIndex++;
+            }
+
+            Collection<CFAEdge> lFoundEdges = InfeasibilityPropagation.dfs2(lClusteredPattern.getCFANode(), lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
+
+            lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
+
+            lTmpIndex = goalIndex - 1;
+
+            while (lRemainingPatterns.hasNext()) {
+              Prediction lPrediction = lGoalPrediction[lTmpIndex];
+
+              ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
+
+              if (lPrediction.equals(Prediction.UNKNOWN)) {
+                if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
+                  //mFeasibilityInformation.setStatus(lTmpIndex+1, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
+                  // TODO remove ???
+
+                  lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
+                }
+              }
+
+              lTmpIndex++;
+            }
+          }
         }
       }
       else {
-        // test goal is feasible
-        logger.logf(Level.INFO, "Test goal is feasible.");
-
-        // TODO add missing soundness checks!
-
-        if (lGoalPrediction != null) {
-          lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
-        }
-
-        assert counterexamples.size() == 1;
-
-        for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-          CounterexampleInfo cex = lEntry.getValue();
-
-          if (cex.isSpurious()) {
-            logger.logf(Level.WARNING, "Counterexample is spurious!");
-          }
-          else {
-            Model model = cex.getTargetPathModel();
-
-            Comparator<Map.Entry<Model.AssignableTerm, Object>> comp = new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
-
-              @Override
-              public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-                assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
-                assert pArg0.getKey() instanceof Model.Variable;
-                assert pArg1.getKey() instanceof Model.Variable;
-
-                Model.Variable v0 = (Model.Variable)pArg0.getKey();
-                Model.Variable v1 = (Model.Variable)pArg1.getKey();
-
-                return (v0.getSSAIndex() - v1.getSSAIndex());
-              }
-
-            };
-
-            TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
-
-            for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
-              if (e.getKey() instanceof Model.Variable) {
-                Model.Variable v = (Model.Variable)e.getKey();
-
-                if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
-                  inputs.add(e);
-                }
-              }
-            }
-
-            List<BigInteger> inputValues = new ArrayList<>(inputs.size());
-
-            for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
-              assert e.getValue() instanceof BigInteger;
-              inputValues.add((BigInteger)e.getValue());
-            }
-
-            TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
-            testsuite.addTestCase(testcase, pGoal);
-          }
-        }
+        throw new RuntimeException("We need a last state to determine the feasibility of the test goal!");
       }
     }
 
