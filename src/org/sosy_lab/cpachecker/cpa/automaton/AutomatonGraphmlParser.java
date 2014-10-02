@@ -396,7 +396,8 @@ public class AutomatonGraphmlParser {
             transitions.add(0, tr);
           }
 
-        } else if (matchSourcecodeData) {
+        }
+        if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
           Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
           if (sourceCodeDataTags.isEmpty()) {
