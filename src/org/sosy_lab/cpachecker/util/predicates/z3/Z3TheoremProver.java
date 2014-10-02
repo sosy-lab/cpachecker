@@ -58,15 +58,19 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   private final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
 
-  Map<String, BooleanFormula> storedConstraints;
+  private final Map<String, BooleanFormula> storedConstraints;
 
-  public Z3TheoremProver(Z3FormulaManager mgr) {
-    this.mgr = mgr;
-    this.z3context = mgr.getEnvironment();
-    this.z3solver = mk_solver(z3context);
+  public Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+    mgr = pMgr;
+    z3context = mgr.getEnvironment();
+    z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
-    this.smtLogger = mgr.getSmtLogger();
-    storedConstraints = new HashMap<>();
+    smtLogger = mgr.getSmtLogger();
+    if (generateUnsatCore) {
+      storedConstraints = new HashMap<>();
+    } else {
+      storedConstraints = null;
+    }
   }
 
   @Override
@@ -83,9 +87,7 @@ public class Z3TheoremProver implements ProverEnvironment {
       inc_ref(z3context, e);
     }
 
-
-    if (mgr.produceUnsatCore) {
-
+    if (storedConstraints != null) {
       String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
       // TODO: can we do with no casting?
       Z3BooleanFormula t =
@@ -94,7 +96,6 @@ public class Z3TheoremProver implements ProverEnvironment {
 
       solver_assert_and_track(z3context, z3solver, e, t.getExpr());
       storedConstraints.put(varName, f);
-
     } else {
       solver_assert(z3context, z3solver, e);
     }
@@ -130,9 +131,12 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   @Override
   public List<BooleanFormula> getUnsatCore() {
-    if (!mgr.produceUnsatCore) throw new UnsupportedOperationException(
-        "Option to produce the unsatisfiable core is not enabled for Z3."
-    );
+    if (storedConstraints == null) {
+      throw new UnsupportedOperationException(
+          "Option to generate the UNSAT core wasn't enabled when creating" +
+          " the prover environment."
+      );
+    }
 
     List<BooleanFormula> constraints = new LinkedList<>();
     long ast_vector = solver_get_unsat_core(z3context, z3solver);

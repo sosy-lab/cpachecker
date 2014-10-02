@@ -188,7 +188,7 @@ public class FormulaManagerFactory {
       pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
       break;
     case Z3:
-      pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      pe = new Z3TheoremProver((Z3FormulaManager) fmgr, generateUnsatCore);
       break;
     case PRINCESS:
       pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);

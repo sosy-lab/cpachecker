@@ -1235,9 +1235,6 @@ cpa.predicate.solver.useLogger = false
 cpa.predicate.solver.z3.logger.target = Z3
   allowed values: [Z3, MATHSAT5]
 
-# produce unsatisfiable core
-cpa.predicate.solver.z3.produceUnsatCore = false
-
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
