@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +41,8 @@ import com.google.common.collect.ImmutableSet;
  * Logic-less container class.
  */
 public class PolicyAbstractState implements AbstractState,
-    Iterable<Entry<LinearExpression, PolicyTemplateBound>> {
+    Iterable<Entry<LinearExpression, PolicyTemplateBound>>,
+    Graphable {
 
   // NOTE: It should not be there, we are wasting memory.
   // But hey, can't really find an easier way to do that.
@@ -86,6 +88,11 @@ public class PolicyAbstractState implements AbstractState,
 
   @Override
   public String toString() {
-    return String.format("[AS @Node:%s %s]", node, data);
+    return String.format("%s: %s", node, data);
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return String.format("%s", data);
   }
 }

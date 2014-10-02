@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
@@ -43,7 +44,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-public class CompositeState implements AbstractWrapperState, TargetableWithPredicatedAnalysis, Partitionable, Serializable {
+public class CompositeState implements AbstractWrapperState,
+    TargetableWithPredicatedAnalysis, Partitionable, Serializable, Graphable {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
@@ -90,6 +92,21 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
       builder.append("\n ");
     }
     builder.replace(builder.length() - 1, builder.length(), ")");
+
+    return builder.toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder builder = new StringBuilder();
+    for (AbstractState element : states) {
+      if (!(element instanceof Graphable)) continue;
+
+      builder.append(element.getClass().getSimpleName());
+      builder.append(": ");
+      builder.append(((Graphable)element).toDOTLabel());
+      builder.append("\n ");
+    }
 
     return builder.toString();
   }

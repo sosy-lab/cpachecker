@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -51,7 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
+public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis, Graphable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -319,6 +320,14 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     sb.append(") ");
     sb.append(getWrappedState());
     return sb.toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    if (getWrappedState() instanceof Graphable) {
+      return ((Graphable)getWrappedState()).toDOTLabel();
+    }
+    return "";
   }
 
   private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
