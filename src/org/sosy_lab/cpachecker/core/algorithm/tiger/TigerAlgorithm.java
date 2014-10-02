@@ -726,6 +726,40 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           if (counterexamples.isEmpty()) {
             logger.logf(Level.INFO, "Counterexample is not available.");
+
+            LinkedList<CFAEdge> trace = new LinkedList<>();
+
+            // Try to reconstruct a trace in the ARG
+            ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
+
+            Collection<ARGState> parents;
+            parents = argState.getParents();
+
+            while (!parents.isEmpty()) {
+              //assert (parents.size() == 1);
+              /*if (parents.size() != 1) {
+                throw new RuntimeException();
+              }*/
+
+              ARGState parent = null;
+
+              for (ARGState tmp_parent : parents) {
+                parent = tmp_parent;
+                break; // we just choose some parent
+              }
+
+              CFAEdge edge = parent.getEdgeToChild(argState);
+              trace.addFirst(edge);
+
+              argState = parent;
+              parents = argState.getParents();
+            }
+
+            // TODO we need a different way to obtain input values
+            List<BigInteger> inputValues = new ArrayList<>();
+
+            TestCase testcase = new TestCase(inputValues, trace);
+            testsuite.addTestCase(testcase, pGoal);
           }
           else {
             // test goal is feasible
