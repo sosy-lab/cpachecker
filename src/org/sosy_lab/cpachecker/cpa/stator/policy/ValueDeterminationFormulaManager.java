@@ -1,27 +1,4 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
-package org.sosy_lab.cpachecker.cpa.policy;
+package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -53,30 +30,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
 /**
  * All our SSA-customization code should go there.
  */
 public class ValueDeterminationFormulaManager {
-
-  /**
-   * Return value datastructure for the value determination formula.
-   */
-  public static class ValueDeterminationConstraint {
-    final BooleanFormula constraints;
-    final Table<CFANode, LinearExpression, NumeralFormula> templateFormulaMap;
-
-    ValueDeterminationConstraint(
-        BooleanFormula constraints,
-        Table<CFANode, LinearExpression, NumeralFormula> templateFormulaMap
-        ) {
-      this.constraints = constraints;
-      this.templateFormulaMap = templateFormulaMap;
-    }
-  }
-
   private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
@@ -84,12 +41,12 @@ public class ValueDeterminationFormulaManager {
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
   private final LogManager logger;
   private final LinearConstraintManager lcmgr;
-  private final CFA cfa;
 
   private final int threshold;
 
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
 
+  @SuppressWarnings("unused")
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
       FormulaManagerView fmgr,
@@ -106,7 +63,6 @@ public class ValueDeterminationFormulaManager {
     this.rfmgr = fmgr.getRationalFormulaManager();
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
-    this.cfa = cfa;
     this.formulaManager = rfmgr;
     this.lcmgr = lcmgr;
 
@@ -117,7 +73,7 @@ public class ValueDeterminationFormulaManager {
    * Convert a value determination problem into a single formula.
    *
    * @param policy Selected policy
-   * @return {@link org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula} representing the CFA subset.
+   * @return Global constraint for value determination.
    * @throws CPATransferException
    * @throws InterruptedException
   // NOTE: I am doing something which seems quite silly here.
@@ -126,20 +82,15 @@ public class ValueDeterminationFormulaManager {
   // cycle.
   // But such an improvement can be left as a todo-item for later.
    */
-  public ValueDeterminationConstraint valueDeterminationFormula(
+  public List<BooleanFormula> valueDeterminationFormula(
       final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
       ) throws CPATransferException, InterruptedException{
 
     List<BooleanFormula> constraints = new LinkedList<>();
 
-    Table<CFANode, LinearExpression, NumeralFormula> outSSAMap = HashBasedTable.create();
-
     for (Entry<CFANode, Map<LinearExpression, CFAEdge>> entry : policy.entrySet()) {
 
       CFANode toNode = entry.getKey();
-      logger.log(Level.FINE, "Creating value-determination formula for node "
-          + toNode);
-
       for (Entry<LinearExpression, CFAEdge> incoming : entry.getValue().entrySet()) {
 
         LinearExpression template = incoming.getKey();
@@ -162,16 +113,10 @@ public class ValueDeterminationFormulaManager {
         if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
           constraints.add(edgeFormula);
         }
-        logger.log(Level.FINE, "Adding edge formula: " + edgeFormula);
-
         if (policy.get(fromNode) == null) {
           // NOTE: nodes with no templates aren't in the policy.
           continue;
         }
-
-        logger.log(Level.FINE, "Template set = " +
-            policy.get(fromNode).keySet()
-        );
 
         for (LinearExpression fromTemplate : policy.get(fromNode).keySet()) {
 
@@ -184,33 +129,23 @@ public class ValueDeterminationFormulaManager {
 
           BooleanFormula f = rfmgr.lessOrEquals(
               edgeInput,
-              rfmgr.makeVariable(absDomainVarName(fromNode, fromTemplate))
-          );
+              rfmgr.makeVariable(absDomainVarName(fromNode, fromTemplate)));
 
           constraints.add(f);
-          logger.log(Level.FINE, "Adding abstract-domain constraint: "
-              + f);
         }
 
         NumeralFormula outExpr = lcmgr.linearExpressionToFormula(
-            template, edgePathFormula.getSsa(), templatePrefix
-        );
+            template, edgePathFormula.getSsa(), templatePrefix);
 
-        NumeralFormula out = rfmgr.makeVariable(absDomainVarName(
-            toNode, template));
+        NumeralFormula out = rfmgr.makeVariable(absDomainVarName(toNode, template));
 
-        BooleanFormula outConstraint = rfmgr.equal(
-            outExpr, out
-        );
+        BooleanFormula outConstraint = rfmgr.equal(outExpr, out);
 
         logger.log(Level.FINE, "Output constraint = " + outConstraint);
         constraints.add(outConstraint);
-
-
-        outSSAMap.put(toNode, template, out);
       }
     }
-    return new ValueDeterminationConstraint(bfmgr.and(constraints), outSSAMap);
+    return constraints;
   }
 
   /**
@@ -239,7 +174,10 @@ public class ValueDeterminationFormulaManager {
     for (String varNameWithIdx : allVars) {
 
       Pair<String, Integer> pair = FormulaManagerView.parseName(varNameWithIdx);
-      int oldIdx = pair.getSecond();
+      Integer oldIdx = pair.getSecond(); // TODO: can be null?..
+      if (oldIdx == null) {
+        oldIdx = 0;
+      }
       String varName = pair.getFirst();
 
       CType type = newMapBuilder.getType(varName);
@@ -247,20 +185,14 @@ public class ValueDeterminationFormulaManager {
       int newIdx;
       if (oldIdx != startIdx) {
         newIdx = stopIdx;
-
-        newMapBuilder.setIndex(varName, type, newIdx);
-
+        newMapBuilder = newMapBuilder.setIndex(varName, type, newIdx);
       } else {
         newIdx = oldIdx;
       }
 
-      fromVars.add(
-          rfmgr.makeVariable(formulaVarName(varName, ""), oldIdx)
-      );
+      fromVars.add(makeVariable(varName, oldIdx, ""));
 
-      toVars.add(
-          rfmgr.makeVariable(formulaVarName(varName, customPrefix), newIdx)
-      );
+      toVars.add(makeVariable(varName, newIdx, customPrefix));
     }
 
     BooleanFormula innerFormula = formulaManager.getUnsafeFormulaManager().substitute(
@@ -274,8 +206,8 @@ public class ValueDeterminationFormulaManager {
         p.getLength());
   }
 
-  private String formulaVarName(String variable, String namespace) {
-    return String.format("%s%s", namespace, variable);
+  private NumeralFormula makeVariable(String variable, int idx, String namespace) {
+    return rfmgr.makeVariable(namespace + variable, idx);
   }
 
   /**
@@ -319,7 +251,7 @@ public class ValueDeterminationFormulaManager {
     return threshold + no;
   }
 
-  private String absDomainVarName(CFANode node, LinearExpression template) {
+  String absDomainVarName(CFANode node, LinearExpression template) {
     return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
   }
 }

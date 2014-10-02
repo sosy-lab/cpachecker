@@ -1,37 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
-package org.sosy_lab.cpachecker.cpa.policy;
+package org.sosy_lab.cpachecker.cpa.stator.policy;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
@@ -53,13 +37,22 @@ public class LinearConstraintManager {
 
   private final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManagerView<
-      NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
+        NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
   private final LogManager logger;
+  private final FormulaManagerView fmgr;
+  private final FormulaManagerFactory factory;
+
+  // Something which is bigger then any reasonable value.
+  private final ExtendedRational BAZILLION = ExtendedRational.ofString(
+      "100000000");
 
   LinearConstraintManager(
       FormulaManagerView pFmgr,
+      FormulaManagerFactory factory,
       LogManager logger
       ) {
+    fmgr = pFmgr;
+    this.factory = factory;
     bfmgr = pFmgr.getBooleanFormulaManager();
     rfmgr = pFmgr.getRationalFormulaManager();
     this.logger = logger;
@@ -126,23 +119,21 @@ public class LinearConstraintManager {
       ExtendedRational coeff = entry.getValue();
       String origVarName = entry.getKey();
 
-      // The variable name for the formula
-      String varName = customPrefix + origVarName;
-      NumeralFormula item;
+      // SSA index shouldn't be zero.
+      int idx = Math.max(pSSAMap.getIndex(origVarName), 1);
+
+      NumeralFormula item = rfmgr.makeVariable(customPrefix + origVarName, idx);
+
       if (coeff.getType() != ExtendedRational.NumberType.RATIONAL) {
         throw new UnsupportedOperationException(
             "Can not convert the expression " + expr);
       } else if (coeff.equals(ExtendedRational.ZERO)) {
         continue;
-      } else if (coeff.equals(ExtendedRational.ONE)) {
-        item = rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName));
       } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
-        item = rfmgr.negate(rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName)));
-      } else {
+        item = rfmgr.negate(item);
+      } else if (!coeff.equals(ExtendedRational.ONE)){
         item = rfmgr.multiply(
-            rfmgr.makeVariable(varName, pSSAMap.getIndex(origVarName)),
-            rfmgr.makeNumber(entry.getValue().toString())
-        );
+            item, rfmgr.makeNumber(entry.getValue().toString()));
       }
 
       if (sum == null) {
@@ -172,6 +163,7 @@ public class LinearConstraintManager {
   ) throws SolverException, InterruptedException {
 
     NumeralFormula objective = linearExpressionToFormula(expression, pSSAMap);
+    logger.log(Level.FINE, "MAXIMIZING for objective: " + objective);
 
     return maximize(prover, objective);
   }
@@ -187,11 +179,16 @@ public class LinearConstraintManager {
     // Create a new variable, make it equal to the linear expression which we
     // have.
     FreshVariable target = FreshVariable.createFreshVar(rfmgr);
-    BooleanFormula constraint =
-        rfmgr.equal(
-            target.variable, objective
-        );
-    prover.addConstraint(constraint);
+
+    // TODO: A very dirty hack, Z3 does not seem to work well with unbounded
+    // objectives, so we simply constraint the result above by BAZILLION
+    // (a sufficiently large number), and if the output number is equal to
+    // the BAZILLION we say that the result is unbounded.
+    prover.addConstraint(
+        rfmgr.lessOrEquals(target.variable, rfmgr.makeNumber(BAZILLION.toString()))
+    );
+
+    prover.addConstraint(rfmgr.equal(target.variable, objective));
     prover.setObjective(target.variable);
 
     OptEnvironment.OptResult result = prover.maximize();
@@ -200,9 +197,16 @@ public class LinearConstraintManager {
       case OPT:
         Model model = prover.getModel();
         logger.log(Level.FINEST, "OPT");
-        return (ExtendedRational) model.get(
+        logger.log(Level.FINEST, "Model = " + model);
+
+
+        ExtendedRational returned = (ExtendedRational) model.get(
             new Model.Constant(target.name(), Model.TermType.Real)
         );
+
+        if (returned.equals(BAZILLION)) return ExtendedRational.INFTY;
+
+        return returned;
       case UNSAT:
         logger.log(Level.FINEST, "UNSAT");
         return ExtendedRational.NEG_INFTY;
@@ -211,10 +215,86 @@ public class LinearConstraintManager {
         return ExtendedRational.INFTY;
       case UNDEF:
         logger.log(Level.FINEST, "UNDEFINED");
-        throw new SolverException("Result undefiend: something is wrong");
+        throw new SolverException("Result undefined: something is wrong");
       default:
         logger.log(Level.FINEST, "ERROR RUNNING OPTIMIZATION");
         throw new RuntimeException("Internal Error, unaccounted case");
     }
+  }
+
+  /**
+   * Provide a subset of original constraints which will give the same result
+   * after maximization as the original set.
+   */
+  @SuppressWarnings("unused")
+  public List<BooleanFormula> optCore(
+      List<BooleanFormula> origConstraints,
+      NumeralFormula objective,
+      ExtendedRational maxValue,
+      boolean isInteger
+      ) {
+    try (ProverEnvironment prover = factory.newProverEnvironment(true, true)) {
+      for (BooleanFormula constraint : origConstraints) {
+        prover.push(constraint);
+      }
+
+      if (isInteger) {
+
+        // Should be more numerically stable.
+        prover.push(rfmgr.greaterOrEquals(
+            objective, rfmgr.makeNumber(
+            maxValue.plus(ExtendedRational.ONE).toString())
+        ));
+      } else {
+        prover.push(rfmgr.greaterThan(
+            objective, rfmgr.makeNumber(maxValue.toString())
+        ));
+      }
+
+      return prover.getUnsatCore();
+    }
+  }
+
+  /**
+   * @return Subset of {@param origConstraints} containing only the formula
+   * related to (possibly indirectly) {@param relatedTo}.
+   */
+  @SuppressWarnings("unused")
+  List<BooleanFormula> getRelated(
+      List<BooleanFormula> origConstraints,
+      Formula relatedTo
+  ) {
+    List<BooleanFormula> toProcess = new LinkedList<>(origConstraints);
+    List<BooleanFormula> newToProcess = new LinkedList<>();
+
+    Set<String> careAbout = fmgr.extractVariables(relatedTo);
+    final List<BooleanFormula> related = new LinkedList<>();
+    Set<String> newCareAbout = new HashSet<>(careAbout);
+
+    // Fix-point computation to find out all the related constraints.
+    while (true) {
+      for (BooleanFormula f : toProcess) {
+        Set<String> containedVars = fmgr.extractVariables(f);
+        Set<String> intersection = new HashSet<>(containedVars);
+
+        intersection.retainAll(careAbout);
+        if (intersection.size() > 0) {
+          newCareAbout.addAll(containedVars);
+          related.add(f);
+        } else {
+          newToProcess.add(f);
+        }
+      }
+
+      if (newCareAbout.equals(careAbout)) {
+        break;
+      } else {
+        toProcess = new LinkedList<>(newToProcess);
+        careAbout = new HashSet<>(newCareAbout);
+        newCareAbout = new HashSet<>(careAbout);
+        newToProcess = new LinkedList<>();
+      }
+    }
+    return related;
   }
 }

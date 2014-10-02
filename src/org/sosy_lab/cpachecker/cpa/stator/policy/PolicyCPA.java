@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.policy;
+package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -33,14 +33,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  */
 @Options(prefix="cpa.policy")
 public class PolicyCPA implements ConfigurableProgramAnalysis{
-
   private final PolicyAbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
-
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-
-  private PrecisionAdjustment precisionAdjustment;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -61,7 +58,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     FormulaManagerView formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger);
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, formulaManagerFactory, logger);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
         pathFormulaManager,
         formulaManager,
@@ -77,6 +74,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
 
     abstractDomain = new PolicyAbstractDomain(
         valueDeterminationFormulaManager,
+        formulaManager,
         formulaManagerFactory,
         logger,
         lcmgr
@@ -93,7 +91,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
     );
 
     mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopJoinOperator(abstractDomain);
+    stopOperator = new StopSepOperator(abstractDomain);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
