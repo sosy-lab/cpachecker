@@ -181,7 +181,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   @Option(name = "algorithmConfigurationFile", description = "Configuration file for internal cpa algorithm.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path algorithmConfigurationFile = Paths.get("tiger-internal-algorithm.properties");
+  private Path algorithmConfigurationFile = Paths.get("config/tiger-internal-algorithm.properties");
 
   private LogManager logger;
   private StartupConfig startupConfig;
