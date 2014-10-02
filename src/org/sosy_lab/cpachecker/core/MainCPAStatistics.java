@@ -281,9 +281,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   private void dumpReachedSet(ReachedSet reached) {
     dumpReachedSet(reached, reachedSetFile, false);
-    if (reached instanceof PartitionedReachedSet) {
-      dumpReachedSet(reached, reachedSetGraphDumpPath, true);
-    }
+    dumpReachedSet(reached, reachedSetGraphDumpPath, true);
   }
 
   private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
@@ -295,7 +293,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
         if (writeDotFormat) {
 
           // Location-map specific dump.
-          dumpLocationMappedReachedSet((PartitionedReachedSet)reached, cfa, w);
+          dumpLocationMappedReachedSet(reached, cfa, w);
         } else {
 
           // Default dump.
@@ -311,7 +309,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   }
 
   private void dumpLocationMappedReachedSet(
-      final PartitionedReachedSet pReachedSet,
+      final ReachedSet pReachedSet,
       CFA cfa,
       Appendable sb) throws IOException {
     final ListMultimap<CFANode, AbstractState> locationIndex
@@ -320,7 +318,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
       public String apply(CFANode node) {
         StringBuilder buf = new StringBuilder();
-        buf.append(node.getNodeNumber() + "\n");
+        buf.append(node.getNodeNumber()).append("\n");
         for (AbstractState state : locationIndex.get(node)) {
           if (state instanceof Graphable) {
             buf.append(((Graphable)state).toDOTLabel());
