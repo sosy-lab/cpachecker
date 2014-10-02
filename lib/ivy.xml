@@ -17,6 +17,9 @@
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
+        <!-- Dependencies needed for running FindBugs. -->
+        <conf name="findbugs" />
+
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
         <conf name="contrib" />
@@ -85,6 +88,9 @@
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <dependency org="com.google.errorprone" name="error_prone_ant" rev="1.1.1" transitive="false" conf="build->default" />
+
+        <!-- FindBugs -->
+        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.0" conf="findbugs->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
