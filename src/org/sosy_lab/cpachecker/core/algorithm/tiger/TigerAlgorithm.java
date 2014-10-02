@@ -662,46 +662,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }
 
 
-    /*CPAAlgorithm cpaAlg;
-
-    try {
-      cpaAlg = CPAAlgorithm.create(lARTCPA, logger, startupConfig.getConfig(), algNotifier);
-    } catch (InvalidConfigurationException e1) {
-      throw new RuntimeException(e1);
-    }
-
-    CEGARAlgorithm cegarAlg;
-    try {
-      cegarAlg = new CEGARAlgorithm(cpaAlg, lARTCPA, startupConfig.getConfig(), logger);
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
-
-    Refiner refiner = cegarAlg.getRefiner();
-    if (refiner instanceof PredicateCPARefiner) {
-      PredicateCPARefiner predicateRefiner = (PredicateCPARefiner)refiner;
-
-      if (reusePredicates) {
-        RefinementStrategy strategy = predicateRefiner.getRefinementStrategy();
-        assert(strategy instanceof PredicateAbstractionRefinementStrategy);
-
-        PredicateAbstractionRefinementStrategy refinementStrategy = (PredicateAbstractionRefinementStrategy)strategy;
-        refinementStrategy.setPrecisionCallback(this);
-      }
-    }
-
-
-    ARGStatistics lARTStatistics;
-    try {
-      lARTStatistics = new ARGStatistics(startupConfig.getConfig(), lARTCPA);
-    } catch (InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
-    Set<Statistics> lStatistics = new HashSet<>();
-    lStatistics.add(lARTStatistics);
-    cegarAlg.collectStatistics(lStatistics);*/
-
-
     boolean analysisWasSound = false;
     boolean hasTimedOut = false;
 
