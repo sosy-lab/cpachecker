@@ -330,6 +330,14 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return "";
   }
 
+  @Override
+  public boolean shouldBeHighlighted() {
+    if (getWrappedState() instanceof Graphable) {
+      return ((Graphable)getWrappedState()).shouldBeHighlighted();
+    }
+    return false;
+  }
+
   private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(TO_STATE_ID);
   }

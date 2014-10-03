@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -246,22 +245,6 @@ public class ARGUtils {
       },
       AbstractStates.EXTRACT_LOCATION);
 
-  static final Predicate<AbstractState> IMPORTANT_FOR_ANALYSIS = Predicates.compose(
-      notNullAnd(PredicateAbstractState.FILTER_ABSTRACTION_STATES),
-      AbstractStates.toState(PredicateAbstractState.class));
-
-  private static <T> Predicate<T> notNullAnd(final Predicate<T> p) {
-    return new Predicate<T>() {
-        @Override
-        public boolean apply(T pInput) {
-          if (pInput == null) {
-            return false;
-          }
-          return p.apply(pInput);
-        }
-      };
-  }
-
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
       AbstractStates.IS_TARGET_STATE,
@@ -272,7 +255,12 @@ public class ARGUtils {
             return !pInput.wasExpanded();
           }
         },
-      IMPORTANT_FOR_ANALYSIS
+      new Predicate<ARGState>() {
+          @Override
+          public boolean apply(ARGState pInput) {
+            return pInput.shouldBeHighlighted();
+          }
+        }
       );
 
   /**

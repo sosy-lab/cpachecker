@@ -222,6 +222,11 @@ public class AliasState implements
     return toString();
   }
 
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
   /**
    * Convert the state to the formula.
    *

@@ -192,6 +192,11 @@ public class PolicyAbstractState implements AbstractState,
   }
 
   @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

@@ -381,6 +381,11 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     pProperty = pProperty.trim();
 

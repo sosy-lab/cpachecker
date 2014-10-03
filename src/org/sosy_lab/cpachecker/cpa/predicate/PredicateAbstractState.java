@@ -104,6 +104,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     public String toDOTLabel() {
       return super.abstractionFormula.toString();
     }
+
+    @Override
+    public boolean shouldBeHighlighted() {
+      return true;
+    }
   }
 
   private static class NonAbstractionState extends PredicateAbstractState {

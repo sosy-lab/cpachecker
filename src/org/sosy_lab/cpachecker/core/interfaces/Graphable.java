@@ -28,5 +28,18 @@ package org.sosy_lab.cpachecker.core.interfaces;
  * [part of] the graphviz label.
  */
 public interface Graphable {
+
+  /**
+   * Return a string representation of this object
+   * that is suitable to be printed inside a label of a node in a DOT graph.
+   * @return A non-null but possibly empty string.
+   */
   public String toDOTLabel();
+
+  /**
+   * Return whether this object is somehow special as opposed
+   * to other objects of the same type,
+   * and should be highlighted in the output.
+   */
+  public boolean shouldBeHighlighted();
 }

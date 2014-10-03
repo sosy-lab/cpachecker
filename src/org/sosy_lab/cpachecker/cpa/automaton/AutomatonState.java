@@ -273,6 +273,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return "";
   }
 
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
   /**
    * The UnknownState represents one of the States following a normal State of the Automaton.
    * Which State is the correct following state could not be determined so far.

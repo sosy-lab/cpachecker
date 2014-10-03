@@ -319,7 +319,7 @@ public class ARGToDotWriter {
       return "orange";
     }
 
-    if (ARGUtils.IMPORTANT_FOR_ANALYSIS.apply(currentElement)) {
+    if (currentElement.shouldBeHighlighted()) {
       return "cornflowerblue";
     }
 

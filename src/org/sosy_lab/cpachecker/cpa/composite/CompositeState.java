@@ -114,6 +114,18 @@ public class CompositeState implements AbstractWrapperState,
     return builder.toString();
   }
 
+  @Override
+  public boolean shouldBeHighlighted() {
+    for (AbstractState element : states) {
+      if (element instanceof Graphable) {
+        if (((Graphable)element).shouldBeHighlighted()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public AbstractState get(int idx) {
     return states.get(idx);
   }
