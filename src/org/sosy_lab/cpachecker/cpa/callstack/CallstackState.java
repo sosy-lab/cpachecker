@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.Serializable;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,7 +45,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   private transient CFANode callerNode;
   private final int depth;
 
-  CallstackState(CallstackState previousElement, String function, CFANode callerNode) {
+  CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
     this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);

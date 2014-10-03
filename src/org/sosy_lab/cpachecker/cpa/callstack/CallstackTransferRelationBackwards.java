@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -58,6 +59,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       throws CPATransferException {
 
     // Transfer relation for a BACKWARDS analysis!!!
+
+    // Goal of this CPA: Different states for different function-calls
+    // caller node
 
     final CallstackState e = (CallstackState) pElement;
     final CFANode nextAnalysisLoc = pEdge.getPredecessor();
@@ -85,47 +89,33 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
     }
 
     case FunctionReturnEdge: {
+      FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
+      CFANode correspondingCallNode = edge.getSummaryEdge().getPredecessor();
         if (hasRecursion(e, nextAnalysisFunction)) {
-          if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {
-            // skip recursion, don't enter function
+          if (skipRecursion) {
             logger.logOnce(
-                Level.WARNING,
-                "Skipping recursive function call from",
-                prevAnalysisFunction,
-                "to", nextAnalysisFunction);
+                Level.WARNING, "Skipping recursive function call from",
+                prevAnalysisFunction, "to", nextAnalysisFunction);
 
             return Collections.emptySet();
-
           } else {
-            // recursion is unsupported
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
             throw new UnsupportedCCodeException("recursion", pEdge);
           }
 
         } else {
-          // regular function call
-          return Collections.singleton(new CallstackState(e, nextAnalysisFunction, prevAnalysisLoc));
+          return Collections.singleton(new CallstackState(e, nextAnalysisFunction, correspondingCallNode));
         }
       }
 
     case FunctionCallEdge: {
-        final CFANode callNode = nextAnalysisLoc;
-        final CallstackState returnElement;
+        final CFANode callingNode = nextAnalysisLoc;
 
-        if (!isWildcardState(e)) {
-          if (!callNode.equals(e.getCallNode())) {
-            // this is not the right return edge
-            return Collections.emptySet();
-          }
-          returnElement = e.getPreviousState();
-
-          assert nextAnalysisFunction.equals(returnElement.getCurrentFunction());
-
-        } else {
+        if (isWildcardState(e)) {
           throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
 
-        return Collections.singleton(returnElement);
+        return Collections.singleton(new CallstackState(e, nextAnalysisFunction, callingNode));
       }
 
     default:
