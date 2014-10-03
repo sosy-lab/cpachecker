@@ -70,7 +70,6 @@ public class STATORBenchmarksTest {
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.handlePointerAliasing", "false")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
-        .put("cpa.predicate.solver.z3.produceUnsatCore", "false")
         .put("parser.usePreprocessor", "true")
     ).build();
 
