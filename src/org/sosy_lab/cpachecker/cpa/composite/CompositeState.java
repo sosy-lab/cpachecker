@@ -100,12 +100,15 @@ public class CompositeState implements AbstractWrapperState,
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
     for (AbstractState element : states) {
-      if (!(element instanceof Graphable)) continue;
-
-      builder.append(element.getClass().getSimpleName());
-      builder.append(": ");
-      builder.append(((Graphable)element).toDOTLabel());
-      builder.append("\n ");
+      if (element instanceof Graphable) {
+        String label = ((Graphable)element).toDOTLabel();
+        if (!label.isEmpty()) {
+          builder.append(element.getClass().getSimpleName());
+          builder.append(": ");
+          builder.append(label);
+          builder.append("\n ");
+        }
+      }
     }
 
     return builder.toString();
