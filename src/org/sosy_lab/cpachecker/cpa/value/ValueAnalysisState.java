@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -66,7 +67,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable,
+public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable, LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
@@ -368,7 +369,8 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return a more compact string representation of the state
    */
-  public String toCompactString() {
+  @Override
+  public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");

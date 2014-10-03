@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static org.sosy_lab.common.Appenders.appendTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -38,11 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
@@ -309,40 +301,10 @@ public class ARGToDotWriter {
       }
     }
 
-    for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
-      if (!state.getInternalStateName().equals("Init")) {
-        builder.append("\\n");
-        builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
-        builder.append(": ");
-        builder.append(state.getInternalStateName());
-      }
-    }
+    builder.append("\\n");
+    builder.append(currentElement.toDOTLabel());
 
-    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-    if (abstraction != null && abstraction.isAbstractionState()) {
-      builder.append("\\n");
-      builder.append(abstraction.getAbstractionFormula());
-    }
-
-    ValueAnalysisState explicit = AbstractStates.extractStateByType(currentElement, ValueAnalysisState.class);
-    if (explicit != null) {
-      builder.append("\\n");
-      builder.append(explicit.toCompactString());
-    }
-
-    RTTState rtt = AbstractStates.extractStateByType(currentElement, RTTState.class);
-    if (rtt != null) {
-      builder.append("\\n");
-      appendTo(builder, rtt);
-    }
-
-    SeplogicState sls = AbstractStates.extractStateByType(currentElement, SeplogicState.class);
-    if (sls != null) {
-      builder.append("\\n");
-      builder.append(sls.toString().replaceAll("\\*", "\\\\n*"));
-    }
-
-    return builder.toString();
+    return builder.toString().trim();
   }
 
   private static String determineColor(ARGState currentElement) {
