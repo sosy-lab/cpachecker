@@ -27,36 +27,55 @@ public class PolicyAbstractState implements AbstractState,
     Iterable<Entry<LinearExpression, PolicyTemplateBound>>,
     Graphable {
 
+  public static class Templates implements Iterable<LinearExpression> {
+    private final ImmutableSet<LinearExpression> templates;
+
+    private Templates(ImmutableSet<LinearExpression> pTemplates) {
+      templates = pTemplates;
+    }
+
+    static Templates empty() {
+      return new Templates(ImmutableSet.<LinearExpression>of());
+    }
+
+    Templates withTemplates(Iterable<LinearExpression> newTemplates) {
+      return new Templates(
+          ImmutableSet.<LinearExpression>builder()
+              .addAll(templates)
+              .addAll(newTemplates)
+              .build()
+      );
+    }
+
+    Templates merge(Templates other) {
+      return new Templates(
+          ImmutableSet.<LinearExpression>builder()
+            .addAll(templates).addAll(other.templates).build());
+    }
+
+    @Override
+    public Iterator<LinearExpression> iterator() {
+      return templates.iterator();
+    }
+
+    public String toString() {
+      return templates.toString();
+    }
+  }
+
   // NOTE: It should not be there, we are wasting memory.
   // But hey, can't really find an easier way to do that.
-  final CFANode node;
+  private final CFANode node;
 
   /**
-   * Templates with their bounds.
+   * Finite bounds for templates.
    */
-  final ImmutableMap<LinearExpression, PolicyTemplateBound> data;
+  private final ImmutableMap<LinearExpression, PolicyTemplateBound> data;
 
   /**
-   * List of templates which are unbounded.
+   * Templates tracked.
    */
-  final ImmutableSet<LinearExpression> unbounded;
-
-  /**
-   * @return All templates with finite bounds at this location.
-   */
-  public ImmutableSet<LinearExpression> getBoundedTemplates() {
-    return data.keySet();
-  }
-
-  /**
-   * @return All templates tracked at this location.
-   */
-  public ImmutableSet<LinearExpression> getTemplates() {
-    return ImmutableSet.<LinearExpression>builder()
-        .addAll(unbounded)
-        .addAll(data.keySet())
-        .build();
-  }
+  private final Templates templates;
 
   /**
    * @return {@link PolicyTemplateBound} for the given {@link LinearExpression}
@@ -66,28 +85,36 @@ public class PolicyAbstractState implements AbstractState,
     return Optional.fromNullable(data.get(e));
   }
 
+  public Templates getTemplates() {
+    return templates;
+  }
+
+  public CFANode getNode() {
+    return node;
+  }
+
   private PolicyAbstractState(
       ImmutableMap<LinearExpression, PolicyTemplateBound> pData,
-      ImmutableSet<LinearExpression> pUnbounded,
+      Templates pTemplates,
       CFANode pNode) {
+    templates = pTemplates;
     data = pData;
     node = pNode;
-    unbounded = pUnbounded;
   }
 
 
   public static PolicyAbstractState withState(
       ImmutableMap<LinearExpression, PolicyTemplateBound> data,
-      ImmutableSet<LinearExpression> unbounded,
+      Templates templates,
       CFANode node
   ) {
-    return new PolicyAbstractState(data, unbounded, node);
+    return new PolicyAbstractState(data, templates, node);
   }
 
   public static PolicyAbstractState withEmptyState(CFANode node) {
     return new PolicyAbstractState(
         ImmutableMap.<LinearExpression, PolicyTemplateBound>of(),
-        ImmutableSet.<LinearExpression>of(),
+        Templates.empty(),
         node
     );
   }
@@ -217,7 +244,8 @@ public class PolicyAbstractState implements AbstractState,
 
   public PolicyAbstractState withUpdates(
       Map<LinearExpression, PolicyTemplateBound> updates,
-      Set<LinearExpression> pUnbounded) {
+      Set<LinearExpression> unbounded,
+      Templates newTemplates) {
 
     ImmutableSet<LinearExpression> allTemplates = ImmutableSet.<LinearExpression>
         builder().addAll(updates.keySet()).addAll(data.keySet()).build();
@@ -226,20 +254,15 @@ public class PolicyAbstractState implements AbstractState,
         ImmutableMap.builder();
 
     for (LinearExpression template : allTemplates) {
-      if (pUnbounded.contains(template)) continue;
-
+      if (unbounded.contains(template)) {
+        continue;
+      }
       if (updates.containsKey(template)) {
         builder.put(template, updates.get(template));
       } else {
         builder.put(template, data.get(template));
       }
     }
-    return new PolicyAbstractState(
-        builder.build(),
-        ImmutableSet.<LinearExpression>builder()
-          .addAll(pUnbounded)
-          .addAll(unbounded)
-          .build(),
-        node);
+    return new PolicyAbstractState(builder.build(), newTemplates, node);
   }
 }

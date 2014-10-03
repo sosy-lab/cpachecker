@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Table;
 
 /**
@@ -69,9 +68,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState newState, AbstractState prevState)
-       throws CPAException {
-
-    // Perform value determination during the join stage?
+      throws CPAException {
     return join((PolicyAbstractState) newState, (PolicyAbstractState) prevState);
   }
 
@@ -90,8 +87,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
       final PolicyAbstractState prevState) throws CPAException {
 
     // NOTE: check. But I think it must be actually the same node.
-    Preconditions.checkState(newState.node == prevState.node);
-    final CFANode node = newState.node;
+    final CFANode node = newState.getNode();
 
     logger.log(Level.FINE, "# Performing join on node " + node);
 
@@ -103,19 +99,9 @@ public class PolicyAbstractDomain implements AbstractDomain {
     /** Find the templates which were updated */
     final Map<LinearExpression, PolicyTemplateBound> updated = new HashMap<>();
 
-    /** Set of templates which are unbounded */
-    final Set<LinearExpression> unbounded = new HashSet<>();
-
-    Preconditions.checkState(
-        newState.getTemplates().containsAll(prevState.getTemplates()),
-        "We are assuming templates associated with the new state are " +
-            "a strict superset of templates associated with the old state."
-    );
-
-    ImmutableSet<LinearExpression> allTemplates = ImmutableSet.<LinearExpression>builder()
-        .addAll(newState.getTemplates())
-        .addAll(prevState.getTemplates())
-        .build();
+    PolicyAbstractState.Templates allTemplates = newState.getTemplates().merge(
+        prevState.getTemplates());
+    Set<LinearExpression> unbounded = new HashSet<>();
 
     for (LinearExpression template : allTemplates) {
       PolicyTemplateBound newValue = newState.getBound(template).orNull();
@@ -142,16 +128,11 @@ public class PolicyAbstractDomain implements AbstractDomain {
     if (!node.isLoopStart()) {
       logger.log(Level.FINE, "# Merge not on the loop head, returning "
           + "the updated state");
-      PolicyAbstractState joinedState = prevState.withUpdates(updated, unbounded);
-
-      // Note: returning an exactly same state is important, due to the issues
-      // with .equals() handling.
-      if (joinedState.equals(prevState)) return prevState;
-      return joinedState;
+      return prevState.withUpdates(updated, unbounded, allTemplates);
     }
 
     // Running value determination only on loop heads.
-    return valueDetermination(prevState, newState, updated, node, unbounded);
+    return valueDetermination(prevState, newState, updated, node, allTemplates);
   }
 
   private PolicyAbstractState valueDetermination(
@@ -159,7 +140,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
       final PolicyAbstractState newState,
       Map<LinearExpression, PolicyTemplateBound> updated,
       CFANode node,
-      Set<LinearExpression> unbounded) throws CPAException {
+      PolicyAbstractState.Templates allTemplates) throws CPAException {
 
     logger.log(Level.FINE, "# Running value determination");
 
@@ -178,6 +159,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
     ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder;
     builder = ImmutableMap.builder();
+    Set<LinearExpression> unbounded = new HashSet<>();
 
     for (Entry<LinearExpression, PolicyTemplateBound> policyValue : updated.entrySet()) {
       LinearExpression template = policyValue.getKey();
@@ -189,8 +171,8 @@ public class PolicyAbstractDomain implements AbstractDomain {
           solver.addConstraint(constraint);
         }
 
-        logger.log(Level.FINE, "# Value determination: optimizing for template "
-          + template);
+        logger.log(Level.FINE,
+           "# Value determination: optimizing for template" , template);
 
         NumeralFormula objective = rfmgr.makeVariable(
             vdfmgr.absDomainVarName(node, template));
@@ -198,10 +180,10 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
         Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
             "Value determination should not be unsatisfiable");
-        if (newValue == ExtendedRational.INFTY) {
-          unbounded.add(template);
-        } else {
+        if (newValue != ExtendedRational.INFTY) {
           builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+        } else {
+          unbounded.add(template);
         }
       } catch (Exception e) {
         throw new CPATransferException("Failed solving", e);
@@ -209,8 +191,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
     }
 
     ImmutableMap<LinearExpression, PolicyTemplateBound> outData = builder.build();
-
-    PolicyAbstractState joinedState = prevState.withUpdates(outData, unbounded);
+    PolicyAbstractState joinedState = prevState.withUpdates(outData, unbounded, allTemplates);
 
     // Note: returning an exactly same state is important, due to the issues
     // with .equals() handling.
@@ -234,8 +215,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
     logger.log(Level.FINE, "# Comparing state = " + newState + " to the state = " + prevState);
     PARTIAL_ORDER ord = compare(
-        (PolicyAbstractState)newState,
-        (PolicyAbstractState)prevState
+        (PolicyAbstractState)newState, (PolicyAbstractState)prevState
     );
     boolean ret = (ord == PARTIAL_ORDER.LESS || ord == PARTIAL_ORDER.EQUAL);
     logger.log(Level.FINE, "# Got comparison result = " + ord + ", returning = " + ret);

@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,13 +10,10 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -40,7 +36,6 @@ import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Transfer relation for policy iteration.
@@ -49,13 +44,6 @@ import com.google.common.collect.ImmutableSet;
 public class PolicyTransferRelation  extends
     SingleEdgeTransferRelation implements TransferRelation {
 
-  @Option(name="generateLowerBound",
-    description="Generate templates for the lower bounds of each variable")
-  private boolean generateLowerBound = true;
-
-  @Option(name="generateUpperBound",
-      description="Generate templates for the upper bounds of each variable")
-  private boolean generateUpperBound = true;
 
   private final PathFormulaManager pfmgr;
   private final FormulaManagerFactory formulaManagerFactory;
@@ -65,6 +53,7 @@ public class PolicyTransferRelation  extends
   private final LogManager logger;
   private final PolicyAbstractDomain abstractDomain;
   private final FormulaManagerView fmgr;
+  private final TemplateManager templateManager;
 
   /**
    * Lazy evaluation: postpones the analysis until the communication
@@ -85,7 +74,9 @@ public class PolicyTransferRelation  extends
           PathFormulaManager pfmgr,
           LogManager logger,
           PolicyAbstractDomain abstractDomain,
-          LinearConstraintManager lcmgr)
+          LinearConstraintManager lcmgr,
+          TemplateManager templateManager
+      )
       throws InvalidConfigurationException {
 
     config.inject(this, PolicyTransferRelation.class);
@@ -96,8 +87,8 @@ public class PolicyTransferRelation  extends
     this.lcmgr = lcmgr;
     this.logger = logger;
     this.abstractDomain = abstractDomain;
+    this.templateManager = templateManager;
   }
-
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -129,9 +120,8 @@ public class PolicyTransferRelation  extends
             fState.getFormulaApproximation(fmgr));
       }
     }
-
-    return getAbstractSuccessors(
-        previousState.previousState, cfaEdge, additionalConstraints );
+    return getAbstractSuccessors(previousState.previousState,
+        cfaEdge, additionalConstraints);
   }
 
   public Collection<PolicyAbstractState> getAbstractSuccessors(
@@ -149,39 +139,12 @@ public class PolicyTransferRelation  extends
     PathFormula edgeFormula = pfmgr.makeFormulaForPath(
         Collections.singletonList(edge));
 
-    ImmutableSet<LinearExpression> fromTemplates = prevState.getTemplates();
-
-    // NOTE: we can do it much faster if we use a different datastructure to hash sets.
-    // e.g. balanced binary tree.
-    Set<LinearExpression> toTemplates = new HashSet<>();
-    toTemplates.addAll(fromTemplates);
-
     /** Propagating templates */
-    if (edge instanceof CDeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-
-      if ((declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
-        String varName = declarationEdge.getDeclaration().getQualifiedName();
-        // NOTE: A better way to propagate templates?
-        // NOTE: Let's also check for liveness! [other property?
-        // CPA communication FTW!!].
-        // If the variable is no longer alive at a certain location
-        // there is no point in tracking it (deeper analysis -> dependencies).
-
-        if (generateUpperBound) {
-          toTemplates.add(LinearExpression.ofVariable(varName));
-        }
-        if (generateLowerBound) {
-          toTemplates.add(LinearExpression.ofVariable(varName).negate());
-        }
-      }
-    }
+    PolicyAbstractState.Templates toTemplates = templateManager.updatePrecisionForEdge(
+        prevState.getTemplates(), edge);
 
     /** Propagate the invariants */
     ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> newStateData;
-    ImmutableSet.Builder<LinearExpression> newStateUnbounded;
-
-    newStateUnbounded = ImmutableSet.builder();
     newStateData = ImmutableMap.builder();
 
     for (LinearExpression template : toTemplates) {
@@ -222,7 +185,6 @@ public class PolicyTransferRelation  extends
           // If anything we can store them in a list.
           LinearExpression expr = item.getKey();
           ExtendedRational bound = item.getValue().bound;
-          if (bound.equals(ExtendedRational.INFTY)) continue;
 
           LinearConstraint constraint = new LinearConstraint(expr, bound);
           solver.addConstraint(
@@ -232,19 +194,16 @@ public class PolicyTransferRelation  extends
         // Constraints imposed by the edge.
         solver.addConstraint(edgeFormula.getFormula());
 
-        ExtendedRational value = lcmgr.maximize(
-            solver, template, ssaMap);
-        PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
+        ExtendedRational value = lcmgr.maximize(solver, template, ssaMap);
 
         // If the state is not reachable, bail early.
         if (value == ExtendedRational.NEG_INFTY) {
           logger.log(Level.FINE, "# Stopping, unfeasible branch.");
           return Collections.emptyList();
-        } else if (value == ExtendedRational.INFTY) {
-          newStateUnbounded.add(template);
-        } else {
+        } else if (value != ExtendedRational.INFTY) {
+          PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
           logger.log(Level.FINE, "# Updating constraint on node " + toNode  +
-              " template " + template);
+              " template " + template + " to " + constraint);
           newStateData.put(template, constraint);
         }
 
@@ -260,10 +219,7 @@ public class PolicyTransferRelation  extends
     }
 
     PolicyAbstractState newState = PolicyAbstractState.withState(
-        newStateData.build(),
-        newStateUnbounded.build(),
-        toNode
-    );
+        newStateData.build(), toTemplates, toNode);
 
     logger.log(Level.FINE, "# New state = " + newState);
     return Collections.singleton(newState);

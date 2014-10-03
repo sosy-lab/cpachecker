@@ -154,7 +154,7 @@ public class ValueDeterminationFormulaManager {
    * E.g. for statement {@code x++}, start index set to 2 and stop index set to 1000
    * will produce:
    *
-   *    x@1000 = x@2 + 1
+   *    {@code x@1000 = x@2 + 1}
    */
   private PathFormula pathFormulaWithCustomIdx(
       CFAEdge edge, int startIdx, int stopIdx, String customPrefix)
@@ -174,7 +174,7 @@ public class ValueDeterminationFormulaManager {
     for (String varNameWithIdx : allVars) {
 
       Pair<String, Integer> pair = FormulaManagerView.parseName(varNameWithIdx);
-      Integer oldIdx = pair.getSecond(); // TODO: can be null?..
+      Integer oldIdx = pair.getSecond(); // TODO: why can it be null?..
       if (oldIdx == null) {
         oldIdx = 0;
       }

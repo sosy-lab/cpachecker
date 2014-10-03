@@ -9,7 +9,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -35,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 public class PolicyCPA implements ConfigurableProgramAnalysis{
   private final PolicyAbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
-  private final MergeOperator mergeOperator;
+  private final PolicyMergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
@@ -71,7 +70,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
         lcmgr
     );
 
-
     abstractDomain = new PolicyAbstractDomain(
         valueDeterminationFormulaManager,
         formulaManager,
@@ -80,6 +78,10 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
         lcmgr
     );
 
+    mergeOperator = new PolicyMergeOperator(abstractDomain);
+    stopOperator = new StopSepOperator(abstractDomain);
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+        new TemplateManager(config);
     transferRelation = new PolicyTransferRelation(
         config,
         formulaManager,
@@ -87,12 +89,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
         pathFormulaManager,
         logger,
         abstractDomain,
-        lcmgr
-    );
-
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopSepOperator(abstractDomain);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+        lcmgr,
+        new TemplateManager(config));
   }
 
   @Override
