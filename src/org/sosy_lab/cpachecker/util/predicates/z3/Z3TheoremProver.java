@@ -56,7 +56,7 @@ public class Z3TheoremProver implements ProverEnvironment {
   private int level = 0;
   private int track_no = 0;
 
-  private final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
+  private static final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
 
   private final Map<String, BooleanFormula> storedConstraints;
 
