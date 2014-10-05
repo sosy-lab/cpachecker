@@ -238,9 +238,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       String calledFunctionName) throws UnrecognizedCCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert (parameters.size() == arguments.size());
-    }
+    assert (parameters.size() == arguments.size())
+        || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
 
     // visitor for getting the values of the actual parameters in caller function context
     final ExpressionValueVisitor visitor = getVisitor();
@@ -251,8 +250,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       IAExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
-        // value = ((JExpression) exp).accept(visitor); TODO
-        value = Value.UnknownValue.getInstance();
+        value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -363,15 +361,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           newElement.forget(assignedVarName);
         }
 
-      } else if ((op1 instanceof AIdExpression)) {
+      } else if (op1 instanceof AIdExpression) {
         String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
 
         if (!state.contains(returnVarName)) {
           newElement.forget(assignedVarName);
-        } else if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        } else if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
-          // notScopedFieldValue = state.getValueFor(returnVarName); TODO
+          notScopedFieldValue = state.getValueFor(returnVarName);
         } else {
           newElement.assignConstant(assignedVarName, state.getValueFor(returnVarName));
         }
@@ -386,6 +384,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     newElement.forget(returnVarName);
     return newElement;
+  }
+
+  private boolean isDynamicField(JIdExpression pIdentifier) {
+    final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
+
+    return (declaration instanceof JFieldDeclaration)
+        && !((JFieldDeclaration) declaration).isStatic();
   }
 
   @Override
@@ -621,9 +626,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
 
     if (op1 instanceof AIdExpression) {
-      // a = ...
+      /*
+       * Assignment of the form
+       *  a = ...
+       */
 
-        if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
         }
