@@ -133,7 +133,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @param pMemoryLocation the location in the memory.
    * @param value value to be assigned.
-   * @param pCType
+   * @param pType the type of <code>value</code>.
    */
   public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
     if (blacklist.contains(pMemoryLocation)) {
