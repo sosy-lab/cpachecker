@@ -24,8 +24,7 @@ public final class MemorySegment {
   public String toString() {
     if (declaration == null) return "NULL";
 
-    return declaration.getCStorageClass().toASTString()
-        + declaration.getType() .toASTString(declaration.getName());
+    return declaration.getType() .toASTString(declaration.getName());
   }
 
   @Override
@@ -34,7 +33,7 @@ public final class MemorySegment {
   }
 
   public boolean isPointerType() {
-    return declaration.getType().getCanonicalType() instanceof CPointerType;
+    return declaration.getType() instanceof CPointerType;
   }
 
   @Override

@@ -2,24 +2,20 @@ package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.PathFormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -27,7 +23,6 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -44,11 +39,8 @@ import com.google.common.collect.ImmutableMap;
 public class PolicyTransferRelation  extends
     SingleEdgeTransferRelation implements TransferRelation {
 
-
   private final PathFormulaManager pfmgr;
   private final FormulaManagerFactory formulaManagerFactory;
-  private final BooleanFormulaManagerView bfmgr;
-
   private final LinearConstraintManager lcmgr;
   private final LogManager logger;
   private final PolicyAbstractDomain abstractDomain;
@@ -83,7 +75,6 @@ public class PolicyTransferRelation  extends
     fmgr = formulaManager;
     this.pfmgr = pfmgr;
     this.formulaManagerFactory = formulaManagerFactory;
-    bfmgr = formulaManager.getBooleanFormulaManager();
     this.lcmgr = lcmgr;
     this.logger = logger;
     this.abstractDomain = abstractDomain;
@@ -112,22 +103,21 @@ public class PolicyTransferRelation  extends
       CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
     LazyState previousState = (LazyState) state;
-    BooleanFormula additionalConstraints = bfmgr.makeBoolean(true);
+    List<PathFormulaReportingState> reportingStates = new LinkedList<>();
     for (AbstractState otherState : otherStates) {
-      if (otherState instanceof FormulaReportingState) {
-        FormulaReportingState fState = (FormulaReportingState) otherState;
-        additionalConstraints = bfmgr.and(additionalConstraints,
-            fState.getFormulaApproximation(fmgr));
+      if (otherState instanceof PathFormulaReportingState) {
+        PathFormulaReportingState fState = (PathFormulaReportingState) otherState;
+        reportingStates.add(fState);
       }
     }
     return getAbstractSuccessors(previousState.previousState,
-        cfaEdge, additionalConstraints);
+        cfaEdge, reportingStates);
   }
 
   public Collection<PolicyAbstractState> getAbstractSuccessors(
       PolicyAbstractState prevState,
       CFAEdge edge,
-      BooleanFormula additionalConstraints
+      List<PathFormulaReportingState> reportingStates
   ) throws CPATransferException, InterruptedException {
 
     logger.log(Level.FINE, ">>> Processing statement: " + edge.getCode()
@@ -150,34 +140,26 @@ public class PolicyTransferRelation  extends
     for (LinearExpression template : toTemplates) {
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
 
+        SSAMap outputSSA;
+        SSAMap inputSSA = SSAMap.emptySSAMap().withDefault(1);
+        List<BooleanFormula> constraints = new LinkedList<>();
+
         // Constraints imposed by other CPAs.
-        solver.addConstraint(additionalConstraints);
+        if (reportingStates.size() != 0) {
 
-        // Constraints imposed by the previous state.
-        SSAMap ssaMap = edgeFormula.getSsa();
+          // TODO: dealing with multiple reporting states.
+          SSAMap ssaMap = edgeFormula.getSsa();
 
-        // All the used variables in the additional constraints from other states.
-        Set<String> usedVariablesWithIdx = fmgr.extractVariables(additionalConstraints);
-
-        // Update SSA map.
-        for (String var : usedVariablesWithIdx) {
-          Pair<String, Integer> p = FormulaManagerView.parseName(var);
-          Integer idx = p.getSecond();
-          String varName = p.getFirst();
-
-          // TODO: a hack to detect a pointer.
-          if (varName != null && !varName.contains("*") && idx != null && idx > 1) {
-            // TODO: ctype?? is it even used anywhere?
-            SSAMap.SSAMapBuilder builder = ssaMap.builder();
-            CType intType = new CSimpleType(
-              false, false, CBasicType.INT, false, false, true, false, false, false, false
-            );
-            builder = builder.setIndex(varName, intType, idx);
-            ssaMap = builder.build();
-          }
+          PathFormulaReportingState state = reportingStates.iterator().next();
+          PathFormula pathFormula = state.getFormulaApproximation(
+              fmgr, ssaMap.withDefault(1), inputSSA);
+          constraints.add(pathFormula.getFormula());
+          outputSSA = pathFormula.getSsa();
+        } else {
+          outputSSA = edgeFormula.getSsa();
         }
 
-        SSAMap inputSSA = SSAMap.emptySSAMap().withDefault(1);
+        logger.log(Level.FINE, "# Got SSA map: ", outputSSA);
 
         // Constraints from the previous state.
         for (Map.Entry<LinearExpression, PolicyTemplateBound> item : prevState) {
@@ -187,14 +169,16 @@ public class PolicyTransferRelation  extends
           ExtendedRational bound = item.getValue().bound;
 
           LinearConstraint constraint = new LinearConstraint(expr, bound);
-          solver.addConstraint(
-              lcmgr.linearConstraintToFormula(constraint, inputSSA));
+          constraints.add(lcmgr.linearConstraintToFormula(constraint, inputSSA));
         }
 
-        // Constraints imposed by the edge.
-        solver.addConstraint(edgeFormula.getFormula());
+        constraints.add(edgeFormula.getFormula());
 
-        ExtendedRational value = lcmgr.maximize(solver, template, ssaMap);
+        for (BooleanFormula constraint : constraints) {
+          solver.addConstraint(constraint);
+        }
+
+        ExtendedRational value = lcmgr.maximize(solver, template, outputSSA);
 
         // If the state is not reachable, bail early.
         if (value == ExtendedRational.NEG_INFTY) {
@@ -202,7 +186,7 @@ public class PolicyTransferRelation  extends
           return Collections.emptyList();
         } else if (value != ExtendedRational.INFTY) {
           PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
-          logger.log(Level.FINE, "# Updating constraint on node " + toNode  +
+          logger.log(Level.FINE, "# Updating constraint on node " + toNode +
               " template " + template + " to " + constraint);
           newStateData.put(template, constraint);
         }

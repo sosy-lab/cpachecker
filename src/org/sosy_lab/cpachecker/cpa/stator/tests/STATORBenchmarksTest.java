@@ -35,8 +35,6 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/pointer_write.c"
     );
-
-    // TODO: retrieve the invariant from the reached set and check.
     Assert.assertEquals(false, results.isSafe());
   }
 
