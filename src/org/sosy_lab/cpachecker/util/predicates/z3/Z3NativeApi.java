@@ -228,8 +228,8 @@ final class Z3NativeApi {
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
   public static native long mk_xor(long context, long a1, long a2);
-  private static native long mk_and(long context, int len, long[] as);
-  private static native long mk_or(long context, int len, long[] as);
+  public static native long mk_and(long context, int len, long[] as);
+  public static native long mk_or(long context, int len, long[] as);
 
   public static long mk_distinct(long context, long... as) {
     return mk_distinct(context, as.length, as);

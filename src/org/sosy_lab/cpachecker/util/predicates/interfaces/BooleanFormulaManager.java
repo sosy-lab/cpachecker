@@ -121,6 +121,7 @@ public interface BooleanFormulaManager {
    * @return (bits1 | bits2)
    */
   public BooleanFormula or(BooleanFormula bits1, BooleanFormula bits2);
+  public BooleanFormula or(List<BooleanFormula> bits);
 
   public BooleanFormula xor(BooleanFormula bits1, BooleanFormula bits2);
 

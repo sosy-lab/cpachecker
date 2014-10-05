@@ -43,6 +43,13 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   private final BooleanFormulaManager manager;
   private final UnsafeFormulaManager unsafe;
+  private final Function<BooleanFormula, BooleanFormula> extractor =
+      new Function<BooleanFormula, BooleanFormula>() {
+        @Override
+        public BooleanFormula apply(BooleanFormula pInput) {
+          return extractFromView(pInput);
+        }
+      };
 
   public BooleanFormulaManagerView(BooleanFormulaManager pManager,
       UnsafeFormulaManager pUnsafe) {
@@ -66,13 +73,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   @Override
   public BooleanFormula and(List<BooleanFormula> pBits) {
-    BooleanFormula result = manager.and(Lists.transform(pBits,
-        new Function<BooleanFormula, BooleanFormula>() {
-          @Override
-          public BooleanFormula apply(BooleanFormula pInput) {
-            return extractFromView(pInput);
-          }
-        }));
+    BooleanFormula result = manager.and(Lists.transform(pBits, extractor));
     return wrapInView(result);
   }
 
@@ -80,6 +81,13 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
   }
+
+  @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    BooleanFormula result = manager.or(Lists.transform(pBits, extractor));
+    return wrapInView(result);
+  }
+
   @Override
   public BooleanFormula xor(BooleanFormula pBits1, BooleanFormula pBits2) {
     return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));

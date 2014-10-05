@@ -127,6 +127,15 @@ public class TemplateBooleanFormulaManager implements BooleanFormulaManager {
     return result;
   }
 
+  @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    BooleanFormula result = makeBoolean(false);
+    for (BooleanFormula f : pBits) {
+      result = or(result, f);
+    }
+    return result;
+  }
+
   /**
    * Creates a formula representing an OR of the two arguments.
    * @param f1 a Formula
