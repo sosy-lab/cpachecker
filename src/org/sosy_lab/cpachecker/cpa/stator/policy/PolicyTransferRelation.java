@@ -120,8 +120,8 @@ public class PolicyTransferRelation  extends
       List<PathFormulaReportingState> reportingStates
   ) throws CPATransferException, InterruptedException {
 
-    logger.log(Level.FINE, ">>> Processing statement: " + edge.getCode()
-     + " for to-node: " + edge.getSuccessor());
+    logger.log(Level.FINE, ">>> Processing statement: ", edge.getCode(),
+        " for to-node: ", edge.getSuccessor());
 
     CFANode toNode = edge.getSuccessor();
 
@@ -186,8 +186,8 @@ public class PolicyTransferRelation  extends
           return Collections.emptyList();
         } else if (value != ExtendedRational.INFTY) {
           PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
-          logger.log(Level.FINE, "# Updating constraint on node " + toNode +
-              " template " + template + " to " + constraint);
+          logger.log(Level.FINE, "# Updating constraint on node", toNode,
+              " template ", template, " to ", constraint);
           newStateData.put(template, constraint);
         }
 
@@ -197,7 +197,6 @@ public class PolicyTransferRelation  extends
         abstractDomain.setPolicyForTemplate(toNode, template, edge);
 
       } catch (Exception e) {
-        e.printStackTrace();
         throw new CPATransferException("Failed solving", e);
       }
     }
@@ -205,7 +204,7 @@ public class PolicyTransferRelation  extends
     PolicyAbstractState newState = PolicyAbstractState.withState(
         newStateData.build(), toTemplates, toNode);
 
-    logger.log(Level.FINE, "# New state = " + newState);
+    logger.log(Level.FINE, "# New state = ", newState);
     return Collections.singleton(newState);
   }
 }

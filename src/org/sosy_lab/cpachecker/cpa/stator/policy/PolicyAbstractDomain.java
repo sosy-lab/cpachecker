@@ -89,7 +89,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
     // NOTE: check. But I think it must be actually the same node.
     final CFANode node = newState.getNode();
 
-    logger.log(Level.FINE, "# Performing join on node " + node);
+    logger.log(Level.FINE, "# Performing join on node ", node);
 
     /** Just return the old node if it is strictly larger */
     if (isLessOrEqual(newState, prevState)) {
@@ -198,7 +198,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
     if (joinedState.equals(prevState)) return prevState;
     Preconditions.checkState(isLessOrEqual(newState, joinedState));
     Preconditions.checkState(isLessOrEqual(prevState, joinedState));
-    logger.log(Level.FINE, "# New state after merge: " + joinedState);
+    logger.log(Level.FINE, "# New state after merge: ", joinedState);
     return joinedState;
   }
 
@@ -213,12 +213,12 @@ public class PolicyAbstractDomain implements AbstractDomain {
   public boolean isLessOrEqual(AbstractState newState, AbstractState prevState)
       throws CPAException {
 
-    logger.log(Level.FINE, "# Comparing state = " + newState + " to the state = " + prevState);
+    logger.log(Level.FINE, "# Comparing state =", newState, " to the state =", prevState);
     PARTIAL_ORDER ord = compare(
         (PolicyAbstractState)newState, (PolicyAbstractState)prevState
     );
     boolean ret = (ord == PARTIAL_ORDER.LESS || ord == PARTIAL_ORDER.EQUAL);
-    logger.log(Level.FINE, "# Got comparison result = " + ord + ", returning = " + ret);
+    logger.log(Level.FINE, "# Got comparison result = ", ord, ", returning = ", ret);
     return ret;
   }
 

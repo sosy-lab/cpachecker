@@ -40,7 +40,7 @@ public final class ExpressionTranslator {
 
   public Collection<? extends AliasState> getAbstractSuccessors() {
     logger.log(Level.FINE,
-        "# Processing edge: " + edge.getRawStatement());
+        "# Processing edge: ", edge.getRawStatement());
 
     if (edge instanceof CStatementEdge) {
       return Collections.singleton(handleStatement());
@@ -118,7 +118,7 @@ public final class ExpressionTranslator {
   private AliasState handleStatement() {
     CStatementEdge statementEdge = (CStatementEdge) edge;
     CStatement stmt = statementEdge.getRawAST().get();
-    logger.log(Level.FINE, "# Handling statement " + stmt);
+    logger.log(Level.FINE, "# Handling statement ", stmt);
     if (stmt instanceof CExpressionStatement) {
 
       // TODO

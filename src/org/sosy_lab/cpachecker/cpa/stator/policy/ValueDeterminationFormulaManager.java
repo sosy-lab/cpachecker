@@ -141,7 +141,7 @@ public class ValueDeterminationFormulaManager {
 
         BooleanFormula outConstraint = rfmgr.equal(outExpr, out);
 
-        logger.log(Level.FINE, "Output constraint = " + outConstraint);
+        logger.log(Level.FINE, "Output constraint = ", outConstraint);
         constraints.add(outConstraint);
       }
     }

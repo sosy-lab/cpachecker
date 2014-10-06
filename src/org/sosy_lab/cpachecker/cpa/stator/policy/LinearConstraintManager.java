@@ -163,7 +163,7 @@ public class LinearConstraintManager {
   ) throws SolverException, InterruptedException {
 
     NumeralFormula objective = linearExpressionToFormula(expression, pSSAMap);
-    logger.log(Level.FINE, "MAXIMIZING for objective: " + objective);
+    logger.log(Level.FINE, "MAXIMIZING for objective: ", objective);
 
     return maximize(prover, objective);
   }
@@ -197,7 +197,7 @@ public class LinearConstraintManager {
       case OPT:
         Model model = prover.getModel();
         logger.log(Level.FINEST, "OPT");
-        logger.log(Level.FINEST, "Model = " + model);
+        logger.log(Level.FINEST, "Model = ", model);
 
 
         ExtendedRational returned = (ExtendedRational) model.get(
