@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -103,7 +103,7 @@ public class PolicyTransferRelation  extends
       CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
     LazyState previousState = (LazyState) state;
-    List<PathFormulaReportingState> reportingStates = new LinkedList<>();
+    List<PathFormulaReportingState> reportingStates = new ArrayList<>();
     for (AbstractState otherState : otherStates) {
       if (otherState instanceof PathFormulaReportingState) {
         PathFormulaReportingState fState = (PathFormulaReportingState) otherState;
@@ -142,7 +142,7 @@ public class PolicyTransferRelation  extends
 
         SSAMap outputSSA;
         SSAMap inputSSA = SSAMap.emptySSAMap().withDefault(1);
-        List<BooleanFormula> constraints = new LinkedList<>();
+        List<BooleanFormula> constraints = new ArrayList<>();
 
         // Constraints imposed by other CPAs.
         if (reportingStates.size() != 0) {

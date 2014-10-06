@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,7 +86,7 @@ public class ValueDeterminationFormulaManager {
       final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
       ) throws CPATransferException, InterruptedException{
 
-    List<BooleanFormula> constraints = new LinkedList<>();
+    List<BooleanFormula> constraints = new ArrayList<>();
 
     for (Entry<CFANode, Map<LinearExpression, CFAEdge>> entry : policy.entrySet()) {
 
@@ -167,8 +167,8 @@ public class ValueDeterminationFormulaManager {
 
     Formula edgeFormula = p.getFormula();
 
-    List<Formula> fromVars = new LinkedList<>();
-    List<Formula> toVars = new LinkedList<>();
+    List<Formula> fromVars = new ArrayList<>();
+    List<Formula> toVars = new ArrayList<>();
 
     Set<String> allVars = fmgr.extractVariables(edgeFormula);
     for (String varNameWithIdx : allVars) {

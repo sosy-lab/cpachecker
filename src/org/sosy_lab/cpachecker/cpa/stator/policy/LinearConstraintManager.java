@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -264,11 +264,11 @@ public class LinearConstraintManager {
       List<BooleanFormula> origConstraints,
       Formula relatedTo
   ) {
-    List<BooleanFormula> toProcess = new LinkedList<>(origConstraints);
-    List<BooleanFormula> newToProcess = new LinkedList<>();
+    List<BooleanFormula> toProcess = new ArrayList<>(origConstraints);
+    List<BooleanFormula> newToProcess = new ArrayList<>();
 
     Set<String> careAbout = fmgr.extractVariables(relatedTo);
-    final List<BooleanFormula> related = new LinkedList<>();
+    final List<BooleanFormula> related = new ArrayList<>();
     Set<String> newCareAbout = new HashSet<>(careAbout);
 
     // Fix-point computation to find out all the related constraints.
@@ -289,10 +289,10 @@ public class LinearConstraintManager {
       if (newCareAbout.equals(careAbout)) {
         break;
       } else {
-        toProcess = new LinkedList<>(newToProcess);
+        toProcess = new ArrayList<>(newToProcess);
         careAbout = new HashSet<>(newCareAbout);
         newCareAbout = new HashSet<>(careAbout);
-        newToProcess = new LinkedList<>();
+        newToProcess = new ArrayList<>();
       }
     }
     return related;

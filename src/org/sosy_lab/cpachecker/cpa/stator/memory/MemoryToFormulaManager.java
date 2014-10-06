@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.stator.memory;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -43,7 +43,7 @@ public class MemoryToFormulaManager {
 
     AbstractMemoryAddress createAssignmentOn = state.getCreateAssignmentOn();
 
-    List<BooleanFormula> lhsConstraints = new LinkedList<>();
+    List<BooleanFormula> lhsConstraints = new ArrayList<>();
 
     // Processing left-hand-side aliasing constraints.
     if (createAssignmentOn != AbstractMemoryAddress.BOTTOM) {
@@ -58,7 +58,7 @@ public class MemoryToFormulaManager {
         aliasedTo = aliasedTo.join(state.getValuesStored(aliasedFrom));
       }
 
-      List<BooleanFormula> lhsAliasPossibilities = new LinkedList<>();
+      List<BooleanFormula> lhsAliasPossibilities = new ArrayList<>();
 
       for (MemorySegment aliasTo : state.getValuesStored(aliasFrom)) {
         BooleanFormula constr = equal(
@@ -67,7 +67,7 @@ public class MemoryToFormulaManager {
 
         // If the pointer is aliased to one of the possible values,
         // everything else must stay the same under the transition.
-        List<BooleanFormula> othersAreSame = new LinkedList<>();
+        List<BooleanFormula> othersAreSame = new ArrayList<>();
         for (MemorySegment otherAliasTo : state.getValuesStored(aliasFrom)) {
           // Iterating over everything else, apart from what we've just processed.
           if (otherAliasTo.equals(aliasTo)) {
@@ -86,7 +86,7 @@ public class MemoryToFormulaManager {
     }
 
     // Processing right-hand-side aliasing constraints.
-    List<BooleanFormula> rhsConstraints = new LinkedList<>();
+    List<BooleanFormula> rhsConstraints = new ArrayList<>();
     for (Map.Entry<MemorySegment, AbstractMemoryAddress> entry : state) {
       MemorySegment address = entry.getKey();
       AbstractMemoryAddress values = entry.getValue();
