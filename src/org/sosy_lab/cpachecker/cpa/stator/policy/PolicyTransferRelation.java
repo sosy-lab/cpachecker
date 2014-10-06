@@ -46,6 +46,7 @@ public class PolicyTransferRelation  extends
   private final PolicyAbstractDomain abstractDomain;
   private final FormulaManagerView fmgr;
   private final TemplateManager templateManager;
+  private final PolicyIterationStatistics statistics;
 
   /**
    * Lazy evaluation: postpones the analysis until the communication
@@ -67,7 +68,8 @@ public class PolicyTransferRelation  extends
           LogManager logger,
           PolicyAbstractDomain abstractDomain,
           LinearConstraintManager lcmgr,
-          TemplateManager templateManager
+          TemplateManager templateManager,
+          PolicyIterationStatistics pStatistics
       )
       throws InvalidConfigurationException {
 
@@ -79,6 +81,7 @@ public class PolicyTransferRelation  extends
     this.logger = logger;
     this.abstractDomain = abstractDomain;
     this.templateManager = templateManager;
+    statistics = pStatistics;
   }
 
   @Override
@@ -110,8 +113,13 @@ public class PolicyTransferRelation  extends
         reportingStates.add(fState);
       }
     }
-    return getAbstractSuccessors(previousState.previousState,
-        cfaEdge, reportingStates);
+    statistics.policyPropagationTimer.start();
+    try {
+      return getAbstractSuccessors(previousState.previousState,
+          cfaEdge, reportingStates);
+    } finally {
+      statistics.policyPropagationTimer.stop();
+    }
   }
 
   public Collection<PolicyAbstractState> getAbstractSuccessors(

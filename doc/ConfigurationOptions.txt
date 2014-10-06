@@ -1463,6 +1463,9 @@ cpa.stator.policy.generateLowerBound = true
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
+# Maximize for the sum of the templates during value determination
+cpa.stator.policy.runAcceleratedValueDetermination = true
+
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
 cpa.uninitvars.checkTarget = false

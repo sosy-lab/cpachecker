@@ -8,9 +8,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -27,12 +33,19 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
 /**
  * Abstract domain for policy iteration.
  */
+@Options(prefix="cpa.stator.policy")
 public class PolicyAbstractDomain implements AbstractDomain {
+
+  @Option(
+      name="runAcceleratedValueDetermination",
+      description="Maximize for the sum of the templates during value determination")
+  private boolean runAcceleratedValueDetermination = true;
 
   private final ValueDeterminationFormulaManager vdfmgr;
   private final LogManager logger;
@@ -40,26 +53,35 @@ public class PolicyAbstractDomain implements AbstractDomain {
   private final LinearConstraintManager lcmgr;
   private final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
       rfmgr;
+  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * Scary-hairy global containing all the global data: map
    * from the node and the linear expression to the selected incoming edge.
    */
   private final Table<CFANode, LinearExpression, CFAEdge> policy;
-//
+  private final PolicyIterationStatistics statistics;
+
+  //
   public PolicyAbstractDomain(
-     ValueDeterminationFormulaManager vdfmgr,
-     FormulaManagerView fmgr,
-     FormulaManagerFactory formulaManagerFactory,
-     LogManager logger,
-     LinearConstraintManager lcmgr
-  ) {
+      Configuration config,
+      ValueDeterminationFormulaManager vdfmgr,
+      FormulaManagerView fmgr,
+      FormulaManagerFactory formulaManagerFactory,
+      LogManager logger,
+      LinearConstraintManager lcmgr,
+      ShutdownNotifier pShutdownNotifier,
+      PolicyIterationStatistics pStatistics
+  ) throws InvalidConfigurationException {
+    config.inject(this, PolicyAbstractDomain.class);
     policy = HashBasedTable.create();
     this.vdfmgr = vdfmgr;
     this.logger = logger;
     this.formulaManagerFactory = formulaManagerFactory;
     this.lcmgr = lcmgr;
     rfmgr = fmgr.getRationalFormulaManager();
+    shutdownNotifier = pShutdownNotifier;
+    statistics = pStatistics;
   }
 
   void setPolicyForTemplate(CFANode node, LinearExpression template, CFAEdge edge) {
@@ -68,7 +90,7 @@ public class PolicyAbstractDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState newState, AbstractState prevState)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     return join((PolicyAbstractState) newState, (PolicyAbstractState) prevState);
   }
 
@@ -84,7 +106,8 @@ public class PolicyAbstractDomain implements AbstractDomain {
    */
   public PolicyAbstractState join(
       final PolicyAbstractState newState,
-      final PolicyAbstractState prevState) throws CPAException {
+      final PolicyAbstractState prevState)
+      throws CPAException, InterruptedException {
 
     // NOTE: check. But I think it must be actually the same node.
     final CFANode node = newState.getNode();
@@ -104,8 +127,8 @@ public class PolicyAbstractDomain implements AbstractDomain {
     Set<LinearExpression> unbounded = new HashSet<>();
 
     for (LinearExpression template : allTemplates) {
-      PolicyTemplateBound newValue = newState.getBound(template).orNull();
-      PolicyTemplateBound oldValue = prevState.getBound(template).orNull();
+      PolicyTemplateBound newValue = newState.getPolicyTemplateBound(template).orNull();
+      PolicyTemplateBound oldValue = prevState.getPolicyTemplateBound(template).orNull();
 
       // Can't do better than unbounded.
       if (oldValue == null) continue;
@@ -132,7 +155,13 @@ public class PolicyAbstractDomain implements AbstractDomain {
     }
 
     // Running value determination only on loop heads.
-    return valueDetermination(prevState, newState, updated, node, allTemplates);
+    statistics.valueDeterminationTimer.start();
+    try {
+      return valueDetermination(
+          prevState, newState, updated, node, allTemplates);
+    } finally {
+      statistics.valueDeterminationTimer.stop();
+    }
   }
 
   private PolicyAbstractState valueDetermination(
@@ -140,43 +169,71 @@ public class PolicyAbstractDomain implements AbstractDomain {
       final PolicyAbstractState newState,
       Map<LinearExpression, PolicyTemplateBound> updated,
       CFANode node,
-      PolicyAbstractState.Templates allTemplates) throws CPAException {
+      PolicyAbstractState.Templates allTemplates)
+      throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "# Running value determination");
-
     Preconditions.checkState(updated.size() > 0,
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    List<BooleanFormula> valueDeterminationConstraints;
-    try {
-      valueDeterminationConstraints = vdfmgr.valueDeterminationFormula(
-          policy.rowMap()
-      );
-    } catch (InterruptedException e) {
-      throw new CPAException("Exception while computing the formula", e);
+    List<BooleanFormula> valueDeterminationConstraints =
+        vdfmgr.valueDeterminationFormula(policy.rowMap());
+
+    Pair<
+        ImmutableMap<LinearExpression, PolicyTemplateBound>,
+        Set<LinearExpression>> p;
+    if (runAcceleratedValueDetermination) {
+      p = valueDeterminationMaximizationAccelerated(updated, node, valueDeterminationConstraints);
+    } else {
+      p = valueDeterminationMaximization(
+          updated, node, valueDeterminationConstraints);
     }
 
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder;
-    builder = ImmutableMap.builder();
+    ImmutableMap<LinearExpression, PolicyTemplateBound> updatedValueDetermination = p.getFirst();
+    Set<LinearExpression> unbounded = p.getSecond();
+    PolicyAbstractState joinedState = prevState.withUpdates(
+        updatedValueDetermination, unbounded, allTemplates);
+
+    Preconditions.checkState(isLessOrEqual(newState, joinedState));
+    Preconditions.checkState(isLessOrEqual(prevState, joinedState));
+    logger.log(Level.FINE, "# New state after merge: ", joinedState);
+    return joinedState;
+  }
+
+  private Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
+      Set<LinearExpression>>
+  valueDeterminationMaximization(
+      Map<LinearExpression, PolicyTemplateBound> updated, CFANode node,
+      List<BooleanFormula> pValueDeterminationConstraints)
+      throws InterruptedException, CPATransferException {
+
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder = ImmutableMap.builder();
     Set<LinearExpression> unbounded = new HashSet<>();
 
     for (Entry<LinearExpression, PolicyTemplateBound> policyValue : updated.entrySet()) {
+
       LinearExpression template = policyValue.getKey();
       CFAEdge policyEdge = policyValue.getValue().edge;
 
       // Maximize for each template subject to the overall constraints.
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-        for (BooleanFormula constraint : valueDeterminationConstraints) {
+        shutdownNotifier.shutdownIfNecessary();
+
+        for (BooleanFormula constraint : pValueDeterminationConstraints) {
           solver.addConstraint(constraint);
         }
 
         logger.log(Level.FINE,
-           "# Value determination: optimizing for template" , template);
+            "# Value determination: optimizing for template" , template);
 
         NumeralFormula objective = rfmgr.makeVariable(
             vdfmgr.absDomainVarName(node, template));
+
+        statistics.valueDeterminationSolverTimer.start();
+        statistics.valueDetCalls++;
         ExtendedRational newValue = lcmgr.maximize(solver, objective);
+        statistics.valueDeterminationSolverTimer.stop();
 
         Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
             "Value determination should not be unsatisfiable");
@@ -186,20 +243,66 @@ public class PolicyAbstractDomain implements AbstractDomain {
           unbounded.add(template);
         }
       } catch (Exception e) {
+        e.printStackTrace();
         throw new CPATransferException("Failed solving", e);
       }
     }
 
-    ImmutableMap<LinearExpression, PolicyTemplateBound> outData = builder.build();
-    PolicyAbstractState joinedState = prevState.withUpdates(outData, unbounded, allTemplates);
+    return Pair.of(builder.build(), unbounded);
+  }
 
-    // Note: returning an exactly same state is important, due to the issues
-    // with .equals() handling.
-    if (joinedState.equals(prevState)) return prevState;
-    Preconditions.checkState(isLessOrEqual(newState, joinedState));
-    Preconditions.checkState(isLessOrEqual(prevState, joinedState));
-    logger.log(Level.FINE, "# New state after merge: ", joinedState);
-    return joinedState;
+  private Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
+      Set<LinearExpression>>
+  valueDeterminationMaximizationAccelerated(
+      Map<LinearExpression, PolicyTemplateBound> updated, CFANode node,
+      List<BooleanFormula> pValueDeterminationConstraints)
+      throws InterruptedException, CPATransferException {
+
+    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder = ImmutableMap.builder();
+    Set<LinearExpression> unbounded = new HashSet<>();
+
+    Map<NumeralFormula, Pair<PolicyTemplateBound, LinearExpression>> objectives = new HashMap<>();
+    for (Entry<LinearExpression, PolicyTemplateBound> policyValue : updated.entrySet()) {
+      LinearExpression template = policyValue.getKey();
+      NumeralFormula objective = rfmgr.makeVariable(
+          vdfmgr.absDomainVarName(node, template));
+      objectives.put(objective, Pair.of(policyValue.getValue(), template));
+    }
+
+    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+      for (BooleanFormula constraint : pValueDeterminationConstraints) {
+        solver.addConstraint(constraint);
+      }
+
+      statistics.valueDeterminationSolverTimer.start();
+      statistics.valueDetCalls++;
+      Map<NumeralFormula, ExtendedRational> model =
+          lcmgr.maximizeObjectives(solver, Lists.newArrayList(objectives.keySet()));
+      statistics.valueDeterminationSolverTimer.stop();
+
+      for (Entry<NumeralFormula, ExtendedRational> e : model.entrySet()) {
+        NumeralFormula f = e.getKey();
+        ExtendedRational newValue = e.getValue();
+        Pair<PolicyTemplateBound, LinearExpression> p = objectives.get(f);
+        LinearExpression template = p.getSecond();
+        PolicyTemplateBound templateBound = p.getFirst();
+
+        // TODO: introduce getFirstNotNull().
+        assert(template != null && templateBound != null);
+        CFAEdge policyEdge = templateBound.edge;
+
+        if (newValue != ExtendedRational.INFTY) {
+          builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+        } else {
+          unbounded.add(template);
+        }
+      }
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new CPATransferException("Failed solving", e);
+    }
+    return Pair.of(builder.build(), unbounded);
   }
 
   enum PARTIAL_ORDER {
@@ -233,7 +336,8 @@ public class PolicyAbstractDomain implements AbstractDomain {
     for (Entry<LinearExpression, PolicyTemplateBound> e : newState) {
       ExtendedRational prevBound, newBound;
       newBound = e.getValue().bound;
-      PolicyTemplateBound prevValue = prevState.getBound(e.getKey()).orNull();
+      PolicyTemplateBound prevValue = prevState.getPolicyTemplateBound(
+          e.getKey()).orNull();
       if (prevValue == null) {
         prevBound = ExtendedRational.INFTY;
       } else {

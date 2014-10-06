@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -150,6 +151,54 @@ public class LinearConstraintManager {
     }
   }
 
+  /**
+   * Maximizes a list of input objectives, provided they are
+   * <i>independent</i> of each other -- that is maximizing
+   * their sum is equivalent to maximizing them separately.
+   * Assumes that the set of constraints on the solver is satisfiable.
+   *
+   * @return Mapping from the input formulas to the resulting maximized values.
+   */
+  public Map<NumeralFormula, ExtendedRational> maximizeObjectives(
+      OptEnvironment prover,
+      List<NumeralFormula> objectives)
+    throws SolverException, InterruptedException {
+
+    Map<String, NumeralFormula> input = new HashMap<>();
+    Map<NumeralFormula, ExtendedRational> out = new HashMap<>();
+
+    for (NumeralFormula formula : objectives) {
+      FreshVariable target = FreshVariable.createFreshVar(rfmgr);
+      prover.addConstraint(rfmgr.equal(target.variable, formula));
+
+      // Enforce bounds for all variables.
+      prover.addConstraint(
+          rfmgr.lessOrEquals(target.variable, rfmgr.makeNumber(BAZILLION.toString()))
+      );
+      input.put(target.name(), formula);
+    }
+
+    NumeralFormula sum = rfmgr.sum(objectives);
+    FreshVariable target = FreshVariable.createFreshVar(rfmgr);
+    prover.addConstraint(rfmgr.equal(sum, target.variable));
+    prover.setObjective(target.variable);
+    OptEnvironment.OptResult status = prover.maximize();
+
+    switch (status) {
+      case OPT:
+        Model model = prover.getModel();
+        logger.log(Level.FINEST, "OPT");
+        logger.log(Level.FINEST, "Model = ", model);
+        for (Map.Entry<String, NumeralFormula> e : input.entrySet()) {
+          String varName = e.getKey();
+          NumeralFormula formula = e.getValue();
+          out.put(formula, rationalFromModel(model, varName));
+        }
+        return out;
+      default:
+        throw new SolverException("Solver in the inconsistent state, aborting");
+    }
+  }
 
   /**
    * @param prover Prover engine used
@@ -198,15 +247,7 @@ public class LinearConstraintManager {
         Model model = prover.getModel();
         logger.log(Level.FINEST, "OPT");
         logger.log(Level.FINEST, "Model = ", model);
-
-
-        ExtendedRational returned = (ExtendedRational) model.get(
-            new Model.Constant(target.name(), Model.TermType.Real)
-        );
-
-        if (returned.equals(BAZILLION)) return ExtendedRational.INFTY;
-
-        return returned;
+        return rationalFromModel(model, target.name());
       case UNSAT:
         logger.log(Level.FINEST, "UNSAT");
         return ExtendedRational.NEG_INFTY;
@@ -220,6 +261,14 @@ public class LinearConstraintManager {
         logger.log(Level.FINEST, "ERROR RUNNING OPTIMIZATION");
         throw new RuntimeException("Internal Error, unaccounted case");
     }
+  }
+
+  private ExtendedRational rationalFromModel(Model model, String varName) {
+    ExtendedRational returned = (ExtendedRational) model.get(
+        new Model.Constant(varName, Model.TermType.Real)
+    );
+    if (returned.equals(BAZILLION)) return ExtendedRational.INFTY;
+    return returned;
   }
 
   /**

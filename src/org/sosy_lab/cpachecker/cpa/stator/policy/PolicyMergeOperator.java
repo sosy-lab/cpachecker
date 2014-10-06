@@ -13,7 +13,7 @@ public class PolicyMergeOperator implements MergeOperator{
 
   @Override
   public AbstractState merge(AbstractState newState, AbstractState prevState, Precision p)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     AbstractState out = domain.join(newState, prevState);
 

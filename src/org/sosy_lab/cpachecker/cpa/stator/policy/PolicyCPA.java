@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -19,6 +21,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -31,12 +35,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  * Configurable-Program-Analysis implementation for policy iteration.
  */
 @Options(prefix="cpa.policy")
-public class PolicyCPA implements ConfigurableProgramAnalysis{
+public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final PolicyAbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final PolicyMergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final PolicyIterationStatistics statistics;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -70,18 +75,21 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
         lcmgr
     );
 
+    statistics = new PolicyIterationStatistics(config);
     abstractDomain = new PolicyAbstractDomain(
+        config,
         valueDeterminationFormulaManager,
         formulaManager,
         formulaManagerFactory,
         logger,
-        lcmgr
+        lcmgr,
+        shutdownNotifier,
+        statistics
     );
 
     mergeOperator = new PolicyMergeOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-        new TemplateManager(config);
     transferRelation = new PolicyTransferRelation(
         config,
         formulaManager,
@@ -90,7 +98,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
         logger,
         abstractDomain,
         lcmgr,
-        new TemplateManager(config));
+        new TemplateManager(config),
+        statistics);
   }
 
   @Override
@@ -126,5 +135,10 @@ public class PolicyCPA implements ConfigurableProgramAnalysis{
   @Override
   public Precision getInitialPrecision(CFANode node) {
     return SingletonPrecision.getInstance();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(statistics);
   }
 }
