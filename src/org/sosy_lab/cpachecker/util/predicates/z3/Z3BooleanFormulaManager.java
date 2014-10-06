@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
+import com.google.common.primitives.Longs;
+
 class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
   private final long z3context;
@@ -71,21 +73,12 @@ class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, 
 
   @Override
   protected Long orImpl(List<Long> params) {
-    return mk_or(z3context, params.size(), arrayToList(params));
+    return mk_or(z3context, params.size(), Longs.toArray(params));
   }
 
   @Override
   protected Long andImpl(List<Long> params) {
-    return mk_and(z3context, params.size(), arrayToList(params));
-  }
-
-  private long[] arrayToList(List<Long> params) {
-    long[] paramsArray = new long[params.size()];
-    int i=0;
-    for (long p : params) {
-      paramsArray[i++] = p;
-    }
-    return paramsArray;
+    return mk_and(z3context, params.size(), Longs.toArray(params));
   }
 
   @Override
