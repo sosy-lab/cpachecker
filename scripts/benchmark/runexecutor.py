@@ -185,6 +185,7 @@ class RunExecutor():
 
         def preSubprocess():
             os.setpgrp() # make subprocess to group-leader
+            os.nice(5) # increase niceness of subprocess
 
             if TIMELIMIT in rlimits:
                 # Also use ulimit for CPU time limit as a fallback if cgroups are not available
