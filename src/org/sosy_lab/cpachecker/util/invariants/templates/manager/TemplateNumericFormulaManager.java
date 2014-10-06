@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
@@ -82,6 +83,12 @@ abstract class TemplateNumericFormulaManager implements NumeralFormulaManager<Nu
   @Override
   public RationalFormula add(NumeralFormula pNumber1, NumeralFormula pNumber2) {
     return (RationalFormula) baseManager.add(pNumber1, pNumber1);
+  }
+
+  @Override
+  public RationalFormula sum(List<NumeralFormula> operands) {
+    throw new UnsupportedOperationException(
+        "sum operation is unsupported for this solver");
   }
 
   @Override

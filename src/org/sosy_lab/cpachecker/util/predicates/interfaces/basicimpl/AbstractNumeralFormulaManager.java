@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -32,7 +33,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Similar to the other Abstract*FormulaManager classes in this package,
@@ -63,6 +66,13 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private final FunctionFormulaType<ResultFormulaType> multUfDecl;
   private final FunctionFormulaType<ResultFormulaType> divUfDecl;
   private final FunctionFormulaType<ResultFormulaType> modUfDecl;
+
+  private final Function<ParamFormulaType, TFormulaInfo> extractor =
+      new Function<ParamFormulaType, TFormulaInfo>() {
+        public TFormulaInfo apply(ParamFormulaType input) {
+          return extractInfo(input);
+        }
+      };
 
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
@@ -136,6 +146,19 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   }
 
   protected abstract TFormulaInfo add(TFormulaInfo pParam1, TFormulaInfo pParam2);
+
+  @Override
+  public ResultFormulaType sum(List<ParamFormulaType> operands) {
+    return wrap(sumImpl(Lists.transform(operands, extractor)));
+  }
+
+  protected TFormulaInfo sumImpl(List<TFormulaInfo> operands) {
+    TFormulaInfo result = makeNumberImpl(0);
+    for (TFormulaInfo operand : operands) {
+      result = add(result, operand);
+    }
+    return result;
+  }
 
   @Override
   public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {

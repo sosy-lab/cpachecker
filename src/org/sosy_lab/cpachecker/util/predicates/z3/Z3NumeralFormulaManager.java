@@ -27,9 +27,12 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
+
+import com.google.common.primitives.Longs;
 
 abstract class Z3NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
@@ -80,6 +83,11 @@ abstract class Z3NumeralFormulaManager
   @Override
   public Long add(Long pNumber1, Long pNumber2) {
     return mk_add(z3context, pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long sumImpl(List<Long> operands) {
+    return mk_add(z3context, operands.size(), Longs.toArray(operands));
   }
 
   @Override

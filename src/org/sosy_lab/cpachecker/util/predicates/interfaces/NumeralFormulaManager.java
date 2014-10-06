@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigInteger;
+import java.util.List;
 
 /**
  * This interface represents the Numeral-Theory
@@ -47,6 +48,7 @@ public interface NumeralFormulaManager
   public ResultFormulaType negate(ParamFormulaType number);
 
   public ResultFormulaType add(ParamFormulaType number1, ParamFormulaType number2);
+  public ResultFormulaType sum(List<ParamFormulaType> operands);
 
   public ResultFormulaType subtract(ParamFormulaType number1, ParamFormulaType number2);
 

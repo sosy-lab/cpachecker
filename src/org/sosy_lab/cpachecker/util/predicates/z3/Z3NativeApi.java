@@ -244,7 +244,7 @@ final class Z3NativeApi {
   }
 
   // ARITHMETIC: INTEGERS AND REALS
-  private static native long mk_add(long context, int len, long[] as);
+  public static native long mk_add(long context, int len, long[] as);
   private static native long mk_mul(long context, int len, long[] as);
   private static native long mk_sub(long context, int len, long[] as);
   public static native long mk_unary_minus(long context, long a1);

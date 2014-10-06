@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+
+import com.google.common.collect.Lists;
 
 
 public class NumeralFormulaManagerView
@@ -59,6 +62,12 @@ public class NumeralFormulaManagerView
   public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
+
+  @Override
+  public ResultFormulaType sum(List<ParamFormulaType> operands) {
+    return wrapInView(manager.sum(Lists.transform(operands, extractor)));
+  }
+
   @Override
   public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));

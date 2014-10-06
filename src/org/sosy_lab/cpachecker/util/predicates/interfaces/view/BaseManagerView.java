@@ -25,8 +25,17 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
+import com.google.common.base.Function;
+
 
 abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula extends Formula> extends AbstractBaseManagerView {
+  protected final Function<ParamFormula, ParamFormula> extractor =
+      new Function<ParamFormula, ParamFormula>() {
+        @Override
+        public ParamFormula apply(ParamFormula pInput) {
+          return extractFromView(pInput);
+        }
+      };
 
   protected ResultFormula wrapInView(ResultFormula formula) {
     return formula;
