@@ -45,8 +45,9 @@ public interface AbstractDomain {
    * @return the join of state1 and state2
    * @throws CPAException If any error occurred.
    * @throws UnsupportedOperationException If this domain does not provide a join method.
+   * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException;
+  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
 
   /**
    * Returns true if state1 is less or equal than state2 with respect to

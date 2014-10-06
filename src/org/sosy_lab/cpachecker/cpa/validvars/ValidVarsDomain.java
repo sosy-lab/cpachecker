@@ -37,7 +37,8 @@ public class ValidVarsDomain implements AbstractDomain{
   }
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
+  public AbstractState join(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
     if (pState1 instanceof ValidVarsState && pState2 instanceof ValidVarsState) {
       ValidVarsState v1 = (ValidVarsState) pState1;
       ValidVarsState v2 = (ValidVarsState) pState2;
