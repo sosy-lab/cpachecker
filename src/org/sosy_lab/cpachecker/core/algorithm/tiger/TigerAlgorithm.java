@@ -721,6 +721,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
           }
 
+
+          // TODO identify abstract states
+          CFAEdge criticalEdge = pGoal.getCriticalEdge();
+
+
           // can we obtain a counterexample to check coverage for other test goals?
           Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
@@ -750,6 +755,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
               CFAEdge edge = parent.getEdgeToChild(argState);
               trace.addFirst(edge);
+
+              // TODO Alex?
+              if (edge.equals(criticalEdge)) {
+                logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
+              }
 
               argState = parent;
               parents = argState.getParents();
@@ -813,6 +823,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
                 TestCase testcase = new TestCase(inputValues, cex.getTargetPath().asEdgesList());
                 testsuite.addTestCase(testcase, pGoal);
+
+                // TODO Alex?
+                for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
+                  if (stateEdgePair.getSecond().equals(criticalEdge)) {
+                    logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
+                  }
+                }
               }
             }
           }
