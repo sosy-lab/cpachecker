@@ -195,7 +195,7 @@ public class CoreComponentsFactory {
       }
 
       if (useTigerAlgorithm) {
-        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger, programDenotation, stats);
       }
 
       if (usePropertyCheckingAlgorithm) {

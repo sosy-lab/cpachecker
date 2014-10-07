@@ -87,7 +87,6 @@ analysis.algorithm.testGen = false
 
 # Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
 # Reachability Analyses, ESOP'13)
-# Use Tiger algorithm (test input generation)
 analysis.algorithm.tiger = false
 
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
@@ -1784,6 +1783,9 @@ testgen.stopOnError = false
 # Must include one %s somewhere.
 testgen.testcaseOutputFile = "testcase%s.spc"
 
+# Configuration file for internal cpa algorithm.
+tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+
 # Checks whether a test case for one goal covers another test goal
 tiger.checkCoverage = true
 
@@ -1810,6 +1812,9 @@ tiger.printARGperGoal = false
 # Reuse ARG across test goals
 tiger.reuseARG = true
 
+# Reuse predicates across modifications of an ARG.
+tiger.reusePredicates = true
+
 # Filename for output of generated test suite
 tiger.testsuiteFile = "testsuite.txt"
 
@@ -1817,6 +1822,9 @@ tiger.testsuiteFile = "testsuite.txt"
 # all other goals.
 tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
   enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
+
+# Map information on infeasibility of one test goal to other test goals.
+tiger.useInfeasibilityPropagation = false
 
 # Enforce the original order each time a new round of re-processing of
 # timed-out goals begins.

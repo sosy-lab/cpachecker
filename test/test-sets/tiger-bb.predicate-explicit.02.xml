@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="3700" memlimit="15000" cpuCores="4">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">10000M</option>
+  <option name="-config">config/tiger-predicate-explicit.02.properties</option>
+
+  <rundefinition>
+    <sourcefiles>
+      <includesfile>../programs/simple/tiger/products/elevator.set</includesfile>
+      <includesfile>../programs/simple/tiger/products/email.set</includesfile>
+      <includesfile>../programs/simple/tiger/products/minepump.set</includesfile>
+    </sourcefiles>
+  </rundefinition>
+
+  <columns>
+    <column title="test goals">Number of test goals</column>
+    <column title="processed test goals">Number of processed test goals</column>
+    <column title="feasible test goals">Number of feasible test goals</column>
+    <column title="infeasible test goals">Number of infeasible test goals</column>
+    <column title="timed-out test goals">Number of timedout test goals</column>
+  </columns>
+</benchmark>

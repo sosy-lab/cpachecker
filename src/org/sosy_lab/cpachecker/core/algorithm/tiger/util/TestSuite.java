@@ -90,6 +90,7 @@ public class TestSuite {
   /** States that the goal is infeasible when enforcing the given constraints
    */
   public void addInfeasibleGoal(Goal goal, Region pForConstraints) {
+    assert (pForConstraints != null);
     if (infeasibleGoals.containsKey(goal)) {
       Region constraints = infeasibleGoals.get(goal);
       infeasibleGoals.put(goal, bddCpaNamedRegionManager.makeOr(constraints, pForConstraints));

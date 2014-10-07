@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
@@ -46,6 +47,7 @@ public class Goal {
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
       Region pPresenceCondition) {
+    assert pPresenceCondition != null;
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
@@ -53,6 +55,7 @@ public class Goal {
   }
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
+    assert pPresenceCondition != null;
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
@@ -74,8 +77,59 @@ public class Goal {
     return mAutomaton;
   }
 
-  public void setPresenceCondition(Region pPresenceCondition) {
-    mPresenceCondition = pPresenceCondition;
+  public CFAEdge getCriticalEdge() {
+    final ECPVisitor<CFAEdge> visitor = new ECPVisitor<CFAEdge>() {
+
+      @Override
+      public CFAEdge visit(ECPEdgeSet pEdgeSet) {
+        if (pEdgeSet.size() == 1) {
+          return pEdgeSet.iterator().next();
+        }
+        else {
+          return null;
+        }
+      }
+
+      @Override
+      public CFAEdge visit(ECPNodeSet pNodeSet) {
+        return null;
+      }
+
+      @Override
+      public CFAEdge visit(ECPPredicate pPredicate) {
+        return null;
+      }
+
+      @Override
+      public CFAEdge visit(ECPConcatenation pConcatenation) {
+        CFAEdge edge = null;
+
+        for (int i = 0; i < pConcatenation.size(); i++) {
+          ElementaryCoveragePattern ecp = pConcatenation.get(i);
+
+          CFAEdge tmpEdge = ecp.accept(this);
+
+          if (tmpEdge != null) {
+            edge = tmpEdge;
+          }
+        }
+
+        return edge;
+      }
+
+      @Override
+      public CFAEdge visit(ECPUnion pUnion) {
+        return null;
+      }
+
+      @Override
+      public CFAEdge visit(ECPRepetition pRepetition) {
+        return null;
+      }
+
+    };
+
+    return getPattern().accept(visitor);
   }
 
   public String toSkeleton() {

@@ -39,16 +39,11 @@ public class TestCase {
 
   private Region pc;
 
-  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestCase(List<BigInteger> pInputs, Region pPresenceCondition, List<CFAEdge> pPath, NamedRegionManager pBddCpaNamedRegionManager) {
+    assert pPresenceCondition!=null;
     inputs = pInputs;
     path = pPath;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
-  }
-
-  public TestCase(List<BigInteger> pInputs, Region pPresenceCondition,
-      List<CFAEdge> pPath) {
-    inputs = pInputs;
-    path = pPath;
     pc = pPresenceCondition;
   }
 

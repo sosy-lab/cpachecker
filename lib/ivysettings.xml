@@ -5,7 +5,7 @@
     <settings defaultResolver="chainResolver" />
     <resolvers>
        <chain name="chainResolver">
-          <url name="Sosy-Lab" descriptor="required">
+       <url name="Sosy-Lab" descriptor="required">
               <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
               <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
           </url>

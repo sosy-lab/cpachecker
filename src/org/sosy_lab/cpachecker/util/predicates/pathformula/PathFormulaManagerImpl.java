@@ -490,6 +490,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             break;
           }
         }
+
+        if (edge == null) {
+          logger.log(Level.WARNING, "ARG branching without true-AssumeEdge at ARG node " + pathElement.getStateId() + ".");
+          return bfmgr.makeBoolean(true);
+        }
+
         assert edge != null;
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
 
