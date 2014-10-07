@@ -442,10 +442,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
 
         if (lGoalPrediction != null && lGoalPrediction[goalIndex - 1] == Prediction.INFEASIBLE) {
+          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
+          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
+          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
           logger.logf(Level.INFO, "This goal is predicted as infeasible!");
-
           testsuite.addInfeasibleGoal(lGoal, remainingPCforGoalCoverage);
-          // TODO: shouldn't the goal (lTestGoalPatternWithRegion) be removed from the List (pTestGoalPatterns) here?
           continue;
         }
 
@@ -481,12 +482,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           continue;
         }
 
-
-        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, remainingPCforGoalCoverage);
-
         // goal is uncovered so far; run CPAchecker to cover it
+        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, remainingPCforGoalCoverage);
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
-          //if (!runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, remainingPCforGoalCoverage)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
         }
@@ -504,6 +502,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
           logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
           remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
+          // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
         } else {
           // now we need to cover all remaining configurations
           // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
@@ -582,6 +581,15 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
               }
             }
           }
+
+          /*if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
+            continue;
+          }*/
+          ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, lRegion);
+          if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
+            logger.logf(Level.WARNING, "Analysis run was unsound!");
+            wasSound = false;
+          }
           previousAutomaton = lGoal.getAutomaton();
         }
       } while (testsuite.hasTimedoutTestGoals());
@@ -611,7 +619,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private ReachabilityAnalysisResult runReachabilityAnalysis(int goalIndex, Goal pGoal, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region remainingPCforGoalCoverage) throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
-
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
 
     /*if (pPassingCPA != null) {
@@ -619,8 +626,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }*/
 
     lAutomatonCPAs.add(lAutomatonCPA);
-
-
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
@@ -636,7 +641,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     else {
       lComponentAnalyses.add(cpa);
     }
-
 
     ARGCPA lARTCPA;
     try {
