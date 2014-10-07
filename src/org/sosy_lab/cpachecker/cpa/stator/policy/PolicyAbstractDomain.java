@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -34,13 +35,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 /**
  * Abstract domain for policy iteration.
  */
 @Options(prefix="cpa.stator.policy")
-public class PolicyAbstractDomain implements AbstractDomain {
+public final class PolicyAbstractDomain implements AbstractDomain {
 
   @Option(
       name="runAcceleratedValueDetermination",
@@ -177,14 +179,16 @@ public class PolicyAbstractDomain implements AbstractDomain {
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    List<BooleanFormula> valueDeterminationConstraints =
-        vdfmgr.valueDeterminationFormula(policy.rowMap());
+    Table<CFANode, LinearExpression, CFAEdge> relatedPolicy = findRelated(node, updated);
 
-    Pair<
-        ImmutableMap<LinearExpression, PolicyTemplateBound>,
+    List<BooleanFormula> valueDeterminationConstraints =
+        vdfmgr.valueDeterminationFormula(relatedPolicy.rowMap());
+
+    Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
         Set<LinearExpression>> p;
     if (runAcceleratedValueDetermination) {
-      p = valueDeterminationMaximizationAccelerated(updated, node, valueDeterminationConstraints);
+      p = valueDeterminationMaximizationAccelerated(
+          updated, node, valueDeterminationConstraints);
     } else {
       p = valueDeterminationMaximization(
           updated, node, valueDeterminationConstraints);
@@ -303,6 +307,48 @@ public class PolicyAbstractDomain implements AbstractDomain {
       throw new CPATransferException("Failed solving", e);
     }
     return Pair.of(builder.build(), unbounded);
+  }
+
+  /**
+   * @return the subset of the policy related (over-approximation) to the given
+   * node and the set of updates.
+   */
+  private Table<CFANode, LinearExpression, CFAEdge> findRelated(
+      final CFANode valueDeterminationNode,
+      Map<LinearExpression, PolicyTemplateBound> updated) {
+    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
+    Set<CFANode> visited = Sets.newHashSet();
+    Queue<CFANode> queue = Lists.newLinkedList(Lists.newArrayList(valueDeterminationNode));
+
+    while (!queue.isEmpty()) {
+      CFANode node = queue.remove();
+      visited.add(node);
+
+      Map<LinearExpression, CFAEdge> row = policy.row(node);
+      for (Entry<LinearExpression, CFAEdge> entry : row.entrySet()) {
+        LinearExpression template = entry.getKey();
+
+        CFAEdge edge;
+
+        // For the value determination node only track the updated edges.
+        if (node == valueDeterminationNode) {
+          PolicyTemplateBound bound = updated.get(template);
+          if (bound == null) continue;
+          edge = bound.edge;
+        } else {
+          edge = entry.getValue();
+        }
+
+        // Put things related to the node.
+        out.put(node, template, edge);
+
+        CFANode toVisit = edge.getPredecessor();
+        if (!visited.contains(toVisit)) {
+          queue.add(toVisit);
+        }
+      }
+    }
+    return out;
   }
 
   enum PARTIAL_ORDER {

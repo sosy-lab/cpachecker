@@ -76,11 +76,6 @@ public class ValueDeterminationFormulaManager {
    * @return Global constraint for value determination.
    * @throws CPATransferException
    * @throws InterruptedException
-  // NOTE: I am doing something which seems quite silly here.
-  // Iteration over all the nodes should not be required, I should iterate
-  // only over the reachable ones [or better yet, the ones involved in a created
-  // cycle.
-  // But such an improvement can be left as a todo-item for later.
    */
   public List<BooleanFormula> valueDeterminationFormula(
       final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
