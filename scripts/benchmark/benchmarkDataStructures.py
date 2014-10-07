@@ -555,7 +555,8 @@ class Run():
             else:
                 if not self.propertyfile in loggedMissingPropertyFiles:
                     loggedMissingPropertyFiles.add(self.propertyfile)
-                    logging.warning('Pattern {0} in propertyfile tag did not match any file. It will be ignored.'.format(self.propertyfile))
+                    logging.warning('Pattern {0} for sourcefile {1} in propertyfile tag did not match any file. It will be ignored.'
+                        .format(self.propertyfile, self.identifier))
                 self.propertyfile = None
 
             self.runSet.benchmark.addRequiredFile(self.propertyfile)
