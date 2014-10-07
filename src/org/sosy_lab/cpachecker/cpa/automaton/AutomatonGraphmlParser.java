@@ -40,10 +40,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -73,6 +75,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -703,6 +706,22 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
+  }
+
+  public static boolean isGraphmlAutomaton(Path pPath, LogManager pLogger) throws InvalidConfigurationException {
+    try (InputStream input = pPath.asByteSource().openStream()) {
+      SAXParserFactory.newInstance().newSAXParser().parse(input, new DefaultHandler());
+      return true;
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException("Invalid automaton file provided! File not found: " + pPath.getPath());
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Error while accessing automaton file", e);
+    } catch (SAXException e) {
+      return false;
+    } catch (ParserConfigurationException e) {
+      pLogger.logException(Level.WARNING, e, "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
+      return false;
+    }
   }
 
 }
