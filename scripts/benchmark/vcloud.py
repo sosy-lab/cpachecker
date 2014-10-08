@@ -241,38 +241,24 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
         outputHandler.outputBeforeRunSet(runSet)
 
         for run in runSet.runs:
-
-            stdoutFile = run.logFile + ".stdOut"
-            if os.path.exists(stdoutFile):
-                try:
-                    (run.wallTime, run.cpuTime, memUsage, returnValue, energy) = parseCloudResultFile(stdoutFile)
-                    run.values['memUsage'] = memUsage
-                    run.values['energy'] = energy
-
-                    if returnValue is not None:
-                        # Do not delete stdOut file if there was some problem
-                        os.remove(stdoutFile)
-                    else:
-                        executedAllRuns = False
-
-                except EnvironmentError as e:
-                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    outputHandler.formatSourceFileName(run.identifier), e))
-                    executedAllRuns = False
-            else:
-                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.identifier)))
-                executedAllRuns = False
-                returnValue = None
-
             dataFile = run.logFile + ".data"
             if os.path.exists(dataFile):
                 try:
-                    run.values.update(parseCloudRunResultFile(dataFile))
-                    os.remove(dataFile)
+                    (run.cpuTime, run.wallTime, returnValue, values) = parseCloudRunResultFile(dataFile)
+                    run.values.update(values)
+                    if returnValue is not None and not benchmark.config.debug:
+                        # Do not delete .data file if there was some problem
+                        os.remove(dataFile)
                 except IOError as e:
                     logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
                                     outputHandler.formatSourceFileName(run.identifier), e))
                     outputHandler.allCreatedFiles.append(dataFile)
+                    executedAllRuns = False
+                    returnValue = None
+            else:
+                logging.warning("No results exist for file {0}.".format(outputHandler.formatSourceFileName(run.identifier)))
+                executedAllRuns = False
+                returnValue = None
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
@@ -318,47 +304,34 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         logging.warning("Host information file not found: " + filePath)
 
 
-def parseCloudResultFile(filePath):
-
-    wallTime = None
-    cpuTime = None
-    memUsage = None
-    returnValue = None
-    energy = None
-
-    with open(filePath, 'rt') as file:
-        content = file.read()
-
-        parsingFailed = False
-        try:
-            info = eval(content)
-        except SyntaxError:
-            parsingFailed = True
-
-        if parsingFailed or not isinstance(info, dict):
-            logging.warning('parsing result-values failed, unexpected input from {0}: {1}'.format(filePath, content))
-
-        else:
-            wallTime    = info[CloudRunExecutor.WALLTIME_STR]
-            cpuTime     = info[CloudRunExecutor.CPUTIME_STR]
-            memUsage    = info[CloudRunExecutor.MEMORYUSAGE_STR]
-            returnValue = info[CloudRunExecutor.RETURNVALUE_STR]
-            energy      = info[CloudRunExecutor.ENERGY_STR]
-
-    return (wallTime, cpuTime, memUsage, returnValue, energy)
-
-
 def parseCloudRunResultFile(filePath):
     values = {}
+    cpuTime = None
+    wallTime = None
+    returnValue = None
+
+    def parseTimeValue(s):
+        if s[-1] != 's':
+            raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
+        return float(s[:-1])
 
     with open(filePath, 'rt') as file:
         for line in file:
             (key, value) = line.split("=", 2)
             value = value.strip()
-            if key == "host":
+            if key == 'cputime':
+                cpuTime = parseTimeValue(value)
+            elif key == 'walltime':
+                wallTime = parseTimeValue(value)
+            elif key == 'memory':
+                values['memUsage'] = value
+            elif key == 'exitcode':
+                returnValue = int(value)
+                values['@exitcode'] = value
+            elif key == "host":
                 values[key] = value
             else:
                 # "@" means value is hidden normally
                 values["@vcloud-" + key] = value
 
-    return values
+    return (cpuTime, wallTime, returnValue, values)
