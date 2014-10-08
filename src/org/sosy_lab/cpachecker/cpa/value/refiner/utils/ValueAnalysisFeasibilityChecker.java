@@ -159,4 +159,31 @@ public class ValueAnalysisFeasibilityChecker {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
+
+  public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final MutableARGPath path)
+      throws CPAException, InterruptedException {
+
+    assert(isFeasible(path)) : "Cannot reevalute an infeasible path!";
+
+    try {
+      List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
+      ValueAnalysisState next = new ValueAnalysisState();
+
+      for (Pair<ARGState, CFAEdge> pathElement : path) {
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
+            next,
+            precision,
+            pathElement.getSecond());
+
+        // extract singleton successor state
+        next = Iterables.getOnlyElement(successors);
+
+        reevaluatedPath.add(Pair.of(next, pathElement.getSecond()));
+      }
+
+      return reevaluatedPath;
+    } catch (CPATransferException e) {
+      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+    }
+  }
 }
