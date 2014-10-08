@@ -226,7 +226,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @return the type associated with the given memory location
    */
   Type getTypeForMemoryLocation(MemoryLocation loc) {
-    return checkNotNull(memLocToType.get(loc));
+    return memLocToType.get(loc);
   }
 
   /**
