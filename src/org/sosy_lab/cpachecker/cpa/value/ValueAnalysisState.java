@@ -123,11 +123,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
         MemoryLocation.valueOf(variableName), checkNotNull(value));
   }
 
-  Type getTypeForMemoryLocation(MemoryLocation loc) {
-    Type t = memLocToType.get(loc);
-    return t;
-  }
-
   /**
    * This method assigns a value to the variable and puts it in the map.
    *
@@ -220,6 +215,18 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   public Value getValueFor(MemoryLocation variableName) {
     return checkNotNull(constantsMap.get(variableName));
+  }
+
+
+  /**
+   * This method returns the type for the given memory location.
+   *
+   * @param loc the memory location for which to get the type
+   * @throws NullPointerException - if no type is present in this state for the given memory location
+   * @return the type associated with the given memory location
+   */
+  Type getTypeForMemoryLocation(MemoryLocation loc) {
+    return checkNotNull(memLocToType.get(loc));
   }
 
   /**
