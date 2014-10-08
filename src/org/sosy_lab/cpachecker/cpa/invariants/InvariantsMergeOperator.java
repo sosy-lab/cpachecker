@@ -32,6 +32,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategy;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -49,8 +50,11 @@ public class InvariantsMergeOperator implements MergeOperator {
     InvariantsState state2 = (InvariantsState) pState2;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
     boolean isMergeAllowed = isMergeAllowed(state1, state2, precision);
-    Set<String> wideningTargets = state1.determineAbstractionStrategy(precision).determineWideningTargets(state2.determineAbstractionStrategy(precision));
-    state1 = state1.widen(state2, precision, wideningTargets);
+    EdgeBasedAbstractionStrategy abstractionStrategy1 = state1.determineAbstractionStrategy(precision);
+    EdgeBasedAbstractionStrategy abstractionStrategy2 = state2.determineAbstractionStrategy(precision);
+    Set<String> wideningTargets = abstractionStrategy1.determineWideningTargets(abstractionStrategy2);
+    Set<InvariantsFormula<CompoundInterval>> wideningHints = Sets.union(abstractionStrategy1.getWideningHints(), abstractionStrategy2.getWideningHints());
+    state1 = state1.widen(state2, precision, wideningTargets, wideningHints);
     if (state1 != pState1 && definitelyImplies(state2, reduceToGivenVariables(reduceToInterestingVariables(state1, precision), Sets.difference(state1.getEnvironment().keySet(), wideningTargets)))) {
       isMergeAllowed = true;
     }

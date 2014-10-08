@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
@@ -143,6 +144,15 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   private static final InvariantsFormula<CompoundInterval> BOTTOM = CompoundIntervalFormulaManager.INSTANCE
       .asConstant(CompoundInterval.bottom());
+
+  private final Predicate<InvariantsFormula<CompoundInterval>> implies = new Predicate<InvariantsFormula<CompoundInterval>>() {
+
+    @Override
+    public boolean apply(InvariantsFormula<CompoundInterval> pArg0) {
+      return definitelyImplies(pArg0);
+    }
+
+  };
 
   /**
    * The environment currently known to the state.
@@ -763,8 +773,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return CompoundIntervalFormulaManager.definitelyImplies(this.environment, pFormula);
   }
 
-  public InvariantsState widen(InvariantsState pOlderState, @Nullable InvariantsPrecision pPrecision, Set<String> pWideningTargets) {
+  public InvariantsState widen(InvariantsState pOlderState,
+      @Nullable InvariantsPrecision pPrecision,
+      Set<String> pWideningTargets,
+      Set<InvariantsFormula<CompoundInterval>> pWideningHints) {
+
     Set<String> wideningTargets = pWideningTargets == null ? environment.keySet() : pWideningTargets;
+
+    FluentIterable<InvariantsFormula<CompoundInterval>> matchingHints = FluentIterable.from(pWideningHints).filter(this.implies);
 
     if (wideningTargets.isEmpty()) {
       return this;
@@ -822,9 +838,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
     }
     InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+
+    for (InvariantsFormula<CompoundInterval> hint : matchingHints) {
+      result = result.assume(hint);
+    }
     if (equals(result)) {
       return this;
     }
+
     return result;
   }
 
@@ -952,6 +973,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
      */
     public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther);
 
+    public Set<InvariantsFormula<CompoundInterval>> getWideningHints();
+
     public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge);
 
     public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy);
@@ -992,6 +1015,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         return equals(pStrategy);
       }
 
+      @Override
+      public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
+        return Collections.emptySet();
+      }
+
     },
 
     NEVER {
@@ -1017,6 +1045,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       @Override
       public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
         return true;
+      }
+
+      @Override
+      public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
+        return Collections.emptySet();
       }
 
     };
@@ -1050,22 +1083,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       public EdgeBasedAbstractionStrategy getAbstractionStrategy(final EdgeBasedAbstractionStrategy pPrevious) {
         class VisitedEdgesBasedAbstractionStrategy implements EdgeBasedAbstractionStrategy {
 
-          private final ImmutableSet<CFAEdge> visitedEdges;
+          private final Set<CFAEdge> visitedEdges;
 
-          private final ImmutableSet<String> wideningTargets;
+          private final Set<String> wideningTargets;
 
-          private final ImmutableSet<InvariantsFormula<CompoundInterval>> wideningHints;
+          private final Set<InvariantsFormula<CompoundInterval>> wideningHints;
 
           private VisitedEdgesBasedAbstractionStrategy(
-              ImmutableSet<String> pPreviousWideningTargets,
-              ImmutableSet<InvariantsFormula<CompoundInterval>> pPreviousWideningHints) {
-            this(ImmutableSet.<CFAEdge>of(), pPreviousWideningTargets, pPreviousWideningHints);
+              Set<String> pPreviousWideningTargets,
+              Set<InvariantsFormula<CompoundInterval>> pPreviousWideningHints) {
+            this(Collections.<CFAEdge>emptySet(), pPreviousWideningTargets, pPreviousWideningHints);
           }
 
           private VisitedEdgesBasedAbstractionStrategy(
-              ImmutableSet<CFAEdge> pVisitedEdges,
-              ImmutableSet<String> pWideningTargets,
-              ImmutableSet<InvariantsFormula<CompoundInterval>> pWideningHints) {
+              Set<CFAEdge> pVisitedEdges,
+              Set<String> pWideningTargets,
+              Set<InvariantsFormula<CompoundInterval>> pWideningHints) {
             this.visitedEdges = pVisitedEdges;
             this.wideningTargets = pWideningTargets;
             this.wideningHints = pWideningHints;
@@ -1120,7 +1153,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
                   if (functionCall instanceof AFunctionCallAssignmentStatement) {
                     AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
                     wideningTargets.addAll(InvariantsTransferRelation.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
-
                     continue;
                   }
                 }
@@ -1182,29 +1214,27 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
               if (!visitedEdges.containsAll(other.visitedEdges)) {
                 return Collections.emptySet();
               }
-              return new ImmutableSet.Builder<String>().addAll(wideningTargets).addAll(other.wideningTargets).build();
+              return union(wideningTargets, other.wideningTargets);
             }
             return wideningTargets;
           }
 
           @Override
           public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
-            ImmutableSet<String> newWideningTargets = determineWideningTargets(pEdge);
-            ImmutableSet<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
+            Set<String> newWideningTargets = determineWideningTargets(pEdge);
+            Set<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
             if (visitedEdges.contains(pEdge)
                 && wideningTargets.equals(newWideningTargets)
                 && wideningHints.containsAll(newWideningHints)) {
               return this;
             }
-            newWideningHints = wideningHints.isEmpty()
-                ? newWideningHints
-                : ImmutableSet.<InvariantsFormula<CompoundInterval>>builder().addAll(wideningHints).addAll(newWideningHints).build();
+            newWideningHints = union(wideningHints, newWideningHints);
             return new VisitedEdgesBasedAbstractionStrategy(
-                ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).add(pEdge).build(),
+                add(visitedEdges, pEdge),
                 newWideningTargets, newWideningHints);
           }
 
-          private ImmutableSet<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
+          private Set<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
             if (pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
               AssumeEdge assumeEdge = (AssumeEdge) pEdge;
               IAExpression expression = assumeEdge.getExpression();
@@ -1215,15 +1245,15 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
                 } else if (expression instanceof JExpression) {
                   wideningHint = ((JExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
                 } else {
-                  return ImmutableSet.of();
+                  return Collections.emptySet();
                 }
               } catch (UnrecognizedCodeException e) {
                 // Does not really matter, just no hint
-                return ImmutableSet.of();
+                return Collections.emptySet();
               }
               return normalize(Collections.singleton(wideningHint));
             }
-            return ImmutableSet.of();
+            return Collections.emptySet();
           }
 
           private ImmutableSet<InvariantsFormula<CompoundInterval>> normalize(
@@ -1263,12 +1293,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
                   && this.wideningTargets.containsAll(other.wideningTargets)) {
                 return this;
               }
-              final ImmutableSet<CFAEdge> edges =
-                  ImmutableSet.<CFAEdge>builder().addAll(visitedEdges).addAll(other.visitedEdges).build();
-              final ImmutableSet<String> lastEdges =
-                  ImmutableSet.<String>builder().addAll(wideningTargets).addAll(other.wideningTargets).build();
-              final ImmutableSet<InvariantsFormula<CompoundInterval>> hints =
-                  ImmutableSet.<InvariantsFormula<CompoundInterval>>builder().addAll(wideningHints).addAll(other.wideningHints).build();
+              final Set<CFAEdge> edges =
+                  union(visitedEdges, other.visitedEdges);
+              final Set<String> lastEdges =
+                  union(wideningTargets, other.wideningTargets);
+              final Set<InvariantsFormula<CompoundInterval>> hints =
+                  union(wideningHints, other.wideningHints);
               return new VisitedEdgesBasedAbstractionStrategy(edges, lastEdges, hints);
             }
             return BasicAbstractionStrategies.ALWAYS;
@@ -1290,7 +1320,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
           @Override
           public int hashCode() {
-            return (visitedEdges.hashCode() * 43 + wideningTargets.hashCode()) * 43 + wideningHints.hashCode();
+            return Objects.hash(visitedEdges, wideningTargets, wideningHints);
           }
 
           @Override
@@ -1307,15 +1337,20 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
             return !pStrategy.isLessThanOrEqualTo(this);
           }
 
+          @Override
+          public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
+            return this.wideningHints;
+          }
+
         }
-        final ImmutableSet<String> previousWideningTargets;
-        final ImmutableSet<InvariantsFormula<CompoundInterval>> previousWideningHints;
+        final Set<String> previousWideningTargets;
+        final Set<InvariantsFormula<CompoundInterval>> previousWideningHints;
         if (pPrevious instanceof VisitedEdgesBasedAbstractionStrategy) {
           previousWideningTargets = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningTargets;
           previousWideningHints = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningHints;
         } else {
-          previousWideningTargets = ImmutableSet.<String>of();
-          previousWideningHints = ImmutableSet.<InvariantsFormula<CompoundInterval>>of();
+          previousWideningTargets = Collections.emptySet();
+          previousWideningHints = Collections.emptySet();
         }
         return new VisitedEdgesBasedAbstractionStrategy(previousWideningTargets, previousWideningHints);
       }
@@ -1336,6 +1371,46 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
     };
 
+  }
+
+  /**
+   * Returns the union of the given sets.
+   *
+   * If both parameters are immutable sets, the returned set is guaranteed to
+   * be immutable.
+   *
+   * The result may or may not be backed by either of the sets.
+   *
+   * @param pSet1 the first set.
+   * @param pSet2 the second set.
+   *
+   * @return the union of the given sets.
+   */
+  private static <T> Set<T> union(Set<T> pSet1, Set<T> pSet2) {
+    if (pSet1 == pSet2 || pSet2.containsAll(pSet1)) {
+      return pSet2;
+    }
+    if (pSet1.containsAll(pSet2)) {
+      return pSet1;
+    }
+    return new ImmutableSet.Builder<T>().addAll(pSet1).addAll(pSet2).build();
+  }
+
+  /**
+   * Returns the union of the given set and the set with the given element.
+   *
+   * If the given set is immutable, the result is guaranteed to be immutable.
+   *
+   * This set may or may not be backed by the given set.
+   *
+   * @param pSet the set.
+   * @param pElement the element to add.
+   *
+   * @return a set containing only the elements contained in the given set and
+   * the given element.
+   */
+  private static <T> Set<T> add(Set<T> pSet, T pElement) {
+    return union(pSet, Collections.singleton(pElement));
   }
 
 }
