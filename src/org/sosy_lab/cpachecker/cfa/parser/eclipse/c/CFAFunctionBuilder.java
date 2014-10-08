@@ -1511,7 +1511,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         break;
 
       case ALWAYS_TRUE:
-        final BlankEdge trueEdge = new BlankEdge("", fileLocation, rootNode, caseNode, "__case__[" + binExp.toString() + "]");
+        final BlankEdge trueEdge = new BlankEdge("", fileLocation, rootNode, caseNode, "__case__[" + binExp.toASTString() + "]");
         addToCFA(trueEdge);
         nextCaseStartsAtNode = notCaseNode;
         break;
