@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -223,6 +224,17 @@ class CFABuilder extends ASTVisitor {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
         globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+      } else if (astNode instanceof CVariableDeclaration) {
+        // If the initializer of a global struct contains a type-id expression,
+        // a temporary variable is created and we need to support this.
+        // We detect this case if the initializer of the temp variable is an initializer list.
+        CInitializer initializer = ((CVariableDeclaration)astNode).getInitializer();
+        if (initializer instanceof CInitializerList) {
+          globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+        } else {
+          throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+        }
+
       } else {
         throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
       }

@@ -573,7 +573,7 @@ class ASTConverter {
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
-                                               false,
+                                               scope.isGlobalScope(),
                                                CStorageClass.AUTO,
                                                type,
                                                name,
