@@ -1458,16 +1458,17 @@ class ASTConverter {
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
-      if (type instanceof CFunctionType) {
+      CType canonicalType = type.getCanonicalType();
+      if (canonicalType instanceof CFunctionType) {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
 
         List<CParameterDeclaration> params;
 
-        CFunctionType functionType = (CFunctionType)type;
+        CFunctionType functionType = (CFunctionType)canonicalType;
         if (functionType instanceof CFunctionTypeWithNames) {
-          params = ((CFunctionTypeWithNames)type).getParameterDeclarations();
+          params = ((CFunctionTypeWithNames)functionType).getParameterDeclarations();
         } else {
           params = new ArrayList<>(functionType.getParameters().size());
           int i = 0;
