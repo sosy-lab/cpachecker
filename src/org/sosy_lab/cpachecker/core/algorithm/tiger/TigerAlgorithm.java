@@ -839,6 +839,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             Collection<ARGState> parents;
             parents = argState.getParents();
 
+            Region testCaseCriticalStateRegion = null;
             while (!parents.isEmpty()) {
               //assert (parents.size() == 1);
               /*if (parents.size() != 1) {
@@ -858,6 +859,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
               // TODO Alex?
               if (edge.equals(criticalEdge)) {
                 logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
+                testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(argState);
               }
 
               argState = parent;
@@ -868,9 +870,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             List<BigInteger> inputValues = new ArrayList<>();
 
             Region testCaseFinalRegion = getRegionFromWrappedBDDstate(lastState);
-            logger.logf(Level.INFO, " generated test case with (final) PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
+            logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
 
-            TestCase testcase = new TestCase(inputValues, testCaseFinalRegion, trace, bddCpaNamedRegionManager);
+            TestCase testcase = new TestCase(inputValues,
+                (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
+                trace, bddCpaNamedRegionManager);
             testsuite.addTestCase(testcase, pGoal);
           }
           else {
@@ -924,18 +928,22 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                   inputValues.add((BigInteger)e.getValue());
                 }
 
-                Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
-                logger.logf(Level.INFO, " generated test case with (final) PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
-                TestCase testcase = new TestCase(inputValues, testCaseFinalRegion, cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
-                testsuite.addTestCase(testcase, pGoal);
 
                 // TODO Alex?
                 // determine regions for coverage goals reached earlier during execution of the test case
+                Region testCaseCriticalStateRegion = null;
                 for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
                   if (stateEdgePair.getSecond().equals(criticalEdge)) {
                     logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
+                    testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(stateEdgePair.getFirst());
                   }
                 }
+                Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
+                logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
+                TestCase testcase = new TestCase(inputValues,
+                    (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
+                    cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
+                testsuite.addTestCase(testcase, pGoal);
               }
             }
           }
