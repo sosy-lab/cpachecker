@@ -513,86 +513,93 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }
 
     // reprocess timed-out goals
-    if (timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
-      // TODO move to upper loop
-      Map<Goal, Integer> coverageCheckOpt = new HashMap<>();
+    if (testsuite.getTimedOutGoals().isEmpty()) {
+      System.out.println("There were no timed out goals.");
+    } else {
+      if (! timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+        System.out.println("There were timed out goals but retry after timeout strategy is disabled.");
+      } else {
+        // retry timed-out goals
+        // TODO move to upper loop
+        Map<Goal, Integer> coverageCheckOpt = new HashMap<>();
 
-      //int previousNumberOfTestCases = 0;
-      //int previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
+        //int previousNumberOfTestCases = 0;
+        //int previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
 
-      boolean order = true;
+        boolean order = true;
 
-      do {
-        if (timeoutIncrement > 0) {
-          long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
-          cpuTimelimitPerGoal += timeoutIncrement;
-          logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal, cpuTimelimitPerGoal);
-        }
-
-        Collection<Entry<Integer, Pair<Goal,Region>>> set;
-
-        if (useOrder) {
-          if (inverseOrder) {
-            order = !order;
+        do {
+          if (timeoutIncrement > 0) {
+            long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
+            cpuTimelimitPerGoal += timeoutIncrement;
+            logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal, cpuTimelimitPerGoal);
           }
 
-          // keep original order of goals (or inverse of it)
-          if (order) {
-            set = new TreeSet<>(WorklistEntryComparator.ORDER_RESPECTING_COMPARATOR);
+          Collection<Entry<Integer, Pair<Goal,Region>>> set;
+
+          if (useOrder) {
+            if (inverseOrder) {
+              order = !order;
+            }
+
+            // keep original order of goals (or inverse of it)
+            if (order) {
+              set = new TreeSet<>(WorklistEntryComparator.ORDER_RESPECTING_COMPARATOR);
+            }
+            else {
+              set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
+            }
+
+            set.addAll(testsuite.getTimedOutGoals().entrySet());
           }
           else {
-            set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
+            set = new LinkedList<>();
+            set.addAll(testsuite.getTimedOutGoals().entrySet());
           }
 
-          set.addAll(testsuite.getTimedOutGoals().entrySet());
-        }
-        else {
-          set = new LinkedList<>();
-          set.addAll(testsuite.getTimedOutGoals().entrySet());
-        }
+          testsuite.getTimedOutGoals().clear();
 
-        testsuite.getTimedOutGoals().clear();
+          for (Entry<Integer, Pair<Goal,Region>> entry : set) {
+            goalIndex = entry.getKey();
+            Goal lGoal = entry.getValue().getFirst();
+            Region lRegion = entry.getValue().getSecond();
+            logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
-        for (Entry<Integer, Pair<Goal,Region>> entry : set) {
-          goalIndex = entry.getKey();
-          Goal lGoal = entry.getValue().getFirst();
-          Region lRegion = entry.getValue().getSecond();
-          logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
+            if (lGoalPrediction != null && lGoalPrediction[goalIndex - 1] == Prediction.INFEASIBLE) {
+              logger.logf(Level.INFO, "This goal is predicted as infeasible!");
 
-          if (lGoalPrediction != null && lGoalPrediction[goalIndex - 1] == Prediction.INFEASIBLE) {
-            logger.logf(Level.INFO, "This goal is predicted as infeasible!");
+              testsuite.addInfeasibleGoal(lGoal, lRegion);
 
-            testsuite.addInfeasibleGoal(lGoal, lRegion);
+              continue;
+            }
 
-            continue;
-          }
-
-          // TODO optimization: do not check for coverage if no new testcases were generated.
-          if (checkCoverage) {
-            if (coverageCheckOpt.containsKey(lGoal)) {
-              if (coverageCheckOpt.get(lGoal) < testsuite.getNumberOfTestCases()) {
-                if (isCovered(goalIndex, lGoal)) {
-                  continue;
-                }
-                else {
-                  // TODO optimization: only add if goal times out!
-                  coverageCheckOpt.put(lGoal, testsuite.getNumberOfTestCases());
+            // TODO optimization: do not check for coverage if no new testcases were generated.
+            if (checkCoverage) {
+              if (coverageCheckOpt.containsKey(lGoal)) {
+                if (coverageCheckOpt.get(lGoal) < testsuite.getNumberOfTestCases()) {
+                  if (isCovered(goalIndex, lGoal)) {
+                    continue;
+                  }
+                  else {
+                    // TODO optimization: only add if goal times out!
+                    coverageCheckOpt.put(lGoal, testsuite.getNumberOfTestCases());
+                  }
                 }
               }
             }
-          }
 
-          /*if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
-            continue;
-          }*/
-          ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, lRegion);
-          if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
-            logger.logf(Level.WARNING, "Analysis run was unsound!");
-            wasSound = false;
+            /*if (checkCoverage && (previousNumberOfTestCases < testsuite.getNumberOfTestCases()) && isCovered(goalIndex, lGoal)) {
+              continue;
+            }*/
+            ReachabilityAnalysisResult result = runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation, lRegion);
+            if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
+              logger.logf(Level.WARNING, "Analysis run was unsound!");
+              wasSound = false;
+            }
+            previousAutomaton = lGoal.getAutomaton();
           }
-          previousAutomaton = lGoal.getAutomaton();
-        }
-      } while (testsuite.hasTimedoutTestGoals());
+        } while (testsuite.hasTimedoutTestGoals());
+      }
     }
     return wasSound;
   }
