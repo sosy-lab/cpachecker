@@ -139,15 +139,13 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     MutableARGPath errorPath = pErrorPath.mutableCopy();
 
-    // if path is infeasible, try to refine the precision
+    // if path is feasible, return cex ...
     if (isPathFeasable(errorPath)) {
-      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
+      return CounterexampleInfo.feasible(pErrorPath, Model.empty());
+    }
 
-      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
-
-      return CounterexampleInfo.feasible(pErrorPath, model);
-
-    } else if (performValueAnalysisRefinement(reached, errorPath)) {
+    // ... else, try to refine the precision
+    else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 

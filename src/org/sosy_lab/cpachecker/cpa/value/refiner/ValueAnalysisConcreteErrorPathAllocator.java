@@ -48,12 +48,9 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -81,7 +78,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public Model allocateAssignmentsToPath(MutableARGPath pPath, MachineModel pMachineModel)
+  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)
       throws InterruptedException {
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
@@ -99,7 +96,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return model.withAssignmentInformation(pathWithAssignments);
   }
 
-  private ConcreteStatePath createConcreteStatePath(MutableARGPath pPath) {
+  private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
 
@@ -109,10 +106,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
      * wanted to exactly map each memory location to a LeftHandSide.*/
     Map<LeftHandSide, Address> variableAddresses = generateVariableAddresses(pPath);
 
-    for (Pair<ARGState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
 
-      ValueAnalysisState valueState =
-          AbstractStates.extractStateByType(edgeStatePair.getFirst(), ValueAnalysisState.class);
+      ValueAnalysisState valueState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
       //TODO erase after multi edges are implemented
@@ -129,7 +125,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private Map<LeftHandSide, Address> generateVariableAddresses(MutableARGPath pPath) {
+  private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
     Multimap<IDExpression, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
@@ -175,14 +171,13 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return pNextAddressToBeAssigned.addOffset(offset);
   }
 
-  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(MutableARGPath pPath) {
+  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
 
-    for (Pair<ARGState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
 
-      ValueAnalysisState valueState =
-          AbstractStates.extractStateByType(edgeStatePair.getFirst(), ValueAnalysisState.class);
+      ValueAnalysisState valueState = edgeStatePair.getFirst();
 
       for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
         IDExpression idExp = createBaseIdExpresssion(loc);

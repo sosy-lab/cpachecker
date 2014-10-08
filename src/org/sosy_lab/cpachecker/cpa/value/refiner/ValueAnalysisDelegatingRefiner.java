@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -262,11 +264,20 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return predicatingRefiner.performRefinement(reached, pErrorPath);
 
     } else {
-      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
 
-      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
+      try {
+        ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
-      return CounterexampleInfo.feasible(pErrorPath, model);
+        List<Pair<ValueAnalysisState, CFAEdge>> evaluatedPath = evaluator.evaluate(errorPath);
+
+        ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
+        Model model = va.allocateAssignmentsToPath(evaluatedPath, cfa.getMachineModel());
+
+        return CounterexampleInfo.feasible(pErrorPath, model);
+
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Failed to configure feasbility checker", e);
+      }
     }
   }
 
