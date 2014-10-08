@@ -288,11 +288,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy, environment, variableTypes);
   }
 
-  public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundInterval> pSubscript, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
+  public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundInterval> pSubscript, InvariantsFormula<CompoundInterval> pValue) {
     FormulaEvaluationVisitor<CompoundInterval> fev = getFormulaResolver();
     CompoundInterval value = pSubscript.accept(fev, this.environment);
     if (value.isSingleton()) { // Exact subscript value is known
-      return assignInternal(pArray + "[" + value.getValue() + "]", pValue, pEdge);
+      return assignInternal(pArray + "[" + value.getValue() + "]", pValue);
     } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
       InvariantsState result = this;
       for (String varName : this.environment.keySet()) {
@@ -300,7 +300,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         if (varName.startsWith(prefix)) {
           String subscriptValueStr = varName.replace(prefix, "").replaceAll("].*", "");
           if (subscriptValueStr.equals("*") || value.contains(new BigInteger(subscriptValueStr))) {
-            result = result.assignInternal(varName, TOP, pEdge);
+            result = result.assignInternal(varName, TOP);
           }
         }
       }
@@ -308,33 +308,33 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     }
   }
 
-  public InvariantsState assign(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
+  public InvariantsState assign(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     InvariantsState result = this;
     for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       String varName = entry.getKey();
       if (varName.startsWith(pVarName + "->") || varName.startsWith(pVarName + ".")) {
-        result = result.assign(varName, TOP, pEdge);
+        result = result.assign(varName, TOP);
       }
     }
     if (pValue instanceof Variable<?>) {
       String valueVarName = ((Variable<?>) pValue).getName();
       if (valueVarName.startsWith(pVarName + "->") || valueVarName.startsWith(pVarName + ".")) {
-        return assign(pVarName, TOP, pEdge);
+        return assign(pVarName, TOP);
       }
       String pointerDerefPrefix = valueVarName + "->";
       String nonPointerDerefPrefix = valueVarName + ".";
       for (Map.Entry<String, InvariantsFormula<CompoundInterval>> entry : this.environment.entrySet()) {
         if (entry.getKey().startsWith(pointerDerefPrefix)) {
           String suffix = entry.getKey().substring(pointerDerefPrefix.length());
-          result = result.assign(pVarName + "->" + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(pVarName + "->" + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()));
         } else if (entry.getKey().startsWith(nonPointerDerefPrefix)) {
           String suffix = entry.getKey().substring(nonPointerDerefPrefix.length());
-          result = result.assign(pVarName + "." + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()), pEdge);
+          result = result.assign(pVarName + "." + suffix, CompoundIntervalFormulaManager.INSTANCE.asVariable(entry.getKey()));
         }
       }
-      return result.assignInternal(pVarName, pValue, pEdge);
+      return result.assignInternal(pVarName, pValue);
     }
-    return result.assignInternal(pVarName, pValue, pEdge);
+    return result.assignInternal(pVarName, pValue);
   }
 
   /**
@@ -342,10 +342,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pVarName the name of the variable being assigned.
    * @param pValue the new value of the variable.
-   * @param pEdge the edge containing the assignment.
    * @return a new state representing the given assignment applied to the current state.
    */
-  private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge) {
+  private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue) {
     Preconditions.checkNotNull(pValue);
 
     // Check if the assigned variable is selected (newVariableSelection != null)
@@ -419,7 +418,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
 
     // Compute the assignment
-    InvariantsState result = assignInternal(pVarName, pValue, pEdge, newVariableSelection, EVALUATION_VISITOR, replaceVisitor);
+    InvariantsState result = assignInternal(pVarName, pValue, newVariableSelection, EVALUATION_VISITOR, replaceVisitor);
 
     if (equals(result)) {
       return this;
@@ -427,7 +426,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return result;
   }
 
-  private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue, CFAEdge pEdge,
+  private InvariantsState assignInternal(String pVarName, InvariantsFormula<CompoundInterval> pValue,
       VariableSelection<CompoundInterval> newVariableSelection,
       FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
     NonRecursiveEnvironment resultEnvironment = this.environment;
@@ -625,7 +624,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return pAssumption.accept(pEvaluationVisitor, getEnvironment()).isDefinitelyFalse();
   }
 
-  public InvariantsState assume(InvariantsFormula<CompoundInterval> pAssumption, CFAEdge pEdge) {
+  public InvariantsState assume(InvariantsFormula<CompoundInterval> pAssumption) {
     // Check if at least one of the involved variables is selected (newVariableSelection != null)
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssumption(pAssumption);
     if (newVariableSelection == null) {
