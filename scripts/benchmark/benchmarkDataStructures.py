@@ -600,18 +600,13 @@ class Run():
             logging.warning("Cannot read log file: " + e.strerror)
             output = []
 
-        if returnvalue is None:
-            returnsignal = 0
-            returncode = 0
-            logging.warning("Returnvalue could not be evaluated and was set to 0.")
-        else:
+        if returnvalue is not None:
             # calculation: returnvalue == (returncode * 256) + returnsignal
             # highest bit of returnsignal shows only whether a core file was produced, we clear it
             returnsignal = returnvalue & 0x7F
             returncode = returnvalue >> 8
             logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-
-        self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+            self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
         self.category = result.getResultCategory(self.identifier, self.status, self.propertyfile)
         self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 

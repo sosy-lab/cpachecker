@@ -251,8 +251,7 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
 
                     if returnValue is not None:
                         # Do not delete stdOut file if there was some problem
-                        pass
-                        # os.remove(stdoutFile)
+                        os.remove(stdoutFile)
                     else:
                         executedAllRuns = False
 
@@ -274,8 +273,6 @@ def handleCloudResults(benchmark, outputHandler, usedWallTime):
                     logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
                                     outputHandler.formatSourceFileName(run.identifier), e))
                     outputHandler.allCreatedFiles.append(dataFile)
-            else:
-                logging.warning("No datafile exist for file {0}.".format(outputHandler.formatSourceFileName(run.identifier)))
 
             if os.path.exists(run.logFile + ".stdError"):
                 runsProducedErrorOutput = True
