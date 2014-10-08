@@ -54,7 +54,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.*;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -65,7 +70,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
@@ -108,8 +112,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     @Option(description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
-    private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
+    @Option(description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
+    private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
 
     @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
@@ -245,7 +249,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.abstractionStateFactory.getAbstractionState());
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -282,7 +286,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.abstractionStateFactory.getAbstractionState());
     }
 
     // Try to specify all relevant variables
@@ -321,17 +325,17 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.edgeBasedAbstractionStrategyFactory);
+        options.abstractionStateFactory);
 
     initialPrecisionMap.put(pNode, precision);
 
     InvariantsState invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(variableSelection, machineModel, invariant, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(variableSelection, machineModel, invariant, options.abstractionStateFactory.getAbstractionState());
     }
 
     // Create the configured initial state
-    return new InvariantsState(variableSelection, machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+    return new InvariantsState(variableSelection, machineModel, options.abstractionStateFactory.getAbstractionState());
   }
 
   @Override
@@ -743,14 +747,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Override
     public boolean adjustConditions() {
-      if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.ALWAYS) {
-        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
-      } else if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.VISITED_EDGES) {
-        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.NEVER;
+      if (cpa.options.abstractionStateFactory == AbstractionStateFactories.ALWAYS) {
+        cpa.options.abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
+      } else if (cpa.options.abstractionStateFactory == AbstractionStateFactories.ENTERING_EDGES) {
+        cpa.options.abstractionStateFactory = AbstractionStateFactories.NEVER;
       } else {
         return false;
       }
-      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.edgeBasedAbstractionStrategyFactory);
+      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
       return true;
     }
 

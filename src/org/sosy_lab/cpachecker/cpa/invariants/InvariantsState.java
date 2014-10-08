@@ -35,42 +35,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
@@ -80,8 +56,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvalua
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
@@ -92,8 +66,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -103,16 +75,13 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
  */
 public class InvariantsState implements AbstractState, FormulaReportingState,
-    LatticeAbstractState<InvariantsState>{
-
-  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+    LatticeAbstractState<InvariantsState> {
 
   private static final FormulaDepthCountVisitor<CompoundInterval> FORMULA_DEPTH_COUNT_VISITOR = new FormulaDepthCountVisitor<>();
 
@@ -170,7 +139,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
   private final MachineModel machineModel;
 
-  private final EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy;
+  private final AbstractionState abstractionState;
 
   private Iterable<InvariantsFormula<CompoundInterval>> environmentAsAssumptions;
 
@@ -179,13 +148,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
       InvariantsState pInvariant,
-      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy) {
+      AbstractionState pAbstractionState) {
     this.environment = pInvariant.environment;
     this.partialEvaluator = pInvariant.partialEvaluator;
     this.variableSelection = pVariableSelection;
     this.variableTypes = pInvariant.variableTypes;
     this.machineModel = pMachineModel;
-    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+    this.abstractionState = pAbstractionState;
   }
 
   /**
@@ -197,13 +166,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
-      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy) {
+      AbstractionState pAbstractionState) {
     this.environment = NonRecursiveEnvironment.of();
     this.partialEvaluator = new PartialEvaluator(this.environment);
     this.variableSelection = pVariableSelection;
     this.variableTypes = PathCopyingPersistentTreeMap.of();
     this.machineModel = pMachineModel;
-    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+    this.abstractionState = pAbstractionState;
   }
 
   /**
@@ -212,13 +181,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
-   * @param pEdgeBasedAbstractionStrategy the abstraction strategy.
+   * @param pAbstractionState the abstraction state.
    * @param pEnvironment the environment. This instance is reused and not copied.
    * @param pVariableTypes the variable types.
    */
   private InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
-      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy,
+      AbstractionState pAbstractionState,
       NonRecursiveEnvironment pEnvironment,
       PersistentSortedMap<String, CType> pVariableTypes) {
     this.environment = pEnvironment;
@@ -226,55 +195,57 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     this.variableSelection = pVariableSelection;
     this.variableTypes = pVariableTypes;
     this.machineModel = pMachineModel;
-    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+    this.abstractionState = pAbstractionState;
   }
 
   /**
-   * Creates a new invariants state with a selection of
-   * variables, and the machine model used.
+   * Creates a new invariants state with a selection of variables, the machine
+   * model used, the given variable types and the given abstraction state.
    *
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
+   * @param pVariableTypes the variable types.
+   * @param pAbstractionState the abstraction state.
    */
   private InvariantsState(Map<String, InvariantsFormula<CompoundInterval>> pEnvironment,
       VariableSelection<CompoundInterval> pVariableSelection,
       MachineModel pMachineModel,
       PersistentSortedMap<String, CType> pVariableTypes,
-      EdgeBasedAbstractionStrategy pEdgeBasedAbstractionStrategy) {
+      AbstractionState pAbstractionState) {
     this.environment = NonRecursiveEnvironment.copyOf(pEnvironment);
     this.partialEvaluator = new PartialEvaluator(pEnvironment);
     this.variableSelection = pVariableSelection;
     this.variableTypes = pVariableTypes;
     this.machineModel = pMachineModel;
-    this.edgeBasedAbstractionStrategy = pEdgeBasedAbstractionStrategy;
+    this.abstractionState = pAbstractionState;
   }
 
-  private EdgeBasedAbstractionStrategy determineAbstractionStrategy(EdgeBasedAbstractionStrategy pMasterStrategy) {
-    EdgeBasedAbstractionStrategy strategy = pMasterStrategy;
-    if (strategy.getClass() == edgeBasedAbstractionStrategy.getClass()) {
-      strategy = edgeBasedAbstractionStrategy.join(strategy);
+  private AbstractionState determineAbstractionState(AbstractionState pMasterState) {
+    AbstractionState state = pMasterState;
+    if (state.getClass() == abstractionState.getClass()) {
+      state = abstractionState.join(state);
     }
-    return strategy;
+    return state;
   }
 
-  public EdgeBasedAbstractionStrategy determineAbstractionStrategy(InvariantsPrecision pPrecision) {
-    return determineAbstractionStrategy(pPrecision.getEdgeBasedAbstractionStrategyFactory().getAbstractionStrategy(edgeBasedAbstractionStrategy));
+  public AbstractionState determineAbstractionState(InvariantsPrecision pPrecision) {
+    return determineAbstractionState(pPrecision.getAbstractionStateFactory().getSuccessorState(abstractionState));
   }
 
-  public InvariantsState updateAbstractionStrategy(InvariantsPrecision pPrecision, CFAEdge pEdge) {
-    EdgeBasedAbstractionStrategy strategy = determineAbstractionStrategy(pPrecision);
-    strategy = strategy.addVisitedEdge(pEdge);
-    if (strategy.equals(this.edgeBasedAbstractionStrategy)) {
+  public InvariantsState updateAbstractionState(InvariantsPrecision pPrecision, CFAEdge pEdge) {
+    AbstractionState state = determineAbstractionState(pPrecision);
+    state = state.addEnteringEdge(pEdge);
+    if (state.equals(this.abstractionState)) {
       return this;
     }
-    return new InvariantsState(environment, variableSelection, machineModel, variableTypes, strategy);
+    return new InvariantsState(environment, variableSelection, machineModel, variableTypes, state);
   }
 
   public InvariantsState setType(String pVarName, CType pType) {
     if (pType.equals(variableTypes.get(pVarName))) {
       return this;
     }
-    return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy, environment, variableTypes.putAndCopy(pVarName, pType));
+    return new InvariantsState(variableSelection, machineModel, abstractionState, environment, variableTypes.putAndCopy(pVarName, pType));
   }
 
   public InvariantsState setTypes(Map<String, CType> pVarTypes) {
@@ -295,7 +266,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         variableTypes = variableTypes.putAndCopy(variableName, entry.getValue());
       }
     }
-    return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy, environment, variableTypes);
+    return new InvariantsState(variableSelection, machineModel, abstractionState, environment, variableTypes);
   }
 
   public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundInterval> pSubscript, InvariantsFormula<CompoundInterval> pValue) {
@@ -372,7 +343,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
           variableSelection,
           machineModel,
           variableTypes,
-          edgeBasedAbstractionStrategy);
+          abstractionState);
     }
 
     CompoundIntervalFormulaManager ifm = CompoundIntervalFormulaManager.INSTANCE;
@@ -449,7 +420,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
     }
     resultEnvironment = resultEnvironment.putAndCopy(pVarName, pValue.accept(replaceVisitor).accept(partialEvaluator, EVALUATION_VISITOR));
-    return new InvariantsState(newVariableSelection, machineModel, edgeBasedAbstractionStrategy, resultEnvironment, variableTypes);
+    return new InvariantsState(newVariableSelection, machineModel, abstractionState, resultEnvironment, variableTypes);
   }
 
   /**
@@ -463,7 +434,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (environment.isEmpty()) {
       return this;
     }
-    return new InvariantsState(variableSelection, machineModel, edgeBasedAbstractionStrategy);
+    return new InvariantsState(variableSelection, machineModel, abstractionState);
   }
 
   /**
@@ -477,7 +448,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (environment.get(pVariableName) == null) {
       return this;
     }
-    return new InvariantsState(environment.removeAndCopy(pVariableName), variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    return new InvariantsState(environment.removeAndCopy(pVariableName), variableSelection, machineModel, variableTypes, abstractionState);
   }
 
   /**
@@ -620,7 +591,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
       return null;
     }
-    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, machineModel, variableTypes, abstractionState);
   }
 
   /**
@@ -680,7 +651,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       public boolean apply(@Nullable InvariantsFormula<CompoundInterval> pInput) {
         return pInput != null
             && !pInput.equals(TOP)
-            && FluentIterable.from(pInput.accept(COLLECT_VARS_VISITOR)).allMatch(acceptVariable);
+            && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput)).allMatch(acceptVariable);
       }
 
     };
@@ -706,7 +677,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   private boolean equalsState(InvariantsState pOther) {
     return pOther != null
         && environment.equals(pOther.environment)
-        && edgeBasedAbstractionStrategy.equals(pOther.edgeBasedAbstractionStrategy);
+        && abstractionState.equals(pOther.abstractionState);
   }
 
   @Override
@@ -715,7 +686,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (result == 0) {
       result = 17;
       result = 31 * result + environment.hashCode();
-      result = 31 * result + edgeBasedAbstractionStrategy.hashCode();
+      result = 31 * result + abstractionState.hashCode();
       hash = result;
     }
     return result;
@@ -738,8 +709,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     }).join(Joiner.on(", "));
   }
 
-  public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
-    return edgeBasedAbstractionStrategy;
+  public AbstractionState getAbstractionState() {
+    return abstractionState;
   }
 
   /**
@@ -757,7 +728,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (pState2 == null) {
       return false;
     }
-    if (!edgeBasedAbstractionStrategy.isLessThanOrEqualTo(pState2.edgeBasedAbstractionStrategy)) {
+    if (!abstractionState.isLessThanOrEqualTo(pState2.abstractionState)) {
       return false;
     }
     // Perform the implication check (if this state definitely implies the other one, it is less than or equal to it)
@@ -837,7 +808,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         resultEnvironment = resultEnvironment.putAndCopy(varName, CompoundIntervalFormulaManager.INSTANCE.asConstant(newValue));
       }
     }
-    InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, edgeBasedAbstractionStrategy);
+    InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, abstractionState);
 
     for (InvariantsFormula<CompoundInterval> hint : matchingHints) {
       result = result.assume(hint);
@@ -948,469 +919,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         }
       }
 
-      EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy1 = determineAbstractionStrategy(pPrecision);
-      EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy2 = pState2.determineAbstractionStrategy(pPrecision);
-      EdgeBasedAbstractionStrategy edgeBasedAbstractionStrategy = edgeBasedAbstractionStrategy1.join(edgeBasedAbstractionStrategy2);
+      AbstractionState abstractionState1 = determineAbstractionState(pPrecision);
+      AbstractionState abstractionState2 = pState2.determineAbstractionState(pPrecision);
+      AbstractionState abstractionState = abstractionState1.join(abstractionState2);
 
-      result = new InvariantsState(resultVariableSelection, machineModel, edgeBasedAbstractionStrategy, resultEnvironment, variableTypes);
+      result = new InvariantsState(resultVariableSelection, machineModel, abstractionState, resultEnvironment, variableTypes);
 
       if (result.equalsState(state1)) {
         result = state1;
       }
     }
     return result;
-  }
-
-  static interface EdgeBasedAbstractionStrategy {
-
-    /**
-     * Determine on which variables to use abstraction on the state created by
-     * using this strategy when merged with a state created by using the given
-     * strategy.
-     *
-     * @param pOther the other abstraction strategy.
-     * @return the set of widening targets.
-     */
-    public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther);
-
-    public Set<InvariantsFormula<CompoundInterval>> getWideningHints();
-
-    public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge);
-
-    public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy);
-
-    public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy);
-
-  }
-
-  static interface AbstractEdgeBasedAbstractionStrategyFactory {
-
-    public EdgeBasedAbstractionStrategy getAbstractionStrategy(EdgeBasedAbstractionStrategy pPrevious);
-
-    public EdgeBasedAbstractionStrategy getAbstractionStrategy();
-
-  }
-
-  private static enum BasicAbstractionStrategies implements EdgeBasedAbstractionStrategy {
-
-    ALWAYS {
-
-      @Override
-      public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther) {
-        return null;
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
-        return this;
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
-        return this;
-      }
-
-      @Override
-      public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
-        return equals(pStrategy);
-      }
-
-      @Override
-      public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
-        return Collections.emptySet();
-      }
-
-    },
-
-    NEVER {
-
-      @Override
-      public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther) {
-        return Collections.emptySet();
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
-        return this;
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
-        if (pStrategy == this) {
-          return this;
-        }
-        return pStrategy.join(this);
-      }
-
-      @Override
-      public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
-        return true;
-      }
-
-      @Override
-      public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
-        return Collections.emptySet();
-      }
-
-    };
-
-  }
-
-  static enum EdgeBasedAbstractionStrategyFactories implements AbstractEdgeBasedAbstractionStrategyFactory {
-
-    ALWAYS {
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy(EdgeBasedAbstractionStrategy pPrevious) {
-        return BasicAbstractionStrategies.ALWAYS;
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
-        return getAbstractionStrategy(null);
-      }
-
-    },
-
-    VISITED_EDGES {
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
-        return getAbstractionStrategy(null);
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy(final EdgeBasedAbstractionStrategy pPrevious) {
-        class VisitedEdgesBasedAbstractionStrategy implements EdgeBasedAbstractionStrategy {
-
-          private final Set<CFAEdge> visitedEdges;
-
-          private final Set<String> wideningTargets;
-
-          private final Set<InvariantsFormula<CompoundInterval>> wideningHints;
-
-          private VisitedEdgesBasedAbstractionStrategy(
-              Set<String> pPreviousWideningTargets,
-              Set<InvariantsFormula<CompoundInterval>> pPreviousWideningHints) {
-            this(Collections.<CFAEdge>emptySet(), pPreviousWideningTargets, pPreviousWideningHints);
-          }
-
-          private VisitedEdgesBasedAbstractionStrategy(
-              Set<CFAEdge> pVisitedEdges,
-              Set<String> pWideningTargets,
-              Set<InvariantsFormula<CompoundInterval>> pWideningHints) {
-            this.visitedEdges = pVisitedEdges;
-            this.wideningTargets = pWideningTargets;
-            this.wideningHints = pWideningHints;
-          }
-
-          private ImmutableSet<String> determineWideningTargets(CFAEdge pEdge) {
-            return determineWideningTargets(Collections.singleton(pEdge));
-          }
-
-          private ImmutableSet<String> determineWideningTargets(Iterable<CFAEdge> pEdges) {
-            ImmutableSet.Builder<String> wideningTargets = ImmutableSet.builder();
-            Set<CFAEdge> checkedEdges = new HashSet<>();
-            Queue<CFAEdge> waitlist = new ArrayDeque<>();
-            Iterables.addAll(waitlist, pEdges);
-
-            while (!waitlist.isEmpty()) {
-              CFAEdge lastEdge = waitlist.poll();
-              checkedEdges.add(lastEdge);
-              if (lastEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-                Iterables.addAll(waitlist, (MultiEdge) lastEdge);
-                continue;
-              }
-              if (lastEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-                FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) lastEdge;
-
-                Set<CFANode> visited = new HashSet<>();
-                Queue<CFANode> successors = new ArrayDeque<>();
-                successors.offer(functionReturnEdge.getPredecessor());
-
-                while (!successors.isEmpty()) {
-                  CFANode current = successors.poll();
-                  for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
-                    if (enteringEdge.getEdgeType() != CFAEdgeType.FunctionCallEdge) {
-                      CFANode newSucc = enteringEdge.getPredecessor();
-                      if (visited.add(newSucc)) {
-                        if (enteringEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-                          successors.add(((FunctionReturnEdge) enteringEdge).getSummaryEdge().getPredecessor());
-                        } else {
-                          successors.offer(newSucc);
-                        }
-                        if (!checkedEdges.contains(enteringEdge)) {
-                          waitlist.add(enteringEdge);
-                        }
-                      }
-                    }
-                  }
-                }
-
-                FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-                if (summaryEdge != null) {
-                  AFunctionCall functionCall = summaryEdge.getExpression();
-                  if (functionCall instanceof AFunctionCallAssignmentStatement) {
-                    AFunctionCallAssignmentStatement assignmentStatement = (AFunctionCallAssignmentStatement) functionCall;
-                    wideningTargets.addAll(InvariantsTransferRelation.getInvolvedVariables(assignmentStatement.getLeftHandSide(), summaryEdge).keySet());
-                    continue;
-                  }
-                }
-              }
-              if (lastEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-                AStatementEdge edge = (AStatementEdge) lastEdge;
-                if (edge.getStatement() instanceof AExpressionStatement) {
-                  AExpressionStatement expressionStatement = (AExpressionStatement) edge.getStatement();
-                  IAExpression expression = expressionStatement.getExpression();
-                  if (expression instanceof ALiteralExpression) {
-                    continue;
-                  }
-                  if (expression instanceof IALeftHandSide) {
-                    continue;
-                  }
-                } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
-                  AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) edge.getStatement();
-                  IAExpression expression = expressionAssignmentStatement.getRightHandSide();
-                  if (expression instanceof ALiteralExpression) {
-                    continue;
-                  }
-                  if (expression instanceof IALeftHandSide) {
-                    continue;
-                  }
-                }
-              }
-              if (lastEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-                continue;
-              }
-              if (lastEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                ADeclarationEdge edge = (ADeclarationEdge) lastEdge;
-                IADeclaration declaration = edge.getDeclaration();
-                if (declaration instanceof AVariableDeclaration) {
-                  AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-                  IAInitializer initializer = variableDeclaration.getInitializer();
-                  if (initializer == null) {
-                    continue;
-                  }
-                  if (initializer instanceof AInitializerExpression) {
-                    IAExpression expression = ((AInitializerExpression) initializer).getExpression();
-                    if (expression instanceof ALiteralExpression) {
-                      continue;
-                    }
-                    if (expression instanceof IALeftHandSide) {
-                      continue;
-                    }
-                  }
-                }
-              }
-              wideningTargets.addAll(InvariantsTransferRelation.INSTANCE.getInvolvedVariables(lastEdge).keySet());
-            }
-            return wideningTargets.build();
-          }
-
-          @Override
-          public Set<String> determineWideningTargets(EdgeBasedAbstractionStrategy pOther) {
-            if (pOther instanceof VisitedEdgesBasedAbstractionStrategy) {
-              VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pOther;
-              if (!visitedEdges.containsAll(other.visitedEdges)) {
-                return Collections.emptySet();
-              }
-              return union(wideningTargets, other.wideningTargets);
-            }
-            return wideningTargets;
-          }
-
-          @Override
-          public EdgeBasedAbstractionStrategy addVisitedEdge(CFAEdge pEdge) {
-            Set<String> newWideningTargets = determineWideningTargets(pEdge);
-            Set<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
-            if (visitedEdges.contains(pEdge)
-                && wideningTargets.equals(newWideningTargets)
-                && wideningHints.containsAll(newWideningHints)) {
-              return this;
-            }
-            newWideningHints = union(wideningHints, newWideningHints);
-            return new VisitedEdgesBasedAbstractionStrategy(
-                add(visitedEdges, pEdge),
-                newWideningTargets, newWideningHints);
-          }
-
-          private Set<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
-            if (pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-              AssumeEdge assumeEdge = (AssumeEdge) pEdge;
-              IAExpression expression = assumeEdge.getExpression();
-              final InvariantsFormula<CompoundInterval> wideningHint;
-              try {
-                if (expression instanceof CExpression) {
-                  wideningHint = ((CExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
-                } else if (expression instanceof JExpression) {
-                  wideningHint = ((JExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
-                } else {
-                  return Collections.emptySet();
-                }
-              } catch (UnrecognizedCodeException e) {
-                // Does not really matter, just no hint
-                return Collections.emptySet();
-              }
-              return normalize(Collections.singleton(wideningHint));
-            }
-            return Collections.emptySet();
-          }
-
-          private ImmutableSet<InvariantsFormula<CompoundInterval>> normalize(
-              Set<InvariantsFormula<CompoundInterval>> pToNormalize) {
-            ImmutableSet.Builder<InvariantsFormula<CompoundInterval>> builder = ImmutableSet.builder();
-            Queue<InvariantsFormula<CompoundInterval>> toNormalize = new ArrayDeque<>(pToNormalize);
-            PartialEvaluator partialEvaluator = new PartialEvaluator();
-            while (!toNormalize.isEmpty()) {
-              InvariantsFormula<CompoundInterval> hint = toNormalize.poll();
-              if (!hint.accept(COLLECT_VARS_VISITOR).isEmpty()) {
-                if (hint instanceof LogicalNot) {
-                  toNormalize.offer(((LogicalNot<CompoundInterval>) hint).getNegated());
-                } else if (hint instanceof LogicalAnd) {
-                  toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand1());
-                  toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand2());
-                } else {
-                  builder.add(hint.accept(partialEvaluator, EVALUATION_VISITOR));
-                }
-              }
-            }
-            return builder.build();
-          }
-
-          @Override
-          public EdgeBasedAbstractionStrategy join(EdgeBasedAbstractionStrategy pStrategy) {
-            if (pStrategy == BasicAbstractionStrategies.NEVER || pStrategy == this) {
-              return this;
-            }
-            if (pStrategy instanceof VisitedEdgesBasedAbstractionStrategy) {
-              VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pStrategy;
-              if ((this.visitedEdges == other.visitedEdges || other.visitedEdges.containsAll(this.visitedEdges))
-                  && (this.wideningTargets == other.wideningTargets || other.wideningTargets.containsAll(this.wideningTargets))
-                  && (this.wideningHints == other.wideningHints || other.wideningHints.containsAll(this.wideningHints))) {
-                return other;
-              }
-              if ((this.visitedEdges.containsAll(other.visitedEdges))
-                  && this.wideningTargets.containsAll(other.wideningTargets)) {
-                return this;
-              }
-              final Set<CFAEdge> edges =
-                  union(visitedEdges, other.visitedEdges);
-              final Set<String> lastEdges =
-                  union(wideningTargets, other.wideningTargets);
-              final Set<InvariantsFormula<CompoundInterval>> hints =
-                  union(wideningHints, other.wideningHints);
-              return new VisitedEdgesBasedAbstractionStrategy(edges, lastEdges, hints);
-            }
-            return BasicAbstractionStrategies.ALWAYS;
-          }
-
-          @Override
-          public boolean equals(Object pO) {
-            if (this == pO) {
-              return true;
-            }
-            if (pO instanceof VisitedEdgesBasedAbstractionStrategy) {
-              VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pO;
-              return wideningTargets.equals(other.wideningTargets)
-                  && visitedEdges.equals(other.visitedEdges)
-                  && wideningHints.equals(other.wideningHints);
-            }
-            return false;
-          }
-
-          @Override
-          public int hashCode() {
-            return Objects.hash(visitedEdges, wideningTargets, wideningHints);
-          }
-
-          @Override
-          public String toString() {
-            return String.format("Widening targets: %s; Visited edges: %s", wideningTargets, visitedEdges.toString());
-          }
-
-          @Override
-          public boolean isLessThanOrEqualTo(EdgeBasedAbstractionStrategy pStrategy) {
-            if (pStrategy instanceof VisitedEdgesBasedAbstractionStrategy) {
-              VisitedEdgesBasedAbstractionStrategy other = (VisitedEdgesBasedAbstractionStrategy) pStrategy;
-              return other.visitedEdges.containsAll(this.visitedEdges);
-            }
-            return !pStrategy.isLessThanOrEqualTo(this);
-          }
-
-          @Override
-          public Set<InvariantsFormula<CompoundInterval>> getWideningHints() {
-            return this.wideningHints;
-          }
-
-        }
-        final Set<String> previousWideningTargets;
-        final Set<InvariantsFormula<CompoundInterval>> previousWideningHints;
-        if (pPrevious instanceof VisitedEdgesBasedAbstractionStrategy) {
-          previousWideningTargets = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningTargets;
-          previousWideningHints = ((VisitedEdgesBasedAbstractionStrategy) pPrevious).wideningHints;
-        } else {
-          previousWideningTargets = Collections.emptySet();
-          previousWideningHints = Collections.emptySet();
-        }
-        return new VisitedEdgesBasedAbstractionStrategy(previousWideningTargets, previousWideningHints);
-      }
-
-    },
-
-    NEVER {
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy(EdgeBasedAbstractionStrategy pPrevious) {
-        return BasicAbstractionStrategies.NEVER;
-      }
-
-      @Override
-      public EdgeBasedAbstractionStrategy getAbstractionStrategy() {
-        return getAbstractionStrategy(null);
-      }
-
-    };
-
-  }
-
-  /**
-   * Returns the union of the given sets.
-   *
-   * If both parameters are immutable sets, the returned set is guaranteed to
-   * be immutable.
-   *
-   * The result may or may not be backed by either of the sets.
-   *
-   * @param pSet1 the first set.
-   * @param pSet2 the second set.
-   *
-   * @return the union of the given sets.
-   */
-  private static <T> Set<T> union(Set<T> pSet1, Set<T> pSet2) {
-    if (pSet1 == pSet2 || pSet2.containsAll(pSet1)) {
-      return pSet2;
-    }
-    if (pSet1.containsAll(pSet2)) {
-      return pSet1;
-    }
-    return new ImmutableSet.Builder<T>().addAll(pSet1).addAll(pSet2).build();
-  }
-
-  /**
-   * Returns the union of the given set and the set with the given element.
-   *
-   * If the given set is immutable, the result is guaranteed to be immutable.
-   *
-   * This set may or may not be backed by the given set.
-   *
-   * @param pSet the set.
-   * @param pElement the element to add.
-   *
-   * @return a set containing only the elements contained in the given set and
-   * the given element.
-   */
-  private static <T> Set<T> add(Set<T> pSet, T pElement) {
-    return union(pSet, Collections.singleton(pElement));
   }
 
 }

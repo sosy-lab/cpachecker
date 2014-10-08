@@ -71,6 +71,10 @@ public enum CompoundIntervalFormulaManager {
 
   private static final SplitDisjunctionsVisitor<CompoundInterval> SPLIT_DISJUNCTIONS_VISITOR = new SplitDisjunctionsVisitor<>();
 
+  public static Set<String> collectVariableNames(InvariantsFormula<CompoundInterval> pFormula) {
+    return pFormula.accept(COLLECT_VARS_VISITOR);
+  }
+
   public static CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula) {
     return pFormula.accept(CACHING_EVALUATION_VISITOR);
   }

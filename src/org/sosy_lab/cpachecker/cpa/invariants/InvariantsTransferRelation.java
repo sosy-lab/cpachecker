@@ -150,7 +150,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptySet();
     }
 
-    state = state.updateAbstractionStrategy(precision, pEdge);
+    state = state.updateAbstractionState(precision, pEdge);
 
     return Collections.singleton(state);
   }
