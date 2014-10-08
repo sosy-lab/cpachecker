@@ -137,7 +137,6 @@ def getCloudInput(benchmark):
     # see external vcloud/README.txt for details.
     cloudInput = [
                 toTabList(absToolpaths + [absScriptsPath]),
-                Util.forceLinuxPath(absScriptsPath), # <--- TODO remove this line before restarting the cloud!
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements)
             ]
