@@ -120,6 +120,11 @@ typedef jlong jJ_ast_vector;
 #define CLEAN_AST_VECTOR_ARG(num) CLEAN_STRUCT_ARG(num)
 #define AST_VECTOR_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
+typedef jobject jJ_ast_vector_pointer;
+#define AST_VECTOR_POINTER_ARG(num) STRUCT_POINTER_ARG(Z3_ast_vector, num)
+#define SET_AST_VECTOR_POINTER_ARG(num) SET_LONG_POINTER_ARG(num)
+#define CLEAN_AST_VECTOR_POINTER_ARG(num) CLEAN_LONG_POINTER_ARG(num)
+
 typedef jlong jJ_func_entry;
 #define FUNC_ENTRY_ARG(num) STRUCT_ARG(Z3_func_entry, num)
 #define CLEAN_FUNC_ENTRY_ARG(num) CLEAN_STRUCT_ARG(num)

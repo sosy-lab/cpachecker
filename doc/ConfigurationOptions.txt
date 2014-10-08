@@ -1206,8 +1206,7 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
-# FOCI library from http://www.kenmcmil.com/foci2/).
+# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.
 cpa.predicate.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
@@ -1237,9 +1236,6 @@ cpa.predicate.solver.z3.logger.target = Z3
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
-
-# Load Z3 with interpolation support. Requires [libfoci].
-cpa.predicate.solver.z3.supportInterpolation = false
 
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
