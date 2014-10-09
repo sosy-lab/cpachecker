@@ -12,10 +12,10 @@ class Tool(benchmark.tools.template.BaseTool):
         return '/bin/false'
 
     def getName(self):
-        return 'AlwaysFalseLabel'
+        return 'AlwaysFalseReach'
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile, rlimits):
-        return [executable]
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+        return [executable] + sourcefiles
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         return result.STATUS_FALSE_REACH
