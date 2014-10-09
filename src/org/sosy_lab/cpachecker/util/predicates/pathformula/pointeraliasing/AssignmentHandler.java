@@ -324,13 +324,15 @@ class AssignmentHandler {
       final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
       assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
       // There are two cases of assignment to a structure/union
-      Preconditions.checkArgument(
+      if (!(
           // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
           rvalue.isValue() && isSimpleType(rvalueType) ||
           // Structure assignment
-          rvalueType.equals(lvalueType),
-          "Impossible structure assignment due to incompatible types: assignment of %s to %s",
-          rvalueType, lvalueType);
+          rvalueType.equals(lvalueType)
+          )) {
+        throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
+            + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
+      }
       result = bfmgr.makeBoolean(true);
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
