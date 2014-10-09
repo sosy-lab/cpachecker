@@ -498,7 +498,7 @@ public class CProgramScope implements Scope {
         if (duplicateFreeDeclarations.size() == 1) {
           qualifiedDeclarations.put(qualifiedName, declarations.iterator().next());
         } else {
-          pLogger.log(Level.WARNING, "Declarations should be unique. Block scopes are not supported", qualifiedName);
+          pLogger.log(Level.FINEST, "Ignoring declaration for", qualifiedName, " for creation of program-wide scope because it is not unique.");
         }
       }
     }
