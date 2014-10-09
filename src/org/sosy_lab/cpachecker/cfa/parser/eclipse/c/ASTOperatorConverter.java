@@ -43,7 +43,7 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an unaryExpression
    * (PLUS, MINUS, NOT, STAR,...) */
-  static UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
+  UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_amper:
       return UnaryOperator.AMPER;
@@ -64,7 +64,7 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an binaryExpression
    * (PLUS, MINUS, MULTIPLY,...) with an flag, if the operator causes an assignment. */
-  static Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
+  Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
     boolean isAssign = false;
     final BinaryOperator operator;
 
@@ -170,7 +170,7 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an idExpression
    * (alignOf, sizeOf,...) */
-  static TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
+  TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
     switch (e.getOperator()) {
     case IASTTypeIdExpression.op_alignof:
       return TypeIdOperator.ALIGNOF;

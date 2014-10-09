@@ -191,6 +191,7 @@ class ASTConverter {
 
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
+  private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
 
   /**
@@ -230,6 +231,7 @@ class ASTConverter {
     this.logger = pLogger;
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
     this.literalConverter = new ASTLiteralConverter(pMachineModel);
+    this.operatorConverter = new ASTOperatorConverter();
     this.niceFileNameFunction = pNiceFileNameFunction;
     this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
@@ -597,7 +599,7 @@ class ASTConverter {
       return tmp;
     }
 
-    Pair<BinaryOperator, Boolean> opPair = ASTOperatorConverter.convertBinaryOperator(e);
+    Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);
     BinaryOperator op = opPair.getFirst();
     boolean isAssign = opPair.getSecond();
 
@@ -1184,7 +1186,7 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
-      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+      return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }
 
@@ -1270,7 +1272,7 @@ class ASTConverter {
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
     return new CTypeIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
-        ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
+        operatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   private CExpression convert(IASTTypeIdInitializerExpression e) {
