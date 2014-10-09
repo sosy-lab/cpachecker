@@ -260,7 +260,12 @@ def _handleOptions(run, params):
 
                 elif option == "-spec":
                      spec  = next(i)[-1].split('.')[0]
-                     params.update({'specification':spec})
+                     if spec[-8:] == ".graphml":
+                          with open(spec, 'r') as  errorWitnessFile:
+                              errorWitnessText = errorWitnessFile.read()      
+                              params.update({'errorWitnessText':errorWitnessText})
+                     else:
+                         params.update({'specification':spec})
                 elif option == "-config":
                      configPath = next(i)
                      tokens = configPath.split('/')
