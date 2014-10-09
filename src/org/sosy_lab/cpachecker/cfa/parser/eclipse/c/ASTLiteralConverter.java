@@ -157,7 +157,7 @@ class ASTLiteralConverter {
     }
   }
 
-  static char parseCharacterLiteral(String s, final IASTNode e) {
+  char parseCharacterLiteral(String s, final IASTNode e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
     check(s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
         "character literal without quotation marks", e);
@@ -239,10 +239,6 @@ class ASTLiteralConverter {
   }
 
   BigInteger parseIntegerLiteral(String s, final IASTNode e) {
-    return parseIntegerLiteral(s, e, machine);
-  }
-
-  static BigInteger parseIntegerLiteral(String s, final IASTNode e, MachineModel machine) {
     // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
     int last = s.length() - 1;
     int bytes = machine.getSizeofInt();

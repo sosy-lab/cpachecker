@@ -30,79 +30,82 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class ASTConverterTest {
 
+  private final ASTLiteralConverter converter32 = new ASTLiteralConverter(MachineModel.LINUX32);
+  private final ASTLiteralConverter converter64 = new ASTLiteralConverter(MachineModel.LINUX64);
+
   @Test
   public final void testCharacterExpression() {
-    assertEquals('\000',   ASTLiteralConverter.parseCharacterLiteral("'\\000'", null));
-    assertEquals('\077',   ASTLiteralConverter.parseCharacterLiteral("'\\077'", null));
-    assertEquals('\u00FF', ASTLiteralConverter.parseCharacterLiteral("'\\xFF'", null));
-    assertEquals('\u00BC', ASTLiteralConverter.parseCharacterLiteral("'\\xBC'", null));
-    assertEquals('\u0080', ASTLiteralConverter.parseCharacterLiteral("'\\x80'", null));
-    assertEquals('\u007F', ASTLiteralConverter.parseCharacterLiteral("'\\X7F'", null));
-    assertEquals('\\', ASTLiteralConverter.parseCharacterLiteral("'\\\\'", null));
-    assertEquals('\'', ASTLiteralConverter.parseCharacterLiteral("'\\''", null));
-    assertEquals('"',  ASTLiteralConverter.parseCharacterLiteral("'\\\"'", null));
-    assertEquals('\0', ASTLiteralConverter.parseCharacterLiteral("'\\0'", null));
-    assertEquals(7,    ASTLiteralConverter.parseCharacterLiteral("'\\a'", null));
-    assertEquals('\b', ASTLiteralConverter.parseCharacterLiteral("'\\b'", null));
-    assertEquals('\f', ASTLiteralConverter.parseCharacterLiteral("'\\f'", null));
-    assertEquals('\n', ASTLiteralConverter.parseCharacterLiteral("'\\n'", null));
-    assertEquals('\r', ASTLiteralConverter.parseCharacterLiteral("'\\r'", null));
-    assertEquals('\t', ASTLiteralConverter.parseCharacterLiteral("'\\t'", null));
-    assertEquals(11,   ASTLiteralConverter.parseCharacterLiteral("'\\v'", null));
-    assertEquals('a', ASTLiteralConverter.parseCharacterLiteral("'a'", null));
-    assertEquals(' ', ASTLiteralConverter.parseCharacterLiteral("' '", null));
-    assertEquals('9', ASTLiteralConverter.parseCharacterLiteral("'9'", null));
-    assertEquals('´', ASTLiteralConverter.parseCharacterLiteral("'´'", null));
-    assertEquals('´', ASTLiteralConverter.parseCharacterLiteral("'´'", null));
+    assertEquals('\000',   converter32.parseCharacterLiteral("'\\000'", null));
+    assertEquals('\077',   converter32.parseCharacterLiteral("'\\077'", null));
+    assertEquals('\u00FF', converter32.parseCharacterLiteral("'\\xFF'", null));
+    assertEquals('\u00BC', converter32.parseCharacterLiteral("'\\xBC'", null));
+    assertEquals('\u0080', converter32.parseCharacterLiteral("'\\x80'", null));
+    assertEquals('\u007F', converter32.parseCharacterLiteral("'\\X7F'", null));
+    assertEquals('\\', converter32.parseCharacterLiteral("'\\\\'", null));
+    assertEquals('\'', converter32.parseCharacterLiteral("'\\''", null));
+    assertEquals('"',  converter32.parseCharacterLiteral("'\\\"'", null));
+    assertEquals('\0', converter32.parseCharacterLiteral("'\\0'", null));
+    assertEquals(7,    converter32.parseCharacterLiteral("'\\a'", null));
+    assertEquals('\b', converter32.parseCharacterLiteral("'\\b'", null));
+    assertEquals('\f', converter32.parseCharacterLiteral("'\\f'", null));
+    assertEquals('\n', converter32.parseCharacterLiteral("'\\n'", null));
+    assertEquals('\r', converter32.parseCharacterLiteral("'\\r'", null));
+    assertEquals('\t', converter32.parseCharacterLiteral("'\\t'", null));
+    assertEquals(11,   converter32.parseCharacterLiteral("'\\v'", null));
+    assertEquals('a', converter32.parseCharacterLiteral("'a'", null));
+    assertEquals(' ', converter32.parseCharacterLiteral("' '", null));
+    assertEquals('9', converter32.parseCharacterLiteral("'9'", null));
+    assertEquals('´', converter32.parseCharacterLiteral("'´'", null));
+    assertEquals('´', converter32.parseCharacterLiteral("'´'", null));
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression1() {
-    ASTLiteralConverter.parseCharacterLiteral("", null);
+    converter32.parseCharacterLiteral("", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression2() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\'", null);
+    converter32.parseCharacterLiteral("'\\'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression3() {
-    ASTLiteralConverter.parseCharacterLiteral("'aa'", null);
+    converter32.parseCharacterLiteral("'aa'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression4() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\777'", null);
+    converter32.parseCharacterLiteral("'\\777'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression5() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\xFFF'", null);
+    converter32.parseCharacterLiteral("'\\xFFF'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression6() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\z'", null);
+    converter32.parseCharacterLiteral("'\\z'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression7() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\0777'", null);
+    converter32.parseCharacterLiteral("'\\0777'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression8() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\088'", null);
+    converter32.parseCharacterLiteral("'\\088'", null);
   }
 
   @Test(expected=CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression9() {
-    ASTLiteralConverter.parseCharacterLiteral("'\\xGG'", null);
+    converter32.parseCharacterLiteral("'\\xGG'", null);
   }
 
   private String parseIntegerExpression32(String s) {
-    return ASTLiteralConverter.parseIntegerLiteral(s, null, MachineModel.LINUX32).toString();
+    return converter32.parseIntegerLiteral(s, null).toString();
   }
 
   @Test
@@ -156,7 +159,7 @@ public class ASTConverterTest {
   }
 
   private String parseIntegerExpression64(String s) {
-    return ASTLiteralConverter.parseIntegerLiteral(s, null, MachineModel.LINUX64).toString();
+    return converter64.parseIntegerLiteral(s, null).toString();
   }
 
   @Test
