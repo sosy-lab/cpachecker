@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.policy;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Integration testing for policy iteration.

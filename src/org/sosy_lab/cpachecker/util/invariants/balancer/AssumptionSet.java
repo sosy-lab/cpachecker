@@ -134,20 +134,6 @@ public class AssumptionSet implements Iterable<Assumption> {
   }
 
   /*
-   * Diagnostic purposes.
-   */
-  public boolean add(Assumption a, boolean writeArgs) {
-    @SuppressWarnings("unused")
-    Assumption b, c;
-    for (int i = 0; i < aset.size(); i++) {
-      b = aset.get(i);
-      c = a.strengthen(b);
-    }
-    boolean bl = add(a);
-    return bl;
-  }
-
-  /*
    * Return value is the conjunction of the return values of the individual add commands.
    * Thus, if /any/ add resulted in 'false' (meaning the set became contradictory), then
    * we will return false.

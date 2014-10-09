@@ -281,7 +281,7 @@ public class CEXExporter {
           exactValuePath = model.getExactVariableValuePath(edgePath);
         }
 
-        if(exactValuePath != null) {
+        if (exactValuePath != null) {
           printPreciseValues(out, exactValuePath);
         } else {
           printAllValues(out, edgePath);

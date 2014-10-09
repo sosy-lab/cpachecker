@@ -66,7 +66,7 @@ public class PathSelectorFactory {
     return validator;
   }
 
-  public PathSelector createPathSelector(PathValidator pPathValidator, TestGenStatistics stats){
+  public PathSelector createPathSelector(PathValidator pPathValidator, TestGenStatistics stats) {
     return new BasicPathSelector(pPathValidator,startupConfig, stats);
   }
 

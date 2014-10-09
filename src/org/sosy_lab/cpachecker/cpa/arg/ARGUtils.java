@@ -570,22 +570,21 @@ public class ARGUtils {
    * @param pRootState The root of the ARG
    * @param pPathStates The states along the path
    * @param pCounterExample Given to try to write exact variable assignment values
-   * into the automaton, may be null
+   * into the automaton
    * @throws IOException
    */
   public static void produceTestGenPathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
+    checkNotNull(pCounterExample);
 
     Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
 
-    if (pCounterExample != null) {
-      Model model = pCounterExample.getTargetPathModel();
-      if (model != null) {
-        CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
-        }
+    Model model = pCounterExample.getTargetPathModel();
+    if (model != null) {
+      CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
+      if (cfaPath != null) {
+        ARGPath targetPath = pCounterExample.getTargetPath();
+        valueMap = model.getExactVariableValues(targetPath);
       }
     }
 
@@ -650,8 +649,7 @@ public class ARGUtils {
             sb.append("ERROR");
           } else {
             String assumption ="";
-            if(generateAssumes)
-            {
+            if (generateAssumes) {
               assumption = getAssumption(valueMap, s);
             }
             sb.append(assumption + "GOTO ARG" + child.getStateId());
@@ -659,14 +657,13 @@ public class ARGUtils {
           sb.append(";\n");
         }
       }
-      if(!s.equals(lastState)) {
+      if (!s.equals(lastState)) {
         sb.append("    TRUE -> STOP;\n\n");
       }
     }
 
     CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
-    if(lastEdge != null)
-    {
+    if (lastEdge != null) {
       sb.append("    MATCH \"");
       escape(lastEdge.getRawStatement(), sb);
       sb.append("\" -> ");
@@ -678,8 +675,7 @@ public class ARGUtils {
       sb.append("    MATCH EXIT -> BREAK;\n");
       sb.append("    TRUE -> GOTO EndLoop;\n\n");
 
-    }
-    else{
+    } else {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");
@@ -796,7 +792,7 @@ public class ARGUtils {
 
       String code = cfaEdgeWithAssignments.getAsCode();
 
-      if(code != null) {
+      if (code != null) {
         assumption = "ASSUME {" + code + "}";
       }
     }

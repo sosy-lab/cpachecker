@@ -550,8 +550,8 @@ public class PivotRowHandler {
 
   public String printIntArray(int[] a) {
     String s = "";
-    for (int k = 0; k < a.length; k++) {
-      s += " "+Integer.toString(a[k]);
+    for (int element : a) {
+      s += " "+Integer.toString(element);
     }
     return s;
   }

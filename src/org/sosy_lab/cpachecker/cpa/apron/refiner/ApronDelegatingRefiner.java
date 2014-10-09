@@ -52,11 +52,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -207,12 +207,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     refinementRoot                              = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
     // no increment - value-analysis refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 
     // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-    if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
+    if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
@@ -231,8 +231,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       }
 
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

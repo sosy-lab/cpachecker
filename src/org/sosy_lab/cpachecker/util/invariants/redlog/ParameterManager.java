@@ -82,8 +82,8 @@ public class ParameterManager {
     if (PAmap != null) {
       Rational R;
       String a;
-      for (int i = 0; i < params.length; i++) {
-        a = params[i];
+      for (String param : params) {
+        a = param;
         R = PAmap.get(a).getValue();
         map.put(a, R);
       }
@@ -136,8 +136,8 @@ public class ParameterManager {
 
     // Initialize the set of parameters.
     HashSet<String> waitlist = new HashSet<>();
-    for (int i = 0; i < params.length; i++) {
-      waitlist.add(params[i]);
+    for (String param : params) {
+      waitlist.add(param);
     }
 
     // Go through the equations in EAP.

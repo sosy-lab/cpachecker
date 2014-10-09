@@ -378,7 +378,7 @@ public class SMGState implements AbstractQueryableState {
       }
     }
 
-    if(heap.isCoveredByNullifiedBlocks(edge)) {
+    if (heap.isCoveredByNullifiedBlocks(edge)) {
       return 0;
     }
 
@@ -437,7 +437,7 @@ public class SMGState implements AbstractQueryableState {
   private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
-    if(!containsValue(pValue)) {
+    if (!containsValue(pValue)) {
       heap.addValue(pValue);
     }
 
@@ -598,7 +598,7 @@ public class SMGState implements AbstractQueryableState {
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
     SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
-        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)) {
       return true;
     }
     return false;
@@ -744,7 +744,7 @@ public class SMGState implements AbstractQueryableState {
       return;
     }
 
-    if(!(offset == 0)) {
+    if (!(offset == 0)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
       setInvalidFree();
@@ -878,7 +878,7 @@ public class SMGState implements AbstractQueryableState {
     assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
-    if(copyRange == 0) {
+    if (copyRange == 0) {
       return;
     }
 

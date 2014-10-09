@@ -210,8 +210,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
       }
-    }
-    else if (expression instanceof CFunctionCallStatement) {
+    } else if (expression instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
@@ -668,15 +667,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
-    }
 
-    else if (expression instanceof CIdExpression) {
+    } else if (expression instanceof CIdExpression) {
       String varName = constructVariableName((CIdExpression)expression, functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
-    }
 
-    else if (expression instanceof CCastExpression) {
+    } else if (expression instanceof CCastExpression) {
       return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
     } else if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExpression = (CUnaryExpression)expression;
@@ -753,12 +750,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     if (pVariableName instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) pVariableName).getDeclaration();
         if (decl instanceof CDeclaration) {
-          if  (((CDeclaration) decl).isGlobal()){
+          if  (((CDeclaration) decl).isGlobal()) {
             return pVariableName.toASTString();
           }
       }
     }
-    if(pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())){
+    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())) {
       return pVariableName.toASTString();
     }
     return pCalledFunctionName + "::" + pVariableName.toASTString();

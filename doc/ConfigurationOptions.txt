@@ -113,6 +113,10 @@ analysis.functionPointerEdgesForUnknownPointer = true
 # potential targets for call edges created for function pointer calls
 analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES}
 
+# What CFA nodes should be the starting point of the analysis?
+analysis.initialStatesFor = ENTRY
+  enum:     [ENTRY, TARGET]
+
 # run interprocedural analysis
 analysis.interprocedural = true
 
@@ -237,6 +241,10 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
+
+# Generate additional invariants by induction and add them to the induction
+# hypothesis.
+bmc.addInvariantsByInduction = true
 
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
@@ -1098,12 +1106,6 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# refinement will try to build 'well-scoped' predicates, by cutting spurious
-# traces as explained in Section 5.2 of the paper 'Abstractions From Proofs'
-# (this does not work with function inlining).
-# THIS FEATURE IS CURRENTLY NOT AVAILABLE. 
-cpa.predicate.refinement.addWellScopedPredicates = false
-
 # use only the atoms from the interpolants as predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
@@ -1168,6 +1170,17 @@ cpa.predicate.refinement.sliceBlockFormulas = false
 # split each arithmetic equality into two inequalities when extracting
 # predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
+
+# strategy to get interpolant from the counter example.The analysis must
+# support the strategy, otherwise the result will be useless!SEQUENCE:
+# default case, simple sequential interpolation,WELLSCOPED: use
+# callstack-info to generate interpolants (see 'Abstractions from
+# Proof'),NESTED: use callstack and previous interpolants for next
+# interpolants (see 'Nested Interpolants'),NESTED2: use callstack and
+# previous interpolants for next interpolants (see 'Nested Interpolants',with
+# modification: pathformulas for call and return are True).
+cpa.predicate.refinement.strategy = SEQUENCE
+  enum:     [SEQUENCE, WELLSCOPED, NESTED, NESTED2, NESTED3]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)

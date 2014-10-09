@@ -234,7 +234,7 @@ class CFATransformations {
                              predecessor, successor, ((CAssumeEdge)edge).getExpression(),
                              ((CAssumeEdge)edge).getTruthAssumption());
     case CallToReturnEdge:
-      assert(false);
+      assert (false);
       break;
     case ReturnStatementEdge:
       return new CReturnStatementEdge(edge.getRawStatement(),

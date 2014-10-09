@@ -304,7 +304,7 @@ public class CLangSMG extends SMG {
     for (Integer stray_value : stray_values) {
       if (stray_value != getNullValue()) {
         // Here, we can't just remove stray value, we also have to remove the points-to edge
-        if(isPointer(stray_value)) {
+        if (isPointer(stray_value)) {
           removePointsToEdge(stray_value);
         }
 

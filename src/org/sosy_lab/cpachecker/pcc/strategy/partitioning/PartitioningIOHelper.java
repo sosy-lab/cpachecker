@@ -124,7 +124,7 @@ public class PartitioningIOHelper {
   }
 
   public @Nullable Pair<AbstractState[], AbstractState[]> getPartition(int pIndex) {
-    if(0<=pIndex && pIndex<numPartitions && pIndex<partitions.size()){
+    if (0<=pIndex && pIndex<numPartitions && pIndex<partitions.size()) {
       return partitions.get(pIndex);
     }
     return null;
@@ -246,7 +246,7 @@ public class PartitioningIOHelper {
     }
   }
 
-  public Statistics getPartitioningStatistc(){
+  public Statistics getPartitioningStatistc() {
     return new PartitioningStatistics();
   }
 

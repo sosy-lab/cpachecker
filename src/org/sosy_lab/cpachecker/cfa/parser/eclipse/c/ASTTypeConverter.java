@@ -122,7 +122,7 @@ class ASTTypeConverter {
         t2 = ((CElaboratedType) t2).getRealType();
       }
       if (equalWithoutName) {
-        switch(t1.getKind()) {
+        switch (t1.getKind()) {
         case STRUCT:
         case UNION:
           List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
@@ -151,7 +151,7 @@ class ASTTypeConverter {
   }
 
   static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
@@ -351,8 +351,8 @@ class ASTTypeConverter {
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
-    for (int i = 0; i < pFields.length; i++) {
-      list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    for (IField pField : pFields) {
+      list.add(new CCompositeTypeMemberDeclaration(convert(pField.getType()), pField.getName()));
     }
     return list;
   }

@@ -99,14 +99,11 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   private boolean isVisited(Pair<ARGState, CFAEdge> currentElement, CFAEdge otherEdge) {
-    if (oldElement != null)
-    {
+    if (oldElement != null) {
       logger.log(Level.FINER, "Matching path length. Possibly handled this branch earlier");
       if (branchingHistory.isVisited(otherEdge, oldElement)) {
         return true;
-      }
-      else
-      {
+      } else {
         logger.log(Level.FINER, "Same path length but not in predicted section.");
         return false;
       }
@@ -116,14 +113,12 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
 
   private Pair<CFAEdge, Boolean> handleNextNode(long currentPathSize, CFAEdge edge) {
-    if (branchingHistory.getCurrentDepths() > currentPathSize + 1)
-    {
+    if (branchingHistory.getCurrentDepths() > currentPathSize + 1) {
       branchingHistory.consumeUntilSameSize(currentPathSize);
       logger.logf(Level.FINER, "comsumed until %d %d (%d)", currentPathSize, branchingHistory.getCurrentDepths(),
           branchingHistory.getPathDepths());
     }
-    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize))
-    {
+    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize)) {
       branchingHistory.hasNext();
       oldElement = branchingHistory.next();
       logger.logf(Level.FINER, "Is path candidate for predicted section");
@@ -148,8 +143,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
     }
 
     public void consumeUntilSameSize(long pCurrentSizeOfPath) {
-      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths)
-      {
+      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths) {
         next();
       }
     }
@@ -178,8 +172,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
 
       //      Pair<CFAEdge, Boolean> oldEdge = edgeHistory.next();
       assert oldEdge.getFirst().getPredecessor().equals(edgeToCheck.getPredecessor()) : "Illegal State of history. Wrong edge executed.";
-      if (oldEdge.getSecond() == null)
-      {
+      if (oldEdge.getSecond() == null) {
         logger.log(Level.FINER, "Didn't find a 'visited' match. Not a branching edge or a skipped edge.");
         return false;
       }

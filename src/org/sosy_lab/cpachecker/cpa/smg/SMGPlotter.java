@@ -289,7 +289,7 @@ public final class SMGPlotter {
 
     SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
 
-    if(explicitValues.containsKey(symValue)) {
+    if (explicitValues.containsKey(symValue)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
     }
 

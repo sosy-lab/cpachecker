@@ -1680,7 +1680,7 @@ public class ASTConverter {
   // pType is the type of the operands of the operation
   private BinaryOperator convert(Assignment.Operator op, JType type) {
     // will be used if the type doesn't fit the operator
-    final String invalidTypeMsg = "Invalid type " + type + " for assignment with binary operation.";
+    final String invalidTypeMsg = "Invalid type '" + type + "' for assignment with binary operation.";
 
     JBasicType basicType;
 
@@ -1858,13 +1858,12 @@ public class ASTConverter {
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
+    assert leftHandSide != null;
 
     BinaryOperator op = convert(e.getOperator(), leftHandSide.getExpressionType());
 
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
-
     assert rightHandSide != null;
-    assert leftHandSide != null;
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
@@ -1885,7 +1884,7 @@ public class ASTConverter {
 
   // pType is the type of the operands of the operation
   private BinaryOperator convert(InfixExpression.Operator op, JType pType) {
-    final String invalidTypeMsg = "Invalid type " + pType + " for operation " + op;
+    final String invalidTypeMsg = "Invalid type '" + pType + "' for operation '" + op + "'";
     JBasicType basicType;
 
     if (pType instanceof JSimpleType) {

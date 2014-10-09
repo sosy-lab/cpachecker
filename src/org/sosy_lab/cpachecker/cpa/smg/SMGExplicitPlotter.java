@@ -34,9 +34,9 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -91,9 +91,9 @@ public final class SMGExplicitPlotter {
 
     Set<MemoryLocation> notCoveredBySMG = new HashSet<>();
 
-    for(MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
+    for (MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
       // We don't consider values from the old Nomenclature in explicit cpa
-      if(!coveredMemloc.contains(memloc) && !memloc.getAsSimpleString().contains("->")) {
+      if (!coveredMemloc.contains(memloc) && !memloc.getAsSimpleString().contains("->")) {
         sb.append(newLineWithOffset(explicitValueAsDot(memloc)));
         notCoveredBySMG.add(memloc);
       }
@@ -177,7 +177,7 @@ public final class SMGExplicitPlotter {
 
     Set<MemoryLocation> memoryLocations;
 
-    if(pFunctionName == null) {
+    if (pFunctionName == null) {
       memoryLocations = explicitState.getGlobalMemoryLocations();
     } else {
       memoryLocations = explicitState.getMemoryLocationsOnStack(pFunctionName);

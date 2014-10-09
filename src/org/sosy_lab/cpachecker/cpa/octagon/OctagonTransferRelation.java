@@ -311,9 +311,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       // a cast, we ignore this cast and call this method again with the casts operand
     } else if (expression instanceof CCastExpression) {
       return handleAssumption(cfaEdge, ((CCastExpression) expression).getOperand(), truthAssumption);
-    }
 
-    else {
+    } else {
       throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
   }
@@ -445,7 +444,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       return handleBinaryAssumptionWithTwoLiterals((CLiteralExpression)left, (CLiteralExpression)right, op, truthAssumption);
     } else if (left instanceof CLiteralExpression) {
       //change operator so we can call handleBinaryAssumptionWithOneLiteral
-      switch(op) {
+      switch (op) {
       case GREATER_EQUAL:
         op = BinaryOperator.LESS_EQUAL;
         break;

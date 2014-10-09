@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -33,10 +34,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * Provides a symbol table that maps variable and functions to their declaration
  * (if a name is visible in the current scope).
  */
-abstract class Scope implements org.sosy_lab.cpachecker.cfa.parser.Scope {
-  protected String currentFile;
+abstract class AbstractScope implements Scope {
+  protected final String currentFile;
 
-  Scope(String currentFile) {
+  AbstractScope(String currentFile) {
     this.currentFile = currentFile;
   }
 

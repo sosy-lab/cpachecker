@@ -99,7 +99,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return newCoeffs;
   }
 
-  public OctagonIntervalCoefficients convertToInterval(){
+  public OctagonIntervalCoefficients convertToInterval() {
     OctagonIntervalCoefficients octCoeffs = new OctagonIntervalCoefficients(size, oct);
     for (int i = 0; i < coefficients.length; i++) {
       octCoeffs.coefficients[i] = new OctagonInterval(coefficients[i]);

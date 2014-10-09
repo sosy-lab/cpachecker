@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value;
+package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.simplifier.ExternalSimplifier;
 
 
@@ -105,14 +106,14 @@ public class SymbolicValueFormula implements Value {
 
     // Only call the external simplifier if it's actually a complex
     // expression.
-    if(root instanceof BinaryExpression) {
-      if(isIntegerAddMultiplyOnly()) {
+    if (root instanceof BinaryExpression) {
+      if (isIntegerAddMultiplyOnly()) {
         simplifiedTree = ExternalSimplifier.simplify(simplifiedTree, logger);
       }
     }
 
     // If we actually know the value, return the known value.
-    if(simplifiedTree instanceof ConstantValue) {
+    if (simplifiedTree instanceof ConstantValue) {
       return ((ConstantValue) simplifiedTree).getValue();
     }
 
@@ -169,8 +170,8 @@ public class SymbolicValueFormula implements Value {
        * @return the corresponding <code>BinaryOperator</code> object
        */
       public static BinaryOperator fromString(String key) {
-        for(BinaryOperator iter : BinaryOperator.values()) {
-          if(iter.op.equals(key)) {
+        for (BinaryOperator iter : BinaryOperator.values()) {
+          if (iter.op.equals(key)) {
             return iter;
           }
         }
@@ -226,7 +227,7 @@ public class SymbolicValueFormula implements Value {
       allowedOps.add("MULTIPLY");
 
       // If it's not +, - or * return false
-      if(!allowedOps.contains(this.op.toString())) {
+      if (!allowedOps.contains(this.op.toString())) {
         return false;
       }
 
@@ -335,7 +336,7 @@ public class SymbolicValueFormula implements Value {
 
     @Override
     public ExpressionBase replaceSymbolWith(SymbolicValue pSymbol, ConstantValue pReplacement) {
-      if(this.equals(pSymbol)) {
+      if (this.equals(pSymbol)) {
         return pReplacement;
       } else {
         return this;
@@ -416,7 +417,7 @@ public class SymbolicValueFormula implements Value {
   }
 
   public static ExpressionBase expressionFromExplicitValue(Value value) {
-    if(value instanceof SymbolicValueFormula) {
+    if (value instanceof SymbolicValueFormula) {
       return ((SymbolicValueFormula) value).root;
     } else {
       return new ConstantValue(value);
@@ -435,7 +436,7 @@ public class SymbolicValueFormula implements Value {
   public Value replaceSymbolWith(SymbolicValue pSymbol, Value pReplacement, LogManagerWithoutDuplicates logger) {
     ConstantValue replacement = new ConstantValue(pReplacement);
     SymbolicValueFormula rval = new SymbolicValueFormula(root.replaceSymbolWith(pSymbol, replacement));
-    if(!rval.root.equals(root)) {
+    if (!rval.root.equals(root)) {
       // Only simplify if we actually managed to replace something.
       return rval.simplify(logger);
     }
@@ -458,18 +459,18 @@ public class SymbolicValueFormula implements Value {
     ExpressionBase root = this.root;
 
     // Less or more than a single symbolic value, impossible to infer anything.
-    if(symbolicValues.size() != 1) {
+    if (symbolicValues.size() != 1) {
       return null;
     }
     SymbolicValue valueToSolveFor = symbolicValues.iterator().next();
 
     // We want an == to solve, not an !=, but with truthValue == false,
     // an != comes out as an ==
-    if(root instanceof BinaryExpression) {
+    if (root instanceof BinaryExpression) {
       BinaryExpression rootBinaryExpression = (BinaryExpression) root;
       String operator = rootBinaryExpression.getOperator().op;
 
-      if(operator.equals("!=") && !truthValue) {
+      if (operator.equals("!=") && !truthValue) {
         // If we have != and truthValue is false, convert to == instead
         root = new BinaryExpression(rootBinaryExpression.getOperand1(),
             rootBinaryExpression.getOperand2(),
@@ -480,10 +481,10 @@ public class SymbolicValueFormula implements Value {
         truthValue = true;
       }
 
-      if(operator.equals("==") && truthValue) {
+      if (operator.equals("==") && truthValue) {
         // If the left-hand or right-hand side already are the variable itself, we don't need
         // to do expensive solving.
-        if(rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
+        if (rootBinaryExpression.lVal instanceof SymbolicValue && rootBinaryExpression.rVal instanceof ConstantValue) {
           SymbolicValue symbol = (SymbolicValue) rootBinaryExpression.lVal;
           ConstantValue value = (ConstantValue) rootBinaryExpression.rVal;
           return Pair.of(symbol, value.getValue());
@@ -495,7 +496,7 @@ public class SymbolicValueFormula implements Value {
 
         // Can only solve anything if we have an == at the top level.
         Value result = ExternalSimplifier.solve(valueToSolveFor, root, logger);
-        if(result == null) {
+        if (result == null) {
           return null;
         } else {
           return Pair.of(valueToSolveFor, result);

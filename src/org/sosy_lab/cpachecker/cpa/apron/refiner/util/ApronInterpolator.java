@@ -46,12 +46,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.apron.refiner.ApronInterpolationBasedRefiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.Value;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
@@ -161,7 +161,7 @@ public class ApronInterpolator {
       final ValueAnalysisInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
-    if(pOffset == 0) {
+    if (pOffset == 0) {
       assumptionsAreRelevant = isRemainingPathFeasible(pErrorPath, new ValueAnalysisState(), false);
     }
 
@@ -178,7 +178,7 @@ public class ApronInterpolator {
     }
 
     // check if input-interpolant is still strong enough
-    if(applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
+    if (applyUseDefInformation && !isUseDefInformationAffected(pErrorPath, initialState, initialSuccessor)) {
       return pInputInterpolant;
     }
 
@@ -227,8 +227,8 @@ public class ApronInterpolator {
     List<MemoryLocation> reOrderedMemoryLocations = Lists.newArrayListWithCapacity(trackedMemoryLocations.size());
 
     // move loop-variables to the front - being checked for relevance earlier minimizes their impact on feasibility
-    for(MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
-      if(loopExitMemoryLocations.contains(currentMemoryLocation)) {
+    for (MemoryLocation currentMemoryLocation : trackedMemoryLocations) {
+      if (loopExitMemoryLocations.contains(currentMemoryLocation)) {
         reOrderedMemoryLocations.add(0, currentMemoryLocation);
       } else {
         reOrderedMemoryLocations.add(currentMemoryLocation);
@@ -279,8 +279,8 @@ public class ApronInterpolator {
       throws CPATransferException {
     numberOfInterpolationQueries++;
 
-    for(CFAEdge currentEdge : remainingErrorPath) {
-      if(loopExitAssumes.contains(currentEdge)) {
+    for (CFAEdge currentEdge : remainingErrorPath) {
+      if (loopExitAssumes.contains(currentEdge)) {
         continue;
       }
 
@@ -289,7 +289,7 @@ public class ApronInterpolator {
         precision,
         currentEdge);
 
-      if(successors.isEmpty()) {
+      if (successors.isEmpty()) {
         return false;
       }
 
@@ -308,15 +308,13 @@ public class ApronInterpolator {
    */
   private ValueAnalysisState extractSingletonSuccessor(ValueAnalysisState predecessor,
       CFAEdge currentEdge, boolean ignoreAssumptions, Collection<ValueAnalysisState> successors) {
-    if(successors.isEmpty()) {
+    if (successors.isEmpty()) {
       return null;
-    }
 
-    else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      return predecessor.clone();
-    }
+    } else if(!ignoreAssumptions && currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      return ValueAnalysisState.copyOf(predecessor);
 
-    else {
+    } else {
       return Iterables.getOnlyElement(successors);
     }
   }
@@ -334,8 +332,8 @@ public class ApronInterpolator {
     relevantVariables = assumeCollector.obtainUseDefInformation(pErrorPath);
 
     boolean isUseDefInformationAffected = false;
-    for(MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
-      if(relevantVariables.contains(memoryLocation.getAsSimpleString())) {
+    for (MemoryLocation memoryLocation : initialState.getDifference(initialSuccessor)) {
+      if (relevantVariables.contains(memoryLocation.getAsSimpleString())) {
         isUseDefInformationAffected = true;
       } else {
         initialSuccessor.forget(memoryLocation.getAsSimpleString());
@@ -371,22 +369,22 @@ public class ApronInterpolator {
    * This method initializes the loop-information which is used during interpolation.
    */
   private void initializeLoopInformation() {
-    for(Loop l : cfa.getLoopStructure().get().values()) {
-      for(CFAEdge currentEdge : l.getOutgoingEdges()) {
-        if(currentEdge instanceof CAssumeEdge) {
+    for (Loop l : cfa.getLoopStructure().get().values()) {
+      for (CFAEdge currentEdge : l.getOutgoingEdges()) {
+        if (currentEdge instanceof CAssumeEdge) {
           loopExitAssumes.add((CAssumeEdge)currentEdge);
         }
       }
     }
 
-    for(CAssumeEdge assumeEdge : loopExitAssumes) {
+    for (CAssumeEdge assumeEdge : loopExitAssumes) {
       CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
       assumeEdge.getExpression().accept(collector);
 
       for (CIdExpression id : collector.getReferencedIdExpressions()) {
         String scope = ForwardingTransferRelation.isGlobal(id) ? null : assumeEdge.getPredecessor().getFunctionName();
 
-        if(scope == null) {
+        if (scope == null) {
           loopExitMemoryLocations.add(MemoryLocation.valueOf(id.getName()));
         } else {
           loopExitMemoryLocations.add(MemoryLocation.valueOf(scope, id.getName(), 0));
@@ -395,7 +393,7 @@ public class ApronInterpolator {
     }
 
     // clear the set of assume edges if the respective option is not set
-    if(!ignoreLoopsExitAssumes) {
+    if (!ignoreLoopsExitAssumes) {
       loopExitAssumes.clear();
     }
   }

@@ -113,7 +113,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   protected boolean checkSuccessors(final ARGState pPredecessor, final Collection<ARGState> pSuccessors,
       final Precision pPrecision) throws InterruptedException, CPAException {
     Collection<AbstractState> wrappedSuccessors = new ArrayList<>(pSuccessors.size());
-    for(ARGState succ: pSuccessors){
+    for (ARGState succ: pSuccessors) {
       wrappedSuccessors.add(succ.getWrappedState());
     }
 

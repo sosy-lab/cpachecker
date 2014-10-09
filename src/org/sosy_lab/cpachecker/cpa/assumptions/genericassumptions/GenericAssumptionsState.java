@@ -69,6 +69,6 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public String toString() {
-    return Joiner.on(", ").join(from(assumptions).transform(CExpression.TO_AST_STRING));
+    return from(assumptions).transform(CExpression.TO_AST_STRING).join(Joiner.on(", "));
   }
 }

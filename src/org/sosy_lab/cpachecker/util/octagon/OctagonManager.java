@@ -26,16 +26,21 @@ package org.sosy_lab.cpachecker.util.octagon;
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
 
 
 public abstract class OctagonManager {
 
-  protected static boolean libraryInitialized = false;
-  protected static boolean libraryLoaded = false;
+  private static boolean libraryLoaded = false;
 
-  protected OctagonManager() {
+  protected OctagonManager(String libraryName) {
+    if (!libraryLoaded) {
+      libraryLoaded = true;
+      NativeLibraries.loadLibrary(libraryName);
+      J_init();
+    }
   }
 
   /* num handling function*/

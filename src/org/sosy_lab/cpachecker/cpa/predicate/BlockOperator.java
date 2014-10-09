@@ -115,7 +115,7 @@ public class BlockOperator {
       return true;
     }
 
-    if(alwaysAtJoin && isJoinNode(succLoc)){
+    if (alwaysAtJoin && isJoinNode(succLoc)) {
       numBlkJoins++;
       return true;
     }

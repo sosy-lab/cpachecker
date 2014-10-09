@@ -141,7 +141,7 @@ public class PivotRowHandler {
 
   public String printCodes(int[][] codes) {
     String s = "";
-    for (int i = 0; i < codes.length; i++) {
+    for (int[] code : codes) {
       s += "[ ";
       for (int j = 0; j < codes[0].length; j++) {
         if (j > 0) {
@@ -150,7 +150,7 @@ public class PivotRowHandler {
         if (j == augStart) {
           s += "| ";
         }
-        String t = Integer.toString(codes[i][j]);
+        String t = Integer.toString(code[j]);
         if (t.length() == 1) {
           s += " ";
         }
@@ -226,11 +226,11 @@ public class PivotRowHandler {
      */
     boolean hasAnImpossibleRow() {
       boolean ans = false;
-      for (int i = 0; i < codes.length; i++) {
+      for (int[] code : codes) {
         boolean all0110 = true;
         boolean hasActive1 = false;
-        for (int j = 0; j < codes[i].length; j++) {
-          int c = codes[i][j];
+        for (int j = 0; j < code.length; j++) {
+          int c = code[j];
           if (c == 1 && active.contains(j)) {
             hasActive1 = true;
           }

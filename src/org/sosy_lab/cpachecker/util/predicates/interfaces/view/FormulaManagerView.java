@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -941,8 +940,7 @@ public class FormulaManagerView {
     Collection<BooleanFormula> unwrapped = myExtractAtoms(extractFromView(f), splitArithEqualities, conjunctionsOnly);
 
     List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
-    for (Iterator<BooleanFormula> iterator = unwrapped.iterator(); iterator.hasNext();) {
-      BooleanFormula booleanFormula = iterator.next();
+    for (BooleanFormula booleanFormula : unwrapped) {
       atoms.add(wrapInView(booleanFormula));
     }
 

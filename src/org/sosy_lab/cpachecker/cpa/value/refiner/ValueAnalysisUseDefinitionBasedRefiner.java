@@ -50,10 +50,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -145,9 +145,8 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
 
       return CounterexampleInfo.feasible(pErrorPath, model);
-    }
 
-    else if (performValueAnalysisRefinement(reached, errorPath)) {
+    } else if (performValueAnalysisRefinement(reached, errorPath)) {
       return CounterexampleInfo.spurious();
     }
 
@@ -177,7 +176,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     Multimap<CFANode, MemoryLocation> increment = obtainPrecisionIncrement(errorPath);
     // no increment - refinement was not successful
-    if(increment.isEmpty()) {
+    if (increment.isEmpty()) {
       return false;
     }
 
@@ -204,7 +203,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
         new AssumptionUseDefinitionCollector() :
         new InitialAssumptionUseDefinitionCollector();
 
-    for(String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
+    for (String referencedVariable : useDefinitionCollector.obtainUseDefInformation(cfaTrace)) {
       increment.put(new CFANode("BOGUS_NODE"), MemoryLocation.valueOf(referencedVariable));
     }
 

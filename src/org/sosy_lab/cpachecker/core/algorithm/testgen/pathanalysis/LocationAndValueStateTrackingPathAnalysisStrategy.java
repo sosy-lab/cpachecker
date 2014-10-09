@@ -94,8 +94,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
     long branchCounter = 0;
     long nodeCounter = 0;
     Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
-    while (branchingEdges.hasNext())
-    {
+    while (branchingEdges.hasNext()) {
       nodeCounter++;
       currentElement = branchingEdges.next();
       CFAEdge edge = currentElement.getSecond();
@@ -116,7 +115,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       // WARNING: some hack don't know if any good or enough
       // ----->
       final AbstractState currentElementTmp = currentElement.getFirst();
-      if(from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
+      if (from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
 
         @Override
         public boolean apply(AbstractState pInput) {
@@ -136,8 +135,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
         continue;
       }
 //      cpa.getTransferRelation().
-      if(lastElement == null)
-      {
+      if (lastElement == null) {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.FINER, "encountered an executed path that might be spurious.");
         lastElement = currentElement;
@@ -171,14 +169,12 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
       stats.afterPathCheck();
 
-      if (!traceInfo.isSpurious())
-      {
+      if (!traceInfo.isSpurious()) {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         handledDecisions.add(currentElement.getFirst());
         return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
-      }
-      else {
+      } else {
         lastElement = currentElement;
         continue;
       }

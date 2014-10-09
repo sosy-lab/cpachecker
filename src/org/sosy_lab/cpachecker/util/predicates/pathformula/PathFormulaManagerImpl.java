@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collections;
@@ -93,7 +93,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  private boolean handlePointerAliasing = true;
+  protected boolean handlePointerAliasing = true;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -104,17 +104,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final CType NONDET_TYPE = CNumericTypes.INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-  private final FunctionFormulaManagerView ffmgr;
-  private final CtoFormulaConverter converter;
-  private final CtoFormulaTypeHandler typeHandler;
-  private final @Nullable PointerTargetSetManager ptsManager;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
+  protected final FormulaManagerView fmgr;
+  protected final BooleanFormulaManagerView bfmgr;
+  protected final FunctionFormulaManagerView ffmgr;
+  protected final CtoFormulaConverter converter;
+  protected final CtoFormulaTypeHandler typeHandler;
+  protected final @Nullable PointerTargetSetManager ptsManager;
+  protected final LogManager logger;
+  protected final ShutdownNotifier shutdownNotifier;
 
   @Option(description="add special information to formulas about non-deterministic functions")
-  private boolean useNondetFlags = false;
+  protected boolean useNondetFlags = false;
 
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
@@ -146,19 +146,35 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, pFmgr, aliasingTypeHandler, shutdownNotifier);
-      converter = new CToFormulaConverterWithPointerAliasing(options, pFmgr, pMachineModel, ptsManager, pVariableClassification, pLogger, shutdownNotifier, aliasingTypeHandler);
+      ptsManager = new PointerTargetSetManager(options, fmgr, aliasingTypeHandler, shutdownNotifier);
+      converter = createCToFormulaConverterWithPointerAliasing(options, pMachineModel, ptsManager, pVariableClassification, aliasingTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
-      converter = new CtoFormulaConverter(options, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, typeHandler);
+      converter = createCtoFormulaConverter(options, pMachineModel, pVariableClassification, typeHandler);
       ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+  }
+
+  protected CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
+      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
+      CtoFormulaTypeHandler pTypeHandler) {
+
+    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger, shutdownNotifier, pTypeHandler, false);
+  }
+
+  protected CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
+      FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
+      PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
+      TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
+
+    return new CToFormulaConverterWithPointerAliasing(
+        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification, logger, shutdownNotifier, pAliasingTypeHandler, false);
   }
 
   @Override
@@ -291,7 +307,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param pts2 the PointerTargetSet for ssa1
    * @return A pair (formulas, SSAMap) where the formulas need to be added to the path formulas before disjuncting them.
    */
-  private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
+  protected Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -361,7 +377,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
   }
 
-  private BooleanFormula makeSsaVariableMerger(final String variableName,
+  protected BooleanFormula makeSsaVariableMerger(final String variableName,
                                                         final CType variableType,
                                                         final int oldIndex,
                                                         final int newIndex) {
@@ -380,7 +396,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.makeEqual(newVariable, oldVariable);
   }
 
-  private BooleanFormula makeSsaUFMerger(final String functionName,
+  protected BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
                                                   final int newIndex,
@@ -408,7 +424,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return result;
   }
 
-  private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
+  protected BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
     return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
   }
 

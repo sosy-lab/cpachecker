@@ -97,8 +97,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     We set the same params in a default context,
     so that interpolation is possible.
 
-    Z3_context Z3_mk_interpolation_context(Z3_config cfg){
-      if(!cfg) cfg = Z3_mk_config();
+    Z3_context Z3_mk_interpolation_context(Z3_config cfg) {
+      if (!cfg) cfg = Z3_mk_config();
       Z3_set_param_value(cfg, "PROOF", "true");
       Z3_set_param_value(cfg, "MODEL", "true");
       Z3_context ctx = Z3_mk_context(cfg);

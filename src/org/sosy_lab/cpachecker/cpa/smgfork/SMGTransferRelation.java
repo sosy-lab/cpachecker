@@ -412,7 +412,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG)){
+    if (pConfig.equals(exportSMG)) {
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
@@ -1023,10 +1023,10 @@ public class SMGTransferRelation implements TransferRelation {
       listCounter++;
     }
 
-    if(pVarDecl.isGlobal()) {
+    if (pVarDecl.isGlobal()) {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
-      if(offset < sizeOfType ) {
+      if (offset < sizeOfType ) {
         pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO);
       }
     }
@@ -1171,11 +1171,11 @@ public class SMGTransferRelation implements TransferRelation {
         CExpression operand2 = unwrap(binExp.getOperand2());
         BinaryOperator op = binExp.getOperator();
 
-        if(operand1 instanceof CLeftHandSide) {
+        if (operand1 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
         }
 
-        if(operand2 instanceof CLeftHandSide) {
+        if (operand2 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
         }
 
@@ -1186,14 +1186,14 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp);
 
-        if(rValue.isUnknown()) {
+        if (rValue.isUnknown()) {
           // no further information can be inferred
           return;
         }
 
         SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
 
-        if(rSymValue.isUnknown()) {
+        if (rSymValue.isUnknown()) {
           return;
         }
 
@@ -1201,7 +1201,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -1210,7 +1210,7 @@ public class SMGTransferRelation implements TransferRelation {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
           }
         } else {
-          if(op == BinaryOperator.NOT_EQUALS) {
+          if (op == BinaryOperator.NOT_EQUALS) {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
           }
@@ -1242,7 +1242,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
 
-        if(truthValue == true) {
+        if (truthValue == true) {
           return; // no further explicit Information can be derived
         }
 
@@ -1250,7 +1250,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -2140,7 +2140,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public final String toString() {
 
-      if(isUnknown()) {
+      if (isUnknown()) {
         return "Unkown";
       }
 

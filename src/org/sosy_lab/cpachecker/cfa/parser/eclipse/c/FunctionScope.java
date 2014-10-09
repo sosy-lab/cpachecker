@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-class FunctionScope extends Scope {
+class FunctionScope extends AbstractScope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
@@ -259,7 +259,7 @@ class FunctionScope extends Scope {
 
     String labelName = label.getOrigName();
 
-    if(lookupLocalLabel(labelName) != null) {
+    if (lookupLocalLabel(labelName) != null) {
       throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
     }
 
@@ -272,7 +272,7 @@ class FunctionScope extends Scope {
 
   public CLabelNode lookupLocalLabelNode(String name) {
     Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       Map<String, CLabelNode> nodes = it.next();
 
       CLabelNode node = nodes.get(name);

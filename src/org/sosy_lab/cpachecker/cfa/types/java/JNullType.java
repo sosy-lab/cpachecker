@@ -51,4 +51,9 @@ public class JNullType implements JReferenceType {
   public boolean equals(Object obj) {
       return obj instanceof JNullType;
   }
+
+  @Override
+  public String toString() {
+    return toASTString("");
+  }
 }

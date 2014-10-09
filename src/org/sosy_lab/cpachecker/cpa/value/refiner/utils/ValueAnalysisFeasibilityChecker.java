@@ -37,8 +37,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -178,7 +178,7 @@ public class ValueAnalysisFeasibilityChecker {
         currentPrefix.addLast(pathElement);
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
+        if (successors.isEmpty()) {
           logger.log(Level.FINE, "found infeasible prefix: ", pathElement.getSecond(), " did not yield a successor");
           prefixes.add(currentPrefix);
 
@@ -191,7 +191,7 @@ public class ValueAnalysisFeasibilityChecker {
       }
 
       // prefixes is empty => path is feasible, so add complete path
-      if(prefixes.isEmpty()) {
+      if (prefixes.isEmpty()) {
         logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
         prefixes.add(path);
       }

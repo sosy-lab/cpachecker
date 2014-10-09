@@ -34,7 +34,7 @@
     <path id="CPAchecker.classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
     </path>
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
@@ -132,7 +132,13 @@
         <echo level="warning">For additional compiler checks, we recommend running ant with command-line arguments "-lib lib/java/build".</echo>
     </target>
 
-    <target depends="build-dependencies,-warn-errorprone" name="build-project">
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
+    </target>
+
+    <target depends="build-dependencies,-warn-errorprone,-warn-factorypath" name="build-project">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>

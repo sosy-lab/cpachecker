@@ -94,8 +94,7 @@ public class BasicPathSelector implements PathSelector {
     Iterator<Pair<ARGState, CFAEdge>> descendingPathElements =
         Iterators.consumingIterator(newARGPath.descendingIterator());
     pathValidator.handleNewCheck(pExecutedPath);
-    while (descendingPathElements.hasNext())
-    {
+    while (descendingPathElements.hasNext()) {
       pathInfo.increaseNodeCount();
       currentElement = descendingPathElements.next();
       CFAEdge edge = currentElement.getSecond();
@@ -131,16 +130,14 @@ public class BasicPathSelector implements PathSelector {
       /*
        * (DART: the j = pathLength-1 case)
        */
-      if (pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge.get()))
-      {
+      if (pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge.get())) {
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         pathValidator.handleVisitedBranching(newARGPath, currentElement);
         continue;
       }
 
-      if (lastElement == null)
-      {
+      if (lastElement == null) {
         /*
          * if the last element is not set, we encountered a branching node where both paths are infeasible
          * for the current value mapping or both successors were handled already with a previous iteration.
@@ -172,15 +169,13 @@ public class BasicPathSelector implements PathSelector {
        * check if path is feasible. If it's not continue to identify another decision node
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
-      if (!traceInfo.isSpurious())
-      {
+      if (!traceInfo.isSpurious()) {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
         pathValidator.handleValidPath(result);
         return result;
-      }
-      else {
+      } else {
         lastElement = currentElement;
         logger.logf(Level.FINER, "path candidate is infeasible");
         continue;

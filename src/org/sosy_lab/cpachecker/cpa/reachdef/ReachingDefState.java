@@ -184,10 +184,10 @@ public class ReachingDefState implements AbstractState, Serializable {
       }
       if (lastFunctionCall != stateOnLastFunctionCall) {
         changed = true;
-      }else{
+      } else {
         lastFunctionCall = toJoin.stateOnLastFunctionCall;
       }
-    }else{
+    } else {
       lastFunctionCall = toJoin.stateOnLastFunctionCall;
     }
 
@@ -233,20 +233,20 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
-      if(resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs){
+      if (resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs) {
         changed = true;
         newLocal = resultOfMapUnion;
-      } else{
+      } else {
         newLocal = statesToMerge.get(i).localReachDefs;
       }
 
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
-      if(resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs){
+      if (resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs) {
         changed = true;
-      } else{
+      } else {
         resultOfMapUnion = statesToMerge.get(i).globalReachDefs;
       }
-      if(!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)){
+      if (!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)) {
         isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion);
       }
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
@@ -297,7 +297,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   private Object writeReplace() throws ObjectStreamException {
     if (this==topElement) {
       return proxy;
-    }else{
+    } else {
       return this;
 
     }

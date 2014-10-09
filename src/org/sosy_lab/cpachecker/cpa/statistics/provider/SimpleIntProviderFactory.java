@@ -264,54 +264,42 @@ public class SimpleIntProviderFactory {
     return count;
   }
 
-  public static IntMerger defaultMerge = new IntMerger(){
-    @Override
-    public int merge(int s1, int s2) {
-      return s1 + s2;
-    }
-    @Override
-    public String toString() {
-      return "add";
-    }
-  };
-  public static IntMerger maxMerge = new IntMerger(){
-    @Override
-    public int merge(int s1, int s2) {
-      return Math.max(s1, s2);
-    }
-    @Override
-    public String toString() {
-      return "max";
-    }
-  };
+  public enum MergeOption implements IntMerger {
+    Min() {
+      @Override
+      public int merge(int s1, int s2) {
+        return Math.min(s1, s2);
+      }
+      @Override
+      public String toString() {
+        return "min";
+      }
+    },
 
-  public static IntMerger minMerge = new IntMerger(){
-    @Override
-    public int merge(int s1, int s2) {
-      return Math.min(s1, s2);
-    }
-    @Override
-    public String toString() {
-      return "min";
-    }
-  };
+    Max() {
+      @Override
+      public int merge(int s1, int s2) {
+        return Math.max(s1, s2);
+      }
+      @Override
+      public String toString() {
+        return "max";
+      }
+    },
 
-  public enum MergeOption {
-    Min, Max, Add
+    Add() {
+      @Override
+      public int merge(int s1, int s2) {
+        return s1 + s2;
+      }
+      @Override
+      public String toString() {
+        return "add";
+      }
+    },
   }
 
-  public static IntMerger getMerger(MergeOption opt) {
-    switch (opt) {
-    case Min:
-      return minMerge;
-    case Max:
-      return maxMerge;
-    default:
-      return defaultMerge;
-    }
-  }
-
-  public static SimpleIntProviderImplementation edgeCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation edgeCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "edgeCount";
@@ -324,11 +312,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getEdgeCountProvider(MergeOption option) {
-    return new SimpleIntProvider(edgeCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(edgeCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation gotoCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation gotoCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "gotoCount";
@@ -336,7 +324,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getEdgeType() == CFAEdgeType.BlankEdge && edge.getDescription().startsWith("Goto: ")){
+      if (edge.getEdgeType() == CFAEdgeType.BlankEdge && edge.getDescription().startsWith("Goto: ")) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -344,7 +332,7 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getGotoCountProvider(MergeOption option) {
-    return new SimpleIntProvider(gotoCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(gotoCountProvider, option, 0);
   }
 
   public static SimpleIntProvider getLoopCountProvider(CFA cfa, MergeOption option) {
@@ -360,7 +348,7 @@ public class SimpleIntProviderFactory {
         CFANode pred = edge.getPredecessor();
         CFANode succ = edge.getSuccessor();
         // we run into a loop
-        if (loopHeads.contains(succ)){
+        if (loopHeads.contains(succ)) {
           // Now we have to check that are are not already within the loop
           if (succ.getNodeNumber() > pred.getNodeNumber()) {
             // NOTE: Not really a very sophisticated test, but fast and worked in my test cases
@@ -369,7 +357,7 @@ public class SimpleIntProviderFactory {
         }
         return pCurrent;
       }
-    }, getMerger(option), 0);
+    }, option, 0);
   }
 
   private static int countFunctionCalls(CFAEdge pEdge) {
@@ -413,7 +401,7 @@ public class SimpleIntProviderFactory {
     }
     return count;
   }
-  public static SimpleIntProviderImplementation functionCallCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation functionCallCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "functionCallCount";
@@ -427,10 +415,10 @@ public class SimpleIntProviderFactory {
 
 
   public static SimpleIntProvider getFunctionCallCountProvider(MergeOption option) {
-    return new SimpleIntProvider(functionCallCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(functionCallCountProvider, option, 0);
   }
 
-  public static SimpleIntProviderImplementation branchCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation branchCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "branchCount";
@@ -438,7 +426,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getSuccessor().getNumLeavingEdges() > 1){
+      if (edge.getSuccessor().getNumLeavingEdges() > 1) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -446,10 +434,10 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getBranchCountProvider(MergeOption option) {
-    return new SimpleIntProvider(branchCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(branchCountProvider, option, 0);
   }
 
-  public static SimpleIntProviderImplementation jumpCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation jumpCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "jumpCount";
@@ -457,7 +445,7 @@ public class SimpleIntProviderFactory {
 
     @Override
     public int calculateNext(int pCurrent, CFAEdge edge) {
-      if (edge.getPredecessor().getNodeNumber() + 1 != edge.getSuccessor().getNodeNumber()){
+      if (edge.getPredecessor().getNodeNumber() + 1 != edge.getSuccessor().getNodeNumber()) {
         return pCurrent + 1;
       }
       return pCurrent;
@@ -465,11 +453,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getJumpCountProvider(MergeOption option) {
-    return new SimpleIntProvider(jumpCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(jumpCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation functionDefCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation functionDefCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "functionDefCount";
@@ -490,11 +478,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getFunctionDefCountProvider(MergeOption option) {
-    return new SimpleIntProvider(functionDefCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(functionDefCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation localVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation localVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "localVariablesCount";
@@ -517,11 +505,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getLocalVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(localVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(localVariablesCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation globalVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation globalVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "globalVariablesCount";
@@ -544,12 +532,12 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getGlobalVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(globalVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(globalVariablesCountProvider, option, 0);
   }
 
 
 
-  public static SimpleIntProviderImplementation structVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation structVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "structVariablesCount";
@@ -572,11 +560,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getStructVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(structVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(structVariablesCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation pointerVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation pointerVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "pointerVariablesCount";
@@ -599,11 +587,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getPointerVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(pointerVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(pointerVariablesCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation arrayVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation arrayVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "arrayVariablesCount";
@@ -626,11 +614,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getArrayVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(arrayVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(arrayVariablesCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation integerVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation integerVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "integerVariablesCount";
@@ -657,11 +645,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getIntegerVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(integerVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(integerVariablesCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation floatVariablesCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation floatVariablesCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "floatVariablesCount";
@@ -688,11 +676,11 @@ public class SimpleIntProviderFactory {
   };
 
   public static SimpleIntProvider getFloatVariablesCountProvider(MergeOption option) {
-    return new SimpleIntProvider(floatVariablesCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(floatVariablesCountProvider, option, 0);
   }
 
   private static boolean isBitwiseOperation(CBinaryExpression exp) {
-    switch (exp.getOperator()){
+    switch (exp.getOperator()) {
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR:
@@ -706,7 +694,7 @@ public class SimpleIntProviderFactory {
     return false;
   }
 
-  public static SimpleIntProviderImplementation bitwiseOperationCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation bitwiseOperationCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "bitwiseOperationCount";
@@ -730,11 +718,11 @@ public class SimpleIntProviderFactory {
     }
   };
   public static SimpleIntProvider getBitwiseOperationCountProvider(MergeOption option) {
-    return new SimpleIntProvider(bitwiseOperationCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(bitwiseOperationCountProvider, option, 0);
   }
 
 
-  public static SimpleIntProviderImplementation dereferenceCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation dereferenceCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "dereferenceCount";
@@ -755,7 +743,7 @@ public class SimpleIntProviderFactory {
     }
   };
   public static SimpleIntProvider getDereferenceCountProvider(MergeOption option) {
-    return new SimpleIntProvider(dereferenceCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(dereferenceCountProvider, option, 0);
   }
 
 
@@ -774,7 +762,7 @@ public class SimpleIntProviderFactory {
     }
     return count;
   }
-  public static SimpleIntProviderImplementation assumeCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation assumeCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "assumeCount";
@@ -788,7 +776,7 @@ public class SimpleIntProviderFactory {
 
 
   public static SimpleIntProvider getAssumeCountProvider(MergeOption option) {
-    return new SimpleIntProvider(assumeCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(assumeCountProvider, option, 0);
   }
 
 
@@ -796,7 +784,7 @@ public class SimpleIntProviderFactory {
 
 
   private static boolean isArithmeticOperation(CBinaryExpression exp) {
-    switch (exp.getOperator()){
+    switch (exp.getOperator()) {
     case DIVIDE:
     case MINUS:
     case MODULO:
@@ -810,7 +798,7 @@ public class SimpleIntProviderFactory {
     return false;
   }
 
-  public static SimpleIntProviderImplementation arithmeticOperationCountProvider = new SimpleIntProviderImplementation() {
+  private static final SimpleIntProviderImplementation arithmeticOperationCountProvider = new SimpleIntProviderImplementation() {
     @Override
     public String getPropertyName() {
       return "arithmeticOperationCount";
@@ -834,6 +822,6 @@ public class SimpleIntProviderFactory {
     }
   };
   public static SimpleIntProvider getArithmeticOperationCountProvider(MergeOption option) {
-    return new SimpleIntProvider(arithmeticOperationCountProvider, getMerger(option), 0);
+    return new SimpleIntProvider(arithmeticOperationCountProvider, option, 0);
   }
 }

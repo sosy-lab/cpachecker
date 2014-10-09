@@ -40,14 +40,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -146,7 +146,7 @@ public class ValueAnalysisInterpolator {
     }
 
     // restrict candidate interpolant to use-def relation, to reduce the number of itp-queries
-    if(!useDefRelation.isEmpty()) {
+    if (!useDefRelation.isEmpty()) {
       initialSuccessor.retainAll(useDefRelation);
     }
 
@@ -259,8 +259,8 @@ public class ValueAnalysisInterpolator {
 
     MutableARGPath argErrorPath = new MutableARGPath();
 
-    for(CFAEdge currentEdge : remainingErrorPath) {
-        argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, currentEdge));
+    for (CFAEdge edge : remainingErrorPath) {
+      argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));
     }
 
     return checker.isFeasible(argErrorPath, state, callstack);

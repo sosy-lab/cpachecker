@@ -67,7 +67,7 @@ class ASTLiteralConverter {
     }
 
     String valueStr = String.valueOf(e.getValue());
-    if(valueStr.endsWith("i") || valueStr.endsWith("j")) {
+    if (valueStr.endsWith("i") || valueStr.endsWith("j")) {
       return handleImaginaryNumber(fileLoc, (CSimpleType)type, e, valueStr);
     }
 

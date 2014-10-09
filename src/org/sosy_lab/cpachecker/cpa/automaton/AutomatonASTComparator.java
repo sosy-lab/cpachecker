@@ -185,8 +185,8 @@ class AutomatonASTComparator {
 
     statements = parser.parseStatements(code, scope);
 
-    for(CAstNode statement : statements) {
-      if(!(statement instanceof CStatement)) {
+    for (CAstNode statement : statements) {
+      if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Code in assumption: <"
       + statement.toASTString() + "> is not a valid assumption.");
       }

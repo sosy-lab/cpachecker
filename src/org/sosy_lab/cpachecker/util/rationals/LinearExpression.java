@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.rationals;
 
+import java.util.Iterator;
+import java.util.Map.Entry;
+
+import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
-
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 /**
  * Simple <i>sparse</i> implementation for <i>homogeneous</i> linear expression

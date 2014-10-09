@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -106,15 +106,15 @@ public class ErrorPathClassifier {
 
   public MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
     int totalLength = 0;
-    for(MutableARGPath p : pPrefixes) {
+    for (MutableARGPath p : pPrefixes) {
       totalLength += p.size();
     }
 
     int length = 0;
     int index = 0;
-    for(MutableARGPath p : pPrefixes) {
+    for (MutableARGPath p : pPrefixes) {
       length += p.size();
-      if(length > totalLength / 2) {
+      if (length > totalLength / 2) {
         break;
       }
       index++;
@@ -134,7 +134,7 @@ public class ErrorPathClassifier {
     int bestIndex             = 0;
 
     for (MutableARGPath currentPrefix : pPrefixes) {
-      assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
@@ -164,7 +164,7 @@ public class ErrorPathClassifier {
     int bestIndex             = 0;
 
     for (MutableARGPath currentPrefix : pPrefixes) {
-      assert(currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+      assert (currentPrefix.getLast().getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
       currentErrorPath.addAll(currentPrefix);
 
@@ -197,9 +197,8 @@ public class ErrorPathClassifier {
   private boolean isBestScore(Long currentScore, Long currentBestScore, MutableARGPath currentErrorPath) {
     if (currentErrorPath.size() < MAX_PREFIX_LENGTH) {
       return currentScore <= currentBestScore;
-    }
 
-    else {
+    } else {
       return currentScore < currentBestScore;
     }
   }
@@ -219,9 +218,8 @@ public class ErrorPathClassifier {
 
       if (classification.get().getIntBoolVars().contains(variableName)) {
         factor = BOOLEAN_VAR;
-      }
 
-      else if (classification.get().getIntEqualVars().contains(variableName)) {
+      } else if (classification.get().getIntEqualVars().contains(variableName)) {
         factor = INTEQUAL_VAR;
       }
 
@@ -274,7 +272,7 @@ public class ErrorPathClassifier {
   private void replaceAssumeEdgeWithBlankEdge(final MutableARGPath pErrorPath) {
     Pair<ARGState, CFAEdge> assumeState = pErrorPath.removeLast();
 
-    assert(assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
+    assert (assumeState.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge);
 
     pErrorPath.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(), new BlankEdge("",
         FileLocation.DUMMY,

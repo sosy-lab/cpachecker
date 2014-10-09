@@ -288,7 +288,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       }
       Set<ApronState> possibleStates = new HashSet<>();
       for (Texpr0Node coeff : coeffs) {
-        if(truthAssumption) {
+        if (truthAssumption) {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
         } else {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
@@ -521,7 +521,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
   private Set<ApronState> handleLiteralBinExpAssumption(double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
     boolean result;
-    switch(pBinaryOperator) {
+    switch (pBinaryOperator) {
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR:

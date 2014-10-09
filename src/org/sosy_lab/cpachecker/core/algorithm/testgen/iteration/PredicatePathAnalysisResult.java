@@ -88,7 +88,7 @@ public class PredicatePathAnalysisResult {
     checkValid();
     List<CFAEdge> edges = argPath.asEdgesList();
     CFAEdge edge = edges.get(edges.size()-1);
-    if(edge == null && edges.size()>1) {
+    if (edge == null && edges.size()>1) {
       edge = edges.get(edges.size()-2);
     }
     return edge;

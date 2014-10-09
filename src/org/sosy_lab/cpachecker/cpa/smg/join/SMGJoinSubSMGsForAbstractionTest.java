@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class SMGJoinSubSMGsForAbstractionTest {
   @Test
-  public void placeholderTest(){
+  public void placeholderTest() {
 
   }
 }

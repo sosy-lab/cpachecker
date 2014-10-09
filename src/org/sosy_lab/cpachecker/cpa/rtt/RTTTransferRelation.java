@@ -466,9 +466,8 @@ public class RTTTransferRelation implements TransferRelation {
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof JArraySubscriptExpression) {
         return newElement;
-      }
 
-      else {
+      } else {
         throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }

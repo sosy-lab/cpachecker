@@ -239,9 +239,8 @@ public class AssignmentToPathAllocator {
 
     Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
 
-    for (String heapName : pMemory.keySet()) {
-      Map<Address, Object> heapValues = pMemory.get(heapName);
-      Memory heap = new Memory(heapName, heapValues);
+    for (Map.Entry<String, Map<Address, Object>> heapObject : pMemory.entrySet()) {
+      Memory heap = new Memory(heapObject.getKey(), heapObject.getValue());
       memory.put(heap.getName(), heap);
     }
 
@@ -352,16 +351,16 @@ public class AssignmentToPathAllocator {
         Function function = (Function) term;
         String name = getName(function);
 
-        if(functionEnvoirment.containsKey(name)) {
+        if (functionEnvoirment.containsKey(name)) {
 
           boolean replaced = false;
 
           Set<Assignment> assignments = new HashSet<>(functionEnvoirment.get(name));
 
-          for(Assignment oldAssignment : assignments) {
+          for (Assignment oldAssignment : assignments) {
             Function oldFunction = (Function) oldAssignment.getTerm();
 
-            if(isLessSSA(oldFunction, function)) {
+            if (isLessSSA(oldFunction, function)) {
 
               //update functionEnvoirment for subsequent calculation
               functionEnvoirment.remove(name, oldAssignment);
@@ -373,7 +372,7 @@ public class AssignmentToPathAllocator {
             }
           }
 
-          if(!replaced) {
+          if (!replaced) {
             functionEnvoirment.put(name, assignment);
             addHeapValue(memory, assignment);
           }

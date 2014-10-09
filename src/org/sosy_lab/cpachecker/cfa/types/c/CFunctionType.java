@@ -34,6 +34,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -77,13 +78,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()),
-                       new Function<CType, String>() {
-                         @Override
-                         public String apply(final CType pInput) {
-                           return pInput.toString();
-                         }
-                       });
+    return toASTString(Strings.nullToEmpty(getName()), Functions.toStringFunction());
   }
 
   @Override
@@ -97,7 +92,7 @@ public class CFunctionType extends AFunctionType implements CType {
                         });
   }
 
-  public String toASTString(final String pDeclarator, final Function<CType, String> pTypeToString) {
+  public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {
     final StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {

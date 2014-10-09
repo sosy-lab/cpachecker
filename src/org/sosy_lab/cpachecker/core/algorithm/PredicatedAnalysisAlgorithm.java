@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -127,7 +127,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // delete fake edge from previous run
     logger.log(Level.FINEST, "Clean up from previous run");
-    if(fakeEdgeFromLastRun!=null){
+    if (fakeEdgeFromLastRun!=null) {
       fakeEdgeFromLastRun.getPredecessor().removeLeavingEdge(fakeEdgeFromLastRun);
       fakeEdgeFromLastRun.getSuccessor().removeEnteringEdge(fakeEdgeFromLastRun);
     }
@@ -150,9 +150,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
     boolean result = false;
-    try{
+    try {
       result = algorithm.run(pReachedSet);
-    }catch(PredicatedAnalysisPropertyViolationException e){
+    } catch (PredicatedAnalysisPropertyViolationException e) {
       precision =  pReachedSet.getPrecision(pReachedSet.getLastState());
       if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
           && ((ARGState) e.getFailureCause()).getParents().size() != 0) {
@@ -165,7 +165,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }
 
       // add merged element and clean up
-      if(e.isMergeViolationCause()){
+      if (e.isMergeViolationCause()) {
         pReachedSet.add(((ARGState) e.getFailureCause()).getMergedWith(), precision);
         ((ARGMergeJoinPredicatedAnalysis)cpa.getMergeOperator()).cleanUp(pReachedSet);
       }
@@ -176,10 +176,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       // create fake edge
       logger.log(Level.FINEST, "Prepare for refinement by CEGAR algorithm");
-      try{
+      try {
         node.getEdgeTo(node);
         throw new CPAException("Predicated Analysis cannot be run with programs whose CFAs have self-loops.");
-      }catch(IllegalArgumentException e1){
+      } catch (IllegalArgumentException e1) {
         // do nothing we require that the edge does not exist
       }
       // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
@@ -196,7 +196,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
       if (!e.isMergeViolationCause()) {
-        if(errorPred.isAbstractionState()){
+        if (errorPred.isAbstractionState()) {
           // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
           // thus we require a new abstraction for the previous abstraction state
 
@@ -212,16 +212,16 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
           for (AbstractState state : comp.getWrappedStates()) {
             if (!(state instanceof PredicateAbstractState)) {
                 wrappedStates.add(state);
-            }else{
+            } else {
               wrappedStates.add(errorPred);
             }
           }
 
           comp = new CompositeState(wrappedStates.build());
 
-          assert(predecessor.getChildren().size()==0);
-          assert(predecessor.getParents().size()==1);
-          assert(predecessor.getCoveredByThis().size()==0);
+          assert (predecessor.getChildren().size()==0);
+          assert (predecessor.getParents().size()==1);
+          assert (predecessor.getCoveredByThis().size()==0);
 
           ARGState newPred = new ARGState(comp, predecessor.getParents().iterator().next());
           predecessor.removeFromARG();
@@ -278,7 +278,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       // insert into reached set
       pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
 
-      assert(ARGUtils.checkARG(pReachedSet));
+      assert (ARGUtils.checkARG(pReachedSet));
 
       // return true such that CEGAR works fine
       return true;
@@ -289,7 +289,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
       throws InterruptedException, RefinementFailedException {
-    if(precisions.size()==0){
+    if (precisions.size()==0) {
       return initialPrecision;
     }
 
@@ -328,7 +328,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     PredicatePrecision newPredPrec = new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
 
     // assure that refinement fails if same path is encountered twice and precision not refined on that path
-    if(repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)){
+    if (repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
     }
 
@@ -409,7 +409,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if(algorithm instanceof StatisticsProvider){
+    if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
 

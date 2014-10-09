@@ -225,9 +225,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
 
     List<AssumeEdge> result = new ArrayList<>(assumptions.size());
-    for(IAStatement statement : assumptions) {
+    for (IAStatement statement : assumptions) {
 
-      if(statement instanceof CAssignment) {
+      if (statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
 
         if (assignment.getRightHandSide() instanceof CExpression) {

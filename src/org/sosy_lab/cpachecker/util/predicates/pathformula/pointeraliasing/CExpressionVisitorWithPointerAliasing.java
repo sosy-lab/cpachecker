@@ -407,6 +407,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     case MINUS:
       // TODO addEqualBaseAddressConstraints here, too?
     default:
+      // Does not occur for pointers
     }
 
     return Value.ofValue(result);

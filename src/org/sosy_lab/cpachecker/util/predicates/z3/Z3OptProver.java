@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import com.google.common.base.Preconditions;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
+import com.google.common.base.Preconditions;
 
 public class Z3OptProver implements OptEnvironment{
 

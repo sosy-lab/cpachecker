@@ -113,8 +113,7 @@ public class TasksServerResource extends WadlServerResource implements TasksReso
             }
             break;
           }
-        }
-        else {
+        } else {
           if (settings.get("programText") == null) {
             settings.put("programName", item.getName());
             settings.put("programText", IOUtils.toString(stream));

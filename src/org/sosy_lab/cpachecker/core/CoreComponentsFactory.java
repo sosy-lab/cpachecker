@@ -157,7 +157,7 @@ public class CoreComponentsFactory {
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
-      if(usePredicatedAnalysisAlgorithm){
+      if (usePredicatedAnalysisAlgorithm) {
         algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
@@ -209,6 +209,10 @@ public class CoreComponentsFactory {
     return algorithm;
   }
 
+  public ReachedSetFactory getReachedSetFactory() {
+    return reachedSetFactory;
+  }
+
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
@@ -222,7 +226,8 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa,
-      @Nullable final MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+      @Nullable final MainCPAStatistics stats,
+      boolean composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     if (stats != null) {
       stats.cpaCreationTime.start();
@@ -234,7 +239,9 @@ public class CoreComponentsFactory {
         return LocationCPA.factory().set(cfa, CFA.class).createInstance();
       }
 
-      ConfigurableProgramAnalysis cpa = cpaFactory.buildCPAs(cfa);
+      ConfigurableProgramAnalysis cpa
+        = composeWithSpecificationCPAs
+          ? cpaFactory.buildCPAs(cfa) : cpaFactory.buildCPAs(cfa, null);
 
       if (stats != null && cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

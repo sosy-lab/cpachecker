@@ -70,9 +70,9 @@ public class StatisticsCPAStatistics implements Statistics  {
       statistics = cpa.getFactory().getGlobalAnalysis();
     } else {
       StatisticsState lastState = (StatisticsState)reached.getLastState();
-      if (lastState == null){
+      if (lastState == null) {
         for (AbstractState abstractState : reached.asCollection()) {
-          if (abstractState != null){
+          if (abstractState != null) {
             lastState = (StatisticsState)reached.getLastState();
           }
         }

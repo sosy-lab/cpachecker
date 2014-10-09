@@ -114,7 +114,7 @@ public class ParallelPartitionReader implements Runnable {
   }
 
   private void giveSignal() {
-    if(partitionReady!=null){
+    if (partitionReady!=null) {
     checkingReadingLock.lock();
     try {
       partitionReady.signalAll();

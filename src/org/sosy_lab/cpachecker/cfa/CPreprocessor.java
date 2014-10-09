@@ -41,6 +41,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Options(prefix="parser")
 public class CPreprocessor {
 
@@ -95,6 +97,8 @@ public class CPreprocessor {
     private static final int MAX_ERROR_OUTPUT_SHOWN = 10;
     private static final Map<String, String> ENV_VARS = ImmutableMap.of("LANG", "C");
 
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+        justification = "Written only by one thread")
     private volatile int errorOutputCount = 0;
     private volatile StringBuffer buffer;
 

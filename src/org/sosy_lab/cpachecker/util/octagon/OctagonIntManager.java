@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
 
@@ -36,15 +35,7 @@ import com.google.common.collect.BiMap;
 public class OctagonIntManager extends OctagonManager {
 
   public OctagonIntManager() {
-    super();
-    if (!libraryLoaded) {
-      libraryLoaded = true;
-      NativeLibraries.loadLibrary("JOct_int");
-    }
-    if (!libraryInitialized) {
-      libraryInitialized = true;
-      J_init();
-    }
+    super("JOct_int");
   }
 
   @Override

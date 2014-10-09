@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
 import com.google.common.base.Joiner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class implements a mechanism to forcefully terminate CPAchecker
  * and even the whole JVM some time after a shutdown request was received
@@ -111,6 +113,7 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   @SuppressWarnings("deprecation")
+  @SuppressFBWarnings("DM_EXIT")
   @Override
   public void run() {
     // This thread may be killed at any time by the JVM because it is a daemon thread.

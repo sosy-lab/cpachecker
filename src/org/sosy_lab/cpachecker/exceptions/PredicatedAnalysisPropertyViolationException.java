@@ -47,7 +47,7 @@ public class PredicatedAnalysisPropertyViolationException extends CPAException{
     inMerge = failedWhileMerge;
   }
 
-  public AbstractState getFailureCause(){
+  public AbstractState getFailureCause() {
     return failureElem;
   }
 

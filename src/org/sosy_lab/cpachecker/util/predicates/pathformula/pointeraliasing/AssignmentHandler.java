@@ -626,7 +626,7 @@ class AssignmentHandler {
                                                              final int offset,
                                                              final CType lvalueElementType) {
     // Support both initialization (with a value or nondet) and assignment (from another array location)
-    switch(rvalue.getKind()) {
+    switch (rvalue.getKind()) {
     case ALIASED_LOCATION: {
       assert rvalueType instanceof CArrayType : "Non-array rvalue in array assignment";
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);

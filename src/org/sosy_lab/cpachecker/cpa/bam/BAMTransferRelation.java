@@ -1050,7 +1050,7 @@ public class BAMTransferRelation implements TransferRelation {
     return Pair.of(true, returnNodes);
   }
 
-  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock){
+  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock) {
     if (correctARGsForBlocks == null) {
       correctARGsForBlocks = new HashMap<>();
     }

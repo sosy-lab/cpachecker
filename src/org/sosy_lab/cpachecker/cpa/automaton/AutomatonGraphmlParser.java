@@ -357,7 +357,7 @@ public class AutomatonGraphmlParser {
         } else {
           if (considerNegativeSemanticsAttribute) {
             Optional<Boolean> matchPositiveCase = Optional.absent();
-            switch(docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
+            switch (docDat.getDataValueWithDefault(stateTransitionEdge, KeyDef.TOKENSNEGATED, "").toLowerCase()) {
               case "true":
                 matchPositiveCase = Optional.of(false);
                 break;

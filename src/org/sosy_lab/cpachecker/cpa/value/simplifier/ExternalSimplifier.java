@@ -32,12 +32,12 @@ import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IExpr;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.value.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.BinaryExpression;
-import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.ConstantValue;
-import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.ExpressionBase;
-import org.sosy_lab.cpachecker.cpa.value.SymbolicValueFormula.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.BinaryExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.ConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.ExpressionBase;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Uses an external library/application to simplify symbolic formulas.
@@ -46,14 +46,14 @@ public class ExternalSimplifier {
   static private EvalUtilities util;
 
   public static void initialize() {
-    if(util == null) {
+    if (util == null) {
       F.initSymbols(null);
       util = new EvalUtilities();
     }
   }
 
   public static ExpressionBase simplify(ExpressionBase expr, LogManagerWithoutDuplicates logger) {
-    if(util == null) {
+    if (util == null) {
       initialize();
     }
 
@@ -83,7 +83,7 @@ public class ExternalSimplifier {
   }
 
   public static Value solve(SymbolicValue value, ExpressionBase expr, LogManagerWithoutDuplicates logger) {
-    if(util == null) {
+    if (util == null) {
       initialize();
     }
 
@@ -101,8 +101,8 @@ public class ExternalSimplifier {
 
       // For some reason the result is wrapped in two lists.
       result = result.getAt(1).getAt(1);
-      if(result.isRuleAST()) {
-        if(result.getAt(1).toString().equals(variableToSolveFor)) {
+      if (result.isRuleAST()) {
+        if (result.getAt(1).toString().equals(variableToSolveFor)) {
           return new NumericValue(Integer.parseInt(result.getAt(2).toString()));
         }
       }
@@ -120,9 +120,9 @@ public class ExternalSimplifier {
   }
 
   private static String recursiveConvertFormulaToString(ExpressionBase formulaExpr, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
-    if(formulaExpr instanceof SymbolicValue) {
+    if (formulaExpr instanceof SymbolicValue) {
       int index = usedVariables.indexOf(formulaExpr);
-      if(index == -1) {
+      if (index == -1) {
         index = usedVariables.size();
         usedVariables.add((SymbolicValue) formulaExpr);
       }
@@ -143,7 +143,7 @@ public class ExternalSimplifier {
   }
 
   private static ExpressionBase recursiveConvertExpressionToFormula(IExpr expression, List<SymbolicValue> usedVariables) throws UnsupportedFormulaException {
-    if(expression.isPlus() || expression.getAt(0).toString().equals("Plus")) {
+    if (expression.isPlus() || expression.getAt(0).toString().equals("Plus")) {
       ExpressionBase leftHand = recursiveConvertExpressionToFormula(expression.getAt(1), usedVariables);
       ExpressionBase rightHand = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
       return new BinaryExpression(leftHand, rightHand, BinaryExpression.BinaryOperator.PLUS, CNumericTypes.INT, CNumericTypes.INT);
@@ -157,7 +157,7 @@ public class ExternalSimplifier {
       ExpressionBase power = recursiveConvertExpressionToFormula(expression.getAt(2), usedVariables);
 
       // TODO: build an expression for any power, not just 2
-      if(power instanceof ConstantValue && ((ConstantValue)power).getValue().asLong(CNumericTypes.INT) == 2) {
+      if (power instanceof ConstantValue && ((ConstantValue)power).getValue().asLong(CNumericTypes.INT) == 2) {
         return new BinaryExpression(base, base, BinaryExpression.BinaryOperator.MULTIPLY, CNumericTypes.INT, CNumericTypes.INT);
       } else {
         throw new RuntimeException("Power larger than 2 not yet supported.");
@@ -174,7 +174,7 @@ public class ExternalSimplifier {
   }
 
   private static String operatorIdentifierToOperator(String identifier) throws UnsupportedFormulaException {
-    switch(identifier) {
+    switch (identifier) {
     case "PLUS":
       return "+";
     case "MINUS":

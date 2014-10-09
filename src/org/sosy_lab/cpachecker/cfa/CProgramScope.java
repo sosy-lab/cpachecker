@@ -207,7 +207,7 @@ public class CProgramScope implements Scope {
   public CSimpleDeclaration lookupVariable(String pName) {
 
     //TODO qualified names
-    if(hasUniqueDeclarationForSimpleName(pName)) {
+    if (hasUniqueDeclarationForSimpleName(pName)) {
       return getUniqueDeclarationForSimpleName(pName);
     }
 

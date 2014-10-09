@@ -39,12 +39,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class represents the vertices/abstract states used by the
  * {@link ImpactAlgorithm}.
  * This class is basically similar to {@link AbstractState},
  * but allows only one parent and additionally stores a modifiable state formula.
  */
+@SuppressFBWarnings("SE_BAD_FIELD")
 class Vertex extends AbstractSingleWrapperState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
