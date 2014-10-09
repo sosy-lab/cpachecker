@@ -64,6 +64,8 @@ Verifying a Program with CPAchecker
 5. Additionally to the console output, there will be several files in the directory output/:
      ARG.dot: Visualization of abstract reachability tree (Graphviz format)
      cfa*.dot: Visualization of control flow automaton (Graphviz format)
+     reached.dot: Visualization of control flow automaton with the abstract
+        states visualized on top (Graphviz format)
      counterexample.msat: Formula representation of the error path
      coverage.info: Coverage information (similar to those of testing tools) in Gcov format
        Use the following command line to generate an HTML report as output/index.html:

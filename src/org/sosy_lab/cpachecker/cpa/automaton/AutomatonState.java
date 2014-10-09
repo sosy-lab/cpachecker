@@ -44,9 +44,10 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -60,7 +61,7 @@ import com.google.common.collect.Sets;
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instances of this class are passed to the CPAchecker as AbstractState.
  */
-public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable, AbstractStateWithAssumptions {
+public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable, AbstractStateWithAssumptions, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -225,6 +226,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
 
     List<AssumeEdge> result = new ArrayList<>(assumptions.size());
+    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
     for (IAStatement statement : assumptions) {
 
       if (statement instanceof CAssignment) {
@@ -234,12 +236,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
           CExpression expression = (CExpression) assignment.getRightHandSide();
           CBinaryExpression assumeExp =
-              new CBinaryExpression(
-                  assignment.getFileLocation(),
-                  CNumericTypes.BOOL,
-                  assignment.getLeftHandSide().getExpressionType(),
+              expressionBuilder.buildBinaryExpression(
                   assignment.getLeftHandSide(),
-                  expression, CBinaryExpression.BinaryOperator.EQUALS);
+                  expression,
+                  CBinaryExpression.BinaryOperator.EQUALS);
 
           result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
               new CFANode(cFunctionName), new CFANode(cFunctionName), assumeExp, true));
@@ -265,6 +265,18 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
+  @Override
+  public String toDOTLabel() {
+    if (!internalState.getName().equals("Init")) {
+      return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName();
+    }
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
 
   /**
    * The UnknownState represents one of the States following a normal State of the Automaton.

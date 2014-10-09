@@ -54,12 +54,14 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -71,11 +73,14 @@ import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
@@ -87,12 +92,17 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   @Option(name="reachedSet.export",
       description="print reached set to text file")
-  private boolean exportReachedSet = true;
+  private boolean exportReachedSet = false;
 
   @Option(name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Paths.get("reached.txt");
+
+  @Option(name="reachedSet.dot",
+      description="print reached set to graph file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
 
   @Option(name="coverage.export",
       description="print coverage info to file")
@@ -268,12 +278,27 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     printMemoryStatistics(out);
   }
 
+
   private void dumpReachedSet(ReachedSet reached) {
+    dumpReachedSet(reached, reachedSetFile, false);
+    dumpReachedSet(reached, reachedSetGraphDumpPath, true);
+  }
+
+  private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
-    if (exportReachedSet && outputFile != null) {
-      try (Writer w = Files.openOutputFile(outputFile)) {
-        Joiner.on('\n').appendTo(w, reached);
+    if (exportReachedSet && pOutputFile != null) {
+      try (Writer w = Files.openOutputFile(pOutputFile)) {
+
+        if (writeDotFormat) {
+
+          // Location-map specific dump.
+          dumpLocationMappedReachedSet(reached, cfa, w);
+        } else {
+
+          // Default dump.
+          Joiner.on('\n').appendTo(w, reached);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
       } catch (OutOfMemoryError e) {
@@ -281,6 +306,28 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
             "Could not write reached set to file due to memory problems");
       }
     }
+  }
+
+  private void dumpLocationMappedReachedSet(
+      final ReachedSet pReachedSet,
+      CFA cfa,
+      Appendable sb) throws IOException {
+    final ListMultimap<CFANode, AbstractState> locationIndex
+        =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
+
+    Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
+      public String apply(CFANode node) {
+        StringBuilder buf = new StringBuilder();
+        buf.append(node.getNodeNumber()).append("\n");
+        for (AbstractState state : locationIndex.get(node)) {
+          if (state instanceof Graphable) {
+            buf.append(((Graphable)state).toDOTLabel());
+          }
+        }
+        return buf.toString();
+      }
+    };
+    DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
   }
 
   private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {

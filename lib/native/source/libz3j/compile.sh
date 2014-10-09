@@ -15,7 +15,6 @@ set -o pipefail
 
 JNI_HEADERS="$(../get_jni_headers.sh)"
 
-USE_FOCI="$2"
 OUTFILENAME="libz3j.so"
 Z3_SO_FILENAME="libz3.so"
 Z3_LIBNAME="-lz3"
@@ -27,16 +26,6 @@ Z3_LIB_DIR="$Z3_DIR"/build
 if [ ! -f "$Z3_LIB_DIR/$Z3_SO_FILENAME" ]; then
 	echo "You need to specify the directory with the successfully built Z3 on the command line!"
 	exit 1
-fi
-
-if [ $2 = "-interp" ]; then
-	echo "Assuming interpolation support is included"
-	OUTFILENAME="libz3j_interp.so"
-	Z3_LIBNAME="-lz3_interp"
-	# Copy the file.
-	cp $Z3_LIB_DIR/$Z3_SO_FILENAME $Z3_LIB_DIR/libz3_interp.so
-	cp $Z3_LIB_DIR/$Z3_SO_FILENAME $CURRENT_DIR/libz3_interp.so
-	Z3_SO_FILENAME="libz3_interp.so"
 fi
 
 echo "Building the C wrapper code"

@@ -74,7 +74,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg")
-public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ARGCPA extends AbstractSingleWrapperCPA implements
+    ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);

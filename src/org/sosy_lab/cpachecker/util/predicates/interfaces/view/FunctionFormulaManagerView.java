@@ -45,25 +45,32 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      List<FormulaType<?>> pArgs) {
-    return manager.createFunction(pName, pReturnType, pArgs);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+    return manager.declareUninterpretedFunction(pName, pReturnType, pArgs);
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
-  public <T extends Formula> T createFuncAndCall(
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
       String pName, int idx, FormulaType<T> pReturnType, List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, idx);
-    return createFuncAndCall(name, pReturnType, pArgs);
+    return declareAndCallUninterpretedFunction(name, pReturnType, pArgs);
   }
-  public <T extends Formula> T createFuncAndCall(String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String pName, int pIdx, FormulaType<T> pReturnType, Formula... pArgs) {
+    return declareAndCallUninterpretedFunction(pName, pIdx, pReturnType, Arrays.asList(pArgs));
+  }
+
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
     final FormulaManagerView viewManager = getViewManager();
 
     List<FormulaType<?>> argTypes = from(pArgs).
@@ -75,12 +82,19 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
             }}).toList();
 
 
-    FunctionFormulaType<T> funcType = createFunction(name, pReturnType, argTypes);
-    return createUninterpretedFunctionCall(funcType, pArgs);
+    FunctionFormulaType<T> funcType = declareUninterpretedFunction(name, pReturnType, argTypes);
+    return callUninterpretedFunction(funcType, pArgs);
   }
 
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, Formula... pArgs) {
+    return declareAndCallUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
+
   @Override
-  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     final FormulaManagerView viewManager = getViewManager();
     List<Formula> args =
         from(pArgs)
@@ -91,13 +105,11 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
                 return viewManager.extractFromView(pArg0);
               }}).toList();
 
-    return viewManager.wrapInView(manager.createUninterpretedFunctionCall(pFuncType, args));
+    return viewManager.wrapInView(manager.callUninterpretedFunction(pFuncType, args));
   }
 
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-    FormulaManagerView viewManager = getViewManager();
-    return manager.isUninterpretedFunctionCall(pFuncType, viewManager.extractFromView(pF));
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> pFuncType, Formula... pArgs) {
+    return callUninterpretedFunction(pFuncType, Arrays.asList(pArgs));
   }
-
 }

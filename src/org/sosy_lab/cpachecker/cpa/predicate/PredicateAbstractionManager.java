@@ -160,6 +160,10 @@ public class PredicateAbstractionManager {
       description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
 
+  @Option(name = "abstraction.simplify",
+      description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
+  private boolean simplifyAbstractionFormula = false;
+
   private boolean warnedOfCartesianAbstraction = false;
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;

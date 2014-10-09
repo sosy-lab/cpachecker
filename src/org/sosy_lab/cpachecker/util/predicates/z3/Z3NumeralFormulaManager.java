@@ -23,42 +23,29 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.math.BigInteger;
+import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Longs;
 
 abstract class Z3NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
   private final long z3context;
-  private final Z3FunctionType<ResultFormulaType> multUfDecl;
-  private final Z3FunctionType<ResultFormulaType> divUfDecl;
-  private final Z3FunctionType<ResultFormulaType> modUfDecl;
-  private final Z3FunctionFormulaManager functionManager;
 
-  Z3NumeralFormulaManager(
+  public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager functionManager) {
-    super(pCreator);
+    super(pCreator, functionManager);
 
     this.z3context = pCreator.getEnv();
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    this.functionManager = functionManager;
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
   }
 
   abstract protected long getNumeralType();
@@ -86,14 +73,6 @@ abstract class Z3NumeralFormulaManager
     return getFormulaCreator().makeVariable(type, varName);
   }
 
-  private Long makeUf(FunctionFormulaType<ResultFormulaType> decl, Long t1, Long t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
-  private boolean isUf(Z3FunctionType<ResultFormulaType> funcDecl, Long pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
-  }
-
   @Override
   public Long negate(Long pNumber) {
     long sort = get_sort(z3context, pNumber);
@@ -102,40 +81,13 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) { return false; }
-    long arg = get_app_arg(z3context, pNumber, 0);
-    if (is_numeral_ast(z3context, arg)) {
-      long sort = get_sort(z3context, arg);
-      int sortKind = get_sort_kind(z3context, sort);
-      switch (sortKind) {
-      case Z3_INT_SORT: {
-        PointerToInt p = new PointerToInt();
-        boolean check = get_numeral_int(z3context, arg, p);
-        Preconditions.checkState(check);
-        return p.value == -1;
-      }
-      case Z3_REAL_SORT: {
-        long numerator = get_numerator(z3context, arg);
-        long denominator = get_denominator(z3context, arg);
-        return (numerator == -denominator); // (a/b==-1) <--> (a==-b)
-      }
-      default:
-        return false;
-      }
-    }
-    return false;
-  }
-
-  @Override
   public Long add(Long pNumber1, Long pNumber2) {
     return mk_add(z3context, pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isAdd(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_ADD);
+  public Long sumImpl(List<Long> operands) {
+    return mk_add(z3context, operands.size(), Longs.toArray(operands));
   }
 
   @Override
@@ -144,36 +96,14 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isSubtract(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_SUB);
-  }
-
-  @Override
   public Long divide(Long pNumber1, Long pNumber2) {
     long result;
     if (is_numeral_ast(z3context, pNumber2)) {
       result = mk_div(z3context, pNumber1, pNumber2);
     } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
+      result = super.divide(pNumber1, pNumber2);
     }
     return result;
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber) {
-    if (isOP(z3context, pNumber, Z3_OP_DIV)) { return true; }
-    long decl = get_app_decl(z3context, pNumber);
-    return is_eq_func_decl(z3context, decl, divUfDecl.getFuncDecl());
-  }
-
-  @Override
-  public Long modulo(Long pNumber1, Long pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber) {
-    return isUf(modUfDecl, pNumber);
   }
 
   @Override
@@ -182,16 +112,9 @@ abstract class Z3NumeralFormulaManager
     if (is_numeral_ast(z3context, pNumber1) || is_numeral_ast(z3context, pNumber2)) {
       result = mk_mul(z3context, pNumber1, pNumber2);
     } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
+      result = super.multiply(pNumber1, pNumber2);
     }
     return result;
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    if (isOP(z3context, pNumber, Z3_OP_MUL)) { return true; }
-    long decl = get_app_decl(z3context, pNumber);
-    return is_eq_func_decl(z3context, decl, multUfDecl.getFuncDecl());
   }
 
   @Override
@@ -215,18 +138,8 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isGreaterThan(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_GT);
-  }
-
-  @Override
   public Long greaterOrEquals(Long pNumber1, Long pNumber2) {
     return mk_ge(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_GE);
   }
 
   @Override
@@ -235,17 +148,7 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public boolean isLessThan(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_LT);
-  }
-
-  @Override
   public Long lessOrEquals(Long pNumber1, Long pNumber2) {
     return mk_le(z3context, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_LE);
   }
 }

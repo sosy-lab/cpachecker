@@ -103,6 +103,11 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   }
 
   @Override
+  protected Term orImpl(List<Term> pParams) {
+    return theory.or(SmtInterpolUtil.toTermArray(pParams));
+  }
+
+  @Override
   public Term xor(Term pBits1, Term pBits2) {
     return theory.xor(pBits1, pBits2);
   }

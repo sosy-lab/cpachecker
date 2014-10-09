@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 import ap.parser.IExpression;
 
-class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, TermType, PrincessEnvironment> {
+class PrincessFormulaCreator extends FormulaCreator<IExpression, TermType, PrincessEnvironment> {
 
   PrincessFormulaCreator(
           PrincessEnvironment pEnv,
@@ -54,12 +54,12 @@ class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, TermTyp
   }
 
   @Override
-  public TermType getRealType() {
+  public TermType getRationalType() {
     throw new UnsupportedOperationException("Rational theory is not supported by Princess");
   }
 
   @Override
-  public TermType getBittype(int pBitwidth) {
+  public TermType getBitvectorType(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by Princess");
   }
 }

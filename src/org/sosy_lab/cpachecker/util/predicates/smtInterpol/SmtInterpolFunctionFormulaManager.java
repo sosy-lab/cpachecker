@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -55,7 +54,7 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
   }
 
   @Override
-  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
+  public <T extends Formula> SmtInterpolFunctionType<T> declareUninterpretedFunction(
           String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     Sort[] types = new Sort[pArgs.size()];
     for (int i = 0; i < types.length; i++) {
@@ -66,25 +65,4 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
 
     return new SmtInterpolFunctionType<>(pReturnType, pArgs, pName);
   }
-
-  @Override
-  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
-  }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Term f) {
-    boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) {
-      return false;
-    }
-
-    // TODO check if exactly the given func
-    return isUf;
-  }
-
 }

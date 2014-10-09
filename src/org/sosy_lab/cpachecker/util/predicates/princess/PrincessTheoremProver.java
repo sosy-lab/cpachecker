@@ -74,7 +74,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
 
   @Override
   public void push(BooleanFormula f) {
-    final IFormula t = castToFormula(mgr.getTerm(f));
+    final IFormula t = castToFormula(mgr.extractInfo(f));
     assertedTerms.add(t);
     stack.push(1);
     stack.assertTerm(t);
@@ -99,7 +99,7 @@ public class PrincessTheoremProver extends PrincessAbstractProver implements Pro
     // unpack formulas to terms
     List<IFormula> importantFormulas = new ArrayList<>(formulas.size());
     for (BooleanFormula impF : formulas) {
-      importantFormulas.add(castToFormula(mgr.getTerm(impF)));
+      importantFormulas.add(castToFormula(mgr.extractInfo(impF)));
     }
 
     solveTime.start();

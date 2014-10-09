@@ -77,7 +77,7 @@ public class ValueAnalysisReducer implements Reducer {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!occursInBlock(pReducedContext, simpleName)) {
-        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar));
+        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar), rootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
         // ignore this case, the variables are part of the reduced state

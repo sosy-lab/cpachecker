@@ -36,7 +36,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
@@ -44,13 +43,12 @@ import ap.parser.IExpression;
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   private PrincessFormulaManager(
-          PrincessEnvironment pEnv,
           PrincessFormulaCreator pCreator,
           PrincessUnsafeFormulaManager pUnsafeManager,
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
           PrincessIntegerFormulaManager pIntegerManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
@@ -67,7 +65,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessBooleanFormulaManager booleanTheory = new PrincessBooleanFormulaManager(creator);
     PrincessIntegerFormulaManager integerTheory = new PrincessIntegerFormulaManager(creator, functionTheory);
 
-    return new PrincessFormulaManager(env, creator, unsafeManager, functionTheory,
+    return new PrincessFormulaManager(creator, unsafeManager, functionTheory,
             booleanTheory, integerTheory);
   }
 
@@ -98,11 +96,5 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
   @Override
   public String getVersion() {
     return getEnvironment().getVersion();
-  }
-
-  @Override
-  protected IExpression getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
   }
 }

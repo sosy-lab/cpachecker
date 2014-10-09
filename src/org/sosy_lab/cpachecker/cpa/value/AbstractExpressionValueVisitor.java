@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -524,6 +525,15 @@ public abstract class AbstractExpressionValueVisitor
     final int cmp;
     switch (type.getType()) {
       case INT: {
+        CSimpleType canonicalType = type.getCanonicalType();
+        int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
+        if (!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG
+            || sizeInBits > SIZE_OF_JAVA_LONG) {
+          BigInteger leftBigInt = l.getNumber() instanceof BigInteger ? (BigInteger) l.getNumber() : BigInteger.valueOf(l.longValue());
+          BigInteger rightBigInt = r.getNumber() instanceof BigInteger ? (BigInteger) r.getNumber() : BigInteger.valueOf(r.longValue());
+          cmp = leftBigInt.compareTo(rightBigInt);
+          break;
+        }
         cmp = Long.compare(l.longValue(), r.longValue());
         break;
       }
@@ -1350,7 +1360,10 @@ public abstract class AbstractExpressionValueVisitor
 
         } else if (size == SIZE_OF_JAVA_LONG) {
           // we can handle this with java-type "long", because the bitwise representation is correct.
-          // we must look for unsigned numbers in later analysis
+          // but for unsigned long we need BigInteger
+          if (!targetIsSigned && longValue < 0) {
+            return new NumericValue(BigInteger.valueOf(longValue).andNot(BigInteger.valueOf(-1).shiftLeft(size)));
+          }
           return new NumericValue(longValue);
 
         } else {

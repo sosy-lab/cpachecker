@@ -66,28 +66,28 @@ class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(String pName, FormulaType<T> pReturnType,
       List<FormulaType<?>> pArgs) {
 
     List<FormulaType<?>> newArgs =
         from(pArgs).transform(unwrapTypes).toList();
     FormulaType<?> ret = unwrapTypes.apply(pReturnType);
-    FunctionFormulaType<?> funcType = rawFunctionFormulaManager.createFunction(pName, ret, newArgs);
+    FunctionFormulaType<?> funcType = rawFunctionFormulaManager.declareUninterpretedFunction(pName, ret, newArgs);
 
     return new ReplaceFunctionFormulaType<>(funcType, pReturnType, pArgs);
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
       String pName,
       FormulaType<T> pReturnType,
       FormulaType<?>... pArgs) {
 
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   @Override
-  public <T extends Formula> T createUninterpretedFunctionCall(
+  public <T extends Formula> T callUninterpretedFunction(
       FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     ReplaceFunctionFormulaType<T> rep = (ReplaceFunctionFormulaType<T>)pFuncType;
 
@@ -100,17 +100,8 @@ class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
               }
             }).toList();
 
-    Formula f = rawFunctionFormulaManager.createUninterpretedFunctionCall(rep.wrapped, newArgs);
+    Formula f = rawFunctionFormulaManager.callUninterpretedFunction(rep.wrapped, newArgs);
 
     return replaceManager.wrap(pFuncType.getReturnType(), f);
   }
-
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-
-    ReplaceFunctionFormulaType<?> rep = (ReplaceFunctionFormulaType<?>)pFuncType;
-    return
-        rawFunctionFormulaManager.isUninterpretedFunctionCall(rep.wrapped, replaceManager.unwrap(pF));
-  }
-
 }

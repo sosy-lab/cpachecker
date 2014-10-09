@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+
+import com.google.common.collect.Lists;
 
 
 public class NumeralFormulaManagerView
@@ -59,6 +62,12 @@ public class NumeralFormulaManagerView
   public ResultFormulaType add(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
+
+  @Override
+  public ResultFormulaType sum(List<ParamFormulaType> operands) {
+    return wrapInView(manager.sum(Lists.transform(operands, extractor)));
+  }
+
   @Override
   public ResultFormulaType subtract(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
@@ -98,61 +107,10 @@ public class NumeralFormulaManagerView
 
 
   @Override
-  public boolean isNegate(ParamFormulaType pNumber) {
-    return manager.isNegate(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isAdd(ParamFormulaType pNumber) {
-    return manager.isAdd(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isSubtract(ParamFormulaType pNumber) {
-    return manager.isSubtract(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isDivide(ParamFormulaType pNumber) {
-    return manager.isDivide(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isModulo(ParamFormulaType pNumber) {
-    return manager.isModulo(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isMultiply(ParamFormulaType pNumber) {
-    return manager.isMultiply(extractFromView(pNumber));
-  }
-
-  @Override
   public boolean isEqual(BooleanFormula pNumber) {
     return manager.isEqual(extractFromView(pNumber));
   }
 
-
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber) {
-    return manager.isGreaterThan(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber) {
-    return manager.isGreaterOrEquals(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber) {
-    return manager.isLessThan(extractFromView(pNumber));
-  }
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber) {
-    return manager.isLessOrEquals(extractFromView(pNumber));
-  }
 
   @Override
   public ResultFormulaType makeNumber(long pI) {

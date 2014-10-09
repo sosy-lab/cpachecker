@@ -29,18 +29,23 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -51,6 +56,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -69,11 +75,15 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix="spec")
@@ -89,7 +99,7 @@ public class AutomatonGraphmlParser {
   private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
   @Option(description="Match the source code provided with the witness.")
-  private boolean matchSourcecodeData = false;
+  private boolean matchSourcecodeData = true;
 
   @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
@@ -254,12 +264,41 @@ public class AutomatonGraphmlParser {
       // Create transitions ----
       AutomatonBoolExpr epsilonTrigger = new SubsetMatchEdgeTokens(Collections.<Comparable<Integer>>emptySet());
       NodeList edges = doc.getElementsByTagName(GraphMlTag.EDGE.toString());
+      NodeList nodes = doc.getElementsByTagName(GraphMlTag.NODE.toString());
       Map<String, LinkedList<AutomatonTransition>> stateTransitions = Maps.newHashMap();
-      for (int i=0; i<edges.getLength(); i++) {
+      Map<String, Deque<String>> stacks = Maps.newHashMap();
+
+      // Create graph
+      Multimap<String, Node> graph = HashMultimap.create();
+      String entryNodeId = null;
+      for (int i = 0; i < edges.getLength(); i++) {
         Node stateTransitionEdge = edges.item(i);
 
         String sourceStateId = docDat.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
+        graph.put(sourceStateId, stateTransitionEdge);
+      }
+
+      // Find entry
+      for (int i = 0; i < nodes.getLength(); ++i) {
+        Node node = nodes.item(i);
+        if (Boolean.parseBoolean(docDat.getDataValueWithDefault(node, KeyDef.ISENTRYNODE, "false"))) {
+          entryNodeId = docDat.getAttributeValue(node, "id", "Every node needs an id!");
+          break;
+        }
+      }
+
+      Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
+
+      Queue<Node> waitingEdges = new ArrayDeque<>();
+      waitingEdges.addAll(graph.get(entryNodeId));
+      while (!waitingEdges.isEmpty()) {
+        Node stateTransitionEdge = waitingEdges.poll();
+
+        String sourceStateId = docDat.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = docDat.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
+
+        waitingEdges.addAll(graph.get(targetStateId));
+
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
@@ -279,10 +318,34 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(targetStateId, targetStateTransitions);
         }
 
+        // Handle stack
+        Deque<String> currentStack = stacks.get(sourceStateId);
+        if (currentStack == null) {
+          currentStack = new ArrayDeque<>();
+          stacks.put(sourceStateId, currentStack);
+        }
+        Deque<String> newStack = currentStack;
+        Set<String> functionEntries = docDat.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONENTRY);
+        if (!functionEntries.isEmpty()) {
+          newStack = new ArrayDeque<>(newStack);
+          newStack.push(Iterables.getOnlyElement(functionEntries));
+        }
+        Set<String> functionExits = docDat.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONEXIT);
+        if (!functionExits.isEmpty()) {
+          newStack = new ArrayDeque<>(newStack);
+          String oldFunction = newStack.pop();
+          assert oldFunction.equals(Iterables.getOnlyElement(functionExits));
+        }
+        stacks.put(targetStateId, newStack);
+
         AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
 
         if (considerAssumptions) {
           Set<String> transAssumes = docDat.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
+          Scope scope = this.scope;
+          if (!newStack.isEmpty() && scope instanceof CProgramScope) {
+            scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
+          }
           for (String assumeCode : transAssumes) {
             assumptions.addAll(AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, cparser, scope));
           }
@@ -336,7 +399,8 @@ public class AutomatonGraphmlParser {
             transitions.add(0, tr);
           }
 
-        } else if (matchSourcecodeData) {
+        }
+        if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = docDat.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
           Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
           if (sourceCodeDataTags.isEmpty()) {
@@ -644,5 +708,20 @@ public class AutomatonGraphmlParser {
 
   }
 
+  public static boolean isGraphmlAutomaton(Path pPath, LogManager pLogger) throws InvalidConfigurationException {
+    try (InputStream input = pPath.asByteSource().openStream()) {
+      SAXParserFactory.newInstance().newSAXParser().parse(input, new DefaultHandler());
+      return true;
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException("Invalid automaton file provided! File not found: " + pPath.getPath());
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Error while accessing automaton file", e);
+    } catch (SAXException e) {
+      return false;
+    } catch (ParserConfigurationException e) {
+      pLogger.logException(Level.WARNING, e, "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
+      return false;
+    }
+  }
 
 }

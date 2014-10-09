@@ -219,7 +219,7 @@ public class SSAMap implements Serializable {
         return ssa;
       }
 
-      ssa = new SSAMap(vars, latestUsedVars, varsHashCode, varTypes);
+      ssa = new SSAMap(vars, latestUsedVars, varsHashCode, varTypes, ssa.defaultValue);
       return ssa;
     }
 

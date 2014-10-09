@@ -39,9 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.FullPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.LocalizedRefinablePrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.RefinablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -174,7 +173,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
         // compute the abstraction for assignment thresholds
         totalEnforcePath.start();
-        Pair<ValueAnalysisState, VariableTrackingPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns);
+        Pair<ValueAnalysisState, VariableTrackingPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns, location.getLocationNode());
         totalEnforcePath.stop();
 
         outElements.add(result.getFirst());
@@ -226,21 +225,19 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         || abstractAtJoins(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
-      RefinablePrecision refPrec = precision.getRefinablePrecision();
-      refPrec.setLocation(location.getLocationNode());
 
       Collection<MemoryLocation> candidates;
-      if (refPrec instanceof FullPrecision
-          || refPrec instanceof ScopedRefinablePrecision) {
+      if (precision instanceof ConfigurablePrecision
+          || precision instanceof ScopedRefinablePrecision) {
         candidates = state.getDelta();
-      } else if (refPrec instanceof LocalizedRefinablePrecision) {
+      } else if (precision instanceof LocalizedRefinablePrecision) {
         candidates = state.getTrackedMemoryLocations();
       } else {
-        throw new AssertionError("RefinablePrecision instance which is not handled: " + refPrec.getClass());
+        throw new AssertionError("VariableTrackingPrecision instance which is not handled: " + precision.getClass());
       }
 
       for (MemoryLocation memoryLocation : candidates) {
-        if (!precision.isTracking(memoryLocation)) {
+        if (!precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
           state.forget(memoryLocation);
         }
       }
@@ -315,14 +312,14 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
    */
   private Pair<ValueAnalysisState, VariableTrackingPrecision> enforcePathThreshold(ValueAnalysisState state,
       VariableTrackingPrecision precision,
-      UniqueAssignmentsInPathConditionState assignments) {
+      UniqueAssignmentsInPathConditionState assignments, CFANode location) {
     if (assignments != null) {
 
       // forget the value for all variables that exceed their threshold
       for (MemoryLocation memoryLocation: state.getDelta()) {
 
         // if memory location is being tracked, check against hard threshold
-        if (precision.isTracking(memoryLocation)) {
+        if (precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location)) {
           assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
 
           if (assignments.exceedsHardThreshold(memoryLocation)) {

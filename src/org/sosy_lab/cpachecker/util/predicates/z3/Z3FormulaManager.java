@@ -47,28 +47,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   @Option(description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
 
-  @Options(prefix = "cpa.predicate.solver.z3")
-  private static class Z3NativeLoader {
-    @Option(description="Load Z3 with interpolation support. Requires [libfoci].")
-    boolean supportInterpolation = false;
-
-    private Z3NativeLoader(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-
-    void loadZ3() {
-      if (supportInterpolation) {
-        NativeLibraries.loadLibrary("z3j_interp");
-      } else {
-        NativeLibraries.loadLibrary("z3j");
-      }
-    }
-  }
-
   private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
-      long z3context,
       Z3FormulaCreator pFormulaCreator,
       Z3UnsafeFormulaManager pUnsafeManager,
       Z3FunctionFormulaManager pFunctionManager,
@@ -78,7 +59,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
-    super(z3context, pFormulaCreator, pUnsafeManager, pFunctionManager,
+    super(pFormulaCreator, pUnsafeManager, pFunctionManager,
             pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager);
     config.inject(this);
     this.z3smtLogger = smtLogger;
@@ -88,8 +69,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
 
-    // Load Z3 native library.
-    new Z3NativeLoader(config).loadZ3();
+    NativeLibraries.loadLibrary("z3j");
 
     /*
     Following method is part of the file "api_interp.cpp" from Z3.
@@ -158,7 +138,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
-        context, creator,
+        creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, smtLogger, config);
     return instance;
@@ -212,12 +192,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   protected BooleanFormula encapsulateBooleanFormula(long t) {
     return getFormulaCreator().encapsulateBoolean(t);
-  }
-
-  @Override
-  protected Long getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
   }
 
   //  @Override

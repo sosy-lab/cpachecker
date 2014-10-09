@@ -212,7 +212,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
     }
 
-    refinedOctPrecision  = new VariableTrackingPrecision(octPrecision, increment);
+    refinedOctPrecision  = octPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedOctPrecision);
     newPrecisionTypes.add(VariableTrackingPrecision.class);
 
@@ -245,7 +245,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(new VariableTrackingPrecision(octPrecision, increment));
+    refinedPrecisions.add(octPrecision.withIncrement(increment));
     newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
@@ -318,7 +318,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, octagonCPA.getConfiguration());
 
       return checker.isFeasible(path);
     }

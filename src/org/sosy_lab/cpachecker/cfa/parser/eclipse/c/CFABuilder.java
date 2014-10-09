@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -165,7 +166,7 @@ class CFABuilder extends ASTVisitor {
       CFunctionDeclaration functionDefinition = astCreator.convert(fd);
       if (sideAssignmentStack.hasPreSideAssignments()
           || sideAssignmentStack.hasPostSideAssignments()) {
-        throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
+        throw new CFAGenerationRuntimeException("Function definition has side effect", fd, niceFileNameFunction);
       }
 
       fileScope.registerFunctionDeclaration(functionDefinition);
@@ -196,7 +197,7 @@ class CFABuilder extends ASTVisitor {
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown declaration type "
-          + declaration.getClass().getSimpleName(), declaration);
+          + declaration.getClass().getSimpleName(), declaration, niceFileNameFunction);
     }
   }
 
@@ -214,7 +215,7 @@ class CFABuilder extends ASTVisitor {
 
     if (sideAssignmentStack.hasConditionalExpression()
         || sideAssignmentStack.hasPostSideAssignments()) {
-      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
     }
 
     String rawSignature = sd.getRawSignature();
@@ -223,8 +224,19 @@ class CFABuilder extends ASTVisitor {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
         globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+      } else if (astNode instanceof CVariableDeclaration) {
+        // If the initializer of a global struct contains a type-id expression,
+        // a temporary variable is created and we need to support this.
+        // We detect this case if the initializer of the temp variable is an initializer list.
+        CInitializer initializer = ((CVariableDeclaration)astNode).getInitializer();
+        if (initializer instanceof CInitializerList) {
+          globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+        } else {
+          throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
+        }
+
       } else {
-        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
       }
     }
 
@@ -276,7 +288,7 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
-    throw new CFAGenerationRuntimeException(problem);
+    throw new CFAGenerationRuntimeException(problem, niceFileNameFunction);
   }
 
   public ParseResult createCFA() throws CParserException {

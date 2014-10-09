@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -97,6 +97,26 @@ public class ARGUtils {
         if (result.add(parent)) {
           waitList.push(parent);
         }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get all abstract states without parents.
+   */
+  public static Set<AbstractState> getRootStates(ReachedSet pReached) {
+
+    Set<AbstractState> result = new HashSet<>();
+
+    Iterator<AbstractState> it = pReached.iterator();
+    while (it.hasNext()) {
+      AbstractState e = it.next();
+      ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
+
+      if (state.getParents().isEmpty()) {
+        result.add(state);
       }
     }
 
@@ -225,22 +245,6 @@ public class ARGUtils {
       },
       AbstractStates.EXTRACT_LOCATION);
 
-  static final Predicate<AbstractState> IMPORTANT_FOR_ANALYSIS = Predicates.compose(
-      notNullAnd(PredicateAbstractState.FILTER_ABSTRACTION_STATES),
-      AbstractStates.toState(PredicateAbstractState.class));
-
-  private static <T> Predicate<T> notNullAnd(final Predicate<T> p) {
-    return new Predicate<T>() {
-        @Override
-        public boolean apply(T pInput) {
-          if (pInput == null) {
-            return false;
-          }
-          return p.apply(pInput);
-        }
-      };
-  }
-
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
       AbstractStates.IS_TARGET_STATE,
@@ -251,7 +255,12 @@ public class ARGUtils {
             return !pInput.wasExpanded();
           }
         },
-      IMPORTANT_FOR_ANALYSIS
+      new Predicate<ARGState>() {
+          @Override
+          public boolean apply(ARGState pInput) {
+            return pInput.shouldBeHighlighted();
+          }
+        }
       );
 
   /**
@@ -472,50 +481,52 @@ public class ARGUtils {
     };
   }
 
+  /**
+   * Check consistency of ARG, and consistency between ARG and reached set.
+   *
+   * Checks we do here currently:
+   * - child-parent relationship of ARG states
+   * - states in ARG are also in reached set and vice versa (as far as possible to check)
+   * - no destroyed states present
+   *
+   * This method is potentially expensive,
+   * and should be called only from an assert statement.
+   * @return <code>true</code>
+   * @throws AssertionError If any consistency check is violated.
+   */
   public static boolean checkARG(ReachedSet pReached) {
+    // Not all states in ARG might be reachable from a single root state
+    // in case of multiple initial states and disjoint ARGs.
 
-      Deque<AbstractState> workList = new ArrayDeque<>();
-      Set<ARGState> arg = new HashSet<>();
+    for (ARGState e : from(pReached).transform(toState(ARGState.class))) {
+      assert e != null : "Reached set contains abstract state without ARGState.";
+      assert !e.isDestroyed() : "Reached set contains destroyed ARGState, which should have been removed.";
 
-      workList.add(pReached.getFirstState());
-      while (!workList.isEmpty()) {
-        ARGState currentElement = (ARGState)workList.removeFirst();
-        assert !currentElement.isDestroyed();
-
-        for (ARGState parent : currentElement.getParents()) {
-          assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ARG";
-        }
-        for (ARGState child : currentElement.getChildren()) {
-          assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ARG";
-        }
-
-        // check if (e \in ARG) => (e \in Reached || e.isCovered())
-        if (currentElement.isCovered()) {
-          // Assertion removed because now covered states are allowed to be in the reached set.
-          // But they don't need to be!
-  //        assert !pReached.contains(currentElement) : "Reached set contains covered element";
-
-        } else {
-          // There is a special case here:
-          // If the element is the sibling of the target state, it might have not
-          // been added to the reached set if CPAAlgorithm stopped before.
-          // But in this case its parent is in the waitlist.
-
-          assert pReached.contains(currentElement)
-              || pReached.getWaitlist().containsAll(currentElement.getParents())
-              : "Element in ARG but not in reached set";
-        }
-
-        if (arg.add(currentElement)) {
-          workList.addAll(currentElement.getChildren());
-        }
+      for (ARGState parent : e.getParents()) {
+        assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
+        assert pReached.contains(parent) : "Referenced parent is missing in reached";
       }
 
-      // check if (e \in Reached) => (e \in ARG)
-      assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
+      for (ARGState child : e.getChildren()) {
+        assert child.getParents().contains(e) : "Reference from child to parent is missing in ARG";
 
-      return true;
+        // Usually, all children should be in reached set, with two exceptions.
+        // 1) Covered states need not be in the reached set (this depends on cpa.arg.keepCoveredStatesInReached),
+        // but if they are not in the reached set, they may not have children.
+        // 2) If the state is the sibling of the target state, it might have not
+        // been added to the reached set if CPAAlgorithm stopped before.
+        // But in this case its parent is in the waitlist.
+
+        if (!pReached.contains(child)) {
+          assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
+              || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+              : "Referenced child is missing in reached set.";
+        }
+      }
     }
+
+    return true;
+  }
 
 
   public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)

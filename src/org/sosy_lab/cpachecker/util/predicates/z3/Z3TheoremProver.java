@@ -28,7 +28,10 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
@@ -51,17 +54,28 @@ public class Z3TheoremProver implements ProverEnvironment {
   private long z3solver;
   private final Z3SmtLogger smtLogger;
   private int level = 0;
+  private int track_no = 0;
 
-  public Z3TheoremProver(Z3FormulaManager mgr) {
-    this.mgr = mgr;
-    this.z3context = mgr.getEnvironment();
-    this.z3solver = mk_solver(z3context);
+  private static final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
+
+  private final Map<String, BooleanFormula> storedConstraints;
+
+  public Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+    mgr = pMgr;
+    z3context = mgr.getEnvironment();
+    z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
-    this.smtLogger = mgr.getSmtLogger();
+    smtLogger = mgr.getSmtLogger();
+    if (generateUnsatCore) {
+      storedConstraints = new HashMap<>();
+    } else {
+      storedConstraints = null;
+    }
   }
 
   @Override
   public void push(BooleanFormula f) {
+    track_no++;
     level++;
 
     Preconditions.checkArgument(z3context != 0);
@@ -73,7 +87,18 @@ public class Z3TheoremProver implements ProverEnvironment {
       inc_ref(z3context, e);
     }
 
-    solver_assert(z3context, z3solver, e);
+    if (storedConstraints != null) {
+      String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
+      // TODO: can we do with no casting?
+      Z3BooleanFormula t =
+          (Z3BooleanFormula) mgr.getBooleanFormulaManager().makeVariable(
+              varName);
+
+      solver_assert_and_track(z3context, z3solver, e, t.getExpr());
+      storedConstraints.put(varName, f);
+    } else {
+      solver_assert(z3context, z3solver, e);
+    }
 
     smtLogger.logPush(1);
     smtLogger.logAssert(e);
@@ -106,7 +131,25 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   @Override
   public List<BooleanFormula> getUnsatCore() {
-    throw new UnsupportedOperationException();
+    if (storedConstraints == null) {
+      throw new UnsupportedOperationException(
+          "Option to generate the UNSAT core wasn't enabled when creating" +
+          " the prover environment."
+      );
+    }
+
+    List<BooleanFormula> constraints = new LinkedList<>();
+    long ast_vector = solver_get_unsat_core(z3context, z3solver);
+    ast_vector_inc_ref(z3context, ast_vector);
+    for (int i=0; i<ast_vector_size(z3context, ast_vector); i++) {
+      long ast = ast_vector_get(z3context, ast_vector, i);
+      BooleanFormula f = mgr.encapsulateBooleanFormula(ast);
+
+      // TODO: a proper way to get a variable name.
+      constraints.add(storedConstraints.get(f.toString()));
+    }
+    ast_vector_dec_ref(z3context, ast_vector);
+    return constraints;
   }
 
   @Override

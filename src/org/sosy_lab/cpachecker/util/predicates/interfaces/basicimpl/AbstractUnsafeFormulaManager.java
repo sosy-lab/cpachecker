@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
 
-  protected AbstractUnsafeFormulaManager(AbstractFormulaCreator<TFormulaInfo, TType, TEnv> creator) {
+  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
   }
 

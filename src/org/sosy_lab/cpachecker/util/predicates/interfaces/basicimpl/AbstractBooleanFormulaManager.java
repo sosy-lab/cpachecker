@@ -39,8 +39,16 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
 
+  private final Function<BooleanFormula, TFormulaInfo> extractor =
+      new Function<BooleanFormula, TFormulaInfo>() {
+        @Override
+        public TFormulaInfo apply(BooleanFormula pInput) {
+          return extractInfo(pInput);
+        }
+      };
+
   protected AbstractBooleanFormulaManager(
-      AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 
@@ -99,13 +107,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
     if (pBits.size() == 1) {
       return pBits.get(0);
     }
-    TFormulaInfo result = andImpl(Lists.transform(pBits,
-        new Function<BooleanFormula, TFormulaInfo>() {
-          @Override
-          public TFormulaInfo apply(BooleanFormula pInput) {
-            return extractInfo(pInput);
-          }
-        }));
+    TFormulaInfo result = andImpl(Lists.transform(pBits, extractor));
     return wrap(result);
   }
 
@@ -132,6 +134,26 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
     TFormulaInfo param2 = extractInfo(pBits2);
 
     return wrap(xor(param1, param2));
+  }
+
+  @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    if (pBits.isEmpty()) {
+      return makeBoolean(false);
+    }
+    if (pBits.size() == 1) {
+      return pBits.get(0);
+    }
+    TFormulaInfo result = orImpl(Lists.transform(pBits, extractor));
+    return wrap(result);
+  }
+
+  protected TFormulaInfo orImpl(List<TFormulaInfo> pParams) {
+    TFormulaInfo result = makeBooleanImpl(false);
+    for (TFormulaInfo formula : pParams) {
+      result = or(result, formula);
+    }
+    return result;
   }
 
   protected abstract TFormulaInfo xor(TFormulaInfo pParam1, TFormulaInfo pParam2);
@@ -209,9 +231,8 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
           + f1 + " is of type " + t1 + "; "
           + f2 + " is of type " + t2);
     }
-    FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
     TFormulaInfo result = ifThenElse(extractInfo(pBits), extractInfo(f1), extractInfo(f2));
-    return creator.encapsulate(t1, result);
+    return getFormulaCreator().encapsulate(t1, result);
   }
   protected abstract TFormulaInfo ifThenElse(TFormulaInfo cond, TFormulaInfo f1, TFormulaInfo f2);
 

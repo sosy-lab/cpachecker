@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -131,6 +133,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private final CFA cfa;
 
   private final LogManager logger;
+  private final Configuration config;
 
   public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -231,6 +234,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    config = pConfig;
     shutDownNotifier = pShutdownNotifier;
 
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
@@ -260,11 +264,20 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return predicatingRefiner.performRefinement(reached, pErrorPath);
 
     } else {
-      ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
 
-      Model model = va.allocateAssignmentsToPath(errorPath, cfa.getMachineModel());
+      try {
+        ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
-      return CounterexampleInfo.feasible(pErrorPath, model);
+        List<Pair<ValueAnalysisState, CFAEdge>> evaluatedPath = evaluator.evaluate(errorPath);
+
+        ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
+        Model model = va.allocateAssignmentsToPath(evaluatedPath, cfa.getMachineModel());
+
+        return CounterexampleInfo.feasible(pErrorPath, model);
+
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException("Failed to configure feasbility checker", e);
+      }
     }
   }
 
@@ -309,7 +322,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
     }
 
-    VariableTrackingPrecision refinedValueAnalysisPrecision  = new VariableTrackingPrecision(valueAnalysisPrecision, increment);
+    VariableTrackingPrecision refinedValueAnalysisPrecision  = valueAnalysisPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedValueAnalysisPrecision);
     newPrecisionTypes.add(VariableTrackingPrecision.class);
 
@@ -396,7 +409,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   boolean isPathFeasable(MutableARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
+      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
 
       return checker.isFeasible(path);
     }

@@ -35,15 +35,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 
 /** This Class contains functions,
  * that convert operators from C-source into CPAchecker-format. */
 class ASTOperatorConverter {
 
+  private final Function<String, String> niceFileNameFunction;
+
+  ASTOperatorConverter(Function<String, String> pNiceFileNameFunction) {
+    niceFileNameFunction = pNiceFileNameFunction;
+  }
+
   /** converts and returns the operator of an unaryExpression
    * (PLUS, MINUS, NOT, STAR,...) */
-  static UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
+  UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
     switch (e.getOperator()) {
     case IASTUnaryExpression.op_amper:
       return UnaryOperator.AMPER;
@@ -58,13 +65,13 @@ class ASTOperatorConverter {
     case IASTUnaryExpression.op_alignOf:
       return UnaryOperator.ALIGNOF;
     default:
-      throw new CFAGenerationRuntimeException("Unknown unary operator", e);
+      throw new CFAGenerationRuntimeException("Unknown unary operator", e, niceFileNameFunction);
     }
   }
 
   /** converts and returns the operator of an binaryExpression
    * (PLUS, MINUS, MULTIPLY,...) with an flag, if the operator causes an assignment. */
-  static Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
+  Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
     boolean isAssign = false;
     final BinaryOperator operator;
 
@@ -162,7 +169,7 @@ class ASTOperatorConverter {
       operator = BinaryOperator.NOT_EQUALS;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown binary operator", e);
+      throw new CFAGenerationRuntimeException("Unknown binary operator", e, niceFileNameFunction);
     }
 
     return Pair.of(operator, isAssign);
@@ -170,7 +177,7 @@ class ASTOperatorConverter {
 
   /** converts and returns the operator of an idExpression
    * (alignOf, sizeOf,...) */
-  static TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
+  TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
     switch (e.getOperator()) {
     case IASTTypeIdExpression.op_alignof:
       return TypeIdOperator.ALIGNOF;
@@ -181,7 +188,7 @@ class ASTOperatorConverter {
     case IASTTypeIdExpression.op_typeof:
       return TypeIdOperator.TYPEOF;
     default:
-      throw new CFAGenerationRuntimeException("Unknown type id operator", e);
+      throw new CFAGenerationRuntimeException("Unknown type id operator", e, niceFileNameFunction);
     }
   }
 

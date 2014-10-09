@@ -264,8 +264,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   }
 
   private InvariantsFormula<CompoundInterval> topIfProblematicType(CType pType, InvariantsFormula<CompoundInterval> pFormula) {
-    if ((pType instanceof CSimpleType) && ((CSimpleType) pType).isUnsigned()) {
-      CompoundInterval value =  pFormula.accept(evaluationVisitor, environment);
+    if ((pType instanceof CSimpleType) && ((CSimpleType) pType).getCanonicalType().isUnsigned()) {
+      CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
+      if (value.isTop()) {
+        return pFormula;
+      }
       if (value.containsNegative()) {
         return TOP;
       }

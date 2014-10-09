@@ -95,7 +95,7 @@ public class FormulaManagerFactory {
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the FOCI library from http://www.kenmcmil.com/foci2/).")
+  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.")
   private Solvers solver = Solvers.MATHSAT5;
 
   @Option(description="Which solver to use specifically for interpolation (default is to use the main one).")
@@ -188,7 +188,7 @@ public class FormulaManagerFactory {
       pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
       break;
     case Z3:
-      pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      pe = new Z3TheoremProver((Z3FormulaManager) fmgr, generateUnsatCore);
       break;
     case PRINCESS:
       pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);

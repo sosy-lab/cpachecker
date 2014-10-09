@@ -99,6 +99,14 @@ public class ExtendedRational implements Comparable<ExtendedRational>{
     return new ExtendedRational(BigInteger.valueOf(numerator), b_one);
   }
 
+  public static ExtendedRational ofBigInteger(BigInteger numerator) {
+    return new ExtendedRational(numerator, b_one);
+  }
+
+  public static ExtendedRational ofBigIntegers(BigInteger numerator, BigInteger denominator) {
+    return new ExtendedRational(numerator, denominator);
+  }
+
   public NumberType getType() {
     if (isZero(num) && isZero(den)) {
       return NumberType.NaN;

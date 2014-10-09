@@ -228,8 +228,8 @@ final class Z3NativeApi {
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
   public static native long mk_xor(long context, long a1, long a2);
-  private static native long mk_and(long context, int len, long[] as);
-  private static native long mk_or(long context, int len, long[] as);
+  public static native long mk_and(long context, int len, long[] as);
+  public static native long mk_or(long context, int len, long[] as);
 
   public static long mk_distinct(long context, long... as) {
     return mk_distinct(context, as.length, as);
@@ -244,7 +244,7 @@ final class Z3NativeApi {
   }
 
   // ARITHMETIC: INTEGERS AND REALS
-  private static native long mk_add(long context, int len, long[] as);
+  public static native long mk_add(long context, int len, long[] as);
   private static native long mk_mul(long context, int len, long[] as);
   private static native long mk_sub(long context, int len, long[] as);
   public static native long mk_unary_minus(long context, long a1);
@@ -725,6 +725,12 @@ final class Z3NativeApi {
   public static native int solver_check_assumptions(long context, long solver, int len, long[] assumptions);
   public static native long solver_get_model(long context, long solver);
   public static native long solver_get_proof(long context, long solver);
+
+  /**
+   * Return the unsatisfiable core for the problem.
+   *
+   * @return Z3_ast_vector
+   */
   public static native long solver_get_unsat_core(long context, long solver);
   public static native String solver_get_reason_unknown(long context, long solver);
   public static native long solver_get_statistics(long context, long solver);

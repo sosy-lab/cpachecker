@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 
-class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
+class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   public Mathsat5FormulaCreator(final Long msatEnv) {
     super(msatEnv,
@@ -83,7 +83,7 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   }
 
   @Override
-  public Long getBittype(int pBitwidth) {
+  public Long getBitvectorType(int pBitwidth) {
     return msat_get_bv_type(getEnv(), pBitwidth);
   }
 

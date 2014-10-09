@@ -43,7 +43,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
@@ -57,14 +56,13 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtInterpolEnvironment> {
 
   private SmtInterpolFormulaManager(
-      SmtInterpolEnvironment pEnv,
       SmtInterpolFormulaCreator pCreator,
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolIntegerFormulaManager pIntegerManager,
       SmtInterpolRationalFormulaManager pRationalManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -83,7 +81,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
     SmtInterpolIntegerFormulaManager integerTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
     SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
 
-    return new SmtInterpolFormulaManager(env, creator, unsafeManager, functionTheory,
+    return new SmtInterpolFormulaManager(creator, unsafeManager, functionTheory,
             booleanTheory, integerTheory, rationalTheory);
   }
 
@@ -178,11 +176,5 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
   SmtInterpolEnvironment createEnvironment() {
     assert getEnvironment() != null;
     return getEnvironment();
-  }
-
-  @Override
-  protected Term getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
   }
 }

@@ -150,7 +150,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptySet();
     }
 
-    state = state.updateAbstractionStrategy(precision, pEdge);
+    state = state.updateAbstractionState(precision, pEdge);
 
     return Collections.singleton(state);
   }
@@ -216,7 +216,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     /*
      * Assume the state of the expression:
      */
-    InvariantsState result = pState.assume(pAssumption, pEdge);
+    InvariantsState result = pState.assume(pAssumption);
     return result;
   }
 
@@ -245,7 +245,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     value = topIfProblematicType(pElement, value, decl.getType());
-    return pElement.assign(varName, value, pEdge);
+    return pElement.assign(varName, value);
   }
 
   private InvariantsState handleFunctionCall(final InvariantsState pElement, final CFunctionCallEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -285,7 +285,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
 
       value = topIfProblematicType(pElement, value, declaration.getType());
-      newElement = newElement.assign(formalParam, value, pEdge);
+      newElement = newElement.assign(formalParam, value);
     }
 
     return newElement;
@@ -332,10 +332,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
       InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
-      return pElement.assignArray(array, subscript, pValue, pEdge);
+      return pElement.assignArray(array, subscript, pValue);
     } else {
       String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
-      return pElement.assign(varName, pValue, pEdge);
+      return pElement.assign(varName, pValue);
     }
   }
 
@@ -358,7 +358,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     InvariantsFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    return pElement.assign(returnValueName, returnedState, pEdge);
+    return pElement.assign(returnValueName, returnedState);
   }
 
   private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge, InvariantsPrecision pPrecision)
@@ -396,10 +396,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               String varName = entry.getKey();
               if (varName.startsWith(formalParamPrefixDeref)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
-                result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue(), summaryEdge);
+                result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue());
               } else if (varName.startsWith(formalParamPrefixAccess)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
-                result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue(), summaryEdge);
+                result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue());
               }
             }
           }
@@ -571,11 +571,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             });
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
               for (String variableName : targets) {
-                result = result.assign(variableName, top, edge);
+                result = result.assign(variableName, top);
               }
             }
           } else if (moreThanOneLocation) {
-            result = result.assign(location, top, edge);
+            result = result.assign(location, top);
           }
         }
       }

@@ -100,6 +100,11 @@ class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager {
   }
 
   @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    return rawBooleanManager.or(pBits);
+  }
+
+  @Override
   public BooleanFormula xor(BooleanFormula pBits1, BooleanFormula pBits2) {
     return rawBooleanManager.xor(pBits1, pBits2);
   }

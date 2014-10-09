@@ -276,7 +276,7 @@ public class EclipseCParser implements CParser {
           if (include.isSystemInclude()) {
             throw new CFAGenerationRuntimeException("File includes system headers, either preprocess it manually or specify -preprocess.");
           } else {
-            throw new CFAGenerationRuntimeException("Included file " + include.getName() + " is missing", include);
+            throw new CFAGenerationRuntimeException("Included file " + include.getName() + " is missing", include, Functions.<String>identity());
           }
         }
       }
@@ -284,7 +284,7 @@ public class EclipseCParser implements CParser {
       // Report the preprocessor problems.
       // TODO this shows only the first problem
       for (IASTProblem problem : result.getPreprocessorProblems()) {
-        throw new CFAGenerationRuntimeException(problem);
+        throw new CFAGenerationRuntimeException(problem, Functions.<String>identity());
       }
 
       return result;

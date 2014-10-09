@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -62,7 +61,7 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
   }
 
   @Override
-  public <T extends Formula> Z3FunctionType<T> createFunction(
+  public <T extends Formula> Z3FunctionType<T> declareUninterpretedFunction(
         String pName,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgs) {
@@ -80,25 +79,4 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
 
     return new Z3FunctionType<>(pReturnType, pArgs, func);
   }
-
-  @Override
-  public <T extends Formula> Z3FunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
-  }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long f) {
-    boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) {
-      return false;
-    }
-
-    // TODO check if exactly the given func
-    return isUf;
-  }
-
 }

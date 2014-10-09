@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -113,12 +114,18 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger, CFA cfa)
+  private final CFA cfa;
+  private final LogManager logger;
+
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
 
-    config.inject(this, ControlAutomatonCPA.class);
+    pConfig.inject(this, ControlAutomatonCPA.class);
 
-    transferRelation = new AutomatonTransferRelation(this, config, logger);
+    this.cfa = pCFA;
+    this.logger = pLogger;
+
+    transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
 
     final PrecisionAdjustment lPrecisionAdjustment;
 
@@ -153,7 +160,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     } else {
 
-      Language language = cfa.getLanguage();
+      Language language = pCFA.getLanguage();
 
       List<Automaton> lst;
 
@@ -161,14 +168,14 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
       switch (language) {
       case C:
-        scope = new CProgramScope(cfa);
+        scope = new CProgramScope(pCFA, pLogger);
         break;
       default:
         scope = DummyScope.getInstance();
         break;
       }
 
-      lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope, language);
+      lst = AutomatonParser.parseAutomatonFile(inputFile, pConfig, pLogger, pCFA.getMachineModel(), scope, language);
 
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
@@ -180,13 +187,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
       this.automaton = lst.get(0);
     }
-    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+    pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
       try (Writer w = Files.openOutputFile(exportFile.getPath(automaton.getName()))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+        pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
     }
 
@@ -259,5 +266,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
+  }
+
+  MachineModel getMachineModel() {
+    return cfa.getMachineModel();
+  }
+
+  LogManager getLogManager() {
+    return logger;
   }
 }

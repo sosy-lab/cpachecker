@@ -46,17 +46,9 @@ public class FormulaMeasuring {
     private int negations = 0;
     private int atoms = 0;
     private int arithmeticEquals = 0;
-    private int arithmeticIsLess = 0;
-    private int arithmeticIsLessOrEquals = 0;
-    private int arithmeticIsGreater = 0;
-    private int arithmeticIsGreaterOrEquals = 0;
     private final Set<String> variables = new HashSet<>();
 
     public int getArithmeticEquals() { return arithmeticEquals; }
-    public int getArithmeticIsGreater() { return arithmeticIsGreater; }
-    public int getArithmeticIsGreaterOrEquals() { return arithmeticIsGreaterOrEquals; }
-    public int getArithmeticIsLess() { return arithmeticIsLess; }
-    public int getArithmeticIsLessOrEquals() { return arithmeticIsLessOrEquals; }
     public int getAtoms() { return atoms; }
     public int getConjunctions() { return conjunctions; }
     public int getDisjunctions() { return disjunctions; }
@@ -112,18 +104,6 @@ public class FormulaMeasuring {
       if (fmgr.isPurelyArithmetic(atom)) {
         if (rfmgr.isEqual(atom)) {
           measures.arithmeticEquals++;
-        }
-        if (rfmgr.isLessOrEquals(atom)) {
-          measures.arithmeticIsLessOrEquals++;
-        }
-        if (rfmgr.isLessThan(atom)) {
-          measures.arithmeticIsLess++;
-        }
-        if (rfmgr.isGreaterOrEquals(atom)) {
-          measures.arithmeticIsGreaterOrEquals++;
-        }
-        if (rfmgr.isGreaterThan(atom)) {
-          measures.arithmeticIsGreater++;
         }
       }
 

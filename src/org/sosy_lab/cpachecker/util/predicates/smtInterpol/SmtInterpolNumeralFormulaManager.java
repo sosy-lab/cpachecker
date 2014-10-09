@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-
-import com.google.common.collect.ImmutableList;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -42,30 +37,12 @@ abstract class SmtInterpolNumeralFormulaManager
         extends AbstractNumeralFormulaManager<Term, Sort, SmtInterpolEnvironment, ParamFormulaType, ResultFormulaType> {
 
   private final SmtInterpolEnvironment env;
-  private final SmtInterpolFunctionType<ResultFormulaType> multUfDecl;
-  private final SmtInterpolFunctionType<ResultFormulaType> divUfDecl;
-  private final SmtInterpolFunctionType<ResultFormulaType> modUfDecl;
-  private final SmtInterpolFunctionFormulaManager functionManager;
 
   SmtInterpolNumeralFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator);
+    super(pCreator, pFunctionManager);
     env = pCreator.getEnv();
-    functionManager = pFunctionManager;
-
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
-  }
-
-  private Term makeUf(FunctionFormulaType<?> decl, Term t1, Term t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
-  private boolean isUf(SmtInterpolFunctionType<?> funcDecl, Term pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 
   @Override
@@ -74,37 +51,13 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(Term pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) {
-      return false;
-    }
-    Term arg = SmtInterpolUtil.getArg(pNumber, 0);
-    if (SmtInterpolUtil.isNumber(arg)) {
-      // TODO: BUG: possible bug
-      return SmtInterpolUtil.toNumber(arg).doubleValue() == -1;
-    }
-    return false;
-  }
-
-  @Override
   public Term add(Term pNumber1, Term pNumber2) {
     return env.term("+", pNumber1, pNumber2);
   }
 
   @Override
-  public boolean isAdd(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "+");
-  }
-
-  @Override
   public Term subtract(Term pNumber1, Term pNumber2) {
     return env.term("-", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isSubtract(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "-");
   }
 
   @Override
@@ -118,25 +71,10 @@ abstract class SmtInterpolNumeralFormulaManager
             || pNumber2.getSort().equals(pNumber1.getTheory().getRealSort()))) {
       result = env.term("/", pNumber1, pNumber2);
     } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
+      result = super.divide(pNumber1, pNumber2);
     }
 
     return result;
-  }
-
-  @Override
-  public boolean isDivide(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "/") || isUf(divUfDecl, pNumber);
-  }
-
-  @Override
-  public Term modulo(Term pNumber1, Term pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(Term pNumber) {
-    return isUf(modUfDecl, pNumber);
   }
 
   @Override
@@ -145,15 +83,10 @@ abstract class SmtInterpolNumeralFormulaManager
     if (isNumber(pNumber1) || isNumber(pNumber2)) {
       result = env.term("*", pNumber1, pNumber2);
     } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
+      result = super.multiply(pNumber1, pNumber2);
     }
 
     return result;
-  }
-
-  @Override
-  public boolean isMultiply(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "*") || isUf(multUfDecl, pNumber);
   }
 
   @Override
@@ -172,18 +105,8 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isGreaterThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">");
-  }
-
-  @Override
   public Term greaterOrEquals(Term pNumber1, Term pNumber2) {
     return env.term(">=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, ">=");
   }
 
   @Override
@@ -192,17 +115,7 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public boolean isLessThan(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<");
-  }
-
-  @Override
   public Term lessOrEquals(Term pNumber1, Term pNumber2) {
     return env.term("<=", pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "<=");
   }
 }

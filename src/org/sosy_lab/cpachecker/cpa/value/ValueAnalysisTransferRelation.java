@@ -265,9 +265,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       String calledFunctionName) throws UnrecognizedCCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert (parameters.size() == arguments.size());
-    }
+    assert (parameters.size() == arguments.size())
+        || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
 
     // visitor for getting the values of the actual parameters in caller function context
     final ExpressionValueVisitor visitor = getVisitor();
@@ -278,8 +277,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       IAExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
-        // value = ((JExpression) exp).accept(visitor); TODO
-        value = Value.UnknownValue.getInstance();
+        value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -297,7 +295,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           addMissingInformation(formalParamName, exp);
         }
       } else {
-        newElement.assignConstant(formalParamName, value);
+        newElement.assignConstant(formalParamName, value, parameters.get(i).getType());
       }
 
       visitor.reset();
@@ -385,20 +383,20 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           }
         } else if (valueExists) {
           Value value = state.getValueFor(returnVarName);
-          newElement.assignConstant(assignedVarName, value);
+          newElement.assignConstant(assignedVarName, value, state.getTypeForMemoryLocation(returnVarName));
         } else {
           newElement.forget(assignedVarName);
         }
 
-      } else if ((op1 instanceof AIdExpression)) {
+      } else if (op1 instanceof AIdExpression) {
         String assignedVarName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
 
         if (!state.contains(returnVarName)) {
           newElement.forget(assignedVarName);
-        } else if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        } else if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
-          // notScopedFieldValue = state.getValueFor(returnVarName); TODO
+          notScopedFieldValue = state.getValueFor(returnVarName);
         } else {
           newElement.assignConstant(assignedVarName, state.getValueFor(returnVarName));
         }
@@ -413,6 +411,13 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     newElement.forget(returnVarName);
     return newElement;
+  }
+
+  private boolean isDynamicField(JIdExpression pIdentifier) {
+    final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
+
+    return (declaration instanceof JFieldDeclaration)
+        && !((JFieldDeclaration) declaration).isStatic();
   }
 
   @Override
@@ -438,7 +443,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
               SymbolicValueFormula trackedFormula = (SymbolicValueFormula) trackedValue;
               Value newValue = trackedFormula.replaceSymbolWith(replacement.getFirst(), replacement.getSecond(), logger);
               if (newValue != trackedValue) {
-                element.assignConstant(memloc, newValue);
+                element.assignConstant(memloc, newValue, state.getTypeForMemoryLocation(memloc));
               }
             }
           }
@@ -529,15 +534,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
-
-      if (init == null) {
-        if (decl.getType() instanceof JClassOrInterfaceType) {
-          initialValue = NullValue.getInstance();
-        } else {
-          // numeric variables without initializer are set to 0 in C and Java
-          initialValue = new NumericValue(0L);
-        }
-      }
     }
 
     MemoryLocation memoryLocation;
@@ -574,7 +570,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
-        newElement.assignConstant(memoryLocation, initialValue);
+        newElement.assignConstant(memoryLocation, initialValue, decl.getType());
       } else {
         missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
       }
@@ -636,9 +632,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
 
     if (op1 instanceof AIdExpression) {
-      // a = ...
+      /*
+       * Assignment of the form
+       *  a = ...
+       */
 
-        if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
         }
@@ -761,7 +760,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
          newElement.forget(assignedVar);
         }
       } else {
-        newElement.assignConstant(assignedVar, value);
+        newElement.assignConstant(assignedVar, value, lType);
       }
 
     }
@@ -825,10 +824,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       if (isEqualityAssumption(binaryOperator)) {
         if (leftValue.isUnknown() && !rightValue.isUnknown() && isAssignable(lVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue);
+          assignableState.assignConstant(getMemoryLocation(lVarInBinaryExp), rightValue, pE.getExpressionType());
 
         } else if (rightValue.isUnknown() && !leftValue.isUnknown() && isAssignable(rVarInBinaryExp)) {
-          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue);
+          assignableState.assignConstant(getMemoryLocation(rVarInBinaryExp), leftValue, pE.getExpressionType());
         }
       }
 
@@ -837,14 +836,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(leftMemLoc, new NumericValue(1L));
+            assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
 
         } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(rightMemLoc, new NumericValue(1L));
+            assignableState.assignConstant(rightMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
         }
       }
@@ -1139,7 +1138,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     toStrengthen.add((ValueAnalysisState) element);
     result.add((ValueAnalysisState) element);
 
-    //
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
         result.clear();
@@ -1173,7 +1171,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           super.setInfo(element, precision, cfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
           Collection<ValueAnalysisState> ret = automatonAssumesAsStatements ?
-              strengthenAutomatonStatement(autoState, cfaEdge) : strengthenAutomatonAssume(autoState, cfaEdge);
+              strengthenAutomatonStatement(autoState, state, cfaEdge) : strengthenAutomatonAssume(autoState, state, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1202,11 +1200,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return postProcessedResult;
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
-    ValueAnalysisState state = this.state;
+    ValueAnalysisState state = pState;
 
     for (CStatementEdge stmtEdge : statementEdges) {
       state = handleStatementEdge((AStatementEdge)stmtEdge, (IAStatement)stmtEdge.getStatement());
@@ -1227,11 +1225,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private static final CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), "___cpa_temp_result_var_", null);
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
 
-    ValueAnalysisState state = this.state;
+    ValueAnalysisState state = pState;
 
 
     for (AssumeEdge assumeEdge : assumeEdges) {
@@ -1395,7 +1393,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       return pNewElement;
     }
 
-    pNewElement.assignConstant(memoryLocation, value);
+    pNewElement.assignConstant(memoryLocation, value, pNewElement.getTypeForMemoryLocation(memoryLocation));
 
     return pNewElement;
   }

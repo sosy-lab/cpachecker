@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
@@ -54,8 +55,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractionInstanceSynthesis;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullPrecisionSynthesis;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullRelationStore;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.PrecisionSynthesis;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -70,6 +79,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+
+import com.google.common.base.Optional;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -102,8 +113,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
-  @Option(description="Run the predicate analysis backwards?")
-  private boolean backwards = false;
+  @Option(description="Dynamically synthesize additional precision elements during precision adjustment.")
+  private boolean synthesizePrecisionOnAbstraction = false;
+
+  @Option(description="Direction of the analisis?")
+  private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -127,6 +141,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
 
+  private final PreconditionWriter preconditions;
+  private final RelationStore relstore;
+  private final RelationView relview;
+
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
       ShutdownNotifier pShutdownNotifier)
@@ -149,13 +167,21 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     String libraries = formulaManager.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, backwards);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
     pathFormulaManager = pfMgr;
 
     solver = new Solver(formulaManager, formulaManagerFactory);
+
+    if (synthesizePrecisionOnAbstraction) {
+      DefaultRelationStore rsv = new DefaultRelationStore(config, logger, cfa, direction);
+      relview = rsv; relstore = rsv;
+    } else {
+      NullRelationStore rsv = new NullRelationStore();
+      relview = rsv; relstore = rsv;
+    }
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {
@@ -170,7 +196,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
-    transfer = new PredicateTransferRelation(this, blk, config, backwards);
+    transfer = new PredicateTransferRelation(this, blk, config, relstore, direction);
 
     topState = PredicateAbstractState.mkAbstractionState(
         formulaManager.getBooleanFormulaManager(),
@@ -194,9 +220,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
 
-    prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
-    stop = new PredicateStopOperator(domain);
-
     if (performInitialStaticRefinement) {
       staticRefiner = new PredicateStaticRefiner(config, logger, solver,
           pathFormulaManager, formulaManager, predicateManager, cfa);
@@ -208,12 +231,25 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
+    preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
+
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, invariantGenerator.getTimeOfExecution(), config);
+        cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
     machineModel = cfa.getMachineModel();
+
+    AbstractionInstanceSynthesis precisionSynthesis;
+    if (synthesizePrecisionOnAbstraction) {
+      precisionSynthesis = new PrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
+    } else {
+      precisionSynthesis = new NullPrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
+    }
+
+    prec = new PredicatePrecisionAdjustment(this, invariantGenerator, precisionSynthesis);
+    stop = new PredicateStopOperator(domain);
+
   }
 
   @Override

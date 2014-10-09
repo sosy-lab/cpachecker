@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm.AnalysisStrategySelector;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenStatistics;
@@ -97,7 +98,7 @@ public class PathSelectorFactory {
             ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier()));
     FormulaManagerView formulaManager =
         new FormulaManagerView(formulaManagerFactory.getFormulaManager(), startupConfig.getConfig(), startupConfig.getLog());
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa, false);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa, AnalysisDirection.FORWARD);
     Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathChecker pathChecker = new PathChecker(startupConfig.getLog(), startupConfig.getShutdownNotifier(), pfMgr, solver, pCfa.getMachineModel());
     return pathChecker;

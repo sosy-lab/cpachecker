@@ -49,8 +49,11 @@ public class InvariantsMergeOperator implements MergeOperator {
     InvariantsState state2 = (InvariantsState) pState2;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
     boolean isMergeAllowed = isMergeAllowed(state1, state2, precision);
-    Set<String> wideningTargets = state1.determineAbstractionStrategy(precision).determineWideningTargets(state2.determineAbstractionStrategy(precision));
-    state1 = state1.widen(state2, precision, wideningTargets);
+    AbstractionState abstractionState1 = state1.determineAbstractionState(precision);
+    AbstractionState abstractionState2 = state2.determineAbstractionState(precision);
+    Set<String> wideningTargets = abstractionState1.determineWideningTargets(abstractionState2);
+    Set<InvariantsFormula<CompoundInterval>> wideningHints = Sets.union(abstractionState1.getWideningHints(), abstractionState2.getWideningHints());
+    state1 = state1.widen(state2, precision, wideningTargets, wideningHints);
     if (state1 != pState1 && definitelyImplies(state2, reduceToGivenVariables(reduceToInterestingVariables(state1, precision), Sets.difference(state1.getEnvironment().keySet(), wideningTargets)))) {
       isMergeAllowed = true;
     }

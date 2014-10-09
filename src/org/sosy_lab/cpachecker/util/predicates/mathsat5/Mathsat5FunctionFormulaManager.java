@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -61,7 +60,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   @Override
-  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
+  public <T extends Formula> Mathsat5FunctionType<T> declareUninterpretedFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     long[] types = new long[pArgs.size()];
     for (int i = 0; i < types.length; i++) {
@@ -73,26 +72,9 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     return new Mathsat5FunctionType<>(pReturnType, pArgs, decl);
   }
 
-  @Override
-  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
-  }
-
   public long createFunctionImpl(String pName, long returnType, long[] msatTypes) {
     long msatFuncType = msat_get_function_type(mathsatEnv, msatTypes, msatTypes.length, returnType);
     long decl = msat_declare_function(mathsatEnv, pName, msatFuncType);
     return decl;
   }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long pF) {
-    Mathsat5FunctionType<?> mathsatType = (Mathsat5FunctionType<?>) pFuncType;
-    return mathsatType.getFuncDecl() == msat_term_get_decl(pF);
-  }
-
-
 }

@@ -64,7 +64,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   public String push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
 
-    Term t = mgr.getTerm(f);
+    Term t = mgr.extractInfo(f);
     //Term t = ((SmtInterpolFormula)f).getTerm();
 
     String termName = prefix + termIdGenerator.getFreshId();
@@ -153,6 +153,6 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     Preconditions.checkNotNull(env);
     assert assertedFormulas.size() == annotatedTerms.size();
 
-    return SmtInterpolModel.createSmtInterpolModel(mgr, annotatedTerms.values());
+    return SmtInterpolModel.createSmtInterpolModel(env, annotatedTerms.values());
   }
 }

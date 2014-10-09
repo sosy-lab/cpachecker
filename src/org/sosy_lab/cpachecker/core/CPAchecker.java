@@ -399,12 +399,11 @@ public class CPAchecker {
       TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
       initialLocations = tlp.tryGetAutomatonTargetLocations(analysisEntryFunction);
 
+    } else if (initialStatesFor == InitialStatesFor.EXIT) {
+      initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
+
     } else {
-      if (initialStatesFor == InitialStatesFor.EXIT) {
-        initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
-      } else {
-        initialLocations = ImmutableSet.of(analysisEntryFunction);
-      }
+      initialLocations = ImmutableSet.of(analysisEntryFunction);
     }
 
     if (initialLocations == null) {

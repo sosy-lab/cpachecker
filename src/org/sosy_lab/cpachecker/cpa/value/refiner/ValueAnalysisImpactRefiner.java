@@ -159,7 +159,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     logger                = pLogger;
     argCpa                = pArgCpa;
     interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa);
+    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
   }
 
   @Override
@@ -253,7 +253,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
           if (useGlobalPrecision) {
             argReachedSet.readdToWaitlist(currentState, globalPrecision, VariableTrackingPrecision.class);
           } else {
-            argReachedSet.readdToWaitlist(currentState, new VariableTrackingPrecision(currentPrecision, increment), VariableTrackingPrecision.class);
+            argReachedSet.readdToWaitlist(currentState, currentPrecision.withIncrement(increment), VariableTrackingPrecision.class);
           }
         }
 
@@ -288,10 +288,10 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
       Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
 //System.out.println(new TreeSet<>(extractPrecisionIncrement.values()));
-      VariableTrackingPrecision currentPrecision = new VariableTrackingPrecision(subTreePrecision, extractPrecisionIncrement);
+      VariableTrackingPrecision currentPrecision = subTreePrecision.withIncrement(extractPrecisionIncrement);
 
       if (globalPrecision != null) {
-        currentPrecision.getRefinablePrecision().join(globalPrecision.getRefinablePrecision());
+        currentPrecision = currentPrecision.join(globalPrecision);
       }
 
       globalPrecision = currentPrecision;
@@ -382,11 +382,11 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
-    final VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
     for (ARGState target : targetsReachableFromRoot) {
       VariableTrackingPrecision precisionOfTarget = extractPrecision(pReached, target);
-      precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
+      precision = precision.join(precisionOfTarget);
     }
 
     return precision;

@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -46,12 +45,9 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.octagon.OctagonFloatManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonIntManager;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
-
-import com.google.common.base.Optional;
 
 @Options(prefix="cpa.octagon")
 public final class OctagonCPA implements ConfigurableProgramAnalysis {
@@ -69,7 +65,6 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
-  private final VariableTrackingPrecisionOptions octagonOptions;
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -86,7 +81,6 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
                      ShutdownNotifier shutdownNotifier, CFA cfa)
                      throws InvalidConfigurationException, InvalidCFAException {
     config.inject(this);
-    octagonOptions = new VariableTrackingPrecisionOptions(config);
     logger = log;
     OctagonDomain octagonDomain = new OctagonDomain(logger);
 
@@ -96,7 +90,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
       octagonManager = new OctagonIntManager();
     }
 
-    this.transferRelation = new OctagonTransferRelation(logger, cfa, octagonOptions);
+    this.transferRelation = new OctagonTransferRelation(logger, cfa);
 
     MergeOperator octagonMergeOp = OctagonMergeOperator.getInstance(octagonDomain, config);
 
@@ -111,11 +105,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new VariableTrackingPrecision(octagonOptions, Optional.<VariableClassification>absent());
+      precision = VariableTrackingPrecision.createRefineablePrecision(config,
+          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
 
       // static full precision is default
     } else {
-      precision = new VariableTrackingPrecision(octagonOptions, Optional.<VariableClassification>absent(), new VariableTrackingPrecision.FullPrecision());
+      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
     }
 
   }
@@ -173,9 +168,5 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public CFA getCFA() {
     return cfa;
-  }
-
-  public VariableTrackingPrecisionOptions getOctagonOptions() {
-    return octagonOptions;
   }
 }

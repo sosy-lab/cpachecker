@@ -90,7 +90,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long makeVariableImpl(int length, String var) {
-    long bvType = getFormulaCreator().getBittype(length);
+    long bvType = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(bvType, var);
   }
 
@@ -131,26 +131,6 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   @Override
   public Long xor(Long pBits1, Long pBits2) {
     return msat_make_bv_xor(mathsatEnv, pBits1, pBits2);
-  }
-
-  @Override
-  public boolean isNot(Long pBits) {
-    return msat_term_is_bv_not(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isAnd(Long pBits) {
-    return msat_term_is_bv_and(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isOr(Long pBits) {
-    return msat_term_is_bv_or(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isXor(Long pBits) {
-    return msat_term_is_bv_xor(mathsatEnv, pBits);
   }
 
   @Override
@@ -225,94 +205,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    return msat_term_is_bv_not(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return msat_term_is_bv_plus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    return msat_term_is_bv_minus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber, boolean signed) {
-    return msat_term_is_bv_sdiv(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_srem(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_urem(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return msat_term_is_bv_times(mathsatEnv, pNumber);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
     return msat_term_is_equal(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber, boolean signed) {
-    return isLessThan(pNumber, signed);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber, boolean signed) {
-    return isLessOrEquals(pNumber, signed);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_slt(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_ult(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_sleq(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_uleq(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public boolean isShiftRight(Long pBits, boolean signed) {
-    return signed ? msat_term_is_bv_ashr(mathsatEnv, pBits) : msat_term_is_bv_lshr(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isShiftLeft(Long pBits) {
-    return msat_term_is_bv_lshl(mathsatEnv, pBits);
-  }
-
-  @Override
-  protected boolean isConcat(Long pBits) {
-    return msat_term_is_bv_concat(mathsatEnv, pBits);
-  }
-
-  @Override
-  protected boolean isExtract(Long pBits) {
-    return msat_term_is_bv_extract(mathsatEnv, pBits);
-  }
-
-  @Override
-  protected boolean isExtend(Long pBits, boolean signed) {
-    return signed ? msat_term_is_bv_sext(mathsatEnv, pBits) : msat_term_is_bv_zext(mathsatEnv, pBits);
   }
 }

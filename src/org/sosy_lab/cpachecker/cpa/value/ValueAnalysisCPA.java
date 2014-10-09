@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -111,7 +110,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private VariableTrackingPrecision precision;
-  private VariableTrackingPrecisionOptions precisionOptions;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
   private final ValueAnalysisReducer reducer;
@@ -133,7 +131,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
-    precisionOptions    = new VariableTrackingPrecisionOptions(config);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -183,14 +180,14 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification(), new VariableTrackingPrecision.FullPrecision());
+      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
 
     } else {
       // create precision with empty, refinable component precision
-      VariableTrackingPrecision precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
-
+      VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
+                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
       // refine the refinable component precision with increment from file
-      return new VariableTrackingPrecision(precision, restoreMappingFromFile(cfa));
+      return precision.withIncrement(restoreMappingFromFile(cfa));
     }
   }
 
@@ -244,7 +241,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null) {
-      precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
     }
   }
 

@@ -784,6 +784,11 @@ cpa.interval.threshold = -1
 # globally in a certain bound 
 cpa.interval.varName = ""
 
+# controls whether to use abstract evaluation always, never, or depending on
+# entering edges.
+cpa.invariants.abstractionStateFactory = ENTERING_EDGES
+  enum:     [ALWAYS, ENTERING_EDGES, NEVER]
+
 # determine variables relevant to the decision whether or not a target path
 # assume edge is taken and limit the analyis to those variables.
 cpa.invariants.analyzeRelevantVariablesOnly = true
@@ -800,11 +805,6 @@ cpa.invariants.analyzeTargetPathsOnly = true
 cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
-
-# controls whether to use abstract evaluation always, never, or only on
-# already previously visited edges.
-cpa.invariants.edgeBasedAbstractionStrategyFactory = VISITED_EDGES
-  enum:     [ALWAYS, VISITED_EDGES, NEVER]
 
 # the maximum number of variables to consider as interesting. -1 one disables
 # the limit, but this is not recommended. 0 means that guessing interesting
@@ -910,15 +910,16 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
+# Simplify the abstraction formula that is stored to represent the state
+# space. Helpful when debugging (formulas get smaller).
+cpa.predicate.abstraction.simplify = false
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, SYLVAN, FORMULA]
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
-
-# Run the predicate analysis backwards?
-cpa.predicate.backwards = false
 
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
@@ -929,6 +930,13 @@ cpa.predicate.blk.alwaysAfterThreshold = true
 
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
+
+# force abstractions at each branch node, regardless of threshold
+cpa.predicate.blk.alwaysAtBranch = false
+
+# force abstractions at each function head (first node in the body),
+# regardless of threshold
+cpa.predicate.blk.alwaysAtFunctionHeads = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
@@ -971,6 +979,10 @@ cpa.predicate.defaultArrayLength = 20
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
+
+# Direction of the analisis?
+cpa.predicate.direction = FORWARD
+  enum:     [FORWARD, BACKWARD]
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
@@ -1199,8 +1211,7 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver (Z3 needs the
-# FOCI library from http://www.kenmcmil.com/foci2/).
+# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.
 cpa.predicate.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
@@ -1231,9 +1242,6 @@ cpa.predicate.solver.z3.logger.target = Z3
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
-# Load Z3 with interpolation support. Requires [libfoci].
-cpa.predicate.solver.z3.supportInterpolation = false
-
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
@@ -1245,6 +1253,10 @@ cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
+
+# Dynamically synthesize additional precision elements during precision
+# adjustment.
+cpa.predicate.synthesizePrecisionOnAbstraction = false
 
 # check satisfiability when a target state has been found (should be true)
 cpa.predicate.targetStateSatCheck = true
@@ -1446,6 +1458,21 @@ cpa.statistics.printOut = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Use only relevant nodes for value determination
+cpa.stator.policy.Compact value determination set = true
+
+# Generate templates for the lower bounds of each variable
+cpa.stator.policy.generateLowerBound = true
+
+# Generate templates for the upper bounds of each variable
+cpa.stator.policy.generateUpperBound = true
+
+# Run (simplified) path focusing
+cpa.stator.policy.pathFocusing = true
+
+# Maximize for the sum of the templates during value determination
+cpa.stator.policy.runAcceleratedValueDetermination = false
+
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
 cpa.uninitvars.checkTarget = false
@@ -1554,9 +1581,6 @@ cpa.value.symbolicValues = false
 # Variable name of the variable for which should be checked that its value is
 # globally a certain value 
 cpa.value.varName = ""
-
-# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
-cpa.value.variableBlacklist = ""
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1691,17 +1715,11 @@ pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
-# the threshold which controls whether or not variablevaluations ought to be
-# abstracted once the specified number of valuationsper variable is reached
-# in the set of reached states
-precision.reachedSetThreshold = -1
-
-# whether to track relevant variables only at the exact programlocation
-# (sharing=location), or within their respective(function-/global-) scope
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
-  allowed values: [LOCATION, SCOPE]
 
 # If this option is used, booleans from the cfa are tracked.
 precision.trackBooleanVariables = true
@@ -1718,8 +1736,14 @@ precision.trackIntAddVariables = true
 # tracked.
 precision.trackIntEqualVariables = true
 
+# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+precision.variableBlacklist = ""
+
+# print reached set to graph file
+reachedSet.dot = "reached.dot"
+
 # print reached set to text file
-reachedSet.export = true
+reachedSet.export = false
 reachedSet.file = "reached.txt"
 
 # List of files with configurations to use. A filename can be suffixed with
@@ -1742,7 +1766,7 @@ spec.considerNegativeSemanticsAttribute = false
 spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
-spec.matchSourcecodeData = false
+spec.matchSourcecodeData = true
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false

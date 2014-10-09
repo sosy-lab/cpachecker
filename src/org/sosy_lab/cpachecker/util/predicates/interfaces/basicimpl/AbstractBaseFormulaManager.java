@@ -30,14 +30,14 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
  */
 abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
 
-  private final AbstractFormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
+  private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
   AbstractBaseFormulaManager(
-          AbstractFormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator) {
+          FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator) {
     this.formulaCreator = pFormulaCreator;
   }
 
-  public final AbstractFormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
+  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 }

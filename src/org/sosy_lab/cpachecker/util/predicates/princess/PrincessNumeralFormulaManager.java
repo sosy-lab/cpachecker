@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
@@ -38,40 +35,17 @@ import ap.parser.IFormula;
 import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
 import ap.parser.IIntRelation;
-import ap.parser.IPlus;
 import ap.parser.ITerm;
-import ap.parser.ITimes;
-
-import com.google.common.collect.ImmutableList;
 
 
 abstract class PrincessNumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<IExpression, TermType, PrincessEnvironment, ParamFormulaType, ResultFormulaType> {
 
-  private final PrincessFunctionType<ResultFormulaType> multUfDecl;
-  private final PrincessFunctionType<ResultFormulaType> divUfDecl;
-  private final PrincessFunctionType<ResultFormulaType> modUfDecl;
-  private final PrincessFunctionFormulaManager functionManager;
-
   PrincessNumeralFormulaManager(
           PrincessFormulaCreator pCreator,
           PrincessFunctionFormulaManager pFunctionManager) {
-    super(pCreator);
-    functionManager = pFunctionManager;
-
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
-  }
-
-  private IExpression makeUf(FunctionFormulaType<?> decl, IExpression t1, IExpression t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
-  private boolean isUf(PrincessFunctionType<?> funcDecl, IExpression pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
+    super(pCreator, pFunctionManager);
   }
 
   @Override
@@ -80,39 +54,13 @@ abstract class PrincessNumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(IExpression pNumber) {
-    boolean mult = isMultiply(pNumber);
-    if (!mult) {
-      return false;
-    }
-    IExpression arg = PrincessUtil.getArg(pNumber, 0);
-    if (PrincessUtil.isNumber(arg)) {
-      // TODO: BUG: possible bug
-      return PrincessUtil.toNumber(arg) == -1;
-    }
-    return false;
-  }
-
-  @Override
   public ITerm add(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$plus(castToTerm(pNumber2));
   }
 
   @Override
-  public boolean isAdd(IExpression pNumber) {
-    return pNumber instanceof IPlus;
-  }
-
-  @Override
   public ITerm subtract(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$minus(castToTerm(pNumber2));
-  }
-
-  @Override
-  public boolean isSubtract(IExpression pNumber) {
-    // Princess does not support Minus.
-    // Formulas are converted from "a-b" to "a+(-b)".
-    return false;
   }
 
   @Override
@@ -122,25 +70,10 @@ abstract class PrincessNumeralFormulaManager
       result = castToTerm(pNumber1).$times(IdealInt.ONE().$div(((IIntLit) pNumber2).value()));
       // TODO div is the euclidian division (with remainder), do we want this here?
     } else {
-      result = makeUf(divUfDecl, pNumber1, pNumber2);
+      result = super.divide(pNumber1, pNumber2);
     }
 
     return result;
-  }
-
-  @Override
-  public boolean isDivide(IExpression pNumber) {
-    return isUf(divUfDecl, pNumber);
-  }
-
-  @Override
-  public IExpression modulo(IExpression pNumber1, IExpression pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
-  public boolean isModulo(IExpression pNumber) {
-    return isUf(modUfDecl, pNumber);
   }
 
   @Override
@@ -149,15 +82,10 @@ abstract class PrincessNumeralFormulaManager
     if (isNumber(pNumber1) || isNumber(pNumber2)) {
       result = castToTerm(pNumber1).$times(castToTerm(pNumber2));
     } else {
-      result = makeUf(multUfDecl, pNumber1, pNumber2);
+      result = super.multiply(pNumber1, pNumber2);
     }
 
     return result;
-  }
-
-  @Override
-  public boolean isMultiply(IExpression pNumber) {
-    return pNumber instanceof ITimes || isUf(multUfDecl, pNumber);
   }
 
   @Override
@@ -179,23 +107,8 @@ abstract class PrincessNumeralFormulaManager
   }
 
   @Override
-  public boolean isGreaterThan(IExpression pNumber) {
-    // Princess does not support >.
-    // Formulas are converted from "a>b" to "a+(-b)+(-1)>=0".
-    return false;
-  }
-
-  @Override
   public IFormula greaterOrEquals(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$greater$eq(castToTerm(pNumber2));
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(IExpression pNumber) {
-    // Princess does not support >=.
-    // Formulas are converted from "a>=b" to "a+(-b)>=0".
-    // So this will never return true for the original terms, but only for a intermediate result.
-    return pNumber instanceof IIntFormula && ((IIntFormula)pNumber).rel() == IIntRelation.GeqZero();
   }
 
   @Override
@@ -204,21 +117,7 @@ abstract class PrincessNumeralFormulaManager
   }
 
   @Override
-  public boolean isLessThan(IExpression pNumber) {
-    // Princess does not support <.
-    // Formulas are converted from "a<b" to "b+(-a)+(-1)>=0".
-    return false;
-  }
-
-  @Override
   public IFormula lessOrEquals(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$less$eq(castToTerm(pNumber2));
-  }
-
-  @Override
-  public boolean isLessOrEquals(IExpression pNumber) {
-    // Princess does not support <=.
-    // Formulas are converted from "a<=b" to "b+(-a)>=0".
-    return false;
   }
 }

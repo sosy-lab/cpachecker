@@ -589,7 +589,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
-      return conv.ffmgr.createFuncAndCall(functionName, resultFormulaType, arguments);
+      return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
     }
   }
 

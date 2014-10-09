@@ -324,13 +324,15 @@ class AssignmentHandler {
       final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
       assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
       // There are two cases of assignment to a structure/union
-      Preconditions.checkArgument(
+      if (!(
           // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
           rvalue.isValue() && isSimpleType(rvalueType) ||
           // Structure assignment
-          rvalueType.equals(lvalueType),
-          "Impossible structure assignment due to incompatible types: assignment of %s to %s",
-          rvalueType, lvalueType);
+          rvalueType.equals(lvalueType)
+          )) {
+        throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
+            + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
+      }
       result = bfmgr.makeBoolean(true);
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
@@ -436,10 +438,10 @@ class AssignmentHandler {
         updatedVariables.add(Variable.create(targetName, lvalueType));
       }
     } else { // Aliased LHS
-      final Formula lhs = ffmgr.createFuncAndCall(targetName,
+      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
                                                   newIndex,
                                                   targetType,
-                                                  ImmutableList.of(lvalue.asAliased().getAddress()));
+                                                  lvalue.asAliased().getAddress());
       if (rhs != null) {
         result = fmgr.makeEqual(lhs, rhs);
       } else {
@@ -513,14 +515,14 @@ class AssignmentHandler {
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
-        final BooleanFormula retention = fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+        final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 newIndex,
                                                                                 returnType,
-                                                                                ImmutableList.of(targetAddress)),
-                                                        ffmgr.createFuncAndCall(ufName,
+                                                                                targetAddress),
+                                                        ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 oldIndex,
                                                                                 returnType,
-                                                                                ImmutableList.of(targetAddress)));
+                                                                                targetAddress));
        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
@@ -528,14 +530,14 @@ class AssignmentHandler {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
                                                   fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
-      constraints.addConstraint(fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+      constraints.addConstraint(fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        newIndex,
                                                                        returnType,
-                                                                       ImmutableList.of(targetAddress)),
-                                               ffmgr.createFuncAndCall(ufName,
+                                                                       targetAddress),
+                                               ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        oldIndex,
                                                                        returnType,
-                                                                       ImmutableList.of(targetAddress))));
+                                                                       targetAddress)));
     }
   }
 
@@ -561,14 +563,14 @@ class AssignmentHandler {
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
           final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
                                                       fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
-          consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+          consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     newIndex,
                                                                                     returnType,
-                                                                                    ImmutableList.of(targetAddress)),
-                                                            ffmgr.createFuncAndCall(ufName,
+                                                                                    targetAddress),
+                                                            ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     oldIndex,
                                                                                     returnType,
-                                                                                    ImmutableList.of(targetAddress))));
+                                                                                    targetAddress)));
         }
       }
       constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
@@ -591,14 +593,14 @@ class AssignmentHandler {
         final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
         constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                                                      fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
-                                           fmgr.makeEqual(ffmgr.createFuncAndCall(ufName,
+                                           fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                   newIndex,
                                                                                   returnType,
-                                                                                  ImmutableList.of(targetAddress)),
-                                           ffmgr.createFuncAndCall(ufName,
+                                                                                  targetAddress),
+                                           ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                    oldIndex,
                                                                    returnType,
-                                                                   ImmutableList.of(targetAddress)))));
+                                                                   targetAddress))));
       }
     }
   }

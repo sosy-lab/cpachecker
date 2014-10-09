@@ -63,7 +63,7 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
 
   @Override
   protected Term makeVariableImpl(String varName) {
-    Sort t = getFormulaCreator().getRealType();
+    Sort t = getFormulaCreator().getRationalType();
     return getFormulaCreator().makeVariable(t, varName);
   }
 }

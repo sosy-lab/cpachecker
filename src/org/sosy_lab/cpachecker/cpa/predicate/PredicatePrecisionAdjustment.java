@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractionInstanceSynthesis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
@@ -75,8 +77,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private @Nullable InvariantGenerator invariantGenerator;
   private @Nullable Map<CFANode, BooleanFormula> invariants = null;
 
+  private final AbstractionInstanceSynthesis precSynthesis;
+
   public PredicatePrecisionAdjustment(PredicateCPA pCpa,
-      InvariantGenerator pInvariantGenerator) {
+      InvariantGenerator pInvariantGenerator,
+      AbstractionInstanceSynthesis pPrecSynthesis) {
+
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
@@ -84,6 +90,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     bfmgr = fmgr.getBooleanFormulaManager();
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
+    precSynthesis = checkNotNull(pPrecSynthesis);
   }
 
   @Override
@@ -124,8 +131,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
@@ -140,8 +145,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
+      // the basic precision
+      Collection<AbstractionPredicate> locInstancePreds = precision.getPredicates(loc, newLocInstance);
+
+      // the precision synthesis module might add additional predicates...
+      Collection<AbstractionPredicate> synthPreds =
+          precSynthesis.getSyntheticPredicates(element, loc, newLocInstance);
+
+      // union of the predicates that should be considered for computing the abstraction
+      Collection<AbstractionPredicate> toConsiderPreds = ImmutableList.<AbstractionPredicate>builder()
+          .addAll(synthPreds).addAll(locInstancePreds).build();
+
+      // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(
-          loc, abstractionFormula, pathFormula, preds);
+          loc, abstractionFormula, pathFormula, toConsiderPreds);
     } finally {
       computingAbstractionTime.stop();
     }

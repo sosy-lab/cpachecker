@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
@@ -52,8 +53,24 @@ public final class DOTBuilder {
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
+  // After this many characters the node shape changes to box.
+  private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
+
+  private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
+      new Function<CFANode, String>() {
+        public String apply(CFANode node) {
+          return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
+        }
+      };
+
+
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {
-    DotGenerator dotGenerator = new DotGenerator(cfa);
+    generateDOT(sb, cfa, DEFAULT_NODE_FORMATTER);
+  }
+
+  public static void generateDOT(Appendable sb, CFA cfa,
+      Function<CFANode, String> formatNodeLabel) throws IOException{
+    DotGenerator dotGenerator = new DotGenerator(cfa, formatNodeLabel);
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), dotGenerator);
 
     sb.append("digraph " + "CFA" + " {\n");
@@ -87,9 +104,12 @@ public final class DOTBuilder {
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();
 
     private final Optional<ImmutableSet<CFANode>> loopHeads;
+    private final Function<CFANode, String> formatNodeLabel;
 
-    public DotGenerator(CFA cfa) {
+
+    public DotGenerator(CFA cfa, Function<CFANode, String> pFormatNodeLabel) {
       loopHeads = cfa.getAllLoopHeads();
+      formatNodeLabel = pFormatNodeLabel;
     }
 
     @Override
@@ -108,7 +128,7 @@ public final class DOTBuilder {
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
-      nodes.add(formatNode(node, loopHeads));
+      nodes.add(formatNode(node, loopHeads, formatNodeLabel));
 
       return CFATraversal.TraversalProcess.CONTINUE;
     }
@@ -122,9 +142,7 @@ public final class DOTBuilder {
 
       //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
       //future updates of dotty may make this obsolete.
-      sb.append(edge.getDescription().replaceAll("\\Q\\\"\\E", "\\ \"")
-                                     .replaceAll("\\\"", "\\\\\\\"")
-                                     .replaceAll("\n", " "));
+      sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
 
       sb.append("\"");
       if (edge instanceof FunctionSummaryEdge) {
@@ -135,20 +153,45 @@ public final class DOTBuilder {
     }
   }
 
-  static String formatNode(CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
-    String shape;
-    if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
-      shape = "doublecircle";
-    } else if (node.isLoopStart()) {
-      shape = "doubleoctagon";
+  static String formatNode(
+      CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
+    return formatNode(node, loopHeads, DEFAULT_NODE_FORMATTER);
+  }
 
-    } else if (node.getNumLeavingEdges() > 0
-        && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
-      shape = "diamond";
+  static String formatNode(
+      CFANode node, Optional<ImmutableSet<CFANode>> loopHeads,
+      Function<CFANode, String> formatNodeLabel) {
+    final String shape;
+
+    String nodeAnnotation = formatNodeLabel.apply(node);
+    nodeAnnotation = nodeAnnotation != null ? nodeAnnotation : "";
+
+    if (nodeAnnotation.length() > NODE_SHAPE_CHANGE_CHAR_LIMIT) {
+      shape = "box";
     } else {
-      shape = "circle";
+      if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
+        shape = "doublecircle";
+      } else if (node.isLoopStart()) {
+        shape = "doubleoctagon";
+
+      } else if (node.getNumLeavingEdges() > 0
+          && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
+        shape = "diamond";
+      } else {
+        shape = "circle";
+      }
     }
 
-    return node.getNodeNumber() + " [shape=\"" + shape + "\" label=\"N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId() + "\"]";
+    return node.getNodeNumber()
+        + " [shape=\""
+        + shape
+        + "\" label=\""
+        + escapeGraphvizLabel(nodeAnnotation, "\\\\n") + "\"]";
+  }
+
+  private static String escapeGraphvizLabel(String input, String newlineReplacement) {
+    return input.replaceAll("\\Q\\\"\\E", "\\ \"")
+        .replaceAll("\\\"", "\\\\\\\"")
+        .replaceAll("\n", newlineReplacement);
   }
 }

@@ -42,9 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
-
-import com.google.common.collect.ImmutableList;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
 
@@ -81,22 +78,17 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private FunctionFormulaType<T> createUnaryFunction(String name) {
-    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType);
   }
 
   private FunctionFormulaType<T> createBinaryFunction(String name) {
-    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
+    return functionManager.declareUninterpretedFunction(name, formulaType, formulaType, formulaType);
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
     List<Formula> args = replaceManager.unwrap(Arrays.<Formula>asList(t1));
 
-    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, args));
-  }
-
-  private boolean isUf(FunctionFormulaType<T> funcDecl, BitvectorFormula pBits) {
-
-    return functionManager.isUninterpretedFunctionCall(funcDecl, unwrap(pBits));
+    return wrap(realreturn, functionManager.callUninterpretedFunction(decl, args));
   }
 
   private final Map<Integer[], FunctionFormulaType<T>> extractMethods = new HashMap<>();
@@ -194,19 +186,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
 
   @Override
-  public boolean isNegate(BitvectorFormula pNumber) {
-    return numericFormulaManager.isNegate(unwrap(pNumber));
-  }
-
-  @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
-  }
-
-  @Override
-  public boolean isAdd(BitvectorFormula pNumber) {
-    return numericFormulaManager.isAdd(unwrap(pNumber));
   }
 
   @Override
@@ -216,19 +198,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   @Override
-  public boolean isSubtract(BitvectorFormula pNumber) {
-    return numericFormulaManager.isSubtract(unwrap(pNumber));
-  }
-
-  @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2)));
-  }
-
-  @Override
-  public boolean isDivide(BitvectorFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isDivide(unwrap(pNumber));
   }
 
   @Override
@@ -238,19 +210,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   @Override
-  public boolean isModulo(BitvectorFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isModulo(unwrap(pNumber));
-  }
-
-  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
-  }
-
-  @Override
-  public boolean isMultiply(BitvectorFormula pNumber) {
-    return numericFormulaManager.isMultiply(unwrap(pNumber));
   }
 
   @Override
@@ -269,18 +231,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   @Override
-  public boolean isGreaterThan(BooleanFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isGreaterThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isGreaterOrEquals(pNumber);
   }
 
   @Override
@@ -289,19 +241,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   @Override
-  public boolean isLessThan(BooleanFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isLessThan(pNumber);
-  }
-
-  @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber, boolean pSigned) {
-    return numericFormulaManager.isLessOrEquals(pNumber);
-  }
 
   /**
    * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
@@ -372,75 +315,4 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     assert getLength(pBits1) == getLength(pBits2) : "Expect operators to have the same size";
     return makeUf(getFormulaType(pBits1), bitwiseXorUfDecl, pBits1, pBits2);
   }
-
-  @Override
-  public boolean isNot(BitvectorFormula pBits) {
-    return isUf(bitwiseNotUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isAnd(BitvectorFormula pBits) {
-    return isUf(bitwiseAndUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isOr(BitvectorFormula pBits) {
-    return isUf(bitwiseOrUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isXor(BitvectorFormula pBits) {
-    return isUf(bitwiseXorUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isShiftRight(BitvectorFormula pBits, boolean signed /*ignored*/) {
-    return isUf(rightShiftUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isShiftLeft(BitvectorFormula pBits) {
-    return isUf(leftShiftUfDecl, pBits);
-  }
-
-  @Override
-  public boolean isConcat(BitvectorFormula pBits) {
-    if (ignoreExtractConcat) {
-      return false;
-    } else {
-      return isUf(pBits, "_concat");
-    }
-  }
-
-  @Override
-  public boolean isExtract(BitvectorFormula pBits) {
-    if (ignoreExtractConcat) {
-      return false;
-    } else {
-      return isUf(pBits, "_extract");
-    }
-  }
-
-  @Override
-   public boolean isExtend(BitvectorFormula pBits, boolean signed) {
-    if (ignoreExtractConcat) {
-      return false;
-    } else {
-      return isUf(pBits, signed ? "_extendSigned" : "_extendUnsigned");
-    }
-  }
-
-  private boolean isUf(BitvectorFormula pBits, String prefix) {
-    for (FunctionFormulaType<T> value : concatMethods.values()) {
-      // TODO prefix-check working??
-      if (value instanceof AbstractFunctionFormulaType
-          && ((AbstractFunctionFormulaType)value).getFuncDecl().toString().startsWith(prefix)
-          && isUf(value, pBits)) {
-        return true;
-      }
-      // TODO ReplaceFunctionFormulaType
-    }
-    return false;
-  }
-
 }

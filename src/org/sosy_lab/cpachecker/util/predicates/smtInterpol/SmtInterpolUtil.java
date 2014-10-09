@@ -32,6 +32,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -104,17 +106,17 @@ class SmtInterpolUtil {
 
   /** converts a term to a number,
    * currently only Double is supported. */
-  public static Number toNumber(Term t) {
+  public static Object toNumber(Term t) {
     assert isNumber(t) : "term is not a number: " + t;
 
     // ConstantTerm with Number --> "123"
     if (t instanceof ConstantTerm) {
       Object value = ((ConstantTerm) t).getValue();
       if (value instanceof Number) {
-        return (Number) value;
+        return value;
       } else if (value instanceof Rational) {
-        Rational rat = (Rational) value;
-        return new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator()));
+        Rational rat = (Rational)value;
+        return ExtendedRational.ofBigIntegers(rat.numerator(), rat.denominator());
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -122,19 +124,21 @@ class SmtInterpolUtil {
       ApplicationTerm at = (ApplicationTerm) t;
 
       if ("-".equals(at.getFunction().getName())) {
-        Number value = toNumber(at.getParameters()[0]);
+        Object value = toNumber(at.getParameters()[0]);
         if (value instanceof BigDecimal) {
           return ((BigDecimal)value).negate();
         } else if (value instanceof BigInteger) {
           return ((BigInteger)value).negate();
         } else if (value instanceof Long) {
-          return -value.longValue();
+          return -((Long)value).longValue();
         } else if (value instanceof Integer) {
-          return -value.intValue();
+          return -((Integer)value).intValue();
         } else if (value instanceof Double) {
-          return -value.doubleValue();
+          return -((Double)value).doubleValue();
         } else if (value instanceof Float) {
-          return -value.floatValue();
+          return -((Float)value).floatValue();
+        } else if (value instanceof ExtendedRational) {
+          return ((ExtendedRational)value).negate();
         }
       }
     }

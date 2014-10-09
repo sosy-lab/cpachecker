@@ -61,12 +61,6 @@ abstract class Z3Formula implements Formula {
   public long getExpr() {
     return z3expr;
   }
-
-  @Override
-  protected void finalize() throws Throwable {
-    Z3NativeApi.dec_ref(z3context, z3expr);
-    super.finalize();
-  }
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {

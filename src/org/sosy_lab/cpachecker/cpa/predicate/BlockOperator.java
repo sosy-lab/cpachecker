@@ -28,8 +28,11 @@ import static com.google.common.base.Preconditions.checkState;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -71,8 +74,14 @@ public class BlockOperator {
   @Option(description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
+  @Option(description="force abstractions at each function head (first node in the body), regardless of threshold")
+  private boolean alwaysAtFunctionHeads = false;
+
   @Option(description="force abstractions at each join node, regardless of threshold")
   private boolean alwaysAtJoin = false;
+
+  @Option(description="force abstractions at each branch node, regardless of threshold")
+  private boolean alwaysAtBranch = false;
 
   @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
@@ -81,21 +90,26 @@ public class BlockOperator {
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
+  int numBlkFunctionHeads = 0;
   int numBlkFunctions = 0;
   int numBlkLoops = 0;
   int numBlkJoins = 0;
+  int numBlkBranch = 0;
   int numBlkThreshold = 0;
 
   /**
    * Check whether an abstraction should be computed.
    *
-   * @param succLoc successor CFA location.
-   * @param thresholdReached if the maximum block size has been reached
+   * @param succLoc Successor CFA location.
+   * @param predLoc Predecessor CFA location.
+   * @param edge    The edge between succLoc and predLoc.
+   *    ATTENTION: for the backwards analysis the successor/predecessor of the edge do not match succLoc/predLoc.
+   *
    * @return true if succLoc is an abstraction location. For now a location is
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, PathFormula pf) {
+  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pf) {
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
@@ -107,6 +121,11 @@ public class BlockOperator {
       return true;
     }
 
+    if (alwaysAtFunctionHeads && isFunctionHead(edge)) {
+      numBlkFunctionHeads++;
+      return true;
+    }
+
     if (alwaysAtLoops && isLoopHead(succLoc)) {
       numBlkLoops++;
       return true;
@@ -114,6 +133,11 @@ public class BlockOperator {
 
     if (alwaysAtJoin && isJoinNode(succLoc)) {
       numBlkJoins++;
+      return true;
+    }
+
+    if (alwaysAtBranch && isBranchNode(succLoc)) {
+      numBlkBranch++;
       return true;
     }
 
@@ -192,5 +216,19 @@ public class BlockOperator {
         loopHeads = cfa.getAllLoopHeads().get();
       }
     }
+  }
+
+  protected boolean isBranchNode(CFANode pLoc) {
+    return pLoc.getNumLeavingEdges() > 1;
+  }
+
+  protected boolean isFunctionHead(CFAEdge edge) {
+    if (edge instanceof CDeclarationEdge )  {
+      CDeclarationEdge e = (CDeclarationEdge) edge;
+      if (e.getDeclaration() instanceof CFunctionDeclaration) {
+        return true;
+      }
+    }
+    return false;
   }
 }

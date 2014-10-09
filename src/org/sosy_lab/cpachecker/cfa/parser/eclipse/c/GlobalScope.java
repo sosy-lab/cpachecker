@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -191,7 +191,8 @@ class GlobalScope extends AbstractScope {
     assert declaration instanceof CVariableDeclaration
         || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
+    assert  !(declaration.getType().getCanonicalType() instanceof CFunctionType)
+        : "Tried to register a variable with the type of a function: " + declaration;
 
     String name = declaration.getOrigName();
     assert name != null;

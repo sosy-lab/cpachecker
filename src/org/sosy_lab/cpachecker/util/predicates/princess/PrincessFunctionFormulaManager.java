@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
@@ -56,7 +55,7 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   }
 
   @Override
-  public <T extends Formula> PrincessFunctionType<T> createFunction(
+  public <T extends Formula> PrincessFunctionType<T> declareUninterpretedFunction(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
     List<TermType> types = new ArrayList<>(pArgs.size());
@@ -68,25 +67,4 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
 
     return new PrincessFunctionType<>(pReturnType, pArgs, funcDecl);
   }
-
-  @Override
-  public <T extends Formula> PrincessFunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
-  }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, IExpression f) {
-    boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) {
-      return false;
-    }
-
-    // TODO check if exactly the given func
-    return isUf;
-  }
-
 }

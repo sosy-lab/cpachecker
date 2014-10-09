@@ -30,14 +30,17 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
@@ -47,7 +50,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   private transient CFANode callerNode;
   private final int depth;
 
-  CallstackState(CallstackState previousElement, String function, CFANode callerNode) {
+  CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
     this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);

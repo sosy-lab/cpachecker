@@ -63,7 +63,7 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
       String[] frac = n.split("/");
       if (frac.length == 1) {
         // cannot multiply with term 1/n because the result will have type rat instead of int
-        return makeUf(divUfDecl, t1, t2);
+        return super.divide(pNumber1, pNumber2);
 
       } else {
         assert (frac.length == 2);
@@ -72,7 +72,7 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
       t2 = msat_make_number(mathsatEnv, n);
       result = msat_make_times(mathsatEnv, t2, t1);
     } else {
-      result = makeUf(divUfDecl, t1, t2);
+      return super.divide(pNumber1, pNumber2);
     }
 
     return result;
