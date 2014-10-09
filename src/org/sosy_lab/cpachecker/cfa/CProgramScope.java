@@ -579,7 +579,7 @@ public class CProgramScope implements Scope {
       while (typeIterator.hasNext() && !duplicateFound) {
         if (!equals(firstChecktype, resolveElaboratedTypeForEqualityCheck(typeIterator.next()))) {
           // Does not seem to happen in competition benchmark set, so we should be fine
-          pLogger.log(Level.WARNING, "Declarations should be unique. Block scopes are not supported", pQualifiedName);
+          pLogger.log(Level.FINEST, "Ignoring declaration for", pQualifiedName, " for creation of program-wide scope because it is not unique.");
           duplicateFound = true;
         }
       }
