@@ -1453,14 +1453,20 @@ cpa.statistics.printOut = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Use only relevant nodes for value determination
+cpa.stator.policy.Compact value determination set = true
+
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
 
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
+# Run (simplified) path focusing
+cpa.stator.policy.pathFocusing = true
+
 # Maximize for the sum of the templates during value determination
-cpa.stator.policy.runAcceleratedValueDetermination = true
+cpa.stator.policy.runAcceleratedValueDetermination = false
 
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
