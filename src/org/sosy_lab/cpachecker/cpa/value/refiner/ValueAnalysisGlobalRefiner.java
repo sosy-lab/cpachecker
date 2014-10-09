@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -189,19 +189,19 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(totalRefinements, i);
     }
 
-    Map<ARGState, ValueAnalysisPrecision> refinementInformation = new HashMap<>();
+    Map<ARGState, VariableTrackingPrecision> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
-      final ValueAnalysisPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
+      final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
-      refinementInformation.put(root, new ValueAnalysisPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
+      refinementInformation.put(root, new VariableTrackingPrecision(subTreePrecision, interpolationTree.extractPrecisionIncrement(root)));
     }
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
-    for (Map.Entry<ARGState, ValueAnalysisPrecision> info : refinementInformation.entrySet()) {
-      reached.removeSubtree(info.getKey(), info.getValue(), ValueAnalysisPrecision.class);
+    for (Map.Entry<ARGState, VariableTrackingPrecision> info : refinementInformation.entrySet()) {
+      reached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.class);
     }
 
     totalTime.stop();
@@ -220,22 +220,22 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
-  private ValueAnalysisPrecision joinSubtreePrecisions(final ReachedSet pReached,
+  private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
-    final ValueAnalysisPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
+    final VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
     // join precisions of all target states
     for (ARGState target : targetsReachableFromRoot) {
-      ValueAnalysisPrecision precisionOfTarget = extractPrecision(pReached, target);
+      VariableTrackingPrecision precisionOfTarget = extractPrecision(pReached, target);
       precision.getRefinablePrecision().join(precisionOfTarget.getRefinablePrecision());
     }
 
     return precision;
   }
 
-  private ValueAnalysisPrecision extractPrecision(final ReachedSet pReached,
+  private VariableTrackingPrecision extractPrecision(final ReachedSet pReached,
       ARGState state) {
-    return Precisions.extractPrecisionByType(pReached.getPrecision(state), ValueAnalysisPrecision.class);
+    return Precisions.extractPrecisionByType(pReached.getPrecision(state), VariableTrackingPrecision.class);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)

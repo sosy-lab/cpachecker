@@ -30,8 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import ap.parser.IIntFormula;
-import ap.parser.ITimes;
 import scala.Enumeration;
 import scala.collection.Iterator;
 import scala.collection.JavaConversions;
@@ -45,10 +43,12 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
+import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+import ap.parser.ITimes;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */
@@ -74,7 +74,6 @@ class PrincessUtil {
 
   public static boolean isVariable(IExpression t) {
     return t instanceof IAtom || t instanceof IConstant;
-    // wrong for ints: return !isTrue(t) && !isFalse(t) && t.length() == 0;
   }
 
   public static boolean isUIF(IExpression t) {
@@ -85,7 +84,6 @@ class PrincessUtil {
    * ApplicationTerm with negative Number */
   public static boolean isNumber(IExpression t) {
     return t instanceof IIntLit;
-    // todo negative Number --> "-123"
   }
 
   /** converts a term to a number,
@@ -97,7 +95,6 @@ class PrincessUtil {
     if (t instanceof IIntLit) {
       IdealInt value = ((IIntLit) t).value();
       return value.longValue();
-      // todo negative Number --> "-123"
     }
 
     throw new NumberFormatException("unknown format of numeric term: " + t);
@@ -105,6 +102,10 @@ class PrincessUtil {
 
   public static boolean isBoolean(IExpression t) {
     return t instanceof IFormula;
+  }
+
+  public static boolean hasIntegerType(IExpression t) {
+    return t instanceof ITerm;
   }
 
   /** t1 and t2 */
@@ -143,7 +144,7 @@ class PrincessUtil {
   }
 
   /** t1 = t2 */
-  public static boolean isEqual(IExpression t) {
+  public static boolean isEquivalence(IExpression t) {
     return isBinaryFunction(t, IBinJunctor.Eqv());
   }
 
@@ -260,4 +261,5 @@ class PrincessUtil {
   public static String prettyPrint(IExpression t) {
     return t.toString();
   }
+
 }

@@ -49,9 +49,8 @@ abstract class SmtInterpolNumeralFormulaManager
 
   SmtInterpolNumeralFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          SmtInterpolFunctionFormulaManager pFunctionManager) {
+    super(pCreator);
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
 
@@ -83,7 +82,7 @@ abstract class SmtInterpolNumeralFormulaManager
     Term arg = SmtInterpolUtil.getArg(pNumber, 0);
     if (SmtInterpolUtil.isNumber(arg)) {
       // TODO: BUG: possible bug
-      return SmtInterpolUtil.toNumber(arg) == -1;
+      return SmtInterpolUtil.toNumber(arg).doubleValue() == -1;
     }
     return false;
   }
@@ -164,7 +163,7 @@ abstract class SmtInterpolNumeralFormulaManager
 
   @Override
   public boolean isEqual(Term pNumber) {
-    return SmtInterpolUtil.isFunction(pNumber, "=");
+    return SmtInterpolUtil.isNumeralEqual(pNumber);
   }
 
   @Override

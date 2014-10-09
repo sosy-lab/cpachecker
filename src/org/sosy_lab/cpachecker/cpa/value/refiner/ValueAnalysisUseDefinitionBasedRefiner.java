@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
@@ -86,7 +86,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
-  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.BEST;
+  private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
 
   public static ValueAnalysisUseDefinitionBasedRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -168,7 +168,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa);
       List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, new ValueAnalysisState(), new ArrayDeque<ValueAnalysisState>());
 
-      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification());
+      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
       errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
@@ -182,11 +182,11 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
     Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    ValueAnalysisPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, ValueAnalysisPrecision.class);
+    VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     reached.removeSubtree(errorPath.get(1).getFirst(),
-        new ValueAnalysisPrecision(valueAnalysisPrecision, increment),
-        ValueAnalysisPrecision.class);
+        new VariableTrackingPrecision(valueAnalysisPrecision, increment),
+        VariableTrackingPrecision.class);
 
     numberOfSuccessfulRefinements++;
     return true;

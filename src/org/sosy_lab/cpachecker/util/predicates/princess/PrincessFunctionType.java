@@ -27,9 +27,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 
-class PrincessFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, PrincessEnvironment.FunctionType> {
+class PrincessFunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, PrincessEnvironment.FunctionType> {
 
   PrincessFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, PrincessEnvironment.FunctionType funcDecl) {
     super(pReturnType, funcDecl, pArgumentTypes);

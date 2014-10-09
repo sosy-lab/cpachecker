@@ -40,22 +40,16 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     super(pCreator);
   }
 
-
-  @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-      return FormulaType.BitvectorType.getBitvectorType(pLength);
-  }
-
   protected TFormulaInfo extractInfo(Formula pNumber) {
     return getFormulaCreator().extractInfo(pNumber);
   }
 
   protected BitvectorFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BitvectorFormula.class, pTerm);
+    return getFormulaCreator().encapsulateBitvector(pTerm);
   }
 
   protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, pTerm);
+    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override
@@ -475,11 +469,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
   @Override
   public int getLength(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return getLength(param);
+    FormulaType<BitvectorFormula> type = getFormulaCreator().getFormulaType(pNumber);
+    return ((FormulaType.BitvectorType)type).getSize();
   }
-
-  protected abstract int getLength(TFormulaInfo pParam) ;
-
-
 }

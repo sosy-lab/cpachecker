@@ -71,7 +71,9 @@ public class SolverTest {
     mgr = factory.getFormulaManager();
     bmgr = mgr.getBooleanFormulaManager();
     imgr = mgr.getIntegerFormulaManager();
-    rmgr = mgr.getRationalFormulaManager();
+    if (!"PRINCESS".equals(solver)) { // PRINCESS does not support Rational-theory
+      rmgr = mgr.getRationalFormulaManager();
+    }
   }
 
   @Test
@@ -101,7 +103,9 @@ public class SolverTest {
     ProverEnvironment env = factory.newProverEnvironment(true, true);
     simpleStackTestBool(bmgr, env);
     simpleStackTestNum(imgr, env);
-    simpleStackTestNum(rmgr, env);
+    if (rmgr != null) {
+      simpleStackTestNum(rmgr, env);
+    }
   }
 
   private void simpleStackTestBool(BooleanFormulaManager bmgr, ProverEnvironment stack) throws InterruptedException {
@@ -340,6 +344,78 @@ public class SolverTest {
     assertFalse(stack1.isUnsat());
     stack2.pop(); // L1
     assertFalse(stack2.isUnsat());
+    assertFalse(stack1.isUnsat());
+  }
+
+  @Test
+  public void numTestMATHSAT() throws Exception {
+    intTest1("MATHSAT5");
+    intTest2("MATHSAT5");
+    realTest("MATHSAT5");
+  }
+
+  @Test
+  public void numTestZ3() throws Exception {
+    if (isLibFociAvailable) {
+      intTest1("Z3");
+      intTest2("Z3");
+      realTest("Z3");
+    }
+  }
+
+  @Test
+  public void numTestSMTINTERPOL() throws Exception {
+    intTest1("SMTINTERPOL");
+    intTest2("SMTINTERPOL");
+    realTest("SMTINTERPOL");
+  }
+
+  @Test
+  public void numTestPRINCESS() throws Exception {
+    intTest1("PRINCESS");
+    intTest2("PRINCESS");
+    // realTest("PRINCESS"); // PRINCESS does not support Rational-theory
+  }
+
+  private void intTest1(String solver) throws Exception {
+
+    init(solver);
+
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula num = imgr.makeNumber(2);
+
+    BooleanFormula f = imgr.equal(imgr.add(a, a), num);
+
+    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    stack1.push(f); // L1
+    assertFalse(stack1.isUnsat());
+  }
+
+  private void intTest2(String solver) throws Exception {
+
+    init(solver);
+
+    IntegerFormula a = imgr.makeVariable("int_b");
+    IntegerFormula num = imgr.makeNumber(1);
+
+    BooleanFormula f = imgr.equal(imgr.add(a, a), num);
+
+    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    stack1.push(f); // L1
+    assertTrue(stack1.isUnsat());
+  }
+
+  private void realTest(String solver) throws Exception {
+
+    init(solver);
+
+    RationalFormula a = rmgr.makeVariable("int_c");
+    RationalFormula num = rmgr.makeNumber(1);
+
+    BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
+
+    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    stack1.push(f); // L1
     assertFalse(stack1.isUnsat());
   }
 }

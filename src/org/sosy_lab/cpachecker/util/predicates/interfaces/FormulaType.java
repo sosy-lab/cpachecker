@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  */
 public abstract class FormulaType<T extends Formula> {
 
-  FormulaType() {}
-
-  public abstract Class<T> getInterfaceType();
+  private FormulaType() {}
 
   public boolean isBitvectorType() {
     return false;
@@ -73,11 +71,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<RationalFormula> RationalType = new NumeralType<RationalFormula>() {
 
     @Override
-    public Class<RationalFormula> getInterfaceType() {
-      return RationalFormula.class;
-    }
-
-    @Override
     public boolean isRationalType() {
       return true;
     }
@@ -89,11 +82,6 @@ public abstract class FormulaType<T extends Formula> {
   };
 
   public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
-
-    @Override
-    public Class<IntegerFormula> getInterfaceType() {
-      return IntegerFormula.class;
-    }
 
     @Override
     public boolean isIntegerType() {
@@ -109,11 +97,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<BooleanFormula> BooleanType = new FormulaType<BooleanFormula>() {
 
     @Override
-    public Class<BooleanFormula> getInterfaceType() {
-      return BooleanFormula.class;
-    }
-
-    @Override
     public boolean isBooleanType() {
       return true;
     }
@@ -124,22 +107,25 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
+  public static BitvectorType getBitvectorTypeWithSize(int size) {
+    return BitvectorType.getBitvectorType(size);
+  }
+
   public static final class BitvectorType extends FormulaType<BitvectorFormula> {
     private final int size;
 
     private BitvectorType(int size) {
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new HashMap<>();
+    private static Map<Integer, BitvectorType> table = new HashMap<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
-     * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.
      * @param size
      * @return
      */
-    public static FormulaType<BitvectorFormula> getBitvectorType(int size) {
+    private static BitvectorType getBitvectorType(int size) {
       int hashValue = size;
-      FormulaType<BitvectorFormula> value = table.get(hashValue);
+      BitvectorType value = table.get(hashValue);
       if (value == null) {
         value = new BitvectorType(size);
         table.put(hashValue, value);
@@ -157,12 +143,7 @@ public abstract class FormulaType<T extends Formula> {
     }
 
     public BitvectorType withSize(int size) {
-      return (BitvectorType) getBitvectorType(size);
-    }
-
-    @Override
-    public Class<BitvectorFormula> getInterfaceType() {
-      return BitvectorFormula.class;
+      return getBitvectorType(size);
     }
 
     @Override

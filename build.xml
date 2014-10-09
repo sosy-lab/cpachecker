@@ -193,12 +193,16 @@
     <!-- Targets for downloading CPAchecker instead of building it.
          This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
          Warning: this might overwrite local changes. -->
-    <target name="download-cpachecker" depends="determine-version-revision">
+    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
         <script language="javascript"><![CDATA[
             var revision = project.getProperty("version.revision");
             project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
         ]]></script>
         <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
-        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
+            <patternset>
+                <include name="cpachecker.jar"/>
+            </patternset>
+        </unzip>
     </target>
 </project>

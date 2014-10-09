@@ -29,12 +29,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-public class Z3Formula implements Formula {
+abstract class Z3Formula implements Formula {
 
-  public final long z3expr;
-  public final long z3context;
+  private final long z3expr;
+  private final long z3context;
 
-  public Z3Formula(long z3context, long z3expr) {
+  Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
     Z3NativeApi.inc_ref(z3context, z3expr);

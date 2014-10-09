@@ -47,6 +47,14 @@ Code Formatting:
 - There is no blank line required between fields,
   but there is between fields and other members,
   and between unrelated groups of fields.
+- Do not align field declarations,
+  this gets mis-aligned soon on refactorings anyway.
+  Example:
+    int foo = -2;
+    long x = 3;
+  and NOT:
+    int  foo = -2;
+    long x   =  3;
 
 Spelling:
 - Try to avoid typos.

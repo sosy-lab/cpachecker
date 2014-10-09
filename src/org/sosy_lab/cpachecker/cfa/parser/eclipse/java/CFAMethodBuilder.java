@@ -176,7 +176,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (ASTNode.RECOVERED == problem.getFlags()
         || ASTNode.MALFORMED  == problem.getFlags()) {
-      throw new CFAGenerationRuntimeException("Parse Error", problem);
+      throw new CFAGenerationRuntimeException("Parse Error.", problem);
     }
   }
 
@@ -1595,7 +1595,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (labelMap.containsKey(labelName)) {
       throw new CFAGenerationRuntimeException("Duplicate label " + labelName
-        + " in method " + cfa.getFunctionName(), labelStatement);
+        + " in method " + cfa.getFunctionName() + ".", labelStatement);
     }
 
 

@@ -177,7 +177,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     long e = parse_smtlib2_string(getEnvironment(), str, sort_symbols, sorts, decl_symbols, decls);
 
-    return encapsulate(BooleanFormula.class, e);
+    return encapsulateBooleanFormula(e);
   }
 
 
@@ -210,12 +210,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
         });
   }
 
-  private <T extends Formula> T encapsulateExpr(Class<T> pClazz, long t) {
-    return getFormulaCreator().encapsulate(pClazz, t);
-  }
-
-  protected <T extends Formula> T encapsulate(Class<T> pClazz, long t) {
-    return encapsulateExpr(pClazz, t);
+  protected BooleanFormula encapsulateBooleanFormula(long t) {
+    return getFormulaCreator().encapsulateBoolean(t);
   }
 
   @Override
@@ -230,7 +226,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   //  }
 
   /** returns a new logger with a new logfile. */
-  public Z3SmtLogger getSmtLogger() {
+  Z3SmtLogger getSmtLogger() {
     return z3smtLogger.cloneWithNewLogfile();
   }
 }

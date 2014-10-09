@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import scala.collection.mutable.ArrayBuffer;
@@ -59,42 +60,21 @@ import com.google.common.collect.ImmutableList;
  */
 class PrincessEnvironment {
 
-  /**
-   * Enum listing possible types for Princess.
-   */
-  static enum Type {
-    BOOL("Bool"),
-    INT("Int");
-    // TODO does Princess support more types?
-    // TODO merge enum with ModelTypes?
-
-    private final String name;
-
-    private Type(String s) {
-      name = s;
-    }
-
-    @Override
-    public String toString() {
-      return name;
-    }
-  }
-
   public static class FunctionType {
 
     private final IFunction funcDecl;
-    private final Type resultType;
-    private final List<Type> args;
+    private final TermType resultType;
+    private final List<TermType> args;
 
-    FunctionType(IFunction funcDecl, Type resultType, List<Type> args) {
+    FunctionType(IFunction funcDecl, TermType resultType, List<TermType> args) {
       this.funcDecl = funcDecl;
       this.resultType = resultType;
       this.args = ImmutableList.copyOf(args);
     }
 
     public IFunction getFuncDecl() { return funcDecl; }
-    public Type getResultType() { return resultType; }
-    public List<Type> getArgs() { return args; }
+    public TermType getResultType() { return resultType; }
+    public List<TermType> getArgs() { return args; }
 
   }
 
@@ -181,10 +161,10 @@ class PrincessEnvironment {
     throw new UnsupportedOperationException(); // todo: implement this
   }
 
-  public IExpression makeVariable(Type type, String varname) {
+  public IExpression makeVariable(TermType type, String varname) {
     switch (type) {
 
-      case BOOL: {
+      case Boolean: {
         if (boolVariablesCache.containsKey(varname)) {
           return boolVariablesCache.get(varname);
         } else {
@@ -197,7 +177,7 @@ class PrincessEnvironment {
         }
       }
 
-      case INT: {
+      case Integer: {
         if (intVariablesCache.containsKey(varname)) {
           return intVariablesCache.get(varname);
         } else {
@@ -217,7 +197,7 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  public FunctionType declareFun(String name, Type resultType, List<Type> args) {
+  public FunctionType declareFun(String name, TermType resultType, List<TermType> args) {
     if (functionsCache.containsKey(name)) {
       FunctionType function = functionsCache.get(name);
       assert function.getResultType() == resultType;
@@ -232,7 +212,7 @@ class PrincessEnvironment {
 
   /** This function declares a new functionSymbol, that has a given number of params.
    * Princess has no support for typed params, only their number is important. */
-  private FunctionType declareFun0(String name, Type resultType, List<Type> args) {
+  private FunctionType declareFun0(String name, TermType resultType, List<TermType> args) {
     IFunction funcDecl = api.createFunction(name, args.size());
     for (SymbolTrackingPrincessStack stack : registeredStacks) {
        stack.addSymbol(funcDecl);
@@ -246,7 +226,7 @@ class PrincessEnvironment {
     return declaredFunctions.get(f);
   }
 
-  public IExpression makeFunction(IFunction funcDecl, Type resultType, List<IExpression> args) {
+  public IExpression makeFunction(IFunction funcDecl, TermType resultType, List<IExpression> args) {
     final ArrayBuffer<ITerm> argsBuf = new ArrayBuffer<>();
     for (IExpression arg : args) {
       final ITerm termArg;
@@ -261,9 +241,9 @@ class PrincessEnvironment {
     final ITerm t = new IFunApp(funcDecl, argsBuf.toSeq());
 
     switch (resultType) {
-      case BOOL:
+      case Boolean:
         return t;
-      case INT:
+      case Integer:
         return t;
       default:
         throw new AssertionError("unknown resulttype");

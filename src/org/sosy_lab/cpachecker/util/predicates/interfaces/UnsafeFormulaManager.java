@@ -88,27 +88,29 @@ public interface UnsafeFormulaManager {
   String getName(Formula f);
 
   /**
-   * Replaces the name and the arguments of the given formula
+   * Replaces the name and the arguments of the given formula.
+   * The old and the new name need to be of the same type.
    * @param f
    * @param newName
    * @param args
    * @return
    */
-  Formula replaceArgsAndName(Formula f, String newName, Formula[] args);
+  <T extends Formula> T replaceArgsAndName(T f, String newName, List<Formula> args);
   /**
   * Replaces the arguments of the given formula
   * @param f
   * @param args
   * @return
   */
-  Formula replaceArgs(Formula f, Formula[] args);
+  <T extends Formula> T replaceArgs(T f, List<Formula> args);
   /**
    * Replaces the name of the given formula
+   * The old and the new name need to be of the same type.
    * @param f
    * @param newName
    * @return
    */
-  Formula replaceName(Formula f, String newName);
+  <T extends Formula> T replaceName(T f, String newName);
 
   /**
    * Substitute every occurrence of any item from {@code changeFrom}
@@ -127,5 +129,5 @@ public interface UnsafeFormulaManager {
   <T1 extends Formula, T2 extends Formula> T1
       substitute(T1 f, List<T2> changeFrom, List<T2> changeTo);
 
-  Formula simplify(Formula f);
+  <T extends Formula> T simplify(T f);
 }

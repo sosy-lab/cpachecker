@@ -122,9 +122,6 @@ public interface PointerTargetSetBuilder {
    */
   final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
-    // The counter that guarantees a unique name for each allocated memory region.
-    private static int dynamicAllocationCounter = 0;
-
     private final FormulaManagerView formulaManager;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithPointerAliasingOptions options;
@@ -384,10 +381,6 @@ public interface PointerTargetSetBuilder {
     @Override
     public SortedSet<String> getDeferredAllocationVariables() {
       return deferredAllocations.keySet();
-    }
-
-    public static int getNextDynamicAllocationIndex() {
-      return dynamicAllocationCounter++;
     }
 
     @Override

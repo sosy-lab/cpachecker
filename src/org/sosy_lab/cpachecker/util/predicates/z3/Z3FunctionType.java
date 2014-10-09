@@ -27,11 +27,11 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 
-public class Z3FunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, Long> {
+class Z3FunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, Long> {
 
-  public Z3FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
+  Z3FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
     super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

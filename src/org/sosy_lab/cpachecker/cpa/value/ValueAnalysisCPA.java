@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecisionOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -85,10 +87,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(name="variableBlacklist",
-      description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
-  private String variableBlacklist = "";
-
   @Option(description="enables target checking for value-analysis, needed for predicate-analysis")
   private boolean doTargetCheck = false;
 
@@ -112,7 +110,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
-  private ValueAnalysisPrecision precision;
+  private VariableTrackingPrecision precision;
+  private VariableTrackingPrecisionOptions precisionOptions;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
   private final ValueAnalysisReducer reducer;
@@ -134,6 +133,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
+    precisionOptions    = new VariableTrackingPrecisionOptions(config);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -180,17 +180,17 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return null;
   }
 
-  private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
+      return new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification(), new VariableTrackingPrecision.FullPrecision());
 
     } else {
       // create precision with empty, refinable component precision
-      ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+      VariableTrackingPrecision precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
 
       // refine the refinable component precision with increment from file
-      return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+      return new VariableTrackingPrecision(precision, restoreMappingFromFile(cfa));
     }
   }
 
@@ -244,7 +244,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null) {
-      precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+      precision = new VariableTrackingPrecision(precisionOptions, cfa.getVarClassification());
     }
   }
 
@@ -278,7 +278,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return precision;
   }
 
-  ValueAnalysisPrecision getPrecision() {
+  VariableTrackingPrecision getPrecision() {
     return precision;
   }
 

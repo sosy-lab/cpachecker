@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -36,6 +37,18 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
       Sort pIntegerType,
       Sort pRealType) {
     super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Term pFormula) {
+    if (SmtInterpolUtil.isBoolean(pFormula)) {
+      return FormulaType.BooleanType;
+    } else if (SmtInterpolUtil.hasIntegerType(pFormula)) {
+      return FormulaType.IntegerType;
+    } else if (SmtInterpolUtil.hasRationalType(pFormula)) {
+      return FormulaType.RationalType;
+    }
+    throw new IllegalArgumentException("Unknown formula type");
   }
 
   @Override

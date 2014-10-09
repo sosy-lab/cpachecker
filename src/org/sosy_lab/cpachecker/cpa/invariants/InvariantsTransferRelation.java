@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -869,11 +868,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
         @Override
         public Iterable<IALeftHandSide> visit(CTypeIdExpression pIastTypeIdExpression) {
-          return Collections.emptySet();
-        }
-
-        @Override
-        public Iterable<IALeftHandSide> visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) {
           return Collections.emptySet();
         }
 

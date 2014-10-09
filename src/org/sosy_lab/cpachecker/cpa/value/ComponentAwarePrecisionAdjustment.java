@@ -38,6 +38,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.FullPrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.LocalizedRefinablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.RefinablePrecision;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -52,17 +57,14 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.blk")
 public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
@@ -85,7 +87,6 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   final StatTimer total             = new StatTimer("Total time for precision adjustment");
   final StatTimer totalComposite    = new StatTimer("Total time for composite");
   final StatTimer totalEnforcePath  = new StatTimer("Total time for path threshold");
-  final StatTimer totalReachedSet   = new StatTimer("Total time for reached set threshold");
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
   final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
 
@@ -118,7 +119,6 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         writer = writer.beginLevel();
         writer.put(totalComposite);
         writer.put(totalAbstraction);
-        writer.put(totalReachedSet);
         writer.put(totalEnforcePath);
         writer.put(abstractions);
       }
@@ -160,7 +160,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       // enforce thresholds for value-analysis state, by incorporating information from reached set and path condition element
       if (i == indexOfValueAnalysisState) {
         ValueAnalysisState valueAnalysisState         = (ValueAnalysisState)oldState;
-        ValueAnalysisPrecision valueAnalysisPrecision = (ValueAnalysisPrecision)oldPrecision;
+        VariableTrackingPrecision valueAnalysisPrecision = (VariableTrackingPrecision)oldPrecision;
         LocationState location                        = AbstractStates.extractStateByType(composite, LocationState.class);
         UniqueAssignmentsInPathConditionState assigns = AbstractStates.extractStateByType(composite, UniqueAssignmentsInPathConditionState.class);
 
@@ -172,14 +172,9 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
           totalAbstraction.stop();
         }
 
-        // compute the abstraction for reached set thresholds
-        totalReachedSet.start();
-        valueAnalysisState = enforceReachedSetThreshold(valueAnalysisState, valueAnalysisPrecision, slice.getReached(location.getLocationNode()));
-        totalReachedSet.stop();
-
         // compute the abstraction for assignment thresholds
         totalEnforcePath.start();
-        Pair<ValueAnalysisState, ValueAnalysisPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns);
+        Pair<ValueAnalysisState, VariableTrackingPrecision> result = enforcePathThreshold(valueAnalysisState, valueAnalysisPrecision, assigns);
         totalEnforcePath.stop();
 
         outElements.add(result.getFirst());
@@ -225,13 +220,30 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
    * @param state the current state
    * @param precision the current precision
    */
-  private ValueAnalysisState enforceAbstraction(ValueAnalysisState state, LocationState location, ValueAnalysisPrecision precision) {
+  private ValueAnalysisState enforceAbstraction(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
     if (abstractAtEachLocation()
         || abstractAtAssumes(location)
         || abstractAtJoins(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
-      state = precision.computeAbstraction(state, location.getLocationNode());
+      RefinablePrecision refPrec = precision.getRefinablePrecision();
+      refPrec.setLocation(location.getLocationNode());
+
+      Collection<MemoryLocation> candidates;
+      if (refPrec instanceof FullPrecision
+          || refPrec instanceof ScopedRefinablePrecision) {
+        candidates = state.getDelta();
+      } else if (refPrec instanceof LocalizedRefinablePrecision) {
+        candidates = state.getTrackedMemoryLocations();
+      } else {
+        throw new AssertionError("RefinablePrecision instance which is not handled: " + refPrec.getClass());
+      }
+
+      for (MemoryLocation memoryLocation : candidates) {
+        if (!precision.isTracking(memoryLocation)) {
+          state.forget(memoryLocation);
+        }
+      }
       state.clearDelta();
       abstractions.inc();
     }
@@ -301,8 +313,8 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
    * @param assignments the assignment information
    * @return the abstracted state
    */
-  private Pair<ValueAnalysisState, ValueAnalysisPrecision> enforcePathThreshold(ValueAnalysisState state,
-      ValueAnalysisPrecision precision,
+  private Pair<ValueAnalysisState, VariableTrackingPrecision> enforcePathThreshold(ValueAnalysisState state,
+      VariableTrackingPrecision precision,
       UniqueAssignmentsInPathConditionState assignments) {
     if (assignments != null) {
 
@@ -331,44 +343,6 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
     }
 
     return Pair.of(state, precision);
-  }
-
-  /**
-   * This method abstracts variables that exceed the threshold of different values in a given slice of the reached set.
-   *
-   * @param state the state to abstract
-   * @param precision the current precision
-   * @param reachedSetAtLocation the slice of the reached set from where to retrieve the values per variable
-   * @return the abstracted state
-   */
-  private ValueAnalysisState enforceReachedSetThreshold(ValueAnalysisState state, ValueAnalysisPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
-    if (precision.isReachedSetThresholdActive()) {
-      // create the mapping from variable name to its different values in this slice of the reached set
-      Multimap<String, Value> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
-
-      for (String variable : valueMapping.keySet()) {
-        if (precision.variableExceedsReachedSetThreshold(valueMapping.get(variable).size())) {
-          state.forget(variable);
-        }
-      }
-    }
-
-    return state;
-  }
-
-  /**
-   * This method creates the map which tracks how many different values are stored for a variable, based on the elements in the reached set.
-   *
-   * @param reachedSetAtLocation the collection of AbstractStates in the reached set that refer to the current location
-   */
-  private Multimap<String, Value> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
-    Multimap<String, Value> valueMapping = HashMultimap.create();
-
-    for (AbstractState element : reachedSetAtLocation) {
-      valueMapping = ((ValueAnalysisState)element).addToValueMapping(valueMapping);
-    }
-
-    return valueMapping;
   }
 
   /**

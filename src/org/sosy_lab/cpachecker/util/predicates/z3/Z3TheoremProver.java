@@ -46,7 +46,7 @@ import com.google.common.base.Preconditions;
 
 public class Z3TheoremProver implements ProverEnvironment {
 
-  private Z3FormulaManager mgr;
+  private final Z3FormulaManager mgr;
   private long z3context;
   private long z3solver;
   private final Z3SmtLogger smtLogger;
@@ -248,9 +248,9 @@ public class Z3TheoremProver implements ProverEnvironment {
       for (long t : model) {
         if (isOP(z3context, t, Z3_OP_NOT)) {
           t = get_app_arg(z3context, t, 0);
-          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(t)));
+          builder.addNegativeRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
         } else {
-          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(t)));
+          builder.addPositiveRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
         }
       }
       builder.finishConjunction();
@@ -258,10 +258,6 @@ public class Z3TheoremProver implements ProverEnvironment {
       count++;
 
       regionTime.stop();
-    }
-
-    private BooleanFormula encapsulate(long pT) {
-      return mgr.encapsulate(BooleanFormula.class, pT);
     }
   }
 }

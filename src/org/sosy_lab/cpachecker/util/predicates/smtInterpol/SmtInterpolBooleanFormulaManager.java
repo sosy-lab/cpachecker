@@ -129,7 +129,7 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   protected boolean isEquivalence(Term pBits) {
-    return SmtInterpolUtil.isEqual(pBits);
+    return SmtInterpolUtil.isEquivalence(pBits);
   }
 
   @Override

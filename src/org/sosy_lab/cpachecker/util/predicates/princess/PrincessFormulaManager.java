@@ -34,13 +34,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
 
-public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   private PrincessFormulaManager(
           PrincessEnvironment pEnv,
@@ -48,9 +49,8 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
           PrincessUnsafeFormulaManager pUnsafeManager,
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
-          PrincessIntegerFormulaManager pIntegerManager,
-          PrincessRationalFormulaManager pRationalManager) {
-    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null);
+          PrincessIntegerFormulaManager pIntegerManager) {
+    super(pEnv, pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null);
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
@@ -59,21 +59,20 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
-        PrincessEnvironment.Type.BOOL, PrincessEnvironment.Type.INT, PrincessEnvironment.Type.INT);
+        TermType.Boolean, TermType.Integer);
 
     // Create managers
     PrincessUnsafeFormulaManager unsafeManager = new PrincessUnsafeFormulaManager(creator);
     PrincessFunctionFormulaManager functionTheory = new PrincessFunctionFormulaManager(creator, unsafeManager);
     PrincessBooleanFormulaManager booleanTheory = new PrincessBooleanFormulaManager(creator);
     PrincessIntegerFormulaManager integerTheory = new PrincessIntegerFormulaManager(creator, functionTheory);
-    PrincessRationalFormulaManager rationalTheory = new PrincessRationalFormulaManager(creator, functionTheory);
 
     return new PrincessFormulaManager(env, creator, unsafeManager, functionTheory,
-            booleanTheory, integerTheory, rationalTheory);
+            booleanTheory, integerTheory);
   }
 
   BooleanFormula encapsulateBooleanFormula(IExpression t) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulateBoolean(t);
   }
 
   @Override

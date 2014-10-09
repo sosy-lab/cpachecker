@@ -52,11 +52,11 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -95,8 +95,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -118,7 +119,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -742,23 +742,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
         trivialResult = false;
       } else {
-        Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+        LoopStructure loops = cfa.getLoopStructure().get();
 
         // Induction is currently only possible if there is a single loop.
         // This check can be weakened in the future,
         // e.g. it is ok if there is only a single loop on each path.
-        if (loops.size() > 1) {
+        if (loops.getCount() > 1) {
           logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
           invariantGenerator.cancel();
           trivialResult = false;
-        } else if (loops.isEmpty()) {
+        } else if (loops.getCount() == 0) {
           // induction is unnecessary, program has no loops
           invariantGenerator.cancel();
           trivialResult = true;
         } else {
           stats.inductionPreparation.start();
 
-          loop = Iterables.getOnlyElement(loops.values());
+          loop = Iterables.getOnlyElement(loops.getAllLoops());
           // function edges do not count as incoming/outgoing edges
           incomingEdges = from(loop.getIncomingEdges()).filter(not(instanceOf(CFunctionReturnEdge.class))).toList();
 

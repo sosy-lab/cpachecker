@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -37,195 +34,154 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 
-public class PartitionChecker implements Runnable {
+public class PartitionChecker {
 
-  private final int partitionNumber;
+  private final Multimap<CFANode, AbstractState> partitionParts = HashMultimap.create();
+  private final List<AbstractState> certificatePart = new ArrayList<>();
+  private final Collection<AbstractState> mustBeInCertificate = new HashSet<>();
 
-  private final AtomicBoolean checkResult;
-  private final Semaphore mainSemaphore;
-  private final Lock lock;
-  private Condition partitionReady;
-
-  private final Collection<AbstractState> certificate;
-  private final Multimap<CFANode, AbstractState> isInPartition;
-  private final Collection<AbstractState> mustBeContainedInCertificate;
-  private final List<AbstractState> addToCertificate = new ArrayList<>();
-  private final List<AbstractState> addToContainedInCertificate = new ArrayList<>();
-
+  private final PartitioningCheckingHelper partitionHelper;
   private final PartitioningIOHelper ioHelper;
   private final Precision initPrec;
   private final StopOperator stop;
   private final TransferRelation transfer;
 
-  private final Multimap<CFANode, AbstractState> statesPerLocation = HashMultimap.create();
-
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
+  public PartitionChecker(final Precision pInitPrecision, final StopOperator pStop, final TransferRelation pTransfer,
+      final PartitioningIOHelper pIOHelper, final PartitioningCheckingHelper pHelperInfo,
+      final ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
+    initPrec = pInitPrecision;
+    stop = pStop;
+    transfer = pTransfer;
 
-  public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
-      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final PartitioningIOHelper pHelper,
-      final ShutdownNotifier pShutdown, final LogManager pLogger) {
-    partitionNumber = pNumber;
-    checkResult = pCheckResult;
-    mainSemaphore = pPartitionChecked;
-    certificate = pCertificate;
-    mustBeContainedInCertificate = pInOtherPartition;
-    isInPartition = pInPartition;
-    initPrec = pInitPrec;
-    if (pCpa instanceof ARGCPA) {
-      stop = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getStopOperator();
-      transfer = ((ARGCPA) pCpa).getWrappedCPAs().get(0).getTransferRelation();
-    } else {
-      stop = pCpa.getStopOperator();
-      transfer = pCpa.getTransferRelation();
-    }
-    lock = pLock;
-    ioHelper = pHelper;
-    shutdownNotifier = pShutdown;
+    ioHelper = pIOHelper;
+    partitionHelper = pHelperInfo;
+
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    partitionReady = null;
   }
 
-  public PartitionChecker(final int pNumber, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked,
-      final Collection<AbstractState> pCertificate, final Collection<AbstractState> pInOtherPartition,
-      final Multimap<CFANode, AbstractState> pInPartition, final Precision pInitPrec,
-      final ConfigurableProgramAnalysis pCpa, final Lock pLock, final Condition pPartitionReady,
-      final PartitioningIOHelper pHelper, final ShutdownNotifier pShutdown, final LogManager pLogger) {
-    this(pNumber, pCheckResult, pPartitionChecked, pCertificate, pInOtherPartition, pInPartition, pInitPrec, pCpa,
-        pLock, pHelper, pShutdown, pLogger);
-    partitionReady = pPartitionReady;
-  }
+  public void checkPartition(int pIndex){
+    Multimap<CFANode, AbstractState> statesPerLocation = HashMultimap.create();
+    Pair<AbstractState[], AbstractState[]> partition = ioHelper.getPartition(pIndex);
+    Preconditions.checkNotNull(partition);
 
-  @Override
-  public void run() {
-    try {
-      Pair<AbstractState[], AbstractState[]> partition = null;
-      lock.lock();
-      try {
-        while ((partition = ioHelper.getPartition(partitionNumber)) == null) {
-          if (!checkResult.get()) { return; }
-          if (partitionReady == null) {
-            logger.log(Level.SEVERE, "Not configured for interleaved proof reading and checking");
-            abortPreparation();
-            return;
-          }
-          partitionReady.await();
-        }
-      } catch (InterruptedException e) {
-        abortPreparation();
+    // add nodes of partition
+    for (AbstractState internalNode : partition.getFirst()) {
+      addElement(internalNode, true, statesPerLocation);
+    }
+
+    // add adjacent nodes of other partition
+    for (AbstractState adjacentNode : partition.getSecond()) {
+      addElement(adjacentNode, false, statesPerLocation);
+    }
+
+    AbstractState checkedState;
+    CFANode loc;
+    Collection<? extends AbstractState> successors;
+    int nextPos = 0;
+
+    while (nextPos<certificatePart.size()) {
+      if (shutdownNotifier.shouldShutdown()) {
+        partitionHelper.abortCheckingPreparation();
         return;
-      } finally {
-        lock.unlock();
       }
 
-
-      // add nodes of partition
-      for (AbstractState internalNode : partition.getFirst()) {
-        addElement(internalNode, true);
+      if (certificatePart.size() + partitionHelper.getCurrentCertificateSize() > ioHelper
+          .getSavedReachedSetSize()) {
+        logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
+        partitionHelper.abortCheckingPreparation();
+        return;
       }
 
-      // add adjacent nodes of other partition
-      for (AbstractState adjacentNode : partition.getSecond()) {
-        addElement(adjacentNode, false);
-      }
+      checkedState = certificatePart.get(nextPos++);
 
-      AbstractState checkedState;
-      Collection<? extends AbstractState> successors;
-      int nextPos = 0;
-
-      while (nextPos<addToCertificate.size()) {
-        if (shutdownNotifier.shouldShutdown()) {
-          abortPreparation();
-          return;
-        }
-
-        if (addToCertificate.size() + certificate.size() > ioHelper
-            .getSavedReachedSetSize()) {
-          logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
-          abortPreparation();
-          return;
-        }
-
-        checkedState = addToCertificate.get(nextPos++);
-
-        // compute successors
-        try {
-          successors = transfer.getAbstractSuccessors(checkedState, initPrec);
+      // compute successors
+      try {
+        successors = transfer.getAbstractSuccessors(checkedState, initPrec);
 
 
-          for (AbstractState successor : successors) {
-            // check if covered
-            if (!stop.stop(successor, statesPerLocation.get(AbstractStates.extractLocation(successor)), initPrec)) {
-              addToCertificate.add(successor);
-            }
+        for (AbstractState successor : successors) {
+          // check if covered
+          loc = AbstractStates.extractLocation(successor);
+          if (!stop.stop(successor, statesPerLocation.get(loc), initPrec)) {
+            certificatePart.add(successor);
           }
-        } catch (CPATransferException | InterruptedException e) {
-          logger.log(Level.SEVERE, "Checking failed, successor computation failed");
-          abortPreparation();
-          return;
-        } catch (CPAException e) {
-          logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
-          abortPreparation();
-          return;
         }
+      } catch (CPATransferException | InterruptedException e) {
+        logger.log(Level.SEVERE, "Checking failed, successor computation failed");
+        partitionHelper.abortCheckingPreparation();
+        return;
+      } catch (CPAException e) {
+        logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
+        partitionHelper.abortCheckingPreparation();
+        return;
       }
-
-      lock.lock();
-      try {
-        certificate.addAll(addToCertificate);
-        mustBeContainedInCertificate.addAll(addToContainedInCertificate);
-        for (AbstractState internalNode : partition.getFirst()) {
-          isInPartition.put(AbstractStates.extractLocation(internalNode), internalNode);
-        }
-      } finally {
-        lock.unlock();
-      }
-
-      mainSemaphore.release();
-    } catch (Exception e2) {
-      logger.log(Level.SEVERE, "Unexpected failure during proof reading");
-      e2.printStackTrace();
-      abortPreparation();
     }
   }
 
-  private void addElement(final AbstractState element, final boolean inCertificate) {
+  public void addCertificatePartsToCertificate(final Collection<AbstractState> pCertificate) {
+    pCertificate.addAll(certificatePart);
+  }
+
+  public void addElementsCheckedInOtherPartitions(final Collection<AbstractState> pStatesMustBeInCertificate) {
+    pStatesMustBeInCertificate.addAll(mustBeInCertificate);
+  }
+
+  public void addPartitionElements(final Multimap<CFANode, AbstractState> pPartitionElements){
+    pPartitionElements.putAll(partitionParts);
+  }
+
+  public void clearPartitionElementsSavedForInspection() {
+    certificatePart.clear();
+  }
+
+  public void clearAllSavedPartitioningElements() {
+    certificatePart.clear();
+    partitionParts.clear();
+    mustBeInCertificate.clear();
+  }
+
+  private void addElement(final AbstractState element, final boolean inCertificate,
+      final Multimap<CFANode, AbstractState> pStatesPerLocation) {
     CFANode node = AbstractStates.extractLocation(element);
-    statesPerLocation.put(node, element);
+    pStatesPerLocation.put(node, element);
     if (inCertificate) {
-      addToCertificate.add(element);
+      partitionParts.put(node, element);
+      certificatePart.add(element);
     } else {
-      addToContainedInCertificate.add(element);
+      mustBeInCertificate.add(element);
     }
   }
 
-  private void abortPreparation() {
-    checkResult.set(false);
-    if (partitionReady != null) {
-      lock.lock();
-      try {
-        partitionReady.signalAll();
-      } finally {
-        lock.unlock();
+  public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
+      Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
+      throws CPAException, InterruptedException {
+    HashSet<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
+
+    for (AbstractState outState : pInOtherPartitions) {
+      if (!partitionNodes.contains(outState)
+          && !pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) {
+        return false;
       }
     }
-    mainSemaphore.release(ioHelper.getNumPartitions());
+
+    return true;
   }
 
 }

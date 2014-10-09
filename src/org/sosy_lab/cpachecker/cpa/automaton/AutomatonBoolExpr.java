@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
@@ -80,6 +82,37 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
+  /**
+   * Implements a match on the label after the current CFAEdge.
+   * The eval method returns false if there is no label following the CFAEdge.
+   */
+  static class MatchLabelExact implements AutomatonBoolExpr {
+
+    private final String label;
+
+    public MatchLabelExact(String pLabel) {
+      label = checkNotNull(pLabel);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
+      if (successorNode instanceof CLabelNode) {
+        if (label.equals(((CLabelNode)successorNode).getLabel())) {
+          return CONST_TRUE;
+        } else {
+          return CONST_FALSE;
+        }
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH LABEL \"" + label + "\"";
+    }
+  }
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.

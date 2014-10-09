@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Arrays;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 
 class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
 
@@ -54,37 +54,14 @@ class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
 
   private static class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
 
-    private FunctionFormulaType<?> wrapped;
-    private List<FormulaType<?>> args;
-    private FormulaType<T> ret;
+    private final FunctionFormulaType<?> wrapped;
 
-    public ReplaceFunctionFormulaType(
+    ReplaceFunctionFormulaType(
         FunctionFormulaType<?> wrapped,
-        FormulaType<T> retType,
-        List<FormulaType<?>> pArgs) {
-      this.wrapped = wrapped;
-      this.ret = retType;
-      this.args = pArgs;
-    }
-
-    @Override
-    public Class<T> getInterfaceType() {
-      return ret.getInterfaceType();
-    }
-
-    @Override
-    public List<FormulaType<?>> getArgumentTypes() {
-      return args;
-    }
-
-    @Override
-    public FormulaType<T> getReturnType() {
-      return ret;
-    }
-
-    @Override
-    public String toString() {
-      return "(" + ret.toString() + ") func(" + Joiner.on(',').join(args) + ")";
+        FormulaType<T> pReturnType,
+        List<FormulaType<?>> pArgumentTypes) {
+      super(pReturnType, pArgumentTypes);
+      this.wrapped = checkNotNull(wrapped);
     }
   }
 

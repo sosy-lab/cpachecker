@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -41,11 +40,6 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
     super(pCreator);
     this.msatEnv = pCreator.getEnv();
     this.creator = pCreator;
-  }
-
-  @Override
-  public Formula encapsulateUnsafe(Long pL) {
-    return new Mathsat5Formula(pL);
   }
 
   @Override

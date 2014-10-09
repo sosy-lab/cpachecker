@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -59,11 +60,12 @@ public class SSAMap implements Serializable {
 
   private static final long serialVersionUID = 7618801653203679876L;
 
-  // Default value for the default value :p
+  // Default value for the default value
   public static final int DEFAULT_DEFAULT_IDX = -1;
 
   // Default difference for two SSA-indizes of the same name.
-  public static final int DEFAULT_INCREMENT   =  1;
+  @VisibleForTesting
+  static final int DEFAULT_INCREMENT = 1;
 
   private final int defaultValue;
 
@@ -119,11 +121,15 @@ public class SSAMap implements Serializable {
     }
 
     public int getIndex(String variable) {
-      return SSAMap.getIndex(variable, vars, ssa.defaultValue).getSecond();
+      return SSAMap.getIndex(variable, vars, ssa.defaultValue);
     }
 
     public int getFreshIndex(String variable) {
-      return SSAMap.getFreshIndex(variable, latestUsedVars, ssa.defaultValue);
+      Integer value = latestUsedVars.get(variable);
+      if (value == null) {
+        value = ssa.defaultValue;
+      }
+      return value + SSAMap.DEFAULT_INCREMENT; // increment for a new index
     }
 
     public CType getType(String name) {
@@ -322,20 +328,12 @@ public class SSAMap implements Serializable {
     return new SSAMapBuilder(this);
   }
 
-  static Pair<Boolean, Integer> getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
+  private static int getIndex(String variable, Map<String, Integer> vars, int defaultValue) {
     Integer value = vars.get(variable);
     if (value == null) {
-      return Pair.of(false, defaultValue);
+      return defaultValue;
     }
-    return Pair.of(true, value);
-  }
-
-  private static int getFreshIndex(String variable, Map<String, Integer> latestUsedVars, int defaultValue) {
-    Integer value = latestUsedVars.get(variable);
-    if (value == null) {
-      value = defaultValue;
-    }
-    return value + DEFAULT_INCREMENT; // increment for a new index
+    return value;
   }
 
   /**
@@ -343,15 +341,11 @@ public class SSAMap implements Serializable {
    * or the [defaultValue].
    */
   public int getIndex(String variable) {
-    return getIndex(variable, vars, defaultValue).getSecond();
-  }
-
-  public Pair<Boolean, Integer> getMetaIndex(String variable) {
     return getIndex(variable, vars, defaultValue);
   }
 
   public int getLastUsedIndex(String variable) {
-    return getIndex(variable, latestUsedVars, defaultValue).getSecond();
+    return getIndex(variable, latestUsedVars, defaultValue);
   }
 
   public boolean containsVariable(String variable) {

@@ -47,17 +47,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ReachingDefTransferRelation extends SingleEdgeTransferRelation {
+public class ReachingDefTransferRelation implements TransferRelation {
 
   private Map<FunctionEntryNode, Set<String>> localVariablesPerFunction;
 
@@ -80,12 +81,8 @@ public class ReachingDefTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
-    if (pCfaEdge != null) {
-      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
-    }
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     List<CFANode> nodes = ReachingDefUtils.getAllNodesFromCFA();
     if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
@@ -111,6 +108,14 @@ public class ReachingDefTransferRelation extends SingleEdgeTransferRelation {
       successors.addAll(getAbstractSuccessors0(pState, pPrecision, edge));
     }
     return successors;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
+      Preconditions.checkNotNull(pCfaEdge);
+      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
@@ -282,6 +287,5 @@ public class ReachingDefTransferRelation extends SingleEdgeTransferRelation {
     // TODO consider information from alias analysis
     return null;
   }
-
 
 }

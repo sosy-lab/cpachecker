@@ -27,6 +27,7 @@ import static scala.collection.JavaConversions.asJavaCollection;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import ap.parser.BooleanCompactifier;
@@ -38,7 +39,7 @@ import ap.parser.PartialEvaluator;
 
 import com.google.common.collect.ImmutableList;
 
-class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
   PrincessUnsafeFormulaManager(PrincessFormulaCreator pCreator) {
     super(pCreator);
@@ -90,7 +91,7 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
 
     if (isVariable(t)) {
       boolean isBoolean = t instanceof IFormula;
-      PrincessEnvironment.Type type = isBoolean ? PrincessEnvironment.Type.BOOL : PrincessEnvironment.Type.INT;
+      TermType type = isBoolean ? TermType.Boolean : TermType.Integer;
       return getFormulaCreator().makeVariable(type, pNewName);
     } else if (isUF(t)) {
       IFunApp fun = (IFunApp) t;
@@ -102,7 +103,7 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     }
   }
 
-  IExpression createUIFCallImpl(IFunction funcDecl, PrincessEnvironment.Type resultType, List<IExpression> args) {
+  IExpression createUIFCallImpl(IFunction funcDecl, TermType resultType, List<IExpression> args) {
     IExpression ufc = getFormulaCreator().getEnv().makeFunction(funcDecl, resultType, args);
     assert PrincessUtil.isUIF(ufc);
     return ufc;

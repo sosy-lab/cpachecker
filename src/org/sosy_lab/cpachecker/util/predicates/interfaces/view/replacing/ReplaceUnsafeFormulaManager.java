@@ -55,6 +55,11 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
            rawUnsafeManager.typeFormula(unwrapped, replaceManager.unwrap(pF)));
   }
 
+  private <T extends Formula> T encapsulateWithTypeOf(T wrapped, Formula unwrapped) {
+    FormulaType<T> type = replaceManager.getFormulaType(wrapped);
+    return replaceManager.wrap(type, unwrapped);
+  }
+
   @Override
   public int getArity(Formula pF) {
     return rawUnsafeManager.getArity(replaceManager.unwrap(pF));
@@ -62,6 +67,9 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public Formula getArg(Formula pF, int pN) {
+    // TODO how to determine type of argument?
+    // E.g., if it is a rational, it might either be a real rational
+    // or a bitvector that was replaced with a rational.
     return rawUnsafeManager.getArg(replaceManager.unwrap(pF), pN);
   }
 
@@ -90,34 +98,29 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     return rawUnsafeManager.getName(replaceManager.unwrap(pF));
   }
 
-  private Formula[] unwrapArgs(Formula[] wrapped) {
-    Formula[] unwrapped = new Formula[wrapped.length];
-    for (int i = 0; i < unwrapped.length; i++) {
-      unwrapped[i] = replaceManager.unwrap(wrapped[i]);
-    }
-    return unwrapped;
+  @Override
+  public <T extends Formula> T replaceArgsAndName(T pF, String pNewName, List<Formula> pArgs) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceArgsAndName(
+          replaceManager.unwrap(pF),
+          pNewName,
+          replaceManager.unwrap(pArgs)));
   }
 
   @Override
-  public Formula replaceArgsAndName(Formula pF, String pNewName, Formula[] pArgs) {
-    return rawUnsafeManager.replaceArgsAndName(
-        replaceManager.unwrap(pF),
-        pNewName,
-        unwrapArgs(pArgs));
+  public <T extends Formula> T replaceArgs(T pF, List<Formula> pArgs) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceArgs(
+          replaceManager.unwrap(pF),
+          replaceManager.unwrap(pArgs)));
   }
 
   @Override
-  public Formula replaceArgs(Formula pF, Formula[] pArgs) {
-    return rawUnsafeManager.replaceArgs(
-        replaceManager.unwrap(pF),
-        unwrapArgs(pArgs));
-  }
-
-  @Override
-  public Formula replaceName(Formula pF, String pNewName) {
-    return rawUnsafeManager.replaceName(
-        replaceManager.unwrap(pF),
-        pNewName);
+  public <T extends Formula> T replaceName(T pF, String pNewName) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.replaceName(
+          replaceManager.unwrap(pF),
+          pNewName));
   }
 
   @Override
@@ -127,9 +130,9 @@ class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula simplify(Formula pF) {
-    return rawUnsafeManager.simplify(
-        replaceManager.unwrap(pF));
+  public <T extends Formula> T simplify(T pF) {
+    return encapsulateWithTypeOf(pF,
+        rawUnsafeManager.simplify(replaceManager.unwrap(pF)));
   }
 
 }

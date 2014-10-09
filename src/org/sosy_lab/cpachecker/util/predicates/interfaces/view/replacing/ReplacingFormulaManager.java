@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import java.util.List;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
@@ -37,11 +39,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 
 public class ReplacingFormulaManager implements FormulaManager {
@@ -50,7 +52,6 @@ public class ReplacingFormulaManager implements FormulaManager {
   private final BitvectorFormulaManager bitvectorTheory;
   private final boolean replacedBitvectorTheory;
   private final boolean replacedRationalTheory;
-  private final boolean replacedBooleanTheory;
   private final FunctionFormulaManager functionTheory;
   private final BooleanFormulaManager booleanTheory;
   private final UnsafeFormulaManager unsafeManager;
@@ -61,7 +62,6 @@ public class ReplacingFormulaManager implements FormulaManager {
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
     replacedRationalTheory = false;
-    replacedBooleanTheory = false;
 
     final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
 
@@ -142,27 +142,34 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> type, T2 toWrap) {
-    Class<T2> toWrapClazz = getInterface(toWrap);
+  public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    FormulaType<T2> toWrapType = rawFormulaManager.getFormulaType(toWrap);
 
-    if (replacedBitvectorTheory && type.isBitvectorType()
-        || replacedBooleanTheory && type.isBooleanType()
-        || replacedRationalTheory && type.isRationalType()) {
-      return simpleWrap(type, toWrap);
-    } else if (toWrapClazz == type.getInterfaceType()) {
+    if (replacedBitvectorTheory && targetType.isBitvectorType()
+        || replacedRationalTheory && targetType.isRationalType()) {
+      return simpleWrap(targetType, toWrap);
+    } else if (toWrapType.equals(targetType)) {
       return (T1) toWrap;
     } else {
       throw new IllegalArgumentException("invalid wrap call");
     }
   }
 
-  @SuppressWarnings("unchecked")
-  public <T extends Formula> T unwrap(Formula f) {
+  public Formula unwrap(Formula f) {
     if (f instanceof WrappingFormula<?, ?>) {
-      return ((WrappingFormula<T, ?>)f).getWrapped();
+      return ((WrappingFormula<?, ?>)f).getWrapped();
     } else {
-      return (T) f;
+      return f;
     }
+  }
+
+  List<Formula> unwrap(List<? extends Formula> f) {
+    return Lists.transform(f, new Function<Formula, Formula>() {
+      @Override
+      public Formula apply(Formula pInput) {
+        return unwrap(pInput);
+      }
+    });
   }
 
   @Override
@@ -211,20 +218,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    if (replacedBooleanTheory) {
-      throw new IllegalArgumentException("Can't parse a replaced theory, please change the replacement settings");
-    }
-
     return rawFormulaManager.parse(pS);
-  }
-
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    if (pInstance instanceof WrappingFormula<?, ?>) {
-      return AbstractFormulaManager.getInterfaceHelper(pInstance);
-    } else {
-      return rawFormulaManager.getInterface(pInstance);
-    }
   }
 
   @Override

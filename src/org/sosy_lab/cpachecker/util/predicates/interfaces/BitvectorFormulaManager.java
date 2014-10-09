@@ -36,8 +36,6 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula makeVariable(int length, String pVar);
 
-  public FormulaType<BitvectorFormula> getFormulaType(int length);
-
   public int getLength(BitvectorFormula number);
 
   // Numeric Operations

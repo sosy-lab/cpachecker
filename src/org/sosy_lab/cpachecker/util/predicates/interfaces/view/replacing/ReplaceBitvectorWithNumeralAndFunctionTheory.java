@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 
 import java.math.BigInteger;
@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
 
-import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
 
@@ -71,28 +71,27 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     this.functionManager = rawFunctionManager;
 
     formulaType = pNumericFormulaManager.getFormulaType();
-    bitwiseAndUfDecl = functionManager.createFunction(BitwiseAndUfName, formulaType, formulaType, formulaType);
-    bitwiseOrUfDecl = functionManager.createFunction(BitwiseOrUfName, formulaType, formulaType, formulaType);
-    bitwiseXorUfDecl = functionManager.createFunction(BitwiseXorUfName, formulaType, formulaType, formulaType);
-    bitwiseNotUfDecl = functionManager.createFunction(BitwiseNotUfName, formulaType, formulaType);
+    bitwiseAndUfDecl = createBinaryFunction(BitwiseAndUfName);
+    bitwiseOrUfDecl = createBinaryFunction(BitwiseOrUfName);
+    bitwiseXorUfDecl = createBinaryFunction(BitwiseXorUfName);
+    bitwiseNotUfDecl = createUnaryFunction(BitwiseNotUfName);
 
+    leftShiftUfDecl = createBinaryFunction("_<<_");
+    rightShiftUfDecl = createBinaryFunction("_>>_");
+  }
 
-    leftShiftUfDecl = functionManager.createFunction("_<<_", formulaType, formulaType, formulaType);
-    rightShiftUfDecl = functionManager.createFunction("_>>_", formulaType, formulaType, formulaType);
+  private FunctionFormulaType<T> createUnaryFunction(String name) {
+    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType));
+  }
+
+  private FunctionFormulaType<T> createBinaryFunction(String name) {
+    return functionManager.createFunction(name, formulaType, ImmutableList.<FormulaType<?>>of(formulaType, formulaType));
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
-    List<BitvectorFormula> wrapped = Arrays.<BitvectorFormula>asList(t1);
+    List<Formula> args = replaceManager.unwrap(Arrays.<Formula>asList(t1));
 
-    List<Formula> unwrapped = from(wrapped)
-      .transform(new Function<BitvectorFormula, Formula>() {
-        @Override
-        public Formula apply(BitvectorFormula pInput) {
-          return unwrap(pInput);
-        }
-      }).toList();
-
-    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, unwrapped));
+    return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, args));
   }
 
   private boolean isUf(FunctionFormulaType<T> funcDecl, BitvectorFormula pBits) {
@@ -106,7 +105,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<T> value = extractMethods.get(hasKey);
     if (value == null) {
-      value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, formulaType);
+      value = createUnaryFunction("_extract("+ pMsb + "," + pLsb + ")_");
       extractMethods.put(hasKey, value);
     }
     return value;
@@ -118,7 +117,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
     FunctionFormulaType<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, formulaType);
+      value = createUnaryFunction("_concat("+ firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
@@ -133,13 +132,13 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     if (pSigned) {
       value = extendSignedMethods.get(hasKey);
       if (value == null) {
-        value = functionManager.createFunction("_extendSigned("+ extensionBits + ")_", formulaType, formulaType);
+        value = createUnaryFunction("_extendSigned("+ extensionBits + ")_");
         extendSignedMethods.put(hasKey, value);
       }
     } else {
       value = extendUnsignedMethods.get(hasKey);
       if (value == null) {
-        value = functionManager.createFunction("_extendUnsigned("+ extensionBits + ")_", formulaType, formulaType);
+        value = createUnaryFunction("_extendUnsigned("+ extensionBits + ")_");
         extendUnsignedMethods.put(hasKey, value);
       }
     }
@@ -149,36 +148,33 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, String pI) {
     T number = numericFormulaManager.makeNumber(pI);
-    return wrap(getFormulaType(pLength), number);
+    return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
   private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, T number) {
     return replaceManager.wrap(pFormulaType, number);
   }
 
+  @SuppressWarnings("unchecked")
   private T unwrap(BitvectorFormula pNumber) {
-    return replaceManager.unwrap(pNumber);
-  }
-  @Override
-  public BitvectorFormula makeVariable(int pLength, String pVar) {
-    return wrap(getFormulaType(pLength), numericFormulaManager.makeVariable(pVar));
+    return (T)replaceManager.unwrap(pNumber);
   }
 
   @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-    return FormulaType.BitvectorType.getBitvectorType(pLength);
+  public BitvectorFormula makeVariable(int pLength, String pVar) {
+    return wrap(getBitvectorTypeWithSize(pLength), numericFormulaManager.makeVariable(pVar));
   }
 
   @Override
@@ -193,7 +189,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private FormulaType<BitvectorFormula> getFormulaType(BitvectorFormula pNumber) {
-    return getFormulaType(getLength(pNumber));
+    return getBitvectorTypeWithSize(getLength(pNumber));
   }
 
 
@@ -326,7 +322,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   public BitvectorFormula concat(BitvectorFormula pFirst, BitvectorFormula pSecound) {
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
-    FormulaType<BitvectorFormula> returnType = getFormulaType(firstLength + secoundLength);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(firstLength + secoundLength);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
@@ -336,7 +332,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
-    FormulaType<BitvectorFormula> returnType = getFormulaType(pMsb + 1 - pLsb);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
@@ -346,7 +342,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
-    FormulaType<BitvectorFormula> returnType = getFormulaType(getLength(pNumber) + pExtensionBits);
+    FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
@@ -437,8 +433,8 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   private boolean isUf(BitvectorFormula pBits, String prefix) {
     for (FunctionFormulaType<T> value : concatMethods.values()) {
       // TODO prefix-check working??
-      if (value instanceof FunctionFormulaTypeImpl
-          && ((FunctionFormulaTypeImpl)value).getFuncDecl().toString().startsWith(prefix)
+      if (value instanceof AbstractFunctionFormulaType
+          && ((AbstractFunctionFormulaType)value).getFuncDecl().toString().startsWith(prefix)
           && isUf(value, pBits)) {
         return true;
       }

@@ -108,11 +108,6 @@ public class PredicateAbstractionManager {
 
     public long allSatCount = 0;
     public int maxAllSatCount = 0;
-
-    public int numPathFormulaCoverageChecks = 0;
-    public int numEqualPathFormulae = 0;
-    public int numSyntacticEntailedPathFormulae = 0;
-    public int numSemanticEntailedPathFormulae = 0;
   }
 
   final Stats stats = new Stats();
@@ -480,7 +475,7 @@ public class PredicateAbstractionManager {
                                         stats.abstractionEnumTime.getLengthOfLastOuterInterval())
                                    .asMillis();
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
-    logger.log(Level.ALL, "Abstraction result is", result);
+    logger.log(Level.ALL, "Abstraction result is", result.asFormula());
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
@@ -832,48 +827,6 @@ public class PredicateAbstractionManager {
   }
 
   /**
-   * Checks whether a1.getFormula() => a2.getFormula() and whether the a1.getSsa()(v) <= a2.getSsa()(v) for all v
-   */
-  public boolean checkCoverage(PathFormula a1, PathFormula a2, PathFormulaManager pfmgr) throws InterruptedException {
-    stats.numPathFormulaCoverageChecks++;
-
-    //handle common special case more efficiently
-    if (a1.equals(a2)) {
-      stats.numEqualPathFormulae++;
-      return true;
-    }
-
-    //check ssa maps
-    SSAMap map1 = a1.getSsa();
-    SSAMap map2 = a2.getSsa();
-    for (String var : map1.allVariables()) {
-      if (map2.getIndex(var) < map1.getIndex(var)) { return false; }
-    }
-
-    //merge path formulae
-    PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
-
-    // We need to get a1 with the additional SSA merger terms
-    // BooleanFormula leftFormula = getArguments(mergedPathFormulae.getFormula())[0];
-    BooleanFormula leftFormula = new ExtractLeftArgumentOfOR(fmgr)
-                                       .visit(mergedPathFormulae.getFormula());
-
-    //quick syntactic check
-    if (fmgr.checkSyntacticEntails(leftFormula, a2.getFormula())) {
-      stats.numSyntacticEntailedPathFormulae++;
-      return true;
-    }
-
-
-    //check formulae
-    // TODO: should leftFormula be used instead of mergedPathFormulae here?
-    if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) { return false; }
-    stats.numSemanticEntailedPathFormulae++;
-
-    return true;
-  }
-
-  /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
    * @param pAbstractionFormula the abstraction formula
    * @param pPathFormula the path formula
@@ -1014,22 +967,6 @@ public class PredicateAbstractionManager {
 
   public Region buildRegionFromFormula(BooleanFormula pF) {
     return amgr.buildRegionFromFormula(pF);
-  }
-
-  /**
-   * This class can be used to extract the left argument of an "or" term.
-   * E.g. "x | y" will give "x".
-   */
-  private static class ExtractLeftArgumentOfOR extends BooleanFormulaManagerView.DefaultBooleanFormulaVisitor<BooleanFormula> {
-
-    private ExtractLeftArgumentOfOR(FormulaManagerView pFmgr) {
-      super(pFmgr);
-    }
-
-    @Override
-    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
-      return pOperands[0];
-    }
   }
 
   private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {

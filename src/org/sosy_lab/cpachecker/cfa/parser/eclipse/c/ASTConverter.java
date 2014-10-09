@@ -140,7 +140,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -547,7 +546,13 @@ class ASTConverter {
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
     return createInitializedTemporaryVariable(
-        getLocation(e), typeConverter.convert(e.getExpressionType()), null);
+        getLocation(e), typeConverter.convert(e.getExpressionType()), (CInitializer)null);
+  }
+
+  private CIdExpression createInitializedTemporaryVariable(
+      final FileLocation loc, final CType pType, @Nullable CExpression initializer) {
+    return createInitializedTemporaryVariable(loc, pType,
+        initializer == null ? null : new CInitializerExpression(loc, initializer));
   }
 
   /**
@@ -555,18 +560,13 @@ class ASTConverter {
    * If the initializer is 'null', no initializer will be created.
    */
   private CIdExpression createInitializedTemporaryVariable(
-      final FileLocation loc, final CType pType, @Nullable CExpression initializer) {
+      final FileLocation loc, final CType pType, @Nullable CInitializer initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
       i++;
     }
     name += i;
-
-    CInitializerExpression initExp = null;
-    if (initializer != null) {
-      initExp = new CInitializerExpression(loc, initializer);
-    }
 
     // If there is no initializer, the variable cannot be const.
     // TODO: consider always adding a const modifier if there is an initializer
@@ -579,7 +579,7 @@ class ASTConverter {
                                                name,
                                                name,
                                                scope.createScopedNameOf(name),
-                                               initExp);
+                                               initializer);
 
     scope.registerDeclaration(decl);
     sideAssignmentStack.addPreSideAssignment(decl);
@@ -1063,26 +1063,25 @@ class ASTConverter {
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
 
-    // if this variable is a static variable it is in the scope
-    if (scope.lookupVariable(staticVariablePrefix + name) != null ||
-        scope.lookupFunction(staticVariablePrefix + name) != null) {
-      name = staticVariablePrefix + name;
-    }
-
     // Try to find declaration.
     // Variables per se actually do not bind stronger than function,
     // but local variables do.
     // Furthermore, a global variable and a function with the same name
     // cannot exist, so the following code works correctly.
-    CSimpleDeclaration declaration = scope.lookupVariable(name);
+    // We first try to lookup static variables.
+    CSimpleDeclaration declaration = scope.lookupVariable(staticVariablePrefix + name);
+    if (declaration == null) {
+      declaration = scope.lookupVariable(name);
+    }
+    if (declaration == null) {
+      declaration = scope.lookupFunction(staticVariablePrefix + name);
+    }
     if (declaration == null) {
       declaration = scope.lookupFunction(name);
     }
 
-
     // declaration may still be null here,
     // for example when parsing AST patterns for the AutomatonCPA.
-
 
     if (declaration != null) {
       name = declaration.getName(); // may have been renamed
@@ -1306,9 +1305,15 @@ class ASTConverter {
         ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
-  private CTypeIdInitializerExpression convert(IASTTypeIdInitializerExpression e) {
-    return new CTypeIdInitializerExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
-        convert(e.getInitializer(), null), convert(e.getTypeId()));
+  private CExpression convert(IASTTypeIdInitializerExpression e) {
+    // This is a "compound literal" (C11 § 6.5.2.5).
+    // It is similar to Java array instantiations with "new String[]{...}".
+    FileLocation fileLoc = getLocation(e);
+    CType type = convert(e.getTypeId());
+    // TODO: declaration needed for convert(initializer)?
+    CInitializer initializer = convert(e.getInitializer(), null);
+
+    return createInitializedTemporaryVariable(fileLoc, type, initializer);
   }
 
   public CAstNode convert(final IASTStatement s) {

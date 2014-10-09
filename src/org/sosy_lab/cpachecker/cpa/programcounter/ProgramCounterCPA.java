@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.cpa.programcounter;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.SingleLoopHead;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.SingleLoopHead;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -37,11 +36,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -69,16 +68,16 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
   @Override
   public AbstractState getInitialState(CFANode pNode) {
     // Try to get all possible program counter values
-    CFASingleLoopTransformation.SingleLoopHead singleLoopHead = null;
-    if (pNode instanceof CFASingleLoopTransformation.SingleLoopHead) {
-      singleLoopHead = (CFASingleLoopTransformation.SingleLoopHead) pNode;
+    SingleLoopHead singleLoopHead = null;
+    if (pNode instanceof SingleLoopHead) {
+      singleLoopHead = (SingleLoopHead) pNode;
     } else if (cfa.getLoopStructure().isPresent()) {
-      ImmutableMultimap<String, Loop> loopStructure = cfa.getLoopStructure().get();
-      if (loopStructure.values().size() == 1) {
-        Loop singleLoop = Iterables.getOnlyElement(loopStructure.values());
+      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      if (loopStructure.getCount() == 1) {
+        Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
         if (singleLoop.getLoopHeads().size() == 1) {
           CFANode loopHead = Iterables.getOnlyElement(singleLoop.getLoopHeads());
-          if (loopHead instanceof CFASingleLoopTransformation.SingleLoopHead) {
+          if (loopHead instanceof SingleLoopHead) {
             singleLoopHead = (SingleLoopHead) loopHead;
           }
         }

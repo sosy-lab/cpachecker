@@ -28,12 +28,11 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
-
-public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
+class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
   private final long z3context;
 
-  protected Z3BooleanFormulaManager(Z3FormulaCreator creator) {
+  Z3BooleanFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }
@@ -115,7 +114,10 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long,
 
   @Override
   protected boolean isEquivalence(Long pParam) {
-    return isOP(z3context, pParam, Z3_OP_EQ);
+    return isOP(z3context, pParam, Z3_OP_EQ)
+        && get_app_num_args(z3context,pParam) == 2
+        && get_sort(z3context, get_app_arg(z3context, pParam, 0)) == Z3_BOOL_SORT
+        && get_sort(z3context, get_app_arg(z3context, pParam, 1)) == Z3_BOOL_SORT;
   }
 
   @Override

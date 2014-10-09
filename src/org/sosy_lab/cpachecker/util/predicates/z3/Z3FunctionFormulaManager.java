@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 
 import com.google.common.primitives.Longs;
 
-public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
+class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
 
   private final Z3UnsafeFormulaManager unsafeManager;
   private final long z3context;
   private final Z3SmtLogger smtLogger;
 
-  public Z3FunctionFormulaManager(
+  Z3FunctionFormulaManager(
       Z3FormulaCreator creator,
       Z3UnsafeFormulaManager unsafeManager,
       Z3SmtLogger smtLogger) {

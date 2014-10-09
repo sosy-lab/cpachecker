@@ -38,7 +38,7 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
   SmtInterpolRationalFormulaManager(
           SmtInterpolFormulaCreator pCreator,
           SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager, RationalFormula.class);
+    super(pCreator, pFunctionManager);
   }
 
   @Override

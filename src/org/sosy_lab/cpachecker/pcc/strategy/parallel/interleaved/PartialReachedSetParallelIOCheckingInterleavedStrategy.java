@@ -32,7 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.io.ParallelPartitionReader;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -99,49 +99,45 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     Semaphore partitionChecked = new Semaphore(0);
+    Semaphore partitionsRead = new Semaphore(0);
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
     Lock lock = new ReentrantLock();
-    Condition partitionReady = lock.newCondition();
 
     ExecutorService executor = null, readExecutor = null, checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
     try {
       if (numReadThreads == 0) {
         executor = Executors.newFixedThreadPool(numThreads);
-        startReadingThreads(executor, checkResult, partitionChecked, lock, partitionReady);
-        startCheckingThreads(executor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
-            initPrec, lock, partitionReady);
+        startReadingThreads(numThreads, executor, checkResult, partitionsRead, partitionChecked);
+        startCheckingThreads(numThreads, executor, checkResult, partitionsRead, partitionChecked, certificate,
+            partitionNodes, inOtherPartition,
+            initPrec, lock);
       } else {
         readExecutor = Executors.newFixedThreadPool(numReadThreads);
-        startReadingThreads(readExecutor, checkResult, partitionChecked, lock, partitionReady);
+        startReadingThreads(numReadThreads, readExecutor, checkResult, partitionsRead, partitionChecked);
         checkExecutor = Executors.newFixedThreadPool(numThreads - numReadThreads);
-        startCheckingThreads(checkExecutor, checkResult, partitionChecked, certificate, partitionNodes, inOtherPartition,
-            initPrec, lock, partitionReady);
+        startCheckingThreads(numThreads - numReadThreads, checkExecutor, checkResult, partitionsRead, partitionChecked,
+            certificate, partitionNodes, inOtherPartition,
+            initPrec, lock);
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 
       if (!checkResult.get()) { return false; }
 
-      logger.log(Level.INFO, "Check if all are checked");
-      for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
-          logger
-              .log(Level.SEVERE,
-                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
-                  outState);
-          return false;
-        }
-      }
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
+      if (!PartitionChecker.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 
@@ -170,21 +166,25 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     }
   }
 
-  private void startReadingThreads(final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore pPartitionChecked, final Lock pLock, final Condition pPartitionReady) {
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      pReadingExecutor.execute(new ParallelPartitionReader(i, pCheckResult, pPartitionChecked, this, ioHelper,
-          pPartitionReady, pLock, false, stats));
+  private void startReadingThreads(final int threads, final ExecutorService pReadingExecutor, final AtomicBoolean pCheckResult,
+      final Semaphore partitionsRead, final Semaphore pPartitionChecked) {
+    AtomicInteger nextPartitionId = new AtomicInteger(0);
+    for (int i = 0; i < threads; i++) {
+      pReadingExecutor.execute(new ParallelPartitionReader(pCheckResult, partitionsRead, nextPartitionId, this,
+          ioHelper, stats));
     }
   }
 
-  private void startCheckingThreads(final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
-      final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
+  private void startCheckingThreads(final int threads, final ExecutorService pCheckingExecutor, final AtomicBoolean pCheckResult,
+      final Semaphore pPartitionsRead, final Semaphore pPartitionChecked, final Collection<AbstractState> pCertificate,
       final Multimap<CFANode, AbstractState> pInPartition, final Collection<AbstractState> pInOtherPartition,
-      final Precision pInitialPrecision, final Lock pLock, final Condition pPartitionReady) {
-    for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-      pCheckingExecutor.execute(new PartitionChecker(i, pCheckResult, pPartitionChecked, pCertificate,
-          pInOtherPartition, pInPartition, pInitialPrecision, cpa, pLock, pPartitionReady, ioHelper, shutdown, logger));
+      final Precision pInitialPrecision, final Lock pLock) {
+    AtomicInteger availablePartitions = new AtomicInteger(0);
+    AtomicInteger nextId = new AtomicInteger(0);
+    for (int i = 0; i < threads; i++) {
+      pCheckingExecutor.execute(new ParallelPartitionChecker(availablePartitions, nextId, pCheckResult, pPartitionsRead,
+          pPartitionChecked, pLock, ioHelper, pInPartition, pCertificate, pInOtherPartition, pInitialPrecision, cpa
+              .getStopOperator(), cpa.getTransferRelation(), shutdown, logger));
     }
   }
 

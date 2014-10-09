@@ -803,6 +803,9 @@ public class ARGUtils {
       case '\n':
         appendTo.append("\\n");
         break;
+      case '\r':
+        appendTo.append("\\r");
+        break;
       case '\"':
         appendTo.append("\\\"");
         break;

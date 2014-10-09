@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -115,30 +113,6 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return environment;
   }
 
-  @SuppressWarnings("unchecked")
-  public static <T extends Formula> Class<T> getInterfaceHelper(T instance) {
-    checkNotNull(instance);
-    Class<?> c ;
-    if (instance instanceof BooleanFormula) {
-      c = BooleanFormula.class;
-    } else if (instance instanceof IntegerFormula) {
-      c = IntegerFormula.class;
-    } else if (instance instanceof RationalFormula) {
-      c = RationalFormula.class;
-    } else if (instance instanceof BitvectorFormula) {
-      c = BitvectorFormula.class;
-    } else {
-      throw new IllegalArgumentException("Invalid instance: " + instance.getClass());
-    }
-
-    return (Class<T>) c;
-  }
-
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    return AbstractFormulaManager.getInterfaceHelper(pInstance);
-  }
-
   @Override
   public AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerManager == null) {
@@ -194,25 +168,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return dumpFormula(formulaCreator.extractInfo(t));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
-    checkNotNull(formula);
-    Class<T> clazz = getInterface(formula);
-    FormulaType<?> t;
-    if (clazz==BooleanFormula.class) {
-      t = booleanManager.getFormulaType();
-    } else if (clazz == IntegerFormula.class) {
-      t = integerManager.getFormulaType();
-    } else if (clazz == RationalFormula.class) {
-      t = rationalManager.getFormulaType();
-    } else if (clazz == BitvectorFormula.class) {
-      int size = bitvectorManager.getLength((BitvectorFormula)formula);
-      t = bitvectorManager.getFormulaType(size);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return (FormulaType<T>) t;
+  public final <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    return formulaCreator.getFormulaType(checkNotNull(formula));
   }
-
 }

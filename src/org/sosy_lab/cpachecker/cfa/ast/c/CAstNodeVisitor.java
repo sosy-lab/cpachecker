@@ -39,7 +39,6 @@ public interface CAstNodeVisitor<R, X extends Exception> {
   R visit(CBinaryExpression pNode) throws X;
   R visit(CCastExpression pNode) throws X;
   R visit(CTypeIdExpression pNode) throws X;
-  R visit(CTypeIdInitializerExpression pNode) throws X;
   R visit(CUnaryExpression pNode) throws X;
   R visit(CArraySubscriptExpression pNode) throws X;
   R visit(CComplexCastExpression pNode) throws X;

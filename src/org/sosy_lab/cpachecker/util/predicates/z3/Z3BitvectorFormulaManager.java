@@ -30,13 +30,11 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
-import com.google.common.base.Preconditions;
-
 class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Long, Long> {
 
   private final long z3context;
 
-  protected Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
+  Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }
@@ -252,7 +250,10 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
 
   @Override
   public boolean isEqual(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_EQ);
+    return isOP(z3context, pNumber, Z3_OP_EQ)
+        && get_app_num_args(z3context, pNumber) == 2
+        && get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_BV_SORT
+        && get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_BV_SORT;
   }
 
   @Override
@@ -306,12 +307,5 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   @Override
   public boolean isExtend(Long pBits, boolean signed) {
     return isOP(z3context, pBits, signed ? Z3_OP_SIGN_EXT : Z3_OP_ZERO_EXT);
-  }
-
-  @Override
-  public int getLength(Long pParam) {
-    long sort = get_sort(z3context, pParam);
-    Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
-    return get_bv_sort_size(z3context, sort);
   }
 }

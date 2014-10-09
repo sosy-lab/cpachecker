@@ -24,14 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.validvars;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
-public class ValidVarsState extends AbstractSingleWrapperState implements TargetableWithPredicatedAnalysis{
+public class ValidVarsState extends AbstractSingleWrapperState implements AbstractQueryableState, TargetableWithPredicatedAnalysis{
 
   private static final long serialVersionUID = 9159663474411886276L;
   private final ValidVars validVariables;
@@ -61,6 +63,28 @@ public class ValidVarsState extends AbstractSingleWrapperState implements Target
       return ((TargetableWithPredicatedAnalysis)wrappedState).getErrorCondition(pFmgr);
     }
     return pFmgr.getBooleanFormulaManager().makeBoolean(false);
+  }
+
+  @Override
+  public String getCPAName() {
+    return "ValidVars";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    return pProperty == null ? false : validVariables.containsVar(pProperty);
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return Boolean.valueOf(checkProperty(pProperty));
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("Cannot modify values of valid vars state (" + this.getClass().getCanonicalName()
+        + ").");
+
   }
 
 }

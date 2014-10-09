@@ -41,7 +41,7 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.value.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "ValueAnalysisCPA.precision.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.composite.precAdjust", "COMPONENT",
         "log.consoleLevel", "FINER"
       );
@@ -58,7 +58,7 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.value.variableBlacklist", "somethingElse"
+        "ValueAnalysisCPA.precision.variableBlacklist", "somethingElse"
       );
 
       TestResults results = CPATestRunner.run(

@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -82,8 +82,12 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
+    AtomicInteger availablePartitions = new AtomicInteger(0);
+    AtomicInteger nextId = new AtomicInteger(0);
     Semaphore partitionChecked = new Semaphore(0);
+    Semaphore readButUnprocessed =new Semaphore(ioHelper.getNumPartitions());
     Lock lock = new ReentrantLock();
+
     Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
@@ -93,30 +97,25 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
     logger.log(Level.INFO, "Create and start threads");
     ExecutorService executor = Executors.newFixedThreadPool(numThreads );
     try {
-      for (int i = 0; i < ioHelper.getNumPartitions(); i++) {
-        executor.execute(new PartitionChecker(i, checkResult, partitionChecked, certificate, inOtherPartition,
-            partitionNodes, initPrec, cpa, lock, ioHelper, shutdownNotifier, logger));
+      for (int i = 0; i < numThreads; i++) {
+        executor.execute(new ParallelPartitionChecker(availablePartitions, nextId, checkResult, readButUnprocessed,
+            partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec,
+            cpa.getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 
       if (!checkResult.get()) { return false; }
 
-      logger.log(Level.INFO, "Check if all are checked");
-      for (AbstractState outState : inOtherPartition) {
-        if (!cpa.getStopOperator().stop(outState, partitionNodes.get(AbstractStates.extractLocation(outState)), initPrec)) {
-          logger
-              .log(Level.SEVERE,
-                  "Not all outer partition nodes are in other partitions. Following state not contained: ",
-                  outState);
-          return false;
-        }
-      }
+      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO, "Check if initial state is covered.");
-      if (!cpa.getStopOperator().stop(initialState, partitionNodes.get(AbstractStates.extractLocation(initialState)),
+      logger.log(Level.INFO,
+              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
+      if (!PartitionChecker.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
-        logger.log(Level.SEVERE, "Initial state not covered.");
+        logger.log(Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by certificate.");
         return false;
       }
 

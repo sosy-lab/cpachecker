@@ -46,17 +46,6 @@ import com.google.common.collect.ImmutableMap;
 
 class PrincessModel {
 
-  private static TermType toType(PrincessEnvironment.Type type) {
-    switch (type) {
-      case BOOL:
-        return TermType.Boolean;
-      case INT:
-        return TermType.Integer;
-      default:
-        throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
-    }
-  }
-
   private static AssignableTerm toVariable(IExpression t) {
     if (!PrincessUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no variable! (" + t.toString() + ")");
@@ -66,11 +55,11 @@ class PrincessModel {
     final TermType lType;
     if (t instanceof IAtom) {
       lName = ((IAtom) t).pred().name();
-      lType = toType(PrincessEnvironment.Type.BOOL);
+      lType = TermType.Boolean;
     } else {
       IConstant v = (IConstant) t;
       lName = v.c().name();
-      lType = toType(PrincessEnvironment.Type.INT);
+      lType = TermType.Integer;
     }
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
@@ -89,7 +78,7 @@ class PrincessModel {
 
     IFunApp appTerm = (IFunApp)t;
     String lName = appTerm.fun().name();
-    TermType lType = toType(env.getFunctionDeclaration(appTerm.fun()).getResultType());
+    TermType lType = env.getFunctionDeclaration(appTerm.fun()).getResultType();
 
     int lArity = PrincessUtil.getArity(appTerm);
 

@@ -217,7 +217,7 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, long pI) {
-    FormulaType<?> type = BitvectorType.getBitvectorType(pLength);
+    FormulaType<?> type = FormulaType.getBitvectorTypeWithSize(pLength);
     TemplateNumber N = new TemplateNumber(type, (int) pI);
     TemplateTerm T = new TemplateTerm(type);
     T.setCoefficient(N);
@@ -236,14 +236,8 @@ public class TemplateBitvectorFormulaManager implements BitvectorFormulaManager 
 
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
-    FormulaType<?> type = BitvectorType.getBitvectorType(pLength);
+    FormulaType<?> type = FormulaType.getBitvectorTypeWithSize(pLength);
     return manager.makeVariable(type, pVar, null);
-  }
-
-
-  @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-    return BitvectorType.getBitvectorType(pLength);
   }
 
 

@@ -23,22 +23,43 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Represents a uninterpreted function type.
  * @param <T> The type of the return value
  */
-public abstract class FunctionFormulaType<T extends Formula> extends FormulaType<T> {
+public abstract class FunctionFormulaType<T extends Formula> {
 
-  public FunctionFormulaType() {}
+  private final FormulaType<T> returnType;
+  private final List<FormulaType<?>> argumentTypes;
+
+  protected FunctionFormulaType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes) {
+    returnType = checkNotNull(pReturnType);
+    argumentTypes = ImmutableList.copyOf(pArgumentTypes);
+  }
+
   /**
    * The list of arguments.
    */
-  public abstract List<FormulaType<?>> getArgumentTypes();
+  public List<FormulaType<?>> getArgumentTypes() {
+    return argumentTypes;
+  }
 
   /**
    * The returntype.
    */
-  public abstract FormulaType<T> getReturnType();
+  public FormulaType<T> getReturnType() {
+    return returnType;
+  }
+
+  @Override
+  public String toString() {
+    return "(" + returnType.toString() + ") func(" + Joiner.on(',').join(argumentTypes) + ")";
+  }
 }

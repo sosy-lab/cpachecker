@@ -163,7 +163,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, t);
+    return getFormulaCreator().encapsulateBoolean(t);
   }
 
   @Override

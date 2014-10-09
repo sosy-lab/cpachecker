@@ -74,6 +74,8 @@ public class PartitioningIOHelper {
 
   public enum PartitioningHeuristics {
     RANDOM,
+    DFS,
+    BFS,
     OPTIMAL
   }
 
@@ -109,6 +111,12 @@ public class PartitioningIOHelper {
     switch (partitioningStrategy) {
     case OPTIMAL:
       partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
+      break;
+    case BFS:
+      partitioner = new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
+      break;
+    case DFS:
+      partitioner = new ExplorationOrderBalancedGraphPartitioner(true, pShutdownNotifier);
       break;
     default: // RANDOM
       partitioner = new RandomBalancedGraphPartitioner();
@@ -278,8 +286,8 @@ public class PartitioningIOHelper {
 
       pOut.format("Certificate size: %d %n", totalS);
       pOut.format("Total overhead:  %d%n", totalO);
-      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2e%n", ((double)totalS)/numPartitions);
-      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2e%n", ((double)totalO)/numPartitions);
+      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2f%n", ((double)totalS)/numPartitions);
+      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2f%n", ((double)totalO)/numPartitions);
       pOut.format("Max partition size: %d%n", maxP);
       pOut.format("Max partition overhead: %d%n", maxO);
       pOut.format("Min partition size: %d%n", minP);

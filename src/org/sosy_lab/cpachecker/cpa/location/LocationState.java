@@ -51,19 +51,24 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   public static class LocationStateFactory {
     private final LocationState[] states;
 
-    public LocationStateFactory(CFA pCfa, boolean backwards) {
-      states = initialize(checkNotNull(pCfa), backwards);
+    enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
+
+    public LocationStateFactory(CFA pCfa, LocationStateType locationType) {
+      states = initialize(checkNotNull(pCfa), locationType);
     }
 
-    private static LocationState[] initialize(CFA pCfa, boolean backwards) {
+    private static LocationState[] initialize(CFA pCfa, LocationStateType locationType) {
 
       SortedSet<CFANode> allNodes = ImmutableSortedSet.copyOf(pCfa.getAllNodes());
       int maxNodeNumber = allNodes.last().getNodeNumber();
       LocationState[] elements = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
-        LocationState state = backwards
+        LocationState state = locationType == LocationStateType.BACKWARD
             ? new BackwardsLocationState(node, pCfa)
-            : new LocationState(node);
+            : locationType == LocationStateType.BACKWARDNOTARGET
+                ? new BackwardsLocationStateNoTarget(node, pCfa)
+                : new LocationState(node);
+
         elements[node.getNodeNumber()] = state;
       }
 
@@ -100,6 +105,18 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     @Override
     public String getViolatedPropertyDescription() throws IllegalStateException {
       return "Entry node reached backwards.";
+    }
+  }
+
+  private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
+
+    protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa) {
+      super(pLocationNode, pCfa);
+    }
+
+    @Override
+    public boolean isTarget() {
+      return false;
     }
   }
 

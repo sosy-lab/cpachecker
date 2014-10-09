@@ -1702,6 +1702,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.enterBlock();
 
     IASTStatement[] statements = compoundExp.getCompoundStatement().getStatements();
+    if (statements.length == 0) {
+      throw new CFAGenerationRuntimeException("Empty compound-statement expression", compoundExp);
+    }
 
     int locDepth = locStack.size();
     int conditionDepth = elseStack.size();

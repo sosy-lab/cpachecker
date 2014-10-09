@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -51,12 +50,6 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager) {
     super(pCreator);
     this.unsafeManager = unsafeManager;
-  }
-
-  @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      List<FormulaType<?>> pArgs) {
-    return new FunctionFormulaTypeImpl<>(pReturnType, pArgs);
   }
 
   protected abstract <TFormula extends Formula> TFormulaInfo

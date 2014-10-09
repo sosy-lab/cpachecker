@@ -179,7 +179,7 @@ class CFABuilder extends ASTVisitor {
     //
     if (astCreator.numberOfPreSideAssignments() > 0) {
       throw new CFAGenerationRuntimeException(
-        "Initializer of field variable has side effect", fd); }
+        "Initializer of field variable has side effect.", fd); }
 
     return SKIP_CHILDREN;
   }
@@ -264,7 +264,7 @@ class CFABuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED)
         || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      throw new CFAGenerationRuntimeException("Syntaxerror in " + problem.toString() +"\n", problem);
+      throw new CFAGenerationRuntimeException("Syntax error." , problem);
     }
   }
 }

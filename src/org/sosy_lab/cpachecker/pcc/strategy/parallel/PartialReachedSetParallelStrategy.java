@@ -173,7 +173,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
                 initPrec)) {
               if (!cpa.getStopOperator().stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)),
                   initPrec)) {
-                if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size() + currentStates.size()) {
+                if (stopAddingAtReachedSetSize && savedReachedSetSize <= certificate.size() + currentStates.size()) {
                   logger.log(Level.FINE, "Too many states recomputed");
                   abort();
                   return;

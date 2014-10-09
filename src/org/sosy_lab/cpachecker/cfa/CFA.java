@@ -30,11 +30,10 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 
 public interface CFA {
@@ -57,7 +56,7 @@ public interface CFA {
 
   FunctionEntryNode getMainFunction();
 
-  Optional<ImmutableMultimap<String, Loop>> getLoopStructure();
+  Optional<LoopStructure> getLoopStructure();
 
   Optional<ImmutableSet<CFANode>> getAllLoopHeads();
 

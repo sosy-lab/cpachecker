@@ -54,11 +54,9 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
   private final PointerTargetSetBuilder pts;
   private final Constraints   constraints;
   private final ErrorConditions errorConditions;
-  private final boolean backwards;
 
   LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions,
-      boolean pBackwards) {
+      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
 
     conv = pConv;
     edge = pEdge;
@@ -67,7 +65,6 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
     pts = pPts;
     constraints = pConstraints;
     errorConditions = pErrorConditions;
-    backwards = pBackwards;
   }
 
   @Override
@@ -77,12 +74,12 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
 
   @Override
   public Formula visit(CIdExpression idExp) {
-    return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa, backwards);
+    return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
   }
 
   /**  This method is called when we don't know what else to do. */
   protected Formula giveUpAndJustMakeVariable(CExpression exp) {
-    return conv.makeVariableUnsafe(exp, function, ssa, true, backwards);
+    return conv.makeVariableUnsafe(exp, function, ssa, true);
   }
 
 
@@ -116,7 +113,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
           // we don't need to scope the variable reference
           String var = CtoFormulaConverter.exprToVarName(fexp);
 
-          return conv.makeFreshVariable(var, fexp.getExpressionType(), ssa, backwards);
+          return conv.makeFreshVariable(var, fexp.getExpressionType(), ssa);
         }
       }
       return giveUpAndJustMakeVariable(fexp);

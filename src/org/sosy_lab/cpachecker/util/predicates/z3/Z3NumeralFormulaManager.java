@@ -48,11 +48,10 @@ abstract class Z3NumeralFormulaManager
   private final Z3FunctionType<ResultFormulaType> modUfDecl;
   private final Z3FunctionFormulaManager functionManager;
 
-  public Z3NumeralFormulaManager(
+  Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager functionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          Z3FunctionFormulaManager functionManager) {
+    super(pCreator);
 
     this.z3context = pCreator.getEnv();
     FormulaType<ResultFormulaType> formulaType = getFormulaType();
@@ -202,7 +201,12 @@ abstract class Z3NumeralFormulaManager
 
   @Override
   public boolean isEqual(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_EQ);
+    return isOP(z3context, pNumber, Z3_OP_EQ)
+        && get_app_num_args(z3context, pNumber) == 2
+        && (get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_INT_SORT
+            || get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_REAL_SORT)
+        && (get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_INT_SORT
+        || get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_REAL_SORT);
   }
 
   @Override

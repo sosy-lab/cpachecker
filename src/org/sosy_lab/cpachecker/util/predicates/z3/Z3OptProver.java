@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
 
 public class Z3OptProver implements OptEnvironment{
 
-  private Z3FormulaManager mgr;
+  private final Z3FormulaManager mgr;
   private long z3context;
   private long z3optContext;
 

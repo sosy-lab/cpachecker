@@ -23,27 +23,43 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 import ap.parser.IExpression;
 
-class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, PrincessEnvironment.Type, PrincessEnvironment> {
+class PrincessFormulaCreator extends AbstractFormulaCreator<IExpression, TermType, PrincessEnvironment> {
 
   PrincessFormulaCreator(
           PrincessEnvironment pEnv,
-          PrincessEnvironment.Type pBoolType,
-          PrincessEnvironment.Type pIntegerType,
-          PrincessEnvironment.Type pRealType) {
-    super(pEnv, pBoolType, pIntegerType, pRealType);
+          TermType pBoolType,
+          TermType pIntegerType) {
+    super(pEnv, pBoolType, pIntegerType, null);
   }
 
   @Override
-  public IExpression makeVariable(PrincessEnvironment.Type type, String varName) {
+  public FormulaType<?> getFormulaType(IExpression pFormula) {
+    if (PrincessUtil.isBoolean(pFormula)) {
+      return FormulaType.BooleanType;
+    } else if (PrincessUtil.hasIntegerType(pFormula)) {
+      return FormulaType.IntegerType;
+    }
+    throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  @Override
+  public IExpression makeVariable(TermType type, String varName) {
     return getEnv().makeVariable(type, varName);
   }
 
   @Override
-  public PrincessEnvironment.Type getBittype(int pBitwidth) {
+  public TermType getRealType() {
+    throw new UnsupportedOperationException("Rational theory is not supported by Princess");
+  }
+
+  @Override
+  public TermType getBittype(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by Princess");
   }
 }

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -37,7 +35,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -52,7 +49,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation.MutableCFAWithOptionalLoopStructure;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -61,7 +57,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
-import org.sosy_lab.cpachecker.cfa.manipulation.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -71,6 +69,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -85,12 +92,11 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -359,7 +365,8 @@ public class CFACreator {
 
       // get loop information
       // (needs post-order information)
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+      Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
+      cfa.setLoopStructure(loopStructure);
 
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
@@ -389,13 +396,8 @@ public class CFACreator {
 
       // optionally transform CFA so that there is only one single loop
       if (transformIntoSingleLoop) {
-        MutableCFAWithOptionalLoopStructure cfaWithLoopStructure =
-            CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa, loopStructure);
-        cfa = cfaWithLoopStructure.getCFA();
+        cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
         mainFunction = cfa.getMainFunction();
-        if (cfaWithLoopStructure.isLoopStructurePresent()) {
-          loopStructure = Optional.of(cfaWithLoopStructure.getLoopStructure());
-        }
       }
 
       // SIXTH, get information about the CFA,
@@ -403,13 +405,13 @@ public class CFACreator {
 
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
-          = loopStructure.isPresent() && (language == Language.C)
-          ? Optional.of(new VariableClassification(cfa, config, logger, loopStructure.get()))
+          = (language == Language.C)
+          ? Optional.of(new VariableClassification(cfa, config, logger))
           : Optional.<VariableClassification>absent();
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
@@ -497,8 +499,8 @@ public class CFACreator {
     }
 
     if (checkNullPointers) {
-      CFATransformations transformations = new CFATransformations(logger, config);
-      transformations.detectNullPointers(cfa);
+      NullPointerChecks nullPointerCheck = new NullPointerChecks(logger, config);
+      nullPointerCheck.addNullPointerChecks(cfa);
     }
 
     if (expandFunctionPointerArrayAssignments) {
@@ -653,14 +655,9 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private Optional<ImmutableMultimap<String, Loop>> getLoopStructure(MutableCFA cfa) {
+  private Optional<LoopStructure> getLoopStructure(MutableCFA cfa) {
     try {
-      ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
-      for (String functionName : cfa.getAllFunctionNames()) {
-        SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-        loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
-      }
-      return Optional.of(loops.build());
+      return Optional.of(LoopStructure.getLoopStructure(cfa));
 
     } catch (ParserException e) {
       // don't abort here, because if the analysis doesn't need the loop information, we can continue

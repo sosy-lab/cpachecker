@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
  */
-class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
+abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
 
   private static final long serialVersionUID = 7662624283533815801L;
 

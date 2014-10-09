@@ -27,6 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -93,7 +94,7 @@ public class ValueAnalysisReducer implements Reducer {
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    ValueAnalysisPrecision precision = (ValueAnalysisPrecision)pPrecision;
+    VariableTrackingPrecision precision = (VariableTrackingPrecision)pPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -104,7 +105,7 @@ public class ValueAnalysisReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     //ValueAnalysisPrecision rootPrecision = (ValueAnalysisPrecision)pRootPrecision;
-    ValueAnalysisPrecision reducedPrecision = (ValueAnalysisPrecision)pReducedPrecision;
+    VariableTrackingPrecision reducedPrecision = (VariableTrackingPrecision)pReducedPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -114,7 +115,7 @@ public class ValueAnalysisReducer implements Reducer {
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     ValueAnalysisState elementKey = (ValueAnalysisState)pElementKey;
-    ValueAnalysisPrecision precisionKey = (ValueAnalysisPrecision)pPrecisionKey;
+    VariableTrackingPrecision precisionKey = (VariableTrackingPrecision)pPrecisionKey;
 
     return Pair.of(elementKey.getConstantsMap(), precisionKey);
   }

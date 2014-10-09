@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -66,23 +69,48 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
   }
 
-  @Override
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T encapsulate(Class<T> pClazz, TFormulaInfo pTerm) {
-    AbstractFormula<TFormulaInfo> f;
-    if (pClazz == BitvectorFormula.class) {
-      f = new BitvectorFormulaImpl<>(pTerm);
-    } else if (pClazz == IntegerFormula.class) {
-      f = new IntegerFormulaImpl<>(pTerm);
-    } else if (pClazz == RationalFormula.class) {
-      f = new RationalFormulaImpl<>(pTerm);
-    } else if (pClazz == BooleanFormula.class) {
-      f = new BooleanFormulaImpl<>(pTerm);
+  @Override
+  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    checkNotNull(formula);
+    FormulaType<?> t;
+    if (formula instanceof BooleanFormula) {
+      t = FormulaType.BooleanType;
+    } else if (formula instanceof IntegerFormula) {
+      t = FormulaType.IntegerType;
+    } else if (formula instanceof RationalFormula) {
+      t = FormulaType.RationalType;
+    } else if (formula instanceof BitvectorFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
     } else {
-      throw new IllegalArgumentException("invalid interface type");
+      throw new IllegalArgumentException("Formula with unexpected type " + formula.getClass());
     }
+    return (FormulaType<T>) t;
+  }
 
-    return (T)f;
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new BooleanFormulaImpl<>(pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new IntegerFormulaImpl<>(pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new RationalFormulaImpl<>(pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new BitvectorFormulaImpl<>(pTerm);
+    }
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
+  }
+
+  @Override
+  public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
+    return new BooleanFormulaImpl<>(pTerm);
+  }
+
+  @Override
+  public BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm) {
+    return new BitvectorFormulaImpl<>(pTerm);
   }
 
   public abstract TType getBittype(int bitwidth);
