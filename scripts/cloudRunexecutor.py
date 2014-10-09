@@ -10,7 +10,6 @@ import os
 import signal
 import logging
 import benchmark.runexecutor as runexecutor
-from benchmark.runexecutor import RunExecutor
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -54,12 +53,30 @@ def main(argv=None):
              rlimits[CORELIMIT] = int(argv[5])
 
         global runExecutor
-        runExecutor = RunExecutor()
+        runExecutor = runexecutor.RunExecutor()
+
+        # TODO get real values from args instead of dummy-values -> depends on VCloud-changes
+        initialCPU = None
+        workingDir = None
+        tmpDir = None or os.environ["TMPDIR"]
+        assert tmpDir is not None, "TMPDIR should be set by Bash-Wrapper-Script"
+
+        # According to Wikipedia, TMPDIR is the canonical variable,
+        # but lets set more than that to be sure
+        # TMP and TEMP are common on Windows, for example).
+        logging.debug("adding TMP-directories to environment.")
+        for directory in ["TEMP", "TMP", "TEMPDIR", "TMPDIR"]:
+            if not directory in env: # maybe the tool uses its own tmp-directory
+                env[directory] = tmpDir
 
         logging.debug("runExecutor.executeRun() started.")
-
-        (wallTime, cpuTime, memUsage, returnvalue, output, energy) = \
-            runExecutor.executeRun(args, rlimits, outputFileName, environments=env, maxLogfileSize=logfileSize);
+    
+        (wallTime, cpuTime, memUsage, returnvalue, energy) = \
+            runExecutor.executeRun(args, rlimits, outputFileName, 
+                                   myCpuIndex=initialCPU, 
+                                   environments=env, 
+                                   runningDir=workingDir, 
+                                   maxLogfileSize=logfileSize);
 
         logging.debug("runExecutor.executeRun() ended.")
 

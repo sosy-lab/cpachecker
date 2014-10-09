@@ -47,7 +47,7 @@ def forceLinuxPath(path):
         return path.replace('\\', '/')
     return path
 
-def killProcess(pid, sig=signal.SIGTERM):
+def killProcess(pid, sig=signal.SIGKILL):
     '''
     This function kills the process and the children in its process group.
     '''
@@ -298,18 +298,23 @@ def getEnergy(oldEnergy=None):
     newEnergy = {}
 
     executable = findExecutable('read-energy.sh', exitOnError=False)
-    if executable is None: # not availableon current system
+    if executable is None: # not available on current system
+        logging.debug('Energy measurement not available because read-energy.sh could not be found.')
         return newEnergy
 
     for energyType in ENERGY_TYPES:
+        logging.debug('Reading {0} energy measurement for value.'.format(energyType))
         energysh = subprocess.Popen([executable, energyType], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = energysh.communicate()
-        if energysh.returncode:
-            logging.debug('error while reading energy: out={0}, err={1}, retval={2}'.format(stdout, stderr, energysh.returncode))
+        if energysh.returncode or stderr:
+            logging.debug('Error while reading {0} energy measurement: retval={3}, out={1}, err={2}'.format(energyType, stdout, stderr, energysh.returncode))
         try:
             newEnergy[energyType] = int(stdout)
         except ValueError:
+            logging.debug('Invalid value while reading {0} energy measurement: {1}'.format(energyType, stdout, stderr, energysh.returncode))
             pass # do nothing
+
+    logging.debug('Finished reading energy measurements.')
 
     if oldEnergy is None:
         return newEnergy

@@ -35,6 +35,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         #an empty tag cannot be parsed into a tree
         output = output.replace("<>", "<emptyTag>")
         output = output.replace("</>", "</emptyTag>")

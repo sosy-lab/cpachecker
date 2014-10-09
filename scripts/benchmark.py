@@ -76,13 +76,21 @@ def executeBenchmark(benchmarkFile):
     # settings must be retrieved here to set the correct tool version
     if config.appengine:
         appengine.setupBenchmarkForAppengine(benchmark)
+    elif config.cloud and config.cloudMaster and "http" in config.cloudMaster:
+        if config.revision:
+            benchmark.toolVersion = config.revision
+        else:
+            benchmark.toolVersion = "trunk:HEAD"
     outputHandler = OutputHandler(benchmark)
     
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
 
     if config.cloud:
-        result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)
+        if config.cloudMaster and "http" in config.cloudMaster:
+            result = webclient.executeBenchmarkInCloud(benchmark, outputHandler)
+        else:
+            result = vcloud.executeBenchmarkInCloud(benchmark, outputHandler, config.reprocessResults)        
     elif config.appengine:
         result = appengine.executeBenchmarkInAppengine(benchmark, outputHandler)
     else:
@@ -196,6 +204,16 @@ def main(argv=None):
                       dest="cloudCPUModel", type=str, default=None,
                       metavar="CPU_MODEL",
                       help="Only execute runs on CPU models that contain the given string.")
+   
+    parser.add_argument("--cloudUser",
+                      dest="cloudUser",
+                      metavar="USER:PWD",
+                      help="The user and password for the cloud.")
+
+    parser.add_argument("--revision",
+                      dest="revision",
+                      metavar="BRANCH:REVISION",
+                      help="The svn revision used by the web client mode.")
     
     parser.add_argument("--maxLogfileSize",
                       dest="maxLogfileSize", type=int, default=20,
@@ -268,9 +286,13 @@ def main(argv=None):
             pass # this does not work on Windows
 
     if config.cloud:
-        global vcloud
-        import benchmark.vcloud as vcloud
-        killScriptSpecific = vcloud.killScriptCloud
+        if config.cloudMaster and "http" in config.cloudMaster:
+            global webclient
+            import benchmark.webclient as webclient
+        else:
+            global vcloud
+            import benchmark.vcloud as vcloud
+            killScriptSpecific = vcloud.killScriptCloud        
     elif config.appengine:
         global appengine
         import benchmark.appengine as appengine

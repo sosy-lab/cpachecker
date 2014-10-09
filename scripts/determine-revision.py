@@ -41,9 +41,10 @@ def determineRevision(dir):
     """
     # Check for SVN repository
     try:
-        svnProcess = subprocess.Popen(['svnversion', dir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        svnProcess = subprocess.Popen(['svnversion', '--committed', dir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = svnProcess.communicate()
         stdout = Util.decodeToString(stdout).strip()
+        stdout = stdout.split(':')[-1]
         if not (svnProcess.returncode or stderr or (stdout == 'exported') or (stdout == 'Unversioned directory')):
             return stdout
     except OSError:
