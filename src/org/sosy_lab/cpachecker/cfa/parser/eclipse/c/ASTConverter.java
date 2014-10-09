@@ -81,7 +81,6 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
-import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
@@ -767,55 +766,20 @@ class ASTConverter {
     String fieldName = convert(e.getFieldName());
     final FileLocation loc = getLocation(e);
 
-    if (e.getExpressionType() instanceof ICompositeType) {
-      ICompositeType compositeType = (ICompositeType)e.getExpressionType();
-      if (compositeType.getName().isEmpty()) {
-        // This is an access of a field with an anonymous struct as type.
-        // We gave the anonymous struct a real name (c.f. convert(IASTCompositeTypeDeclSpecifier))
-        // and now we need a CType as expression type that also has this new
-        // name in it. However, if we just call typeConverter.convert(e.getExpressionType())
-        // the name will be empty because CDT's IType instance has of course
-        // still the empty name (and there is no chance to get to the correct
-        // declaration and the new name if you only have the IType instance).
-        // So we lookup the correct CType here (where it is easy)
-        // and pre-create the mapping from the anonymous IType instance
-        // to the non-anonymous CType instance,
-        // which the ASTTypeConverter will then just use automatically.
-
-        CType ownerType = owner.getExpressionType().getCanonicalType();
-        if (ownerType instanceof CPointerType) {
-          ownerType = ((CPointerType) ownerType).getType().getCanonicalType();
-        }
-        assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
-
-        CCompositeTypeMemberDeclaration field = null;
-        for (CCompositeTypeMemberDeclaration f : ((CCompositeType)ownerType).getMembers()) {
-          if (fieldName.equals(f.getName())) {
-            field = f;
-            break;
-          }
-        }
-
-        if (field == null) {
-          throw new CFAGenerationRuntimeException("Cannot access field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
-        }
-
-        CType fieldType = field.getType();
-        typeConverter.registerType(e.getExpressionType(), fieldType);
-      }
+    CType ownerType = owner.getExpressionType().getCanonicalType();
+    while (ownerType instanceof CPointerType) {
+      ownerType = ((CPointerType)ownerType).getType().getCanonicalType();
     }
 
-    CType ownerType = owner.getExpressionType().getCanonicalType();
+    // In case of an anonymous struct, the type provided by Eclipse
+    // does not match our type because we added a name.
+    // So make sure to not use the Eclipse type.
+
     CExpression fullFieldReference;
     List<Pair<String, CType>> wayToInnerField = ImmutableList.of();
     if (!(ownerType instanceof CProblemType)) {
-      if (ownerType instanceof CPointerType) {
-        ownerType = ((CPointerType) ownerType).getType();
-        while (ownerType instanceof CPointerType) {
-          ownerType = ((CPointerType) ownerType).getType();
-        }
-        ownerType = ownerType.getCanonicalType();
-      }
+      assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
+
       wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
@@ -917,7 +881,7 @@ class ASTConverter {
    * @param allReferences an empty list
    * @return the fields (including the searched one) in the right order
    */
-  private List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
+  private static List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
     CType type = owner.getCanonicalType();
 
     if (type instanceof CCompositeType) {

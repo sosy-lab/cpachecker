@@ -101,48 +101,6 @@ class ASTTypeConverter {
   private final static Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
 
   /**
-   * This can be used to create (fake) mappings from IType to CType.
-   * Use only if you are absolutely sure that your CType corresponds to the
-   * given IType, and you cannot use the regular type conversion methods
-   * of this class.
-   * @see ASTConverter#convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference) for an example
-   */
-  void registerType(IType cdtType, CType ourType) {
-    CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
-    if (oldType instanceof CComplexType && ourType instanceof CComplexType) {
-      CComplexType t1 = (CComplexType) oldType;
-      CComplexType t2 = (CComplexType) ourType;
-      boolean equalWithoutName = t1.isConst() == t2.isConst() && t1.isVolatile() == t2.isVolatile() && t1.getKind() == t1.getKind();
-      t1 = (CComplexType) t1.getCanonicalType();
-      t2 = (CComplexType) t1.getCanonicalType();
-      if (t1 instanceof CElaboratedType) {
-        t1 = ((CElaboratedType) t1).getRealType();
-      }
-      if (t2 instanceof CElaboratedType) {
-        t2 = ((CElaboratedType) t2).getRealType();
-      }
-      if (equalWithoutName) {
-        switch (t1.getKind()) {
-        case STRUCT:
-        case UNION:
-          List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
-          List<CCompositeTypeMemberDeclaration> m2 =  ((CCompositeType)t2).getMembers();
-          for (int i = 0;  i < m1.size() && equalWithoutName; i++) {
-            equalWithoutName = m1.get(i).equals(m2.get(i));
-          }
-          break;
-        default:
-          equalWithoutName = false;
-          break;
-        }
-      }
-      assert equalWithoutName : "Overwriting type conversion";
-    } else {
-      assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()) : "Overwriting type conversion";
-    }
-  }
-
-  /**
    * This can be used to rename a CType in case of Types with equal names but
    * different fields, from different files.
    */
