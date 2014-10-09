@@ -28,10 +28,12 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
+import com.google.common.base.Functions;
+
 public class ASTConverterTest {
 
-  private final ASTLiteralConverter converter32 = new ASTLiteralConverter(MachineModel.LINUX32);
-  private final ASTLiteralConverter converter64 = new ASTLiteralConverter(MachineModel.LINUX64);
+  private final ASTLiteralConverter converter32 = new ASTLiteralConverter(MachineModel.LINUX32, Functions.<String>identity());
+  private final ASTLiteralConverter converter64 = new ASTLiteralConverter(MachineModel.LINUX64, Functions.<String>identity());
 
   @Test
   public final void testCharacterExpression() {

@@ -41,25 +41,30 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Function;
+
 /** This Class contains functions,
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
 class ASTLiteralConverter {
 
   private final MachineModel machine;
 
-  ASTLiteralConverter(MachineModel pMachineModel) {
+  private final Function<String, String> niceFileNameFunction;
+
+  ASTLiteralConverter(MachineModel pMachineModel, Function<String, String> pNiceFileNameFunction) {
     machine = pMachineModel;
+    niceFileNameFunction = pNiceFileNameFunction;
   }
 
-  private static void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
-    if (!assertion) { throw new CFAGenerationRuntimeException(msg, astNode); }
+  private void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
+    if (!assertion) { throw new CFAGenerationRuntimeException(msg, astNode, niceFileNameFunction); }
   }
 
   /** This function converts literals like chars or numbers. */
   CLiteralExpression convert(final IASTLiteralExpression e, final CType type, final FileLocation fileLoc) {
     if (!(type instanceof CSimpleType)
         && (e.getKind() != IASTLiteralExpression.lk_string_literal)) {
-      throw new CFAGenerationRuntimeException("Invalid type " + type + " for literal expression", e);
+      throw new CFAGenerationRuntimeException("Invalid type " + type + " for literal expression", e, niceFileNameFunction);
     }
 
     String valueStr = String.valueOf(e.getValue());
@@ -92,7 +97,7 @@ class ASTLiteralConverter {
           // TODO handle hex floating point literals that are too large for Double
           value = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
-          throw new CFAGenerationRuntimeException("illegal floating point literal", e);
+          throw new CFAGenerationRuntimeException("illegal floating point literal", e, niceFileNameFunction);
         }
       }
 
@@ -102,7 +107,7 @@ class ASTLiteralConverter {
       return new CStringLiteralExpression(fileLoc, type, valueStr);
 
     default:
-      throw new CFAGenerationRuntimeException("Unknown literal", e);
+      throw new CFAGenerationRuntimeException("Unknown literal", e, niceFileNameFunction);
     }
   }
 
@@ -143,7 +148,7 @@ class ASTLiteralConverter {
           // TODO handle hex floating point literals that are too large for Double
           val = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
-          throw new CFAGenerationRuntimeException("illegal floating point literal", exp);
+          throw new CFAGenerationRuntimeException("illegal floating point literal", exp, niceFileNameFunction);
         }
       }
 
@@ -153,7 +158,7 @@ class ASTLiteralConverter {
                                              imaginary);
 
     default:
-      throw new CFAGenerationRuntimeException("Unknown imaginary literal", exp);
+      throw new CFAGenerationRuntimeException("Unknown imaginary literal", exp, niceFileNameFunction);
     }
   }
 
@@ -183,7 +188,7 @@ class ASTLiteralConverter {
           result = (char) Integer.parseInt(s, 16);
           check(result <= 0xFF, "hex escape sequence out of range", e);
         } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e);
+          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e, niceFileNameFunction);
         }
 
       } else if (isDigit(c)) {
@@ -193,7 +198,7 @@ class ASTLiteralConverter {
           result = (char) Integer.parseInt(s, 8);
           check(result <= 0xFF, "octal escape sequence out of range", e);
         } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e);
+          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e, niceFileNameFunction);
         }
 
       } else {
@@ -231,7 +236,7 @@ class ASTLiteralConverter {
           result = '\\';
           break;
         default:
-          throw new CFAGenerationRuntimeException("unknown character literal", e);
+          throw new CFAGenerationRuntimeException("unknown character literal", e, niceFileNameFunction);
         }
       }
     }
@@ -275,7 +280,7 @@ class ASTLiteralConverter {
         result = new BigInteger(s, 10);
       }
     } catch (NumberFormatException _) {
-      throw new CFAGenerationRuntimeException("invalid number", e);
+      throw new CFAGenerationRuntimeException("invalid number", e, niceFileNameFunction);
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 

@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -86,11 +87,14 @@ class ASTTypeConverter {
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
+  private final Function<String, String> niceFileNameFunction;
 
-  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix) {
+  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix,
+      Function<String, String> pNiceFileNameFunction) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
+    niceFileNameFunction = pNiceFileNameFunction;
     if (!typeConversions.containsKey(filePrefix)) {
       typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
     }
@@ -225,7 +229,7 @@ class ASTTypeConverter {
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
         return new CProblemType(problem.getASTNode().getRawSignature());
       }
-      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode());
+      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode(), niceFileNameFunction);
 
     } else {
       throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
@@ -422,14 +426,14 @@ class ASTTypeConverter {
       return ctype;
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
-          + dd.getClass().getSimpleName(), dd);
+          + dd.getClass().getSimpleName(), dd, niceFileNameFunction);
     }
 
     if ((dd.isShort() && dd.isLong())
         || (dd.isShort() && dd.isLongLong())
         || (dd.isLong() && dd.isLongLong())
         || (dd.isSigned() && dd.isUnsigned())) { throw new CFAGenerationRuntimeException(
-        "Illegal combination of type identifiers", dd); }
+        "Illegal combination of type identifiers", dd, niceFileNameFunction); }
 
     return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), dd.isUnsigned(),
@@ -441,7 +445,7 @@ class ASTTypeConverter {
     String name = ASTConverter.convert(astName);
     org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
     if (!(binding instanceof IType)) {
-      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d);
+      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d, niceFileNameFunction);
     }
     CType type = null;
     if (binding instanceof IProblemBinding) {
@@ -474,7 +478,7 @@ class ASTTypeConverter {
       return CStorageClass.TYPEDEF;
 
     default:
-      throw new CFAGenerationRuntimeException("Unsupported storage class", d);
+      throw new CFAGenerationRuntimeException("Unsupported storage class", d, niceFileNameFunction);
     }
   }
 
@@ -491,7 +495,7 @@ class ASTTypeConverter {
       type = ComplexTypeKind.UNION;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d, niceFileNameFunction);
     }
 
     String name = ASTConverter.convert(d.getName());
@@ -510,7 +514,7 @@ class ASTTypeConverter {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
+      throw new CFAGenerationRuntimeException("Unknown pointer operator", po, niceFileNameFunction);
     }
   }
 

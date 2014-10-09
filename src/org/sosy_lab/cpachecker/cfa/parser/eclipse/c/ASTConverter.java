@@ -229,9 +229,9 @@ class ASTConverter {
 
     this.scope = pScope;
     this.logger = pLogger;
-    this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
-    this.literalConverter = new ASTLiteralConverter(pMachineModel);
-    this.operatorConverter = new ASTOperatorConverter();
+    this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix, pNiceFileNameFunction);
+    this.literalConverter = new ASTLiteralConverter(pMachineModel, pNiceFileNameFunction);
+    this.operatorConverter = new ASTOperatorConverter(pNiceFileNameFunction);
     this.niceFileNameFunction = pNiceFileNameFunction;
     this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
@@ -392,7 +392,7 @@ class ASTConverter {
       return convertExpressionListAsExpression((IASTExpressionList)e);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e);
+      throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e, niceFileNameFunction);
     }
   }
 
@@ -628,7 +628,7 @@ class ASTConverter {
           sideAssignmentStack.addPreSideAssignment(rightHandSide);
           return new CExpressionAssignmentStatement(fileLoc, lhs, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
-          throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
+          throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e, niceFileNameFunction);
         }
 
       } else {
@@ -782,7 +782,7 @@ class ASTConverter {
     List<Pair<String, CType>> wayToInnerField = ImmutableList.of();
     if (ownerType instanceof CElaboratedType) {
       assert ((CElaboratedType) ownerType).getRealType() == null; // otherwise getCanonicalType is broken
-      throw new CFAGenerationRuntimeException("Cannot access the field " + fieldName + " in type " + ownerType + " which does not have a definition", e);
+      throw new CFAGenerationRuntimeException("Cannot access the field " + fieldName + " in type " + ownerType + " which does not have a definition", e, niceFileNameFunction);
     } else if (ownerType instanceof CProblemType) {
       fullFieldReference = new CFieldReference(loc,
           typeConverter.convert(e.getExpressionType()), fieldName, owner,
@@ -799,7 +799,7 @@ class ASTConverter {
           isPointerDereference = false;
         }
       } else {
-        throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
+        throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e, niceFileNameFunction);
       }
     }
 
@@ -1295,10 +1295,10 @@ class ASTConverter {
       return convert((IASTReturnStatement) s);
 
     } else if (s instanceof IASTProblemStatement) {
-      throw new CFAGenerationRuntimeException((IASTProblemStatement)s);
+      throw new CFAGenerationRuntimeException((IASTProblemStatement)s, niceFileNameFunction);
 
     } else {
-      throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s);
+      throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s, niceFileNameFunction);
     }
   }
 
@@ -1341,20 +1341,20 @@ class ASTConverter {
       // storage class static is the same as auto, just with reduced visibility to a single compilation unit,
       // and as we only handle single compilation units, we can ignore it. A storage class extern associated
       // with a function definition, while superfluous, unless it's an inline function, is allowed, too.
-      throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
+      throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f, niceFileNameFunction);
     }
 
 
     Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond(), cStorageClass == CStorageClass.STATIC);
 
     if (!(declarator.getFirst() instanceof CFunctionTypeWithNames)) {
-      throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
+      throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f, niceFileNameFunction);
     }
     if (declarator.getSecond() != null) {
-      throw new CFAGenerationRuntimeException("Unsupported initializer for function definition", f);
+      throw new CFAGenerationRuntimeException("Unsupported initializer for function definition", f, niceFileNameFunction);
     }
     if (declarator.getThird() == null) {
-      throw new CFAGenerationRuntimeException("Missing name for function definition", f);
+      throw new CFAGenerationRuntimeException("Missing name for function definition", f, niceFileNameFunction);
     }
 
     CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
@@ -1416,14 +1416,14 @@ class ASTConverter {
       String name = declarator.getThird();
 
       if (name == null) {
-        throw new CFAGenerationRuntimeException("Declaration without name", d);
+        throw new CFAGenerationRuntimeException("Declaration without name", d, niceFileNameFunction);
       }
 
       // first handle all special cases
 
       if (cStorageClass == CStorageClass.TYPEDEF) {
         if (initializer != null) {
-          throw new CFAGenerationRuntimeException("Typedef with initializer", d);
+          throw new CFAGenerationRuntimeException("Typedef with initializer", d, niceFileNameFunction);
         }
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
@@ -1431,7 +1431,7 @@ class ASTConverter {
       CType canonicalType = type.getCanonicalType();
       if (canonicalType instanceof CFunctionType) {
         if (initializer != null) {
-          throw new CFAGenerationRuntimeException("Function definition with initializer", d);
+          throw new CFAGenerationRuntimeException("Function definition with initializer", d, niceFileNameFunction);
         }
 
         List<CParameterDeclaration> params;
@@ -1453,7 +1453,7 @@ class ASTConverter {
       // now it should be a regular variable declaration
 
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
-        throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d);
+        throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d, niceFileNameFunction);
       }
 
       String origName = name;
@@ -1499,17 +1499,17 @@ class ASTConverter {
 
   private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d) {
     if (d instanceof IASTProblemDeclaration) {
-      throw new CFAGenerationRuntimeException((IASTProblemDeclaration)d);
+      throw new CFAGenerationRuntimeException((IASTProblemDeclaration)d, niceFileNameFunction);
     }
 
     if (!(d instanceof IASTSimpleDeclaration)) {
-      throw new CFAGenerationRuntimeException("unknown declaration type " + d.getClass().getSimpleName(), d);
+      throw new CFAGenerationRuntimeException("unknown declaration type " + d.getClass().getSimpleName(), d, niceFileNameFunction);
     }
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
-      throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
+      throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d, niceFileNameFunction);
     }
     CType type = specifier.getSecond();
 
@@ -1551,7 +1551,7 @@ class ASTConverter {
 
 
       if (declarator.getSecond() != null) {
-        throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
+        throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d, niceFileNameFunction);
       }
 
       type = declarator.getFirst();
@@ -1595,7 +1595,7 @@ class ASTConverter {
         // TODO handle bitfields by checking for instanceof IASTFieldDeclarator
 
         if (currentDecl instanceof IASTFunctionDeclarator) {
-          throw new CFAGenerationRuntimeException("Unsupported declaration nested function declarations", d);
+          throw new CFAGenerationRuntimeException("Unsupported declaration nested function declarations", d, niceFileNameFunction);
         }
 
         modifiers.addAll(Arrays.asList(currentDecl.getPointerOperators()));
@@ -1606,7 +1606,7 @@ class ASTConverter {
 
         if (currentDecl.getInitializer() != null) {
           if (initializer != null) {
-            throw new CFAGenerationRuntimeException("Unsupported declaration with two initializers", d);
+            throw new CFAGenerationRuntimeException("Unsupported declaration with two initializers", d, niceFileNameFunction);
           }
           //xxx
           initializer = currentDecl.getInitializer();
@@ -1614,7 +1614,7 @@ class ASTConverter {
 
         if (!currentDecl.getName().toString().isEmpty()) {
           if (name != null) {
-            throw new CFAGenerationRuntimeException("Unsupported declaration with two names", d);
+            throw new CFAGenerationRuntimeException("Unsupported declaration with two names", d, niceFileNameFunction);
           }
           name = convert(currentDecl.getName());
         }
@@ -1732,14 +1732,14 @@ class ASTConverter {
       return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown array modifier", am);
+      throw new CFAGenerationRuntimeException("Unknown array modifier", am, niceFileNameFunction);
     }
   }
 
   private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
 
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
-      throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
+      throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d, niceFileNameFunction);
     }
     IASTStandardFunctionDeclarator sd = (IASTStandardFunctionDeclarator)d;
 
@@ -1811,7 +1811,7 @@ class ASTConverter {
       return Pair.of(sc, typeConverter.convert((IASTSimpleDeclSpecifier)d));
 
     } else {
-      throw new CFAGenerationRuntimeException("unknown declSpecifier", d);
+      throw new CFAGenerationRuntimeException("unknown declSpecifier", d, niceFileNameFunction);
     }
   }
 
@@ -1833,7 +1833,7 @@ class ASTConverter {
       kind = ComplexTypeKind.UNION;
     break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown key " + d.getKey() + " for composite type", d);
+      throw new CFAGenerationRuntimeException("Unknown key " + d.getKey() + " for composite type", d, niceFileNameFunction);
     }
 
     String name = convert(d.getName());
@@ -1922,7 +1922,7 @@ class ASTConverter {
     if (i instanceof IASTExpression) {
       return (IASTExpression)i;
     }
-    throw new CFAGenerationRuntimeException("Initializer clause in unexpected location", i);
+    throw new CFAGenerationRuntimeException("Initializer clause in unexpected location", i, niceFileNameFunction);
   }
 
   private CInitializer convert(IASTInitializerClause i, @Nullable CVariableDeclaration declaration) {
@@ -1934,7 +1934,7 @@ class ASTConverter {
     } else if (i instanceof ICASTDesignatedInitializer) {
       return convert((ICASTDesignatedInitializer)i, declaration);
     } else {
-      throw new CFAGenerationRuntimeException("unknown initializer claus: " + i.getClass().getSimpleName(), i);
+      throw new CFAGenerationRuntimeException("unknown initializer claus: " + i.getClass().getSimpleName(), i, niceFileNameFunction);
     }
   }
 
@@ -1949,7 +1949,7 @@ class ASTConverter {
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
       return convert((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer)i, declaration);
     } else {
-      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
+      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i, niceFileNameFunction);
     }
   }
 
@@ -1979,7 +1979,7 @@ class ASTConverter {
             convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) designator).getRangeCeiling()));
 
       } else {
-        throw new CFAGenerationRuntimeException("Unsupported Designator", designator);
+        throw new CFAGenerationRuntimeException("Unsupported Designator", designator, niceFileNameFunction);
       }
       designators.add(r);
     }
@@ -2036,7 +2036,7 @@ class ASTConverter {
       }
 
       if (!(initializer instanceof CExpression)) {
-        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects, it is a " + initializer.getClass().getSimpleName(), e);
+        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects, it is a " + initializer.getClass().getSimpleName(), e, niceFileNameFunction);
       }
 
       return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
@@ -2044,7 +2044,7 @@ class ASTConverter {
     } else if (ic instanceof IASTInitializerList) {
       return convert((IASTInitializerList)ic, declaration);
     } else {
-      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
+      throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i, niceFileNameFunction);
     }
   }
 
@@ -2065,14 +2065,14 @@ class ASTConverter {
   private CParameterDeclaration convert(IASTParameterDeclaration p) {
     Pair<CStorageClass, ? extends CType> specifier = convert(p.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
-      throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
+      throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p, niceFileNameFunction);
     }
 
 
     Triple<CType, IASTInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
 
     if (declarator.getSecond() != null) {
-      throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
+      throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p, niceFileNameFunction);
     }
 
     CType type = declarator.getFirst();
@@ -2116,16 +2116,16 @@ class ASTConverter {
   private CType convert(IASTTypeId t) {
     Pair<CStorageClass, ? extends CType> specifier = convert(t.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
-      throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
+      throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t, niceFileNameFunction);
     }
 
     Triple<CType, IASTInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
 
     if (declarator.getSecond() != null) {
-      throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
+      throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t, niceFileNameFunction);
     }
     if (declarator.getThird() != null && !declarator.getThird().trim().isEmpty()) {
-      throw new CFAGenerationRuntimeException("Unsupported name for type ids", t);
+      throw new CFAGenerationRuntimeException("Unsupported name for type ids", t, niceFileNameFunction);
     }
 
     return declarator.getFirst();

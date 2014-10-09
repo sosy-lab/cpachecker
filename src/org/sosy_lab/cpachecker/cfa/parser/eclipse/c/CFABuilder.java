@@ -166,7 +166,7 @@ class CFABuilder extends ASTVisitor {
       CFunctionDeclaration functionDefinition = astCreator.convert(fd);
       if (sideAssignmentStack.hasPreSideAssignments()
           || sideAssignmentStack.hasPostSideAssignments()) {
-        throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
+        throw new CFAGenerationRuntimeException("Function definition has side effect", fd, niceFileNameFunction);
       }
 
       fileScope.registerFunctionDeclaration(functionDefinition);
@@ -197,7 +197,7 @@ class CFABuilder extends ASTVisitor {
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown declaration type "
-          + declaration.getClass().getSimpleName(), declaration);
+          + declaration.getClass().getSimpleName(), declaration, niceFileNameFunction);
     }
   }
 
@@ -215,7 +215,7 @@ class CFABuilder extends ASTVisitor {
 
     if (sideAssignmentStack.hasConditionalExpression()
         || sideAssignmentStack.hasPostSideAssignments()) {
-      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+      throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
     }
 
     String rawSignature = sd.getRawSignature();
@@ -232,11 +232,11 @@ class CFABuilder extends ASTVisitor {
         if (initializer instanceof CInitializerList) {
           globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
         } else {
-          throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+          throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
         }
 
       } else {
-        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd, niceFileNameFunction);
       }
     }
 
@@ -288,7 +288,7 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
-    throw new CFAGenerationRuntimeException(problem);
+    throw new CFAGenerationRuntimeException(problem, niceFileNameFunction);
   }
 
   public ParseResult createCFA() throws CParserException {
