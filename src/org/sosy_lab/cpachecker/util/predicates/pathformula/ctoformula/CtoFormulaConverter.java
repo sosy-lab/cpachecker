@@ -863,9 +863,10 @@ public class CtoFormulaConverter {
     CType expType = funcCallExp.getExpressionType();
     if (!expType.getCanonicalType().equals(retType.getCanonicalType())) {
       // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
+      String functionName = funcDecl != null ? funcDecl.getName() : funcCallExp.getFunctionNameExpression().toASTString();
       logfOnce(Level.WARNING, edge,
           "Return type of function %s is %s, but result is used as type %s",
-          funcDecl.getName(), retType, expType);
+          functionName, retType, expType);
     }
     return expType;
   }
