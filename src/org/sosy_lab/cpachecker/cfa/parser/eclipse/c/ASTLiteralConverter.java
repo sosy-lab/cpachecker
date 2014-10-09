@@ -45,11 +45,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
 class ASTLiteralConverter {
 
-  private final ASTTypeConverter typeConverter;
   private final MachineModel machine;
 
-  ASTLiteralConverter(ASTTypeConverter pTypeConverter, MachineModel pMachineModel) {
-    typeConverter = pTypeConverter;
+  ASTLiteralConverter(MachineModel pMachineModel) {
     machine = pMachineModel;
   }
 
@@ -58,9 +56,7 @@ class ASTLiteralConverter {
   }
 
   /** This function converts literals like chars or numbers. */
-  CLiteralExpression convert(final IASTLiteralExpression e, final FileLocation fileLoc) {
-    final CType type = typeConverter.convert(e.getExpressionType());
-
+  CLiteralExpression convert(final IASTLiteralExpression e, final CType type, final FileLocation fileLoc) {
     if (!(type instanceof CSimpleType)
         && (e.getKind() != IASTLiteralExpression.lk_string_literal)) {
       throw new CFAGenerationRuntimeException("Invalid type " + type + " for literal expression", e);

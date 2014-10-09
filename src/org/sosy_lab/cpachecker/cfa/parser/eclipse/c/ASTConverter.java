@@ -229,7 +229,7 @@ class ASTConverter {
     this.scope = pScope;
     this.logger = pLogger;
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix);
-    this.literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
+    this.literalConverter = new ASTLiteralConverter(pMachineModel);
     this.niceFileNameFunction = pNiceFileNameFunction;
     this.sourceOriginMapping = pSourceOriginMapping;
     this.staticVariablePrefix = pStaticVariablePrefix;
@@ -368,7 +368,8 @@ class ASTConverter {
       return exp;
 
     } else if (e instanceof IASTLiteralExpression) {
-      return literalConverter.convert((IASTLiteralExpression)e, getLocation(e));
+      final CType type = typeConverter.convert(e.getExpressionType());
+      return literalConverter.convert((IASTLiteralExpression)e, type, getLocation(e));
 
     } else if (e instanceof IASTUnaryExpression) {
       return convert((IASTUnaryExpression)e);
