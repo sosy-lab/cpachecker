@@ -437,7 +437,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       goalIndex++;
 
       while (!remainingPCforGoalCoverage.isFalse()) {
-        logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, pTestGoalPatterns.size(), bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+        logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
         Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
 
@@ -932,11 +932,19 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 // TODO Alex?
                 // determine regions for coverage goals reached earlier during execution of the test case
                 Region testCaseCriticalStateRegion = null;
+                int abstract_state_index = 0;
                 for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
                   if (stateEdgePair.getSecond().equals(criticalEdge)) {
+                    if (abstract_state_index >= cex.getTargetPath().size() - 1) {
+                      throw new RuntimeException("Wrong abstract state index!");
+                    }
+
+                    Pair<ARGState, CFAEdge> successor = cex.getTargetPath().get(abstract_state_index + 1);
+
                     logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
-                    testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(stateEdgePair.getFirst());
+                    testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(successor.getFirst());
                   }
+                  abstract_state_index++;
                 }
                 Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
                 logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
