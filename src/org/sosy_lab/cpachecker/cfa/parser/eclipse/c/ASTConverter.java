@@ -777,7 +777,14 @@ class ASTConverter {
 
     CExpression fullFieldReference;
     List<Pair<String, CType>> wayToInnerField = ImmutableList.of();
-    if (!(ownerType instanceof CProblemType)) {
+    if (ownerType instanceof CElaboratedType) {
+      assert ((CElaboratedType) ownerType).getRealType() == null; // otherwise getCanonicalType is broken
+      throw new CFAGenerationRuntimeException("Cannot access the field " + fieldName + " in type " + ownerType + " which does not have a definition", e);
+    } else if (ownerType instanceof CProblemType) {
+      fullFieldReference = new CFieldReference(loc,
+          typeConverter.convert(e.getExpressionType()), fieldName, owner,
+          e.isPointerDereference());
+    } else {
       assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
 
       wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
@@ -791,10 +798,6 @@ class ASTConverter {
       } else {
         throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
       }
-    } else {
-      fullFieldReference = new CFieldReference(loc,
-          typeConverter.convert(e.getExpressionType()), fieldName, owner,
-          e.isPointerDereference());
     }
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
