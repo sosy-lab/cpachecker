@@ -15,7 +15,10 @@ public class PolicyMergeOperator implements MergeOperator{
   public AbstractState merge(AbstractState newState, AbstractState prevState, Precision p)
       throws CPAException, InterruptedException {
 
-    AbstractState out = domain.join(newState, prevState);
+    AbstractState out = domain.join(
+        (PolicyAbstractState)newState,
+        (PolicyAbstractState) prevState,
+        (PolicyPrecision) p);
 
     // Note: returning an exactly same state is important, due to the issues
     // with .equals() handling.

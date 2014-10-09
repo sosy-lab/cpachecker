@@ -26,11 +26,13 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
@@ -47,7 +49,11 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   @Option(
       name="runAcceleratedValueDetermination",
       description="Maximize for the sum of the templates during value determination")
-  private boolean runAcceleratedValueDetermination = true;
+  private boolean runAcceleratedValueDetermination = false;
+
+  @Option(name="Compact value determination set",
+      description="Use only relevant nodes for value determination")
+  private boolean useCompactedValueDetermination = true;
 
   private final ValueDeterminationFormulaManager vdfmgr;
   private final LogManager logger;
@@ -57,11 +63,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       rfmgr;
   private final ShutdownNotifier shutdownNotifier;
 
-  /**
-   * Scary-hairy global containing all the global data: map
-   * from the node and the linear expression to the selected incoming edge.
-   */
-  private final Table<CFANode, LinearExpression, CFAEdge> policy;
   private final PolicyIterationStatistics statistics;
 
   //
@@ -76,7 +77,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       PolicyIterationStatistics pStatistics
   ) throws InvalidConfigurationException {
     config.inject(this, PolicyAbstractDomain.class);
-    policy = HashBasedTable.create();
     this.vdfmgr = vdfmgr;
     this.logger = logger;
     this.formulaManagerFactory = formulaManagerFactory;
@@ -86,15 +86,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     statistics = pStatistics;
   }
 
-  void setPolicyForTemplate(CFANode node, LinearExpression template, CFAEdge edge) {
-    policy.put(node, template, edge);
-  }
-
-  @Override
-  public AbstractState join(AbstractState newState, AbstractState prevState)
-      throws CPAException, InterruptedException {
-    return join((PolicyAbstractState) newState, (PolicyAbstractState) prevState);
-  }
 
   /**
    * Each iteration produces only one step, so after each run of
@@ -108,7 +99,8 @@ public final class PolicyAbstractDomain implements AbstractDomain {
    */
   public PolicyAbstractState join(
       final PolicyAbstractState newState,
-      final PolicyAbstractState prevState)
+      final PolicyAbstractState prevState,
+      PolicyPrecision precision)
       throws CPAException, InterruptedException {
 
     // NOTE: check. But I think it must be actually the same node.
@@ -143,10 +135,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       }
 
       if (newValue.bound.compareTo(oldValue.bound) > 0) {
-        setPolicyForTemplate(node, template, newValue.edge);
         updated.put(template, newValue);
-      } else {
-        setPolicyForTemplate(node, template, oldValue.edge);
       }
     }
 
@@ -160,18 +149,20 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     statistics.valueDeterminationTimer.start();
     try {
       return valueDetermination(
-          prevState, newState, updated, node, allTemplates);
+          prevState, newState, updated, node, allTemplates, precision);
     } finally {
       statistics.valueDeterminationTimer.stop();
     }
   }
+
 
   private PolicyAbstractState valueDetermination(
       final PolicyAbstractState prevState,
       final PolicyAbstractState newState,
       Map<LinearExpression, PolicyTemplateBound> updated,
       CFANode node,
-      PolicyAbstractState.Templates allTemplates)
+      PolicyAbstractState.Templates allTemplates,
+      PolicyPrecision precision)
       throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "# Running value determination");
@@ -179,11 +170,18 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    Table<CFANode, LinearExpression, CFAEdge> relatedPolicy = findRelated(node, updated);
+    Table<CFANode, LinearExpression, CFAEdge> policy;
+    policy = reachedToPolicy(precision, node, updated);
+    if (useCompactedValueDetermination) {
+      policy = findRelated(policy, node, updated);
+    }
 
     List<BooleanFormula> valueDeterminationConstraints =
-        vdfmgr.valueDeterminationFormula(relatedPolicy.rowMap());
+        vdfmgr.valueDeterminationFormula(policy, node, updated.keySet());
+    logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
+    // TODO: add to constraints the policy to the <focused>
+    // node, but which wasn't in the <updated>.
     Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
         Set<LinearExpression>> p;
     if (runAcceleratedValueDetermination) {
@@ -238,6 +236,17 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         statistics.valueDetCalls++;
         ExtendedRational newValue = lcmgr.maximize(solver, objective);
         statistics.valueDeterminationSolverTimer.stop();
+
+        if (newValue == ExtendedRational.NEG_INFTY) {
+          ProverEnvironment env = formulaManagerFactory.newProverEnvironment(true, true);
+          for (BooleanFormula constraint : pValueDeterminationConstraints) {
+            env.push(constraint);
+          }
+          if (env.isUnsat()) {
+            List<BooleanFormula> l = env.getUnsatCore();
+            logger.log(Level.FINE, "# UNSAT core: ", Joiner.on("\n").join(l));
+          }
+        }
 
         Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
             "Value determination should not be unsatisfiable");
@@ -314,6 +323,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
    * node and the set of updates.
    */
   private Table<CFANode, LinearExpression, CFAEdge> findRelated(
+      Table<CFANode, LinearExpression, CFAEdge> policy,
       final CFANode valueDeterminationNode,
       Map<LinearExpression, PolicyTemplateBound> updated) {
     Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
@@ -411,5 +421,46 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     }
 
     return ret;
+  }
+
+  private Map<CFANode, PolicyAbstractState> toMap(PolicyPrecision p) {
+    // TODO: this is really inefficient, we must think things through.
+    Map<CFANode, PolicyAbstractState> out = new HashMap<>();
+    for (AbstractState s : p.getReached()) {
+      PolicyAbstractState state = (PolicyAbstractState) s;
+      Preconditions.checkState(!out.containsKey(state.getNode()));
+      out.put(state.getNode(), state);
+    }
+    return out;
+  }
+
+  private Table<CFANode, LinearExpression, CFAEdge> reachedToPolicy(
+      PolicyPrecision p,
+      final CFANode focusedNode,
+      Map<LinearExpression, PolicyTemplateBound> updated
+  ) {
+    Table<CFANode, LinearExpression, CFAEdge> table = HashBasedTable.create();
+    Map<CFANode, PolicyAbstractState> map = toMap(p);
+    for (Entry<CFANode, PolicyAbstractState> entry : map.entrySet()) {
+      CFANode node = entry.getKey();
+      PolicyAbstractState state = entry.getValue();
+
+      for (Entry<LinearExpression, PolicyTemplateBound> entry2 : state) {
+        LinearExpression template = entry2.getKey();
+        PolicyTemplateBound bound = entry2.getValue();
+        if (node == focusedNode && updated.containsKey(template)) {
+          bound = updated.get(template);
+        }
+        table.put(node, template, bound.edge);
+      }
+    }
+    return table;
+  }
+
+  @Override
+  public AbstractState join(AbstractState newState, AbstractState prevState)
+      throws CPAException, InterruptedException {
+    throw new CPAException(
+        "Policy abstract domain can be used only with PolicyMergeOperator");
   }
 }

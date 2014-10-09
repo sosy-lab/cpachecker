@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,11 +63,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
         formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
     LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, formulaManagerFactory, logger);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager = new ValueDeterminationFormulaManager(
-        pathFormulaManager,
-        formulaManager,
-        config,
-        logger,
-        shutdownNotifier,
+        pathFormulaManager, formulaManager, config, logger, shutdownNotifier,
         cfa.getMachineModel(),
         cfa,
         realFormulaManager,
@@ -89,17 +84,10 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
     mergeOperator = new PolicyMergeOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    precisionAdjustment = new PolicyPrecisionAdjustment();
     transferRelation = new PolicyTransferRelation(
-        config,
-        formulaManager,
-        formulaManagerFactory,
-        pathFormulaManager,
-        logger,
-        abstractDomain,
-        lcmgr,
-        new TemplateManager(config),
-        statistics);
+        config, formulaManager, formulaManagerFactory, pathFormulaManager,
+        logger, lcmgr, new TemplateManager(config), statistics);
   }
 
   @Override

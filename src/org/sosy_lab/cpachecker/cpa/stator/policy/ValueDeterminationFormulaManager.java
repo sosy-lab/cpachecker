@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -9,10 +10,14 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -30,9 +35,17 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
+
 /**
  * All our SSA-customization code should go there.
  */
+@Options(prefix="cpa.stator.policy")
 public class ValueDeterminationFormulaManager {
   private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
@@ -46,6 +59,11 @@ public class ValueDeterminationFormulaManager {
 
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
 
+  @Option(
+      name="pathFocusing",
+      description="Run (simplified) path focusing")
+  private boolean pathFocusing = true;
+
   @SuppressWarnings("unused")
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
@@ -57,7 +75,10 @@ public class ValueDeterminationFormulaManager {
       CFA cfa,
       FormulaManager rfmgr,
       LinearConstraintManager lcmgr
-  ) {
+  ) throws InvalidConfigurationException{
+
+    config.inject(this, ValueDeterminationFormulaManager.class);
+
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
     this.rfmgr = fmgr.getRationalFormulaManager();
@@ -78,17 +99,29 @@ public class ValueDeterminationFormulaManager {
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      final Map<CFANode, Map<LinearExpression, CFAEdge>> policy
+      Table<CFANode, LinearExpression, ? extends CFAEdge> policy,
+      final CFANode focusedNode,
+      final Set<LinearExpression> updated
       ) throws CPATransferException, InterruptedException{
+
+    if (pathFocusing) {
+      policy = pathFocusing(policy, focusedNode);
+    }
+
+    Map<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> policyMap
+        = policy.rowMap();
 
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, Map<LinearExpression, CFAEdge>> entry : policy.entrySet()) {
+    for (Entry<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> entry : policyMap.entrySet()) {
 
       CFANode toNode = entry.getKey();
-      for (Entry<LinearExpression, CFAEdge> incoming : entry.getValue().entrySet()) {
+      for (Entry<LinearExpression, ? extends CFAEdge> incoming : entry.getValue().entrySet()) {
+
 
         LinearExpression template = incoming.getKey();
+        if (toNode == focusedNode && !updated.contains(template)) continue;
+
         CFAEdge incomingEdge = incoming.getValue();
 
         String templatePrefix = String.format("tmpl_[%s]_", template);
@@ -108,12 +141,12 @@ public class ValueDeterminationFormulaManager {
         if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
           constraints.add(edgeFormula);
         }
-        if (policy.get(fromNode) == null) {
+        if (policyMap.get(fromNode) == null) {
           // NOTE: nodes with no templates aren't in the policy.
           continue;
         }
 
-        for (LinearExpression fromTemplate : policy.get(fromNode).keySet()) {
+        for (LinearExpression fromTemplate : policyMap.get(fromNode).keySet()) {
 
           // Add input constraints on the edge variables.
           NumeralFormula edgeInput = lcmgr.linearExpressionToFormula(
@@ -248,5 +281,108 @@ public class ValueDeterminationFormulaManager {
 
   String absDomainVarName(CFANode node, LinearExpression template) {
     return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
+  }
+
+  private Table<CFANode, LinearExpression, ? extends CFAEdge> pathFocusing(
+      Table<CFANode, LinearExpression, ? extends CFAEdge> policy,
+      CFANode focusedNode) {
+
+    return fixpointFocusing(convert(policy), focusedNode);
+  }
+
+  /**
+   * Change every edge to multi-edge.
+   */
+  private Table<CFANode, LinearExpression, MultiEdge> convert(
+      Table<CFANode, LinearExpression, ? extends CFAEdge> t
+  ) {
+    Table<CFANode, LinearExpression, MultiEdge> out = HashBasedTable.create();
+    for (Table.Cell<CFANode, LinearExpression, ? extends CFAEdge> cell : t.cellSet()) {
+      CFAEdge edge = cell.getValue();
+      out.put(
+          cell.getRowKey(),
+          cell.getColumnKey(),
+          new MultiEdge(edge.getPredecessor(), edge.getSuccessor(), ImmutableList.of(edge)));
+    }
+    return out;
+  }
+
+  /**
+   *
+   * @param t Policy.
+   * @param focusedOn Loop head we are performing value determination on.
+   * Can not be thrown out.
+   *
+   * @return Focused policy.
+   * Usually should contain only one node?..
+   */
+  private Table<CFANode, LinearExpression, ? extends CFAEdge> fixpointFocusing(
+      Table<CFANode, LinearExpression, MultiEdge> t,
+      final CFANode focusedOn
+  ) {
+    boolean changed = true; // For the initial iteration.
+    while (changed) {
+
+      changed = false;
+      Multimap<CFANode, CFANode> incoming = HashMultimap.create();
+      Multimap<CFANode, CFANode> outgoing = HashMultimap.create();
+
+      // Step 1: Fill in [incoming] and [outgoing] maps in O(N).
+      for (Table.Cell<CFANode, LinearExpression, MultiEdge> cell : t.cellSet()) {
+        CFANode to = cell.getRowKey();
+        CFANode from = cell.getValue().getPredecessor();
+
+        outgoing.put(from, to);
+        incoming.put(to, from);
+      }
+
+
+      for (Entry<CFANode, Collection<CFANode>> e :  incoming.asMap().entrySet()) {
+        final CFANode node = e.getKey();
+
+        // We don't try to eliminate the node we are focusing on.
+        if (node == focusedOn) continue;
+
+        Collection<CFANode> incomingNodes = e.getValue();
+        Collection<CFANode> outgoingNodes = outgoing.get(node);
+        assert (incomingNodes.size() != 0 && outgoingNodes.size() != 0);
+
+        // A node has only one incoming edge and only one
+        // outgoing edge.
+        if (incomingNodes.size() == 1 && outgoingNodes.size() == 1) {
+          CFANode from = incomingNodes.iterator().next();
+          CFANode to = outgoingNodes.iterator().next();
+
+          Map<LinearExpression, MultiEdge> fromRow, medRow, toRow;
+          fromRow = t.row(from);
+          medRow = t.row(node);
+          toRow = t.row(to);
+
+          // Sum of all templates.
+          ImmutableSet<LinearExpression> templates = ImmutableSet.<LinearExpression>builder()
+              .addAll(fromRow.keySet()).addAll(medRow.keySet()).build();
+
+          // Hacky, but other values should be redundant.
+          MultiEdge fromToMid = medRow.values().iterator().next();
+          MultiEdge midToTo = toRow.values().iterator().next();
+
+          final MultiEdge fromToTo = new MultiEdge(
+              from, to, ImmutableList.<CFAEdge>builder()
+              .addAll(fromToMid.getEdges()).addAll(midToTo.getEdges()).build());
+
+          // Remove the med row.
+          t.rowMap().remove(node);
+          t.rowMap().remove(to);
+
+          for (LinearExpression template : templates) {
+            t.put(to, template, fromToTo);
+          }
+
+          changed = true;
+          break;
+        }
+      }
+    }
+    return t;
   }
 }

@@ -43,7 +43,6 @@ public class PolicyTransferRelation  extends
   private final FormulaManagerFactory formulaManagerFactory;
   private final LinearConstraintManager lcmgr;
   private final LogManager logger;
-  private final PolicyAbstractDomain abstractDomain;
   private final FormulaManagerView fmgr;
   private final TemplateManager templateManager;
   private final PolicyIterationStatistics statistics;
@@ -66,7 +65,6 @@ public class PolicyTransferRelation  extends
           FormulaManagerFactory formulaManagerFactory,
           PathFormulaManager pfmgr,
           LogManager logger,
-          PolicyAbstractDomain abstractDomain,
           LinearConstraintManager lcmgr,
           TemplateManager templateManager,
           PolicyIterationStatistics pStatistics
@@ -79,7 +77,6 @@ public class PolicyTransferRelation  extends
     this.formulaManagerFactory = formulaManagerFactory;
     this.lcmgr = lcmgr;
     this.logger = logger;
-    this.abstractDomain = abstractDomain;
     this.templateManager = templateManager;
     statistics = pStatistics;
   }
@@ -198,12 +195,6 @@ public class PolicyTransferRelation  extends
               " template ", template, " to ", constraint);
           newStateData.put(template, constraint);
         }
-
-        // Note: this is a hack.
-        // If the policy for the old-state is prevailing, the join
-        // operator will reset the global object to the "good" state.
-        abstractDomain.setPolicyForTemplate(toNode, template, edge);
-
       } catch (Exception e) {
         throw new CPATransferException("Failed solving", e);
       }
