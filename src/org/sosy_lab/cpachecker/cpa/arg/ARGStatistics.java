@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 
@@ -61,7 +61,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
-public class ARGStatistics implements Statistics {
+public class ARGStatistics implements IterationStatistics {
+
+  @Option(name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
+  private boolean dumpArgInEachCpaIteration = false;
 
   @Option(name="export", description="export final ARG as .dot file")
   private boolean exportARG = true;
@@ -239,5 +242,12 @@ public class ARGStatistics implements Statistics {
     }
 
     return counterexamples;
+  }
+
+  @Override
+  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
+    if (dumpArgInEachCpaIteration) {
+      printStatistics(pOut, null, pReached);
+    }
   }
 }

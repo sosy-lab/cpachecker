@@ -44,10 +44,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -66,7 +66,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * computes an abstraction.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateTransferRelation implements TransferRelation {
+public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(name = "satCheck",
       description = "maximum blocksize before a satisfiability check is done\n"
@@ -99,8 +99,10 @@ public class PredicateTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
+  private final boolean backwards;
+
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config) throws InvalidConfigurationException {
+      Configuration config, boolean pBackwards) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -109,17 +111,20 @@ public class PredicateTransferRelation implements TransferRelation {
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
+    backwards = pBackwards;
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pElement,
-      Precision pPrecision, CFAEdge edge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge edge)
+          throws CPATransferException, InterruptedException {
 
     postTimer.start();
     try {
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
-      CFANode loc = edge.getSuccessor();
+      CFANode loc = getAnalysisSuccesor(edge);
+      CFANode predloc = getAnalysisPredecessor(edge);
 
       // Check whether abstraction is false.
       // Such elements might get created when precision adjustment computes an abstraction.
@@ -130,11 +135,28 @@ public class PredicateTransferRelation implements TransferRelation {
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // check whether to do abstraction
-      boolean doAbstraction = blk.isBlockEnd(edge, pathFormula);
+      boolean doAbstraction = blk.isBlockEnd(loc, predloc, pathFormula);
 
       return createState(element, pathFormula, loc, doAbstraction);
+
     } finally {
       postTimer.stop();
+    }
+  }
+
+  private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
+    if (backwards) {
+      return pEdge.getPredecessor();
+    } else {
+      return pEdge.getSuccessor();
+    }
+  }
+
+  private CFANode getAnalysisPredecessor(CFAEdge pEdge) {
+    if (backwards) {
+      return pEdge.getSuccessor();
+    } else {
+      return pEdge.getPredecessor();
     }
   }
 
@@ -304,7 +326,7 @@ public class PredicateTransferRelation implements TransferRelation {
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
       if (errorFound && targetStateSatCheck) {
-        element = strengthenSatCheck(element, edge.getSuccessor());
+        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();

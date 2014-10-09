@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collections;
@@ -70,11 +71,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
@@ -93,7 +95,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  protected boolean handlePointerAliasing = true;
+  private boolean handlePointerAliasing = true;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -104,36 +106,45 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final CType NONDET_TYPE = CNumericTypes.INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
-  protected final FormulaManagerView fmgr;
-  protected final BooleanFormulaManagerView bfmgr;
-  protected final FunctionFormulaManagerView ffmgr;
-  protected final CtoFormulaConverter converter;
-  protected final CtoFormulaTypeHandler typeHandler;
-  protected final @Nullable PointerTargetSetManager ptsManager;
-  protected final LogManager logger;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final FunctionFormulaManagerView ffmgr;
+  private final CtoFormulaConverter converter;
+  private final CtoFormulaTypeHandler typeHandler;
+  private final @Nullable PointerTargetSetManager ptsManager;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   @Option(description="add special information to formulas about non-deterministic functions")
-  protected boolean useNondetFlags = false;
+  private boolean useNondetFlags = false;
+
+  private final boolean backwards;
 
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, MachineModel pMachineModel)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel, boolean pBackwards)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pShutdownNotifier, pMachineModel, Optional.<VariableClassification>absent());
+
+    this(pFmgr, config, pLogger, pShutdownNotifier,
+        pMachineModel, Optional.<VariableClassification>absent(), pBackwards);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa, boolean pBackwards)
           throws InvalidConfigurationException {
-    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(), pCfa.getVarClassification());
+
+    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(),
+        pCfa.getVarClassification(), pBackwards);
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+  @VisibleForTesting
+  PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification)
+      Optional<VariableClassification> pVariableClassification, boolean pBackwards)
           throws InvalidConfigurationException {
+
     config.inject(this, PathFormulaManagerImpl.class);
 
     fmgr = pFmgr;
@@ -141,6 +152,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ffmgr = fmgr.getFunctionFormulaManager();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
+    backwards = pBackwards;
 
     if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
@@ -161,20 +174,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
   }
 
-  protected CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
+  private CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       CtoFormulaTypeHandler pTypeHandler) {
 
-    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification, logger, shutdownNotifier, pTypeHandler, false);
+    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification,
+        logger, shutdownNotifier, pTypeHandler, backwards);
   }
 
-  protected CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
+  private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
       FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
       PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
     return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification, logger, shutdownNotifier, pAliasingTypeHandler, false);
+        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
+        logger, shutdownNotifier, pAliasingTypeHandler, backwards);
   }
 
   @Override
@@ -260,25 +275,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts1 = pathFormula1.getPointerTargetSet();
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
-    final Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMap newSSA = mergeSSAResult.getSecond();
+    final MergeResult<SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
+    final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet> mergePtsResult;
+    final MergeResult<PointerTargetSet> mergePtsResult;
     if (ptsManager != null) {
       mergePtsResult = ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
     } else {
-      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
-      mergePtsResult = Pair.of(Triple.of(trueFormula, trueFormula, trueFormula), pts1);
+      mergePtsResult = MergeResult.trivial(pts1, bfmgr);
     }
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
-        bfmgr.and(mergeSSAResult.getFirst().getFirst(), mergePtsResult.getFirst().getFirst()));
+        bfmgr.and(mergeSSAResult.getLeftConjunct(), mergePtsResult.getLeftConjunct()));
     final BooleanFormula newFormula2 = bfmgr.and(formula2,
-        bfmgr.and(mergeSSAResult.getFirst().getSecond(), mergePtsResult.getFirst().getSecond()));
+        bfmgr.and(mergeSSAResult.getRightConjunct(), mergePtsResult.getRightConjunct()));
     final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
-                                                         mergePtsResult.getFirst().getThird());
-    final PointerTargetSet newPTS = mergePtsResult.getSecond();
+        bfmgr.and(mergeSSAResult.getFinalConjunct(), mergePtsResult.getFinalConjunct()));
+    final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
     return new PathFormula(newFormula, newSSA, newPTS, newLength);
@@ -294,6 +308,59 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
+   * Class representing the result of the operation of merging (disjuncting)
+   * additional parts of {@link PathFormula}s beyond the actual formula.
+   */
+  public static class MergeResult<T> {
+
+    private final BooleanFormula leftConjunct;
+    private final BooleanFormula rightConjunct;
+    private final BooleanFormula finalConjunct;
+
+    private final T result;
+
+    public MergeResult(T pResult, BooleanFormula pLeftConjunct,
+        BooleanFormula pRightConjunct, BooleanFormula pFinalConjunct) {
+      result = checkNotNull(pResult);
+      leftConjunct = checkNotNull(pLeftConjunct);
+      rightConjunct = checkNotNull(pRightConjunct);
+      finalConjunct = checkNotNull(pFinalConjunct);
+    }
+
+    public static <T> MergeResult<T> trivial(T result, BooleanFormulaManagerView bfmgr) {
+      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
+      return new MergeResult<>(result, trueFormula, trueFormula, trueFormula);
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the left formula
+     * before it is used in the disjunction.
+     */
+    BooleanFormula getLeftConjunct() {
+      return leftConjunct;
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the right formula
+     * before it is used in the disjunction.
+     */
+    BooleanFormula getRightConjunct() {
+      return rightConjunct;
+    }
+
+    /**
+     * This is a formula that needs to be conjuncted to the result of the disjunction.
+     */
+    BooleanFormula getFinalConjunct() {
+      return finalConjunct;
+    }
+
+    T getResult() {
+      return result;
+    }
+  }
+
+  /**
    * builds a formula that represents the necessary variable assignments
    * to "merge" the two ssa maps. That is, for every variable X that has two
    * different ssa indices i and j in the maps, creates a new formula
@@ -305,9 +372,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param pts1 the PointerTargetSet for ssa1
    * @param ssa2 an SSAMap
    * @param pts2 the PointerTargetSet for ssa1
-   * @return A pair (formulas, SSAMap) where the formulas need to be added to the path formulas before disjuncting them.
+   * @return The new SSAMap and the formulas that need to be added to the path formulas before disjuncting them.
    */
-  protected Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
+  private MergeResult<SSAMap> mergeSSAMaps(
                                      final SSAMap ssa1,
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
@@ -322,30 +389,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getFirst();
+      final CType symbolType = resultSSA.getType(symbolName);
       final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
       final int index2 = firstNonNull(symbolDifference.getThird(), 1);
 
       assert symbolName != null;
-      assert resultSSA != null;
-      BooleanFormula mergeFormula;
       if (index1 > index2 && index1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
-
-        assert index2 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          mergeFormula = makeSsaNondetFlagMerger(index2, index1);
-
-        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
-          mergeFormula = makeSsaUFMerger(symbolName, resultSSA.getType(symbolName),
-              index2, index1, pts2);
-
-        } else {
-          mergeFormula = makeSsaVariableMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index2, index1);
-        }
+        BooleanFormula mergeFormula = makeSsaMerger(symbolName, symbolType, index2, index1, pts2);
 
         mergeFormula2 = bfmgr.and(mergeFormula2, mergeFormula);
 
@@ -353,31 +405,38 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         assert index1 < index2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
-
-        assert index1 > 0;
-        if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
-          mergeFormula = makeSsaNondetFlagMerger(index1, index2);
-
-        } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
-          assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(resultSSA.getType(symbolName)));
-          mergeFormula = makeSsaUFMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index1, index2, pts1);
-
-        } else {
-          mergeFormula = makeSsaVariableMerger(symbolName,
-              resultSSA.getType(symbolName),
-              index1, index2);
-        }
+        BooleanFormula mergeFormula = makeSsaMerger(symbolName, symbolType, index1, index2, pts1);
 
         mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
       }
     }
 
-    return Pair.of(Pair.of(mergeFormula1, mergeFormula2), resultSSA);
+    return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeBoolean(true));
   }
 
-  protected BooleanFormula makeSsaVariableMerger(final String variableName,
+  /**
+   * Create the necessary equivalence terms for adjusting the SSA indices
+   * of a given symbol (of any type) from oldIndex to newIndex.
+   */
+  private BooleanFormula makeSsaMerger(final String symbolName, final CType symbolType,
+      final int oldIndex, final int newIndex,
+      final PointerTargetSet oldPts) throws InterruptedException {
+    assert oldIndex > 0;
+    assert newIndex > oldIndex;
+
+    if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
+      return makeSsaNondetFlagMerger(oldIndex, newIndex);
+
+    } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
+      return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
+
+    } else {
+      return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
+    }
+  }
+
+  private BooleanFormula makeSsaVariableMerger(final String variableName,
                                                         final CType variableType,
                                                         final int oldIndex,
                                                         final int newIndex) {
@@ -396,7 +455,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.makeEqual(newVariable, oldVariable);
   }
 
-  protected BooleanFormula makeSsaUFMerger(final String functionName,
+  private BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
                                                   final int newIndex,
@@ -424,18 +483,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return result;
   }
 
-  protected BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
-  }
-
-  private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
+  private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {
+    Formula pInitialValue = fmgr.makeNumber(NONDET_FORMULA_TYPE, 0);
     assert iSmaller < iBigger;
 
     BooleanFormula lResult = bfmgr.makeBoolean(true);
     FormulaType<Formula> type = fmgr.getFormulaType(pInitialValue);
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      Formula currentVar = fmgr.makeVariable(type, var, i);
+      Formula currentVar = fmgr.makeVariable(type, NONDET_FLAG_VARIABLE, i);
       BooleanFormula e = fmgr.makeEqual(currentVar, pInitialValue);
       lResult = bfmgr.and(lResult, e);
     }
@@ -568,8 +624,4 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return preds;
   }
 
-  @Override
-  public CtoFormulaTypeHandler getTypeHandler() {
-    return typeHandler;
-  }
 }

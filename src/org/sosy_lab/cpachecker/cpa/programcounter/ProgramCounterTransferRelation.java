@@ -35,19 +35,21 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public enum ProgramCounterTransferRelation implements TransferRelation {
+public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
 
-  INSTANCE;
+  static final TransferRelation INSTANCE = new ProgramCounterTransferRelation();
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
 
     ProgramCounterState state = (ProgramCounterState) pState;
 
@@ -92,6 +94,9 @@ public enum ProgramCounterTransferRelation implements TransferRelation {
           CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge edge = (CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge) pCfaEdge;
           state = ProgramCounterState.getStateForValue(BigInteger.valueOf(edge.getProgramCounterValue()));
         }
+        break;
+      default:
+        // Program counter variable does not occur in other edges.
         break;
     }
     if (state == null || state.isBottom()) {

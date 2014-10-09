@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -59,7 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaBackwardsManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 
 /**
@@ -135,7 +134,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     __no_direct_use_fmgr = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(__no_direct_use_fmgr, config, logger);
 
-    pathFormulaManager = new PathFormulaBackwardsManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa);
+    pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, true);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
 
@@ -155,7 +154,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     transfer = new WpTransferRelation(config, logger, pathFormulaManager, formulaManager, solver);
     domain = new WpAbstractDomain(pathFormulaManager, formulaManager);
     prec = StaticPrecisionAdjustment.getInstance();
-    merge = new MergeJoinOperator(domain);
+    merge = new WpMergeOperator(domain);
     stop = new StopSepOperator(domain);
     // TODO: Rethink the choice of STOP and SEP
   }
@@ -206,8 +205,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
    */
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    throw new UnsupportedOperationException();
-    //return domain.getTopInstance();
+    return domain.getTopInstance();
   }
 
   /**

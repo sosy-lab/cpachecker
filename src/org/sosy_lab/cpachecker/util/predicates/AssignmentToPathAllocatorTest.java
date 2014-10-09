@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
@@ -48,7 +47,7 @@ public class AssignmentToPathAllocatorTest {
   @Before
   public void setUp() throws Exception {
     this.allocator = new AssignmentToPathAllocator(
-        mock(LogManager.class),
+        TestLogManager.getInstance(),
         ShutdownNotifier.create());
   }
 

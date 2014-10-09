@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 /**
  * The concrete address of a left hand side expression {@link CLeftHandSide}.
@@ -70,6 +71,8 @@ public final class Address {
       return (Address) address;
     } else if (address instanceof Number) {
       return new Address((Number) address);
+    } else if (address instanceof ExtendedRational) {
+      return new Address(((ExtendedRational) address).toDouble());
     }
 
     return null;

@@ -31,14 +31,15 @@ import java.io.Serializable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 
 import com.google.common.base.Joiner;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerState implements AbstractState, Serializable {
+class FunctionPointerState implements LatticeAbstractState<FunctionPointerState>,
+    Serializable {
 
   private static final long serialVersionUID = -1951853216031911649L;
 
@@ -208,7 +209,8 @@ class FunctionPointerState implements AbstractState, Serializable {
     return firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
   }
 
-  public boolean isLessOrEqualThan(FunctionPointerState pElement) {
+  @Override
+  public boolean isLessOrEqual(FunctionPointerState pElement) {
     // check if the other map is a subset of this map
 
     if (this.pointerVariableValues.size() < pElement.pointerVariableValues.size()) {
@@ -216,6 +218,11 @@ class FunctionPointerState implements AbstractState, Serializable {
     }
 
     return this.pointerVariableValues.entrySet().containsAll(pElement.pointerVariableValues.entrySet());
+  }
+
+  @Override
+  public FunctionPointerState join(FunctionPointerState other) {
+    throw new UnsupportedOperationException();
   }
 
 

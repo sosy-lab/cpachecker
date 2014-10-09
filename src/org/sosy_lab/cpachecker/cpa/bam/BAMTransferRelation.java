@@ -77,7 +77,7 @@ public class BAMTransferRelation implements TransferRelation {
   @Options
   static class PCCInformation {
 
-    @Option(name = "pcc.proofgen.doPCC", description = "")
+    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
 
     private static PCCInformation instance = null;
@@ -134,7 +134,7 @@ public class BAMTransferRelation implements TransferRelation {
                              ProofChecker wrappedChecker, BAMCache cache,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     logger = pLogger;
-    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
+    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier, null);
     reachedSetFactory = pReachedSetFactory;
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
@@ -163,11 +163,11 @@ public class BAMTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-          final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
+          final AbstractState pState, final Precision pPrecision)
           throws CPATransferException, InterruptedException {
     try {
 
-    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision, edge);
+    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
 
     assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1 :
             "target-state should be returned as single-element-collection";
@@ -180,15 +180,10 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
-            final AbstractState pState, final Precision pPrecision, final CFAEdge edge)
+          final AbstractState pState, final Precision pPrecision)
     throws CPAException, InterruptedException {
 
     forwardPrecisionToExpandedPrecision.clear();
-
-    if (edge != null) {
-      // TODO when does this happen?
-      return getAbstractSuccessors0(pState, pPrecision, edge);
-    }
 
     final CFANode node = extractLocation(pState);
 
@@ -224,7 +219,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
     // if there are several leaving edges, the wrapped CPA should handle all of them.
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision, null);
+    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
   }
 
   private Collection<? extends AbstractState> doFixpointIterationForRecursion(
@@ -643,20 +638,6 @@ public class BAMTransferRelation implements TransferRelation {
     return resultStates;
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pElement, Precision pPrecision,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
-    assert edge != null;
-
-    CFANode currentNode = edge.getPredecessor();
-
-    if (currentBlock.isReturnNode(currentNode) && !currentBlock.getNodes().contains(edge.getSuccessor())) {
-      // do not perform analysis beyond the current block
-      return Collections.emptySet();
-    }
-    return wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge);
-  }
-
-
   static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
@@ -1055,5 +1036,14 @@ public class BAMTransferRelation implements TransferRelation {
       correctARGsForBlocks = new HashMap<>();
     }
     correctARGsForBlocks.put(pKey, pEndOfBlock);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+
+    throw new UnsupportedOperationException(
+        "BAMCPA needs to be used as the outer-most CPA,"
+        + " thus it does not support returning successors for a single edge.");
   }
 }

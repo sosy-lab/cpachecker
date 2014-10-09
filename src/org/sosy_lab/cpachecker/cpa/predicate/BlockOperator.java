@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkState;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -96,9 +95,7 @@ public class BlockOperator {
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  public boolean isBlockEnd(CFAEdge cfaEdge, PathFormula pf) {
-    CFANode succLoc = cfaEdge.getSuccessor();
-    CFANode predLoc = cfaEdge.getPredecessor();
+  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, PathFormula pf) {
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);

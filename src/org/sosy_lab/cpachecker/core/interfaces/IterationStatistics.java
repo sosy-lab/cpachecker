@@ -21,20 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.andersen;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import java.io.PrintStream;
 
-public class AndersenDomain implements AbstractDomain {
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-  @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) {
-    return ((AndersenState) currentElement).isLessOrEqual((AndersenState)reachedState);
-  }
+public interface IterationStatistics extends Statistics {
 
-  @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return ((AndersenState) currentElement).join((AndersenState)reachedState);
-  }
+  public void printIterationStatistics(PrintStream out, ReachedSet reached);
+
 }

@@ -59,10 +59,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
 
@@ -107,15 +107,13 @@ public class PointerTargetSetManager {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet>
+  public MergeResult<PointerTargetSet>
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
-      return Pair.of(
-          Triple.of(bfmgr.makeBoolean(true), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true)),
-          PointerTargetSet.emptyPointerTargetSet());
+      return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
     Triple<PersistentSortedMap<String, CType>,
@@ -200,7 +198,7 @@ public class PointerTargetSetManager {
       resultPTS = resultPTSBuilder.build();
     }
 
-    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, basesMergeFormula), resultPTS);
+    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, basesMergeFormula);
   }
 
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
@@ -378,7 +376,7 @@ public class PointerTargetSetManager {
    * @param cType
    * @return
    */
-  public int getSize(CType cType) {
+  int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
@@ -388,7 +386,7 @@ public class PointerTargetSetManager {
    * @param memberName
    * @return
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 

@@ -235,7 +235,7 @@ public class ValueAnalysisInterpolator {
         initialState = initialState.rebuildStateAfterFunctionCall(callState);
       }
 
-    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+    Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
         initialState,
         precision,
         initialEdge);

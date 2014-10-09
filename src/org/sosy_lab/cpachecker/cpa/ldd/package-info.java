@@ -21,22 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bdd;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
-public class BDDDomain implements AbstractDomain {
-
-  public BDDDomain() {}
-
-  @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) throws InterruptedException {
-    return ((BDDState) newElement).isLessOrEqual((BDDState) reachedState);
-  }
-
-  @Override
-  public AbstractState join(AbstractState newElement, AbstractState reachedState) {
-    return ((BDDState) newElement).join((BDDState) reachedState);
-  }
-}
+@org.sosy_lab.common.Unmaintained
+package org.sosy_lab.cpachecker.cpa.ldd;

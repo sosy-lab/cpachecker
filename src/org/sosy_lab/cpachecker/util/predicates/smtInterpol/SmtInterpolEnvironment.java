@@ -65,6 +65,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
+import de.uni_freiburg.informatik.ultimate.logic.simplification.SimplifyDDA;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationRequest;
@@ -556,6 +557,15 @@ class SmtInterpolEnvironment {
     assert stack.size() > 0 : "unsat core should be on higher levels";
     try {
       return script.getUnsatCore();
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  public Term simplify(Term input) {
+    try {
+      SimplifyDDA s = new SimplifyDDA(script, true);
+      return s.getSimplifiedTerm(input);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

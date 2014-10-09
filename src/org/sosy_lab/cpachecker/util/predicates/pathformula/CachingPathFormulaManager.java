@@ -166,8 +166,4 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 
-  @Override
-  public CtoFormulaTypeHandler getTypeHandler() {
-    return delegate.getTypeHandler();
-  }
 }

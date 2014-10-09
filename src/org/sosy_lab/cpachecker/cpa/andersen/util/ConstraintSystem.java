@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class ConstraintSystem {
@@ -502,10 +503,11 @@ public class ConstraintSystem {
     sb.append('[').append('\n');
 
     Map<String, String[]> ptSet = getPointsToSets();
-    for (String key : ptSet.keySet()) {
 
-      sb.append(key).append(" -> {");
-      String[] vals = ptSet.get(key);
+    for (Entry<String, String[]> entry : ptSet.entrySet()) {
+
+      sb.append(entry.getKey()).append(" -> {");
+      String[] vals = entry.getValue();
 
       for (String val : vals) {
         sb.append(val).append(',');

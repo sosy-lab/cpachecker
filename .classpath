@@ -5,7 +5,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="lib/java-contrib/smtinterpol-sources.zip"/>
-	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
@@ -31,5 +30,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

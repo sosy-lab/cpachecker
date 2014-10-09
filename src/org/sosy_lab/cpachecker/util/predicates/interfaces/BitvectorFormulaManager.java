@@ -126,4 +126,10 @@ public interface BitvectorFormulaManager {
    * @param signed Whether the extension should depend on the sign bit.
    */
   public BitvectorFormula extend(BitvectorFormula number, int extensionBits, boolean signed);
+
+  public boolean isShiftRight(BitvectorFormula bits, boolean signed);
+  public boolean isShiftLeft(BitvectorFormula bits);
+  public boolean isConcat(BitvectorFormula bits);
+  public boolean isExtract(BitvectorFormula bits);
+  public boolean isExtend(BitvectorFormula bits, boolean signed);
 }

@@ -174,6 +174,10 @@ public class NumeralFormulaManagerView
     return wrapInView(manager.makeVariable(pVar));
   }
 
+  public ResultFormulaType makeVariable(String pVar, int idx) {
+    return wrapInView(manager.makeVariable(FormulaManagerView.makeName(pVar, idx)));
+  }
+
   @Override
   public FormulaType<ResultFormulaType> getFormulaType() {
     return manager.getFormulaType();

@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 
 /**
  * Calculates the concrete values of the right hand side expressions {@link CRightHandSide}
@@ -118,6 +119,8 @@ public class AssignmentToEdgeAllocator {
   private final ConcreteState modelAtEdge;
 
   private static final int FIRST = 0;
+  private static final CSimpleType UNSIGNED_INT = new CSimpleType(false, false, CBasicType.INT, false, false, false, true, false, false, false);
+  private static final CSimpleType UNSIGNED_DOUBLE = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, true, false, false, false);
 
   public AssignmentToEdgeAllocator(LogManager pLogger,
       CFAEdge pCfaEdge,
@@ -1114,7 +1117,7 @@ public class AssignmentToEdgeAllocator {
 
     @Override
     public ValueLiterals visit(CSimpleType simpleType) throws RuntimeException {
-      return new ValueLiterals(getValueLiteral(simpleType.getType(), value));
+      return new ValueLiterals(getValueLiteral(simpleType, value));
     }
 
     @Override
@@ -1147,15 +1150,18 @@ public class AssignmentToEdgeAllocator {
       return valueLiterals;
     }
 
-    protected ValueLiteral getValueLiteral(CBasicType basicType, Object pValue) {
+    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
+
+
+      CBasicType basicType = pSimpleType.getType();
 
       switch (basicType) {
       case BOOL:
       case INT:
-        return handleIntegerNumbers(pValue);
+        return handleIntegerNumbers(pValue, pSimpleType.isSigned());
       case FLOAT:
       case DOUBLE:
-        return handleFloatingPointNumbers(pValue);
+        return handleFloatingPointNumbers(pValue, pSimpleType.isSigned());
       }
 
       return UnknownValueLiteral.getInstance();
@@ -1165,16 +1171,31 @@ public class AssignmentToEdgeAllocator {
       return new ValueLiterals();
     }
 
-    private ValueLiteral handleFloatingPointNumbers(Object pValue) {
+    private ValueLiteral handleFloatingPointNumbers(Object pValue, boolean isSigned) {
 
-      String value = pValue.toString();
-
-      if (value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))")) {
-        BigDecimal val = new BigDecimal(value);
-        return ExplicitValueLiteral.valueOf(val);
+      if (pValue instanceof ExtendedRational) {
+        double val = ((ExtendedRational) pValue).toDouble();
+        // TODO should we handle infinity and NaN here?
+        return ExplicitValueLiteral.valueOf(new BigDecimal(val));
       }
 
-      return UnknownValueLiteral.getInstance();
+      String value = pValue.toString();
+      BigDecimal val;
+
+      //TODO support rationals
+      try {
+        val = new BigDecimal(value);
+      } catch (NumberFormatException e) {
+
+        logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
+        return UnknownValueLiteral.getInstance();
+      }
+
+      if (!isSigned && val.signum() == -1) {
+        return ExplicitValueLiteral.valueOf(val).addCast(UNSIGNED_DOUBLE);
+      } else {
+        return ExplicitValueLiteral.valueOf(val);
+      }
     }
 
     public void resolveStruct(CType type, ValueLiterals pValueLiterals,
@@ -1184,13 +1205,18 @@ public class AssignmentToEdgeAllocator {
       type.accept(v);
     }
 
-    private ValueLiteral handleIntegerNumbers(Object pValue) {
+    private ValueLiteral handleIntegerNumbers(Object pValue, boolean isSigned) {
 
       String value = pValue.toString();
 
       if (value.matches("((-)?)\\d*")) {
         BigInteger integerValue = new BigInteger(value);
-        return ExplicitValueLiteral.valueOf(integerValue);
+
+        if (!isSigned && integerValue.signum() == -1) {
+          return ExplicitValueLiteral.valueOf(integerValue).addCast(UNSIGNED_INT);
+        } else {
+          return ExplicitValueLiteral.valueOf(integerValue);
+        }
       } else {
         String[] numberParts = value.split("\\.");
 
@@ -1199,16 +1225,25 @@ public class AssignmentToEdgeAllocator {
             numberParts[0].matches("((-)?)\\d*")) {
 
           BigInteger integerValue = new BigInteger(numberParts[0]);
-          return ExplicitValueLiteral.valueOf(integerValue);
+
+          if (!isSigned && integerValue.signum() == -1) {
+            return ExplicitValueLiteral.valueOf(integerValue).addCast(UNSIGNED_INT);
+          } else {
+            return ExplicitValueLiteral.valueOf(integerValue);
+          }
         }
       }
 
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue);
+      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, isSigned);
 
       if (valueLiteral.isUnknown()) {
         return valueLiteral;
       } else {
-        return valueLiteral.addCast(CNumericTypes.INT);
+        if (isSigned) {
+          return valueLiteral.addCast(CNumericTypes.INT);
+        } else {
+          return valueLiteral.addCast(UNSIGNED_INT);
+        }
       }
     }
 
@@ -1344,7 +1379,7 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (expectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) expectedType).getType(), fieldValue);
+          valueLiteral = getValueLiteral(((CSimpleType) expectedType), fieldValue);
         } else {
           valueAddress = Address.valueOf(fieldValue);
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
@@ -1420,7 +1455,7 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (pExpectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType).getType(), value);
+          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
@@ -1480,7 +1515,7 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (expectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) expectedType).getType(), value);
+          valueLiteral = getValueLiteral(((CSimpleType) expectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
@@ -1598,7 +1633,7 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (realType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) realType).getType(), pFieldValue);
+          valueLiteral = getValueLiteral(((CSimpleType) realType), pFieldValue);
         } else {
           valueAddress = Address.valueOf(pFieldValue);
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);

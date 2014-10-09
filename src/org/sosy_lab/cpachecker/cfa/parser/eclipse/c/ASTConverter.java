@@ -89,6 +89,8 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -1685,12 +1687,57 @@ class ASTConverter {
             && initializer instanceof IASTEqualsInitializer) {
           IASTInitializerClause initClause = ((IASTEqualsInitializer)initializer).getInitializerClause();
           if (initClause instanceof IASTInitializerList) {
-            int length = ((IASTInitializerList)initClause).getClauses().length;
-            CExpression lengthExp = new CIntegerLiteralExpression(
-                getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+            int length = 0;
+            int position = 0;
+            for (IASTInitializerClause x : ((IASTInitializerList)initClause).getClauses()) {
+              if (length == -1) {
+                break;
+              }
 
-            type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
-                arrayType.getType(), lengthExp);
+              if (x instanceof ICASTDesignatedInitializer) {
+                for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
+                  if (designator instanceof CASTArrayRangeDesignator) {
+                    CAstNode ceil = convertExpressionWithSideEffects(((CASTArrayRangeDesignator)designator).getRangeCeiling());
+                    if (ceil instanceof CIntegerLiteralExpression) {
+                      int c = ((CIntegerLiteralExpression)ceil).getValue().intValue();
+                      length = Math.max(length, c + 1);
+                      position = c + 1;
+
+                      // we need distinct numbers for the range bounds, if they
+                      // are not there we cannot calculate the length of the array
+                      // correctly
+                    } else {
+                      length = -1;
+                      break;
+                    }
+
+                  } else if (designator instanceof CASTArrayDesignator) {
+                    CAstNode subscript = convertExpressionWithSideEffects(((CASTArrayDesignator)designator).getSubscriptExpression());
+                    int s = ((CIntegerLiteralExpression)subscript).getValue().intValue();
+                    length = Math.max(length, s+1);
+                    position = s + 1;
+
+                    // we only know the length of the CASTArrayDesignator and the CASTArrayRangeDesignator, all other designators
+                    // have to be ignore, if one occurs, we cannot calculate the length of the array correctly
+                  } else {
+                    length = -1;
+                    break;
+                  }
+                }
+              } else {
+                position++;
+                length = Math.max(position, length);
+              }
+            }
+
+            // only adjust the length of the array if we definitely know it
+            if (length != -1) {
+              CExpression lengthExp = new CIntegerLiteralExpression(
+                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+              type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+                  arrayType.getType(), lengthExp);
+            }
           }
         }
       }
@@ -1841,6 +1888,12 @@ class ASTConverter {
 
 
     String name = convert(d.getName());
+
+    // when the enum has no name we create one
+    // (this may be the case when the enum declaration is surrounded by a typedef)
+    if (name.isEmpty()) {
+      name = "__anon_type_" + anonTypeCounter++;
+    }
 
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
     for (CEnumerator enumValue : enumType.getEnumerators()) {

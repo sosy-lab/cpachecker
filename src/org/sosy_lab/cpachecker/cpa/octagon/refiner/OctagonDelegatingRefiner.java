@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,13 +34,16 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -95,9 +97,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="Timelimit (in seconds) for the backup feasibility check with the octagon analysis."
-      + " Zero means there is no timelimit.")
-  private int timeForOctagonFeasibilityCheck = 0;
+  @Option(description="Timelimit for the backup feasibility check with the octagon analysis."
+      + "(use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                  defaultUserUnit=TimeUnit.SECONDS,
+                  min=0)
+  private TimeSpan timeForOctagonFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
   private int numberOfValueAnalysisRefinements           = 0;
@@ -130,8 +135,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
     }
 
-    OctagonDelegatingRefiner refiner = new OctagonDelegatingRefiner(cpa,
-                                                            octagonCPA);
+    OctagonDelegatingRefiner refiner = new OctagonDelegatingRefiner(cpa, octagonCPA);
 
     return refiner;
   }
@@ -166,12 +170,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     // refinement
     OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(errorPath);
 
-    // we cannot rely on the results of the feasibility check if it was interrupted
-    // this we report a spurious counterexample
-    if (octChecker.wasInterrupted()) {
-      return CounterexampleInfo.spurious();
-    }
-
     if (!octChecker.isFeasible()) {
       if (performOctagonAnalysisRefinement(reached, octChecker)) {
         existsExplicitOctagonRefinement = true;
@@ -179,7 +177,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, null);
+    return CounterexampleInfo.feasible(pErrorPath, Model.empty());
   }
 
   /**
@@ -341,12 +339,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       OctagonAnalysisFeasabilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
-      if (timeForOctagonFeasibilityCheck == 0) {
+      if (timeForOctagonFeasibilityCheck.isEmpty()) {
         checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA);
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-        FeasabilityCheckTimeLimit l = new FeasabilityCheckTimeLimit(timeForOctagonFeasibilityCheck*(long)1000000);
+        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
@@ -357,42 +355,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       return checker;
     } catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
-    }
-  }
-
-  static class FeasabilityCheckTimeLimit implements ResourceLimit {
-    private final long duration;
-    private final long endTime;
-
-    private FeasabilityCheckTimeLimit(long pDuration) {
-      duration = pDuration;
-      endTime = getCurrentValue() + pDuration;
-    }
-
-    public static FeasabilityCheckTimeLimit fromNowOn(long time, TimeUnit unit) {
-      checkArgument(time > 0);
-      long nanoDuration = TimeUnit.NANOSECONDS.convert(time, unit);
-      return new FeasabilityCheckTimeLimit(nanoDuration);
-    }
-
-    @Override
-    public long getCurrentValue() {
-      return System.nanoTime();
-    }
-
-    @Override
-    public boolean isExceeded(long pCurrentValue) {
-      return pCurrentValue >= endTime;
-    }
-
-    @Override
-    public long nanoSecondsToNextCheck(long pCurrentValue) {
-      return endTime - pCurrentValue;
-    }
-
-    @Override
-    public String getName() {
-      return "feasbility check timelimit of " + TimeUnit.NANOSECONDS.toSeconds(duration) + "s";
     }
   }
 }

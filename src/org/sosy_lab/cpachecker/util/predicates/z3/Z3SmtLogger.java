@@ -155,6 +155,8 @@ public class Z3SmtLogger {
       logBracket("assert (! " + formula + " :interpolation-group " + name + ")");
       interpolationFormulas.put(expr, name);
       break;
+    default:
+      throw new AssertionError();
     }
   }
 
@@ -193,6 +195,8 @@ public class Z3SmtLogger {
 
       itpQuery.append(")");
       break;
+    default:
+      throw new AssertionError();
     }
 
     logCheck(); // TODO remove check?
@@ -212,7 +216,7 @@ public class Z3SmtLogger {
         logfile.asCharSink(Charset.defaultCharset()).write(s);
       }
     } catch (IOException e) {
-      throw new AssertionError("IO-Error in smtlogfile");
+      throw new AssertionError("IO-Error in smtlogfile", e);
     }
   }
 

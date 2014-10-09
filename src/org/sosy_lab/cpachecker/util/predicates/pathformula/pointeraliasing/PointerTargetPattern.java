@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.io.Serializable;
 
@@ -33,12 +33,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 
 import com.google.common.base.Predicate;
 
-public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
+class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   private PointerTargetPattern() {
     this.matchRange = false;

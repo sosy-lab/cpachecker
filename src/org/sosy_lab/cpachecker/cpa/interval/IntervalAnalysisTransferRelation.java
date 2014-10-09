@@ -79,9 +79,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -89,7 +89,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import com.google.common.base.Optional;
 
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisTransferRelation implements TransferRelation {
+public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation {
   @Option(description="decides whether one (false) or two (true) successors should be created "
     + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
@@ -108,7 +108,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException {
     Collection<? extends AbstractState> successors  = null;
 
     AbstractState successor                         = null;

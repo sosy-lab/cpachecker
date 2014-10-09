@@ -343,7 +343,7 @@ public class BAMPredicateReducer implements Reducer {
         return true;
       } else if (pObj == null) {
         return false;
-      } else if (!(pObj.getClass().equals(ReducedPredicatePrecision.class))) {
+      } else if (!(pObj.getClass().equals(this.getClass()))) {
         return false;
       } else {
         computeView();

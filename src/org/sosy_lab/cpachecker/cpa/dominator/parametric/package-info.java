@@ -21,23 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.sign;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-
-public class SignDomain implements AbstractDomain {
-
-  @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    return ((SignState)pState1).union((SignState)pState2);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException {
-    return ((SignState)pState1).isSubsetOf((SignState)pState2);
-  }
-
-}
+@org.sosy_lab.common.Unmaintained
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
+package org.sosy_lab.cpachecker.cpa.dominator.parametric;

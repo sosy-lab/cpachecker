@@ -40,6 +40,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -151,9 +153,23 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     } else {
 
-      Scope scope = new CProgramScope(cfa);
+      Language language = cfa.getLanguage();
 
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope);
+      List<Automaton> lst;
+
+      Scope scope;
+
+      switch (language) {
+      case C:
+        scope = new CProgramScope(cfa);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+      }
+
+      lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope, language);
+
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
@@ -236,7 +252,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge));
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
+        pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override

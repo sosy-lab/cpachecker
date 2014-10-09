@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -111,7 +111,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     if (! objectCandidates.containsKey(offset)) {
       //try to infer a pointer presence: either NULL, or uninitialized
-      if (smg.isCoveredByNullifiedBlocks(object, offset, AnonymousTypes.dummyPointer)) {
+      if (smg.isCoveredByNullifiedBlocks(object, offset, CPointerType.POINTER_TO_VOID)) {
         objectCandidates.put(offset, new SMGSingleLinkedListCandidate(object, offset, 1));
       }
     }

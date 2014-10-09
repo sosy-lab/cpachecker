@@ -83,6 +83,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Paths.get("predmap.txt");
 
+  @Option(name="precondition.file", description="File for exporting the weakest precondition.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path preconditionFile = Paths.get("precondition.txt");
+  @Option(name="precondition.export", description="Export the weakest precondition?")
+  private boolean preconditionExport = false;
+
   @Option(description="export final loop invariants",
           name="invariants.export")
   private boolean exportInvariants = true;
@@ -112,23 +118,27 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final AbstractionManager absmgr;
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
+  private final WeakestPreconditionWriter preconditionWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
 
   private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      Timer pInvariantGeneratorTimer, Configuration config)
+      Timer pInvariantGeneratorTimer, Configuration pConfig)
           throws InvalidConfigurationException {
+
     cpa = pCpa;
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
     invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
-    config.inject(this, PredicateCPAStatistics.class);
+
+    pConfig.inject(this, PredicateCPAStatistics.class);
 
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
+    preconditionWriter = new WeakestPreconditionWriter(pCfa, pConfig, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
@@ -227,7 +237,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
 
-    if (result == Result.TRUE && exportInvariants && invariantsFile != null) {
+    if (preconditionExport && preconditionFile != null) {
+      preconditionWriter.writeWeakestPrecondition(preconditionFile, reached, cpa.logger);
+    }
+
+    if (exportInvariants && invariantsFile != null) {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
     }
 

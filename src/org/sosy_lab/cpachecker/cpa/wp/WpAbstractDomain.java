@@ -79,8 +79,10 @@ public class WpAbstractDomain implements AbstractDomain {
   public boolean isLessOrEqual(AbstractState s1, AbstractState s2) throws CPAException, InterruptedException {
     WpAbstractState e1 = (WpAbstractState) s1;
     WpAbstractState e2 = (WpAbstractState) s2;
-    // TODO: Implement me
-    return false;
+
+    throw new RuntimeException("Not yet implemented");
+
+    // return e1.getIsLessEqualThan() == e2;
   }
 
   public synchronized AbstractState getTopInstance() {

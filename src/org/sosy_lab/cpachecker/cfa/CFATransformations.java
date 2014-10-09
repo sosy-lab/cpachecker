@@ -233,9 +233,6 @@ class CFATransformations {
       return new CAssumeEdge(edge.getRawStatement(), edge.getFileLocation(),
                              predecessor, successor, ((CAssumeEdge)edge).getExpression(),
                              ((CAssumeEdge)edge).getTruthAssumption());
-    case CallToReturnEdge:
-      assert (false);
-      break;
     case ReturnStatementEdge:
       return new CReturnStatementEdge(edge.getRawStatement(),
                                       ((CReturnStatementEdge)edge).getRawAST().get(),
@@ -248,8 +245,12 @@ class CFATransformations {
       return new CDeclarationEdge(edge.getRawStatement(), edge.getFileLocation(),
                                   predecessor, successor,
                                   ((CDeclarationEdge)edge).getDeclaration());
+    case CallToReturnEdge:
+      assert (false);
+      // $FALL-THROUGH$
+    default:
+      throw new CFAGenerationRuntimeException("more edge types valid than expected, more work to do here");
     }
-    throw new CFAGenerationRuntimeException("more edge types valid than expected, more work to do here");
   }
 
 

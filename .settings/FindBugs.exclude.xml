@@ -15,4 +15,8 @@
         <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
         <Method name="apply"/>
     </And></Match>
+    <Match>
+        <!-- Handled by Eclipse. -->
+        <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+    </Match>
 </FindBugsFilter>

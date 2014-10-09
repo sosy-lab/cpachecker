@@ -29,10 +29,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -41,7 +43,8 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class ReachingDefState implements AbstractState, Serializable {
+public class ReachingDefState implements AbstractState, Serializable,
+    LatticeAbstractState<ReachingDefState> {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -122,7 +125,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     return this == topElement ? null : globalReachDefs;
   }
 
-  public boolean isSubsetOf(ReachingDefState superset) {
+  @Override
+  public boolean isLessOrEqual(ReachingDefState superset) {
     if (superset == this || superset == topElement) {
       return true;
     }
@@ -154,9 +158,9 @@ public class ReachingDefState implements AbstractState, Serializable {
     if (subset == superset) {
       return true;
     }
-    for (String var : subset.keySet()) {
-      setSub = subset.get(var);
-      setSuper = superset.get(var);
+    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+      setSub = entry.getValue();
+      setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }
@@ -167,7 +171,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     return true;
   }
 
-  public ReachingDefState union(ReachingDefState toJoin) {
+  @Override
+  public ReachingDefState join(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     boolean changed = false;
     ReachingDefState lastFunctionCall;
@@ -266,13 +271,14 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
-    for (String var : map1.keySet()) {
+    for (Entry<String, Set<DefinitionPoint>> entry : map1.entrySet()) {
+      String var = entry.getKey();
       // decrease merge time, avoid building union if unnecessary
-      if (map1.get(var)== map2.get(var)) {
+      if (entry.getValue() == map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
-      unionResult = unionSets(map1.get(var), map2.get(var));
+      unionResult = unionSets(entry.getValue(), map2.get(var));
       if (unionResult.size() != map2.get(var).size()) {
         changed = true;
       }

@@ -183,6 +183,7 @@ public class ARGPath implements Appender {
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
+      elem.put("val", "");
       elem.put("line", edge.getFileLocation().getStartingLineNumber());
       elem.put("file", edge.getFileLocation().getFileName());
       path.add(elem);

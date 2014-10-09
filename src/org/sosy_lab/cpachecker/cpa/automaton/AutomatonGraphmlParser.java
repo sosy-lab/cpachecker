@@ -85,7 +85,7 @@ public class AutomatonGraphmlParser {
   @Option(description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
-  @Option(description="")
+  @Option(description="Legacy option for token-based matching with path automatons.")
   private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
   @Option(description="Match the source code provided with the witness.")
@@ -94,7 +94,7 @@ public class AutomatonGraphmlParser {
   @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
-  @Option(description="")
+  @Option(description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
 
@@ -159,7 +159,7 @@ public class AutomatonGraphmlParser {
 
   }
 
-  private static class TokenCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<Integer>> {
+  private static class TokenCollector extends CollectorOnExprLeaf<Comparable<Integer>> {
 
     @Override
     protected Set<Comparable<Integer>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
@@ -172,7 +172,7 @@ public class AutomatonGraphmlParser {
 
   }
 
-  private static class OriginLineCollector<R extends Comparable<?>> extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
+  private static class OriginLineCollector extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
 
     @Override
     protected Set<Comparable<OriginDescriptor>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
@@ -216,12 +216,12 @@ public class AutomatonGraphmlParser {
   }
 
   private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector<>();
+    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector();
     return leafSetsDisjoint(collector, transitions);
   }
 
   private boolean originDescriptorsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector<>();
+    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector();
     return leafSetsDisjoint(collector, transitions);
   }
 

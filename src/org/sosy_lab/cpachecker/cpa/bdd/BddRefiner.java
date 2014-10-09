@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -135,7 +136,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       }
     }
 
-    return CounterexampleInfo.feasible(pErrorPath, null);
+    return CounterexampleInfo.feasible(pErrorPath, Model.empty());
   }
 
   /**

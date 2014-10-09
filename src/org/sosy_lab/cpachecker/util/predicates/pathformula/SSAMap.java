@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
@@ -129,7 +130,7 @@ public class SSAMap implements Serializable {
       return varTypes.get(name);
     }
 
-    public void setIndex(String name, CType type, int idx) {
+    public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
@@ -150,6 +151,8 @@ public class SSAMap implements Serializable {
         }
         varsHashCode += mapEntryHashCode(name, idx);
       }
+
+      return this;
     }
 
     /**
@@ -157,7 +160,7 @@ public class SSAMap implements Serializable {
      * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
      * Warning: do not use out of order!
      */
-    public void setLatestUsedIndex(String name, CType type, int idx) {
+    public SSAMapBuilder setLatestUsedIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx, "vs", oldIdx);
@@ -173,9 +176,11 @@ public class SSAMap implements Serializable {
       if (idx > oldIdx) {
         latestUsedVars = latestUsedVars.putAndCopy(name, idx);
       }
+
+      return this;
     }
 
-    public void deleteVariable(String variable) {
+    public SSAMapBuilder deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
@@ -184,6 +189,8 @@ public class SSAMap implements Serializable {
 
         varTypes = varTypes.removeAndCopy(variable);
       }
+
+      return this;
     }
 
     public SortedSet<String> allVariables() {
@@ -268,17 +275,7 @@ public class SSAMap implements Serializable {
 
     PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
         s1.varTypes, s2.varTypes,
-        new Equivalence<CType>() {
-          @Override
-          protected boolean doEquivalent(CType pA, CType pB) {
-            return pA.getCanonicalType().equals(pB.getCanonicalType());
-          }
-
-          @Override
-          protected int doHash(CType pT) {
-            return pT.hashCode();
-          }
-        },
+        CTypes.canonicalTypeEquivalence(),
         TYPE_CONFLICT_CHECKER,
         null);
 

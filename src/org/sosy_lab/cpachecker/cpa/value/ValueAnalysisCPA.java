@@ -44,8 +44,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
@@ -130,7 +132,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     config.inject(this);
 
-    abstractDomain      = new ValueAnalysisDomain();
+    abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
@@ -172,7 +174,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
-      return new ValueAnalysisStaticRefiner(config, logger, precision);
+      return new ValueAnalysisStaticRefiner(config, logger);
     }
 
     return null;
@@ -323,7 +325,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
-      Collection<? extends AbstractState> computedSuccessors = transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
+      Collection<? extends AbstractState> computedSuccessors =
+          transferRelation.getAbstractSuccessorsForEdge(
+              pState, SingletonPrecision.getInstance(), pCfaEdge);
       boolean found;
       for (AbstractState comp:computedSuccessors) {
         found = false;

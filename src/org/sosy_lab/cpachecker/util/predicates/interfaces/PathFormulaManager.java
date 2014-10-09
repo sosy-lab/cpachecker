@@ -39,6 +39,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 
 public interface PathFormulaManager {
 
+  public class CheckInfeasibleException extends Exception {
+    private static final long serialVersionUID = -1;
+
+    public CheckInfeasibleException(String message) {
+      super (message);
+    }
+  }
+
   PathFormula makeEmptyPathFormula();
 
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
@@ -64,9 +72,6 @@ public interface PathFormulaManager {
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
-
-  /** The TypeHandler converts CTypes into FormulaTypes. */
-  CtoFormulaTypeHandler getTypeHandler();
 
   /**
    * Build a formula containing a predicate for all branching situations in the

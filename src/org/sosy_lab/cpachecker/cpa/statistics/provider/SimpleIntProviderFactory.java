@@ -127,6 +127,9 @@ public class SimpleIntProviderFactory {
         count += countDeclarations(edge, counter);
       }
       break;
+    default:
+      // no declaration
+      break;
     }
 
     return count;
@@ -259,6 +262,9 @@ public class SimpleIntProviderFactory {
       for (CFAEdge edge : multEdge) {
         count += countExpressions(edge, counter);
       }
+      break;
+    default:
+      // no expressions
       break;
     }
     return count;
@@ -397,6 +403,9 @@ public class SimpleIntProviderFactory {
       for (CFAEdge edge : multEdge) {
         count += countFunctionCalls(edge);
       }
+      break;
+    default:
+      // no function calls
       break;
     }
     return count;
@@ -758,6 +767,9 @@ public class SimpleIntProviderFactory {
       for (CFAEdge edge : multEdge) {
         count += countAssumeStmts(edge);
       }
+      break;
+    default:
+      // no assume
       break;
     }
     return count;

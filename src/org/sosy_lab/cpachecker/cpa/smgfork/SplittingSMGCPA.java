@@ -34,11 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -94,7 +90,7 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
     machineModel = cfa.getMachineModel();
     logger = pLogger;
 
-    abstractDomain = new SMGDomain();
+    abstractDomain = DelegateAbstractDomain.<SMGState> getInstance();
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new SMGTransferRelation(config, logger, machineModel);

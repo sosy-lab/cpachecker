@@ -48,6 +48,10 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     super(cause.getMessage(), cause);
   }
 
+  public CFAGenerationRuntimeException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
   public CFAGenerationRuntimeException(String msg, ASTNode astNode) {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }

@@ -64,6 +64,8 @@ import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
@@ -271,6 +273,7 @@ public class ReferencedVariablesCollector {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "bug in FindBugs")
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
@@ -280,6 +283,7 @@ public class ReferencedVariablesCollector {
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
       return null;
     }

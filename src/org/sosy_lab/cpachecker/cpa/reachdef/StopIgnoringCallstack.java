@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -61,9 +62,9 @@ public class StopIgnoringCallstack implements StopOperator{
     if (subset == superset) {
       return true;
     }
-    for (String var : subset.keySet()) {
-      setSub = subset.get(var);
-      setSuper = superset.get(var);
+    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+      setSub = entry.getValue();
+      setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }

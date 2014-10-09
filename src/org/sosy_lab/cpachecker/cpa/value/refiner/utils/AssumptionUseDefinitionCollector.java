@@ -63,6 +63,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
  */
@@ -396,6 +398,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "bug in FindBugs")
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
@@ -405,6 +408,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
 
       return null;

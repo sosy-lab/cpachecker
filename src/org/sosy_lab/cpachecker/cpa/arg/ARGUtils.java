@@ -522,7 +522,7 @@ public class ARGUtils {
       throws IOException {
 
     Model model = pCounterExampleTrace.getModel();
-    CFAPathWithAssignments assignmentCFAPath = model.getAssignedTermsPerEdge();
+    CFAPathWithAssignments assignmentCFAPath = model.getCFAPathWithAssignments();
 
     int stateCounter = 1;
 
@@ -580,12 +580,10 @@ public class ARGUtils {
     Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
 
     Model model = pCounterExample.getTargetPathModel();
-    if (model != null) {
-      CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
-      if (cfaPath != null) {
-        ARGPath targetPath = pCounterExample.getTargetPath();
-        valueMap = model.getExactVariableValues(targetPath);
-      }
+    CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+    if (cfaPath != null) {
+      ARGPath targetPath = pCounterExample.getTargetPath();
+      valueMap = model.getExactVariableValues(targetPath);
     }
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
@@ -701,12 +699,10 @@ public class ARGUtils {
 
     if (pCounterExample != null) {
       Model model = pCounterExample.getTargetPathModel();
-      if (model != null) {
-        CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
-        }
+      CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+      if (cfaPath != null) {
+        ARGPath targetPath = pCounterExample.getTargetPath();
+        valueMap = model.getExactVariableValues(targetPath);
       }
     }
 

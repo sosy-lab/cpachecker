@@ -35,11 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -67,7 +63,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final NamedRegionManager manager;
   private final BitvectorManager bvmgr;
   private final PredicateManager predmgr;
-  private final BDDDomain abstractDomain;
+  private final AbstractDomain abstractDomain;
   private final BDDPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -92,7 +88,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
     RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
-    abstractDomain    = new BDDDomain();
+    abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
     stopOperator      = new StopSepOperator(abstractDomain);
     mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
     precision         = new BDDPrecision(config, cfa.getVarClassification());

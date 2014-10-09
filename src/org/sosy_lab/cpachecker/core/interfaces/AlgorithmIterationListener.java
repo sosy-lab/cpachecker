@@ -21,9 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * Helper for pointer-alias encoding into formulas.
- */
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "SE_BAD_FIELD",
-    justification = "serialization of formulas is currently unsupported")
-package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;
+package org.sosy_lab.cpachecker.core.interfaces;
+
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+
+
+public interface AlgorithmIterationListener {
+
+  public void afterAlgorithmIteration(Algorithm alg, ReachedSet reached);
+
+}

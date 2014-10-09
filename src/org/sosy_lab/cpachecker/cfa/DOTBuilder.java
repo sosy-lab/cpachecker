@@ -148,6 +148,6 @@ public final class DOTBuilder {
       shape = "circle";
     }
 
-    return node.getNodeNumber() + " [shape=\"" + shape + "\" label=\"" + node.getNodeNumber() + "\\n" + node.getReversePostorderId() + "\"]";
+    return node.getNodeNumber() + " [shape=\"" + shape + "\" label=\"N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId() + "\"]";
   }
 }

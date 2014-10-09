@@ -21,5 +21,6 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+@org.sosy_lab.common.Unmaintained
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
 package org.sosy_lab.cpachecker.cpa.seplogic;

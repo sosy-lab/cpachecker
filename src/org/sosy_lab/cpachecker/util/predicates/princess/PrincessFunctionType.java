@@ -21,22 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smgfork;
+package org.sosy_lab.cpachecker.util.predicates.princess;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import java.util.List;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
-public class SMGDomain implements AbstractDomain {
+class PrincessFunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T, PrincessEnvironment.FunctionType> {
 
-  @Override
-  public AbstractState join(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((SMGState)currentElement).join((SMGState)reachedState);
-  }
-
-  @Override
-  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((SMGState) currentElement).isLessOrEqual((SMGState) reachedState);
+  PrincessFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, PrincessEnvironment.FunctionType funcDecl) {
+    super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

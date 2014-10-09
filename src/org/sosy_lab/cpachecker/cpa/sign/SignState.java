@@ -33,6 +33,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -41,7 +42,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable {
+public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable,
+    LatticeAbstractState<SignState> {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
@@ -66,12 +68,13 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     signMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public SignState union(SignState pToJoin) {
+  @Override
+  public SignState join(SignState pToJoin) {
     if (pToJoin.equals(this)) { return pToJoin; }
     if (this.equals(TOP) || pToJoin.equals(TOP)) { return TOP; }
 
     // assure termination of loops do not merge if  pToJoin covers this but return pToJoin
-    if (isSubsetOf(pToJoin)) { return pToJoin; }
+    if (isLessOrEqual(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
     PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
@@ -89,7 +92,8 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
     return newMap.size() > 0 ? new SignState(newMap) : result;
   }
 
-  public boolean isSubsetOf(SignState pSuperset) {
+  @Override
+  public boolean isLessOrEqual(SignState pSuperset) {
     if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
     if (signMap.size() < pSuperset.signMap.size()) { return false; }
     // is subset if for every variable all sign assumptions are considered in pSuperset

@@ -171,7 +171,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
   }
 
   @Override
-  public Collection<OctagonState> getAbstractSuccessors(
+  public Collection<OctagonState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -456,6 +456,12 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
         break;
       case LESS_THAN:
         op = BinaryOperator.GREATER_THAN;
+        break;
+
+      // we do not need to change the binary operator for other cases
+      // (== and != stay the same when swapping the operands)
+      default:
+          break;
       }
       return handleBinaryAssumptionWithOneLiteral(right, (CLiteralExpression) left, op, truthAssumption, state);
 
@@ -1319,6 +1325,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
               case GREATER_THAN:
                 returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(visitorState.sizeOfVariables(), visitorState), visitorState));
                 break;
+               // unused default statements, all possible values for this switch
+               // statement are handled above
+              default:
+                throw new AssertionError("Unhandled case in switch clause.");
               }
               continue;
             }
@@ -1335,12 +1345,11 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
               //because we change the sides of the operands, we have to change the
               //operator, too
               switch (binOp) {
-              case EQUALS: binOp = BinaryOperator.NOT_EQUALS; break;
               case GREATER_EQUAL: binOp = BinaryOperator.LESS_EQUAL; break;
               case GREATER_THAN: binOp = BinaryOperator.LESS_THAN; break;
               case LESS_EQUAL: binOp = BinaryOperator.GREATER_EQUAL; break;
               case LESS_THAN: binOp = BinaryOperator.GREATER_THAN; break;
-              case NOT_EQUALS:binOp = BinaryOperator.EQUALS; break;
+              default: break;
               }
 
             } else {
@@ -1439,7 +1448,9 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(smaller.sizeOfVariables(), smaller), smaller));
           } else {
             OctagonState greater = state.addGreaterConstraint(varName, constraintCoeffs);
+            if (!greater.isEmpty()) {
             returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(greater.sizeOfVariables(), greater), greater));
+            }
           }
         }
         break;
@@ -1525,6 +1536,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
           returnCoefficients.add(Pair.of((IOctagonCoefficients)OctagonSimpleCoefficients.getBoolFALSECoeffs(equal.sizeOfVariables(), equal), equal));
         }
         break;
+      default:
+        throw new AssertionError("Unhandled case statement");
       }
 
       return returnCoefficients;

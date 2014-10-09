@@ -45,7 +45,7 @@ public class AutomatonTest {
 
   // Specification Tests
   @Test
-  public void CyclicInclusionTest() throws Exception {
+  public void cyclicInclusionTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",       CPAS_UNINITVARS,
         "specification",           "test/config/automata/tmpSpecification.spc",
@@ -63,7 +63,7 @@ public class AutomatonTest {
       Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
   }
   @Test
-  public void IncludeSpecificationTest() throws Exception {
+  public void includeSpecificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",        CPAS_UNINITVARS,
         "specification",            "test/config/automata/defaultSpecificationForTesting.spc",
@@ -84,7 +84,7 @@ public class AutomatonTest {
 */
   }
   @Test
-  public void SpecificationAndNoCompositeTest() throws Exception {
+  public void specificationAndNoCompositeTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "cpa",              "cpa.location.LocationCPA",
         "log.consoleLevel", "INFO",
@@ -110,7 +110,7 @@ public class AutomatonTest {
 
   //Automaton Tests
   @Test
-  public void MatchEndOfProgramTest() throws Exception {
+  public void matchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",       "cpa.location.LocationCPA",
         "specification",           "test/config/automata/PrintLastStatementAutomaton.spc",

@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -51,7 +52,7 @@ public class SMGAbstractionManagerTest {
       if (next != null) {
         int address = SMGValueFactory.getNewValue();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, node, address);
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, node, address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
@@ -62,7 +63,7 @@ public class SMGAbstractionManagerTest {
     }
 
     int address = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, globalVar, address);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, globalVar, address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);
     smg.addValue(address);

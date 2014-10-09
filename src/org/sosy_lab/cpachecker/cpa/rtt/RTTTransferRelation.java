@@ -78,9 +78,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -92,7 +92,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  *
  */
-public class RTTTransferRelation implements TransferRelation {
+public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
@@ -102,7 +102,7 @@ public class RTTTransferRelation implements TransferRelation {
   private static int nextFreeId = 0;
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
 
@@ -667,7 +667,6 @@ public class RTTTransferRelation implements TransferRelation {
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
-    @SuppressWarnings("unused")
     protected final CFAEdge edge;
     protected final RTTState state;
     protected final String functionName;
@@ -736,6 +735,9 @@ public class RTTTransferRelation implements TransferRelation {
         break;
       case NOT_EQUALS:
         result = !result;
+        break;
+      default:
+        throw new UnrecognizedCCodeException("unexpected enum comparison", edge);
       }
 
       return Boolean.toString(result);

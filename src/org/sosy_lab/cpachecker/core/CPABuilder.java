@@ -46,7 +46,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.JProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -122,7 +122,7 @@ public class CPABuilder {
           automata = graphmlParser.parseAutomatonFile(specFile);
 
         } else {
-          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope);
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
         }
 
         for (Automaton automaton : automata) {
@@ -155,11 +155,8 @@ public class CPABuilder {
     case C:
       return new CProgramScope(cfa);
 
-    case JAVA:
-      return new JProgramScope(cfa);
-
     default:
-      throw new AssertionError("Unhandled language type: " + usedLanguage);
+      return DummyScope.getInstance();
     }
   }
 
@@ -251,6 +248,9 @@ public class CPABuilder {
       throw new InvalidConfigurationException(
         "Option " + optionName + " has to be set to a class implementing the ConfigurableProgramAnalysis interface!");
     }
+
+    Classes.produceClassLoadingWarning(logger, cpaClass, ConfigurableProgramAnalysis.class);
+
     return cpaClass;
   }
 

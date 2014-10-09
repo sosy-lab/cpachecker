@@ -21,12 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public class PointerTarget implements Serializable {
 
@@ -34,7 +33,7 @@ public class PointerTarget implements Serializable {
    * This constructor is for variables of simple types (e.g. long, char etc.)
    * @param base
    */
-  public PointerTarget(String base) {
+  PointerTarget(String base) {
     this.base = base;
     this.containerType = null;
     this.properOffset = 0;
@@ -48,7 +47,7 @@ public class PointerTarget implements Serializable {
    * @param containerType
    * @param properOffset
    */
-  public PointerTarget(String base, CType containerType, int properOffset) {
+  PointerTarget(String base, CType containerType, int properOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -62,7 +61,7 @@ public class PointerTarget implements Serializable {
    * @param properOffset
    * @param containerOffset
    */
-  public PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
+  PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;

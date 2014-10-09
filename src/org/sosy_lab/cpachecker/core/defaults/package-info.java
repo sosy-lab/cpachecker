@@ -24,4 +24,5 @@
 /**
  * Sensible default implementations for interfaces in the interfaces/ package.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.defaults;

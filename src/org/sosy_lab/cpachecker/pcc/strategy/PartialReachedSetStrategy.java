@@ -150,8 +150,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       try {
         stats.transferTimer.start();
         successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec,
-                null);
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec);
         stats.transferTimer.stop();
 
         for (AbstractState succ : successors) {

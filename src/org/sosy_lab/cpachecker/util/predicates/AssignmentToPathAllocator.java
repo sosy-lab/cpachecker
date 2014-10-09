@@ -74,7 +74,6 @@ public class AssignmentToPathAllocator {
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -95,17 +94,22 @@ public class AssignmentToPathAllocator {
   }
 
   /**
-   * Provide a path with concrete values (like a test case)
+   * Provide a path with concrete values (like a test case).
+   * Additionally, provides the information, at which {@link CFAEdge} edge which
+   * {@link AssignableTerm} terms have been assigned.
    */
-  public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
-    // create concrete state path, also remember used assignable term for legacy function
+    // create concrete state path, also remember at wich edge which terms were used.
     Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> concreteStatePath = createConcreteStatePath(pPath,
         pModel, pSSAMaps, pMachineModel);
 
-    return CFAPathWithAssignments.valueOf(concreteStatePath.getFirst(), logger, pMachineModel,
-        concreteStatePath.getSecond());
+    // create the concrete error path.
+    CFAPathWithAssignments pathWithAssignments =
+        CFAPathWithAssignments.of(concreteStatePath.getFirst(), logger, pMachineModel);
+
+    return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
   }
 
 

@@ -167,4 +167,9 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, L
         Longs.toArray(changeTo)
     );
   }
+
+  @Override
+  protected Long simplify(Long pF) {
+    throw new UnsupportedOperationException();
+  }
 }

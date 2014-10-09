@@ -372,7 +372,7 @@ public class PredicateAbstractionManager {
         result = new AbstractionFormula(fmgr, result.asRegion(), stateFormula,
             instantiatedFormula, pathFormula, result.getIdsOfStoredAbstractionReused());
         logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "was cached");
-        logger.log(Level.ALL, "Abstraction result is", result);
+        logger.log(Level.ALL, "Abstraction result is", result.asFormula());
         stats.numCallsAbstractionCached++;
         return result;
       }

@@ -24,7 +24,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.466" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.477" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -42,8 +42,8 @@
         <dependency org="com.ibm.icu" name="icu4j" rev="4.8.1.1" conf="runtime->default"/>
 
         <!-- Dependency on Ivy itself so that we can ugprade it easily.
-             Change version number in build.xml for upgrading. -->
-        <dependency org="org.apache.ivy" name="ivy" rev="${ivy.useVersion}" conf="build->default"/>
+             Change version number in build/build-ivy.xml for upgrading. -->
+        <dependency org="org.apache.ivy" name="ivy" rev="${ivy.version}" conf="build->default"/>
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
@@ -78,6 +78,9 @@
           <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
           <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
         </dependency>
+
+        <!-- Princess -->
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2014-08-27" conf="runtime->default"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->

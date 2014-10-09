@@ -166,7 +166,7 @@ public class PartitionChecker implements Runnable {
 
         // compute successors
         try {
-          successors = transfer.getAbstractSuccessors(checkedState, initPrec, null);
+          successors = transfer.getAbstractSuccessors(checkedState, initPrec);
 
 
           for (AbstractState successor : successors) {

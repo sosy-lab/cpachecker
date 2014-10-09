@@ -170,7 +170,7 @@ public class ValueAnalysisFeasibilityChecker {
           next = next.rebuildStateAfterFunctionCall(callState);
         }
 
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
             next,
             precision,
             edge);

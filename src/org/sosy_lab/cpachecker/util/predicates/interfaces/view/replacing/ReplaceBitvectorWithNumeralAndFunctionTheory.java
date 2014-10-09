@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
@@ -380,6 +381,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   public boolean isNot(BitvectorFormula pBits) {
     return isUf(bitwiseNotUfDecl, pBits);
   }
+
   @Override
   public boolean isAnd(BitvectorFormula pBits) {
     return isUf(bitwiseAndUfDecl, pBits);
@@ -393,6 +395,56 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   @Override
   public boolean isXor(BitvectorFormula pBits) {
     return isUf(bitwiseXorUfDecl, pBits);
+  }
+
+  @Override
+  public boolean isShiftRight(BitvectorFormula pBits, boolean signed /*ignored*/) {
+    return isUf(rightShiftUfDecl, pBits);
+  }
+
+  @Override
+  public boolean isShiftLeft(BitvectorFormula pBits) {
+    return isUf(leftShiftUfDecl, pBits);
+  }
+
+  @Override
+  public boolean isConcat(BitvectorFormula pBits) {
+    if (ignoreExtractConcat) {
+      return false;
+    } else {
+      return isUf(pBits, "_concat");
+    }
+  }
+
+  @Override
+  public boolean isExtract(BitvectorFormula pBits) {
+    if (ignoreExtractConcat) {
+      return false;
+    } else {
+      return isUf(pBits, "_extract");
+    }
+  }
+
+  @Override
+   public boolean isExtend(BitvectorFormula pBits, boolean signed) {
+    if (ignoreExtractConcat) {
+      return false;
+    } else {
+      return isUf(pBits, signed ? "_extendSigned" : "_extendUnsigned");
+    }
+  }
+
+  private boolean isUf(BitvectorFormula pBits, String prefix) {
+    for (FunctionFormulaType<T> value : concatMethods.values()) {
+      // TODO prefix-check working??
+      if (value instanceof FunctionFormulaTypeImpl
+          && ((FunctionFormulaTypeImpl)value).getFuncDecl().toString().startsWith(prefix)
+          && isUf(value, pBits)) {
+        return true;
+      }
+      // TODO ReplaceFunctionFormulaType
+    }
+    return false;
   }
 
 }

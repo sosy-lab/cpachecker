@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -66,7 +66,7 @@ import com.google.common.collect.ImmutableSet;
  * Transfer relation for policy iteration.
  */
 @Options(prefix="cpa.policy")
-public class PolicyTransferRelation implements TransferRelation {
+public class PolicyTransferRelation extends SingleEdgeTransferRelation {
 
   private final PathFormulaManager pfmgr;
   private final FormulaManagerFactory formulaManagerFactory;
@@ -104,7 +104,7 @@ public class PolicyTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState,
       Precision precision,
       CFAEdge edge
@@ -114,7 +114,6 @@ public class PolicyTransferRelation implements TransferRelation {
 
     logger.log(Level.FINE, ">>> Processing statement: " + edge.getCode()
      + " for to-node: " + edge.getSuccessor());
-
 
     CFANode toNode = edge.getSuccessor();
 

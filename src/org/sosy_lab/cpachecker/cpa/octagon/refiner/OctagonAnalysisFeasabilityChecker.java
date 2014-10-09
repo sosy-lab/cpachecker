@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,7 +59,6 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ShutdownNotifier shutdownNotifier;
   private final MutableARGPath checkedPath;
   private final MutableARGPath foundPath;
-  private boolean wasInterrupted = false;
 
   public OctagonAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, MutableARGPath path, OctagonCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = log;
@@ -84,10 +82,6 @@ public class OctagonAnalysisFeasabilityChecker {
    */
   public boolean isFeasible() {
       return checkedPath.size() == foundPath.size();
-  }
-
-  public boolean wasInterrupted() {
-    return wasInterrupted;
   }
 
   public Set<String> getPrecisionIncrement(RefineableOctagonPrecision precision) {
@@ -134,20 +128,14 @@ public class OctagonAnalysisFeasabilityChecker {
       for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
         for (OctagonState st : next) {
-          successors.addAll(transfer.getAbstractSuccessors(
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
               pathElement.getSecond()));
 
-          // computing the feasibility check takes sometimes much time with ocatongs
-          // so if the shutdownNotifer says that we should shutdown, we cannot
-          // make any assumptions about the path reachibility and say that it's
-          // reachable (over-approximation)
-          if (shutdownNotifier.shouldShutdown()) {
-            logger.log(Level.INFO, "Cancelling feasibility check with octagon Analysis, timelimit reached");
-            wasInterrupted = true;
-            return checkedPath;
-          }
+          // computing the feasibility check takes sometimes much time with octagons
+          // so we let the shutdownNotifer cancel the computation if necessary
+          shutdownNotifier.shutdownIfNecessary();
         }
 
         prefix.addLast(pathElement);
