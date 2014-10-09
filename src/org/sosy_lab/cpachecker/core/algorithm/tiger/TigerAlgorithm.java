@@ -870,7 +870,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             List<BigInteger> inputValues = new ArrayList<>();
 
             Region testCaseFinalRegion = getRegionFromWrappedBDDstate(lastState);
-            logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
+            logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
 
             TestCase testcase = new TestCase(inputValues,
                 (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
@@ -947,7 +947,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                   abstract_state_index++;
                 }
                 Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
-                logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion(testCaseFinalRegion));
+                logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
                 TestCase testcase = new TestCase(inputValues,
                     (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
                     cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
