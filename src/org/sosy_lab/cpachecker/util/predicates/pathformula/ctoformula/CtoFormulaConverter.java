@@ -169,8 +169,8 @@ public class CtoFormulaConverter {
 
   private final FunctionFormulaType<?> stringUfDecl;
 
-  private final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>()
-          ;
+  protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
+
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
