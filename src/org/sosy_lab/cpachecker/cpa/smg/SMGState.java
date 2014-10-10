@@ -499,30 +499,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         } else {
           heap.removeHasValueEdge(hv);
         }
-
-
-        //TODO This method of shrinking did not work for my benchmarks, investigate
-        /*
-        if (hv.getValue() == heap.getNullValue()) {
-          if (hv.getOffset() < new_edge.getOffset()) {
-            int prefixNullSize = new_edge.getOffset() - hv.getOffset();
-            SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
-            heap.addHasValueEdge(prefixNull);
-          }
-
-          int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
-          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(heap.getMachineModel());
-          if (hvEnd > neEnd) {
-            int postfixNullSize = hvEnd - neEnd;
-            SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
-            heap.addHasValueEdge(postfixNull);
-          }
-        }
-        */
       }
     }
 
-    // TODO Until I know where the error lies, I will keep my version of shrinking in.
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     heap.addHasValueEdge(new_edge);
