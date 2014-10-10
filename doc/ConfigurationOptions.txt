@@ -1765,7 +1765,7 @@ spec.considerNegativeSemanticsAttribute = false
 spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
-spec.matchSourcecodeData = true
+spec.matchSourcecodeData = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
