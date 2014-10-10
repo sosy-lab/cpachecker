@@ -1272,7 +1272,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             return;
           }
 
-          assignableState.writeValue(addressOfField.getObject(), addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue);
+          writeValue(assignableState, addressOfField.getObject(), addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue, edge);
         }
 
         if (truthValue) {
