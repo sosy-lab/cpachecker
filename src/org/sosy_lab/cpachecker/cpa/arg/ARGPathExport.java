@@ -400,6 +400,9 @@ public class ARGPathExport {
         Map<ARGState, CFAEdgeWithAssignments> valueMap) {
       TransitionCondition desc = new TransitionCondition();
 
+      desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
+      desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
+
       if (exportFunctionCallsAndReturns) {
         if (edge.getSuccessor() instanceof FunctionEntryNode) {
           FunctionEntryNode in = (FunctionEntryNode) edge.getSuccessor();
