@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -49,7 +50,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   @Option(
       name="runAcceleratedValueDetermination",
       description="Maximize for the sum of the templates during value determination")
-  private boolean runAcceleratedValueDetermination = false;
+  private boolean runAcceleratedValueDetermination = true;
 
   @Option(name="Compact value determination set",
       description="Use only relevant nodes for value determination")
@@ -180,8 +181,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         vdfmgr.valueDeterminationFormula(policy, node, updated.keySet());
     logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
-    // TODO: add to constraints the policy to the <focused>
-    // node, but which wasn't in the <updated>.
     Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
         Set<LinearExpression>> p;
     if (runAcceleratedValueDetermination) {
@@ -234,18 +233,13 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
         statistics.valueDeterminationSolverTimer.start();
         statistics.valueDetCalls++;
-        ExtendedRational newValue = lcmgr.maximize(solver, objective);
-        statistics.valueDeterminationSolverTimer.stop();
-
-        if (newValue == ExtendedRational.NEG_INFTY) {
-          ProverEnvironment env = formulaManagerFactory.newProverEnvironment(true, true);
-          for (BooleanFormula constraint : pValueDeterminationConstraints) {
-            env.push(constraint);
-          }
-          if (env.isUnsat()) {
-            List<BooleanFormula> l = env.getUnsatCore();
-            logger.log(Level.FINE, "# UNSAT core: ", Joiner.on("\n").join(l));
-          }
+        ExtendedRational newValue;
+        try {
+          newValue = lcmgr.maximize(solver, objective);
+        } catch (SolverException e) {
+          throw new CPATransferException("Failed maximization", e);
+        } finally {
+          statistics.valueDeterminationSolverTimer.stop();
         }
 
         Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
@@ -255,9 +249,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         } else {
           unbounded.add(template);
         }
-      } catch (Exception e) {
-        e.printStackTrace();
-        throw new CPATransferException("Failed solving", e);
       }
     }
 
@@ -289,9 +280,16 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
       statistics.valueDeterminationSolverTimer.start();
       statistics.valueDetCalls++;
-      Map<NumeralFormula, ExtendedRational> model =
-          lcmgr.maximizeObjectives(solver, Lists.newArrayList(objectives.keySet()));
-      statistics.valueDeterminationSolverTimer.stop();
+      Map<NumeralFormula, ExtendedRational> model;
+      try {
+        model = lcmgr.maximizeObjectives(solver,
+                Lists.newArrayList(objectives.keySet()));
+      } catch (SolverException e) {
+        logUnsatCore(pValueDeterminationConstraints);
+        throw new CPATransferException("Failed maximization", e);
+      } finally {
+        statistics.valueDeterminationSolverTimer.stop();
+      }
 
       for (Entry<NumeralFormula, ExtendedRational> e : model.entrySet()) {
         NumeralFormula f = e.getKey();
@@ -300,8 +298,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         LinearExpression template = p.getSecond();
         PolicyTemplateBound templateBound = p.getFirst();
 
-        // TODO: introduce getFirstNotNull().
-        assert(template != null && templateBound != null);
+        assert (template != null && templateBound != null);
         CFAEdge policyEdge = templateBound.edge;
 
         if (newValue != ExtendedRational.INFTY) {
@@ -310,10 +307,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
           unbounded.add(template);
         }
       }
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new CPATransferException("Failed solving", e);
     }
     return Pair.of(builder.build(), unbounded);
   }
@@ -424,7 +417,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   }
 
   private Map<CFANode, PolicyAbstractState> toMap(PolicyPrecision p) {
-    // TODO: this is really inefficient, we must think things through.
     Map<CFANode, PolicyAbstractState> out = new HashMap<>();
     for (AbstractState s : p.getReached()) {
       PolicyAbstractState state = (PolicyAbstractState) s;
@@ -455,6 +447,21 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       }
     }
     return table;
+  }
+
+  /**
+   * Very useful for debugging.
+   */
+  @SuppressWarnings("unused")
+  private void logUnsatCore(List<BooleanFormula> constraints) throws InterruptedException {
+    ProverEnvironment env = formulaManagerFactory.newProverEnvironment(true, true);
+    for (BooleanFormula constraint : constraints) {
+      env.push(constraint);
+    }
+    if (env.isUnsat()) {
+      List<BooleanFormula> l = env.getUnsatCore();
+      logger.log(Level.FINE, "# UNSAT core: ", Joiner.on("\n").join(l));
+    }
   }
 
   @Override

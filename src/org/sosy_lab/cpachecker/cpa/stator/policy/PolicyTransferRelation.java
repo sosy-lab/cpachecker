@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PathFormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
@@ -142,43 +143,40 @@ public class PolicyTransferRelation  extends
     ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> newStateData;
     newStateData = ImmutableMap.builder();
 
+    SSAMap outputSSA;
+    SSAMap inputSSA = SSAMap.emptySSAMap().withDefault(1);
+    List<BooleanFormula> constraints = new ArrayList<>();
+
+    // Constraints imposed by other CPAs.
+    if (reportingStates.size() != 0) {
+
+      // TODO: dealing with multiple reporting states.
+      SSAMap ssaMap = edgeFormula.getSsa();
+
+      PathFormulaReportingState state = reportingStates.iterator().next();
+      PathFormula pathFormula = state.getFormulaApproximation(
+          fmgr, ssaMap.withDefault(1), inputSSA);
+      constraints.add(pathFormula.getFormula());
+      outputSSA = pathFormula.getSsa();
+    } else {
+      outputSSA = edgeFormula.getSsa();
+    }
+
+    logger.log(Level.FINE, "# Got SSA map: ", outputSSA);
+
+    // Constraints from the previous state.
+    for (Map.Entry<LinearExpression, PolicyTemplateBound> item : prevState) {
+      LinearExpression expr = item.getKey();
+      ExtendedRational bound = item.getValue().bound;
+
+      LinearConstraint constraint = new LinearConstraint(expr, bound);
+      constraints.add(lcmgr.linearConstraintToFormula(constraint, inputSSA));
+    }
+
+    constraints.add(edgeFormula.getFormula());
+
     for (LinearExpression template : toTemplates) {
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-
-        SSAMap outputSSA;
-        SSAMap inputSSA = SSAMap.emptySSAMap().withDefault(1);
-        List<BooleanFormula> constraints = new ArrayList<>();
-
-        // Constraints imposed by other CPAs.
-        if (reportingStates.size() != 0) {
-
-          // TODO: dealing with multiple reporting states.
-          SSAMap ssaMap = edgeFormula.getSsa();
-
-          PathFormulaReportingState state = reportingStates.iterator().next();
-          PathFormula pathFormula = state.getFormulaApproximation(
-              fmgr, ssaMap.withDefault(1), inputSSA);
-          constraints.add(pathFormula.getFormula());
-          outputSSA = pathFormula.getSsa();
-        } else {
-          outputSSA = edgeFormula.getSsa();
-        }
-
-        logger.log(Level.FINE, "# Got SSA map: ", outputSSA);
-
-        // Constraints from the previous state.
-        for (Map.Entry<LinearExpression, PolicyTemplateBound> item : prevState) {
-          // TODO: Do not re-add the constraints for each optimization.
-          // If anything we can store them in a list.
-          LinearExpression expr = item.getKey();
-          ExtendedRational bound = item.getValue().bound;
-
-          LinearConstraint constraint = new LinearConstraint(expr, bound);
-          constraints.add(lcmgr.linearConstraintToFormula(constraint, inputSSA));
-        }
-
-        constraints.add(edgeFormula.getFormula());
-
         for (BooleanFormula constraint : constraints) {
           solver.addConstraint(constraint);
         }
@@ -195,8 +193,8 @@ public class PolicyTransferRelation  extends
               " template ", template, " to ", constraint);
           newStateData.put(template, constraint);
         }
-      } catch (Exception e) {
-        throw new CPATransferException("Failed solving", e);
+      } catch (SolverException e) {
+        throw new CPATransferException("Failed maximization", e);
       }
     }
 
