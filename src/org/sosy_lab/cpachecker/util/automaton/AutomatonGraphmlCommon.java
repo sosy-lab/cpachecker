@@ -74,7 +74,10 @@ public class AutomatonGraphmlCommon {
     ASSUMPTION("assumption", "edge", "assumption", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
-    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string");
+    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
+
+    CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
+    CFASUCCESSORNODE("successor", "edge", "successor", "string");
 
     public final String id;
     public final String keyFor;
