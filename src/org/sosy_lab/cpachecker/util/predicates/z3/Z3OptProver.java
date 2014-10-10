@@ -80,7 +80,7 @@ public class Z3OptProver implements OptEnvironment{
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
     z3optContext = 0;

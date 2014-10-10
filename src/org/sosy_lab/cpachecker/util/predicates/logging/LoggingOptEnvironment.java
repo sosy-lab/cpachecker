@@ -69,7 +69,7 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     wrapped.close();
     logger.log(Level.FINER, "closed");
   }
