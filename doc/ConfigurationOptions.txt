@@ -1470,7 +1470,7 @@ cpa.stator.policy.generateUpperBound = true
 cpa.stator.policy.pathFocusing = true
 
 # Maximize for the sum of the templates during value determination
-cpa.stator.policy.runAcceleratedValueDetermination = false
+cpa.stator.policy.runAcceleratedValueDetermination = true
 
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
