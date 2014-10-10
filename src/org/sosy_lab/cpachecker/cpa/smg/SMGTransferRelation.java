@@ -835,6 +835,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     //TODO also evaluate explicit value and assign to symbolic value
     SMGSymbolicValue value = expressionEvaluator.evaluateExpressionValue(readState, cfaEdge, rValue);
 
+    //TODO (  cast expression)
+
+    //6.5.16.1 right operand is converted to type of assignment expression
+    // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
+    rValueType = pFieldType;
+
     if (value.isUnknown()) {
 
       if (expressionEvaluator.isMissingExplicitInformation()) {
