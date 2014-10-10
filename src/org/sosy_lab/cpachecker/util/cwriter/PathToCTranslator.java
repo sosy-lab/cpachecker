@@ -365,11 +365,6 @@ public class PathToCTranslator {
 
   private String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
-    if (pCFAEdge == null) {
-      // ignore edge, this might lead to only a partial C-file
-      return "// no edge available";
-    }
-
     switch (pCFAEdge.getEdgeType()) {
 
     case BlankEdge:
