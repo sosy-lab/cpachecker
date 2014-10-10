@@ -47,8 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -131,7 +130,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
-    predecessor = pOriginalState.predecessor;
+    predecessor = pOriginalState;
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
   }
@@ -578,12 +577,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    SMGJoin join = new SMGJoin(reachedState.heap, heap);
-    if (join.isDefined() &&
-        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)) {
-      return true;
-    }
-    return false;
+    return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
   }
 
   @Override
