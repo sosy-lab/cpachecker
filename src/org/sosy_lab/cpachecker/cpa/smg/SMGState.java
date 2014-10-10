@@ -63,7 +63,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
   private final CLangSMG heap;
   private final LogManager logger;
-  private SMGState predecessor;
+  private int predecessorId;
   private final int id;
 
   private static SMGRuntimeCheck runtimeCheckLevel = SMGRuntimeCheck.NONE;
@@ -114,7 +114,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
-    predecessor = null;
+    predecessorId = id_counter.getAndIncrement();
     id = id_counter.getAndIncrement();
   }
 
@@ -130,7 +130,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
-    predecessor = pOriginalState;
+    predecessorId = pOriginalState.getId();
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
   }
@@ -146,17 +146,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   static final public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
-  }
-
-  /**
-   * Constant.
-   *
-   * @param pSMGState A state to set as a predecessor.
-   * @throws SMGInconsistentException
-   */
-  final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
-    predecessor = pSMGState;
-    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -232,8 +221,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * .
    * @return The predecessor state, i.e. one from which this one was copied
    */
-  final public SMGState getPredecessor() {
-    return predecessor;
+  final public int getPredecessorId() {
+    return predecessorId;
   }
 
   /**
@@ -307,8 +296,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public String toString() {
-    if ( getPredecessor() != null) {
-      return "SMGState [" + getId() + "] <-- parent [" + getPredecessor().getId() + "]\n" + heap.toString();
+    if (getPredecessorId() != 0) {
+      return "SMGState [" + getId() + "] <-- parent [" + getPredecessorId() + "]\n" + heap.toString();
     } else {
       return "SMGState [" + getId() + "] <-- no parent, initial state\n" + heap.toString();
     }

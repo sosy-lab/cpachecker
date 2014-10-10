@@ -192,10 +192,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private void dumpSMGPlot(String name, SMGState currentState, String location) {
       if (exportSMGFilePattern != null && currentState != null) {
         if (name == null) {
-          if (currentState.getPredecessor() == null) {
+          if (currentState.getPredecessorId() == 0) {
             name = String.format("initial-%03d", currentState.getId());
           } else {
-            name = String.format("%03d-%03d", currentState.getPredecessor().getId(), currentState.getId());
+            name = String.format("%03d-%03d", currentState.getPredecessorId(), currentState.getId());
           }
         }
         name = name.replace("\"", "");
@@ -528,12 +528,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       result = Collections.emptySet();
     } else if (mallocFailState != null && enableMallocFailure) {
       // Return a successor for malloc succeeding, and one for malloc failing.
-      successor.setPredecessor(smgState);
-      mallocFailState.setPredecessor(smgState);
       result = ImmutableSet.of(successor, mallocFailState);
       mallocFailState = null;
     } else {
-      successor.setPredecessor(smgState);
       result = Collections.singleton(successor);
     }
 
