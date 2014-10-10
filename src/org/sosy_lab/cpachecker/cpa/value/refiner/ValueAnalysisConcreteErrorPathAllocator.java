@@ -25,17 +25,38 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
@@ -85,11 +106,6 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
-    //TODO After multi edges are implemented, erase
-    if (concreteStatePath == null) {
-      return Model.empty();
-    }
-
     CFAPathWithAssignments pathWithAssignments =
         CFAPathWithAssignments.of(concreteStatePath, logger, pMachineModel);
 
@@ -113,18 +129,166 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       ValueAnalysisState valueState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
-      //TODO erase after multi edges are implemented
-      // TODO generate the whole path only after a counterexample was found to be feasible
+      ConcerteStatePathNode node;
+
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        return null;
+
+        node = createMultiEdge(valueState, (MultiEdge) edge, variableAddresses);
+      } else {
+        ConcreteState concreteState = createConcreteState(valueState, variableAddresses);
+        node = ConcreteStatePath.valueOfPathNode(concreteState, edge);
       }
 
-      ConcreteState concreteState = createConcreteState(valueState, variableAddresses);
-      result.add(ConcreteStatePath.valueOfPathNode(concreteState, edge));
+      result.add(node);
     }
 
 
     return new ConcreteStatePath(result);
+  }
+
+  private ConcerteStatePathNode createMultiEdge(ValueAnalysisState pValueState, MultiEdge multiEdge,
+      Map<LeftHandSide, Address> pVariableAddresses) {
+
+    int size = multiEdge.getEdges().size();
+
+    ConcreteState[] singleConcreteStates = new ConcreteState[size];
+
+    ListIterator<CFAEdge> iterator = multiEdge.getEdges().listIterator(size);
+
+    Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
+
+    int index = size - 1;
+    while (iterator.hasPrevious()) {
+      CFAEdge cfaEdge = iterator.previous();
+
+      ConcreteState state;
+
+      // We know only values for LeftHandSides that have not yet been assigned.
+      if (allValuesForLeftHandSideKnown(cfaEdge, alreadyAssigned)) {
+        state = createConcreteState(pValueState, pVariableAddresses);
+      } else {
+        state = ConcreteState.empty();
+      }
+      singleConcreteStates[index] = state;
+
+      addLeftHandSide(cfaEdge, alreadyAssigned);
+      index--;
+    }
+
+    return ConcreteStatePath.valueOfPathNode(Arrays.asList(singleConcreteStates), multiEdge);
+  }
+
+  private boolean allValuesForLeftHandSideKnown(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      return isDeclarationValueKnown((CDeclarationEdge) pCfaEdge, pAlreadyAssigned);
+    } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      return isStatementValueKnown((CStatementEdge) pCfaEdge, pAlreadyAssigned);
+    }
+
+    return false;
+  }
+
+  private void addLeftHandSide(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatement stmt = ((CStatementEdge)pCfaEdge).getStatement();
+
+      if(stmt instanceof CAssignment) {
+        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+        pAlreadyAssigned.add(lhs);
+      }
+    }
+  }
+
+  private boolean isStatementValueKnown(CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    CStatement stmt = pCfaEdge.getStatement();
+
+    if (stmt instanceof CAssignment) {
+      CLeftHandSide leftHandSide = ((CAssignment) stmt).getLeftHandSide();
+
+      return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
+    }
+
+    return false;
+  }
+
+  private boolean isLeftHandSideValueKnown(CLeftHandSide pLHS, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    ValueKnownVisitor v = new ValueKnownVisitor(pAlreadyAssigned);
+    return pLHS.accept(v);
+  }
+
+  /**
+   * Checks, if we know a value. This is the case, if the value will not be assigned in the future.
+   * Since we traverse the multi edge from bottom to top, this means if a left hand side, that was already
+   * assigned, may not be part of the Left Hand Side we want to know the value of.
+   *
+   */
+  private static class ValueKnownVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+
+    private final Set<CLeftHandSide> alreadyAssigned;
+
+    public ValueKnownVisitor(Set<CLeftHandSide> pAlreadyAssigned) {
+      alreadyAssigned = pAlreadyAssigned;
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pE) throws RuntimeException {
+      return !alreadyAssigned.contains(pE);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pE) throws RuntimeException {
+      return pE.getOperand1().accept(this)
+          && pE.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pE) throws RuntimeException {
+      return pE.getOperand().accept(this);
+    }
+
+    //TODO Complex Cast
+    @Override
+    public Boolean visit(CFieldReference pE) throws RuntimeException {
+      return !alreadyAssigned.contains(pE);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pE) throws RuntimeException {
+      return !alreadyAssigned.contains(pE);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pE) throws RuntimeException {
+      return !alreadyAssigned.contains(pE);
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pE) throws RuntimeException {
+      return pE.getOperand().accept(this);
+    }
+  }
+
+
+  private boolean isDeclarationValueKnown(CDeclarationEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    CDeclaration dcl = pCfaEdge.getDeclaration();
+
+    if (dcl instanceof CVariableDeclaration) {
+      CIdExpression idExp = new CIdExpression(dcl.getFileLocation(), dcl);
+
+      return isLeftHandSideValueKnown(idExp, pAlreadyAssigned);
+    }
+
+    return false;
   }
 
   private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {

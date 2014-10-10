@@ -49,6 +49,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public final class ConcreteState {
 
+  private static final ConcreteState EMPTY_CONCRETE_STATE = new ConcreteState();
+
+
+
   private final Map<LeftHandSide, Object> variables;
   private final Map<String, Memory> allocatedMemory;
   private final Map<LeftHandSide, Address> variableAddressMap;
@@ -73,6 +77,19 @@ public final class ConcreteState {
     allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
     variables = ImmutableMap.copyOf(pVariables);
     memoryNameAllocator = pMemoryName;
+  }
+
+  private ConcreteState() {
+    variableAddressMap = ImmutableMap.of();
+    allocatedMemory = ImmutableMap.of();
+    variables = ImmutableMap.of();
+    memoryNameAllocator = new MemoryName() {
+
+      @Override
+      public String getMemoryName(CRightHandSide pExp, Address pAddress) {
+        return "";
+      }
+    };
   }
 
   /**
@@ -171,5 +188,15 @@ public final class ConcreteState {
     return "variables=" + variables
         + System.lineSeparator() + "allocatedMemory=" + allocatedMemory
         + System.lineSeparator() + " variableAddressMap=" + variableAddressMap;
+  }
+
+  /**
+   *
+   * Return an Empty Concrete State.
+   *
+   * @return an empty concrete State.
+   */
+  public static ConcreteState empty() {
+    return EMPTY_CONCRETE_STATE;
   }
 }
