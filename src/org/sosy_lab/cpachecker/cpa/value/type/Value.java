@@ -39,13 +39,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public interface Value {
   public boolean isNumericValue();
 
-  /** False if we have no idea about this value(can not track it), true otherwise. */
+  /** True if we have no idea about this value(can not track it), false otherwise. */
   public boolean isUnknown();
 
   /** True if we deterministically know the actual value, false otherwise. */
   public boolean isExplicitlyKnown();
 
-  /** Returns the NumericValue if the stored value can be explicitly represented
+  /**
+   * Returns the NumericValue if the stored value can be explicitly represented
    * by a numeric value, null otherwise.
    **/
   public NumericValue asNumericValue();
