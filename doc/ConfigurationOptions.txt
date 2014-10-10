@@ -1348,6 +1348,10 @@ cpa.smg.memoryErrors = true
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
+# which stop operator to use for the SMGCPA
+cpa.smg.stop = "SEP"
+  allowed values: [SEP, NEVER]
+
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
 
