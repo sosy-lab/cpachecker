@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -430,7 +429,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   final private SMGBuiltins builtins = new SMGBuiltins();
 
-  private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
+  private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation) {
     //TODO: A variation for more pConfigs
 
     if (pConfig.equals(exportSMG)) {
@@ -474,7 +473,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(smgState, assumeEdge.getExpression(),
-          cfaEdge, assumeEdge.getTruthAssumption());
+          cfaEdge, assumeEdge.getTruthAssumption(), true);
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
@@ -547,7 +546,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private void setInfo(SMGState pOldState) {
     missingInformationList = new ArrayList<>(5);
-    oldState = new SMGState(pOldState);
+    oldState = pOldState;
     expressionEvaluator.reset();
   }
 
@@ -669,7 +668,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private SMGState handleAssumption(SMGState smgState, CExpression expression, CFAEdge cfaEdge,
-      boolean truthValue) throws CPATransferException {
+      boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
     AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
@@ -694,7 +693,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (explicitValue.isUnknown()) {
-      SMGState newState = new SMGState(smgState);
+
+      SMGState newState;
+
+      if (createNewStateIfNecessary) {
+        newState = new SMGState(smgState);
+      } else {
+        // Don't continuously create new states when strengthening.
+        newState = smgState;
+      }
+
       /*
       Changing the state here breaks strengthen of ExplicitCPA
       which acceses newState instead of oldState.
@@ -777,12 +785,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         case "strict":
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case "assume_safe":
-          return new SMGState(pState);
+          return pState;
         }
         throw new AssertionError();
       }
     } else {
-      newState = new SMGState(pState);
+      newState = pState;
     }
 
     return newState;
@@ -941,8 +949,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, rValue);
 
     // If Assignment contained malloc, handle possible fail with
-    // alternate State
-    if (possibleMallocFail) {
+    // alternate State (don't create state if not enabled)
+    if (possibleMallocFail && enableMallocFailure) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
@@ -1018,9 +1026,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCCodeException, CPATransferException {
 
     if (pInitializer instanceof CInitializerExpression) {
-      return handleAssignmentToField(pNewState, pEdge, pNewObject,
+       assignFieldToState(pNewState, pEdge, pNewObject,
           pOffset, pLValueType,
           ((CInitializerExpression) pInitializer).getExpression());
+       return pNewState;
 
     } else if (pInitializer instanceof CInitializerList) {
 
@@ -1570,14 +1579,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(pElement);
     }
 
-    SMGState newElement = new SMGState(pElement);
+    StringBuilder assumeDesc = new StringBuilder();
+
+    SMGState newElement = pElement;
 
     for (AssumeEdge assume : assumptions) {
-      if (!(assume instanceof CAssumeEdge) || !(((CBinaryExpression)((CAssumeEdge)assume).getExpression()).getOperand1().getExpressionType() instanceof CSimpleType)) {
+      if (!(assume instanceof CAssumeEdge)) {
         continue;
       }
 
-      newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption());
+      assumeDesc.append(assume.getDescription());
+
+      // only create new SMGState if necessary
+      newElement = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption(), pElement == newElement);
 
       if (newElement == null) {
         break;
@@ -1587,6 +1601,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newElement == null) {
       return Collections.emptyList();
     } else {
+      plotWhenConfigured("every", null, newElement, assumeDesc.toString());
       return Collections.singleton(newElement);
     }
   }
