@@ -324,6 +324,17 @@ public class BAMTransferRelation implements TransferRelation {
     return imbueAbstractStatesWithPrecision(reached, result);
   }
 
+  void replaceStateInCaches(AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
+    if (oldStateMustExist || expandedToReducedCache.containsKey(oldState)) {
+      final AbstractState reducedState = expandedToReducedCache.remove(oldState);
+      expandedToReducedCache.put(newState, reducedState);
+    }
+
+    if (oldStateMustExist || forwardPrecisionToExpandedPrecision.containsKey(oldState)) {
+      final Precision expandedPrecision = forwardPrecisionToExpandedPrecision.remove(oldState);
+      forwardPrecisionToExpandedPrecision.put(newState, expandedPrecision);
+    }
+  }
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
    * Then analyse the result and get the returnStates. */
@@ -663,10 +674,6 @@ public class BAMTransferRelation implements TransferRelation {
       return Pair.of(false, returnNodes);
     }
     return Pair.of(true, returnNodes);
-  }
-
-  public Collection<ReachedSet> getCachedReachedSet() {
-    return argCache.getAllCachedReachedStates();
   }
 
   public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock) {

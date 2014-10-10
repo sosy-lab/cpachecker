@@ -46,6 +46,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -90,13 +91,15 @@ class BAMCPAStatistics implements Statistics {
   private final BAMCPA cpa;
   private final BAMCache cache;
   private AbstractBAMBasedRefiner refiner = null;
+  private final LogManager logger;
 
-  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config)
+  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
 
     this.cpa = cpa;
     this.cache = cache;
+    this.logger = logger;
   }
 
   @Override
@@ -248,6 +251,13 @@ class BAMCPAStatistics implements Statistics {
     }
   }
 
+  /**
+   * This method iterates over all reachable states from rootState
+   * and searches for connections to other reachedSets (a set of all those other reachedSets is returned).
+   * As side-effect we collect a Multimap of all connections:
+   * - from a state (in current reachedSet) to its reduced state (in other rechedSet) and
+   * - from a foreign state (in other reachedSet) to its expanded state(s) (in current reachedSet).
+   */
   private Set<ReachedSet> getConnections(final ARGState rootState, final Multimap<ARGState, ARGState> connections) {
     final Set<ReachedSet> referencedReachedSets = new HashSet<>();
     final Set<ARGState> finished = new HashSet<>();

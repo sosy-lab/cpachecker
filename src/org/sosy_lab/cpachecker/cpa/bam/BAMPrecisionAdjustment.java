@@ -24,22 +24,28 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Map;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
   private final BAMTransferRelation trans;
+  private final LogManager logger;
 
-  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment, BAMTransferRelation pTransfer) {
+  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment,
+                                BAMTransferRelation pTransfer, LogManager pLogger) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
     this.trans = pTransfer;
+    this.logger = pLogger;
   }
 
   void setForwardPrecisionToExpandedPrecision(
@@ -54,15 +60,27 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
     }
 
-    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+    // precision might be outdated, if comes from a block-start and the inner part was refined.
+    // so lets use the (expanded) inner precision.
+    final Precision validPrecision;
+    if (forwardPrecisionToExpandedPrecision.containsKey(pElement)) {
+      assert AbstractStates.isTargetState(pElement)
+          || trans.getBlockPartitioning().isReturnNode(AbstractStates.extractLocation(pElement));
+      validPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
+    } else {
+      validPrecision = pPrecision;
+    }
+
+    PrecisionAdjustmentResult result = wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements);
 
     result = result.withAbstractState(trans.attachAdditionalInfoToCallNode(result.abstractState()));
 
-    Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
-    if (newPrecision != null) {
-      return result.withPrecision(newPrecision);
-    } else {
-      return result;
+    if (pElement != result.abstractState()) {
+      logger.log(Level.ALL, "before PREC:", pElement);
+      logger.log(Level.ALL, "after PREC:", result.abstractState());
+      trans.replaceStateInCaches(pElement, result.abstractState(), false);
     }
+
+    return result;
   }
 }
