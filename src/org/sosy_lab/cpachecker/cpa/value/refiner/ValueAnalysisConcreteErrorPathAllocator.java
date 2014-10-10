@@ -81,6 +81,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)
       throws InterruptedException {
 
+    pPath.remove(pPath.size() - 1);
+
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
     //TODO After multi edges are implemented, erase
