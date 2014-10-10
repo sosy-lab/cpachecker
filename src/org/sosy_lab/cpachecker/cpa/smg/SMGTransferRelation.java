@@ -1566,6 +1566,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
 
+    if(assumptions.isEmpty()) {
+      return Collections.singleton(pElement);
+    }
+
     SMGState newElement = new SMGState(pElement);
 
     for (AssumeEdge assume : assumptions) {
