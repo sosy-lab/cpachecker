@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class TestCase {
 
   private List<BigInteger> inputs;
-  private List<CFAEdge> path;
+  private ARGPath path;
   private NamedRegionManager bddCpaNamedRegionManager;
 
   private Region pc;
 
-  public TestCase(List<BigInteger> pInputs, Region pPresenceCondition, List<CFAEdge> pPath, NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestCase(List<BigInteger> pInputs, Region pPresenceCondition, ARGPath pPath, NamedRegionManager pBddCpaNamedRegionManager) {
     assert pPresenceCondition!=null;
     inputs = pInputs;
     path = pPath;
@@ -47,7 +47,7 @@ public class TestCase {
     pc = pPresenceCondition;
   }
 
-  public List<CFAEdge> getPath() {
+  public ARGPath getPath() {
     return path;
   }
 

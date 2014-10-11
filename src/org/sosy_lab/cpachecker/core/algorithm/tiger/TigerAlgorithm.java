@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -396,7 +397,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     Region remainingPCforGoalCoverage=lGoal.getPresenceCondition();
     boolean isFullyCovered=false;
     for (TestCase testcase : testsuite.getTestCases()) {
-      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
+      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath().asEdgesList());
+
+      // TODO we have to consider the changed presence condition!!!
+
       if (isCovered.equals(ThreeValuedAnswer.ACCEPT) &&
           !bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), testcase.getRegion()).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
         // test goal is already (at least for some PCs) covered by an existing test case
@@ -831,7 +835,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           if (counterexamples.isEmpty()) {
             logger.logf(Level.INFO, "Counterexample is not available.");
 
-            LinkedList<CFAEdge> trace = new LinkedList<>();
+            ARGPath trace = new ARGPath();
+            //LinkedList<CFAEdge> trace = new LinkedList<>();
 
             // Try to reconstruct a trace in the ARG
             ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
@@ -854,11 +859,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
               }
 
               CFAEdge edge = parent.getEdgeToChild(argState);
-              trace.addFirst(edge);
+              trace.addFirst(Pair.of(argState, edge));
 
-              // TODO Alex?
               if (edge.equals(criticalEdge)) {
-                logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
                 testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(argState);
               }
 
@@ -929,7 +932,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 }
 
 
-                // TODO Alex?
                 // determine regions for coverage goals reached earlier during execution of the test case
                 Region testCaseCriticalStateRegion = null;
                 int abstract_state_index = 0;
@@ -941,7 +943,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
                     Pair<ARGState, CFAEdge> successor = cex.getTargetPath().get(abstract_state_index + 1);
 
-                    logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
                     testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(successor.getFirst());
                   }
                   abstract_state_index++;
@@ -950,7 +951,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 logger.logf(Level.INFO, " generated test case with " + (testCaseCriticalStateRegion==null ?"(final)":"(critical)") + " PC " + bddCpaNamedRegionManager.dumpRegion((testCaseCriticalStateRegion==null ?testCaseFinalRegion:testCaseCriticalStateRegion)));
                 TestCase testcase = new TestCase(inputValues,
                     (testCaseCriticalStateRegion==null ? testCaseFinalRegion : testCaseCriticalStateRegion), // use region from critical state if available and final region otherwise
-                    cex.getTargetPath().asEdgesList(), bddCpaNamedRegionManager);
+                    cex.getTargetPath(), bddCpaNamedRegionManager);
                 testsuite.addTestCase(testcase, pGoal);
               }
             }
