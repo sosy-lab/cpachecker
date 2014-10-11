@@ -105,4 +105,9 @@ public class NullValue implements Value {
   public int hashCode() {
     return 1; // singleton without any values
   }
+
+  @Override
+  public String toString() {
+    return "NULL";
+  }
 }
