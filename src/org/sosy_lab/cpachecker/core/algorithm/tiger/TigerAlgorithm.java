@@ -399,13 +399,39 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     for (TestCase testcase : testsuite.getTestCases()) {
       ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath().asEdgesList());
 
-      // TODO we have to consider the changed presence condition!!!
+      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
+        continue;
+      }
+      else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
+        continue;
+      }
 
-      if (isCovered.equals(ThreeValuedAnswer.ACCEPT) &&
-          !bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), testcase.getRegion()).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+      // the critical edge of the goal might be covered by a different presence condition
+      CFAEdge criticalEdge = lGoal.getCriticalEdge();
+      Region coveringRegion = testcase.getRegion(); // TODO remove this assignment
+
+      Iterator<Pair<ARGState, CFAEdge>> it = testcase.getPath().descendingIterator();
+
+      while (it.hasNext()) {
+        Pair<ARGState, CFAEdge> p = it.next();
+
+        if (p.getSecond().equals(criticalEdge)) {
+          BDDState state = getWrappedBDDState(p.getFirst());
+          coveringRegion = state.getRegion();
+
+          break;
+        }
+      }
+
+      if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
         // test goal is already (at least for some PCs) covered by an existing test case
         // remove those PCs from todo
-        remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(testcase.getRegion()));
+        remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(coveringRegion));
+        lGoal.setPresenceCondition(remainingPCforGoalCoverage);
+
+        testsuite.addTestCase(testcase, lGoal);
+
         if (remainingPCforGoalCoverage.isFalse()) {
           logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
           isFullyCovered = true;
@@ -413,10 +439,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         } else {
           logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex , " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         }
-        testsuite.addTestCase(testcase, lGoal);
-      }
-      else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
       }
     }
     return isFullyCovered;
@@ -483,6 +505,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           if (lGoalPrediction != null) {
             lGoalPrediction[goalIndex - 1] = Prediction.FEASIBLE;
           }
+
+          remainingPCforGoalCoverage = lGoal.getPresenceCondition();
+
           continue;
         }
 

@@ -65,8 +65,13 @@ public class Goal {
   public int getIndex() {
     return mIndex;
   }
+
   public Region getPresenceCondition() {
     return mPresenceCondition;
+  }
+
+  public void setPresenceCondition(Region r) {
+    mPresenceCondition = r;
   }
 
   public ElementaryCoveragePattern getPattern() {
