@@ -462,7 +462,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
       goalIndex++;
 
-      while (!remainingPCforGoalCoverage.isFalse()) {
+      Boolean stop = false;
+
+      while (!stop && !remainingPCforGoalCoverage.isFalse()) {
         logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
         Goal lGoal = constructGoal(goalIndex, lTestGoalPattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,  optimizeGoalAutomata, remainingPCforGoalCoverage);
@@ -473,6 +475,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
           logger.logf(Level.INFO, "This goal is predicted as infeasible!");
           testsuite.addInfeasibleGoal(lGoal, remainingPCforGoalCoverage);
+          stop = true;
           continue;
         }
 
@@ -498,6 +501,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
           }
 
+          stop = true;
           continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
         }
 
@@ -520,7 +524,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         previousAutomaton = currentAutomaton;
 
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
-          //hasTimedout = true;
+          stop = true;
           continue;
         }
 
@@ -833,7 +837,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
     }
 
-    if (!hasTimedOut) {
+    if (hasTimedOut) {
+      return ReachabilityAnalysisResult.TIMEDOUT;
+    }
+    else {
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
       AbstractState lastState = reachedSet.getLastState();
 
