@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -98,7 +96,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -128,7 +125,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -651,7 +647,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
         String varName = ((AIdExpression) op1).getName();
-
         MemoryLocation memloc;
 
         if (isGlobal(op1)) {
@@ -1558,7 +1553,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
      Value value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = Value.UnknownValue.getInstance(); // TODO handleMissingInformationRightJExpression(rttState);
+       value = handleMissingInformationRightJExpression(rttState);
      }
 
      if (!value.isUnknown()) {
