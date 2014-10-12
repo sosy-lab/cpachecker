@@ -140,6 +140,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
+  private final CFA cfa;
 
   private final PreconditionWriter preconditions;
   private final RelationStore relstore;
@@ -250,6 +251,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator, precisionSynthesis);
     stop = new PredicateStopOperator(domain);
 
+    this.cfa = cfa;
+  }
+
+  public CFA getCfa() {
+    return cfa;
   }
 
   @Override

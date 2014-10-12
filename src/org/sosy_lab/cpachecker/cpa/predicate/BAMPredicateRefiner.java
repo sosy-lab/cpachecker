@@ -183,7 +183,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final RefinementStrategy pStrategy)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy);
+      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy, null);
 
       pfmgr = pPathFormulaManager;
     }

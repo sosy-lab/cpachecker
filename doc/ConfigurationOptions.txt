@@ -1169,6 +1169,16 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
+# prefixPreference
+cpa.predicate.refinement.prefixPreference = DEFAULT
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
+
+# recompute
+cpa.predicate.refinement.recompute = true
+cpa.predicate.refinement.recompute = PathFormulae
+
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0

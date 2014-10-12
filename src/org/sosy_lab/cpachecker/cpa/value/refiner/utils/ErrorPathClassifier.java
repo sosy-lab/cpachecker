@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.collect.Iterables.skip;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -38,14 +40,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -68,6 +65,8 @@ public class ErrorPathClassifier {
 
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
+
+  private MutableARGPath originalErrorPath = null;
 
   public static enum ErrorPathPrefixPreference {
     // returns the original error path
@@ -160,7 +159,7 @@ public class ErrorPathClassifier {
   public MutableARGPath obtainPrefix(ErrorPathPrefixPreference preference,
       MutableARGPath errorPath,
       List<MutableARGPath> pPrefixes) {
-
+    originalErrorPath = errorPath;
     switch (preference) {
     case SHORTEST:
       return obtainShortestPrefix(pPrefixes);
@@ -332,12 +331,20 @@ public class ErrorPathClassifier {
       }
     }
 
-    // add bogus transition to prefix - needed, because during interpolation,
-    // the last edge is never interpolated (assumed to be the error state),
-    // so we need to add an extra transition, e.g., duplicate the last edge,
-    // so that the assertion holds that the last transition is infeasible and
-    // yields an interpolant that represents FALSE / a contradiction
-    errorPath.add(BOGUS_TRANSITION);
+    for(int i = errorPath.size(); i < originalErrorPath.size() - 3; i++) {
+      Pair<ARGState, CFAEdge> element = originalErrorPath.get(i);
+      errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+          FileLocation.DUMMY,
+          element.getSecond().getPredecessor(),
+          element.getSecond().getSuccessor(),
+          "replacement for boring edge")));
+    }
+
+    // append the suffix
+    Iterable<Pair<ARGState, CFAEdge>> remainingErrorPath = skip(originalErrorPath, originalErrorPath.size() - 3);
+    for(Pair<ARGState, CFAEdge> elememt : remainingErrorPath) {
+      errorPath.add(elememt);
+    }
 
     return errorPath;
   }
@@ -369,18 +376,6 @@ public class ErrorPathClassifier {
 
     return errorPath;
   }
-
-  private static final CFAEdge BOGUS_EDGE = new CDeclarationEdge("",
-      FileLocation.DUMMY,
-      new CFANode("bogus"),
-      new CFANode("bogus"),
-      new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null));
-
-  /**
-   * a bogus transition, containing the null-state, and a declaration edge, with basically no side effect (may not be a
-   * blank edge, due to implementation details)
-   */
-  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null, BOGUS_EDGE);
 
   /**
    * This method export the current error path, visualizing the individual prefixes.

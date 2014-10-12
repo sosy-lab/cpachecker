@@ -201,7 +201,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             pathChecker,
             formulaManager,
             pathFormulaManager,
-            backupRefinementStrategy);
+            backupRefinementStrategy,
+            predicateCpa.getCfa());
       }
   }
 

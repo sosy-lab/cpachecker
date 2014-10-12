@@ -81,6 +81,7 @@ public abstract class PredicateRefiner implements Refiner {
         pathChecker,
         fmgr,
         pfmgr,
-        strategy);
+        strategy,
+        predicateCpa.getCfa());
   }
 }
