@@ -55,6 +55,7 @@
     <withoutfile>IfStatement4_true_assert</withoutfile>
     <withoutfile>IfStatement5_true_assert</withoutfile>
     <withoutfile>IfStatement_true_assert</withoutfile>
+    <withoutfile>InitialValue_true_assert</withoutfile>
     <withoutfile>IntegerOverflow_true_assert</withoutfile>
     <withoutfile>Label2_true_assert</withoutfile>
     <withoutfile>Label_true_assert</withoutfile>
