@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Optional;
+
 /**
  * This class represents a boolean value.
  * It may store the values <code>false</code> and <code>true</code>.
@@ -53,6 +55,41 @@ public class BooleanValue implements Value {
       return TRUE_VALUE;
     } else {
       return FALSE_VALUE;
+    }
+  }
+
+  /**
+   * Returns an instance of a <code>BooleanValue</code> object representing the
+   * boolean meaning of the given value, if one exists.
+   * If none exists, an <code>Optional</code> with no contained reference is returned.
+   *
+   * @param pValue the {@link Value} whose boolean meaning should be returned
+   * @return an <code>Optional</code> instance containing a reference to the
+   * <code>BooleanValue</code> object representing the boolean meaning of the given value,
+   * if one exists. An empty <code>Optional</code> instance, otherwise.
+   */
+  public static Optional<BooleanValue> valueOf(Value pValue) {
+    if (pValue.isUnknown()) {
+      return Optional.absent();
+
+    } else if (pValue.isNumericValue()) {
+      return valueOf((NumericValue) pValue);
+
+    } else if (pValue instanceof BooleanValue) {
+      return Optional.of((BooleanValue) pValue);
+
+    } else {
+      return Optional.absent();
+    }
+  }
+
+  private static Optional<BooleanValue> valueOf(NumericValue pValue) {
+    if (pValue.equals(new NumericValue(0L))) {
+      return Optional.of(valueOf(false));
+    } else if (pValue.equals(new NumericValue(1L))) {
+      return Optional.of(valueOf(true));
+    } else {
+      return Optional.absent();
     }
   }
 

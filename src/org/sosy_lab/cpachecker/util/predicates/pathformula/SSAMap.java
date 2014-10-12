@@ -203,10 +203,6 @@ public class SSAMap implements Serializable {
       return varTypes.keySet();
     }
 
-    public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
-      return varTypes.entrySet();
-    }
-
     public SortedMap<String, CType> allVariablesWithPrefix(String prefix) {
       return Collections3.subMapWithPrefix(varTypes, prefix);
     }
@@ -358,11 +354,6 @@ public class SSAMap implements Serializable {
 
   public SortedSet<String> allVariables() {
     return vars.keySet();
-  }
-
-  @Deprecated // unsafe usage combined with vars, if lastUsedVars was updated
-  public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
-    return varTypes.entrySet();
   }
 
   private static final Joiner joiner = Joiner.on(" ");

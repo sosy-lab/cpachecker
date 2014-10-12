@@ -34,7 +34,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.*;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -76,6 +82,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
   @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
 
+  @Option(name="stop", toUppercase=true, values={"SEP", "NEVER"},
+      description="which stop operator to use for the SMGCPA")
+  private String stopType = "SEP";
+
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -92,7 +102,13 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
-    stopOperator = new StopSepOperator(abstractDomain);
+
+    if(stopType.equals("NEVER")) {
+      stopOperator = new StopNeverOperator();
+    } else {
+      stopOperator = new StopSepOperator(abstractDomain);
+    }
+
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
 
     SMGState.setRuntimeCheck(runtimeCheck);

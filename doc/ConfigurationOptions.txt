@@ -1353,6 +1353,10 @@ cpa.smg.memoryErrors = true
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
+# which stop operator to use for the SMGCPA
+cpa.smg.stop = "SEP"
+  allowed values: [SEP, NEVER]
+
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
 
@@ -1471,7 +1475,7 @@ cpa.stator.policy.generateUpperBound = true
 cpa.stator.policy.pathFocusing = true
 
 # Maximize for the sum of the templates during value determination
-cpa.stator.policy.runAcceleratedValueDetermination = false
+cpa.stator.policy.runAcceleratedValueDetermination = true
 
 # if enabled checks if states are target states (there exist warning for
 # uninitilized use of variables
@@ -1766,7 +1770,7 @@ spec.considerNegativeSemanticsAttribute = false
 spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
-spec.matchSourcecodeData = true
+spec.matchSourcecodeData = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false

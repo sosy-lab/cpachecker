@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -96,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -125,6 +129,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -562,11 +567,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
-
-
-    if ((!complexType  && (missingInformationRightJExpression != null || !initialValue.isUnknown()))
-        || initialValue instanceof EnumConstantValue || initialValue instanceof NullValue) {
+    if (isTrackedField(decl, initialValue)) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
@@ -588,6 +589,19 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       IARightHandSide pExp) {
 
     return pExp instanceof CExpression && (pEvv.hasMissingPointer());
+  }
+
+  private boolean isTrackedField(IADeclaration pDeclaration, Value pInitialValue) {
+    boolean isNoComplexType = !isComplexJavaType(pDeclaration.getType())
+        && (missingInformationRightJExpression != null || !pInitialValue.isUnknown());
+
+    return isNoComplexType || pInitialValue instanceof EnumConstantValue
+        || pInitialValue instanceof NullValue || pInitialValue.isUnknown();
+  }
+
+  private boolean isComplexJavaType(Type pType) {
+    return pType instanceof JClassOrInterfaceType
+        || pType instanceof JArrayType;
   }
 
   @Override
@@ -878,20 +892,16 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       Value leftValueV  = lVarInBinaryExp.accept(this);
       Value rightValueV = rVarInBinaryExp.accept(this);
 
-      Long leftValue  = leftValueV.isUnknown() || !leftValueV.isNumericValue() ? null : ((NumericValue) leftValueV).longValue();
-      Long rightValue = rightValueV.isUnknown() || !leftValueV.isNumericValue() ? null : ((NumericValue) leftValueV).longValue();
+      if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
+          || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
 
-      if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
+        if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
+            && isAssignable(lVarInBinaryExp)) {
+          assignValueToState((AIdExpression) lVarInBinaryExp, rightValueV);
 
-          @SuppressWarnings("unused")
-          String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
-          assignableState.assignConstant(leftVariableName, rightValueV);
-        } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
-          @SuppressWarnings("unused")
-          String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
-          assignableState.assignConstant(rightVariableName, leftValueV);
-
+        } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
+            && isAssignable(rVarInBinaryExp)) {
+          assignValueToState((AIdExpression) rVarInBinaryExp, leftValueV);
         }
       }
 
@@ -900,17 +910,45 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
         if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
-          if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
-            String leftVariableName = ((AIdExpression) lVarInBinaryExp).getDeclaration().getQualifiedName();
-            assignableState.assignConstant(leftVariableName, new NumericValue(1L));
 
-          } else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
-            String rightVariableName = ((AIdExpression) rVarInBinaryExp).getDeclaration().getQualifiedName();
-            assignableState.assignConstant(rightVariableName, new NumericValue(1L));
+          if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
+              && isAssignable(lVarInBinaryExp)) {
+
+            // we only want BooleanValue objects for boolean values in the future
+            assert rightValueV instanceof BooleanValue;
+            BooleanValue booleanValueRight = BooleanValue.valueOf(rightValueV).get();
+
+            if (!booleanValueRight.isTrue()) {
+              assignValueToState((AIdExpression) lVarInBinaryExp, BooleanValue.valueOf(true));
+            }
+
+          } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
+              && isAssignable(rVarInBinaryExp)) {
+
+            // we only want BooleanValue objects for boolean values in the future
+            assert leftValueV instanceof BooleanValue;
+            BooleanValue booleanValueLeft = BooleanValue.valueOf(leftValueV).get();
+
+            if (!booleanValueLeft.isTrue()) {
+              assignValueToState((AIdExpression) rVarInBinaryExp, BooleanValue.valueOf(true));
+            }
           }
         }
       }
       return super.visit(pE);
+    }
+
+    // Assign the given value of the given IdExpression to the state of this TransferRelation
+    private void assignValueToState(AIdExpression pIdExpression, Value pValue) {
+      IASimpleDeclaration declaration = pIdExpression.getDeclaration();
+
+      if (declaration != null) {
+        assignableState.assignConstant(declaration.getQualifiedName(), pValue);
+      } else {
+        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName(),
+            0);
+        assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
+      }
     }
 
     protected MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {

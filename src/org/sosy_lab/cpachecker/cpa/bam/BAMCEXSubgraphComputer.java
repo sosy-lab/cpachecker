@@ -138,8 +138,14 @@ public class BAMCEXSubgraphComputer {
           }
           innerTree.removeFromARG();
 
+          assert pathStateToReachedState.containsKey(innerTree) : "root of subgraph was not finished";
+          pathStateToReachedState.remove(innerTree); // not needed any more
+
           // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
           // is inserted between newCurrentState and child.
+
+          assert pathStateToReachedState.containsKey(newChild) : "end of subgraph was not handled";
+          assert pathStateToReachedState.get(newCurrentState) == currentState : "callstate must be from outer reachedset";
 
         } else {
           // child is a normal successor

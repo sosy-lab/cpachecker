@@ -58,4 +58,7 @@ public interface OptEnvironment extends AutoCloseable {
     UNDEF, // The result is unknown.
     UNBOUNDED // The optimization problem is unbounded.
   }
+
+  @Override
+  void close();
 }

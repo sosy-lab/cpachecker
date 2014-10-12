@@ -47,8 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -64,7 +63,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
   private final CLangSMG heap;
   private final LogManager logger;
-  private SMGState predecessor;
+  private int predecessorId;
   private final int id;
 
   private static SMGRuntimeCheck runtimeCheckLevel = SMGRuntimeCheck.NONE;
@@ -115,7 +114,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
-    predecessor = null;
+    predecessorId = id_counter.getAndIncrement();
     id = id_counter.getAndIncrement();
   }
 
@@ -131,7 +130,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
-    predecessor = pOriginalState.predecessor;
+    predecessorId = pOriginalState.getId();
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
   }
@@ -147,17 +146,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   static final public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
-  }
-
-  /**
-   * Constant.
-   *
-   * @param pSMGState A state to set as a predecessor.
-   * @throws SMGInconsistentException
-   */
-  final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
-    predecessor = pSMGState;
-    performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   /**
@@ -233,8 +221,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * .
    * @return The predecessor state, i.e. one from which this one was copied
    */
-  final public SMGState getPredecessor() {
-    return predecessor;
+  final public int getPredecessorId() {
+    return predecessorId;
   }
 
   /**
@@ -308,8 +296,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public String toString() {
-    if ( getPredecessor() != null) {
-      return "SMGState [" + getId() + "] <-- parent [" + getPredecessor().getId() + "]\n" + heap.toString();
+    if (getPredecessorId() != 0) {
+      return "SMGState [" + getId() + "] <-- parent [" + getPredecessorId() + "]\n" + heap.toString();
     } else {
       return "SMGState [" + getId() + "] <-- no parent, initial state\n" + heap.toString();
     }
@@ -499,30 +487,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         } else {
           heap.removeHasValueEdge(hv);
         }
-
-
-        //TODO This method of shrinking did not work for my benchmarks, investigate
-        /*
-        if (hv.getValue() == heap.getNullValue()) {
-          if (hv.getOffset() < new_edge.getOffset()) {
-            int prefixNullSize = new_edge.getOffset() - hv.getOffset();
-            SMGEdgeHasValue prefixNull = new SMGEdgeHasValue(prefixNullSize, hv.getOffset(), pObject, heap.getNullValue());
-            heap.addHasValueEdge(prefixNull);
-          }
-
-          int hvEnd = hv.getOffset() + hv.getSizeInBytes(heap.getMachineModel());
-          int neEnd = new_edge.getOffset() + new_edge.getSizeInBytes(heap.getMachineModel());
-          if (hvEnd > neEnd) {
-            int postfixNullSize = hvEnd - neEnd;
-            SMGEdgeHasValue postfixNull = new SMGEdgeHasValue(postfixNullSize, neEnd, pObject, heap.getNullValue());
-            heap.addHasValueEdge(postfixNull);
-          }
-        }
-        */
       }
     }
 
-    // TODO Until I know where the error lies, I will keep my version of shrinking in.
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
 
     heap.addHasValueEdge(new_edge);
@@ -599,12 +566,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    SMGJoin join = new SMGJoin(reachedState.heap, heap);
-    if (join.isDefined() &&
-        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)) {
-      return true;
-    }
-    return false;
+    return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
   }
 
   @Override

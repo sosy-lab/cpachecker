@@ -1349,7 +1349,7 @@ public class SMGExpressionEvaluator {
         case BINARY_OR:
         case BINARY_XOR:
         case SHIFT_RIGHT:
-          isZero = lVal.equals(SMGKnownSymValue.ZERO) && lVal.equals(SMGKnownSymValue.ZERO);
+          isZero = lVal.equals(SMGKnownSymValue.ZERO) && rVal.equals(SMGKnownSymValue.ZERO);
           return (isZero) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
 
         case MINUS:

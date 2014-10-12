@@ -99,7 +99,7 @@ public class AutomatonGraphmlParser {
   private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
   @Option(description="Match the source code provided with the witness.")
-  private boolean matchSourcecodeData = true;
+  private boolean matchSourcecodeData = false;
 
   @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;

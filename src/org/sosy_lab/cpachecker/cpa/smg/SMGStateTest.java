@@ -113,22 +113,15 @@ public class SMGStateTest {
   @Test
   public void PredecessorsTest() throws SMGInconsistentException {
     SMGState original = new SMGState(logger, MachineModel.LINUX64);
-    SMGState second = new SMGState(logger, MachineModel.LINUX64);
-    Assert.assertNull(original.getPredecessor());
-    Assert.assertNull(second.getPredecessor());
+    SMGState second = new SMGState(original);
     Assert.assertNotEquals(original.getId(), second.getId());
 
     SMGState copy = new SMGState(original);
-    Assert.assertNull(copy.getPredecessor());
     Assert.assertNotEquals(copy.getId(), original.getId());
     Assert.assertNotEquals(copy.getId(), second.getId());
-    Assert.assertNotEquals(original.getId(), second.getId());
 
-    second.setPredecessor(original);
-    Assert.assertSame(second.getPredecessor(), original);
-    Assert.assertNotEquals(copy.getId(), original.getId());
-    Assert.assertNotEquals(copy.getId(), second.getId());
-    Assert.assertNotEquals(original.getId(), second.getId());
+    Assert.assertSame(second.getPredecessorId(), original.getId());
+    Assert.assertSame(copy.getPredecessorId(), original.getId());
   }
 
   @Test

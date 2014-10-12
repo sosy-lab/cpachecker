@@ -14,6 +14,14 @@ import com.google.common.collect.ImmutableMap;
  */
 public class STATORBenchmarksTest {
 
+  @Test public void checkInitialState() throws Exception {
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(),
+        "test/programs/stator/stateful.c"
+    );
+    Assert.assertEquals(true, results.isSafe());
+  }
+
   @Test public void checkLoopBounds() throws Exception {
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
         getProperties(),

@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -35,16 +33,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 
-/**
- * All our SSA-customization code should go there.
- */
+
 @Options(prefix="cpa.stator.policy")
 public class ValueDeterminationFormulaManager {
   private final PathFormulaManager pfmgr;
@@ -64,14 +62,11 @@ public class ValueDeterminationFormulaManager {
       description="Run (simplified) path focusing")
   private boolean pathFocusing = true;
 
-  @SuppressWarnings("unused")
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
       FormulaManagerView fmgr,
       Configuration config,
       LogManager logger,
-      ShutdownNotifier shutdownNotifier,
-      MachineModel machineModel,
       CFA cfa,
       FormulaManager rfmgr,
       LinearConstraintManager lcmgr
@@ -309,7 +304,7 @@ public class ValueDeterminationFormulaManager {
 
   /**
    *
-   * @param t Policy.
+   * @param policy Policy.
    * @param focusedOn Loop head we are performing value determination on.
    * Can not be thrown out.
    *
@@ -317,7 +312,7 @@ public class ValueDeterminationFormulaManager {
    * Usually should contain only one node?..
    */
   private Table<CFANode, LinearExpression, ? extends CFAEdge> fixpointFocusing(
-      Table<CFANode, LinearExpression, MultiEdge> t,
+      Table<CFANode, LinearExpression, MultiEdge> policy,
       final CFANode focusedOn
   ) {
     boolean changed = true; // For the initial iteration.
@@ -328,7 +323,7 @@ public class ValueDeterminationFormulaManager {
       Multimap<CFANode, CFANode> outgoing = HashMultimap.create();
 
       // Step 1: Fill in [incoming] and [outgoing] maps in O(N).
-      for (Table.Cell<CFANode, LinearExpression, MultiEdge> cell : t.cellSet()) {
+      for (Table.Cell<CFANode, LinearExpression, MultiEdge> cell : policy.cellSet()) {
         CFANode to = cell.getRowKey();
         CFANode from = cell.getValue().getPredecessor();
 
@@ -336,46 +331,67 @@ public class ValueDeterminationFormulaManager {
         incoming.put(to, from);
       }
 
-
       for (Entry<CFANode, Collection<CFANode>> e :  incoming.asMap().entrySet()) {
-        final CFANode node = e.getKey();
+        final CFANode mid = e.getKey();
 
         // We don't try to eliminate the node we are focusing on.
-        if (node == focusedOn) continue;
+        if (mid == focusedOn) continue;
 
         Collection<CFANode> incomingNodes = e.getValue();
-        Collection<CFANode> outgoingNodes = outgoing.get(node);
+        Collection<CFANode> outgoingNodes = outgoing.get(mid);
         assert (incomingNodes.size() != 0 && outgoingNodes.size() != 0);
 
-        // A node has only one incoming edge and only one
-        // outgoing edge.
+        // A mid-node has only one incoming edge and only one
+        // outgoing edge, and CAN be eliminated if all edges between <to>
+        // and <from> nodes are the same.
+        // We only need to update the policy on the to-node after the elimination.
         if (incomingNodes.size() == 1 && outgoingNodes.size() == 1) {
           CFANode from = incomingNodes.iterator().next();
           CFANode to = outgoingNodes.iterator().next();
 
-          Map<LinearExpression, MultiEdge> fromRow, medRow, toRow;
-          fromRow = t.row(from);
-          medRow = t.row(node);
-          toRow = t.row(to);
+          Map<LinearExpression, MultiEdge> midRow, toRow;
+          midRow = policy.row(mid);
+          toRow = policy.row(to);
 
-          // Sum of all templates.
-          ImmutableSet<LinearExpression> templates = ImmutableSet.<LinearExpression>builder()
-              .addAll(fromRow.keySet()).addAll(medRow.keySet()).build();
+          // Check that all edges to the mid- row are equal.
+          final MultiEdge fromToMid = midRow.values().iterator().next();
 
-          // Hacky, but other values should be redundant.
-          MultiEdge fromToMid = medRow.values().iterator().next();
-          MultiEdge midToTo = toRow.values().iterator().next();
+          boolean allMidEqual = Iterables.all(
+              midRow.values(),
+              new Predicate<MultiEdge>() {
+            public boolean apply(MultiEdge input) {
+              return input.equals(fromToMid);
+            }
+          });
+
+          // Can't handle disjunctions for now.
+          if (!allMidEqual) continue;
+
+          for (MultiEdge multiEdge : midRow.values()) {
+            Preconditions.checkState(multiEdge.equals(
+                midRow.values().iterator().next()));
+          }
+
+          final MultiEdge midToTo = toRow.values().iterator().next();
+          boolean allEqual = Iterables.all(toRow.values(), new Predicate<MultiEdge>() {
+            public boolean apply(MultiEdge input) {
+              return input.equals(midToTo);
+            }
+          });
+
+          // We can only change things if all edges are equal.
+          if (!allEqual) continue;
 
           final MultiEdge fromToTo = new MultiEdge(
               from, to, ImmutableList.<CFAEdge>builder()
               .addAll(fromToMid.getEdges()).addAll(midToTo.getEdges()).build());
 
           // Remove the med row.
-          t.rowMap().remove(node);
-          t.rowMap().remove(to);
+          policy.rowMap().remove(mid);
 
-          for (LinearExpression template : templates) {
-            t.put(to, template, fromToTo);
+          // Update to-map.
+          for (LinearExpression template : policy.row(to).keySet()) {
+            policy.put(to, template, fromToTo);
           }
 
           changed = true;
@@ -383,6 +399,24 @@ public class ValueDeterminationFormulaManager {
         }
       }
     }
-    return t;
+    return policy;
+  }
+
+  /**
+   * Useful for debugging.
+   */
+  @SuppressWarnings("unused")
+  private void pprintPolicyTable(Table<CFANode, LinearExpression, ? extends CFAEdge> t) {
+    Map<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> m = t.rowMap();
+    for (CFANode node : m.keySet()) {
+      Map<LinearExpression, ? extends CFAEdge> data = m.get(node);
+      logger.log(Level.FINE, node, ": \n");
+      for (Entry<LinearExpression, ? extends CFAEdge> entry : data.entrySet()) {
+        CFAEdge edge = entry.getValue();
+
+        logger.log(Level.FINE, "\t", entry.getKey(), edge.getCode(),
+            edge.getPredecessor(), "->", edge.getSuccessor());
+      }
+    }
   }
 }
