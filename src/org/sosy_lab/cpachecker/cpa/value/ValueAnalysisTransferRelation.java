@@ -101,7 +101,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -518,9 +520,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Value initialValue = Value.UnknownValue.getInstance();
+    Value initialValue = getDefaultInitialValue(decl);
 
-    // get initial value
+    // get initializing statement
     IAInitializer init = decl.getInitializer();
 
     // handle global variables
@@ -573,6 +575,43 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
+    final boolean defaultBooleanValue = false;
+    final long defaultNumericValue = 0;
+
+    if (pDeclaration.isGlobal()) {
+      Type declarationType = pDeclaration.getType();
+
+      if (isComplexJavaType(declarationType)) {
+        return NullValue.getInstance();
+
+      } else if (declarationType instanceof JSimpleType) {
+        JBasicType basicType = ((JSimpleType) declarationType).getType();
+
+        switch (basicType) {
+          case BOOLEAN:
+            return BooleanValue.valueOf(defaultBooleanValue);
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+          case LONG:
+          case FLOAT:
+          case DOUBLE:
+            return new NumericValue(defaultNumericValue);
+          case UNSPECIFIED:
+            return UnknownValue.getInstance();
+          default:
+            throw new AssertionError("Impossible type for declaration: " + basicType);
+        }
+      } else {
+        return UnknownValue.getInstance();
+      }
+    } else {
+      return UnknownValue.getInstance();
+    }
   }
 
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
