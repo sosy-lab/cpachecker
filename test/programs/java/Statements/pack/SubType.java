@@ -1,22 +1,19 @@
 package pack;
 
-public class SubType extends SuperType{
-
+public class SubType extends SuperType {
   int subField;
 
-  public SubType(int superParam , int subParam) {
+  public SubType(int superParam, int subParam) {
     super(superParam);
     int startSubConstructor;
     subField = subParam;
     int endSubConstructor;
   }
 
-
   /**
    * @param args
    */
   public static void main(String[] args) {
-    SuperType subType = new SubType(1 ,1);
+    SuperType subType = new SubType(1, 1);
   }
-
 }

@@ -34,7 +34,7 @@ public class NumberOperators_true_assert {
     a = -1;
     a = a >>> 1;
     assert a == 2147483647;
-    
+
     a = 1;
     a &= 3;
     assert a == 1;
@@ -46,5 +46,4 @@ public class NumberOperators_true_assert {
     a ^= 1;
     assert a == 2;
   }
-
 }

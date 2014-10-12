@@ -3,7 +3,7 @@ package pack;
 public class Declaration {
 
   static int staticFieldVariable = 1;
-    private Declaration fieldVariable = null;
+  private Declaration fieldVariable = null;
 
   public Declaration() {
     boolean localVariable = false;

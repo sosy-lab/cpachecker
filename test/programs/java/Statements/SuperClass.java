@@ -1,22 +1,19 @@
 
-
 public class SuperClass {
 
   public static void main(String[] args) {
+    boolean b = true;
+    SuperClass obj;
 
-  boolean b = true;
+    if (b) {
+      obj = new SuperClass();
+    } else {
+      obj = new SubClass();
+    }
 
-  SuperClass obj;
-
-  if (b) {
-    obj = new SuperClass();
-  } else {
-    obj = new SubClass();
-  }
-
-  int startMethodInvocation;
+    int startMethodInvocation;
     obj.method();
-  int endMethodInvocation;
+    int endMethodInvocation;
   }
 
   public void method() {
