@@ -1072,79 +1072,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     @Override
     public Value visit(JBinaryExpression binaryExpression) {
-
-      if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
-          || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
-          && (binaryExpression.getOperand1() instanceof JEnumConstantExpression
-              ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(
-            binaryExpression.getOperand1(),
-            binaryExpression.getOperand2(), binaryExpression.getOperator());
-      }
-
       return super.visit(binaryExpression);
-    }
-
-    private Value handleEnumComparison(JExpression operand1, JExpression operand2,
-        JBinaryExpression.BinaryOperator operator) {
-
-      String value1;
-      String value2;
-
-      if (operand1 instanceof JEnumConstantExpression) {
-        value1 = ((JEnumConstantExpression) operand1).getConstantName();
-      } else if (operand1 instanceof JIdExpression) {
-        String scopedVarName = handleIdExpression((JIdExpression) operand1);
-
-        if (jortState.contains(scopedVarName)) {
-          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
-
-          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
-            value1 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
-          } else {
-            return UnknownValue.getInstance();
-          }
-        } else {
-          return UnknownValue.getInstance();
-        }
-      } else {
-        return UnknownValue.getInstance();
-      }
-
-
-      if (operand2 instanceof JEnumConstantExpression) {
-        value2 = ((JEnumConstantExpression) operand2).getConstantName();
-      } else if (operand1 instanceof JIdExpression) {
-        String scopedVarName = handleIdExpression((JIdExpression) operand2);
-
-        if (jortState.contains(scopedVarName)) {
-          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
-
-          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
-            value2 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
-          } else {
-            return UnknownValue.getInstance();
-          }
-        } else {
-          return UnknownValue.getInstance();
-        }
-      } else {
-        return UnknownValue.getInstance();
-      }
-
-      boolean result = value1.equals(value2);
-
-      switch (operator) {
-      case EQUALS:
-        break;
-      case NOT_EQUALS:
-        result = !result;
-        break;
-      default:
-        throw new AssertionError("Unexected enum comparison with " + operator);
-      }
-
-      return  result ? new NumericValue(1L) : new NumericValue(0L);
     }
 
     private String handleIdExpression(JIdExpression expr) {
