@@ -753,21 +753,11 @@ public abstract class AbstractExpressionValueVisitor
       assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
         || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
 
-      if (binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)) {
-        if (lValue.equals(rValue)) {
-          return BooleanValue.valueOf(true);
+      // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
+      // otherwise. This is equivalent to an XNOR.
+      return BooleanValue.valueOf(!(binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
+          ^ lValue.equals(rValue)));
 
-        } else {
-          return BooleanValue.valueOf(false);
-        }
-
-      // binary operator has to be NOT_EQUALS since no other operators are allowed for enums
-      } else if (lValue.equals(rValue)) {
-          return BooleanValue.valueOf(false);
-
-      } else {
-          return BooleanValue.valueOf(true);
-      }
     } else if (lValue instanceof BooleanValue) {
       assert rValue instanceof BooleanValue;
 
