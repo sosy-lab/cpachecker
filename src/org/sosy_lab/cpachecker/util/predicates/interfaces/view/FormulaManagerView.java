@@ -131,11 +131,12 @@ public class FormulaManagerView {
   private final LogManager logger;
 
   private final FormulaManager manager;
+  private final LoadManagers loadManagers;
 
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
-  private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
+  private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
@@ -156,8 +157,9 @@ public class FormulaManagerView {
   @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
-  protected FormulaManagerView(LoadManagers loadManagers, FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  protected FormulaManagerView(LoadManagers pLoadManagers, FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
+    loadManagers = pLoadManagers;
     if (encodeBitvectorAs != Theory.BITVECTOR) {
       manager = new ReplacingFormulaManager(pBaseManager, encodeBitvectorAs, ignoreExtractConcat);
     } else {
@@ -176,8 +178,6 @@ public class FormulaManagerView {
     }
     integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
     integerFormulaManager.couple(this);
-    rationalFormulaManager = loadManagers.wrapRationalManager(manager.getRationalFormulaManager());
-    rationalFormulaManager.couple(this);
     booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     booleanFormulaManager.couple(this);
     functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
@@ -221,7 +221,7 @@ public class FormulaManagerView {
     } else if (formulaType.isIntegerType()) {
       t = integerFormulaManager.makeVariable(name);
     } else if (formulaType.isRationalType()) {
-      t = rationalFormulaManager.makeVariable(name);
+      t = getRationalFormulaManager().makeVariable(name);
     } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType impl = (FormulaType.BitvectorType) formulaType;
       t = bitvectorFormulaManager.makeVariable(impl.getSize(), name);
@@ -244,7 +244,7 @@ public class FormulaManagerView {
     if (formulaType.isIntegerType()) {
       t = integerFormulaManager.makeNumber(value);
     } else if (formulaType.isRationalType()) {
-      t = rationalFormulaManager.makeNumber(value);
+      t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
@@ -266,7 +266,7 @@ public class FormulaManagerView {
     if (formulaType.isIntegerType()) {
       t = integerFormulaManager.makeNumber(value);
     } else if (formulaType.isRationalType()) {
-      t = rationalFormulaManager.makeNumber(value);
+      t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
@@ -288,7 +288,7 @@ public class FormulaManagerView {
     if (formulaType.isIntegerType()) {
       t = integerFormulaManager.makeNumber(value);
     } else if (formulaType.isRationalType()) {
-      t = rationalFormulaManager.makeNumber(value);
+      t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
@@ -304,7 +304,7 @@ public class FormulaManagerView {
     if (pNum instanceof IntegerFormula) {
       t = integerFormulaManager.negate((IntegerFormula)pNum);
     } else if (pNum instanceof RationalFormula) {
-      t = rationalFormulaManager.negate((RationalFormula)pNum);
+      t = getRationalFormulaManager().negate((RationalFormula)pNum);
     } else if (pNum instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.negate((BitvectorFormula)pNum);
     } else {
@@ -320,7 +320,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.add((IntegerFormula)pF1, (IntegerFormula)pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = rationalFormulaManager.add((NumeralFormula)pF1, (NumeralFormula)pF2);
+      t = getRationalFormulaManager().add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
     } else {
@@ -336,7 +336,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.subtract((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = rationalFormulaManager.subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
+      t = getRationalFormulaManager().subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2);
     } else {
@@ -351,7 +351,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.multiply((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = rationalFormulaManager.multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
+      t = getRationalFormulaManager().multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2);
     } else {
@@ -367,7 +367,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.divide((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = rationalFormulaManager.divide((NumeralFormula) pF1, (NumeralFormula) pF2);
+      t = getRationalFormulaManager().divide((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.divide((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
@@ -383,7 +383,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = rationalFormulaManager.modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
+      t = getRationalFormulaManager().modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
@@ -540,7 +540,7 @@ public class FormulaManagerView {
     } else if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.equal((IntegerFormula)pLhs, (IntegerFormula)pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
-      t = rationalFormulaManager.equal((NumeralFormula)pLhs, (NumeralFormula)pRhs);
+      t = getRationalFormulaManager().equal((NumeralFormula)pLhs, (NumeralFormula)pRhs);
     } else if (pLhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.equal((BitvectorFormula)pLhs, (BitvectorFormula)pRhs);
     } else {
@@ -555,7 +555,7 @@ public class FormulaManagerView {
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.lessOrEquals((IntegerFormula)pLhs, (IntegerFormula)pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
-      t = rationalFormulaManager.lessOrEquals((NumeralFormula)pLhs, (NumeralFormula)pRhs);
+      t = getRationalFormulaManager().lessOrEquals((NumeralFormula)pLhs, (NumeralFormula)pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.lessOrEquals((BitvectorFormula)pLhs, (BitvectorFormula)pRhs, signed);
     } else {
@@ -569,7 +569,7 @@ public class FormulaManagerView {
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.lessThan((IntegerFormula) pLhs, (IntegerFormula) pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
-      t = rationalFormulaManager.lessThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
+      t = getRationalFormulaManager().lessThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.lessThan((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
     } else {
@@ -584,7 +584,7 @@ public class FormulaManagerView {
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.greaterThan((IntegerFormula) pLhs, (IntegerFormula) pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
-      t = rationalFormulaManager.greaterThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
+      t = getRationalFormulaManager().greaterThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.greaterThan((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
     } else {
@@ -599,7 +599,7 @@ public class FormulaManagerView {
     if (pLhs instanceof IntegerFormula && pRhs instanceof IntegerFormula) {
       t = integerFormulaManager.greaterOrEquals((IntegerFormula) pLhs, (IntegerFormula) pRhs);
     } else if (pLhs instanceof NumeralFormula && pRhs instanceof NumeralFormula) {
-      t = rationalFormulaManager.greaterOrEquals((NumeralFormula) pLhs, (NumeralFormula) pRhs);
+      t = getRationalFormulaManager().greaterOrEquals((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.greaterOrEquals((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
     } else {
@@ -618,6 +618,11 @@ public class FormulaManagerView {
   }
 
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
+    // lazy initialisation, because not all SMT-solvers support Rationals and maybe we only want to use Integers.
+    if (rationalFormulaManager == null) {
+      rationalFormulaManager = checkNotNull(loadManagers.wrapRationalManager(manager.getRationalFormulaManager()));
+      rationalFormulaManager.couple(this);
+    }
     return rationalFormulaManager;
   }
 
@@ -647,7 +652,7 @@ public class FormulaManagerView {
       return (T) integerFormulaManager.wrapInView((IntegerFormula) formula);
     }
     if (formula instanceof RationalFormula) {
-      return (T) rationalFormulaManager.wrapInView((RationalFormula) formula);
+      return (T) getRationalFormulaManager().wrapInView((RationalFormula) formula);
     }
     if (formula instanceof BitvectorFormula) {
       return (T) bitvectorFormulaManager.wrapInView((BitvectorFormula) formula);
@@ -676,7 +681,7 @@ public class FormulaManagerView {
       return (T) integerFormulaManager.extractFromView((IntegerFormula) formula);
     }
     if (formula instanceof RationalFormula) {
-      return (T) rationalFormulaManager.extractFromView((RationalFormula) formula);
+      return (T) getRationalFormulaManager().extractFromView((RationalFormula) formula);
     }
     if (formula instanceof BitvectorFormula) {
       return (T) bitvectorFormulaManager.extractFromView((BitvectorFormula) formula);
