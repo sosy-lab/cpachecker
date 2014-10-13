@@ -68,6 +68,7 @@ JAVA_CHECK_SUBSTRING = '_assert'
 # use lower case! the dict contains assignments 'substring' --> 'partial statuses'
 SUBSTRINGS = {
               '_true-unreach-label':   (STR_TRUE, [PROP_REACH]),
+              '_true':   (STR_TRUE, [PROP_REACH]),
               '_true-unreach-call':    (STR_TRUE, [PROP_REACH]),
               '_true_assert':          (STR_TRUE, [PROP_REACH]),
               '_true-termination':     (STR_TRUE, [PROP_TERMINATION]),
@@ -76,6 +77,7 @@ SUBSTRINGS = {
               '_true-valid-memtrack':  (STR_TRUE, [PROP_MEMTRACK]),
               '_true-valid-memsafety': (STR_TRUE, [PROP_DEREF, PROP_FREE, PROP_MEMTRACK]),
 
+              '_false':  (STR_FALSE, [PROP_REACH]),
               '_false-unreach-label':  (STR_FALSE, [PROP_REACH]),
               '_false-unreach-call':   (STR_FALSE, [PROP_REACH]),
               '_false_assert':         (STR_FALSE, [PROP_REACH]),
