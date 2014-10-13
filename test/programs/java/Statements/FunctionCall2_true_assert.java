@@ -1,5 +1,5 @@
 
-public class FunctionCall2_false_assert {
+public class FunctionCall2_true_assert {
 
   private static int n1 = 1;
   private static int n2 = 1;
