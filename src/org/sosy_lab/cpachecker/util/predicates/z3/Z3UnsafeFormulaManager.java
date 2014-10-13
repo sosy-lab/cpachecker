@@ -39,7 +39,7 @@ import com.google.common.primitives.Longs;
 
 class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
 
-  private final Set<Long> uifs = new HashSet<>();
+  private final Set<Long> uifs = new HashSet<>(); // contains used declarations of UIFs
   private final long z3context;
 
   Z3UnsafeFormulaManager(
@@ -76,7 +76,7 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   public boolean isUF(Long t) {
-    return uifs.contains(t);
+    return is_app(z3context, t) && uifs.contains(get_app_decl(z3context, t));
   }
 
   @Override
@@ -108,7 +108,7 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
       long sort = get_sort(z3context, t);
       return getFormulaCreator().makeVariable(sort, pNewName);
 
-    } else if (uifs.contains(t)) {
+    } else if (isUF(t)) {
       int n = get_app_num_args(z3context, t);
       long[] args = new long[n];
       long[] sorts = new long[n];
@@ -134,13 +134,14 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
       return uif;
 
     } else {
-      throw new IllegalArgumentException("The Term " + t + " has no name!");
+      throw new IllegalArgumentException("Cannot replace name '" + pNewName
+              + "' in term '" + ast_to_string(z3context, t) + "'.");
     }
   }
 
   public long createUIFCallImpl(long pNewFunc, long[] args) {
     long ufc = mk_app(z3context, pNewFunc, args);
-    uifs.add(ufc);
+    uifs.add(pNewFunc);
     return ufc;
   }
 
