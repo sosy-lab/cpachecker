@@ -45,7 +45,7 @@
     <withoutfile>Casts_true_assert</withoutfile>
     <withoutfile>CompareObjectReferences_true_assert</withoutfile>
     <withoutfile>ConditionalExpression1_true_assert</withoutfile>
-    <withoutfile>FunctionCall2_false_assert</withoutfile>
+    <withoutfile>FunctionCall2_true_assert</withoutfile>
     <withoutfile>FunctionCall3_true_assert</withoutfile>
     <withoutfile>FunctionCall4_true_assert</withoutfile>
     <withoutfile>FunctionCall5_true_assert</withoutfile>

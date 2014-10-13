@@ -41,7 +41,7 @@ public class FunctionCall2_false_assert {
 
   public static void des() {
     if (n1 == n2) {
-      // entered on first and second call (n1 = 3, n2 = 1, n3 = 1 both times)
+      // not entered (n1 = 3, n2 = 1, n3 = 1 on both calls)
       assert (false);
 
     } else {
