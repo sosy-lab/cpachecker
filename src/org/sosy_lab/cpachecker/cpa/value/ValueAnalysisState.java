@@ -529,7 +529,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * This method resets the delta of this state.
    */
   void clearDelta() {
-    delta = null;
+    delta = new HashSet<>();
   }
 
   /**
