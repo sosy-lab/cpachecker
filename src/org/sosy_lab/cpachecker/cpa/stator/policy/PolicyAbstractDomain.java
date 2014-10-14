@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -38,7 +37,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 /**
@@ -47,12 +45,15 @@ import com.google.common.collect.Table;
 @Options(prefix="cpa.stator.policy")
 public final class PolicyAbstractDomain implements AbstractDomain {
 
-  @Option(
-      name="runAcceleratedValueDetermination",
+  @Option(name="pathFocusing",
+      description="Run (simplified) path focusing")
+  private boolean pathFocusing = true;
+
+  @Option(name="runAcceleratedValueDetermination",
       description="Maximize for the sum of the templates during value determination")
   private boolean runAcceleratedValueDetermination = true;
 
-  @Option(name="Compact value determination set",
+  @Option(name="useCompactedValueDetermination",
       description="Use only relevant nodes for value determination")
   private boolean useCompactedValueDetermination = true;
 
@@ -65,6 +66,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   private final ShutdownNotifier shutdownNotifier;
 
   private final PolicyIterationStatistics statistics;
+  private final PathFocusingManager pathFocusingManager;
 
   //
   public PolicyAbstractDomain(
@@ -85,6 +87,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     rfmgr = fmgr.getRationalFormulaManager();
     shutdownNotifier = pShutdownNotifier;
     statistics = pStatistics;
+    pathFocusingManager = new PathFocusingManager(pShutdownNotifier, statistics);
   }
 
 
@@ -156,7 +159,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     }
   }
 
-
   private PolicyAbstractState valueDetermination(
       final PolicyAbstractState prevState,
       final PolicyAbstractState newState,
@@ -171,11 +173,18 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    Table<CFANode, LinearExpression, CFAEdge> policy;
+    Table<CFANode, LinearExpression, ? extends CFAEdge> policy;
     policy = reachedToPolicy(precision, node, updated);
+
+    logger.log(Level.FINEST, "# Initial policy: ", policy);
     if (useCompactedValueDetermination) {
-      policy = findRelated(policy, node, updated);
+      policy = pathFocusingManager.findRelated(policy, node, updated);
     }
+    logger.log(Level.FINEST, "# Policy after value determination", policy);
+    if (pathFocusing) {
+      policy = pathFocusingManager.pathFocusing(policy, node);
+    }
+    logger.log(Level.FINEST, "# Policy after path focusing", policy);
 
     List<BooleanFormula> valueDeterminationConstraints =
         vdfmgr.valueDeterminationFormula(policy, node, updated.keySet());
@@ -190,9 +199,12 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       p = valueDeterminationMaximization(
           updated, node, valueDeterminationConstraints);
     }
-
     ImmutableMap<LinearExpression, PolicyTemplateBound> updatedValueDetermination = p.getFirst();
     Set<LinearExpression> unbounded = p.getSecond();
+
+    // TODO: also what happens if the edge reported in the output is the
+    // artificially created multi-edge? can we use that later on just fine?
+    // This will be required for the iteration through the multiple policies.
     PolicyAbstractState joinedState = prevState.withUpdates(
         updatedValueDetermination, unbounded, allTemplates);
 
@@ -311,49 +323,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     return Pair.of(builder.build(), unbounded);
   }
 
-  /**
-   * @return the subset of the policy related (over-approximation) to the given
-   * node and the set of updates.
-   */
-  private Table<CFANode, LinearExpression, CFAEdge> findRelated(
-      Table<CFANode, LinearExpression, CFAEdge> policy,
-      final CFANode valueDeterminationNode,
-      Map<LinearExpression, PolicyTemplateBound> updated) {
-    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
-    Set<CFANode> visited = Sets.newHashSet();
-    Queue<CFANode> queue = Lists.newLinkedList(Lists.newArrayList(valueDeterminationNode));
-
-    while (!queue.isEmpty()) {
-      CFANode node = queue.remove();
-      visited.add(node);
-
-      Map<LinearExpression, CFAEdge> row = policy.row(node);
-      for (Entry<LinearExpression, CFAEdge> entry : row.entrySet()) {
-        LinearExpression template = entry.getKey();
-
-        CFAEdge edge;
-
-        // For the value determination node only track the updated edges.
-        if (node == valueDeterminationNode) {
-          PolicyTemplateBound bound = updated.get(template);
-          if (bound == null) continue;
-          edge = bound.edge;
-        } else {
-          edge = entry.getValue();
-        }
-
-        // Put things related to the node.
-        out.put(node, template, edge);
-
-        CFANode toVisit = edge.getPredecessor();
-        if (!visited.contains(toVisit)) {
-          queue.add(toVisit);
-        }
-      }
-    }
-    return out;
-  }
-
   enum PARTIAL_ORDER {
     LESS,
     EQUAL,
@@ -454,7 +423,8 @@ public final class PolicyAbstractDomain implements AbstractDomain {
    */
   @SuppressWarnings("unused")
   private void logUnsatCore(List<BooleanFormula> constraints) throws InterruptedException {
-    ProverEnvironment env = formulaManagerFactory.newProverEnvironment(true, true);
+    ProverEnvironment env = formulaManagerFactory.newProverEnvironment(true,
+        true);
     for (BooleanFormula constraint : constraints) {
       env.push(constraint);
     }

@@ -136,7 +136,7 @@ public class PolicyTransferRelation  extends
         Collections.singletonList(edge));
 
     /** Propagating templates */
-    PolicyAbstractState.Templates toTemplates = templateManager.updatePrecisionForEdge(
+    PolicyAbstractState.Templates toTemplates = templateManager.updateTemplatesForEdge(
         prevState.getTemplates(), edge);
 
     /** Propagate the invariants */

@@ -22,12 +22,15 @@ public class TemplateManager {
       description="Generate templates for the upper bounds of each variable")
   private boolean generateUpperBound = true;
 
+  // Temporary variables created by CPA checker.
+  private static final String TMP_VARIABLE = "__CPAchecker_TMP";
+
   public TemplateManager(Configuration pConfig)
       throws InvalidConfigurationException{
     pConfig.inject(this, TemplateManager.class);
   }
 
-  public PolicyAbstractState.Templates updatePrecisionForEdge(
+  public PolicyAbstractState.Templates updateTemplatesForEdge(
       PolicyAbstractState.Templates prevTemplates, CFAEdge edge) {
 
     Set<LinearExpression> newTemplates = new HashSet<>();
@@ -36,20 +39,22 @@ public class TemplateManager {
 
       if ((declarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
         String varName = declarationEdge.getDeclaration().getQualifiedName();
-
-        // NOTE: Let's also check for liveness! [other property?
-        // CPA communication FTW!!].
-        // If the variable is no longer alive at a certain location
-        // there is no point in tracking it (deeper analysis -> dependencies).
-        if (generateUpperBound) {
-          newTemplates.add(LinearExpression.ofVariable(varName));
-        }
-        if (generateLowerBound) {
-          newTemplates.add(LinearExpression.ofVariable(varName).negate());
+        if (!varName.contains(TMP_VARIABLE)) {
+          // NOTE: Let's also check for liveness! [other property?
+          // CPA communication FTW!!].
+          // If the variable is no longer alive at a certain location
+          // there is no point in tracking it (deeper analysis -> dependencies).
+          if (generateUpperBound) {
+            newTemplates.add(LinearExpression.ofVariable(varName));
+          }
+          if (generateLowerBound) {
+            newTemplates.add(LinearExpression.ofVariable(varName).negate());
+          }
         }
       }
     }
     return prevTemplates.withTemplates(newTemplates);
-
   }
+
+
 }
