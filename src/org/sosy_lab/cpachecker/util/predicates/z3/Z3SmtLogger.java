@@ -203,6 +203,29 @@ class Z3SmtLogger {
     logBracket(itpQuery.toString());
   }
 
+  public void logSeqInterpolation(long[] interpolationFormulas) {
+    if (logfile == null) { return; }
+
+    StringBuilder itpQuery = new StringBuilder();
+    switch (settings.target) {
+    case Z3:
+      itpQuery.append("get-interpolants ");
+      for (long f : interpolationFormulas) {
+        itpQuery.append(ast_to_string(z3context, f));
+      }
+      break;
+
+    case MATHSAT5:
+      throw new AssertionError("not supported via SMT-input/output??");
+
+    default:
+      throw new AssertionError();
+    }
+
+    logCheck(); // TODO remove check?
+    logBracket(itpQuery.toString());
+  }
+
   public void logBracket(String s) {
     if (logfile == null) { return; }
     log("(" + s + ")\n", true);

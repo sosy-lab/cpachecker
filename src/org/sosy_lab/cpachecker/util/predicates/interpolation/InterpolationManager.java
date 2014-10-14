@@ -150,15 +150,18 @@ public final class InterpolationManager {
   }
 
   @Option(name="strategy",
-      description="strategy to get interpolant from the counter example." +
+      description="Strategy how to interact with the intepolating prover. " +
           "The analysis must support the strategy, otherwise the result will be useless!" +
-          "SEQUENCE: default case, simple sequential interpolation," +
-          "WELLSCOPED: use callstack-info to generate interpolants (see 'Abstractions from Proof')," +
-          "NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "NESTED2: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants'," +
-              "with modification: pathformulas for call and return are True).")
-  private InterpolationStrategy strategy = InterpolationStrategy.SEQUENCE;
-  private static enum InterpolationStrategy { SEQUENCE, WELLSCOPED, NESTED, NESTED2, NESTED3}
+          "\n- CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
+          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver has to generate nice interpolants. " +
+          "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
+          "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
+          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]." +
+          "\n- NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
+          "\n- NESTED2: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants'," +
+          "with modification: pathformulas for call and return are True).")
+  private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
+  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, SEQUENCE, NESTED, NESTED2, NESTED3};
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -547,29 +550,26 @@ public final class InterpolationManager {
 
     // The counterexample is spurious. Get the interpolants.
 
-    // how to partition the trace into partitions (A, B) depends on the strategy:
-    //   1. For sequential interpolants, A always starts at the
-    // beginning (start=0). Then we simply return each interpolant for i={0..n-1}
-    // for the partitions A=[0 .. i] and B=[i+1 .. n].
-    //   2. For well-scoped interpolants, A is the trace from the entry point
-    // of the current function to the current point, and B is everything else.
-    // To implement this, we keep track of which function we are currently in.
-    // Then we return each interpolant for i={0..n-1} for the partitions
-    // A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].
-    //   3. For nested interpolants, TODO add description
-
-    assert interpolants.isEmpty();
-
     switch (strategy) {
-      case SEQUENCE: {
+      case CPACHECKER_SEQ: {
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
-          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, 0, end_of_A, 0));
+          final int start_of_A = 0;
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, 0));
         }
         break;
       }
 
-      case WELLSCOPED: {
+      case INDUCTIVE_SEQ: {
+        // wrap into singleton to match interface-type
+        final List<Set<T>> itpGroups = new ArrayList<>();
+        for (T f : itpGroupsIds) {
+          itpGroups.add(Collections.singleton(f));
+        }
+        interpolants = interpolator.itpProver.getSeqInterpolants(itpGroups);
+      }
+
+      case CPACHECKER_WELLSCOPED: { // TODO not fully working and not used
         final Deque<Pair<Integer, CFANode>> callstack = new ArrayDeque<>();
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
@@ -627,6 +627,7 @@ public final class InterpolationManager {
         throw new AssertionError("should not happen");
     }
 
+    assert orderedFormulas.size() - 1 == interpolants.size() : "we should return N-1 interpolants for N formulas.";
     return interpolants;
   }
 

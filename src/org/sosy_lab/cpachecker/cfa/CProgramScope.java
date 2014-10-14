@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -157,9 +158,11 @@ public class CProgramScope implements Scope {
     }
   };
 
-  final String currentFile = "";
+  private final String currentFile = "";
 
-  private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
+  private final Set<String> variableNames;
+
+  private final Map<String, CSimpleDeclaration> uniqueSimpleDeclarations;
 
   private final Multimap<String, CFunctionDeclaration> functionDeclarations;
 
@@ -176,8 +179,9 @@ public class CProgramScope implements Scope {
    * Returns an empty program scope.
    */
   private CProgramScope() {
+    variableNames = Collections.emptySet();
     qualifiedDeclarations = Collections.emptyMap();
-    simpleDeclarations = ImmutableListMultimap.of();
+    uniqueSimpleDeclarations = Collections.emptyMap();
     functionDeclarations = ImmutableListMultimap.of();
     qualifiedTypes = Collections.emptyMap();
     qualifiedTypeDefs = Collections.emptyMap();
@@ -191,7 +195,8 @@ public class CProgramScope implements Scope {
    * @param pFunctionName the new function name.
    */
   private CProgramScope(CProgramScope pScope, String pFunctionName) {
-    simpleDeclarations = pScope.simpleDeclarations;
+    variableNames = pScope.variableNames;
+    uniqueSimpleDeclarations = pScope.uniqueSimpleDeclarations;
     functionDeclarations = pScope.functionDeclarations;
     qualifiedDeclarations = pScope.qualifiedDeclarations;
     qualifiedTypes = pScope.qualifiedTypes;
@@ -229,39 +234,13 @@ public class CProgramScope implements Scope {
 
     qualifiedTypeDefs = extractTypeDefs(typeDcls, pLogger);
 
-    simpleDeclarations = nonFunctionDcls.index(GET_NAME);
-
     functionDeclarations = functionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
 
+    variableNames = nonFunctionDcls.transform(GET_NAME).toSet();
+
     qualifiedDeclarations = extractQualifiedDeclarations(nonFunctionDcls, pLogger);
-  }
 
-  private boolean hasUniqueDeclarationForSimpleName(String simpleName) {
-
-    return simpleDeclarations.get(simpleName).size() == 1;
-  }
-
-  private CSimpleDeclaration getUniqueDeclarationForSimpleName(String simpleName) {
-    Collection<CSimpleDeclaration> dcls = simpleDeclarations.get(simpleName);
-
-    Preconditions.checkArgument(dcls.size() == 1, "Simple name not unique.");
-
-    return dcls.iterator().next();
-  }
-
-  @SuppressWarnings("unused")
-  private boolean contains(String qualifiedName) {
-    return qualifiedDeclarations.containsKey(qualifiedName);
-  }
-
-  @SuppressWarnings("unused")
-  private CSimpleDeclaration getDeclaration(String qualifiedName) {
-
-    if (!qualifiedDeclarations.containsKey(qualifiedName)) {
-      throw new AssertionError("Qualified name not in Scope.");
-    }
-
-    return qualifiedDeclarations.get(qualifiedName);
+    uniqueSimpleDeclarations = extractUniqueSimpleDeclarations(qualifiedDeclarations);
   }
 
   public static CProgramScope empty() {
@@ -275,7 +254,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean variableNameInUse(String pName, String pOrigName) {
-    return hasUniqueDeclarationForSimpleName(pName);
+    return variableNames.contains(pName);
   }
 
   @Override
@@ -294,11 +273,7 @@ public class CProgramScope implements Scope {
       return result;
     }
 
-    if (hasUniqueDeclarationForSimpleName(pName)) {
-      return getUniqueDeclarationForSimpleName(pName);
-    }
-
-    return null;
+    return uniqueSimpleDeclarations.get(pName);
   }
 
   @Override
@@ -567,6 +542,25 @@ public class CProgramScope implements Scope {
     }
 
     return Collections.unmodifiableMap(uniqueTypeDefs);
+  }
+
+  private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
+      Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
+    return Maps.transformEntries(Maps.filterEntries(from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(), new Predicate<Map.Entry<String, Collection<CSimpleDeclaration>>>() {
+
+      @Override
+      public boolean apply(Entry<String, Collection<CSimpleDeclaration>> pArg0) {
+        return pArg0.getValue().size() == 1;
+      }
+
+    }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
+
+      @Override
+      public CSimpleDeclaration transformEntry(String pArg0, Collection<CSimpleDeclaration> pArg1) {
+        return pArg1.iterator().next();
+      }
+
+    });
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {

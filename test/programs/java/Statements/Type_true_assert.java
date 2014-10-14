@@ -27,7 +27,7 @@ public class Type_true_assert {
         y = 4;
     }
 
-    for (int i = 1; i < y; i++) { // 4 or 6 iterations
+    for (int i = 1; i < y; i++) { // 1, 3 or 5 iterations
       if (i > y / 2) {
         type.increment();
       }
@@ -39,6 +39,6 @@ public class Type_true_assert {
       assert i < y; // always true
     }
 
-    assert y / 2 == type.getField(); // type.getField() currently of value unknown, so possible
+    assert y / 2 == type.getField(); // always true with above loop
   }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -80,5 +81,19 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
       itp = msat_make_copy_from(mgr.getEnvironment(), itp, curEnv);
     }
     return mgr.encapsulateBooleanFormula(itp);
+  }
+
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<Integer>> partitionedFormulas) {
+    // TODO is fallback to loop sound?
+
+    //final List<BooleanFormula> itps = new ArrayList<>();
+    //for (int i = 0; i < partitionedFormulas.size(); i++) {
+    //  itps.add(getInterpolant(Lists.newArrayList(Iterables.concat(partitionedFormulas.subList(0, i)))));
+    //}
+    //return itps;
+
+    throw new UnsupportedOperationException("directly receiving an inductive sequence of interpolants is not supported." +
+            "Use another solver or another strategy for interpolants.");
   }
 }

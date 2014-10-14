@@ -94,6 +94,19 @@ public class PrincessInterpolatingProver extends PrincessAbstractProver implemen
   }
 
   @Override
+  public List<BooleanFormula> getSeqInterpolants(final List<Set<Integer>> pTermNamesOfA) {
+
+    // get interpolant of groups
+    final List<IFormula> itps = stack.getInterpolants(pTermNamesOfA);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (final IFormula itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
+  @Override
   public Model getModel() {
     assert assertedFormulas.size() == annotatedTerms.size();
     final List<IExpression> values = Lists.<IExpression>newArrayList(annotatedTerms.values());

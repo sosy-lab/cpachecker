@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -99,13 +97,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -129,7 +128,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -528,9 +526,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Value initialValue = Value.UnknownValue.getInstance();
+    Value initialValue = getDefaultInitialValue(decl);
 
-    // get initial value
+    // get initializing statement
     IAInitializer init = decl.getInitializer();
 
     // handle global variables
@@ -583,6 +581,43 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return newElement;
+  }
+
+  private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
+    final boolean defaultBooleanValue = false;
+    final long defaultNumericValue = 0;
+
+    if (pDeclaration.isGlobal()) {
+      Type declarationType = pDeclaration.getType();
+
+      if (isComplexJavaType(declarationType)) {
+        return NullValue.getInstance();
+
+      } else if (declarationType instanceof JSimpleType) {
+        JBasicType basicType = ((JSimpleType) declarationType).getType();
+
+        switch (basicType) {
+          case BOOLEAN:
+            return BooleanValue.valueOf(defaultBooleanValue);
+          case BYTE:
+          case CHAR:
+          case SHORT:
+          case INT:
+          case LONG:
+          case FLOAT:
+          case DOUBLE:
+            return new NumericValue(defaultNumericValue);
+          case UNSPECIFIED:
+            return UnknownValue.getInstance();
+          default:
+            throw new AssertionError("Impossible type for declaration: " + basicType);
+        }
+      } else {
+        return UnknownValue.getInstance();
+      }
+    } else {
+      return UnknownValue.getInstance();
+    }
   }
 
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
@@ -657,7 +692,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
         String varName = ((AIdExpression) op1).getName();
-
         MemoryLocation memloc;
 
         if (isGlobal(op1)) {
@@ -1044,79 +1078,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     @Override
     public Value visit(JBinaryExpression binaryExpression) {
-
-      if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
-          || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
-          && (binaryExpression.getOperand1() instanceof JEnumConstantExpression
-              ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(
-            binaryExpression.getOperand1(),
-            binaryExpression.getOperand2(), binaryExpression.getOperator());
-      }
-
       return super.visit(binaryExpression);
-    }
-
-    private Value handleEnumComparison(JExpression operand1, JExpression operand2,
-        JBinaryExpression.BinaryOperator operator) {
-
-      String value1;
-      String value2;
-
-      if (operand1 instanceof JEnumConstantExpression) {
-        value1 = ((JEnumConstantExpression) operand1).getConstantName();
-      } else if (operand1 instanceof JIdExpression) {
-        String scopedVarName = handleIdExpression((JIdExpression) operand1);
-
-        if (jortState.contains(scopedVarName)) {
-          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
-
-          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
-            value1 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
-          } else {
-            return UnknownValue.getInstance();
-          }
-        } else {
-          return UnknownValue.getInstance();
-        }
-      } else {
-        return UnknownValue.getInstance();
-      }
-
-
-      if (operand2 instanceof JEnumConstantExpression) {
-        value2 = ((JEnumConstantExpression) operand2).getConstantName();
-      } else if (operand1 instanceof JIdExpression) {
-        String scopedVarName = handleIdExpression((JIdExpression) operand2);
-
-        if (jortState.contains(scopedVarName)) {
-          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
-
-          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
-            value2 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
-          } else {
-            return UnknownValue.getInstance();
-          }
-        } else {
-          return UnknownValue.getInstance();
-        }
-      } else {
-        return UnknownValue.getInstance();
-      }
-
-      boolean result = value1.equals(value2);
-
-      switch (operator) {
-      case EQUALS:
-        break;
-      case NOT_EQUALS:
-        result = !result;
-        break;
-      default:
-        throw new AssertionError("Unexected enum comparison with " + operator);
-      }
-
-      return  result ? new NumericValue(1L) : new NumericValue(0L);
     }
 
     private String handleIdExpression(JIdExpression expr) {
@@ -1564,7 +1526,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
      Value value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = Value.UnknownValue.getInstance(); // TODO handleMissingInformationRightJExpression(rttState);
+       value = handleMissingInformationRightJExpression(rttState);
      }
 
      if (!value.isUnknown()) {

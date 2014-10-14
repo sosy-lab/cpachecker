@@ -231,9 +231,9 @@ public class CFACreator {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("  Time for loading C parser:  " + parserInstantiationTime);
+      out.println("  Time for loading parser:    " + parserInstantiationTime);
       out.println("  Time for CFA construction:  " + totalTime);
-      out.println("    Time for parsing C file:  " + parsingTime);
+      out.println("    Time for parsing file(s): " + parsingTime);
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);

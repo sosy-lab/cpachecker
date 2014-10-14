@@ -94,6 +94,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public Formula getArg(Formula pF, int pN) {
+    assert 0 <= pN && pN < getArity(pF) : String.format("index %d out of bounds %d", pN, getArity(pF));
     TFormulaInfo t = getTerm(pF);
     TFormulaInfo arg = getArg(t, pN);
     return typeFormula(getFormulaCreator().getFormulaType(arg), arg);
@@ -147,6 +148,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public <T extends Formula> T replaceArgs(T pF, List<Formula> pArgs) {
+    assert pArgs.size() == getArity(pF) : "number of args must match arity.";
     return encapsulateWithTypeOf(pF, replaceArgs(getTerm(pF), Lists.transform(pArgs, getTermFunction)));
   }
 

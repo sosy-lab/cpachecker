@@ -97,7 +97,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -153,7 +153,7 @@ public class CtoFormulaConverter {
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> nfmgr;
+  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> nfmgr;
   private final BitvectorFormulaManagerView efmgr;
   protected final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
@@ -183,7 +183,7 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.nfmgr = fmgr.getRationalFormulaManager();
+    this.nfmgr = fmgr.getIntegerFormulaManager(); // NumeralMgr is only used for String-Literals, so Int or Real does not matter, however Princess only supports Int.
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
@@ -192,7 +192,7 @@ public class CtoFormulaConverter {
     this.direction = pDirection;
 
     stringUfDecl = ffmgr.declareUninterpretedFunction(
-            "__string__", typeHandler.getPointerType(), FormulaType.RationalType);
+            "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {

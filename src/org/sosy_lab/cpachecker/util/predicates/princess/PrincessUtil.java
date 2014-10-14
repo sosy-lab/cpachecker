@@ -154,25 +154,11 @@ class PrincessUtil {
   }
 
   public static int getArity(IExpression t) {
-    if (t instanceof IIntFormula) {
-      return 2;
-    }
-    if (t instanceof ITimes) {
-      return 2;
-    }
     return t.length();
   }
 
   public static IExpression getArg(IExpression t, int i) {
     assert i < getArity(t) : String.format("index %d out of bounds %d in expression %s", i, getArity(t), t);
-
-    if (t instanceof IIntFormula && i == 1) {
-      return new IIntLit(IdealInt.apply(0));
-    }
-
-    if (t instanceof ITimes && i == 1) {
-      return new IIntLit(((ITimes) t).coeff());
-    }
 
     return t.apply(i);
     /*

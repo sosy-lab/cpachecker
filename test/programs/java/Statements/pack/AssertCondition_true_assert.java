@@ -7,7 +7,7 @@ public class AssertCondition_true_assert {
     int startAssert;
 
     assert condition;
-    
+
     int endAssert;
   }
 }
