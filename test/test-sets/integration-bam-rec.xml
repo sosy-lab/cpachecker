@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="300" hardtimelimit="330" memlimit="3500" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">3500M</option>
+
+  <propertyfile>../programs/simple/recursive/ALL.prp</propertyfile>
+  
+    <sourcefiles name="simple">
+      <include>../programs/simple/recursive/*.c</include>
+    </sourcefiles>
+    
+    <sourcefiles name="sv">
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    </sourcefiles>
+    
+    
+  <rundefinition name="exbamrec">
+    <option name="-explicitAnalysis-bam"/>
+  </rundefinition>
+  
+  <rundefinition name="predbam-lbe3">
+    <option name="-predicateAnalysis-bam-nested-LBE"/>
+  </rundefinition>
+  
+  <rundefinition name="predbam-sbe3">
+    <option name="-predicateAnalysis-bam-nested-SBE"/>
+  </rundefinition>
+  
+</benchmark>
