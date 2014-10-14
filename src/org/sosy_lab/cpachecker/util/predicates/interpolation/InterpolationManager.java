@@ -148,12 +148,16 @@ public final class InterpolationManager {
     ;
   }
 
-  @Option(name="addWellScopedPredicates",
-      description="refinement will try to build 'well-scoped' predicates, "
-        + "by cutting spurious traces as explained in Section 5.2 of the paper "
-        + "'Abstractions From Proofs'\n(this does not work with function inlining).\n"
-        + "THIS FEATURE IS CURRENTLY NOT AVAILABLE. ")
-  private boolean wellScopedPredicates = false;
+  @Option(description="Strategy how to interact woith the intepolating prover. " +
+          "If a strategy starts with 'CPACHECKER_', we use our own implementation and do not use the solver's method. " +
+          "In our own implementation the properties of interpolants are guaranteed for special cases only." +
+          "\n- CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
+          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver has to generate nice interpolants. " +
+          "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
+          "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
+          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].")
+  private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
+  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED};
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -538,40 +542,42 @@ public final class InterpolationManager {
 
     assert itpGroupsIds.size() == orderedFormulas.size();
 
-    List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
-
     // The counterexample is spurious. Get the interpolants.
 
-    // how to partition the trace into partitions (A, B) depends on whether
-    // we want well-scoped interpolants or not:
-    //   1. For well-scoped interpolants, A is the trace from the entry point
-    // of the current function to the current point, and B is everything else.
-    // To implement this, we keep track of which function we are currently in.
-    // Then we return each interpolant for i={0..n-1} for the partitions
-    // A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].
-    //   2. If we do not want well-scoped interpolants, A always starts at the
-    // beginning (start=0). Then we simply return each interpolant for i={0..n-1}
-    // for the partitions A=[0 .. i] and B=[i+1 .. n].
-
-    assert interpolants.isEmpty();
-
-    Deque<Pair<Integer, CFANode>> callstack = wellScopedPredicates ? new ArrayDeque<Pair<Integer, CFANode>>() : null;
-
-    for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
-      // last iteration is left out because B would be empty
-
-      final int start_of_A;
-      if (wellScopedPredicates) {
-        start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
-      } else {
-        start_of_A = 0; // if not well-scoped interpolation: we always start at 0.
+    switch (strategy) {
+      case CPACHECKER_SEQ: {
+        final List<BooleanFormula> interpolants = new ArrayList<>();
+        for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
+          // last iteration is left out because B would be empty
+          final int start_of_A = 0;
+          interpolants.add(getInterpolantFromSublist(pItpProver, itpGroupsIds, start_of_A, end_of_A, 0));
+        }
+        return interpolants;
       }
 
-      final int depth = callstack == null ? 0 : callstack.size(); // just for logging
-      interpolants.add(getInterpolantFromSublist(pItpProver, itpGroupsIds, start_of_A, end_of_A, depth));
-    }
+      case INDUCTIVE_SEQ: {
+        // wrap into singleton to match interface-type
+        final List<Set<T>> itpGroups = new ArrayList<>();
+        for (T f : itpGroupsIds) {
+          itpGroups.add(Collections.singleton(f));
+        }
+        return pItpProver.getSeqInterpolants(itpGroups);
+      }
 
-    return interpolants;
+      case CPACHECKER_WELLSCOPED: { // TODO not fully working and not used
+        final List<BooleanFormula> interpolants = new ArrayList<>();
+        final Deque<Pair<Integer, CFANode>> callstack = new ArrayDeque<>();
+        for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
+          // last iteration is left out because B would be empty
+          final int start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
+          interpolants.add(getInterpolantFromSublist(pItpProver, itpGroupsIds, start_of_A, end_of_A, callstack.size()));
+        }
+        return interpolants;
+      }
+
+      default:
+        throw new AssertionError("unknown intepolation strategy");
+    }
   }
 
   private int getWellScopedStartOfA(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,

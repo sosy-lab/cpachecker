@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -62,10 +63,29 @@ public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
   /**
    * Get an interpolant for two groups of formulas.
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>true</code>.
+   *
+   * There is no direct guarantee, that the interpolants returned are part of an 'inductive sequence',
+   * however this seems to work for most (all?) solvers as long as the same proof is used,
+   * i.e. all interpolants are computed after the same SAT-check.
+   *
    * @param formulasOfA A list of values returned by {@link #push(BooleanFormula)}. All the corresponding formulas from group A, the remaining formulas form group B.
    * @return An interpolant for A and B
    */
   BooleanFormula getInterpolant(List<T> formulasOfA);
+
+  /**
+   * This method returns interpolants of an 'inductive sequence'.
+   * This property must be supported by the interpolation-strategy of the underlying SMT-solver!
+   * Depending on the underlying SMT-solver this method might be faster than N direct calls to getInterpolant().
+   *
+   * The stack must contain exactly the partitioned formulas, but any order is allowed.
+   * For an input of N partitions we return N-1 interpolants.
+   *
+   * @return a 'inductive sequence' of interpolants,
+   *         such that the implication   AND(I_i, P_i) => I_(i+1)   is satisfied for all i,
+   *         where P_i is the conjunction of all formulas in partition i.
+   */
+  List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas);
 
   /**
    * Get a satisfying assignment.
