@@ -137,7 +137,7 @@ public abstract class RefinementStrategy {
     // Skip the last element of the path, itp is always false there
     abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
     assert pInterpolants.size() ==  abstractionStatesTrace.size();
-System.out.println(pInterpolants);
+
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
     boolean previousItpWasTrue = true;

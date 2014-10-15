@@ -246,7 +246,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         if(prefixes.get(0).size() != allStatesTrace.size()) {
           ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
           MutableARGPath mutable = classifier.obtainPrefix(prefixPreference, allStatesTrace.mutableCopy(), prefixes);
-System.out.println(mutable);
+
           allStatesTrace = mutable.immutableCopy();
         }
 
@@ -303,10 +303,7 @@ System.out.println(mutable);
       other.computeOtherCex(allStatesTrace);
 
       if(original.counterexample.isSpurious() && other.counterexample.isSpurious()) {
-        //System.out.println("Match! Use other error path");
         actual = other;
-      } else {
-        System.out.println("Mismatch! revert to original error path");
       }
     }
 
