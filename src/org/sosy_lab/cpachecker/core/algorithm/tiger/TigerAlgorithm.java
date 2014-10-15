@@ -213,6 +213,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private int statistics_numberOfTestGoals;
   private int statistics_numberOfProcessedTestGoals = 0;
+  private int statistics_numberOfMCCalls = 0;
 
   private Prediction[] lGoalPrediction;
 
@@ -808,6 +809,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     boolean analysisWasSound = false;
     boolean hasTimedOut = false;
 
+    statistics_numberOfMCCalls++;
+
     // start CPAchecker to find a path to the test goal
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
@@ -1204,6 +1207,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
     //pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
     pOut.println("Number of timedout test goals:                     " + numberOfTimedoutTestGoals);
+    pOut.println("Number of MC calls:                                " + statistics_numberOfMCCalls);
 
     if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
       pOut.println("Timeout occured during processing of a test goal!");
