@@ -674,7 +674,18 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
 
     // TODO experiment
-    if (cpa instanceof CompositeCPA) {
+    if (cpa instanceof ARGCPA) {
+      ARGCPA argcpa = (ARGCPA)cpa;
+      CompositeCPA compositeCPA = argcpa.retrieveWrappedCpa(CompositeCPA.class);
+
+      if (compositeCPA != null) {
+        lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
+      }
+      else {
+        throw new RuntimeException("Unsupported subcpa!");
+      }
+    }
+    else if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA)cpa;
       lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
     }
