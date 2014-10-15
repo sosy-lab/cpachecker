@@ -82,7 +82,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
         statistics
     );
 
-    mergeOperator = new PolicyMergeOperator(abstractDomain);
+    mergeOperator = new PolicyMergeOperator(abstractDomain, statistics);
     stopOperator = new StopSepOperator(abstractDomain);
     precisionAdjustment = new PolicyPrecisionAdjustment();
     transferRelation = new PolicyTransferRelation(

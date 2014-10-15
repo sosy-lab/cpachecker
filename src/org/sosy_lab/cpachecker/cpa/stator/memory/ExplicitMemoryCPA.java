@@ -41,9 +41,10 @@ public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis{
 
     Preconditions.checkState(cfa.getLanguage().equals(Language.C));
 
+    ExplicitMemoryStatistics statistics = new ExplicitMemoryStatistics();
     abstractDomain = DelegateAbstractDomain.<AliasState> getInstance();
     transferRelation = new ExplicitMemoryTransferRelation(
-        cfa.getMachineModel(), logger);
+        cfa.getMachineModel(), logger, statistics);
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();

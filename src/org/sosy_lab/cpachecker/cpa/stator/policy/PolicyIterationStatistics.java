@@ -18,6 +18,7 @@ public class PolicyIterationStatistics implements Statistics {
   Timer valueDeterminationTimer = new Timer();
   Timer policyPropagationTimer = new Timer();
   Timer valueDeterminationSolverTimer = new Timer();
+  Timer timeInMerge = new Timer();
 
   int valueDetCalls = 0;
 
@@ -41,6 +42,9 @@ public class PolicyIterationStatistics implements Statistics {
         valueDeterminationSolverTimer,
         valueDeterminationSolverTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
     out.printf("Number of calls to the value determination solver: %s\n", valueDetCalls);
+    out.printf("Time spent in merge-step: %s (Max: %s)\n",
+        timeInMerge,
+        timeInMerge.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 
   @Nullable

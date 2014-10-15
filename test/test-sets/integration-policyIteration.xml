@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="500" cpuCores="1">
 
   <option name="-noout"/>
   <option name="-stator"/>
@@ -13,7 +13,9 @@
 </rundefinition>
 
 <columns>
-    <column title="total">time for policy iteration</column>
-    <column title="reached">reached set</column>
+    <column title="total">Time spent in policy propagation</column>
+    <column title="total">Time spent in value determination solver</column>
+    <column title="total">Number of calls to the value determination solver</column>
+    <column title="total">Time for merge operator</column>
 </columns>
 </benchmark>
