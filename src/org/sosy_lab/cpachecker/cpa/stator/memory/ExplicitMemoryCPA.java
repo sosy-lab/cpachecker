@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.memory;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -18,13 +20,14 @@ import com.google.common.base.Preconditions;
  * Explicitly calculates the set each memory block can point to.
  */
 @Options(prefix="cpa.memory_explicit")
-public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis{
+public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   private final AbstractDomain abstractDomain;
   private final ExplicitMemoryTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final ExplicitMemoryStatistics statistics;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ExplicitMemoryCPA.class);
@@ -41,7 +44,7 @@ public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis{
 
     Preconditions.checkState(cfa.getLanguage().equals(Language.C));
 
-    ExplicitMemoryStatistics statistics = new ExplicitMemoryStatistics();
+    statistics = new ExplicitMemoryStatistics();
     abstractDomain = DelegateAbstractDomain.<AliasState> getInstance();
     transferRelation = new ExplicitMemoryTransferRelation(
         cfa.getMachineModel(), logger, statistics);
@@ -83,5 +86,10 @@ public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis{
   @Override
   public Precision getInitialPrecision(CFANode node) {
     return SingletonPrecision.getInstance();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(statistics);
   }
 }
