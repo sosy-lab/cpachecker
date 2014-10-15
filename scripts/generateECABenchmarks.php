@@ -1,9 +1,12 @@
 <?php
 
-for($i = 1; $i < 2; $i++) {
+for($i = 10; $i < 13; $i++) {
+    if($i == 14 || $i == 15 || $i == 16) {
+      continue;
+    }
     $template = file_get_contents('/localhome/loewe/workspace/programming/Java/benchmarks/ECA2014/templates/Problem'.$i.'.c');
     
-    for($j = 0; $j < 30; $j++) {
+    for($j = 0; $j < 100; $j++) {
         $benchmark = str_replace('error_'.$j.': assert(!error_'.$j.');', '__VERIFIER_error();', $template);
         
         $fileName = '/localhome/loewe/workspace/programming/Java/benchmarks/ECA2014/Problem'.str_pad($i, 2, '0', STR_PAD_LEFT).'_'.str_pad($j, 2, '0', STR_PAD_LEFT).'.c';

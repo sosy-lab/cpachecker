@@ -1569,7 +1569,7 @@ cpa.value.refiner.performInitialStaticRefinement = false
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = BEST
-  enum:     [DEFAULT, SHORTEST, LONGEST, MOST_LOCAL, MEDIAN, MIDDLE, BEST, BEST_ORIG,
+  enum:     [DEFAULT, SHORTEST, LONGEST, MOST_LOCAL, MEDIAN, MIDDLE, BEST, BEST_RERS14,
              WORST]
 
 # which stop operator to use for ValueAnalysisCPA
