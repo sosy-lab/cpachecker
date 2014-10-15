@@ -13,10 +13,11 @@
 </rundefinition>
 
 <columns>
-    <column title="total">time for CPAchecker</column>
+    <column title="total">Total time for CPA algorithm</column>
     <column title="policy propagation time">Time spent in policy propagation</column>
     <column title="value determination time">Time spent in value determination solver</column>
     <column title="value determination solver calls">Number of calls to the value determination solver</column>
-    <column title="Merge time">Time for merge operator</column>
+    <column title="merge time">Time for merge operator</column>
+    <column title="memory time">Time spent in memory analysis</column>
 </columns>
 </benchmark>
