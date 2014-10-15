@@ -7,7 +7,7 @@
 
   <rundefinition>
     <!-- Integer Tests -->
-    <sourcefiles name="IntegrationPolicyIteration">
+    <sourcefiles>
         <include>../programs/stator/*.c</include>
     </sourcefiles>
 </rundefinition>
