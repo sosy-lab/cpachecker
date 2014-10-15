@@ -217,4 +217,6 @@
 /war/WEB-INF/configurations
 /war/WEB-INF/specifications
 
-.idea
+.idea/workspace.xml
+.idea/uiDesigner.xml
+.idea/dictionaries
