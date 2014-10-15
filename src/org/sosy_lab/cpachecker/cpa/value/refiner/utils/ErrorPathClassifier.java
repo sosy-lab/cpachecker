@@ -331,17 +331,24 @@ public class ErrorPathClassifier {
       }
     }
 
-    for(int i = errorPath.size(); i < originalErrorPath.size() - 3; i++) {
+    for(int i = errorPath.size(); i < originalErrorPath.size() - 2; i++) {
       Pair<ARGState, CFAEdge> element = originalErrorPath.get(i);
-      errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
-          FileLocation.DUMMY,
-          element.getSecond().getPredecessor(),
-          element.getSecond().getSuccessor(),
-          "replacement for boring edge")));
+
+      if(element.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge) {
+        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            "replacement for boring edge")));
+      }
+
+      else {
+        errorPath.add(element);
+      }
     }
 
     // append the suffix
-    Iterable<Pair<ARGState, CFAEdge>> remainingErrorPath = skip(originalErrorPath, originalErrorPath.size() - 3);
+    Iterable<Pair<ARGState, CFAEdge>> remainingErrorPath = skip(originalErrorPath, originalErrorPath.size() - 2);
     for(Pair<ARGState, CFAEdge> elememt : remainingErrorPath) {
       errorPath.add(elememt);
     }

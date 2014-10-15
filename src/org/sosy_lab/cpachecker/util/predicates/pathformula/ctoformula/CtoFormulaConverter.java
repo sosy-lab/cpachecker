@@ -680,6 +680,10 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
+    case CallToReturnEdge: {
+      return bfmgr.makeBoolean(true);
+    }
+
     case FunctionCallEdge: {
       return makeFunctionCall((CFunctionCallEdge)edge, function,
           ssa, pts, constraints, errorConditions);

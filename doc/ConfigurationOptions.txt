@@ -1177,7 +1177,6 @@ cpa.predicate.refinement.prefixPreference = DEFAULT
 
 # recompute
 cpa.predicate.refinement.recompute = true
-cpa.predicate.refinement.recompute = PathFormulae
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
