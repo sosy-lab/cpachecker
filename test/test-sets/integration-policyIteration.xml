@@ -13,9 +13,10 @@
 </rundefinition>
 
 <columns>
-    <column title="total">Time spent in policy propagation</column>
-    <column title="total">Time spent in value determination solver</column>
-    <column title="total">Number of calls to the value determination solver</column>
-    <column title="total">Time for merge operator</column>
+    <column title="total">time for CPAchecker</column>
+    <column title="policy propagation time">Time spent in policy propagation</column>
+    <column title="value determination time">Time spent in value determination solver</column>
+    <column title="value determination solver calls">Number of calls to the value determination solver</column>
+    <column title="Merge time">Time for merge operator</column>
 </columns>
 </benchmark>
