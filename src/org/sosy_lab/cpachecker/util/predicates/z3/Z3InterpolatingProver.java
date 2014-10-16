@@ -197,6 +197,14 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   }
 
   @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<Long>> partitionedFormulas, int[] startOfSubTree) {
+    // TODO support is possible, if C-wrapper is updated
+    // TODO other subtree-structure, convert subtree-indizes from 'startOfSubTree' to 'pointerToParent'
+    throw new UnsupportedOperationException("directly receiving of tree interpolants is not supported." +
+        "Use another solver or another strategy for interpolants.");
+  }
+
+  @Override
   public Model getModel() {
     return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }

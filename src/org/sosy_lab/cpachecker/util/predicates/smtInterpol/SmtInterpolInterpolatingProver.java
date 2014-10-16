@@ -132,6 +132,25 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     return result;
   }
 
+  @Override
+  public List<BooleanFormula> getTreeInterpolants(List<Set<String>> partitionedTermNames, int[] startOfSubTree) {
+    Preconditions.checkNotNull(env);
+
+    final Term[] formulas = new Term[partitionedTermNames.size()];
+    for (int i = 0; i < formulas.length; i++) {
+      formulas[i] = buildConjunctionOfNamedTerms(partitionedTermNames.get(i));
+    }
+
+    // get interpolants of groups
+    final Term[] itps = env.getTreeInterpolants(formulas, startOfSubTree);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (Term itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
   protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
