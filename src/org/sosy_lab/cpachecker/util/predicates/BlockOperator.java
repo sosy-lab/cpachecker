@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -90,12 +90,12 @@ public class BlockOperator {
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
-  int numBlkFunctionHeads = 0;
-  int numBlkFunctions = 0;
-  int numBlkLoops = 0;
-  int numBlkJoins = 0;
-  int numBlkBranch = 0;
-  int numBlkThreshold = 0;
+  public int numBlkFunctionHeads = 0;
+  public int numBlkFunctions = 0;
+  public int numBlkLoops = 0;
+  public int numBlkJoins = 0;
+  public int numBlkBranch = 0;
+  public int numBlkThreshold = 0;
 
   /**
    * Check whether an abstraction should be computed.
@@ -206,11 +206,11 @@ public class BlockOperator {
         || (succLoc.getEnteringSummaryEdge() != null); // function return edge
   }
 
-  void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
+  public void setExplicitAbstractionNodes(ImmutableSet<CFANode> pNodes) {
     this.explicitAbstractionNodes = pNodes;
   }
 
-  void setCFA(CFA cfa) {
+  public void setCFA(CFA cfa) {
     if (absOnLoop || alwaysAtLoops) {
       if (cfa.getAllLoopHeads().isPresent()) {
         loopHeads = cfa.getAllLoopHeads().get();

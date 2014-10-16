@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
@@ -116,7 +117,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(description="Dynamically synthesize additional precision elements during precision adjustment.")
   private boolean synthesizePrecisionOnAbstraction = false;
 
-  @Option(description="Direction of the analisis?")
+  @Option(description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
   protected final Configuration config;
