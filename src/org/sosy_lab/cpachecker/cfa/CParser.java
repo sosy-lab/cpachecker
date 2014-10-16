@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Abstraction of a C parser that creates CFAs from C code.
@@ -82,14 +81,14 @@ public interface CParser extends Parser {
   /**
    * Parse the content of files into a single CFA.
    *
-   * @param fileNames  The List of files to parse. The first part of the pair
+   * @param filenames  The List of files to parse. The first part of the pair
    *                   should be the filename, the second part should be the
    *                   prefix which will be appended to static variables
    * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws InterruptedException
-   * @throws ParserException If parser or CFA builder cannot handle the C code.
+   * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
@@ -101,7 +100,7 @@ public interface CParser extends Parser {
    *                   prefix which will be appended to static variables
    * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
-   * @throws ParserException If parser or CFA builder cannot handle the C code.
+   * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
 
@@ -120,7 +119,7 @@ public interface CParser extends Parser {
    * @param code The code snippet as described above.
    * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The AST for the statement.
-   * @throws ParserException If parsing fails.
+   * @throws CParserException If parsing fails.
    */
   CAstNode parseSingleStatement(String code, Scope scope) throws CParserException, InvalidConfigurationException;
 
@@ -139,7 +138,7 @@ public interface CParser extends Parser {
    * @param code The code snippet as described above.
    * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The list of ASTs for the statement.
-   * @throws ParserException If parsing fails.
+   * @throws CParserException If parsing fails.
    */
   List<CAstNode> parseStatements(String code, Scope scope) throws CParserException, InvalidConfigurationException;
 
