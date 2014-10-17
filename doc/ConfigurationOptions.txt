@@ -227,15 +227,15 @@ bdd.sylvan.tableSize = 26
 # Number of worker threads, 0 for automatic.
 bdd.sylvan.threads = 0
 
-# Allow reduction of function entries; calculate abstractions alwasy at
+# Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
 
-# Allow reduction of function exits; calculate abstractions alwasy at
+# Allow reduction of function exits; calculate abstractions always at
 # function exits?
 blockreducer.allowReduceFunctionExits = true
 
-# Allow reduction of loop heads; calculate abstractions alwasy at loop heads?
+# Allow reduction of loop heads; calculate abstractions always at loop heads?
 blockreducer.allowReduceLoopHeads = false
 
 # write the reduced cfa to the specified file.
@@ -980,7 +980,7 @@ cpa.predicate.defaultArrayLength = 20
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
 
-# Direction of the analisis?
+# Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
