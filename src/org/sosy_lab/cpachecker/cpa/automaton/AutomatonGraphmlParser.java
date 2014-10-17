@@ -332,9 +332,14 @@ public class AutomatonGraphmlParser {
         }
         Set<String> functionExits = docDat.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONEXIT);
         if (!functionExits.isEmpty()) {
-          newStack = new ArrayDeque<>(newStack);
-          String oldFunction = newStack.pop();
-          assert oldFunction.equals(Iterables.getOnlyElement(functionExits));
+          String function = Iterables.getOnlyElement(functionExits);
+          if (newStack.isEmpty()) {
+            logger.log(Level.WARNING, "Trying to return from function", function, "although no function is on the stack.");
+          } else {
+            newStack = new ArrayDeque<>(newStack);
+            String oldFunction = newStack.pop();
+            assert oldFunction.equals(function);
+          }
         }
         stacks.put(targetStateId, newStack);
 
