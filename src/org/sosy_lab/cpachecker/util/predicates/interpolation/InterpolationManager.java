@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -46,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
@@ -90,8 +92,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -159,9 +163,10 @@ public final class InterpolationManager {
           "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]." +
           "\n- NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
           "\n- NESTED2: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants'," +
-          "with modification: pathformulas for call and return are True).")
+          "with modification: pathformulas for call and return are True)." +
+          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants similar to NESTED3")
   private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
-  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, SEQUENCE, NESTED, NESTED2, NESTED3};
+  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, SEQUENCE, NESTED, NESTED2, NESTED3, TREE};
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -604,7 +609,7 @@ public final class InterpolationManager {
 
           // use a new prover, because we use several distinct queries
           final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment();
-          lastItp = getNestedInterpolant2(orderedFormulas, interpolants,callstack,  itpProver, positionOfA, lastItp);
+          lastItp = getNestedInterpolant2(orderedFormulas, interpolants, callstack,  itpProver, positionOfA, lastItp);
           itpProver.close();
         }
         break;
@@ -618,8 +623,96 @@ public final class InterpolationManager {
         for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
 
           // use a new prover, because we use several distinct queries
-          lastItp = getNestedInterpolant3(orderedFormulas, interpolants,callstack, interpolator, positionOfA, lastItp);
+          lastItp = getNestedInterpolant3(orderedFormulas, interpolants, callstack, interpolator, positionOfA, lastItp);
         }
+        break;
+      }
+
+      case TREE: {
+
+        final Deque<Triple<T, Integer, BooleanFormula>> stack = new ArrayDeque<>();
+        final List<Integer> startOfSubTree = new ArrayList<>();
+        final List<T> formulas = new ArrayList<>();
+        final List<BooleanFormula> formulas2 = new ArrayList<>();
+
+        stack.add(Triple.of(itpGroupsIds.get(0), 0, orderedFormulas.get(0).getFirst())); // every complete tree start at left-most node
+        for (int positionOfA = 0; positionOfA < orderedFormulas.size(); positionOfA++) {
+          // first element is handled before
+
+          // If we have entered or exited a function, update the stack of entry points
+          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+          final CFANode node = AbstractStates.extractLocation(abstractionState);
+          final T formula = itpGroupsIds.get(positionOfA);
+          final BooleanFormula formula2 = orderedFormulas.get(positionOfA).getFirst();
+
+          if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+            // start new left subtree, i.e. next formula is left leaf of a subtree.
+            // current formula will be used as merge-formula (common root of new subtree and previous formulas)
+            stack.addLast(Triple.of(formula, formulas.size(), formula2));
+
+          } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
+
+            // first add the last inner formula
+            startOfSubTree.add(stack.getLast().getSecond());
+            formulas.add(formula);
+            formulas2.add(formula2);
+
+            // then add the common root (merge-formula)
+            final Triple<T, Integer, BooleanFormula> commonRoot = stack.removeLast();
+            startOfSubTree.add(stack.getLast().getSecond());
+            formulas.add(commonRoot.getFirst());
+            formulas2.add(commonRoot.getThird());
+
+            assert commonRoot.getSecond() >= stack.getLast().getSecond() : "adding a complete subtree can only be done on the right side";
+
+          } else {
+            startOfSubTree.add(stack.getLast().getSecond());
+            formulas.add(formula);
+            formulas2.add(formula2);
+          }
+
+          assert formulas.size() == startOfSubTree.size() : "invalid number of tree elements: " + startOfSubTree;
+        }
+
+        logger.log(Level.ALL, "formulas of tree are:", formulas2);
+        logger.log(Level.ALL, "subtree-structure is:", startOfSubTree);
+        assert formulas.size() == orderedFormulas.size() : "invalid number of tree elements: " + formulas.size() + " vs " + orderedFormulas.size();
+
+        final List<BooleanFormula> itps = interpolator.itpProver.getTreeInterpolants(
+            Lists.transform(formulas, new Function<T, Set<T>>() {
+              @Override
+              public Set<T> apply(T f) {
+                return Collections.singleton(f);
+              }
+            }),
+            Ints.toArray(startOfSubTree));
+
+        logger.log(Level.ALL, "received interpolants of tree :", itps);
+        assert formulas.size() - 1 == itps.size() : "expecting N-1 interpolants for N formulas";
+
+        final Iterator<BooleanFormula> iter = itps.iterator();
+        final Deque<BooleanFormula> stack2 = new ArrayDeque<>();
+        for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
+          // last interpolant would be False.
+
+          // If we have entered or exited a function, update the stack of entry points
+          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+          final CFANode node = AbstractStates.extractLocation(abstractionState);
+
+          if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+            interpolants.add(bfmgr.makeBoolean(true));
+            stack2.addLast(interpolants.get(interpolants.size() - 1));
+
+          } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
+            // add the last inner formula and the common root (merge-formula)
+            interpolants.add(bfmgr.or(iter.next(), iter.next()));
+
+          } else {
+            interpolants.add(iter.next());
+          }
+        }
+
+        assert !iter.hasNext() : "remaining interpolants: " + Lists.newArrayList(iter);
         break;
       }
 
@@ -906,6 +999,7 @@ public final class InterpolationManager {
 
   /** check, if there exists a function-exit-node to the current call-node. */
   private boolean callHasReturn(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas, int callIndex) {
+    // TODO caching as optimisation to reduce from  k*O(n)  to  O(n)+k*O(1)  ?
     final Deque<CFANode> callstack = new ArrayDeque<>();
 
     {
