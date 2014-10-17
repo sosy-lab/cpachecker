@@ -61,7 +61,10 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     FormulaManagerView formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, formulaManagerFactory, logger);
+    FreshVariableManager freshVariableManager = new FreshVariableManager(
+        formulaManager.getRationalFormulaManager(),
+        formulaManager.getBooleanFormulaManager());
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, formulaManagerFactory, logger, freshVariableManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             pathFormulaManager, formulaManager, config, logger,
