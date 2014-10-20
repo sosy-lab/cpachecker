@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="14400" hardtimelimit="14430" memlimit="66000" cpuCores="2">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">64000M</option>
+  <option name="-noout"/>
+
+  <propertyfile>./benchmarks/svcomp14/PropertyERROR.prp</propertyfile>
+
+  <sourcefiles name="Problems 1 to 9">
+    <include>test/programs/rers14/Problem0[1,2,3,4,5,6,7,8,9]*.c.i</include>
+  </sourcefiles>
+  <sourcefiles name="Problems 10 to 12">
+    <include>test/programs/rers14/Problem1[0,1,2]*.c.i</include>
+  </sourcefiles>
+  <sourcefiles name="Problems 17 to 19">
+    <include>test/programs/rers14/Problem1[7,8,9]*.c.i</include>
+  </sourcefiles>
+
+<!-- no counterexample checks neccessary
+  <option name="-setprop">counterexample.checker=CPACHECKER</option>
+  <option name="-setprop">counterexample.checker.config=config/predicateAnalysis-as-bitprecise-cex-check.properties</option>
+-->
+
+  <!-- value analysis without refinement -->
+  <rundefinition name="valueAnalysis-noref">
+    <option name="-explicitAnalysis-NoRefiner"/>
+  </rundefinition>
+
+  <!-- value analysis with refinement, not using sliced interpolation, and finding itps dynamically -->
+  <rundefinition name="valueAnalysis-DEFAULT-dynamicItp">
+    <option name="-explicitAnalysis"/>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisGlobalRefiner</option>
+    <option name="-setprop">cpa.value.refiner.prefixPreference=DEFAULT</option>
+    <option name="-setprop">cpa.value.refinement.findItpsStatically=false</option>
+  </rundefinition>
+
+  <!-- value analysis with refinement, not using sliced interpolation, and trying to find itps statically, first -->
+  <rundefinition name="valueAnalysis-DEFAULT-staticItp">
+    <option name="-explicitAnalysis"/>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisGlobalRefiner</option>
+    <option name="-setprop">cpa.value.refiner.prefixPreference=DEFAULT</option>
+    <option name="-setprop">cpa.value.refinement.findItpsStatically=true</option>
+  </rundefinition>
+
+  <!-- value analysis with refinement, using sliced interpolation optimized for RERS'14, and finding itps dynamically -->
+  <rundefinition name="valueAnalysis-BEST-dynamicItp">
+    <option name="-explicitAnalysis"/>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisGlobalRefiner</option>
+    <option name="-setprop">cpa.value.refiner.prefixPreference=BEST_RERS14</option>
+    <option name="-setprop">cpa.value.refinement.findItpsStatically=false</option>
+  </rundefinition>
+
+  <!-- value analysis with refinement, using sliced interpolation optimized for RERS'14, and trying to find itps statically, first -->
+  <rundefinition name="valueAnalysis-BEST-staticItp">
+    <option name="-explicitAnalysis"/>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisGlobalRefiner</option>
+    <option name="-setprop">cpa.value.refiner.prefixPreference=BEST_RERS14</option>
+    <option name="-setprop">cpa.value.refinement.findItpsStatically=true</option>
+  </rundefinition>
+</benchmark>
