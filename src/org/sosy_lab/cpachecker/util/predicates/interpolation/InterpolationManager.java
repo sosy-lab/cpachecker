@@ -705,7 +705,9 @@ public final class InterpolationManager {
 
           } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
             // add the last inner formula and the common root (merge-formula)
-            interpolants.add(bfmgr.or(iter.next(), iter.next()));
+            final BooleanFormula functionSummary = iter.next();
+            final BooleanFormula functionExecution = iter.next();
+            interpolants.add(rebuildInterpolant(functionSummary, functionExecution));
 
           } else {
             interpolants.add(iter.next());
@@ -984,7 +986,8 @@ public final class InterpolationManager {
 
         itpProver2.close();
 
-        final BooleanFormula rebuildItp = bfmgr.and(bfmgr.or(itp, itp2), scopingItp.getFirst());
+        final BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
+
         if (log) logger.log(Level.ALL, "\nrebuild itp =", itp, "and", itp2, "=", rebuildItp);
 
         interpolants.add(rebuildItp);
@@ -995,6 +998,24 @@ public final class InterpolationManager {
         return itp;
       }
     }
+  }
+
+  /**
+   * We need all atoms of both interpolants in one formula,
+   * If one of the formulas is True or False, we do not get Atoms from it. Thus we remove those cases.
+   */
+  private BooleanFormula rebuildInterpolant(BooleanFormula functionSummary, BooleanFormula functionExecution) {
+    final BooleanFormula rebuildItp;
+    if (bfmgr.isTrue(functionSummary) || bfmgr.isFalse(functionSummary)) {
+      rebuildItp = functionExecution;
+    } else if (bfmgr.isTrue(functionExecution) || bfmgr.isFalse(functionExecution)) {
+      rebuildItp = functionSummary;
+    } else {
+      // TODO operation OR is weak, we could also use AND.
+      // There is no difference for the atoms later, because we filter out True and False here.
+      rebuildItp = bfmgr.or(functionSummary, functionExecution);
+    }
+    return rebuildItp;
   }
 
   /** check, if there exists a function-exit-node to the current call-node. */
