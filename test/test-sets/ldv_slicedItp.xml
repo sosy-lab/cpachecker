@@ -4,7 +4,7 @@
   <option name="-disable-java-assertions"/>
   <option name="-noout"/>
   <option name="-setprop">log.consoleLevel=WARNING</option>
-  <option name="-heap">14500M</option>
+  <option name="-heap">12000M</option>
   <option name="-skipRecursion"/>
 
 <!-- a property file compatible to SV-COMP'14 rules -->
@@ -43,26 +43,23 @@
   <sourcefiles name="Recursive"></sourcefiles>
 -->
 
+<!-- the main config to use -->
+  <option name="-ldv"/>
+
 <!-- we use cex check, as the value analysis still is too imprecise -->
-  <option name="-explicitAnalysis"/>
   <option name="-setprop">analysis.checkCounterexamples=true</option>
   <option name="-setprop">counterexample.checker=CPACHECKER</option>
   <option name="-setprop">counterexample.checker.config=config/predicateAnalysis-as-bitprecise-cex-check.properties</option>
 
-  <rundefinition name="va_default">
+  <rundefinition name="va_default__pred_sbe">
     <option name="-setprop">cpa.value.refiner.prefixPreference=DEFAULT</option>
+    <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+    <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
   </rundefinition>
 
-  <rundefinition name="va_domain">
+  <rundefinition name="va_domain__pred_sbe">
     <option name="-setprop">cpa.value.refiner.prefixPreference=DOMAIN_BEST_DEEP</option>
+    <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+    <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
   </rundefinition>
-
-  <rundefinition name="va_domain_inverse">
-    <option name="-setprop">cpa.value.refiner.prefixPreference=DOMAIN_WORST_SHALLOW</option>
-  </rundefinition>
-
-  <rundefinition name="va_random">
-    <option name="-setprop">cpa.value.refiner.prefixPreference=RANDOM</option>
-  </rundefinition>
-
 </benchmark>
