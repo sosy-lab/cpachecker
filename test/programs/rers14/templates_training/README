@@ -1,0 +1,6 @@
+preprocessed training programs for RERS 2014
+manual preprocessing removed call to scanf by cascade of if-then-else
+
+use script in parent folder to generate all benchmarks from these templates
+
+original files available at http://www.rers-challenge.org/2014Isola/index.php?page=problems
