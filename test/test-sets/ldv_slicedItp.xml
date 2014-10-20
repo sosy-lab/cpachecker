@@ -24,9 +24,6 @@
     <includesfile>./benchmarks/slicedItp/svcomp14/DeviceDrivers64.set</includesfile>
     <option name="-64"/>
   </sourcefiles>
-  <sourcefiles name="HeapManipulation">
-    <includesfile>./benchmarks/slicedItp/svcomp14/HeapManipulation.set</includesfile>
-  </sourcefiles>
   <sourcefiles name="Loops">
     <includesfile>./benchmarks/slicedItp/svcomp14/Loops.set</includesfile>
   </sourcefiles>
