@@ -30,9 +30,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -124,7 +124,7 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     ValidVarsState state = (ValidVarsState) pState;
     ValidVars vars = state.getValidVariables();
 
-    if (pCfaEdge instanceof FunctionReturnEdge) {
+    if (pCfaEdge instanceof AReturnStatementEdge) {
       String funName = pCfaEdge.getPredecessor().getFunctionName();
       boolean containsFunction = false;
       boolean foundCss = false;
@@ -133,17 +133,17 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
         if (otherS instanceof CallstackState) {
           foundCss = true;
           CallstackState css = (CallstackState) otherS;
-          for (int i = css.getDepth(); i > 0 & !containsFunction; i--) {
-            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
+          for (int i = css.getDepth(); i > 1 & !containsFunction; i--) {
             css = css.getPreviousState();
+            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
           }
         }
         if (otherS instanceof CallstackPccState) {
           foundCss = true;
           CallstackPccState css = (CallstackPccState) otherS;
-          for (int i = css.getDepth(); i > 0 & !containsFunction; i--) {
-            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
+          for (int i = css.getDepth(); i > 1 & !containsFunction; i--) {
             css = css.getPreviousState();
+            containsFunction = containsFunction && css.getCurrentFunction().equals(funName);
           }
         }
       }
@@ -161,7 +161,7 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
         wrappedTransfer.strengthen(state.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
 
     if (wrappedStrengthen == null || wrappedStrengthen.size()==0) {
-      if (pCfaEdge instanceof FunctionReturnEdge && vars!=state.getValidVariables()) {
+      if (vars!=state.getValidVariables()) {
         return Collections.singleton(new ValidVarsState(state.getWrappedState(), vars));
       }
       return null;
