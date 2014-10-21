@@ -132,10 +132,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
             return Collections.emptySet();
           } else {
             // recursion is unsupported
-            logger.log(Level.INFO, "Recursion detected.");
-            CFANode callNode = pEdge.getPredecessor();
-            return Collections.singleton(new CallstackState(e, calledFunction, callNode));
-            // throw new UnsupportedCCodeException("recursion", pEdge);
+            // recursion is unsupported
+            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
+            throw new UnsupportedCCodeException("recursion", pEdge);
           }
         } else {
           // regular function call
