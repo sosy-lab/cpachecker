@@ -555,12 +555,16 @@ public final class InterpolationManager {
 
     // The counterexample is spurious. Get the interpolants.
 
+    checkState(strategy == InterpolationStrategy.CPACHECKER_SEQ
+            || direction == CexTraceAnalysisDirection.FORWARDS,
+        "well-scoped or nested interpolants are based on function-scopes and need to traverse the error-trace in forward direction.");
+
     switch (strategy) {
       case CPACHECKER_SEQ: {
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
           final int start_of_A = 0;
-          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, 0));
+          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A));
         }
         break;
       }
@@ -572,15 +576,18 @@ public final class InterpolationManager {
           itpGroups.add(Collections.singleton(f));
         }
         interpolants = interpolator.itpProver.getSeqInterpolants(itpGroups);
+        break;
       }
 
       case CPACHECKER_WELLSCOPED: { // TODO not fully working and not used
-        final Deque<Pair<Integer, CFANode>> callstack = new ArrayDeque<>();
+        final Pair<List<T>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
+        final List<BooleanFormula> itps = new ArrayList<>();
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
-          final int start_of_A = getWellScopedStartOfA(orderedFormulas, callstack, end_of_A);
-          interpolants.add(getInterpolantFromSublist(interpolator.itpProver, itpGroupsIds, start_of_A, end_of_A, callstack.size()));
+          final int start_of_A = p.getSecond().get(end_of_A);
+          itps.add(getInterpolantFromSublist(interpolator.itpProver, p.getFirst(), start_of_A, end_of_A));
         }
+        interpolants = flattenTreeItps(orderedFormulas, itps);
         break;
       }
 
@@ -1098,47 +1105,6 @@ public final class InterpolationManager {
     return false;
   }
 
-  private int getWellScopedStartOfA(List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
-                                    Deque<Pair<Integer, CFANode>> callstack, int end_of_A) {
-
-    checkState(direction == CexTraceAnalysisDirection.FORWARDS,
-            "well-scoped predicated need to traverse the error-trace in a normal way.");
-    // TODO check backward (should be working) and ZIGZAG (???)
-
-    // TODO the following code relies on the fact that there is always an abstraction on function-calls and -returns
-
-    if (end_of_A == 0) {
-      return 0;
-    }
-
-    // If we have entered or exited a function, update the stack of entry points
-    final AbstractState abstractionState = checkNotNull(orderedFormulas.get(end_of_A-1).getSecond());
-    final CFANode node = AbstractStates.extractLocation(abstractionState);
-    if (node instanceof FunctionEntryNode) {
-      callstack.addLast(Pair.of(end_of_A, node));
-    }
-
-    // we are returning from a function,
-    // TODO one node to early or to late in the CFA? or only for BAM? -> see BlockOperator for BlockEnd!
-    // TODO matching node can be wrong in case of recursion of multiple calls to the same function?
-    if (!callstack.isEmpty()) {
-      final CFANode lastEntryNode = callstack.getLast().getSecond();
-      if ((node instanceof FunctionExitNode
-              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode)
-        //|| (node.getEnteringSummaryEdge() != null
-        //       && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
-              ) {
-        callstack.removeLast();
-      }
-    }
-
-    if (callstack.isEmpty()) {
-      return 0; // we are in the main-function, so A starts at 0.
-    } else {
-      return callstack.getLast().getFirst();
-    }
-  }
-
   /**
    * Precondition: The solver-stack contains all formulas and is UNSAT.
    * Get the interpolant between the Sublist of formulas and the other formulas on the solver-stack.
@@ -1146,10 +1112,10 @@ public final class InterpolationManager {
    * The sublist is taken from the list of GroupIds, including both start and end of A.
    */
   private <T> BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth) throws InterruptedException {
+        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A) throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
 
-    logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A, "(depth", depth, ")");
+    logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
     getInterpolantTimer.start();
     final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
