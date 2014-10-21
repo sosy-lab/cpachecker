@@ -37,19 +37,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableSet;
 
 
 public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
-
-  private final TransferRelation wrappedTransfer;
-
-  public ValidVarsTransferRelation(TransferRelation pWrappedTransfer) {
-    wrappedTransfer = pWrappedTransfer;
-  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -101,42 +94,17 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     default:
       break;
     }
-      // consider successors of wrapped state
-      Collection<? extends AbstractState> wrappedSuccessors =
-          wrappedTransfer.getAbstractSuccessorsForEdge(state.getWrappedState(), pPrecision, pCfaEdge);
 
-    if (wrappedSuccessors == null || wrappedSuccessors.size() == 0) { return Collections.emptySet(); }
-
-    ArrayList<AbstractState> successors = new ArrayList<>(wrappedSuccessors.size());
-
-
-    for (AbstractState successor : wrappedSuccessors) {
-      successors.add(new ValidVarsState(successor, validVariables));
+    if (state.getValidVariables() == validVariables) {
+      return Collections.singleton(state);
     }
-
-    return successors;
+    return Collections.singleton(new ValidVarsState(validVariables));
   }
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-
-    ValidVarsState state = (ValidVarsState) pState;
-
-    Collection<? extends AbstractState> wrappedStrengthen =
-        wrappedTransfer.strengthen(state.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
-
-    if (wrappedStrengthen == null || wrappedStrengthen.size()==0) {
-      return null;
-    }
-
-    ArrayList<AbstractState> successors = new ArrayList<>(wrappedStrengthen.size());
-
-    for (AbstractState successor : wrappedStrengthen) {
-      successors.add(new ValidVarsState(successor, state.getValidVariables()));
-    }
-
-    return successors;
+    return null;
   }
 
 }
