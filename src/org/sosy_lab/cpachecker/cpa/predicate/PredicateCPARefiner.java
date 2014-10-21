@@ -148,10 +148,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final PathFormulaManager pfmgr;
-  private FormulaManagerView fmgr;
+  protected final PathFormulaManager pfmgr;
+  protected FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;

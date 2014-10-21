@@ -154,7 +154,8 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           pathChecker,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          strategy);
+                                          strategy,
+                                          predicateCpa.getReducer());
   }
 
   @Override
@@ -172,7 +173,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     private final Timer ssaRenamingTimer = new Timer();
 
-    private final PathFormulaManager pfmgr;
+    private final BAMPredicateReducer reducer;
 
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
@@ -180,12 +181,13 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final PathChecker pPathChecker,
         final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy pStrategy)
+        final RefinementStrategy pStrategy,
+        final BAMPredicateReducer pReducer)
             throws CPAException, InvalidConfigurationException {
 
       super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy);
 
-      pfmgr = pPathFormulaManager;
+      reducer = pReducer;
     }
 
     @Override
