@@ -237,32 +237,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   @Override
-  protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) {
-    final ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
-
-    // is we skip a function, we forget all global variables
-    // TODO forgetting only those variables, that are used in the function, would be enough.
-    for (MemoryLocation variable : state.getTrackedMemoryLocations()) {
-      if (!variable.isOnFunctionStack()) {
-        newState.forget(variable);
-      }
-    }
-
-    // TODO if we have a argument '&x' for the function, should we also forget it?
-
-    // also forget the assigned return-value
-    CFunctionCall call = cfaEdge.getExpression();
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) call).getLeftHandSide();
-      if (lhs instanceof AIdExpression) {
-        newState.forget(MemoryLocation.valueOf(functionName, ((AIdExpression) lhs).getName(), 0));
-      }
-    }
-
-    return newState;
-  }
-
-  @Override
   protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {

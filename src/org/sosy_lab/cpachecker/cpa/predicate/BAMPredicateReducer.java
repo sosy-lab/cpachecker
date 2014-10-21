@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -68,13 +67,11 @@ public class BAMPredicateReducer implements Reducer {
   private final RelevantPredicatesComputer relevantComputer;
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
-  private final FormulaManagerView fmgr;
 
-  public BAMPredicateReducer(FormulaManagerView fmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
-    this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.fmgr = fmgr;
+    this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
     this.relevantComputer = pRelevantPredicatesComputer;
   }

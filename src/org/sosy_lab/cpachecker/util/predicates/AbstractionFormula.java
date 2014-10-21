@@ -134,8 +134,6 @@ public class AbstractionFormula implements Serializable {
       abs = ": true";
     } else if (isFalse()) {
       abs = ": false";
-    } else {
-      abs = instantiatedFormula.toString();
     }
     return "ABS" + id + abs;
   }
