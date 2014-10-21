@@ -158,6 +158,10 @@ public class BAMTransferRelation implements TransferRelation {
           final AbstractState pState, final Precision pPrecision)
           throws CPATransferException, InterruptedException {
     final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+
+    assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1 :
+            "target-state should be returned as single-element-collection";
+
     return attachAdditionalInfoToCallNodes(successors);
   }
 
@@ -176,9 +180,17 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     if (partitioning.isCallNode(node)
+            && !((ARGState)pState).getParents().isEmpty() // if no parents, we have already started a new block
             && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      // we are at the entryNode of a new block and we are in a new context.
-      return doRecursiveAnalysis(pState, pPrecision, node);
+      // we are at the entryNode of a new block and we are in a new context,
+      // so we have to start a recursive analysis
+      logger.log(Level.FINEST, "Starting recursive analysis of depth", ++depth);
+      maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
+
+      Collection<? extends AbstractState> resultStates = doRecursiveAnalysis(pState, pPrecision, node);
+
+      logger.log(Level.FINEST, "Finished recursive analysis of depth", depth--);
+      return resultStates;
     }
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
@@ -200,9 +212,7 @@ public class BAMTransferRelation implements TransferRelation {
     // -> return these states as successor
     // -> cache the result
 
-    logger.log(Level.FINER, "Starting recursive analysis of depth", ++depth);
     logger.log(Level.ALL, "Starting state:", initialState);
-    maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
@@ -211,26 +221,7 @@ public class BAMTransferRelation implements TransferRelation {
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
-    Collection<Pair<AbstractState, Precision>> reducedResult = getReducedResult(initialState, reducedInitialState, reducedInitialPrecision);
-
-    logger.log(Level.FINER, "Recursive analysis of depth", depth--, "finished");
-    logger.log(Level.ALL, "Resulting states:", reducedResult);
-
-    addBlockAnalysisInfo(initialState);
-
-    if (breakAnalysis) {
-      // analysis aborted, so lets abort here too
-      // TODO why return element?
-      assert reducedResult.size() == 1;
-      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
-    }
-
-    logger.log(Level.ALL, "Expanding states with initial state", initialState);
-    logger.log(Level.FINEST, "Expanding states", reducedResult);
-
-    final List<AbstractState> expandedResult = expandResultStates(reducedResult, outerSubtree, initialState, pPrecision);
-
-    logger.log(Level.ALL, "Expanded results:", expandedResult);
+    final Collection<AbstractState> expandedResult = analyseBlockAndExpand(initialState, pPrecision, currentBlock, reducedInitialState, reducedInitialPrecision);
 
     currentBlock = outerSubtree;
 
@@ -239,6 +230,34 @@ public class BAMTransferRelation implements TransferRelation {
 
   static boolean isHeadOfMainFunction(CFANode currentNode) {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
+  }
+
+  /** Analyse block, return expanded exit-states. */
+  private Collection<AbstractState> analyseBlockAndExpand(
+          final AbstractState entryState, final Precision precision, final Block outerSubtree,
+          final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+          throws CPATransferException, InterruptedException {
+
+    final Collection<Pair<AbstractState, Precision>> reducedResult =
+            getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
+
+    logger.log(Level.ALL, "Resulting states:", reducedResult);
+
+    addBlockAnalysisInfo(reducedInitialState);
+
+    if (breakAnalysis) {
+      // analysis aborted, so lets abort here too
+      // TODO why return element?
+      assert reducedResult.size() == 1;
+      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
+    }
+
+    logger.log(Level.ALL, "Expanding states with initial state", entryState);
+    logger.log(Level.ALL, "Expanding states", reducedResult);
+    final Collection<AbstractState> expandedReturnStates = expandResultStates(reducedResult, outerSubtree, entryState, precision);
+    logger.log(Level.ALL, "Expanded results:", expandedReturnStates);
+
+    return expandedReturnStates;
   }
 
   private List<AbstractState> expandResultStates(
@@ -273,16 +292,17 @@ public class BAMTransferRelation implements TransferRelation {
           final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
           throws InterruptedException, CPATransferException {
 
+    final Collection<AbstractState> reducedResult;
+
     // try to get previously computed element from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
     ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
-    final Collection<AbstractState> reducedResult;
+    assert cachedReturnStates == null || reached != null : "there cannot be result-states without reached-states";
 
     if (cachedReturnStates != null) {
-      assert reached != null;
       assert !reached.hasWaitingState() ||
               (cachedReturnStates.size() == 1
                         && Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState()
@@ -290,7 +310,7 @@ public class BAMTransferRelation implements TransferRelation {
               "cache hit only allowed for finished reached-sets or target-states";
 
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit");
+      logger.log(Level.FINEST, "Cache hit with finished reachedset.");
       reducedResult = cachedReturnStates;
 
     } else {
