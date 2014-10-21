@@ -129,6 +129,7 @@ public class AliasState implements
         varMapping,
         memoryUpdate,
         new ImmutableMapMerger.MergeFunc<String, MemorySegment>() {
+          @Override
           public MemorySegment apply(String key, MemorySegment a, MemorySegment b) {
             Preconditions.checkState(a.equals(b));
             return a;
@@ -138,7 +139,7 @@ public class AliasState implements
   }
 
   /**
-   * @return R-value for the associated {@param memoryBlock}
+   * @return R-value for the associated {@code memoryBlock}
    */
   public AbstractMemoryAddress getValuesStored(MemorySegment memoryBlock) {
     AbstractMemoryAddress values = data.get(memoryBlock);
@@ -152,7 +153,7 @@ public class AliasState implements
   /** SETTERS */
 
   /**
-   * Update the r-value stored at {@param block} to include {@param rValue}
+   * Update the r-value stored at {@code block} to include {@code rValue}
    * @return Updated communication word.
    */
   public AliasState addValueToBlock(
@@ -189,7 +190,7 @@ public class AliasState implements
   }
 
   /**
-   * Sets the r-value stored at {@param block} to {@param rValue}
+   * Sets the r-value stored at {@code block} to {@code rValue}
    * @return Updated communication word.
    */
   public AliasState setBlockValue(

@@ -37,6 +37,7 @@ import scala.collection.mutable.MultiMap;
 // Simple solver for LINEAR arithmetic (this can be replaced later by a library)
 public class NaiveArithmethicSolver implements ExpressionSolver {
 
+  @SuppressWarnings("unused")
   @Override
   public Set<CBinaryExpression> solve(Set<CBinaryExpression> pRelations, Set<CIdExpression> pSolveTo)
       throws SolvingFailedException {

@@ -157,7 +157,7 @@ public final class InterpolationManager {
           "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
           "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n].")
   private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
-  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED};
+  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED}
 
   @Option(description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;

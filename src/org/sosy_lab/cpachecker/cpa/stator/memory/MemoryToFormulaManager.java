@@ -95,6 +95,7 @@ public class MemoryToFormulaManager {
       BooleanFormula aliasConstraints = bfmgr.or(Lists.transform(
           ImmutableList.copyOf(values),
           new Function<MemorySegment, BooleanFormula>() {
+            @Override
             public BooleanFormula apply(MemorySegment aliasTo) {
               return equal(aliasFrom, makeVar(aliasTo, false, inputMap));
             }
