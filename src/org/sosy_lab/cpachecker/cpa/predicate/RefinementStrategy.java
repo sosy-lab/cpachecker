@@ -176,7 +176,7 @@ public abstract class RefinementStrategy {
           // We can add this information to the cache to speed up later sat checks.
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
-          solver.addUnsatisfiableFormulaToCache(blockFormula);
+          //solver.addUnsatisfiableFormulaToCache(blockFormula);
         }
         break;
       }
