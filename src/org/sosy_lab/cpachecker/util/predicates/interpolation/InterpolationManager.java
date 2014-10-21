@@ -630,91 +630,21 @@ public final class InterpolationManager {
 
       case TREE: {
 
-        final Deque<Triple<T, Integer, BooleanFormula>> stack = new ArrayDeque<>();
-        final List<Integer> startOfSubTree = new ArrayList<>();
-        final List<T> formulas = new ArrayList<>();
-        final List<BooleanFormula> formulas2 = new ArrayList<>();
-
-        stack.add(Triple.of(itpGroupsIds.get(0), 0, orderedFormulas.get(0).getFirst())); // every complete tree start at left-most node
-        for (int positionOfA = 0; positionOfA < orderedFormulas.size(); positionOfA++) {
-          // first element is handled before
-
-          // If we have entered or exited a function, update the stack of entry points
-          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
-          final CFANode node = AbstractStates.extractLocation(abstractionState);
-          final T formula = itpGroupsIds.get(positionOfA);
-          final BooleanFormula formula2 = orderedFormulas.get(positionOfA).getFirst();
-
-          if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
-            // start new left subtree, i.e. next formula is left leaf of a subtree.
-            // current formula will be used as merge-formula (common root of new subtree and previous formulas)
-            stack.addLast(Triple.of(formula, formulas.size(), formula2));
-
-          } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
-
-            // first add the last inner formula
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
-            formulas2.add(formula2);
-
-            // then add the common root (merge-formula)
-            final Triple<T, Integer, BooleanFormula> commonRoot = stack.removeLast();
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(commonRoot.getFirst());
-            formulas2.add(commonRoot.getThird());
-
-            assert commonRoot.getSecond() >= stack.getLast().getSecond() : "adding a complete subtree can only be done on the right side";
-
-          } else {
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
-            formulas2.add(formula2);
-          }
-
-          assert formulas.size() == startOfSubTree.size() : "invalid number of tree elements: " + startOfSubTree;
-        }
-
-        logger.log(Level.ALL, "formulas of tree are:", formulas2);
-        logger.log(Level.ALL, "subtree-structure is:", startOfSubTree);
-        assert formulas.size() == orderedFormulas.size() : "invalid number of tree elements: " + formulas.size() + " vs " + orderedFormulas.size();
+        final Pair<List<T>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
 
         final List<BooleanFormula> itps = interpolator.itpProver.getTreeInterpolants(
-            Lists.transform(formulas, new Function<T, Set<T>>() {
+            Lists.transform(p.getFirst(), new Function<T, Set<T>>() {
               @Override
               public Set<T> apply(T f) {
                 return Collections.singleton(f);
               }
             }),
-            Ints.toArray(startOfSubTree));
+            Ints.toArray(p.getSecond()));
 
         logger.log(Level.ALL, "received interpolants of tree :", itps);
-        assert formulas.size() - 1 == itps.size() : "expecting N-1 interpolants for N formulas";
+        assert p.getFirst().size() - 1 == itps.size() : "expecting N-1 interpolants for N formulas";
 
-        final Iterator<BooleanFormula> iter = itps.iterator();
-        final Deque<BooleanFormula> stack2 = new ArrayDeque<>();
-        for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
-          // last interpolant would be False.
-
-          // If we have entered or exited a function, update the stack of entry points
-          final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
-          final CFANode node = AbstractStates.extractLocation(abstractionState);
-
-          if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
-            interpolants.add(bfmgr.makeBoolean(true));
-            stack2.addLast(interpolants.get(interpolants.size() - 1));
-
-          } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
-            // add the last inner formula and the common root (merge-formula)
-            final BooleanFormula functionSummary = iter.next();
-            final BooleanFormula functionExecution = iter.next();
-            interpolants.add(rebuildInterpolant(functionSummary, functionExecution));
-
-          } else {
-            interpolants.add(iter.next());
-          }
-        }
-
-        assert !iter.hasNext() : "remaining interpolants: " + Lists.newArrayList(iter);
+        interpolants = flattenTreeItps(orderedFormulas, itps);
         break;
       }
 
@@ -723,6 +653,116 @@ public final class InterpolationManager {
     }
 
     assert orderedFormulas.size() - 1 == interpolants.size() : "we should return N-1 interpolants for N formulas.";
+    return interpolants;
+  }
+
+  /**
+   * Build a tree of formulas according to controlflow (function calls and returns).
+   *
+   * @param itpGroupsIds formulas from the solver-stack, sorted according controlflow
+   * @param orderedFormulas formulas and abstract states, sorted according to position on the solver-stack.
+   *                        we assume DIRECTION.FORWARDS as order, such that itpGroups and orderedFormulas are sorted equal.
+   *
+   * @return Pair (pFormulas := tree-elements, pStartOfSubTree := tree-structure)
+   */
+  private <T> Pair<List<T>, List<Integer>> buildTreeStructure(
+      final List<T> itpGroupsIds,
+      final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) {
+
+    final List<T> formulas = new ArrayList<>();
+    final List<Integer> startOfSubTree = new ArrayList<>();
+
+    final Deque<Triple<T, Integer, BooleanFormula>> stack = new ArrayDeque<>();
+    final List<BooleanFormula> formulas2 = new ArrayList<>(); // only for logging
+
+    stack.add(Triple.of(itpGroupsIds.get(0), 0, orderedFormulas.get(0).getFirst())); // every complete tree start at left-most node
+    for (int positionOfA = 0; positionOfA < orderedFormulas.size(); positionOfA++) {
+      // first element is handled before
+
+      // If we have entered or exited a function, update the stack of entry points
+      final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
+      final T formula = itpGroupsIds.get(positionOfA);
+      final BooleanFormula formula2 = orderedFormulas.get(positionOfA).getFirst();
+
+      if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+        // start new left subtree, i.e. next formula is left leaf of a subtree.
+        // current formula will be used as merge-formula (common root of new subtree and previous formulas)
+        stack.addLast(Triple.of(formula, formulas.size(), formula2));
+
+      } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
+
+        // first add the last inner formula
+        startOfSubTree.add(stack.getLast().getSecond());
+        formulas.add(formula);
+        formulas2.add(formula2);
+
+        // then add the common root (merge-formula)
+        final Triple<T, Integer, BooleanFormula> commonRoot = stack.removeLast();
+        startOfSubTree.add(stack.getLast().getSecond());
+        formulas.add(commonRoot.getFirst());
+        formulas2.add(commonRoot.getThird());
+
+        assert commonRoot.getSecond() >= stack.getLast().getSecond() : "adding a complete subtree can only be done on the right side";
+
+      } else {
+        startOfSubTree.add(stack.getLast().getSecond());
+        formulas.add(formula);
+        formulas2.add(formula2);
+      }
+
+      assert formulas.size() == startOfSubTree.size() : "invalid number of tree elements: " + startOfSubTree;
+    }
+
+    logger.log(Level.ALL, "formulas of tree are:", formulas2);
+    logger.log(Level.ALL, "subtree-structure is:", startOfSubTree);
+    assert formulas.size() == orderedFormulas.size() : "invalid number of tree elements: " + formulas.size() + " vs " + orderedFormulas.size();
+
+    return Pair.of(formulas, startOfSubTree);
+  }
+
+  /**
+   * The default Predicate Analysis can only handle a flat list of interpolants.
+   * Thus we convert the tree-structure back into a linear chain of interpolants.
+   * The analysis must handle special cases on its own, i.e. use BAM with function-rebuilding.
+   *
+   * For function-entries we use TRUE,
+   * for function-returns both function-summary and function-execution (merged into one formula).
+   *
+   * @param orderedFormulas contains the input formulas and abstract states
+   * @param itps tree-interpolants
+   * @return interpolants linear chain of interpolants, created from the tree-interpolants
+   */
+  private List<BooleanFormula> flattenTreeItps(
+      final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
+      final List<BooleanFormula> itps) {
+    final List<BooleanFormula> interpolants = new ArrayList<>();
+    final Iterator<BooleanFormula> iter = itps.iterator();
+    final Deque<BooleanFormula> stack2 = new ArrayDeque<>();
+    for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
+      // last interpolant would be False.
+
+      // If we have entered or exited a function, update the stack of entry points
+      final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
+      final CFANode node = AbstractStates.extractLocation(abstractionState);
+
+      if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
+        interpolants.add(bfmgr.makeBoolean(true));
+        stack2.addLast(interpolants.get(interpolants.size() - 1));
+
+      } else if (/*!stack.isEmpty() &&*/ node instanceof FunctionExitNode) {
+        // add the last inner formula and the common root (merge-formula)
+        final BooleanFormula functionSummary = iter.next();
+        final BooleanFormula functionExecution = iter.next();
+        interpolants.add(rebuildInterpolant(functionSummary, functionExecution));
+
+      } else {
+        interpolants.add(iter.next());
+      }
+    }
+
+    assert !iter.hasNext() : "remaining interpolants: " + Lists.newArrayList(iter);
+
     return interpolants;
   }
 
