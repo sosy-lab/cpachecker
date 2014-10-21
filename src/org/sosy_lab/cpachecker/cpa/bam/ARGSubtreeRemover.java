@@ -175,12 +175,14 @@ public class ARGSubtreeRemover {
       CFANode rootNode = extractLocation(rootState);
       Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
 
-      logger.log(Level.FINER, "Remove cached subtree for ", removeElement, " (rootNode: ", rootNode, ") issued");
+      logger.log(Level.FINER, "Remove cached subtree for", removeElement,
+              "(rootNode: ", rootNode, ") issued with precision", pNewPrecisions);
 
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
       ReachedSet reachedSet = abstractStateToReachedSet.get(rootState);
 
       if (removeElement.isDestroyed()) {
+        logger.log(Level.FINER, "state was destroyed before");
         //apparently, removeElement was removed due to prior deletions
         return;
       }
@@ -211,6 +213,7 @@ public class ARGSubtreeRemover {
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
       if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionTypes)) {
+        logger.log(Level.FINER, "updating cache");
         bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision.get(0));
       }
 
