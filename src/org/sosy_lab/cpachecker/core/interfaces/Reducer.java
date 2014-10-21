@@ -61,8 +61,8 @@ public interface Reducer {
    * @param entryState state after the function-call. this is the block-start-state, that will be reduced.
    * @param expandedState expanded state at function-return, before the function-return-dge.
    * @param exitLocation location of expandedState and also reducedExitState,
-*                     must be the location of rebuildState,
-*                     TODO should be instance of FunctionExitNode?
+   *                     must be the location of rebuildState,
+   *                     TODO should be instance of FunctionExitNode?
    *
    *                                             +---------- BLOCK ----------+
    *                                             |                           |

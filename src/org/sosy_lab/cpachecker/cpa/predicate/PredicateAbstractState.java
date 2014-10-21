@@ -102,7 +102,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     @Override
     public String toDOTLabel() {
-      return super.abstractionFormula.toString().replace("(`and` ","\\n(`and` ");
+      return super.abstractionFormula.toString();
     }
 
     @Override

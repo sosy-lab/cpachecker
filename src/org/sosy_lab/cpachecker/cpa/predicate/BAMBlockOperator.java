@@ -47,9 +47,10 @@ public class BAMBlockOperator extends BlockOperator {
    */
   @Override
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {
-    return super.isBlockEnd(succLoc, predLoc, edge, pPf) ||
-            partitioning.isCallNode(succLoc) || partitioning.isReturnNode(succLoc) ||
-            isBeforeFunctionCall(succLoc);
+    return super.isBlockEnd(succLoc, predLoc, edge, pPf)
+        || partitioning.isCallNode(succLoc)
+        || partitioning.isReturnNode(succLoc)
+        || isBeforeFunctionCall(succLoc);
   }
 
   private boolean isBeforeFunctionCall(CFANode succLoc) {

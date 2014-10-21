@@ -53,7 +53,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RETURN_VARIABLE_NAME;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -133,7 +135,7 @@ public class BAMPredicateReducer implements Reducer {
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
-      //assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
+      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
@@ -458,14 +460,14 @@ public class BAMPredicateReducer implements Reducer {
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
       if (var.startsWith(calledFunction + "::")
-              && var.endsWith(CtoFormulaConverter.PARAM_VARIABLE_NAME)) {
+              && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert newIndex != SSAMap.DEFAULT_DEFAULT_IDX : "param for function is not used in functioncall";
         entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
 
       } else if (var.startsWith(calledFunction + "::")
-              && var.endsWith(CtoFormulaConverter.RETURN_VARIABLE_NAME)) {
+              && var.endsWith(RETURN_VARIABLE_NAME)) {
         final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
         entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
@@ -576,7 +578,6 @@ public class BAMPredicateReducer implements Reducer {
   }
 
   private boolean isReturnVar(String var) {
-      return var.contains("::") &&
-              CtoFormulaConverter.RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
+      return var.contains("::") && RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
   }
 }

@@ -32,15 +32,13 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 public final class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
@@ -78,7 +76,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   }
 
   /** for logging and debugging */
-  public List<String> getStack() {
+  private List<String> getStack() {
     final List<String> stack = new ArrayList<>();
     CallstackState state = this;
     while (state != null) {
@@ -95,17 +93,11 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
 
   @Override
   public String toString() {
-    final List<String> stack = new ArrayList<>();
-    CallstackState state = this;
-    while (state != null) {
-      stack.add(state.currentFunction);
-      state = state.previousState;
-    }
     return "Function " + getCurrentFunction()
         + " called from node " + getCallNode()
         + ", stack depth " + getDepth()
         + " [" + Integer.toHexString(super.hashCode())
-        + "], stack [" + Joiner.on(", ").join(stack) + "]";
+        + "], stack " + getStack();
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {

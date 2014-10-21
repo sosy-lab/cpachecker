@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
+
 public class ARGReducer implements Reducer {
 
   private final Reducer wrappedReducer;
