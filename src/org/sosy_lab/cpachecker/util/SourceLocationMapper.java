@@ -443,7 +443,9 @@ public class SourceLocationMapper {
     }
 
     for (CIdExpression e: idExs) {
-      result.add(e.getDeclaration().getQualifiedName());
+      if (e.getDeclaration() != null) {
+        result.add(e.getDeclaration().getQualifiedName());
+      }
     }
 
     return result;

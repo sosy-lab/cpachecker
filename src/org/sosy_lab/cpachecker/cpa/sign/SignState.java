@@ -34,7 +34,6 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignState implements AbstractStateWithTargetVariable, TargetableWithPredicatedAnalysis, Serializable,
+public class SignState implements TargetableWithPredicatedAnalysis, Serializable,
     LatticeAbstractState<SignState> {
 
   private static final long serialVersionUID = -2507059869178203119L;
@@ -190,10 +189,6 @@ public class SignState implements AbstractStateWithTargetVariable, TargetableWit
         .getErrorCondition(this, pFmgr);
   }
 
-  @Override
-  public String getTargetVariableName() {
-    return targetChecker == null ? "" : targetChecker.getErrorVariableName();
-  }
 
   private Object writeReplace() throws ObjectStreamException {
     if (this == TOP) {

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
@@ -69,7 +68,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
-    TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable, LatticeAbstractState<ValueAnalysisState> {
+    TargetableWithPredicatedAnalysis, LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -426,7 +425,11 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
           + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong(CNumericTypes.INT);
+      Value val = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      if (val == null) {
+        return false;
+      }
+      Long value = val.asLong(CNumericTypes.INT);
 
       if (value == null) {
         return false;
@@ -876,10 +879,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return checker==null? pFmgr.getBooleanFormulaManager().makeBoolean(false):checker.getErrorCondition(pFmgr);
   }
 
-  @Override
-  public String getTargetVariableName() {
-    return checker== null?"":checker.getTargetVariableName();
-  }
 
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
    * This function rebuilds a new state with the correct values from the previous callState.

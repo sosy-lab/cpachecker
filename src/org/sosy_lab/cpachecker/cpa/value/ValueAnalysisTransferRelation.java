@@ -1489,7 +1489,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       Value value = handleMissingInformationRightJExpression(rttState);
 
-      if (value.isNumericValue() && !value.isUnknown()) {
+      if (value.isExplicitlyKnown()) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;

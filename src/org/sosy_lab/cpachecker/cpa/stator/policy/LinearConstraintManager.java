@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import com.google.common.base.Preconditions;
 
 /**
- * Wrapper for a linear constraint:
+ * Converting linear constraints to formulas.
  *
  * Note that since {@link ExtendedRational} can be <code>NaN</code>
  * this class can throw exceptions when converting linear constraints to
@@ -43,20 +43,26 @@ public class LinearConstraintManager {
   private final FormulaManagerView fmgr;
   private final FormulaManagerFactory factory;
 
-  // Something which is bigger then any reasonable value.
+  /**
+   * Something which is bigger then MAX_INT/MAX_FLOW (or whatever domain we
+   * are working with).
+   */
   private final ExtendedRational BAZILLION = ExtendedRational.ofString(
       "100000000");
+  private final FreshVariableManager freshVariableManager;
 
   LinearConstraintManager(
       FormulaManagerView pFmgr,
       FormulaManagerFactory factory,
-      LogManager logger
+      LogManager logger,
+      FreshVariableManager pFreshVariableManager
       ) {
     fmgr = pFmgr;
     this.factory = factory;
     bfmgr = pFmgr.getBooleanFormulaManager();
     rfmgr = pFmgr.getRationalFormulaManager();
     this.logger = logger;
+    freshVariableManager = pFreshVariableManager;
   }
 
   /**
@@ -168,20 +174,20 @@ public class LinearConstraintManager {
     Map<NumeralFormula, ExtendedRational> out = new HashMap<>();
 
     for (NumeralFormula formula : objectives) {
-      FreshVariable target = FreshVariable.createFreshVar(rfmgr);
-      prover.addConstraint(rfmgr.equal(target.variable, formula));
+      NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
+      prover.addConstraint(rfmgr.equal(target, formula));
 
       // Enforce bounds for all variables.
       prover.addConstraint(
-          rfmgr.lessOrEquals(target.variable, rfmgr.makeNumber(BAZILLION.toString()))
+          rfmgr.lessOrEquals(target, rfmgr.makeNumber(BAZILLION.toString()))
       );
-      input.put(target.name(), formula);
+      input.put(target.toString(), formula);
     }
 
     NumeralFormula sum = rfmgr.sum(objectives);
-    FreshVariable target = FreshVariable.createFreshVar(rfmgr);
-    prover.addConstraint(rfmgr.equal(sum, target.variable));
-    prover.setObjective(target.variable);
+    NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
+    prover.addConstraint(rfmgr.equal(sum, target));
+    prover.setObjective(target);
     OptEnvironment.OptResult status = prover.maximize();
 
     switch (status) {
@@ -227,18 +233,18 @@ public class LinearConstraintManager {
     // We can only maximize a single variable.
     // Create a new variable, make it equal to the linear expression which we
     // have.
-    FreshVariable target = FreshVariable.createFreshVar(rfmgr);
+    NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
 
-    // TODO: A very dirty hack, Z3 does not seem to work well with unbounded
+    // Hack, Z3 does not seem to work well with unbounded
     // objectives, so we simply constraint the result above by BAZILLION
     // (a sufficiently large number), and if the output number is equal to
     // the BAZILLION we say that the result is unbounded.
     prover.addConstraint(
-        rfmgr.lessOrEquals(target.variable, rfmgr.makeNumber(BAZILLION.toString()))
+        rfmgr.lessOrEquals(target, rfmgr.makeNumber(BAZILLION.toString()))
     );
 
-    prover.addConstraint(rfmgr.equal(target.variable, objective));
-    prover.setObjective(target.variable);
+    prover.addConstraint(rfmgr.equal(target, objective));
+    prover.setObjective(target);
 
     OptEnvironment.OptResult result = prover.maximize();
 
@@ -247,7 +253,7 @@ public class LinearConstraintManager {
         Model model = prover.getModel();
         logger.log(Level.FINEST, "OPT");
         logger.log(Level.FINEST, "Model = ", model);
-        return rationalFromModel(model, target.name());
+        return rationalFromModel(model, target.toString());
       case UNSAT:
         logger.log(Level.FINEST, "UNSAT");
         return ExtendedRational.NEG_INFTY;
@@ -313,6 +319,7 @@ public class LinearConstraintManager {
       List<BooleanFormula> origConstraints,
       Formula relatedTo
   ) {
+    // TODO: can be useful for octagon computation.
     List<BooleanFormula> toProcess = new ArrayList<>(origConstraints);
     List<BooleanFormula> newToProcess = new ArrayList<>();
 

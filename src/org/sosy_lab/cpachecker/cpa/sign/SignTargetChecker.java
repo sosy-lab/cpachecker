@@ -107,8 +107,4 @@ public class SignTargetChecker {
     return pFmgr.getBooleanFormulaManager().makeBoolean(false);
   }
 
-  public String getErrorVariableName() {
-    return errorVar;
-  }
-
 }

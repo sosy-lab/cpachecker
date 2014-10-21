@@ -123,6 +123,13 @@ class Util:
             pos -= 1
         return (s[:pos], s[pos:])
 
+    @staticmethod
+    def removeUnit(s):
+        """
+        Remove a unit from a number string, or return the full string if it is not a number.
+        """
+        (prefix, suffix) = Util.splitNumberAndUnit(s)
+        return suffix if prefix == '' else prefix
 
     @staticmethod
     def formatNumber(s, numberOfDigits):
@@ -274,7 +281,9 @@ def parseTableDefinitionFile(file, allColumns):
                 result.append(resultsFile, parseResultsFile(resultsFile), allColumns)
 
         if result.filelist:
-            result.attributes['name'] = [unionTag.get('title', unionTag.get('name', result.attributes['name']))]
+            name = unionTag.get('title', unionTag.get('name'))
+            if name:
+                result.attributes['name'] = name
             runSetResults.append(result)
 
     return runSetResults
@@ -971,6 +980,7 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
                        'relpath': os.path.relpath,
                        'formatValue': Util.formatValue,
                        'splitNumberAndUnit': Util.splitNumberAndUnit,
+                       'removeUnit': Util.removeUnit,
                        }
 
     def writeTable(type, title, rows):

@@ -22,6 +22,14 @@ public class STATORBenchmarksTest {
     Assert.assertEquals(true, results.isSafe());
   }
 
+  @Test public void checkComplexLoop() throws Exception {
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(),
+        "test/programs/stator/tests.c"
+    );
+    Assert.assertEquals(true, results.isSafe());
+  }
+
   @Test public void checkLoopBounds() throws Exception {
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
         getProperties(),

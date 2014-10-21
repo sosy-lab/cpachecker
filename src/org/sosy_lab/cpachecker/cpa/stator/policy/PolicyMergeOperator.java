@@ -7,24 +7,32 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PolicyMergeOperator implements MergeOperator{
   private final PolicyAbstractDomain domain;
-  public PolicyMergeOperator(PolicyAbstractDomain d) {
-    this.domain = d;
+  private final PolicyIterationStatistics statistics;
+
+  public PolicyMergeOperator(PolicyAbstractDomain d, PolicyIterationStatistics pStatistics) {
+    domain = d;
+    statistics = pStatistics;
   }
 
   @Override
   public AbstractState merge(AbstractState newState, AbstractState prevState, Precision p)
       throws CPAException, InterruptedException {
 
-    AbstractState out = domain.join(
-        (PolicyAbstractState)newState,
-        (PolicyAbstractState) prevState,
-        (PolicyPrecision) p);
+    statistics.timeInMerge.start();
+    try {
+      AbstractState out = domain.join(
+          (PolicyAbstractState)newState,
+          (PolicyAbstractState)prevState,
+          (PolicyPrecision)p);
 
-    // Note: returning an exactly same state is important, due to the issues
-    // with .equals() handling.
-    if (out.equals(prevState)) {
-      return prevState;
+      // Note: returning an exactly same state is important, due to the issues
+      // with .equals() handling.
+      if (out.equals(prevState)) {
+        return prevState;
+      }
+      return out;
+    } finally {
+      statistics.timeInMerge.stop();
     }
-    return out;
   }
 }

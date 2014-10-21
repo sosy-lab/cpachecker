@@ -16,12 +16,15 @@ public class ExplicitMemoryTransferRelation extends SingleEdgeTransferRelation
     implements TransferRelation {
   private final MachineModel machineModel;
   private final LogManager logger;
+  private final ExplicitMemoryStatistics statistics;
 
   public ExplicitMemoryTransferRelation(
       MachineModel machineModel,
-      LogManager logger) {
+      LogManager logger,
+      ExplicitMemoryStatistics pStatistics) {
     this.machineModel = machineModel;
     this.logger = logger;
+    statistics = pStatistics;
   }
 
   @Override
@@ -29,9 +32,13 @@ public class ExplicitMemoryTransferRelation extends SingleEdgeTransferRelation
       AbstractState state, Precision precision, CFAEdge cfaEdge) throws
           CPATransferException, InterruptedException {
     AliasState prevState = (AliasState) state;
-    return getSuccessors(prevState, precision, cfaEdge);
+    statistics.memoryAnalysisTimer.start();
+    try {
+      return getSuccessors(prevState, precision, cfaEdge);
+    } finally {
+      statistics.memoryAnalysisTimer.stop();
+    }
   }
-
 
   public Collection<? extends AliasState> getSuccessors(
       AliasState prevAbstractValue,
