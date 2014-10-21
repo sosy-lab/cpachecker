@@ -75,8 +75,4 @@ public class ValueAnalysisTargetChecker {
     }
     return errorF;
   }
-
-  public String getTargetVariableName() {
-    return errorVar;
-  }
 }

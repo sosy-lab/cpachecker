@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithTargetVariable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
@@ -68,7 +67,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
-    TargetableWithPredicatedAnalysis, AbstractStateWithTargetVariable, LatticeAbstractState<ValueAnalysisState> {
+    TargetableWithPredicatedAnalysis, LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -879,8 +878,4 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return checker==null? pFmgr.getBooleanFormulaManager().makeBoolean(false):checker.getErrorCondition(pFmgr);
   }
 
-  @Override
-  public String getTargetVariableName() {
-    return checker== null?"":checker.getTargetVariableName();
-  }
 }
