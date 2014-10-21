@@ -41,11 +41,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -78,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -666,31 +663,20 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     case DeclarationEdge: {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
       IADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+      if (declaration instanceof CVariableDeclaration) {
+        CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
         String declaredVariable = variableDeclaration.getQualifiedName();
-        CType type;
-        if (variableDeclaration instanceof CVariableDeclaration) {
-          type = ((CVariableDeclaration) variableDeclaration).getType();
-        } else {
-          throw new UnsupportedOperationException("Only C expressions are supported");
-        }
-        IAInitializer initializer = variableDeclaration.getInitializer();
+        CType type = variableDeclaration.getType();
+        CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer == null) {
           return Collections.singletonMap(declaredVariable, type);
         }
         Map<String, CType> result = new HashMap<>();
         result.put(declaredVariable, type);
-        if (initializer instanceof AInitializerExpression) {
-          result.putAll(getInvolvedVariables(((AInitializerExpression) initializer).getExpression(), pCfaEdge));
-        } else if (initializer instanceof CInitializer) {
-          result.putAll(getInvolvedVariables((CInitializer) initializer, pCfaEdge));
-        } else if (initializer instanceof JArrayInitializer) {
-          for (IAExpression expression : ((JArrayInitializer) initializer).getInitializerExpressions()) {
-            result.putAll(getInvolvedVariables(expression, pCfaEdge));
-          }
-        }
+        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
         return result;
+      } else if (declaration instanceof AVariableDeclaration) {
+        throw new UnsupportedOperationException("Only C expressions are supported");
       } else {
         return Collections.emptyMap();
       }

@@ -247,7 +247,7 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
-      printStatistics(pOut, null, pReached);
+      printStatistics(pOut, Result.UNKNOWN, pReached);
     }
   }
 }
