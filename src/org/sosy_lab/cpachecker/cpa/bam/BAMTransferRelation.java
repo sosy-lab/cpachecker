@@ -180,7 +180,6 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     if (partitioning.isCallNode(node)
-            && !((ARGState)pState).getParents().isEmpty() // if no parents, we have already started a new block
             && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       // we are at the entryNode of a new block and we are in a new context,
       // so we have to start a recursive analysis
@@ -221,7 +220,7 @@ public class BAMTransferRelation implements TransferRelation {
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
-    final Collection<AbstractState> expandedResult = analyseBlockAndExpand(initialState, pPrecision, currentBlock, reducedInitialState, reducedInitialPrecision);
+    final Collection<AbstractState> expandedResult = analyseBlockAndExpand(initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
     currentBlock = outerSubtree;
 
