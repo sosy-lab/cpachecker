@@ -425,7 +425,11 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
           + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      Long value = this.constantsMap.get(MemoryLocation.valueOf(parts[0])).asLong(CNumericTypes.INT);
+      Value val = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      if (val == null) {
+        return false;
+      }
+      Long value = val.asLong(CNumericTypes.INT);
 
       if (value == null) {
         return false;
