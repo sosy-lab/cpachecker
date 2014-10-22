@@ -30,12 +30,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -101,7 +102,13 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
   private boolean stopOnError = false;
 
+  @Option(description="Where to write the reached sets to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathCounterTemplate reachedSetExportPaths = PathCounterTemplate.ofFormatString("reachedsets/reached%d.txt");
 
+  @Option(description="Where to write the ARGS to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathCounterTemplate argExportPaths = PathCounterTemplate.ofFormatString("args/arg%d.dot");
 
   private TestGenIterationStrategy iterationStrategy;
   private PathSelector pathSelector;
@@ -112,7 +119,6 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   private StartupConfig startupConfig;
   private StartupConfig singleRunConfig;
   private LogManager logger;
-  private int reachedSetCounter = 0;
   private int testCaseCounter = 0;
 
 
@@ -236,31 +242,16 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private void dumpReachedAndARG(ReachedSet pReached) {
-    try {
-      String outputDir = new FileTypeConverter(startupConfig.getConfig()).getOutputDirectory();
+    try (Writer w = Files.openOutputFile(reachedSetExportPaths.getFreshPath())) {
+      Joiner.on('\n').appendTo(w, pReached);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+    }
 
-      Path reachedFile = Paths.get(outputDir, "reachedsets/reached" + reachedSetCounter + ".txt");
-
-      try (Writer w = Files.openOutputFile(reachedFile)) {
-        Joiner.on('\n').appendTo(w, pReached);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-      } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write reached set to file due to memory problems");
-      }
-
-      Path argFile = Paths.get(outputDir, "args/arg" + reachedSetCounter + ".dot");
-
-      try (Writer w = Files.openOutputFile(argFile)) {
-        ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-      }
-
-      reachedSetCounter++;
-    } catch (InvalidConfigurationException e1) {
-      throw new IllegalStateException(e1);
+    try (Writer w = Files.openOutputFile(argExportPaths.getFreshPath())) {
+      ARGUtils.writeARGAsDot(w, (ARGState) pReached.getFirstState());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
     }
   }
 }
