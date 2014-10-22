@@ -21,5 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-@org.sosy_lab.common.Unmaintained
+@org.sosy_lab.common.annotations.Unmaintained
 package org.sosy_lab.cpachecker.cpa.ldd;

@@ -256,7 +256,7 @@ public class CPAMain {
     // add it to our Configuration object and to the the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
-    FileTypeConverter fileTypeConverter = new FileTypeConverter(pConfig);
+    FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfig);
     String outputDirectory = fileTypeConverter.getOutputDirectory();
 
     Configuration config = Configuration.builder()
