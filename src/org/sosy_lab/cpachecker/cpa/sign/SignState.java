@@ -34,7 +34,9 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -42,7 +44,7 @@ import com.google.common.collect.ImmutableMap;
 
 
 public class SignState implements TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<SignState> {
+    LatticeAbstractState<SignState>, AbstractQueryableState {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
@@ -215,6 +217,28 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
     private Object readResolve() throws ObjectStreamException {
       return TOP;
     }
+  }
+
+  @Override
+  public String getCPAName() {
+    return "SignAnalysis";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("Unsupported Operation");
   }
 
 }
