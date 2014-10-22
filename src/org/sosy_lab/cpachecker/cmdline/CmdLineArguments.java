@@ -95,6 +95,8 @@ class CmdLineArguments {
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
+  static final String SECURE_MODE_OPTION = "secureMode";
+
   /**
    * Reads the arguments and process them.
    *
@@ -119,6 +121,7 @@ class CmdLineArguments {
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
           || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
+          || handleArgument0("-secureMode",    SECURE_MODE_OPTION, "true",      arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
@@ -267,6 +270,7 @@ class CmdLineArguments {
     System.out.println(" -java");
     System.out.println(" -32");
     System.out.println(" -64");
+    System.out.println(" -secureMode");
     System.out.println(" -skipRecursion");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
@@ -424,7 +428,7 @@ class CmdLineArguments {
 
     // look in current directory first
     if (file.toFile().exists()) {
-      return file.toAbsolutePath();
+      return file;
     }
 
     // look relative to code location second
@@ -433,7 +437,7 @@ class CmdLineArguments {
 
     file = baseDir.resolve(fileName);
     if (file.toFile().exists()) {
-      return file.toAbsolutePath();
+      return file;
     }
 
     return null;

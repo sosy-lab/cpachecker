@@ -212,6 +212,11 @@ public class CPAMain {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
+    boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
+    if (secureMode) {
+      Configuration.enableSecureModeGlobally();
+    }
+
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
@@ -225,7 +230,7 @@ public class CPAMain {
     Configuration config = configBuilder.build();
 
     // Get output directory and setup paths.
-    Pair<Configuration, String> p = setupPaths(config);
+    Pair<Configuration, String> p = setupPaths(config, secureMode);
     config = p.getFirst();
     String outputDirectory = p.getSecond();
 
@@ -250,13 +255,16 @@ public class CPAMain {
     return Pair.of(config, outputDirectory);
   }
 
-  private static Pair<Configuration, String> setupPaths(Configuration pConfig) throws InvalidConfigurationException {
+  private static Pair<Configuration, String> setupPaths(Configuration pConfig,
+      boolean pSecureMode) throws InvalidConfigurationException {
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
     // add it to our Configuration object and to the the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfig);
+    FileTypeConverter fileTypeConverter = pSecureMode
+        ? FileTypeConverter.createWithSafePathsOnly(pConfig)
+        : FileTypeConverter.create(pConfig);
     String outputDirectory = fileTypeConverter.getOutputDirectory();
 
     Configuration config = Configuration.builder()
