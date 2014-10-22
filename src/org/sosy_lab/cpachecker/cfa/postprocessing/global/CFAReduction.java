@@ -123,7 +123,8 @@ public class CFAReduction {
 
   private Collection<CFANode> getErrorNodesWithCPA(MutableCFA cfa) throws InterruptedException {
     try {
-      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), logger);
+      LogManager lLogger = logger.withComponentName("CFAReduction");
+      ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), lLogger);
 
       // create new configuration based on existing config but with default set of CPAs
       Configuration lConfig = Configuration.builder()
@@ -134,16 +135,16 @@ public class CFAReduction {
                                            .clearOption("CompositeCPA.cpas")
                                            .build();
 
-      CPABuilder lBuilder = new CPABuilder(lConfig, logger, shutdownNotifier, lReachedSetFactory);
+      CPABuilder lBuilder = new CPABuilder(lConfig, lLogger, shutdownNotifier, lReachedSetFactory);
       ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
-      Algorithm lAlgorithm = CPAAlgorithm.create(lCpas, logger, lConfig, shutdownNotifier);
+      Algorithm lAlgorithm = CPAAlgorithm.create(lCpas, lLogger, lConfig, shutdownNotifier);
       ReachedSet lReached = lReachedSetFactory.create();
       lReached.add(lCpas.getInitialState(cfa.getMainFunction()), lCpas.getInitialPrecision(cfa.getMainFunction()));
 
       lAlgorithm.run(lReached);
 
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
+      CPAs.closeCpaIfPossible(lCpas, lLogger);
+      CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       return from(lReached)
                .filter(IS_TARGET_STATE)

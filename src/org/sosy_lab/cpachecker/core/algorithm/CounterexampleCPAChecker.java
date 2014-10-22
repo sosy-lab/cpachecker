@@ -129,6 +129,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
 
     CFANode entryNode = extractLocation(pRootState);
+    LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {
       Configuration lConfig = Configuration.builder()
@@ -136,9 +137,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.toAbsolutePath().toString())
               .build();
       ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
+      ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
+      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
@@ -147,8 +148,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       lAlgorithm.run(lReached);
 
       lShutdownNotifier.requestShutdown("Analysis terminated");
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
+      CPAs.closeCpaIfPossible(lCpas, lLogger);
+      CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       // counterexample is feasible if a target state is reachable
       return from(lReached).anyMatch(IS_TARGET_STATE);

@@ -134,7 +134,7 @@ public class CPABuilder {
 
           CPAFactory factory = ControlAutomatonCPA.factory();
           factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
-          factory.setLogger(logger);
+          factory.setLogger(logger.withComponentName(cpaAlias));
           factory.set(cfa, CFA.class);
           factory.set(automaton, Automaton.class);
 
@@ -183,7 +183,7 @@ public class CPABuilder {
     // now use factory to get an instance of the CPA
 
     factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
-    factory.setLogger(logger);
+    factory.setLogger(logger.withComponentName(cpaAlias));
     factory.setShutdownNotifier(shutdownNotifier);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);

@@ -363,22 +363,23 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
     }
     Configuration singleConfig = singleConfigBuilder.build();
+    LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed+1));
 
     RestartAlgorithmOptions singleOptions = new RestartAlgorithmOptions();
     singleConfig.inject(singleOptions);
 
-    ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, logger, singleShutdownNotifier);
+    ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownNotifier);
     singleLimits.start();
 
     if (singleOptions.runCBMCasExternalTool) {
-      algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
+      algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, singleLogger);
       cpa = null;
-      reached = new ReachedSetFactory(singleConfig, logger).create();
+      reached = new ReachedSetFactory(singleConfig, singleLogger).create();
     } else {
-      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, logger);
-      cpa = createCPA(singleReachedSetFactory, singleConfig, singleShutdownNotifier, stats);
-      algorithm = createAlgorithm(cpa, singleConfig, singleShutdownNotifier, stats, singleReachedSetFactory, singleOptions);
-      reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory);
+      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, singleLogger);
+      cpa = createCPA(singleReachedSetFactory, singleConfig, singleLogger, singleShutdownNotifier, stats);
+      algorithm = createAlgorithm(cpa, singleConfig, singleLogger, singleShutdownNotifier, stats, singleReachedSetFactory, singleOptions);
+      reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory, singleLogger);
     }
 
     return Triple.of(algorithm, cpa, reached);
@@ -387,8 +388,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private ReachedSet createInitialReachedSetForRestart(
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
-      ReachedSetFactory pReachedSetFactory) {
-    logger.log(Level.FINE, "Creating initial reached set");
+      ReachedSetFactory pReachedSetFactory,
+      LogManager singleLogger) {
+    singleLogger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState = cpa.getInitialState(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
@@ -399,11 +401,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ConfigurableProgramAnalysis createCPA(ReachedSetFactory pReachedSetFactory,
-      Configuration pConfig, ShutdownNotifier singleShutdownNotifier,
+      Configuration pConfig, LogManager singleLogger, ShutdownNotifier singleShutdownNotifier,
       RestartAlgorithmStatistics stats) throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating CPAs");
+    singleLogger.log(Level.FINE, "Creating CPAs");
 
-    CPABuilder builder = new CPABuilder(pConfig, logger, singleShutdownNotifier, pReachedSetFactory);
+    CPABuilder builder = new CPABuilder(pConfig, singleLogger, singleShutdownNotifier, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
 
     if (cpa instanceof StatisticsProvider) {
@@ -414,32 +416,33 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   private Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, Configuration pConfig,
+      final LogManager singleLogger,
       final ShutdownNotifier singleShutdownNotifier,
       final RestartAlgorithmStatistics stats, ReachedSetFactory singleReachedSetFactory,
       RestartAlgorithmOptions pOptions)
   throws InvalidConfigurationException, CPAException {
-    logger.log(Level.FINE, "Creating algorithms");
+    singleLogger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = CPAAlgorithm.create(cpa, logger, pConfig, singleShutdownNotifier);
+    Algorithm algorithm = CPAAlgorithm.create(cpa, singleLogger, pConfig, singleShutdownNotifier);
 
     if (pOptions.useCEGAR) {
-      algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, logger);
+      algorithm = new CEGARAlgorithm(algorithm, cpa, pConfig, singleLogger);
     }
 
     if (pOptions.useBMC) {
-      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, logger, singleReachedSetFactory, singleShutdownNotifier, cfa);
+      algorithm = new BMCAlgorithm(algorithm, cpa, pConfig, singleLogger, singleReachedSetFactory, singleShutdownNotifier, cfa);
     }
 
     if (pOptions.checkCounterexamples) {
-      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, logger, singleShutdownNotifier, cfa, filename);
+      algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, pConfig, singleLogger, singleShutdownNotifier, cfa, filename);
     }
 
     if (pOptions.collectAssumptions) {
-      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, logger);
+      algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, pConfig, singleLogger);
     }
 
     if (pOptions.unknownIfUnrestrictedProgram) {
-      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cpa, cfa, logger, pConfig, shutdownNotifier);
+      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cpa, cfa, singleLogger, pConfig, shutdownNotifier);
     }
 
     return algorithm;
