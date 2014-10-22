@@ -872,12 +872,12 @@ public class PredicateAbstractionManager {
     BooleanFormula symbolicAbs = amgr.toConcrete(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
-    BooleanFormula instanciatedAbsToUse = instantiatedSymbolicAbs;
     if (simplifyAbstractionFormula) {
-      instanciatedAbsToUse = fmgr.simplify(instanciatedAbsToUse);
+      symbolicAbs = fmgr.simplify(symbolicAbs);
+      instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
     }
 
-    return new AbstractionFormula(fmgr, abs, instanciatedAbsToUse, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
+    return new AbstractionFormula(fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
 
   /**
