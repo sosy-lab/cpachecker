@@ -95,13 +95,13 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    * for the re-exploration of the ARG will be the node closest to the root
    * where new information is made available through the current refinement
    */
-  @Option(description="whether or not to do lazy-abstraction")
+  @Option(secure=true, description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
 
-  @Option(description="whether or not to avoid restarting at assume edges after a refinement")
+  @Option(secure=true, description="whether or not to avoid restarting at assume edges after a refinement")
   private boolean avoidAssumes = false;
 
-  @Option(description="which prefix of an actual counterexample trace should be used for interpolation")
+  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
   private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
 
   /**

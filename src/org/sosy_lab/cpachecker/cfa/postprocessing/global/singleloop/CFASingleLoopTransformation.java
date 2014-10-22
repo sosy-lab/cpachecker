@@ -149,7 +149,7 @@ public class CFASingleLoopTransformation {
    */
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(
+  @Option(secure=true,
       description="Single loop transformation builds a decision tree based on" +
         " the program counter values. This option causes the last program" +
         " counter value not to be explicitly assumed in the decision tree," +
@@ -157,7 +157,7 @@ public class CFASingleLoopTransformation {
         " falsehood for all other assumptions in the decision tree.")
   private boolean omitExplicitLastProgramCounterAssumption = false;
 
-  @Option(
+  @Option(secure=true,
       description="This option controls the size of the subgraphs referred" +
           " to by program counter values. The larger the subgraphs, the" +
           " fewer program counter values are required. Possible values are " +

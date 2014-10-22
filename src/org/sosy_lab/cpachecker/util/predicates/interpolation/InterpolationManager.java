@@ -129,16 +129,16 @@ public final class InterpolationManager {
   private final FormulaManagerFactory factory;
   private final Interpolator<?> interpolator;
 
-  @Option(description="apply deletion-filter to the abstract counterexample, to get "
+  @Option(secure=true, description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
-  @Option(name="incrementalCexTraceCheck",
+  @Option(secure=true, name="incrementalCexTraceCheck",
       description="use incremental search in counterexample analysis, "
         + "to find the minimal infeasible prefix")
   private boolean incrementalCheck = false;
 
-  @Option(name="cexTraceCheckDirection",
+  @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
   private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
   private static enum CexTraceAnalysisDirection {
@@ -148,7 +148,7 @@ public final class InterpolationManager {
     ;
   }
 
-  @Option(description="Strategy how to interact woith the intepolating prover. " +
+  @Option(secure=true, description="Strategy how to interact woith the intepolating prover. " +
           "If a strategy starts with 'CPACHECKER_', we use our own implementation and do not use the solver's method. " +
           "In our own implementation the properties of interpolants are guaranteed for special cases only." +
           "\n- CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
@@ -159,24 +159,24 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
   private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED}
 
-  @Option(description="dump all interpolation problems")
+  @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
 
-  @Option(description="verify if the interpolants fulfill the interpolant properties")
+  @Option(secure=true, description="verify if the interpolants fulfill the interpolant properties")
   private boolean verifyInterpolants = false;
 
-  @Option(name="timelimit",
+  @Option(secure=true, name="timelimit",
       description="time limit for refinement (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)
   private TimeSpan itpTimeLimit = TimeSpan.ofMillis(0);
 
-  @Option(description="skip refinement if input formula is larger than "
+  @Option(secure=true, description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
 
-  @Option(description="Use a single SMT solver environment for several interpolation queries")
+  @Option(secure=true, description="Use a single SMT solver environment for several interpolation queries")
   private boolean reuseInterpolationEnvironment = false;
 
   private final ExecutorService executor;

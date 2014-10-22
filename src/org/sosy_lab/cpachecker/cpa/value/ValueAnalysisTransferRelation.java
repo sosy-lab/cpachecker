@@ -138,12 +138,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
 
-  @Option(description = "if there is an assumption like (x!=0), "
+  @Option(secure=true, description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
-  @Option(description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
+  @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
       + " assumtions.")
   private boolean automatonAssumesAsStatements = false;
 

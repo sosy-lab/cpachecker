@@ -63,20 +63,20 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
-    @Option(toUppercase=true, values={"PLAIN", "AGREE"},
+    @Option(secure=true, toUppercase=true, values={"PLAIN", "AGREE"},
         description="which composite merge operator to use (plain or agree)\n"
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"COMPOSITE", "COMPONENT"},
+    @Option(secure=true, toUppercase=true, values={"COMPOSITE", "COMPONENT"},
     description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
       + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
       + "and only delegates to each component's precision adjustment operator individually, "
       + "the COMPONENT strategy operates with knowledge about all components.")
     private String precAdjust = "COMPOSITE";
 
-    @Option(
+    @Option(secure=true,
     description="inform Composite CPA if it is run in a predicated analysis because then it must"
       + "behave differntly during merge.")
     private boolean inPredicatedAnalysis = false;

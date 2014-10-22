@@ -42,28 +42,28 @@ import com.google.common.collect.Multimap;
 @Options(prefix = "cpa.bdd")
 public class BDDPrecision implements Precision {
 
-  @Option(description = "track boolean variables from cfa")
+  @Option(secure=true, description = "track boolean variables from cfa")
   private boolean trackBoolean = true;
 
-  @Option(description = "track variables from cfa, that are only compared " +
+  @Option(secure=true, description = "track variables from cfa, that are only compared " +
       "for equality, they are tracked as (small) bitvectors")
   private boolean trackIntEqual = true;
 
-  @Option(description = "track variables, only used in simple calculations " +
+  @Option(secure=true, description = "track variables, only used in simple calculations " +
       "(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
   private boolean trackIntAdd = true;
 
-  @Option(name = "forceTrackingPattern",
+  @Option(secure=true, name = "forceTrackingPattern",
       description = "Pattern for variablenames that will always be tracked with BDDs." +
           "This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
-  @Option(name = "precision.refinement.useScopedInterpolation",
+  @Option(secure=true, name = "precision.refinement.useScopedInterpolation",
       description = "whether or not to add newly-found variables " +
           "only to the exact program location or to the whole scope of the variable.")
   private boolean useScopedInterpolation = false;
 
-  @Option(description = "whether the precision is initially empty (this should be set to true when refinement is used)")
+  @Option(secure=true, description = "whether the precision is initially empty (this should be set to true when refinement is used)")
   private boolean initiallyEmptyPrecision = false;
 
   private final Pattern forceTrackingPattern;

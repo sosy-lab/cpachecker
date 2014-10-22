@@ -74,11 +74,11 @@ public class CPABuilder {
 
   private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
-  @Option(name=CPA_OPTION_NAME,
+  @Option(secure=true, name=CPA_OPTION_NAME,
       description="CPA to use (see doc/Configuration.txt for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
-  @Option(name="specification",
+  @Option(secure=true, name="specification",
       description="comma-separated list of files with specifications that should be checked"
         + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)

@@ -89,22 +89,22 @@ import com.google.common.collect.Sets;
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
 
-  @Option(description="Consider the negative semantics of tokens provided with path automatons.")
+  @Option(secure=true, description="Consider the negative semantics of tokens provided with path automatons.")
   private boolean considerNegativeSemanticsAttribute = false; // legacy: token matching needs this
 
-  @Option(description="Consider assumptions that are provided with the path automaton?")
+  @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
-  @Option(description="Legacy option for token-based matching with path automatons.")
+  @Option(secure=true, description="Legacy option for token-based matching with path automatons.")
   private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
 
-  @Option(description="Match the source code provided with the witness.")
+  @Option(secure=true, description="Match the source code provided with the witness.")
   private boolean matchSourcecodeData = false;
 
-  @Option(description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
+  @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
-  @Option(description="File for exporting the path automaton in DOT format.")
+  @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
 

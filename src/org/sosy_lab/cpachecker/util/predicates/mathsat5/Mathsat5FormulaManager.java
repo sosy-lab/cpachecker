@@ -57,7 +57,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   @Options(prefix="cpa.predicate.solver.mathsat5")
   private static class Mathsat5Settings {
 
-    @Option(description = "List of further options which will be passed to Mathsat in addition to the default options. "
+    @Option(secure=true, description = "List of further options which will be passed to Mathsat in addition to the default options. "
         + "Format is 'key1=value1,key2=value2'")
     private String furtherOptions = "";
 

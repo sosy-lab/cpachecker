@@ -38,7 +38,7 @@ public class PartialCertificateTypeProvider {
     MONOTONESTOPARG;
   }
 
-  @Option(
+  @Option(secure=true,
       description = "Selects the strategy used for partial certificate construction")
   private PartialCertificateTypes certificateType = PartialCertificateTypes.HEURISTIC;
 

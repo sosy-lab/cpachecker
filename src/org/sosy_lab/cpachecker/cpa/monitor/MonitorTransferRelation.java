@@ -62,13 +62,13 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
+  @Option(secure=true, name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
+  @Option(secure=true, name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)

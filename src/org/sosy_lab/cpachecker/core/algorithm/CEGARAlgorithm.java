@@ -142,14 +142,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(name="refiner", required = true,
+  @Option(secure=true, name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
   private final LogManager logger;

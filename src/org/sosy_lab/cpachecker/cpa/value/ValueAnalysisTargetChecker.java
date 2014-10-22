@@ -41,11 +41,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.value")
 public class ValueAnalysisTargetChecker {
 
-  @Option(
+  @Option(secure=true,
       name = "varName",
       description = "Variable name of the variable for which should be checked that its value is globally a certain value ")
   private String errorVar = "";
-  @Option(description = "Value which is allowed for the variable which is checked")
+  @Option(secure=true, description = "Value which is allowed for the variable which is checked")
   private long allowedValue = 0;
 
   private BooleanFormula errorF;

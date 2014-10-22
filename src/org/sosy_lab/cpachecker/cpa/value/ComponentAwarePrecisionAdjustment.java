@@ -68,16 +68,16 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.value.blk")
 public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
 
-  @Option(description="restrict abstractions to loop heads")
+  @Option(secure=true, description="restrict abstractions to loop heads")
   private boolean alwaysAtLoops = false;
 
-  @Option(description="restrict abstractions to function calls/returns")
+  @Option(secure=true, description="restrict abstractions to function calls/returns")
   private boolean alwaysAtFunctions = false;
 
-  @Option(description="restrict abstractions to assume edges")
+  @Option(secure=true, description="restrict abstractions to assume edges")
   private boolean alwaysAtAssumes = false;
 
-  @Option(description="restrict abstractions to join points")
+  @Option(secure=true, description="restrict abstractions to join points")
   private boolean alwaysAtJoins = false;
 
   private final ImmutableSet<CFANode> loopHeads;

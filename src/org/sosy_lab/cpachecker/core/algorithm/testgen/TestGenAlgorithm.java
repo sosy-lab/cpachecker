@@ -79,34 +79,34 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
     CUTE_LIKE
   }
 
-  @Option(name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
+  @Option(secure=true, name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
   private IterationStrategySelector iterationStrategySelector = IterationStrategySelector.AUTOMATON_CONTROLLED;
 
-  @Option(name = "pathSelector", description = "The path selector for TestGenAlgorithm")
+  @Option(secure=true, name = "pathSelector", description = "The path selector for TestGenAlgorithm")
   private AnalysisStrategySelector analysisStrategySelector = AnalysisStrategySelector.CUTE_PATH_SELECTOR;
 
-  @Option(
+  @Option(secure=true,
       name = "produceDebugFiles",
       description = "Set this to true to get the automaton files for exploring new Paths."
           + " You also get the ARG as dot file and the local reached set for every algoritm iteration"
           + " in subdirs under output.")
   private boolean produceDebugFiles = false;
 
-  @Option(name = "testcaseOutputFile", description = "Output file Template under which the"
+  @Option(secure=true, name = "testcaseOutputFile", description = "Output file Template under which the"
       + " testcase automatons will be stored. Must include one %s somewhere.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testcaseOutputFile = Paths.get("testcase%s.spc");
 
-  @Option(
+  @Option(secure=true,
       name = "stopOnError",
       description = "algorithm stops on first found error path. Otherwise the algorithms tries to reach 100% coverage")
   private boolean stopOnError = false;
 
-  @Option(description="Where to write the reached sets to.")
+  @Option(secure=true, description="Where to write the reached sets to.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate reachedSetExportPaths = PathCounterTemplate.ofFormatString("reachedsets/reached%d.txt");
 
-  @Option(description="Where to write the ARGS to.")
+  @Option(secure=true, description="Where to write the ARGS to.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate argExportPaths = PathCounterTemplate.ofFormatString("args/arg%d.dot");
 

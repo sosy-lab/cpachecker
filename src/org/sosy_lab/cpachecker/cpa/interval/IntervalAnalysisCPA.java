@@ -51,11 +51,11 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
-  @Option(name = "ignoreReferenceCounts",
+  @Option(secure=true, name = "ignoreReferenceCounts",
       description = "do not consider number of references to variables during merge in analysis")
   private boolean ignoreRefCount = false;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
           description="which type of merge operator to use for IntervalAnalysisCPA")
   /**
    * the merge type of the interval analysis

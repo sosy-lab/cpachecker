@@ -47,10 +47,10 @@ import com.google.common.base.Preconditions;
 @Options(prefix = "cpa.bam")
 public class BAMCache {
 
-  @Option(description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
+  @Option(secure=true, description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
-  @Option(description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
+  @Option(secure=true, description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
   boolean gatherCacheMissStatistics = false;
 
   final Timer hashingTimer = new Timer();

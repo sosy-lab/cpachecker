@@ -121,19 +121,19 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cfa.variableClassification")
 public class VariableClassification {
 
-  @Option(name = "logfile", description = "Dump variable classification to a file.")
+  @Option(secure=true, name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("VariableClassification.log");
 
-  @Option(description = "Dump variable type mapping to a file.")
+  @Option(secure=true, description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
 
-  @Option(description = "Dump domain type statistics to a CSV file.")
+  @Option(secure=true, description = "Dump domain type statistics to a CSV file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path domainTypeStatisticsFile = null;
 
-  @Option(description = "Print some information about the variable classification.")
+  @Option(secure=true, description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
 
   /** name for return-variables, it is used for function-returns. */

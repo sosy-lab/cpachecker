@@ -65,13 +65,13 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final ARGCPA cpa;
 
-  @Option(name = "path.file",
+  @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specFile;
 
-  @Option(name="config",
+  @Option(secure=true, name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile = Paths.get("config/explicitAnalysis-no-cbmc.properties");

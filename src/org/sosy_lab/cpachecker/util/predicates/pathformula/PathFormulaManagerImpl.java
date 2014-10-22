@@ -93,7 +93,7 @@ import com.google.common.collect.Maps;
 @Options(prefix="cpa.predicate")
 public class PathFormulaManagerImpl implements PathFormulaManager {
 
-  @Option(description = "Handle aliasing of pointers. "
+  @Option(secure=true, description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
@@ -115,7 +115,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  @Option(description="add special information to formulas about non-deterministic functions")
+  @Option(secure=true, description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
   private final AnalysisDirection direction;

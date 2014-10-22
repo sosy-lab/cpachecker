@@ -79,11 +79,11 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  @Option(name="dotExport",
+  @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(name="dotExportFile",
+  @Option(secure=true, name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
@@ -92,15 +92,15 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(required=false,
+  @Option(secure=true, required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
   private int breakOnTargetState = 1;
 
-  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
       + "given as cpa.automaton.breakOnTargetState is not yet reached")
   private int extraIterationsLimit = -1;
 

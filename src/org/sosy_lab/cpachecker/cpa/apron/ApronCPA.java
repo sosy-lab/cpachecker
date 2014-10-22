@@ -55,7 +55,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ApronCPA.class);
   }
 
-  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+  @Option(secure=true, name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 

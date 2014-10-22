@@ -49,11 +49,11 @@ public class SignCPA implements ConfigurableProgramAnalysis {
 
   private LogManager logger;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for SignCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
       description="which stop operator to use for SignCPA")
   private String stopType = "SEP";
 

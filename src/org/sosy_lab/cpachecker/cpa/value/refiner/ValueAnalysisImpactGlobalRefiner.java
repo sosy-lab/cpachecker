@@ -91,20 +91,20 @@ import com.google.common.collect.SetMultimap;
 @Options(prefix="cpa.value.refinement")
 public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, StatisticsProvider {
 
-  @Option(description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
+  @Option(secure=true, description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.TOP;
 
-  @Option(description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
+  @Option(secure=true, description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
-  @Option(description="when to export the interpolation tree"
+  @Option(secure=true, description="when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
       + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
-  @Option(description="forceRestart")
+  @Option(secure=true, description="forceRestart")
   private int forceRestart = 0;
 
   ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;

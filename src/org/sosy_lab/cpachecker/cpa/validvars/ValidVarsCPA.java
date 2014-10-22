@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.validVars")
 public class ValidVarsCPA implements ConfigurableProgramAnalysis{
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValidVarsCPA")
   private String mergeType = "JOIN";
 

@@ -65,7 +65,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(name="firingRelation", values={"Always","Maxcoeff","Sumcoeff","Homeocoeff"},
+  @Option(secure=true, name="firingRelation", values={"Always","Maxcoeff","Sumcoeff","Homeocoeff"},
       description="firing relation to be used in the precision adjustment operator")
   private String firingRelation = "Always";
 
@@ -76,7 +76,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(name="generalizationOperator", values={"Top","Widen","WidenMax","WidenSum"},
+  @Option(secure=true, name="generalizationOperator", values={"Top","Widen","WidenMax","WidenSum"},
       description="generalization operator to be used in the precision adjustment operator")
   private String generalizationOperator = "Widen";
 
@@ -84,7 +84,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * SEP = identity
    * JOIN = convex hull
    */
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="merge operator to be used")
   private String mergeType = "SEP";
 

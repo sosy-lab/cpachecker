@@ -56,7 +56,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
   }
 
-  @Option(name="merge", values={"sep", "join"},
+  @Option(secure=true, name="merge", values={"sep", "join"},
       description="which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
 

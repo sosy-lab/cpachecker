@@ -59,7 +59,7 @@ import com.google.common.collect.Maps;
 @Options(prefix="cpa.conditions.path.repetitions")
 public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum repetitions of any edge in a path (-1 for infinite)",
+  @Option(secure=true, description="maximum repetitions of any edge in a path (-1 for infinite)",
       name="limit")
   @IntegerOption(min=-1)
   private int threshold = -1;

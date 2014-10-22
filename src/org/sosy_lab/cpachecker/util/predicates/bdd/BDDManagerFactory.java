@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 @Options(prefix="bdd")
 public class BDDManagerFactory {
 
-  @Option(name="package",
+  @Option(secure=true, name="package",
       description = "Which BDD package should be used?"
       + "\n- java:   JavaBDD (default, no dependencies, many features)"
       + "\n- sylvan: Sylvan (only 64bit Linux, uses multiple threads)"

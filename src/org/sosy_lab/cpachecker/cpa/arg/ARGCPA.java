@@ -81,12 +81,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(
+  @Option(secure=true,
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
-  @Option(name="errorPath.filters",
+  @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
       + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")

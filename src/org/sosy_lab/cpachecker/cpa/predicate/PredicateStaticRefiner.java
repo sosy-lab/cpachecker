@@ -83,19 +83,19 @@ import com.google.common.collect.Queues;
 @Options(prefix="staticRefiner")
 public class PredicateStaticRefiner extends StaticRefiner {
 
-  @Option(description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
+  @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(description="Add all assumtions from the control flow automaton to the precision.")
+  @Option(secure=true, description="Add all assumtions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
-  @Option(description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
+  @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumePredicatesFile = null;
 

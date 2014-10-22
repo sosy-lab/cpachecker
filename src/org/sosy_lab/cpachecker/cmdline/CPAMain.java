@@ -153,12 +153,12 @@ public class CPAMain {
 
   @Options
   private static class BootstrapOptions {
-    @Option(name="memorysafety.check",
+    @Option(secure=true, name="memorysafety.check",
         description="Whether to check for memory safety properties "
             + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
     private boolean checkMemsafety = false;
 
-    @Option(name="memorysafety.config",
+    @Option(secure=true, name="memorysafety.config",
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -167,28 +167,28 @@ public class CPAMain {
 
   @Options
   private static class MainOptions {
-    @Option(name="analysis.programNames",
+    @Option(secure=true, name="analysis.programNames",
         //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
     private String programs;
 
-    @Option(name="configuration.dumpFile",
+    @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
-    @Option(name="statistics.export", description="write some statistics to disk")
+    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(name="statistics.file",
+    @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
-    @Option(name="statistics.print", description="print statistics to console")
+    @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 

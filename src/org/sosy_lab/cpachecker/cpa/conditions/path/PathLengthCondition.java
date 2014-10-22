@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.conditions.path.length")
 public class PathLengthCondition implements PathCondition, Statistics {
 
-  @Option(description="maximum path length (-1 for infinite)",
+  @Option(secure=true, description="maximum path length (-1 for infinite)",
       name="limit")
   @IntegerOption(min=-1)
   private int threshold = -1;

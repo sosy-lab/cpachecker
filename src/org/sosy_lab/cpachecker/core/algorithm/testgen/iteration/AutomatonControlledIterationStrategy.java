@@ -70,7 +70,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
   private ConfigurableProgramAnalysis currentCPA;
   private List<Pair<AbstractState, Precision>> wrongStates;
 
-  @Option(description="Where to write the automata to.")
+  @Option(secure=true, description="Where to write the automata to.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate automatonExportPaths = PathTemplate.ofFormatString("automaton/next_automaton%s_%s.spc");
   private int automatonCounter = 0;

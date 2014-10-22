@@ -96,10 +96,10 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
-  @Option(description="slice block formulas, experimental feature!")
+  @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(
+  @Option(secure=true,
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");

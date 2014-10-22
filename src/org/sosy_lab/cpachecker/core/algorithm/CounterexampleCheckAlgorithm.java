@@ -80,15 +80,15 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
 
-  @Option(name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
+  @Option(secure=true, name="checker", toUppercase=true, values={"CBMC", "CPACHECKER"},
           description="which model checker to use for verifying counterexamples as a second check\n"
                     + "Currently CBMC or CPAchecker with a different config can be used.")
   private String checkerName = "CBMC";
 
-  @Option(description="continue analysis after an counterexample was found that was denied by the second check")
+  @Option(secure=true, description="continue analysis after an counterexample was found that was denied by the second check")
   private boolean continueAfterInfeasibleError = true;
 
-  @Option(description="If continueAfterInfeasibleError is true, remove the infeasible counterexample before continuing."
+  @Option(secure=true, description="If continueAfterInfeasibleError is true, remove the infeasible counterexample before continuing."
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 

@@ -43,16 +43,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "cpa.bdd")
 public class PredicateManager {
 
-  @Option(description = "declare first bit of all vars, then second bit,...")
+  @Option(secure=true, description = "declare first bit of all vars, then second bit,...")
   private boolean initBitwise = true;
 
-  @Option(description = "declare the bits of a var from 0 to N or from N to 0")
+  @Option(secure=true, description = "declare the bits of a var from 0 to N or from N to 0")
   private boolean initBitsIncreasing = true;
 
-  @Option(description = "declare partitions ordered")
+  @Option(secure=true, description = "declare partitions ordered")
   private boolean initPartitionsOrdered = true;
 
-  @Option(description = "declare vars partitionwise")
+  @Option(secure=true, description = "declare vars partitionwise")
   private boolean initPartitions = true;
 
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";

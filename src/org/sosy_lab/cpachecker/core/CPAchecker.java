@@ -107,23 +107,23 @@ public class CPAchecker {
 
   }
 
-  @Option(description="stop after the first error has been found")
+  @Option(secure=true, description="stop after the first error has been found")
   private boolean stopAfterError = true;
 
-  @Option(name="disable",
+  @Option(secure=true, name="disable",
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
   public static enum InitialStatesFor { ENTRY, TARGET, EXIT }
-  @Option(name="initialStatesFor",
+  @Option(secure=true, name="initialStatesFor",
       description="What CFA nodes should be the starting point of the analysis?")
   private InitialStatesFor initialStatesFor = InitialStatesFor.ENTRY;
 
-  @Option(name="algorithm.CBMC",
+  @Option(secure=true, name="algorithm.CBMC",
       description="use CBMC as an external tool from CPAchecker")
   private boolean runCBMCasExternalTool = false;
 
-  @Option(description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
+  @Option(secure=true, description="Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
   private final LogManager logger;

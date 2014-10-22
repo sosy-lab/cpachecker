@@ -52,7 +52,7 @@ class Z3SmtLogger {
 
     private final @Nullable PathCounterTemplate basicLogfile;
 
-    @Option(description = "Export solver queries in Smtlib2 format, " +
+    @Option(secure=true, description = "Export solver queries in Smtlib2 format, " +
             "there are small differences for different solvers, " +
             "choose target-solver.",
             values = { Z3, MATHSAT5 }, toUppercase = true)

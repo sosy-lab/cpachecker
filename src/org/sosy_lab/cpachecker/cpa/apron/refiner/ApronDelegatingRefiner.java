@@ -92,10 +92,10 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   /**
    * the flag to determine whether or not to check for repeated refinements
    */
-  @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
+  @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
 
-  @Option(description="Timelimit for the backup feasibility check with the apron analysis."
+  @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
       + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
                   defaultUserUnit=TimeUnit.SECONDS,

@@ -61,7 +61,7 @@ import com.google.common.collect.TreeMultimap;
 @Options(prefix = "cfa.functionCalls")
 public class FunctionCallUnwinder {
 
-  @Option(description = "how often can a function appear in the callstack as a clone of the original function?")
+  @Option(secure=true, description = "how often can a function appear in the callstack as a clone of the original function?")
   private int recursionDepth = 5;
 
   // TODO find better name, it is not always recursive

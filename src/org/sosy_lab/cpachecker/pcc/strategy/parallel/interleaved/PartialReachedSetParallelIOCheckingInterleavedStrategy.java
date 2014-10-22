@@ -63,7 +63,7 @@ import com.google.common.collect.Sets;
 @Options(prefix = "pcc.interleaved")
 public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends AbstractStrategy {
 
-  @Option(
+  @Option(secure=true,
       name = "useReadCores",
       description = "The number of cores used exclusively for proof reading. Must be less than pcc.useCores and may not be negative. Value 0 means that the cores used for reading and checking are shared")
   private int numReadThreads = 0;

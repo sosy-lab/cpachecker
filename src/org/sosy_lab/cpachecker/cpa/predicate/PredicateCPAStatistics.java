@@ -75,40 +75,40 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics extends AbstractStatistics {
 
-  @Option(description="export final predicate map",
+  @Option(secure=true, description="export final predicate map",
           name="predmap.export")
   private boolean exportPredmap = true;
 
-  @Option(description="file for exporting final predicate map",
+  @Option(secure=true, description="file for exporting final predicate map",
           name="predmap.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Paths.get("predmap.txt");
 
-  @Option(name="precondition.file", description="File for exporting the weakest precondition.")
+  @Option(secure=true, name="precondition.file", description="File for exporting the weakest precondition.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path preconditionFile = Paths.get("precondition.txt");
-  @Option(name="precondition.export", description="Export the weakest precondition?")
+  @Option(secure=true, name="precondition.export", description="Export the weakest precondition?")
   private boolean preconditionExport = false;
 
-  @Option(description="export final loop invariants",
+  @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
   private boolean exportInvariants = true;
 
-  @Option(description="export invariants as precision file?",
+  @Option(secure=true, description="export invariants as precision file?",
       name="invariants.exportAsPrecision")
   private boolean exportInvariantsAsPrecision = true;
 
-  @Option(description="file for exporting final loop invariants",
+  @Option(secure=true, description="file for exporting final loop invariants",
           name="invariants.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantsFile = Paths.get("invariants.txt");
 
-  @Option(description="file for precision that consists of invariants.",
+  @Option(secure=true, description="file for precision that consists of invariants.",
           name="invariants.precisionFile")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
-  @Option(description="file that consists of one abstraction formula for each abstraction state",
+  @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path abstractionsFile = Paths.get("abstractions.txt");

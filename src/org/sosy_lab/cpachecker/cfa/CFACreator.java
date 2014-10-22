@@ -111,88 +111,88 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
-  @Option(name="parser.usePreprocessor",
+  @Option(secure=true, name="parser.usePreprocessor",
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  @Option(name="parser.readLineDirectives",
+  @Option(secure=true, name="parser.readLineDirectives",
       description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
           + " (Always enabled when pre-processing is used.)")
   private boolean readLineDirectives = false;
 
-  @Option(name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
+  @Option(secure=true, name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description="entry function")
   private String mainFunctionName = "main";
 
-  @Option(name="analysis.machineModel",
+  @Option(secure=true, name="analysis.machineModel",
       description = "the machine model, which determines the sizes of types like int")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(name="analysis.interprocedural",
+  @Option(secure=true, name="analysis.interprocedural",
       description="run interprocedural analysis")
   private boolean interprocedural = true;
 
-  @Option(name="analysis.functionPointerCalls",
+  @Option(secure=true, name="analysis.functionPointerCalls",
       description="create all potential function pointer call edges")
   private boolean fptrCallEdges = true;
 
-  @Option(name="analysis.useGlobalVars",
+  @Option(secure=true, name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
-  @Option(name="cfa.useMultiEdges",
+  @Option(secure=true, name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
   private boolean useMultiEdges = false;
 
-  @Option(name="cfa.removeIrrelevantForSpecification",
+  @Option(secure=true, name="cfa.removeIrrelevantForSpecification",
       description="remove paths from CFA that cannot lead to a specification violation")
   private boolean removeIrrelevantForSpecification = false;
 
-  @Option(name="cfa.export",
+  @Option(secure=true, name="cfa.export",
       description="export CFA as .dot file")
   private boolean exportCfa = true;
 
-  @Option(name="cfa.exportPerFunction",
+  @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
 
-  @Option(name="cfa.callgraph.export",
+  @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
   private boolean exportFunctionCalls = true;
 
-  @Option(name="cfa.callgraph.file",
+  @Option(secure=true, name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
 
-  @Option(name="cfa.file",
+  @Option(secure=true, name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
 
-  @Option(name="cfa.checkNullPointers",
+  @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
           + "PointerExpression, or a dereferenced field access the expression is "
           + "checked if it is 0")
   private boolean checkNullPointers = false;
 
-  @Option(name="cfa.expandFunctionPointerArrayAssignments",
+  @Option(secure=true, name="cfa.expandFunctionPointerArrayAssignments",
       description="When a function pointer array element is written with a variable as index, "
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
-  @Option(name="cfa.transformIntoSingleLoop",
+  @Option(secure=true, name="cfa.transformIntoSingleLoop",
       description="This option causes the control flow automaton to be "
         + "transformed into the automaton of an equivalent program with one "
         + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
-  @Option(name="cfa.simplyfyCfa",
+  @Option(secure=true, name="cfa.simplyfyCfa",
         description="Remove all edges which don't have any effect on the program")
   private boolean simplyfyCfa = true;
 
-  @Option(name="cfa.moveDeclarationsToFunctionStart",
+  @Option(secure=true, name="cfa.moveDeclarationsToFunctionStart",
       description="With this option, all declarations in each function will be moved"
           + "to the beginning of each function. Do only use this option if you are"
           + "not able to handle initializer lists and designated initializers (like"
@@ -201,11 +201,11 @@ public class CFACreator {
           + " one")
   private boolean moveDeclarationsToFunctionStart = false;
 
-  @Option(name="cfa.useFunctionCallUnwinding",
+  @Option(secure=true, name="cfa.useFunctionCallUnwinding",
       description="unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
 
-  @Option(description="C or Java?")
+  @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
   private final LogManager logger;

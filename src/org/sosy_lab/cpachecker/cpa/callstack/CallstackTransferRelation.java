@@ -54,18 +54,18 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(name="depth", description = "depth of recursion bound")
+  @Option(secure=true, name="depth", description = "depth of recursion bound")
   protected int recursionBoundDepth = 0;
 
-  @Option(name="skipRecursion", description = "Skip recursion (this is unsound)." +
+  @Option(secure=true, name="skipRecursion", description = "Skip recursion (this is unsound)." +
       " Treat function call as a statement (the same as for functions without bodies)")
   protected boolean skipRecursion = false;
 
-  @Option(description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
+  @Option(secure=true, description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
       " Imprecise function pointer tracking often lead to false recursions.")
   protected boolean skipFunctionPointerRecursion = false;
 
-  @Option(description = "Skip recursion if it happens only by going via a void function (this is unsound).")
+  @Option(secure=true, description = "Skip recursion if it happens only by going via a void function (this is unsound).")
   protected boolean skipVoidRecursion = false;
 
   protected final LogManagerWithoutDuplicates logger;

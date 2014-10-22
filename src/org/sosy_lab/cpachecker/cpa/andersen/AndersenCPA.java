@@ -48,11 +48,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for PointerACPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 

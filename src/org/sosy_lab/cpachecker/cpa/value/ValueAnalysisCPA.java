@@ -78,26 +78,26 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(description="enables target checking for value-analysis, needed for predicate-analysis")
+  @Option(secure=true, description="enables target checking for value-analysis, needed for predicate-analysis")
   private boolean doTargetCheck = false;
 
-  @Option(name="inPredicatedAnalysis",
+  @Option(secure=true, name="inPredicatedAnalysis",
       description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
   private boolean useInPredicatedAnalysisWithoutRefinement = false;
 
-  @Option(name="refiner.performInitialStaticRefinement",
+  @Option(secure=true, name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
-  @Option(description="get an initial precison from file")
+  @Option(secure=true, description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 

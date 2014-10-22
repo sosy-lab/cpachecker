@@ -154,7 +154,7 @@ public interface CParser extends Parser {
   @Options(prefix="parser")
   public final static class ParserOptions {
 
-    @Option(description="C dialect for parser")
+    @Option(secure=true, description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
     private ParserOptions() { }

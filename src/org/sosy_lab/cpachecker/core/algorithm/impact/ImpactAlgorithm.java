@@ -126,7 +126,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description="enable the Forced Covering optimization")
+  @Option(secure=true, description="enable the Forced Covering optimization")
   private boolean useForcedCovering = true;
 
 

@@ -140,7 +140,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  @Option(required=true, description = "List of files with configurations to use. "
+  @Option(secure=true, required=true, description = "List of files with configurations to use. "
       + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
       + "which means that this configuration will only be used if the previous configuration ended with a matching condition.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -318,30 +318,30 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   @Options
   private static class RestartAlgorithmOptions {
 
-    @Option(name="analysis.collectAssumptions",
+    @Option(secure=true, name="analysis.collectAssumptions",
         description="use assumption collecting algorithm")
         boolean collectAssumptions = false;
 
-    @Option(name = "analysis.algorithm.CEGAR",
+    @Option(secure=true, name = "analysis.algorithm.CEGAR",
         description = "use CEGAR algorithm for lazy counter-example guided analysis"
           + "\nYou need to specify a refiner with the cegar.refiner option."
           + "\nCurrently all refiner require the use of the ARGCPA.")
           boolean useCEGAR = false;
 
-    @Option(name="analysis.checkCounterexamples",
+    @Option(secure=true, name="analysis.checkCounterexamples",
         description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
         boolean checkCounterexamples = false;
 
-    @Option(name="analysis.algorithm.BMC",
+    @Option(secure=true, name="analysis.algorithm.BMC",
         description="use a BMC like algorithm that checks for satisfiability "
           + "after the analysis has finished, works only with PredicateCPA")
           boolean useBMC = false;
 
-    @Option(name="analysis.algorithm.CBMC",
+    @Option(secure=true, name="analysis.algorithm.CBMC",
         description="use CBMC as an external tool from CPAchecker")
         boolean runCBMCasExternalTool = false;
 
-    @Option(name="analysis.unknownIfUnrestrictedProgram",
+    @Option(secure=true, name="analysis.unknownIfUnrestrictedProgram",
         description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
     private boolean unknownIfUnrestrictedProgram = false;
 

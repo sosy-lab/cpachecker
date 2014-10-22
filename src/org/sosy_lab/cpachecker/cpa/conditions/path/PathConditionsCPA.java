@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 @Options(prefix="cpa.conditions.path")
 public class PathConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA, StatisticsProvider {
 
-  @Option(description="The condition", name="condition", required=true)
+  @Option(secure=true, description="The condition", name="condition", required=true)
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.conditions.path")
   private Class<? extends PathCondition> conditionClass;
 

@@ -60,7 +60,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
-  @Option(description="maximum number of condition adjustments (-1 for infinite)")
+  @Option(secure=true, description="maximum number of condition adjustments (-1 for infinite)")
   @IntegerOption(min=-1)
   private int adjustmentLimit = -1;
 

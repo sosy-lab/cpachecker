@@ -93,12 +93,12 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
-  @Option(name="refinement.atomicPredicates",
+  @Option(secure=true, name="refinement.atomicPredicates",
       description="use only the atoms from the interpolants as predicates, "
           + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(name="precision.sharing",
+  @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
@@ -109,32 +109,32 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     ;
   }
 
-  @Option(name="refinement.keepAllPredicates",
+  @Option(secure=true, name="refinement.keepAllPredicates",
       description="During refinement, keep predicates from all removed parts "
           + "of the ARG. Otherwise, only predicates from the error path are kept.")
   private boolean keepAllPredicates = false;
 
-  @Option(name="refinement.restartAfterRefinements",
+  @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
           + "after N refinements. 0 to disable, 1 for always.")
   @IntegerOption(min=0)
   private int restartAfterRefinements = 0;
 
-  @Option(name="refinement.sharePredicates",
+  @Option(secure=true, name="refinement.sharePredicates",
       description="During refinement, add all new predicates to the precisions "
           + "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
-  @Option(name="refinement.useBddInterpolantSimplification",
+  @Option(secure=true, name="refinement.useBddInterpolantSimplification",
       description="Use BDDs to simplify interpolants "
           + "(removing irrelevant predicates)")
   private boolean useBddInterpolantSimplification = false;
 
-  @Option(name="refinement.dumpPredicates",
+  @Option(secure=true, name="refinement.dumpPredicates",
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(name="refinement.dumpPredicatesFile",
+  @Option(secure=true, name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");

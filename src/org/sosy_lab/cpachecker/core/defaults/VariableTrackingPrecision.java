@@ -157,7 +157,7 @@ public abstract class VariableTrackingPrecision implements Precision {
       LOCATION;
     }
 
-    @Option(description = "whether to track relevant variables only at the exact "
+    @Option(secure=true, description = "whether to track relevant variables only at the exact "
         + "program location (sharing=location), or within their respective"
         + " (function-/global-) scope (sharing=scoped).")
     private Sharing sharing = Sharing.SCOPE;
@@ -170,22 +170,22 @@ public abstract class VariableTrackingPrecision implements Precision {
   @Options(prefix="precision")
   public static class ConfigurablePrecision extends VariableTrackingPrecision{
 
-    @Option(name="variableBlacklist",
+    @Option(secure=true, name="variableBlacklist",
         description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
     private Pattern variableBlacklist = Pattern.compile("");
 
-    @Option(description = "If this option is used, booleans from the cfa are tracked.")
+    @Option(secure=true, description = "If this option is used, booleans from the cfa are tracked.")
     private boolean trackBooleanVariables = true;
 
-    @Option(description = "If this option is used, variables that are only compared"
+    @Option(secure=true, description = "If this option is used, variables that are only compared"
         + " for equality are tracked.")
     private boolean trackIntEqualVariables = true;
 
-    @Option(description = "If this option is used, variables, that are only used in"
+    @Option(secure=true, description = "If this option is used, variables, that are only used in"
         + " simple calculations (add, sub, lt, gt, eq) are tracked.")
     private boolean trackIntAddVariables = true;
 
-    @Option(description ="If this option is used, variables that have type double"
+    @Option(secure=true, description ="If this option is used, variables that have type double"
         + " or float are tracked.")
     private boolean trackFloatVariables = true;
 
