@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 @Options
 public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
 
-  @Option(
+  @Option(secure=true,
       name = "cpa.propertychecker.className",
       description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
   private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
-  @Option(
+  @Option(secure=true,
       name = "cpa.propertychecker.parameters",
       description = "List of parameters for constructor of propertychecker.className. Parameter values are " +
           "specified in the order the parameters are defined in the respective constructor. Every parameter value is finished " +

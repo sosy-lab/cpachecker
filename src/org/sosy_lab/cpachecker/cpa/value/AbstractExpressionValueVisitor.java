@@ -875,8 +875,11 @@ public abstract class AbstractExpressionValueVisitor
       case BYTE:
         numResult = (byte) numResult;
         break;
+      case LONG:
+        // do nothing, value is already a long
+        break;
       default:
-        // do nothing, last possibility is long, which the value already is
+        throw new AssertionError("No integer type: " + pCalculationType);
       }
 
       return new NumericValue(numResult);

@@ -77,7 +77,7 @@ public class BAMTransferRelation implements TransferRelation {
   @Options
   static class PCCInformation {
 
-    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
 
     private static PCCInformation instance = null;
@@ -180,8 +180,8 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
-          final AbstractState pState, final Precision pPrecision)
-    throws CPAException, InterruptedException {
+      final AbstractState pState, final Precision pPrecision)
+          throws CPAException, InterruptedException {
 
     forwardPrecisionToExpandedPrecision.clear();
 
@@ -381,6 +381,32 @@ public class BAMTransferRelation implements TransferRelation {
 
     return expandedReturnStates;
   }
+
+  private List<AbstractState> expandResultStates(
+          final Collection<Pair<AbstractState, Precision>> reducedResult,
+          final Block outerSubtree, final AbstractState state, final Precision precision) {
+    final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
+    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
+      AbstractState reducedState = reducedPair.getFirst();
+      Precision reducedPrecision = reducedPair.getSecond();
+
+      AbstractState expandedState =
+              wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
+      expandedToReducedCache.put(expandedState, reducedState);
+      expandedToBlockCache.put(expandedState, currentBlock);
+
+      Precision expandedPrecision =
+              outerSubtree == null ? reducedPrecision : // special case: return from main
+              wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
+
+      ((ARGState)expandedState).addParent((ARGState) state);
+      expandedResult.add(expandedState);
+
+      forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+    }
+    return expandedResult;
+  }
+
 
   /** Get reduced exit-states for a block. If possible, cached information is used. */
   private Collection<Pair<AbstractState, Precision>> getReducedResult(
@@ -656,31 +682,6 @@ public class BAMTransferRelation implements TransferRelation {
       state = expandedToReducedCache.get(state);
     }
     return false;
-  }
-
-  private List<AbstractState> expandResultStates(
-          final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree, final AbstractState state, final Precision precision) {
-    final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
-    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
-      AbstractState reducedState = reducedPair.getFirst();
-      Precision reducedPrecision = reducedPair.getSecond();
-
-      AbstractState expandedState =
-              wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
-      expandedToReducedCache.put(expandedState, reducedState);
-      expandedToBlockCache.put(expandedState, currentBlock);
-
-      Precision expandedPrecision =
-              outerSubtree == null ? reducedPrecision : // special case: return from main
-              wrappedReducer.getVariableExpandedPrecision(precision, outerSubtree, reducedPrecision);
-
-      ((ARGState)expandedState).addParent((ARGState) state);
-      expandedResult.add(expandedState);
-
-      forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
-    }
-    return expandedResult;
   }
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.

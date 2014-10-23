@@ -139,22 +139,22 @@ public class FormulaManagerView {
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
 
-  @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
+  @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate formulaDumpFile = PathTemplate.ofFormatString("%s%04d-%s%03d.smt2");
 
-  @Option(description="try to add some useful static-learning-like axioms for "
+  @Option(secure=true, description="try to add some useful static-learning-like axioms for "
     + "bitwise operations (which are encoded as UFs): essentially, "
     + "we simply collect all the numbers used in bitwise operations, "
     + "and add axioms like (0 & n = 0)")
   private boolean useBitwiseAxioms = false;
 
-  @Option(description="Theory to use as backend for bitvectors."
+  @Option(secure=true, description="Theory to use as backend for bitvectors."
       + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
   private Theory encodeBitvectorAs = Theory.RATIONAL;
 
-  @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
+  @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
   protected FormulaManagerView(LoadManagers pLoadManagers, FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {

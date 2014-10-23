@@ -170,33 +170,33 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description = "If BMC did not find a bug, check whether "
+  @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
 
-  @Option(description="Check reachability of target states after analysis "
+  @Option(secure=true, description="Check reachability of target states after analysis "
       + "(classical BMC). The alternative is to check the reachability "
       + "as soon as the target states are discovered, which is done if "
       + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  @Option(description="try using induction to verify programs with loops")
+  @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(description="Generate invariants and add them to the induction hypothesis.")
+  @Option(secure=true, description="Generate invariants and add them to the induction hypothesis.")
   private boolean useInvariantsForInduction = false;
 
-  @Option(description="Generate additional invariants by induction and add them to the induction hypothesis.")
+  @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
-  @Option(description="Adds pre-loop information to the induction hypothesis. "
+  @Option(secure=true, description="Adds pre-loop information to the induction hypothesis. "
       + "This is unsound and should generally not be used; however "
       + "it is provided as an implementation of the technique introduced in "
       + "the SV-COMP 2013 competition contribution of ESBMC 1.20.")
   private boolean havocLoopTerminationConditionVariablesOnly = false;
 
-  @Option(description="dump counterexample formula to file")
+  @Option(secure=true, description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 

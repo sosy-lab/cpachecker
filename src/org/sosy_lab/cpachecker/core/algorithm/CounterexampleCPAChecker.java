@@ -65,13 +65,13 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final ARGCPA cpa;
 
-  @Option(name = "path.file",
+  @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
       + "as input for the counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path specFile;
 
-  @Option(name="config",
+  @Option(secure=true, name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile = Paths.get("config/explicitAnalysis-no-cbmc.properties");
@@ -129,6 +129,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
 
     CFANode entryNode = extractLocation(pRootState);
+    LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {
       Configuration lConfig = Configuration.builder()
@@ -136,9 +137,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.toAbsolutePath().toString())
               .build();
       ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
-      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownNotifier).start();
+      ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger, lShutdownNotifier);
+      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
@@ -147,8 +148,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       lAlgorithm.run(lReached);
 
       lShutdownNotifier.requestShutdown("Analysis terminated");
-      CPAs.closeCpaIfPossible(lCpas, logger);
-      CPAs.closeIfPossible(lAlgorithm, logger);
+      CPAs.closeCpaIfPossible(lCpas, lLogger);
+      CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       // counterexample is feasible if a target state is reachable
       return from(lReached).anyMatch(IS_TARGET_STATE);

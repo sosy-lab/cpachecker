@@ -60,7 +60,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private final BAMPredicateCPAStatistics stats;
   private final RelevantPredicatesComputer relevantPredicatesComputer;
 
-  @Option(description="whether to use auxiliary predidates for reduction")
+  @Option(secure=true, description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
 
 

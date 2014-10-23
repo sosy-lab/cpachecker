@@ -96,14 +96,14 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
-  @Option(description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
+  @Option(secure=true, description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
-  @Option(description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
+  @Option(secure=true, description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
   private boolean ignoreInvalidFunctionPointerCalls = false;
 
-  @Option(description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
+  @Option(secure=true, description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
   private boolean ignoreUnknownFunctionPointerCalls = false;
 
   private final LogManagerWithoutDuplicates logger;

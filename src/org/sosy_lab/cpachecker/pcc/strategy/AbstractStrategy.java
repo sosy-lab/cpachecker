@@ -64,13 +64,13 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected PCStrategyStatistics stats;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
-  @Option(
+  @Option(secure=true,
       name = "proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
-  @Option(
+  @Option(secure=true,
       name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
   @IntegerOption(min=1)

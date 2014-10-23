@@ -70,15 +70,15 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.bam")
 class BAMCPAStatistics implements Statistics {
 
-  @Option(description="export blocked ARG as .dot file")
+  @Option(secure=true, description="export blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("BlockedARG.dot");
 
-  @Option(description="export single blocked ARG as .dot files, should contain '%d'")
+  @Option(secure=true, description="export single blocked ARG as .dot files, should contain '%d'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate indexedArgFile = PathTemplate.ofFormatString("ARGs/ARG_%d.dot");
 
-  @Option(description="export used parts of blocked ARG as .dot file")
+  @Option(secure=true, description="export used parts of blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
@@ -222,7 +222,7 @@ class BAMCPAStatistics implements Statistics {
               Predicates.alwaysTrue(),
               highlightSummaryEdge);
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      logger.logUserException(Level.WARNING, e, String.format("Could not write ARG to file: %s", file));
     }
   }
 

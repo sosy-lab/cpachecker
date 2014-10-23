@@ -69,6 +69,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
 
   private final Function<ParamFormulaType, TFormulaInfo> extractor =
       new Function<ParamFormulaType, TFormulaInfo>() {
+        @Override
         public TFormulaInfo apply(ParamFormulaType input) {
           return extractInfo(input);
         }

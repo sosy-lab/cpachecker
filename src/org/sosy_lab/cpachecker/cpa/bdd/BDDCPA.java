@@ -74,7 +74,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
-  @Option(description="mergeType")
+  @Option(secure=true, description="mergeType")
   private String merge = "join";
 
   private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)

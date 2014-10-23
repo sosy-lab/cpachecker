@@ -71,12 +71,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Options(prefix = "cpa.predicate")
 public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(name = "satCheck",
+  @Option(secure=true, name = "satCheck",
       description = "maximum blocksize before a satisfiability check is done\n"
           + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
   private int satCheckBlockSize = 0;
 
-  @Option(description = "check satisfiability when a target state has been found (should be true)")
+  @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
   // statistics

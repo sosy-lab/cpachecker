@@ -435,7 +435,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       }
 
-      ((BAMPredicateReducer)predicateCpa.getReducer()).clearCaches();
+      predicateCpa.getReducer().clearCaches();
     }
 
     @Override

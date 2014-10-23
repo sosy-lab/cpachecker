@@ -79,12 +79,12 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
 @Options(prefix="cpa.predicate.solver.smtinterpol")
 class SmtInterpolEnvironment {
 
-  @Option(description="Double check generated results like interpolants and models whether they are correct")
+  @Option(secure=true, description="Double check generated results like interpolants and models whether they are correct")
   private boolean checkResults = false;
 
   private final @Nullable PathCounterTemplate smtLogfile;
 
-  @Option(description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
+  @Option(secure=true, description = "List of further options which will be set to true for SMTInterpol in addition to the default options. "
       + "Format is 'option1,option2,option3'")
   private List<String> furtherOptions = ImmutableList.of();
 

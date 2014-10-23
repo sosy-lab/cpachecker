@@ -93,31 +93,31 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
   }
 
-  @Option(name="abstraction.type", toUppercase=true, values={"BDD", "SYLVAN", "FORMULA"},
+  @Option(secure=true, name="abstraction.type", toUppercase=true, values={"BDD", "SYLVAN", "FORMULA"},
       description="What to use for storing abstractions")
   private String abstractionType = "BDD";
 
-  @Option(name="blk.useCache", description="use caching of path formulas")
+  @Option(secure=true, name="blk.useCache", description="use caching of path formulas")
   private boolean useCache = true;
 
-  @Option(name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
+  @Option(secure=true, name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
   private boolean enableBlockreducer = false;
 
-  @Option(name="merge", values={"SEP", "ABE"}, toUppercase=true,
+  @Option(secure=true, name="merge", values={"SEP", "ABE"}, toUppercase=true,
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
-  @Option(name="refinement.performInitialStaticRefinement",
+  @Option(secure=true, name="refinement.performInitialStaticRefinement",
       description="use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
-  @Option(description="Generate invariants and strengthen the formulas during abstraction with them.")
+  @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
-  @Option(description="Dynamically synthesize additional precision elements during precision adjustment.")
+  @Option(secure=true, description="Dynamically synthesize additional precision elements during precision adjustment.")
   private boolean synthesizePrecisionOnAbstraction = false;
 
-  @Option(description="Direction of the analysis?")
+  @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
   protected final Configuration config;

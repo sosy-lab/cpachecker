@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
 
-  @Option(
+  @Option(secure=true,
       description = "If enabled, distributes checking of partial elements depending on actual checking costs, else uses the number of elements")
   private boolean enableLoadDistribution = false;
 

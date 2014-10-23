@@ -52,7 +52,7 @@ import com.google.common.collect.ListMultimap;
 @Options(prefix="staticRefiner")
 abstract public class StaticRefiner {
 
-  @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
+  @Option(secure=true, description="collect at most this number of assumes along a path, backwards from each target (= error) location")
   private int maxBackscanPathAssumes = 1;
 
   protected final LogManager logger;

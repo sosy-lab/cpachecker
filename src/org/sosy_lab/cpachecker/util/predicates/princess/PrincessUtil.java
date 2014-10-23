@@ -43,12 +43,10 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
-import ap.parser.IIntFormula;
 import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-import ap.parser.ITimes;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */

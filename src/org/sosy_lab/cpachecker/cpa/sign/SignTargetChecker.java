@@ -39,11 +39,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.sign")
 public class SignTargetChecker {
 
-  @Option(
+  @Option(secure=true,
       name = "varName",
       description = "Variable name of the variable for which should be checked that its value is globally in a certain bound ")
   private String errorVar = "";
-  @Option(description = "Abstract value describing all values which are allowed for the variable which is checked")
+  @Option(secure=true, description = "Abstract value describing all values which are allowed for the variable which is checked")
   private SIGN allowedAbstractValue = SIGN.ALL;
 
   private BooleanFormula errorF;

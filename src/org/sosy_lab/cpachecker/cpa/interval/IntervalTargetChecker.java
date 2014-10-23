@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 @Options(prefix="cpa.interval")
 public class IntervalTargetChecker {
 
-  @Option(name = "varName",
+  @Option(secure=true, name = "varName",
       description = "Variable name of the variable for which should be checked that its value is globally in a certain bound ")
   private String errorVar = "";
-  @Option(description = "Lowest allowed value of the variable")
+  @Option(secure=true, description = "Lowest allowed value of the variable")
   private long allowedLow = Long.MIN_VALUE;
-  @Option(description = "Highest allowed value of the variable")
+  @Option(secure=true, description = "Highest allowed value of the variable")
   private long allowedHigh = Long.MAX_VALUE;
 
   private BooleanFormula errorF;

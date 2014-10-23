@@ -61,7 +61,7 @@ public class CPATestRunner {
       boolean writeLogToSTDOUT) throws Exception {
 
     Configuration config = Configuration.builder()
-        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
         .setOptions(pProperties).build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();

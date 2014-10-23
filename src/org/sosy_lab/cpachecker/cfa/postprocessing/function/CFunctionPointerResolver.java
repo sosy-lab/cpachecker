@@ -98,7 +98,7 @@ import com.google.common.collect.Sets;
 @Options
 public class CFunctionPointerResolver {
 
-  @Option(name="analysis.functionPointerEdgesForUnknownPointer",
+  @Option(secure=true, name="analysis.functionPointerEdgesForUnknownPointer",
       description="Create edge for skipping a function pointer call if its value is unknown.")
   private boolean createUndefinedFunctionCall = true;
 
@@ -111,7 +111,7 @@ public class CFunctionPointerResolver {
     EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
   }
 
-  @Option(name="analysis.functionPointerTargets",
+  @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
   private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
 

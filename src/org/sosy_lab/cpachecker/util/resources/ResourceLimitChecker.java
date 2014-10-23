@@ -143,14 +143,14 @@ public final class ResourceLimitChecker {
   @Options(prefix="limits")
   private static class ResourceLimitOptions {
 
-    @Option(name="time.wall",
+    @Option(secure=true, name="time.wall",
         description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
         defaultUserUnit=TimeUnit.SECONDS,
         min=-1)
     private TimeSpan walltime = TimeSpan.ofNanos(-1);
 
-    @Option(name="time.cpu",
+    @Option(secure=true, name="time.cpu",
         description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
         defaultUserUnit=TimeUnit.SECONDS,

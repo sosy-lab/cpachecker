@@ -58,6 +58,7 @@ public final class DOTBuilder {
 
   private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
       new Function<CFANode, String>() {
+        @Override
         public String apply(CFANode node) {
           return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
         }

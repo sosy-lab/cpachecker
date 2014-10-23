@@ -67,7 +67,7 @@ public class AutomatonInternalTest {
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = Configuration.builder()
-        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
         .build();
     logger = TestLogManager.getInstance();
 

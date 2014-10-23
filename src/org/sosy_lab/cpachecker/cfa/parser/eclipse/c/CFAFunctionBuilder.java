@@ -176,7 +176,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
-  @Option(description="Also initialize local variables with default values, "
+  @Option(secure=true, description="Also initialize local variables with default values, "
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 

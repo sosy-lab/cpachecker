@@ -79,17 +79,17 @@ public class PartingstarInterface {
   private Timer specAssTimer = new Timer();
   private Timer abstractionTimer = new Timer();
 
-  @Option(name="pspath", required=true,
+  @Option(secure=true, name="pspath", required=true,
       description="path to partingstar command")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path psPath = null;
 
-  @Option(name="logicsfile", required=true,
+  @Option(secure=true, name="logicsfile", required=true,
       description="path to a file with logic rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path logicsFile = null;
 
-  @Option(name="abstractionfile", required=true,
+  @Option(secure=true, name="abstractionfile", required=true,
       description="path to a file with abstraction rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path abstractionFile = null;

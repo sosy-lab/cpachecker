@@ -69,7 +69,7 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(description = "Collect information about matched (and traversed) tokens.")
+  @Option(secure=true, description = "Collect information about matched (and traversed) tokens.")
   private boolean collectTokenInformation = false;
 
   private final ControlAutomatonCPA cpa;

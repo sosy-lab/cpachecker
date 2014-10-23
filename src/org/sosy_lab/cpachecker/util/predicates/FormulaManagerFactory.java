@@ -82,23 +82,23 @@ public class FormulaManagerFactory {
     ;
   }
 
-  @Option(name="solver.useLogger",
+  @Option(secure=true, name="solver.useLogger",
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
 
-  @Option(name="solver.logAllQueries",
+  @Option(secure=true, name="solver.logAllQueries",
       description = "Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
-  @Option(name="solver.logfile",
+  @Option(secure=true, name="solver.logfile",
       description = "Export solver queries in Smtlib format into a file.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.")
+  @Option(secure=true, description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.")
   private Solvers solver = Solvers.MATHSAT5;
 
-  @Option(description="Which solver to use specifically for interpolation (default is to use the main one).")
+  @Option(secure=true, description="Which solver to use specifically for interpolation (default is to use the main one).")
   private Solvers interpolationSolver = null;
 
   private final LogManager logger;

@@ -75,16 +75,16 @@ import com.google.common.base.Throwables;
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator implements InvariantGenerator {
 
-  @Option(name="config",
+  @Option(secure=true, name="config",
           required=true,
           description="configuration file for invariant generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile;
 
-  @Option(description="generate invariants in parallel to the normal analysis")
+  @Option(secure=true, description="generate invariants in parallel to the normal analysis")
   private boolean async = false;
 
-  @Option(description="adjust invariant generation conditions if supported by the analysis")
+  @Option(secure=true, description="adjust invariant generation conditions if supported by the analysis")
   private boolean adjustConditions = false;
 
   private final Timer invariantGeneration = new Timer();

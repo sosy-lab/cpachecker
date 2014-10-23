@@ -67,13 +67,13 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(SplittingSMGCPA.class);
   }
 
-  @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
-  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  @Option(secure=true, name="memoryErrors", description = "Determines if memory errors are target states")
   private boolean memoryErrors = true;
 
-  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
 
   private final AbstractDomain abstractDomain;

@@ -45,15 +45,15 @@ import com.google.common.collect.Table;
 @Options(prefix="cpa.stator.policy")
 public final class PolicyAbstractDomain implements AbstractDomain {
 
-  @Option(name="pathFocusing",
+  @Option(secure=true, name="pathFocusing",
       description="Run (simplified) path focusing")
   private boolean pathFocusing = true;
 
-  @Option(name="runAcceleratedValueDetermination",
+  @Option(secure=true, name="runAcceleratedValueDetermination",
       description="Maximize for the sum of the templates during value determination")
   private boolean runAcceleratedValueDetermination = true;
 
-  @Option(name="useCompactedValueDetermination",
+  @Option(secure=true, name="useCompactedValueDetermination",
       description="Use only relevant nodes for value determination")
   private boolean useCompactedValueDetermination = true;
 

@@ -115,6 +115,7 @@ public class PathFocusingManager {
           boolean allMidEqual = Iterables.all(
               midRow.values(),
               new Predicate<MultiEdge>() {
+                @Override
                 public boolean apply(MultiEdge input) {
                   return input.equals(fromToMid);
                 }
@@ -125,6 +126,7 @@ public class PathFocusingManager {
 
           final MultiEdge midToTo = toRow.values().iterator().next();
           boolean allEqual = Iterables.all(toRow.values(), new Predicate<MultiEdge>() {
+            @Override
             public boolean apply(MultiEdge input) {
               return input.equals(midToTo);
             }

@@ -78,11 +78,11 @@ import com.google.common.collect.ImmutableSet;
 @Options
 public class CFASecondPassBuilder {
 
-  @Option(name="analysis.summaryEdges",
+  @Option(secure=true, name="analysis.summaryEdges",
       description="create summary call statement edges")
   private boolean summaryEdges = false;
 
-  @Option(name="cfa.assumeFunctions",
+  @Option(secure=true, name="cfa.assumeFunctions",
       description="Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 

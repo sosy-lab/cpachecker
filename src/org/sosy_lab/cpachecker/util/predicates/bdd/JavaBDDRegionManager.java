@@ -74,13 +74,13 @@ class JavaBDDRegionManager implements RegionManager {
 
   private static final Level LOG_LEVEL = Level.FINE;
 
-  @Option(description="Initial size of the BDD node table.")
+  @Option(secure=true, description="Initial size of the BDD node table.")
   private int initTableSize = 10000;
 
-  @Option(description="Size of the BDD cache if cache ratio is not used.")
+  @Option(secure=true, description="Size of the BDD cache if cache ratio is not used.")
   private int cacheSize = 1000;
 
-  @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+  @Option(secure=true, description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
   private double cacheRatio = 0.1;
 
   // Statistics

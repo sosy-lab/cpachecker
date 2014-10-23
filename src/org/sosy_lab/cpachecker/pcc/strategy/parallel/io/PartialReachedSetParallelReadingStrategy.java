@@ -67,7 +67,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
 
-  @Option(description = "enables parallel checking of partial certificate")
+  @Option(secure=true, description = "enables parallel checking of partial certificate")
   private boolean enableParallelCheck = false;
   private int nextPartition;
 

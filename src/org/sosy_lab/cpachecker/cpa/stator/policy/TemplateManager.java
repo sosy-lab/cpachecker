@@ -14,11 +14,11 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
-  @Option(name="generateLowerBound",
+  @Option(secure=true, name="generateLowerBound",
       description="Generate templates for the lower bounds of each variable")
   private boolean generateLowerBound = true;
 
-  @Option(name="generateUpperBound",
+  @Option(secure=true, name="generateUpperBound",
       description="Generate templates for the upper bounds of each variable")
   private boolean generateUpperBound = true;
 

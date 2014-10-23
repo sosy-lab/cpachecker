@@ -60,8 +60,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
-import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -78,8 +78,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Lists;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
@@ -90,30 +90,30 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
-  @Option(name="reachedSet.export",
+  @Option(secure=true, name="reachedSet.export",
       description="print reached set to text file")
   private boolean exportReachedSet = false;
 
-  @Option(name="reachedSet.file",
+  @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetFile = Paths.get("reached.txt");
 
-  @Option(name="reachedSet.dot",
+  @Option(secure=true, name="reachedSet.dot",
       description="print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
 
-  @Option(name="coverage.export",
+  @Option(secure=true, name="coverage.export",
       description="print coverage info to file")
   private boolean exportCoverage = true;
 
-  @Option(name="coverage.file",
+  @Option(secure=true, name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputCoverageFile = Paths.get("coverage.info");
 
-  @Option(name="statistics.memory",
+  @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
@@ -316,6 +316,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
         =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
 
     Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
+      @Override
       public String apply(CFANode node) {
         StringBuilder buf = new StringBuilder();
         buf.append(node.getNodeNumber()).append("\n");

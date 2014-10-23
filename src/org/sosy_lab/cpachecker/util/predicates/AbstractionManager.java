@@ -99,7 +99,7 @@ public final class AbstractionManager {
   // and the mapping atom -> predicate
   private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
 
-  @Option(name = "abs.useCache", description = "use caching of region to formula conversions")
+  @Option(secure=true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
 
   private final Map<Region, BooleanFormula> toConcreteCache;

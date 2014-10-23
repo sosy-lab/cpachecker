@@ -90,7 +90,7 @@ import com.google.common.base.Optional;
 
 @Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation {
-  @Option(description="decides whether one (false) or two (true) successors should be created "
+  @Option(secure=true, description="decides whether one (false) or two (true) successors should be created "
     + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
   /**
@@ -100,7 +100,7 @@ public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation
 
   private final Set<String> globalFieldVars = new HashSet<>();
 
-  @Option(description="at most that many intervals will be tracked per variable, -1 if number not restricted")
+  @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
 
   public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {

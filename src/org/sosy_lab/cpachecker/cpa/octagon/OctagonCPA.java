@@ -56,12 +56,12 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(OctagonCPA.class);
   }
 
-  @Option(name="octagonLibrary", toUppercase=true, values={"INT", "FLOAT"},
+  @Option(secure=true, name="octagonLibrary", toUppercase=true, values={"INT", "FLOAT"},
       description="with this option the number representation in the"
           + " library will be changed between floats and ints.")
   private String octagonLibrary = "INT";
 
-  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+  @Option(secure=true, name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 

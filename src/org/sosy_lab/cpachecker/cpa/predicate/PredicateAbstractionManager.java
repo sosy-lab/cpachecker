@@ -128,39 +128,39 @@ public class PredicateAbstractionManager {
     ;
   }
 
-  @Option(name = "abstraction.cartesian",
+  @Option(secure=true, name = "abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   @Deprecated
   private boolean cartesianAbstraction = false;
 
-  @Option(name = "abstraction.computation",
+  @Option(secure=true, name = "abstraction.computation",
       description = "whether to use Boolean or Cartesian abstraction or both")
   private AbstractionType abstractionType = AbstractionType.BOOLEAN;
 
-  @Option(name = "abstraction.dumpHardQueries",
+  @Option(secure=true, name = "abstraction.dumpHardQueries",
       description = "dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
 
-  @Option(name = "abstraction.reuseAbstractionsFrom",
+  @Option(secure=true, name = "abstraction.reuseAbstractionsFrom",
       description="An initial set of comptued abstractions that might be reusable")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path reuseAbstractionsFrom;
 
-  @Option(description = "Max. number of edge of the abstraction tree to prescan for reuse")
+  @Option(secure=true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
   private int maxAbstractionReusePrescan = 1;
 
-  @Option(name = "abs.useCache", description = "use caching of abstractions")
+  @Option(secure=true, name = "abs.useCache", description = "use caching of abstractions")
   private boolean useCache = true;
 
-  @Option(name="refinement.splitItpAtoms",
+  @Option(secure=true, name="refinement.splitItpAtoms",
       description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  @Option(name = "abstraction.identifyTrivialPredicates",
+  @Option(secure=true, name = "abstraction.identifyTrivialPredicates",
       description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
 
-  @Option(name = "abstraction.simplify",
+  @Option(secure=true, name = "abstraction.simplify",
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
 
@@ -871,6 +871,11 @@ public class PredicateAbstractionManager {
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
     BooleanFormula symbolicAbs = amgr.toConcrete(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
+
+    if (simplifyAbstractionFormula) {
+      symbolicAbs = fmgr.simplify(symbolicAbs);
+      instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
+    }
 
     return new AbstractionFormula(fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }

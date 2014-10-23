@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
@@ -556,7 +557,7 @@ public class CProgramScope implements Scope {
     }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
 
       @Override
-      public CSimpleDeclaration transformEntry(String pArg0, Collection<CSimpleDeclaration> pArg1) {
+      public CSimpleDeclaration transformEntry(String pArg0, @Nonnull Collection<CSimpleDeclaration> pArg1) {
         return pArg1.iterator().next();
       }
 

@@ -388,6 +388,7 @@ public class ErrorPathClassifier {
    * @param errorPath the original error path
    * @param pPrefixes the list of prefixes
    */
+  @SuppressWarnings("unused")
   private void exportToDot(MutableARGPath errorPath, List<MutableARGPath> pPrefixes) {
     SetMultimap<ARGState, ARGState> successorRelation = buildSuccessorRelation(errorPath.getLast().getFirst());
 

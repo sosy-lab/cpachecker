@@ -63,28 +63,28 @@ import com.google.common.collect.SetMultimap;
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements IterationStatistics {
 
-  @Option(name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
+  @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
 
-  @Option(name="export", description="export final ARG as .dot file")
+  @Option(secure=true, name="export", description="export final ARG as .dot file")
   private boolean exportARG = true;
 
-  @Option(name="file",
+  @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(name="simplifiedARG.file",
+  @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
 
-  @Option(name="refinements.file",
+  @Option(secure=true, name="refinements.file",
       description="export simplified ARG that shows all refinements to .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  @Option(name="errorPath.export",
+  @Option(secure=true, name="errorPath.export",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
@@ -247,7 +247,7 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
-      printStatistics(pOut, null, pReached);
+      printStatistics(pOut, Result.UNKNOWN, pReached);
     }
   }
 }

@@ -98,14 +98,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 @Options(prefix = "cpa.bdd")
 public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, BDDPrecision> {
 
-  @Option(name = "logfile", description = "Dump tracked variables to a file.")
+  @Option(secure=true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
 
-  @Option(description = "max bitsize for values and vars, initial value")
+  @Option(secure=true, description = "max bitsize for values and vars, initial value")
   private int bitsize = 64;
 
-  @Option(description = "use a smaller bitsize for all vars, that have only intEqual values")
+  @Option(secure=true, description = "use a smaller bitsize for all vars, that have only intEqual values")
   private boolean compressIntEqual = true;
 
   private final LogManager logger;

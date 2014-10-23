@@ -74,14 +74,14 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   private final LogManager logger;
 
-  @Option(description="threshold for unrolling loops of the program (0 is infinite)\n"
+  @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
 
-  @Option(description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
+  @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
 
-  @Option(description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
+  @Option(secure=true, description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
   + "only relevant in combination with a non-static maximum loop iteration adjuster.")
   private int maxLoopIterationsUpperBound = 0;
 

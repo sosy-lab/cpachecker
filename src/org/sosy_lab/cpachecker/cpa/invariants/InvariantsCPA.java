@@ -96,26 +96,26 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
 
-    @Option(values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
+    @Option(secure=true, values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "PRECISIONDEPENDENT";
 
-    @Option(description="determine target locations in advance and analyse paths to the target locations only.")
+    @Option(secure=true, description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
 
-    @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
+    @Option(secure=true, description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
+    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private volatile int interestingVariableLimit = 2;
 
-    @Option(description="the maximum tree depth of a formula recorded in the environment.")
+    @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
+    @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
 
-    @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
+    @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
 
   }

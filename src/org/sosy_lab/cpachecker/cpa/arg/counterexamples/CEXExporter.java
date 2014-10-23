@@ -69,55 +69,55 @@ import com.google.common.collect.Sets;
 public class CEXExporter {
 
 
-  @Option(name="enabled",
+  @Option(secure=true, name="enabled",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
-  @Option(name="file",
+  @Option(secure=true, name="file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("ErrorPath.%d.txt");
 
-  @Option(name="core",
+  @Option(secure=true, name="core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("ErrorPath.%d.core.txt");
 
-  @Option(name="source",
+  @Option(secure=true, name="source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("ErrorPath.%d.c");
 
-  @Option(name="exportAsSource",
+  @Option(secure=true, name="exportAsSource",
       description="translate error path to C program")
   private boolean exportSource = true;
 
-  @Option(name="json",
+  @Option(secure=true, name="json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
-  @Option(name="assignment",
+  @Option(secure=true, name="assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
-  @Option(name="graph",
+  @Option(secure=true, name="graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("ErrorPath.%d.dot");
 
-  @Option(name="automaton",
+  @Option(secure=true, name="automaton",
       description="export error path to file as an automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
 
-  @Option(name="graphml",
+  @Option(secure=true, name="graphml",
       description="export error path to file as an automaton to a graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 
-  @Option(name="exportImmediately",
+  @Option(secure=true, name="exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
 

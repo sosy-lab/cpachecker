@@ -46,7 +46,7 @@ public class PointerCPA extends AbstractCPA {
   @Options(prefix="cpa.pointer2")
   public static class PointerOptions {
 
-    @Option(values={"JOIN", "SEP"}, toUppercase=true,
+    @Option(secure=true, values={"JOIN", "SEP"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
 

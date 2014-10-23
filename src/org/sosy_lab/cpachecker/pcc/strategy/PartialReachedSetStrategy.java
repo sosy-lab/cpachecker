@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;
-  @Option(
+  @Option(secure=true,
       description = "Enables proper PCC but may not work correctly for heuristics. Stops adding newly computed elements to reached set if size saved in proof is reached. If another element must be added, stops certificate checking and returns false.")
   protected boolean stopAddingAtReachedSetSize = false;
 

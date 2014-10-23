@@ -42,7 +42,7 @@ public class ApronManager {
     SetUp.init("lib/native/x86_64-linux/apron/");
   }
 
-  @Option(name="domain", toUppercase=true, values={"BOX", "OCTAGON", "POLKA", "POLKA_STRICT", "POLKA_EQ"},
+  @Option(secure=true, name="domain", toUppercase=true, values={"BOX", "OCTAGON", "POLKA", "POLKA_STRICT", "POLKA_EQ"},
       description="Use this to change the underlying abstract domain in the APRON library")
   private String domainType = "OCTAGON";
 

@@ -195,7 +195,6 @@ public abstract class RefinementStrategy {
       previousItpWasTrue = false;
 
       if (!performRefinementForState(itp, w)) {
-        infeasiblePartOfART = w;
         changedElements.add(w);
       }
     }

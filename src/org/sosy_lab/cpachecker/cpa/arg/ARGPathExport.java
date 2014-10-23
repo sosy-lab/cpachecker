@@ -114,22 +114,22 @@ import com.google.common.collect.TreeRangeSet;
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExport {
 
-  @Option(description="Verification witness: Include function calls and function returns?")
+  @Option(secure=true, description="Verification witness: Include function calls and function returns?")
   boolean exportFunctionCallsAndReturns = true;
 
-  @Option(description="Verification witness: Include assumptions (C statements)?")
+  @Option(secure=true, description="Verification witness: Include assumptions (C statements)?")
   boolean exportAssumptions = true;
 
-  @Option(description="Verification witness: Include the considered case of an assume?")
+  @Option(secure=true, description="Verification witness: Include the considered case of an assume?")
   boolean exportAssumeCaseInfo = true;
 
-  @Option(description="Verification witness: Include the token numbers of the operations on the transitions?")
+  @Option(secure=true, description="Verification witness: Include the token numbers of the operations on the transitions?")
   boolean exportTokenNumbers = true;
 
-  @Option(description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
+  @Option(secure=true, description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
   boolean exportLineNumbers = true;
 
-  @Option(description="Verification witness: Include the sourcecode of the operations?")
+  @Option(secure=true, description="Verification witness: Include the sourcecode of the operations?")
   boolean exportSourcecode = true;
 
   public ARGPathExport(Configuration config) throws InvalidConfigurationException {

@@ -85,7 +85,7 @@ public class ValidVars implements Serializable {
     ImmutableSet<String> newLocalsForFun;
     ImmutableMap.Builder<String,ImmutableSet<String>> builderMap = ImmutableMap.builder();
     for (String funName: localValidVars.keySet()) {
-      checkArgument(numFunctionCalled.get(funName)==pOther.numFunctionCalled.get(funName), "Require Callstack CPA to separate different function calls.");
+      checkArgument(numFunctionCalled.get(funName).equals(pOther.numFunctionCalled.get(funName)), "Require Callstack CPA to separate different function calls.");
       builder = ImmutableSet.builder();
       builder.addAll(pOther.localValidVars.get(funName));
       builder.addAll(localValidVars.get(funName));

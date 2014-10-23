@@ -65,11 +65,11 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private ReachingDefTransferRelation transfer;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which merge operator to use for ReachingDefCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 

@@ -49,12 +49,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 @Options(prefix="cpa.statistics")
 public class StatisticsCPAStatistics implements Statistics  {
 
-  @Option(description="target file to hold the statistics")
+  @Option(secure=true, description="target file to hold the statistics")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path statisticsCPAFile = null;
   private final StatisticsCPA cpa;
 
-  @Option(description="set to true if you want to print the statistics in the standard output.")
+  @Option(secure=true, description="set to true if you want to print the statistics in the standard output.")
   private boolean printOut = true;
 
   public StatisticsCPAStatistics(Configuration config, StatisticsCPA cpa) throws InvalidConfigurationException {

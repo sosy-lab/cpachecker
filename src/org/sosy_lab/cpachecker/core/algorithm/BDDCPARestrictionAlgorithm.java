@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableList;
 @Options(prefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
+  @Option(secure=true, description="The files where the BDDCPARestrictionAlgorithm should write the presence conditions for the counterexamples to.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate presenceConditionFile = PathTemplate.ofFormatString("ErrorPath.%d.presenceCondition.txt");
 

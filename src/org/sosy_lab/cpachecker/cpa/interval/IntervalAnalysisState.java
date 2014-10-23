@@ -33,13 +33,15 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<IntervalAnalysisState>{
+    LatticeAbstractState<IntervalAnalysisState>, AbstractQueryableState {
 
   private static final long serialVersionUID = -2030700797958100666L;
   private static IntervalTargetChecker targetChecker;
@@ -330,5 +332,44 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
     return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
+  }
+
+  @Override
+  public String getCPAName() {
+    return "IntervalAnalysis";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    String[] parts = pProperty.split(";");
+    if (parts.length != 2) {
+      throw new InvalidQueryException("The Query \"" + pProperty
+            + "\" is invalid. Could not split the property string correctly.");
+    } else {
+      parts[1] = parts[1].trim();
+      Long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
+      Long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+
+      if (low == null || high == null) {
+        return false;
+      }
+    }
+
+    long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
+    long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+
+    return false;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("Unsupported Operation");
   }
 }

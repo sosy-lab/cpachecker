@@ -67,6 +67,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
     TargetableWithPredicatedAnalysis, LatticeAbstractState<ValueAnalysisState> {
 
@@ -88,7 +90,10 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * the map that keeps the name of variables and their constant values
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
-  private PersistentMap<MemoryLocation, Type> memLocToType;
+
+  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
+      justification="After de-serializing, we only read values from this class, and we don't need types for this.")
+  private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
   /**
    * the current delta of this state to the previous state
@@ -97,7 +102,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   public ValueAnalysisState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
-    memLocToType = PathCopyingPersistentTreeMap.of();
   }
 
   public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {

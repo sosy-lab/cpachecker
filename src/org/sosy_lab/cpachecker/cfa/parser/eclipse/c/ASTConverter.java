@@ -176,12 +176,12 @@ import com.google.common.collect.Lists;
 @Options(prefix="cfa")
 class ASTConverter {
 
-  @Option(
+  @Option(secure=true,
       description="simplify pointer expressions like s->f to (*s).f with this option " +
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
-  @Option(
+  @Option(secure=true,
       description="simplify simple const expressions like 1+2")
   private boolean simplifyConstExpressions = true;
 

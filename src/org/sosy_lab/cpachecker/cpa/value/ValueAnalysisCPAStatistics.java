@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
-  @Option(description="target file to hold the exported precision")
+  @Option(secure=true, description="target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 

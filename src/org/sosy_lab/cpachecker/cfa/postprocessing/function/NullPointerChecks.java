@@ -88,7 +88,7 @@ import com.google.common.collect.Lists;
 @Options(prefix="cfa.checkNullPointers")
 public class NullPointerChecks {
 
-  @Option(description="Whether to have a single target node per function"
+  @Option(secure=true, description="Whether to have a single target node per function"
       + " for all invalid null pointer dereferences or to have separate nodes for each dereference")
   private boolean singleTargetPerFunction = true;
 

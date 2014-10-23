@@ -48,42 +48,42 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate.blk")
 public class BlockOperator {
 
-  @Option(
+  @Option(secure=true,
       description="maximum blocksize before abstraction is forced\n"
         + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
   private int threshold = 0;
 
-  @Option(name="functions",
+  @Option(secure=true, name="functions",
       description="abstractions at function calls/returns if threshold has been reached (no effect if threshold = 0)")
   private boolean absOnFunction = false;
 
-  @Option(name="loops",
+  @Option(secure=true, name="loops",
       description="abstractions at loop heads if threshold has been reached (no effect if threshold = 0)")
   private boolean absOnLoop = false;
 
-  @Option(name="join",
+  @Option(secure=true, name="join",
       description="abstractions at CFA nodes with more than one incoming edge if threshold has been reached (no effect if threshold = 0)")
   private boolean absOnJoin = false;
 
-  @Option(description="force abstractions immediately after threshold is reached (no effect if threshold = 0)")
+  @Option(secure=true, description="force abstractions immediately after threshold is reached (no effect if threshold = 0)")
   private boolean alwaysAfterThreshold = true;
 
-  @Option(description="force abstractions at loop heads, regardless of threshold")
+  @Option(secure=true, description="force abstractions at loop heads, regardless of threshold")
   private boolean alwaysAtLoops = true;
 
-  @Option(description="force abstractions at each function calls/returns, regardless of threshold")
+  @Option(secure=true, description="force abstractions at each function calls/returns, regardless of threshold")
   private boolean alwaysAtFunctions = true;
 
-  @Option(description="force abstractions at each function head (first node in the body), regardless of threshold")
+  @Option(secure=true, description="force abstractions at each function head (first node in the body), regardless of threshold")
   private boolean alwaysAtFunctionHeads = false;
 
-  @Option(description="force abstractions at each join node, regardless of threshold")
+  @Option(secure=true, description="force abstractions at each join node, regardless of threshold")
   private boolean alwaysAtJoin = false;
 
-  @Option(description="force abstractions at each branch node, regardless of threshold")
+  @Option(secure=true, description="force abstractions at each branch node, regardless of threshold")
   private boolean alwaysAtBranch = false;
 
-  @Option(description="abstraction always and only on explicitly computed abstraction nodes.")
+  @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
 

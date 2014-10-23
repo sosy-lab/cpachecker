@@ -249,6 +249,10 @@ class ASTLiteralConverter {
     int bytes = machine.getSizeofInt();
     boolean signed = true;
 
+    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      last--;
+      signed = false;
+    }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
       // one 'L' is a long int
@@ -260,6 +264,9 @@ class ASTLiteralConverter {
       bytes = machine.getSizeofLongLongInt();
     }
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      if (!signed) {
+        throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", e, niceFileNameFunction);
+      }
       last--;
       signed = false;
     }
