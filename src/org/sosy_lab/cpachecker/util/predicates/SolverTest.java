@@ -63,7 +63,7 @@ public class SolverTest {
     builder.setOption("cpa.predicate.solver", solver);
 
     // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
-    builder.addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()));
+    builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
 
     Configuration config = builder.build();
 
