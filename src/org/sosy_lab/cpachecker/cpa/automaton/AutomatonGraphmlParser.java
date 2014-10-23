@@ -229,7 +229,7 @@ public class AutomatonGraphmlParser {
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
-      String automatonName = nameAttribute == null ? "" : nameAttribute.getTextContent();
+      String automatonName = nameAttribute == null ? "WitnessAutomaton" : nameAttribute.getTextContent();
       String initialStateName = null;
 
       // Create transitions ----
