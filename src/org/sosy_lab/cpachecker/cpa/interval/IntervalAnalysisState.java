@@ -342,13 +342,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-
     String[] parts = pProperty.split(";");
     if (parts.length != 2) {
       throw new InvalidQueryException("The Query \"" + pProperty
@@ -366,6 +359,12 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
     long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
     long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
 
+    return false;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
     return null;
   }
 
