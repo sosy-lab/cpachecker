@@ -348,6 +348,24 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     // TODO Auto-generated method stub
+
+    String[] parts = pProperty.split(";");
+    if (parts.length != 2) {
+      throw new InvalidQueryException("The Query \"" + pProperty
+            + "\" is invalid. Could not split the property string correctly.");
+    } else {
+      parts[1] = parts[1].trim();
+      Long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
+      Long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+
+      if (low == null || high == null) {
+        return false;
+      }
+    }
+
+    long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
+    long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+
     return null;
   }
 
