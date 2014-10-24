@@ -110,7 +110,7 @@ public class SourceLocationMapper {
     tokenNumberToLineNumberMap.put(tokenNumber, lineNumber);
   }
 
-  private static void collectLine (final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
+  private static void collectLine(final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
     if (loc != null && !loc.equals(FileLocation.DUMMY)) {
       if (overApproximateTokens) {
         int lowerBound = loc.getStartingLineNumber();
