@@ -364,7 +364,7 @@ public class CFASingleLoopTransformation {
   /**
    * All function call edges calling functions where the summary edge
    * successor, i.e. the node succeeding the function call predecessor in the
-   * caller function, is now a successor of the artificial decision tree need
+   * caller function, is now a successor of the artificial decision tree, need
    * to be fixed in that their summary edge must now point to a different
    * successor: The predecessor of the assignment edge assigning the program
    * counter value that leads to the old successor.
@@ -590,6 +590,10 @@ public class CFASingleLoopTransformation {
                * successor
                */
               edgesToRemove.add(edge);
+              if (edge instanceof FunctionReturnEdge) {
+                FunctionReturnEdge fre = (FunctionReturnEdge) edge;
+                tmpMap.put(fre.getSummaryEdge().getPredecessor(), fre.getSummaryEdge().getPredecessor());
+              }
               tmpMap.put(current, current);
               CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
               // The replacement edge is added in place of the old edge
@@ -931,7 +935,6 @@ public class CFASingleLoopTransformation {
       if (connectionNode == null) {
         connectionNode = new CFANode(ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
         connectionNodes.put(pcToSet, connectionNode);
-        connectionNodes.put(pcToSet, connectionNode);
         CFAEdge edgeToLoopHead = createProgramCounterAssignmentEdge(connectionNode, pLoopHead, pPCIdExpression, pcToSet);
         addToNodes(edgeToLoopHead);
       }
@@ -1084,14 +1087,30 @@ public class CFASingleLoopTransformation {
           } else {
             newCallstack = currentCallstack;
           }
-          waitlist.offer(leavingEdge.getSuccessor());
+          ignoredNodes.addAll(CFAUtils.predecessorsOf(current).toList());
+          waitlist.offer(successor);
           callstacks.offer(currentCallstack);
         }
       }
     }
+
     ignoredNodes.removeAll(nodes);
     for (CFANode ignoredNode : ignoredNodes) {
       removeFromGraph(ignoredNode);
+    }
+    for (CFANode node : nodes) {
+      for (CFANode predecessor : CFAUtils.predecessorsOf(node).toList()) {
+        if (!nodes.contains(predecessor)) {
+          assert !CFAUtils.predecessorsOf(predecessor).anyMatch(in(nodes));
+          removeFromGraph(predecessor);
+        }
+      }
+      for (CFANode successor : CFAUtils.successorsOf(node).toList()) {
+        if (!nodes.contains(successor)) {
+          assert !CFAUtils.successorsOf(successor).anyMatch(in(nodes));
+          removeFromGraph(successor);
+        }
+      }
     }
     return nodes;
   }
