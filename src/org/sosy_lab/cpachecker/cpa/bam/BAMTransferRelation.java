@@ -128,6 +128,7 @@ public class BAMTransferRelation implements TransferRelation {
   boolean breakAnalysis = false;
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
+  private boolean targetFound = false;
   final Map<AbstractState, Triple<AbstractState, Precision, Block>> potentialRecursionUpdateStates = new HashMap<>();
 
   public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
@@ -232,9 +233,15 @@ public class BAMTransferRelation implements TransferRelation {
     int iterationCounter = 0;
     while (true) { // fixpoint-iteration to handle recursive functions
 
-      recursionSeen = false; // might be changed in recursive analysis
-      resultStatesChanged = false; // might be changed in recursive analysis
-      potentialRecursionUpdateStates.clear();
+      if (!targetFound) {
+        // The target might be outside the recursive function.
+        // If CEGAR removes the target through refinement,
+        // we might miss the recursive function, if we reset the flags. So we do not reset them in that case.
+
+        recursionSeen = false; // might be changed in recursive analysis
+        resultStatesChanged = false; // might be changed in recursive analysis
+        potentialRecursionUpdateStates.clear();
+      }
 
       logger.log(Level.INFO, "Starting recursive analysis of main-block");
 
@@ -246,7 +253,8 @@ public class BAMTransferRelation implements TransferRelation {
       // OR:     we have completely analyzed the main-block and have not found an target-state.
       //         now we check, if we need to unwind recursive calls further until a fixpoint is reached.
 
-      if (Iterables.any(resultStates, IS_TARGET_STATE)) {
+      targetFound = Iterables.any(resultStates, IS_TARGET_STATE);
+      if (targetFound) {
         // not really a fixpoint, but we return and let CEGAR check the target-state
         logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");
         break;
@@ -268,7 +276,6 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
-    final HashSet<AbstractState> done = new HashSet<>(); // only used for Assertions
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
       // final Triple<AbstractState, Precision, Block> level = potentialRecursionUpdateStates.get(recursionUpdateState);
 
@@ -281,19 +288,15 @@ public class BAMTransferRelation implements TransferRelation {
       for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
           reachedSet.reAddToWaitlist(recursionUpdateState);
-          done.add(recursionUpdateState);
-        } else if (pHeadOfMainFunctionState == recursionUpdateState) {
+        }
+        // else if (pHeadOfMainFunctionState == recursionUpdateState) {
           // special case: this is the root-state of the whole program, it is in the main-reachedset.
           // we have no possibility to re-add it,because we do not have access to the main-reachedset.
           // however we do not need to re-add it, because it is the initial-state of current transfer-relation.
-          done.add(recursionUpdateState);
-        }
+        // }
       }
       // TODO break loop earlier?
     }
-
-    assert done.containsAll(potentialRecursionUpdateStates.keySet()) : "some state was not found in any reachedset"
-            + done + potentialRecursionUpdateStates;
   }
 
   /** returns a covering level or Null, if no such level is found. */
