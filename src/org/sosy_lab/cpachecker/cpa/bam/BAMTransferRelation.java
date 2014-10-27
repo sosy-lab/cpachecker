@@ -328,24 +328,25 @@ public class BAMTransferRelation implements TransferRelation {
    * {x} is covered by {(x or y),z}
    * {(x and y),z} is covered by {x,z}
    */
-  private boolean allCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
-                                 @Nonnull final Collection<AbstractState> coveringStates)
-          throws CPAException, InterruptedException {
-    if (baseStates.equals(coveringStates)) {
-      return true; // shortcut: {x,y,z} is covered by {x,y,z}
-    }
+  private Collection<AbstractState> getStatesNotCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
+      @Nonnull final Collection<AbstractState> coveringStates)
+      throws CPAException, InterruptedException {
+    final Collection<AbstractState> notCoveredStates = new ArrayList<>();
     for (final AbstractState baseState : baseStates) {
       if (!isCoveredByAny(baseState, coveringStates)) {
-        return false;
+        notCoveredStates.add(baseState);
       }
     }
-    return true;
+    return notCoveredStates;
   }
 
   /** is there any covering-state, that covers the base-state? */
   private boolean isCoveredByAny(@Nonnull final AbstractState baseState,
                                  @Nonnull final Collection<AbstractState> coveringStates)
           throws CPAException, InterruptedException {
+    if (coveringStates.contains(baseState)) {
+      return true;
+    }
     for (final AbstractState coveringState : coveringStates) {
       if (bamCPA.isCoveredBy(baseState, coveringState)) {
         return true;
@@ -415,6 +416,8 @@ public class BAMTransferRelation implements TransferRelation {
           throws CPAException, InterruptedException {
 
     final Collection<AbstractState> reducedResult;
+    // statesForFurtherAnalysis is always equal to reducedResult, except one special case (aka re-visiting recursion)
+    final Collection<AbstractState> statesForFurtherAnalysis;
 
     // try to get previously computed element from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
@@ -429,6 +432,7 @@ public class BAMTransferRelation implements TransferRelation {
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit with finished reachedset.");
       reducedResult = cachedReturnStates;
+      statesForFurtherAnalysis = reducedResult;
 
     } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 && ((ARGState)reached.getLastState()).isTarget()) {
       assert Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState() :
@@ -437,6 +441,7 @@ public class BAMTransferRelation implements TransferRelation {
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit with target-state.");
       reducedResult = cachedReturnStates;
+      statesForFurtherAnalysis = reducedResult;
 
     } else {
       if (reached == null) {
@@ -455,20 +460,26 @@ public class BAMTransferRelation implements TransferRelation {
       if (cachedReturnStates == null) {
         logger.log(Level.FINEST, "there was no cache-entry for result-states.");
         resultStatesChanged = true;
+        statesForFurtherAnalysis = reducedResult;
+
       } else {
         // this is the result from a previous analysis of a recursive functioncall
         // now we check, if we really get new states or if all new states (= reducedResult) are
-        if (allCoveredBy(reducedResult, cachedReturnStates)) {
+        final Collection<AbstractState> newStates = getStatesNotCoveredBy(reducedResult, cachedReturnStates);
+        if (newStates.isEmpty()) {
           // analysis of recursive function did not produce more states.
           logger.log(Level.FINEST, "all previous return-states are covering the current new states, no new states found.");
-          // resultStatesChanged = false; // do _not_ set this to false, because other states might have changed.
-          // reducedResult = cachedReturnStates; // returning the more precise states should be sound.
-
         } else {
           // new states found, set flag for fixpoint-analysis and return (and later update the cache).
           logger.log(Level.FINEST, "some cached result-states are not covered. returning new result-states.");
           resultStatesChanged = true;
         }
+
+        // we are in an the fixpoint-algorithm for recursion,
+        // we have already analysed all covered states in the previous iteration,
+        // thus we only need to analyse the remaining states.
+        // this is an optimisation,
+        statesForFurtherAnalysis = newStates;
       }
     }
 
@@ -483,10 +494,10 @@ public class BAMTransferRelation implements TransferRelation {
       rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
     }
 
+    // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
+    // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
     argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, reducedResult, rootOfBlock);
-
-    // TODO optimisation: in case of recursion only return 'new' states, the old ones were visited before
-    return imbueAbstractStatesWithPrecision(reached, reducedResult);
+    return imbueAbstractStatesWithPrecision(reached, statesForFurtherAnalysis);
   }
 
   /** Reconstruct the resulting state from root-, entry- and expanded-state.
@@ -644,6 +655,7 @@ public class BAMTransferRelation implements TransferRelation {
       for (final AbstractState expandedState : expandedFunctionReturnStates) {
         rebuildStates.add(getRebuildState(rootState, initialState, expandedState));
       }
+      logger.log(Level.ALL, "finished rebuilding of", rebuildStates.size(), "states");
       resultStates = rebuildStates;
 
       // current location is "before" the function-return-edge.
