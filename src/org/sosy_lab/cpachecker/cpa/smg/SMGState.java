@@ -847,42 +847,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Determine, whether the two given symbolic values are not equal.
-   * If this method does not return true, the relation of these
-   * symbolic values is unknown.
-   *
-   * @param value1 first symbolic value to be checked
-   * @param value2 second symbolic value to be checked
-   * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
-   * @throws SMGInconsistentException
-   */
-  public boolean isUnequal(int value1, int value2) {
-    // TODO Neq Relation for more precise comparison
-
-    if (isPointer(value1) && isPointer(value2)) {
-
-      if (value1 != value2) {
-        /* This is just a safety check,
-        equal pointers should have equal symbolic values.*/
-        SMGEdgePointsTo edge1;
-        SMGEdgePointsTo edge2;
-        try {
-          edge1 = getPointerFromValue(value1);
-          edge2 = getPointerFromValue(value2);
-        } catch (SMGInconsistentException e) {
-          throw new AssertionError(e.getMessage());
-        }
-
-        return edge1.getObject() != edge2.getObject() || edge1.getOffset() != edge2.getOffset();
-      } else {
-        return false;
-      }
-    } else {
-      return heap.haveNeqRelation(Integer.valueOf(value1), Integer.valueOf(value2));
-    }
-  }
-
-  /**
    * Drop the stack frame representing the stack of
    * the function with the given name
    *
@@ -1036,5 +1000,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     INVALID_WRITE,
     INVALID_FREE,
     INVALID_HEAP;
+  }
+
+  public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
+
+    if (pValue1.isUnknown() || pValue2.isUnknown()) {
+      return false;
+    } else {
+      heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
+    }
+
+    return false;
   }
 }

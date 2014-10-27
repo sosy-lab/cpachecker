@@ -1064,14 +1064,8 @@ public class SMGExpressionEvaluator {
           return SMGValueAndState.of(newState);
         }
 
-        SMGKnownSymValue knownRightSideVal = SMGKnownSymValue
-            .valueOf(rightSideVal.getAsInt());
-
-        SMGKnownSymValue knownLeftSideVal = SMGKnownSymValue
-            .valueOf(leftSideVal.getAsInt());
-
         SMGSymbolicValue result = evaluateBinaryAssumption(newState,
-            binaryOperator, knownLeftSideVal, knownRightSideVal);
+            binaryOperator, leftSideVal, rightSideVal);
 
         return SMGValueAndState.of(newState, result);
       default:
@@ -1086,15 +1080,46 @@ public class SMGExpressionEvaluator {
 
       private boolean impliesEqWhenTrue = false;
       private boolean impliesNeqWhenTrue = false;
+
       private boolean impliesEqWhenFalse = false;
       private boolean impliesNeqWhenFalse = false;
 
-      public BinaryRelationEvaluator(SMGState newState, BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) throws SMGInconsistentException {
+      private final SMGState smgState;
+
+      /**
+       * Creates an object of the BinaryRelationEvaluator. The object is used to
+       * determine the relation between two symbolic values in the context of
+       * the given smgState and the given binary operator. Note that the given
+       * symbolic values, which may also be address values, do not have to be
+       * part of the given Smg. The definition of an smg implies conditions for
+       * its values, even if they are not part of it.
+       *
+       * @param newState the values are compared in the context of the given smg.
+       * @param pOp the given binary operator, that describes an boolean
+       *          expression between two values.
+       * @param pV1 the first operand.
+       * @param pV2 the second operand
+       * @throws SMGInconsistentException
+       */
+      public BinaryRelationEvaluator(SMGState newState, BinaryOperator pOp,
+          SMGSymbolicValue pV1, SMGSymbolicValue pV2)
+          throws SMGInconsistentException {
+
+        smgState = newState;
+
+        // If a value is unknown, we can't make further assumptions about it.
+        if (pV2.isUnknown() || pV1.isUnknown()) {
+          return;
+        }
+
+        boolean isPointerOp1 = isPointer(pV1);
+        boolean isPointerOp2 = isPointer(pV2);
+
         int v1 = pV1.getAsInt();
         int v2 = pV2.getAsInt();
 
         boolean areEqual = (v1 == v2);
-        boolean areNonEqual = (newState.isUnequal(v1, v2));
+        boolean areNonEqual = (isUnequal(pV1, pV2, isPointerOp1, isPointerOp2));
 
         switch (pOp) {
         case NOT_EQUALS:
@@ -1109,69 +1134,121 @@ public class SMGExpressionEvaluator {
           impliesEqWhenTrue = true;
           impliesNeqWhenFalse = true;
           break;
-        case LESS_EQUAL:
         case GREATER_EQUAL:
-          if (v1 == v2) {
-            isTrue = true;
-            impliesEqWhenTrue = true;
-            impliesNeqWhenFalse = true;
-          } else {
-            impliesNeqWhenFalse = true;
-            compareAsAddresses(newState, pV1, pV2, pOp);
+        case LESS_EQUAL:
+        case LESS_THAN:
+        case GREATER_THAN:
+          switch (pOp) {
+          case LESS_EQUAL:
+          case GREATER_EQUAL:
+            if (areEqual) {
+              isTrue = true;
+              impliesEqWhenTrue = true;
+              impliesNeqWhenFalse = true;
+            } else {
+              impliesNeqWhenFalse = true;
+            }
+            break;
+          case GREATER_THAN:
+          case LESS_THAN:
+            impliesNeqWhenTrue = true;
+            break;
+          default:
+            throw new AssertionError("Impossible case thrown");
+          }
+
+          if (isPointerOp1 && isPointerOp2) {
+            SMGAddressValue pointer1 = getAddressOfPointer(pV1);
+            SMGAddressValue pointer2 = getAddressOfPointer(pV2);
+            SMGObject object1 = pointer1.getObject();
+            SMGObject object2 = pointer2.getObject();
+
+            // there can be more precise comparsion when pointer point to the
+            // same object.
+            if (object1 == object2) {
+              int offset1 = pointer1.getOffset().getAsInt();
+              int offset2 = pointer2.getOffset().getAsInt();
+
+              switch (pOp) {
+              case GREATER_EQUAL:
+                isTrue = offset1 >= offset2;
+                isFalse = !isTrue;
+                break;
+              case GREATER_THAN:
+                isTrue = offset1 > offset2;
+                isFalse = !isTrue;
+                break;
+              case LESS_EQUAL:
+                isTrue = offset1 <= offset2;
+                isFalse = !isTrue;
+                break;
+              case LESS_THAN:
+                isTrue = offset1 < offset2;
+                isFalse = !isTrue;
+                break;
+              default:
+                throw new AssertionError("Impossible case thrown");
+              }
+            }
           }
           break;
-        case GREATER_THAN:
-        case LESS_THAN:
-          compareAsAddresses(newState, pV1, pV2, pOp);
-          impliesNeqWhenTrue = true;
-          break;
         default:
-          throw new AssertionError("Binary Relation with non-relational operator: " + pOp.toString());
+          throw new AssertionError(
+              "Binary Relation with non-relational operator: " + pOp.toString());
         }
       }
 
-      // This method is dependent on the callsite, and is only called for greater/less
-      // operators, because we can evaluate equality in a general way
-      // TODO: make this callsite-independent
-      // TODO: improve handling of the equal variants (remote the code duplication)
-      private void compareAsAddresses(SMGState newState, SMGSymbolicValue lVal, SMGSymbolicValue rVal, BinaryOperator binaryOperator) throws SMGInconsistentException {
-        SMGAddressValue lAddress = getAddressFromSymbolicValue(SMGValueAndState.of(newState, lVal)).getValue();
-        SMGAddressValue rAddress = getAddressFromSymbolicValue(SMGValueAndState.of(newState, rVal)).getValue();
+      private boolean isPointer(SMGSymbolicValue symVal) {
 
-        if (rAddress.isUnknown() || lAddress.isUnknown()) {
-          return;
+        if (symVal.isUnknown()) {
+          return false;
         }
 
-        SMGObject lObject = lAddress.getObject();
-        SMGObject rObject = rAddress.getObject();
-
-        if (!lObject.equals(rObject)) {
-          return;
+        if (symVal instanceof SMGAddressValue) {
+          return true;
         }
 
-        long rOffset = rAddress.getOffset().getAsLong();
-        long lOffset = lAddress.getOffset().getAsLong();
+        if (smgState.isPointer(symVal.getAsInt())) {
+          return true;
+        } else {
+          return false;
+        }
+      }
 
-        // We already checked equality
-        switch (binaryOperator) {
-        case LESS_THAN:
-          isTrue = lOffset < rOffset;
-          isFalse = !isTrue;
-          break;
-        case LESS_EQUAL:
-          isTrue = lOffset <= rOffset;
-          isFalse = !isTrue;
-          break;
-        case GREATER_EQUAL:
-          isTrue = lOffset > rOffset;
-          isFalse = !isTrue;
-          break;
-        case GREATER_THAN:
-          isTrue = lOffset > rOffset;
-          isFalse = !isTrue;
-          break;
-        default:
-          throw new AssertionError("compareAsAddresses shouldn't be called for operators not being LE/LT/GE/GT");
+      private boolean isUnequal(SMGSymbolicValue value1, SMGSymbolicValue value2, boolean isPointerOp1, boolean isPointerOp2) throws SMGInconsistentException {
+
+          if (isPointerOp1 && isPointerOp2) {
+
+            if (value1 != value2) {
+
+              SMGAddressValue pointerValue1 = getAddressOfPointer(value1);
+              SMGAddressValue pointerValue2 = getAddressOfPointer(value2);
+
+              /* This is just a safety check,
+              equal pointers should have equal symbolic values.*/
+              return pointerValue1.getObject() != pointerValue2.getObject() || pointerValue1.getOffset() != pointerValue2.getOffset();
+            } else {
+              return false;
+            }
+          } else {
+            return smgState.isInNeq(value1, value2);
+          }
+        }
+
+      private SMGAddressValue getAddressOfPointer(SMGSymbolicValue pPointer)
+          throws SMGInconsistentException {
+
+        assert !pPointer.isUnknown();
+
+        if (pPointer instanceof SMGAddressValue) {
+          return (SMGAddressValue) pPointer;
+        } else {
+
+          SMGEdgePointsTo edge = smgState.getPointerFromValue(pPointer
+              .getAsInt());
+
+          return SMGKnownAddVal.valueOf(edge.getValue(), edge.getObject(),
+              edge.getOffset());
         }
       }
 
@@ -1192,7 +1269,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    private SMGSymbolicValue evaluateBinaryAssumption(SMGState newState, BinaryOperator pOp, SMGKnownSymValue v1, SMGKnownSymValue v2) throws SMGInconsistentException {
+    public SMGSymbolicValue evaluateBinaryAssumption(SMGState newState, BinaryOperator pOp, SMGSymbolicValue v1, SMGSymbolicValue v2) throws SMGInconsistentException {
       relation = new BinaryRelationEvaluator(newState, pOp, v1, v2);
       if (relation.isFalse()) {
         return SMGKnownSymValue.FALSE;
@@ -1514,8 +1591,6 @@ public class SMGExpressionEvaluator {
       case LESS_THAN:
       case LESS_EQUAL: {
 
-        //TODO Bug?
-
         SMGValueAndState lValAndState = evaluateExpressionValue(getInitialSmgState(), getCfaEdge(), lVarInBinaryExp);
         SMGSymbolicValue lVal = lValAndState.getValue();
         SMGState newState = lValAndState.getSmgState();
@@ -1532,26 +1607,11 @@ public class SMGExpressionEvaluator {
           return SMGValueAndState.of(newState);
         }
 
-        boolean isZero;
-        switch (binaryOperator) {
-        case NOT_EQUALS:
-          isZero = (lVal.equals(rVal));
-          break;
-        case EQUALS:
-          isZero = isUnequal(newState, lVal, rVal);
-          break;
-        case GREATER_THAN:
-        case GREATER_EQUAL:
-        case LESS_THAN:
-        case LESS_EQUAL:
-          isZero = false;
-          break;
+        AssumeVisitor v = getAssumeVisitor(getCfaEdge(), newState);
 
-        default:
-          throw new AssertionError();
-        }
+        SMGSymbolicValue assumptionVal = v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
 
-        if (isZero) {
+        if (assumptionVal == SMGKnownSymValue.FALSE) {
           return SMGValueAndState.of(newState, SMGKnownSymValue.ZERO);
         } else {
           return SMGValueAndState.of(newState);
@@ -1561,16 +1621,6 @@ public class SMGExpressionEvaluator {
       default:
         return SMGValueAndState.of(getInitialSmgState());
       }
-    }
-
-    private boolean isUnequal(SMGState pSmgState, SMGSymbolicValue pLVal, SMGSymbolicValue pRVal)
-        throws SMGInconsistentException {
-
-      if (pLVal.isUnknown() || pRVal.isUnknown()) {
-        return false;
-      }
-
-      return pSmgState.isUnequal(pLVal.getAsInt(), pRVal.getAsInt());
     }
 
     @Override
