@@ -327,6 +327,8 @@ public final class InterpolationManager {
 
       try {
         return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+      } catch (SolverException e) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       } finally {
         if (!reuseInterpolationEnvironment) {
           currentInterpolator.close();
@@ -727,7 +729,7 @@ public final class InterpolationManager {
    */
   private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
       InterpolatingProverEnvironment<T> pItpProver, Set<ARGState> elementsOnPath)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, SolverException, InterruptedException {
 
     // get the branchingFormula
     // this formula contains predicates for all branches we took
@@ -920,7 +922,7 @@ public final class InterpolationManager {
      * @throws InterruptedException
      */
     private boolean checkInfeasabilityOfTrace(List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
-        List<T> itpGroupsIds) throws InterruptedException {
+        List<T> itpGroupsIds) throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
