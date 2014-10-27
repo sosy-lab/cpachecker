@@ -25,7 +25,11 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+
+import com.google.common.base.Strings;
 
 /**
  * Exception raised when the refinement procedure fails, or was
@@ -55,41 +59,39 @@ public class RefinementFailedException extends CPAException {
 
   private static final long serialVersionUID = 2353178323706458175L;
 
-  private final Reason reason;
   private ARGPath path;
-  private final int failurePoint;
 
-  public RefinementFailedException(Reason r, ARGPath p, int pFailurePoint) {
-    super("Refinement failed: " + checkNotNull(r));
-    reason = r;
+  public RefinementFailedException(Reason r, @Nullable ARGPath p) {
+    super(getMessage(r, null));
     path = p;
-    failurePoint = pFailurePoint;
   }
 
-  public RefinementFailedException(Reason r, ARGPath p) {
-    this(r, p, -1);
+  public RefinementFailedException(Reason r, @Nullable ARGPath p, Throwable t) {
+    super(getMessage(r, t), checkNotNull(t));
+    path = p;
   }
 
-  /** Return the reason for the failure */
-  public Reason getReason() {
-    return reason;
+  private static String getMessage(Reason r, @Nullable Throwable t) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Refinement failed: ");
+    sb.append(r.toString());
+    if (t != null) {
+      String msg = Strings.nullToEmpty(t.getMessage());
+      if (!msg.isEmpty()) {
+        sb.append(" (");
+        sb.append(msg);
+        sb.append(")");
+      }
+    }
+    return sb.toString();
   }
 
   /** Return the path that caused the failure */
-  public ARGPath getErrorPath() {
+  public @Nullable ARGPath getErrorPath() {
     return path;
   }
 
   public void setErrorPath(ARGPath pPath) {
-    path = pPath;
-  }
-
-  /**
-   * Returns the position of the node in the past where
-   * the failure occurred (or -1 if the failure cannot
-   * be caused by a given node)
-   */
-  public int getFailurePoint() {
-    return failurePoint;
+    path = checkNotNull(pPath);
   }
 }
