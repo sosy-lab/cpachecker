@@ -110,11 +110,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     }
 
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
-
-    SMGState.setRuntimeCheck(runtimeCheck);
-
-    SMGState.setTargetMemoryErrors(memoryErrors);
-    SMGState.setUnknownOnUndefined(unknownOnUndefined);
   }
 
   public MachineModel getMachineModel() {
@@ -148,7 +143,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel);
+    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
