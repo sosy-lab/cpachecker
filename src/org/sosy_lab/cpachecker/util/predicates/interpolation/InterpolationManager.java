@@ -311,7 +311,7 @@ public final class InterpolationManager {
       }
 
       f = Collections.unmodifiableList(f);
-      logger.log(Level.ALL, "Counterexample trace formulas:", Joiner.on("\n").join(f));
+      logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
       // now f is the DAG formula which is satisfiable iff there is a
       // concrete counterexample
