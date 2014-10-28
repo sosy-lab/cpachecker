@@ -101,6 +101,9 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
+  @Option(secure=true, description="Do not try to \"catch up\" with witness lines: If they do not match, go to the sink.")
+  private boolean strictLineMatching = false;
+
   @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
@@ -361,6 +364,35 @@ public class AutomatonGraphmlParser {
               AutomatonTransition trRepetition = new AutomatonTransition(lineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
               auxilaryTransitions.add(trRepetition);
               targetStateTransitions.add(0, trRepetition);
+
+              // If the line trigger does not apply
+              // and the edge is not path relevant
+              // loop back to the state
+              AutomatonBoolExpr triggerIrrelevantEdge = new AutomatonBoolExpr.And(
+                  new AutomatonBoolExpr.Negation(lineMatchTrigger),
+                  new AutomatonBoolExpr.Negation(new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr()));
+              trRepetition = new AutomatonTransition(
+                  triggerIrrelevantEdge,
+                  emptyAssertions,
+                  Collections.<AutomatonAction>emptyList(),
+                  sourceStateId);
+              auxilaryTransitions.add(trRepetition);
+              transitions.add(trRepetition);
+
+              if (strictLineMatching) {
+                // If both do not apply, go to the sink
+                AutomatonBoolExpr triggerSink = new AutomatonBoolExpr.And(
+                    new AutomatonBoolExpr.Negation(lineMatchTrigger),
+                    new AutomatonBoolExpr.Negation(triggerIrrelevantEdge)
+                    );
+                AutomatonTransition trSink = new AutomatonTransition(
+                    triggerSink,
+                    emptyAssertions,
+                    Collections.<AutomatonAction>emptyList(),
+                    AutomatonInternalState.BOTTOM);
+                auxilaryTransitions.add(trSink);
+                transitions.add(trSink);
+              }
             }
           } else {
             AutomatonTransition tr = new AutomatonTransition(
