@@ -315,7 +315,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
     /* rebuild indices from outer scope */
     private PathFormula rebuildStateAfterFunctionCall(PathFormula parentFormula, PathFormula rootFormula) {
-      final SSAMap newSSA = reducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
+      final SSAMap newSSA = BAMPredicateReducer.updateIndices(rootFormula.getSsa(), parentFormula.getSsa());
       return pfmgr.makeNewPathFormula(parentFormula, newSSA);
     }
 

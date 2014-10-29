@@ -144,7 +144,7 @@ public class BAMPredicateReducer implements Reducer {
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+        if (!oldSSA.containsVariable(var)) {
           //add an index (with the value of rootSSA)
           builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
         }
@@ -410,7 +410,7 @@ public class BAMPredicateReducer implements Reducer {
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
     for (String var : rootSSA.allVariables()) {
       //if we do not have the index in the reduced map..
-      if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+      if (!oldSSA.containsVariable(var)) {
         //add an index (with the value of rootSSA)
         builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
       }
@@ -454,7 +454,8 @@ public class BAMPredicateReducer implements Reducer {
     //           - all other vars are distinct
     final String calledFunction = exitLocation.getFunctionName();
     final PathFormula functionCall = entryState.getAbstractionFormula().getBlockFormula();
-    final SSAMapBuilder entrySsaWithRet = functionCall.getSsa().builder();
+    final SSAMap entrySsaWithRet = functionCall.getSsa();
+    final SSAMapBuilder entrySsaWithRetBuilder = entrySsaWithRet.builder();
     final SSAMapBuilder summSsa = rootState.getAbstractionFormula().getBlockFormula().getSsa().builder();
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
@@ -462,30 +463,30 @@ public class BAMPredicateReducer implements Reducer {
       if (var.startsWith(calledFunction + "::")
               && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
-        assert newIndex != SSAMap.DEFAULT_DEFAULT_IDX : "param for function is not used in functioncall";
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
+        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
 
       } else if (var.startsWith(calledFunction + "::")
               && var.endsWith(RETURN_VARIABLE_NAME)) {
-        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRet.getFreshIndex(var));
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRetBuilder.getFreshIndex(var));
+        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
-      } else if (entrySsaWithRet.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+      } else if (!entrySsaWithRet.containsVariable(var)) {
         // non-existent index for variable only used in functioncall, just copy
         final int newIndex = expandedSSA.getIndex(var);
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
 
       } else {
-        final int newIndex = entrySsaWithRet.getFreshIndex(var);
-        entrySsaWithRet.setIndex(var, expandedSSA.getType(var), newIndex);
+        final int newIndex = entrySsaWithRetBuilder.getFreshIndex(var);
+        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
         summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
       }
     }
 
-    final SSAMap newEntrySsaWithRet = entrySsaWithRet.build();
+    final SSAMap newEntrySsaWithRet = entrySsaWithRetBuilder.build();
     final SSAMap newSummSsa = summSsa.build();
 
     // function-call needs have new retvars-indices.
@@ -535,7 +536,7 @@ public class BAMPredicateReducer implements Reducer {
    * @param expandedSSA SSA before function-return
    * @return new SSAMap
    */
-  protected SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA) {
+  protected static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA) {
 
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
@@ -548,11 +549,11 @@ public class BAMPredicateReducer implements Reducer {
       // maxIndex is the target value, that must be set.
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
 
-      if (expIndex != SSAMap.DEFAULT_DEFAULT_IDX) {
+      if (expandedSSA.containsVariable(var)) {
         if (var.contains("::") && !isReturnVar(var)) { // var is scoped -> not global
 
-          if (rootIndex == SSAMap.DEFAULT_DEFAULT_IDX) { // inner local variable, never seen before
-            rootBuilder.setIndex(var, type, maxIndex);
+          if (!rootSSA.containsVariable(var)) { // inner local variable, never seen before
+            rootBuilder.setIndex(var, type, maxIndex); // TODO why set it directly? use fresh index?
 
           } else { // outer variable or inner variable from previous function call
             rootBuilder.setLatestUsedIndex(var, type, maxIndex);
@@ -577,7 +578,7 @@ public class BAMPredicateReducer implements Reducer {
     return rootBuilder.build();
   }
 
-  private boolean isReturnVar(String var) {
+  private static boolean isReturnVar(String var) {
       return var.contains("::") && RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
   }
 }
