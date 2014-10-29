@@ -460,29 +460,30 @@ public class BAMPredicateReducer implements Reducer {
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
+      final CType type = expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::")
               && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
-        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
+        entrySsaWithRetBuilder.setIndex(var, type, newIndex);
+        summSsa.setFreshValueBasis(var, type, newIndex);
 
       } else if (var.startsWith(calledFunction + "::")
               && var.endsWith(RETURN_VARIABLE_NAME)) {
         final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRetBuilder.getFreshIndex(var));
-        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
+        entrySsaWithRetBuilder.setIndex(var, type, newIndex);
+        summSsa.setIndex(var, type, newIndex);
 
       } else if (!entrySsaWithRet.containsVariable(var)) {
         // non-existent index for variable only used in functioncall, just copy
         final int newIndex = expandedSSA.getIndex(var);
-        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setIndex(var, expandedSSA.getType(var), newIndex);
+        entrySsaWithRetBuilder.setIndex(var, type, newIndex);
+        summSsa.setIndex(var, type, newIndex);
 
       } else {
         final int newIndex = entrySsaWithRetBuilder.getFreshIndex(var);
-        entrySsaWithRetBuilder.setIndex(var, expandedSSA.getType(var), newIndex);
-        summSsa.setLatestUsedIndex(var, expandedSSA.getType(var), newIndex);
+        entrySsaWithRetBuilder.setIndex(var, type, newIndex);
+        summSsa.setFreshValueBasis(var, type, newIndex);
       }
     }
 
@@ -551,7 +552,7 @@ public class BAMPredicateReducer implements Reducer {
             rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
 
           } else { // outer variable or inner variable from previous function call
-            rootBuilder.setLatestUsedIndex(var, type, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
+            rootBuilder.setFreshValueBasis(var, type, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
           }
 
         } else {
