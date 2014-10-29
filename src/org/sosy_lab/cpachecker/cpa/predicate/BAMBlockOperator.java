@@ -49,12 +49,7 @@ public class BAMBlockOperator extends BlockOperator {
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {
     return super.isBlockEnd(succLoc, predLoc, edge, pPf)
         || partitioning.isCallNode(succLoc)
-        || partitioning.isReturnNode(succLoc)
-        || isBeforeFunctionCall(succLoc);
-  }
-
-  private boolean isBeforeFunctionCall(CFANode succLoc) {
-    return succLoc.getLeavingSummaryEdge() != null;
+        || partitioning.isReturnNode(succLoc);
   }
 
   public BlockPartitioning getPartitioning() {
