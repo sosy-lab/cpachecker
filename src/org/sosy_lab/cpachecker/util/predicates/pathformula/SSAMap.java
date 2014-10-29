@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -62,10 +61,6 @@ public class SSAMap implements Serializable {
 
   // Default value for the default value
   private static final int DEFAULT_DEFAULT_IDX = -1;
-
-  // Default difference for two SSA-indizes of the same name.
-  @VisibleForTesting
-  static final int DEFAULT_INCREMENT = 1;
 
   private final int defaultValue;
 
@@ -125,7 +120,7 @@ public class SSAMap implements Serializable {
     }
 
     public int getFreshIndex(String variable) {
-      return freshValueProvider.getFreshValue(variable, vars, ssa.defaultValue);
+      return freshValueProvider.getFreshValue(variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
     public CType getType(String name) {
@@ -147,7 +142,6 @@ public class SSAMap implements Serializable {
 
       if (idx > oldIdx || idx == ssa.defaultValue) {
         vars = vars.putAndCopy(name, idx);
-        freshValueProvider = freshValueProvider.removeAndCopy(name); // not needed any more, delete value
         if (oldIdx != ssa.defaultValue) {
           varsHashCode -= mapEntryHashCode(name, oldIdx);
         }
@@ -157,28 +151,14 @@ public class SSAMap implements Serializable {
       return this;
     }
 
-    /**
-     * Set a new index (7) for an old index (3),
-     * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
-     * Warning: do not use out of order!
-     */
-    public SSAMapBuilder setFreshValueBasis(String name, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
-      int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
-
-      if (idx > oldIdx) {
-        freshValueProvider = freshValueProvider.putAndCopy(name, idx - oldIdx);
-      }
-
-      return this;
+    public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
+      this.freshValueProvider = freshValueProvider.merge(fvp);
     }
 
     public SSAMapBuilder deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
-        freshValueProvider = freshValueProvider.removeAndCopy(variable);
 
         varsHashCode -= mapEntryHashCode(variable, index);
 
@@ -219,7 +199,7 @@ public class SSAMap implements Serializable {
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.<String, Integer>of(),
-      new FreshValueProvider(),
+      new FreshValueProvider.DefaultFreshValueProvider(),
       0,
       PathCopyingPersistentTreeMap.<String, CType>of());
 
@@ -260,9 +240,7 @@ public class SSAMap implements Serializable {
       differences = new ArrayList<>();
       vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
           PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
-      freshValueProvider = new FreshValueProvider(PersistentSortedMaps.merge(
-          s1.freshValueProvider.diffVars, s2.freshValueProvider.diffVars, Equivalence.equals(),
-          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), null));
+      freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
     }
 
     PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
@@ -366,41 +344,6 @@ public class SSAMap implements Serializable {
       return varsHashCode == other.varsHashCode
           && vars.equals(other.vars)
           && freshValueProvider.equals(other.freshValueProvider);
-    }
-  }
-
-  private static class FreshValueProvider {
-
-    // contains only those variables, that do not have the default increment to get their next fresh value
-    private PersistentSortedMap<String, Integer> diffVars;
-
-    FreshValueProvider() {
-      diffVars = PathCopyingPersistentTreeMap.of();
-    }
-
-    FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
-      this.diffVars = diffVars;
-    }
-
-    public int getFreshValue(String variable, PersistentSortedMap<String, Integer> vars, int defaultValue) {
-      Integer value = vars.get(variable);
-      if (value == null) {
-        value = defaultValue;
-      }
-      final int specialIncrement = diffVars.containsKey(variable) ? diffVars.get(variable) : 0;
-      return value + SSAMap.DEFAULT_INCREMENT + specialIncrement; // increment for a new index
-    }
-
-    public FreshValueProvider putAndCopy(String variable, int index) {
-      return new FreshValueProvider(diffVars.putAndCopy(variable, index));
-    }
-
-    public FreshValueProvider removeAndCopy(String variable) {
-      return new FreshValueProvider(diffVars.removeAndCopy(variable));
-    }
-
-    public boolean equals(Object other) {
-      return other instanceof FreshValueProvider && this.diffVars.equals(((FreshValueProvider)other).diffVars);
     }
   }
 }

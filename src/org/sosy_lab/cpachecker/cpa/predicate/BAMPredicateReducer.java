@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
@@ -466,7 +467,7 @@ public class BAMPredicateReducer implements Reducer {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
-        summSsa.setFreshValueBasis(var, newIndex);
+        setFreshValueBasis(summSsa, var, newIndex);
 
       } else if (var.startsWith(calledFunction + "::")
               && var.endsWith(RETURN_VARIABLE_NAME)) {
@@ -483,7 +484,7 @@ public class BAMPredicateReducer implements Reducer {
       } else {
         final int newIndex = entrySsaWithRetBuilder.getFreshIndex(var);
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
-        summSsa.setFreshValueBasis(var, newIndex);
+        setFreshValueBasis(summSsa, var, newIndex);
       }
     }
 
@@ -552,7 +553,8 @@ public class BAMPredicateReducer implements Reducer {
             rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
 
           } else { // outer variable or inner variable from previous function call
-            rootBuilder.setFreshValueBasis(var, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
+            setFreshValueBasis(rootBuilder, var,
+                Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
           }
 
         } else {
@@ -576,5 +578,22 @@ public class BAMPredicateReducer implements Reducer {
 
   private static boolean isReturnVar(String var) {
       return var.contains("::") && RETURN_VARIABLE_NAME.equals(var.substring(var.indexOf("::") + 2));
+  }
+
+  /**
+   * Set a new index (7) for an old index (3),
+   * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
+   * Warning: do not use out of order!
+   */
+  private static void setFreshValueBasis(SSAMapBuilder ssa, String name, int idx) {
+    Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
+    int oldIdx = ssa.getIndex(name);
+    Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
+
+    if (idx > oldIdx) {
+      BAMFreshValueProvider bamfvp = new BAMFreshValueProvider();
+      bamfvp.put(name, idx);
+      ssa.mergeFreshValueProviderWith(bamfvp);
+    }
   }
 }
