@@ -541,22 +541,17 @@ public class BAMPredicateReducer implements Reducer {
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
     for (String var : expandedSSA.allVariables()) {
-
-      final CType type = expandedSSA.getType(var);
-      final int expIndex = expandedSSA.getLastUsedIndex(var);
-      final int rootIndex = rootSSA.getIndex(var);
-      final int maxIndex = Math.max(expIndex, rootIndex);
-      // maxIndex is the target value, that must be set.
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
 
-      if (expandedSSA.containsVariable(var)) {
+      if (expandedSSA.containsVariable(var)) { // var was used and maybe overridden inside the block
+        final CType type = expandedSSA.getType(var);
         if (var.contains("::") && !isReturnVar(var)) { // var is scoped -> not global
 
-          if (!rootSSA.containsVariable(var)) { // inner local variable, never seen before
-            rootBuilder.setIndex(var, type, maxIndex); // TODO why set it directly? use fresh index?
+          if (!rootSSA.containsVariable(var)) { // inner local variable, never seen before, use fresh index as basis for further assignments
+            rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
 
           } else { // outer variable or inner variable from previous function call
-            rootBuilder.setLatestUsedIndex(var, type, maxIndex);
+            rootBuilder.setLatestUsedIndex(var, type, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
           }
 
         } else {
@@ -565,12 +560,12 @@ public class BAMPredicateReducer implements Reducer {
           // (this is the return-variable of the current function-return).
 
           // small trick:
-          // If MAX is not expIndex,
+          // If MAX(expIndex, rootIndex) is not expIndex,
           // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
-          // in this case the index is irrelevant and can be set to MAX (TODO really?).
+          // in this case the index is irrelevant and can be set to expIndex (TODO really?).
           // Otherwise (the important case, MAX == expIndex)
           // we are in the refinement step and build the CEX-path.
-          rootBuilder.setIndex(var, type, maxIndex);
+          rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
         }
       }
     }
