@@ -594,10 +594,6 @@ public class CFASingleLoopTransformation {
                * successor
                */
               edgesToRemove.add(edge);
-              if (edge instanceof FunctionReturnEdge) {
-                FunctionReturnEdge fre = (FunctionReturnEdge) edge;
-                tmpMap.put(fre.getSummaryEdge().getPredecessor(), fre.getSummaryEdge().getPredecessor());
-              }
               tmpMap.put(current, current);
               CFAEdge replacementEdge = copyCFAEdgeWithNewNodes(edge, tmpMap);
               // The replacement edge is added in place of the old edge
