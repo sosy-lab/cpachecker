@@ -94,12 +94,12 @@ public class PathFormulaTest {
 
 
     // latest used var
-    builder = builder.setFreshValueBasis("c", CNumericTypes.INT, 7);
+    builder = builder.setFreshValueBasis("c", 7);
 
     Assert.assertTrue(builder.getIndex("c") == 3);
     Assert.assertTrue(builder.getFreshIndex("c") == 8);
 
-    builder = builder.setFreshValueBasis("c", CNumericTypes.INT, 9);
+    builder = builder.setFreshValueBasis("c", 9);
 
     Assert.assertTrue(builder.getIndex("c") == 3);
     Assert.assertTrue(builder.getFreshIndex("c") == 10);
@@ -127,6 +127,6 @@ public class PathFormulaTest {
   public void testSSAExceptionMonotone2() {
     SSAMap.emptySSAMap().builder()
         .setIndex("a", CNumericTypes.INT, 2)
-        .setFreshValueBasis("a", CNumericTypes.INT, 1);
+        .setFreshValueBasis("a", 1);
   }
 }

@@ -466,7 +466,7 @@ public class BAMPredicateReducer implements Reducer {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
-        summSsa.setFreshValueBasis(var, type, newIndex);
+        summSsa.setFreshValueBasis(var, newIndex);
 
       } else if (var.startsWith(calledFunction + "::")
               && var.endsWith(RETURN_VARIABLE_NAME)) {
@@ -483,7 +483,7 @@ public class BAMPredicateReducer implements Reducer {
       } else {
         final int newIndex = entrySsaWithRetBuilder.getFreshIndex(var);
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
-        summSsa.setFreshValueBasis(var, type, newIndex);
+        summSsa.setFreshValueBasis(var, newIndex);
       }
     }
 
@@ -552,7 +552,7 @@ public class BAMPredicateReducer implements Reducer {
             rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
 
           } else { // outer variable or inner variable from previous function call
-            rootBuilder.setFreshValueBasis(var, type, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
+            rootBuilder.setFreshValueBasis(var, Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
           }
 
         } else {

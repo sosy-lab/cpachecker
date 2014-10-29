@@ -162,18 +162,10 @@ public class SSAMap implements Serializable {
      * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
      * Warning: do not use out of order!
      */
-    public SSAMapBuilder setFreshValueBasis(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+    public SSAMapBuilder setFreshValueBasis(String name, int idx) {
+      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
       int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx, "vs", oldIdx);
-
-      type = type.getCanonicalType();
-      CType oldType = varTypes.get(name);
-      if (oldType != null) {
-        TYPE_CONFLICT_CHECKER.resolveConflict(name, type, oldType);
-      } else {
-        varTypes = varTypes.putAndCopy(name, type);
-      }
+      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
       if (idx > oldIdx) {
         freshValueProvider = freshValueProvider.putAndCopy(name, idx - oldIdx);
