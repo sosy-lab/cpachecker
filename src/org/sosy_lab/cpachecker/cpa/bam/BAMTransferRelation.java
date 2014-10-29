@@ -231,6 +231,10 @@ public class BAMTransferRelation implements TransferRelation {
     return currentNode instanceof FunctionEntryNode && currentNode.getNumEnteringEdges() == 0;
   }
 
+  static boolean isFunctionBlock(Block block) {
+    return block.getCallNodes().size() == 1 && block.getCallNode() instanceof FunctionEntryNode;
+  }
+
   /** Analyse block, return expanded exit-states. */
   private Collection<AbstractState> analyseBlockAndExpand(
           final AbstractState entryState, final Precision precision, final Block outerSubtree,
@@ -251,17 +255,17 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
     }
 
-    logger.log(Level.ALL, "Expanding states with initial state", entryState);
-    logger.log(Level.ALL, "Expanding states", reducedResult);
-    final Collection<AbstractState> expandedReturnStates = expandResultStates(reducedResult, outerSubtree, entryState, precision);
-    logger.log(Level.ALL, "Expanded results:", expandedReturnStates);
-
-    return expandedReturnStates;
+    return expandResultStates(reducedResult, outerSubtree, entryState, precision);
   }
 
+  /** This function returns expanded states for all reduced states and updates the caches. */
   private List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
           final Block outerSubtree, final AbstractState state, final Precision precision) {
+
+    logger.log(Level.ALL, "Expanding states with initial state", state);
+    logger.log(Level.ALL, "Expanding states", reducedResult);
+
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
     for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
       AbstractState reducedState = reducedPair.getFirst();
@@ -280,6 +284,9 @@ public class BAMTransferRelation implements TransferRelation {
 
       forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
     }
+
+    logger.log(Level.ALL, "Expanded results:", expandedResult);
+
     return expandedResult;
   }
 

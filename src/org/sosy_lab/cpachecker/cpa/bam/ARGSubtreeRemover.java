@@ -237,7 +237,12 @@ public class ARGSubtreeRemover {
         // we are leaving a block,
         // remove/pop the block and its start-state from the stacks
         openCallElements.removeLast();
-        openSubtrees.removeLast();
+        Block lastBlock = openSubtrees.removeLast();
+
+        if (BAMTransferRelation.isFunctionBlock(lastBlock)) {
+          // we assume that leaving a function-block is only done once.
+          break;
+        }
       }
 
       if (partitioning.isCallNode(node)
