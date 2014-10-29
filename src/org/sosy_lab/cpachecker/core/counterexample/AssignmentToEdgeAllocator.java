@@ -119,7 +119,6 @@ public class AssignmentToEdgeAllocator {
   private final ConcreteState modelAtEdge;
 
   private static final int FIRST = 0;
-  private static final CSimpleType UNSIGNED_DOUBLE = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, true, false, false, false);
 
   public AssignmentToEdgeAllocator(LogManager pLogger,
       CFAEdge pCfaEdge,
@@ -1243,7 +1242,13 @@ public class AssignmentToEdgeAllocator {
         double val = ((ExtendedRational) pValue).toDouble();
         // TODO should we handle infinity and NaN here?
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
+
+      } else if (pValue instanceof Double) {
+        return ExplicitValueLiteral.valueOf(new BigDecimal(((Double)pValue).doubleValue()), pType);
+      } else if (pValue instanceof Float) {
+        return ExplicitValueLiteral.valueOf(new BigDecimal(((Float)pValue).floatValue()), pType);
       }
+
 
       String value = pValue.toString();
       BigDecimal val;
@@ -1257,11 +1262,7 @@ public class AssignmentToEdgeAllocator {
         return UnknownValueLiteral.getInstance();
       }
 
-      if (!pType.isSigned() && val.signum() == -1) {
-        return ExplicitValueLiteral.valueOf(val, pType).addCast(UNSIGNED_DOUBLE);
-      } else {
-        return ExplicitValueLiteral.valueOf(val, pType);
-      }
+      return ExplicitValueLiteral.valueOf(val, pType);
     }
 
     public void resolveStruct(CType type, ValueLiterals pValueLiterals,
