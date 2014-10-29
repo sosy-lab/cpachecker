@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
@@ -112,6 +115,7 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -624,7 +628,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         && (missingInformationRightJExpression != null || !pInitialValue.isUnknown());
 
     return isNoComplexType || pInitialValue instanceof EnumConstantValue
-        || pInitialValue instanceof NullValue || pInitialValue.isUnknown();
+        || pInitialValue instanceof ArrayValue || pInitialValue instanceof NullValue
+        || pInitialValue.isUnknown();
   }
 
   private boolean isComplexJavaType(Type pType) {
@@ -722,6 +727,28 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         if (memLoc != null) {
           return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+        }
+      } else if (op1 instanceof JArraySubscriptExpression) {
+        JArraySubscriptExpression arrayExpression = (JArraySubscriptExpression) op1;
+        ExpressionValueVisitor evv = getVisitor();
+
+        ArrayValue arrayValue = getInnerMostArray(arrayExpression);
+        Value subscriptValue = arrayExpression.getSubscriptExpression().accept(evv);
+        long index;
+
+        if (arrayValue == null || subscriptValue.isUnknown()) {
+          assignUnknownValueToIdentifier((JArraySubscriptExpression) op1);
+
+        } else {
+          index = ((NumericValue) subscriptValue).longValue();
+
+          if (index < 0 || index >= arrayValue.getArraySize()) {
+            throw new UnrecognizedCodeException("Invalid index " + index + " for array " + arrayValue, cfaEdge);
+          }
+
+          // changes array value in old state
+          handleAssignmentToArray(arrayValue, (int) index, op2);
+          return ValueAnalysisState.copyOf(state);
         }
       }
     } else {
@@ -821,6 +848,62 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private void addMissingInformation(CLeftHandSide pOp1, Value pValue) {
     missingInformationList.add(new MissingInformation(pOp1, pValue));
 
+  }
+
+  private @Nullable ArrayValue getInnerMostArray(JArraySubscriptExpression pArraySubscriptExpression) {
+    JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
+
+    if (arrayExpression instanceof JIdExpression) {
+      Value idValue = getVisitor().evaluateJIdExpression((JIdExpression) arrayExpression);
+      if (!idValue.isUnknown()) {
+        return (ArrayValue) idValue;
+      } else {
+        return null;
+      }
+    } else {
+      final JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) arrayExpression;
+      ArrayValue arrayValue = getInnerMostArray(arraySubscriptExpression);
+
+      // check if we already are at the outermost array
+      if (arrayValue != null && arrayValue.getArrayType().getDimensions() > 1) {
+        final ExpressionValueVisitor evv = getVisitor();
+        final Value indexValue = arraySubscriptExpression.getSubscriptExpression().accept(evv);
+
+
+        if (indexValue.isUnknown()) {
+          return null;
+        }
+
+        long index = ((NumericValue) indexValue).longValue();
+
+        if (index >= arrayValue.getArraySize() || index < 0) {
+          return null;
+        }
+
+        arrayValue = (ArrayValue) arrayValue.getValueAt((int) index);
+      }
+
+      return arrayValue;
+    }
+  }
+
+  private void handleAssignmentToArray(ArrayValue pArray, int index, IARightHandSide exp) {
+    assert exp instanceof JExpression;
+
+    pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
+  }
+
+  private void assignUnknownValueToIdentifier(JArraySubscriptExpression pArraySubscriptExpression) {
+    JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
+
+    if (arrayExpression instanceof JIdExpression) {
+      JIdExpression idExpression = (JIdExpression) arrayExpression;
+      MemoryLocation memLoc = getMemoryLocation(idExpression);
+
+      state.assignConstant(memLoc, Value.UnknownValue.getInstance(), new JSimpleType(JBasicType.UNSPECIFIED));
+    } else {
+      assignUnknownValueToIdentifier((JArraySubscriptExpression) arrayExpression);
+    }
   }
 
   /**

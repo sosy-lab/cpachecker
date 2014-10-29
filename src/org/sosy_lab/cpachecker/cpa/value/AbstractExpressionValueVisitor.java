@@ -24,6 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -85,10 +89,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -1159,8 +1165,20 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JArraySubscriptExpression pAArraySubscriptExpression) {
-    return pAArraySubscriptExpression.getSubscriptExpression().accept(this);
+  public Value visit(JArraySubscriptExpression pJArraySubscriptExpression) {
+    NumericValue subscriptValue = (NumericValue) pJArraySubscriptExpression.getSubscriptExpression().accept(this);
+    JExpression arrayExpression = pJArraySubscriptExpression.getArrayExpression();
+    Value idValue = arrayExpression.accept(this);
+
+    if (!idValue.isUnknown()) {
+      ArrayValue innerMostArray = (ArrayValue) arrayExpression.accept(this);
+
+      assert subscriptValue.longValue() >= 0 && subscriptValue.longValue() <= Integer.MAX_VALUE;
+      return innerMostArray.getValueAt((int) subscriptValue.longValue());
+
+    } else {
+      return Value.UnknownValue.getInstance();
+    }
   }
 
   @Override
@@ -1200,13 +1218,69 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(JArrayCreationExpression pJBooleanLiteralExpression) throws RuntimeException {
-    return UnknownValue.getInstance();
+  public Value visit(JArrayCreationExpression pJArrayCreationExpression) throws RuntimeException {
+    List<JExpression> arraySizeExpressions = new ArrayList<>(pJArrayCreationExpression.getLength());
+    Value lastArrayValue;
+    Value currentArrayValue = null;
+    int currentDimension = 0;
+    long concreteArraySize;
+    final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
+
+    Collections.reverse(arraySizeExpressions);
+    for (JExpression sizeExpression : arraySizeExpressions) {
+      currentDimension++;
+      lastArrayValue = currentArrayValue;
+      Value sizeValue = sizeExpression.accept(this);
+
+      if (sizeValue.isUnknown()) {
+        currentArrayValue = UnknownValue.getInstance();
+
+      } else {
+        concreteArraySize = ((NumericValue) sizeValue).longValue();
+        currentArrayValue = createArrayValue(new JArrayType(elementType, currentDimension), concreteArraySize);
+
+        if (lastArrayValue != null) {
+          Value newValue = lastArrayValue;
+
+          for (int index = 0; index < concreteArraySize; index++) {
+            ((ArrayValue) currentArrayValue).setValue(newValue, index);
+
+            // do not put the same ArrayValue instance in each slot
+            // - this would mess up later value assignments because of call by reference
+            if (lastArrayValue instanceof ArrayValue) {
+              newValue = ArrayValue.copyOf((ArrayValue) lastArrayValue);
+            }
+          }
+        }
+      }
+    }
+
+    return currentArrayValue;
+  }
+
+  private ArrayValue createArrayValue(JArrayType pType, long pArraySize) {
+
+    if (pArraySize < 0 || pArraySize > Integer.MAX_VALUE) {
+      throw new AssertionError("Trying to create array of size " + pArraySize
+          + ". Java arrays can't be smaller than 0 or bigger than the max int value.");
+    }
+
+    return new ArrayValue(pType, (int) pArraySize);
   }
 
   @Override
   public Value visit(JArrayInitializer pJArrayInitializer) throws RuntimeException {
-    return UnknownValue.getInstance();
+    final JArrayType arrayType = pJArrayInitializer.getExpressionType();
+    final List<JExpression> initializerExpressions = pJArrayInitializer.getInitializerExpressions();
+
+    // this list stores the values in the array's slots, in occurring order
+    List<Value> slotValues = new LinkedList<>();
+
+    for (JExpression currentExpression : initializerExpressions) {
+      slotValues.add(currentExpression.accept(this));
+    }
+
+    return new ArrayValue(arrayType, slotValues);
   }
 
   @Override
