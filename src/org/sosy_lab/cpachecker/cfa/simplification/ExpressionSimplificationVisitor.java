@@ -102,8 +102,14 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         }
         case FLOAT:
         case DOUBLE: {
-          return new CFloatLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), numericResult.bigDecimalValue());
+          try {
+            return new CFloatLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), numericResult.bigDecimalValue());
+          } catch (NumberFormatException nfe) {
+            // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
+            logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
+            return expr;
+          }
         }
       }
     }
