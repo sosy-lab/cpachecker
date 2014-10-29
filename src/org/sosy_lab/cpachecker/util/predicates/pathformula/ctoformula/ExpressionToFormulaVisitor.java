@@ -317,7 +317,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     // If the types are equal, the cast returns the Formula unchanged.
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, edge);
 
-    assert returnFormulaType == conv.fmgr.getFormulaType(castedResult)
+    assert returnFormulaType.equals(conv.fmgr.getFormulaType(castedResult))
          : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
     return castedResult;
   }
@@ -466,7 +466,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       CType returnType = exp.getExpressionType();
       FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-      assert returnFormulaType == conv.fmgr.getFormulaType(ret)
+      assert returnFormulaType.equals(conv.fmgr.getFormulaType(ret))
             : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
       return ret;
     }

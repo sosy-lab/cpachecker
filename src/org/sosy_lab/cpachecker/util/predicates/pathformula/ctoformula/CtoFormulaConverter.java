@@ -450,7 +450,7 @@ public class CtoFormulaConverter {
     if (fromType instanceof CPointerType ||
         toType instanceof CPointerType) {
       // Ignore casts between Pointer and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
+      if (getFormulaTypeFromCType(toType).equals(getFormulaTypeFromCType(fromType))) {
         return formula;
       }
     }
@@ -494,7 +494,7 @@ public class CtoFormulaConverter {
     final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
     final Formula ret;
-    if (fromType == toType) {
+    if (fromType.equals(toType)) {
       ret = pFormula;
 
     } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
@@ -515,7 +515,7 @@ public class CtoFormulaConverter {
           + " needs theory conversion between " + fromType + " and " + toType);
     }
 
-    assert fmgr.getFormulaType(ret) == toType : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
+    assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
   }
 
