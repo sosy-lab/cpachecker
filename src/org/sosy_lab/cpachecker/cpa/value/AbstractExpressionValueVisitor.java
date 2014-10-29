@@ -1134,13 +1134,7 @@ public abstract class AbstractExpressionValueVisitor
       return false;
     }
 
-    JBasicType concreteType = ((JSimpleType) type).getType();
-
-    return concreteType.equals(JBasicType.BYTE)
-      || concreteType.equals(JBasicType.CHAR)
-      || concreteType.equals(JBasicType.INT)
-      || concreteType.equals(JBasicType.LONG)
-      || concreteType.equals(JBasicType.SHORT);
+    return ((JSimpleType)type).getType().isIntegerType();
   }
 
   private static boolean isFloatType(JType type) {
@@ -1148,10 +1142,7 @@ public abstract class AbstractExpressionValueVisitor
       return false;
     }
 
-    JBasicType concreteType = ((JSimpleType) type).getType();
-
-    return concreteType.equals(JBasicType.FLOAT)
-        || concreteType.equals(JBasicType.DOUBLE);
+    return ((JSimpleType)type).getType().isFloatingPointType();
   }
 
   @Override

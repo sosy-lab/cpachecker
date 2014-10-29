@@ -40,6 +40,18 @@ public enum CBasicType {
     code = pCode;
   }
 
+  public boolean isFloatingPointType() {
+    return this == FLOAT
+        || this == DOUBLE;
+  }
+
+  public boolean isIntegerType() {
+    return this == BOOL
+        || this == CHAR
+        || this == INT
+        || this == UNSPECIFIED;
+  }
+
   public String toASTString() {
     return code;
   }
