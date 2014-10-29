@@ -29,6 +29,7 @@ import java.io.IOException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.TestLogManager;
@@ -77,7 +78,7 @@ public class Z3Test {
     }
   }
 
-  @Test
+  @Test @Ignore
   public void doTest() throws InterruptedException, SolverException, IOException {
     IntegerFormula var_B = fmgr.makeVariable(NumeralType.IntegerType, "b");
     IntegerFormula var_C = fmgr.makeVariable(NumeralType.IntegerType, "c");
