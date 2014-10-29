@@ -289,7 +289,7 @@ public class PathFormulaManagerImplTest {
         a_to_b, customIdx);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + SSAMap.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
+    Assert.assertEquals(customIdx + FreshValueProvider.DefaultFreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
 
   @Test

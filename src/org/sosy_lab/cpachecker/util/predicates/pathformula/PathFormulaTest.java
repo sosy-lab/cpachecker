@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.lang.reflect.Constructor;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -68,5 +69,47 @@ public class PathFormulaTest {
   @Test
   public void testNulls() throws Exception {
     classSanityTester().testNulls(PathFormula.class);
+  }
+
+  @Test
+  public void testSSA() {
+    SSAMap.SSAMapBuilder builder = SSAMap.emptySSAMap().builder()
+        .setIndex("a", CNumericTypes.INT, 1)
+        .setIndex("b", CNumericTypes.INT, 2)
+        .setIndex("c", CNumericTypes.INT, 3);
+
+    Assert.assertTrue(builder.getIndex("a") == 1);
+    Assert.assertTrue(builder.getIndex("b") == 2);
+    Assert.assertTrue(builder.getIndex("c") == 3);
+
+    Assert.assertTrue(builder.getFreshIndex("a") == 2);
+    Assert.assertTrue(builder.getFreshIndex("b") == 3);
+    Assert.assertTrue(builder.getFreshIndex("c") == 4);
+
+    // simple var
+    builder = builder.setIndex("b", CNumericTypes.INT, 5);
+
+    Assert.assertTrue(builder.getIndex("b") == 5);
+    Assert.assertTrue(builder.getFreshIndex("b") == 6);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testSSAExceptionMonotone() {
+    SSAMap.emptySSAMap().builder()
+        .setIndex("a", CNumericTypes.INT, 2)
+        .setIndex("a", CNumericTypes.INT, 1);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testSSAExceptionNegative() {
+    SSAMap.emptySSAMap().builder()
+        .setIndex("a", CNumericTypes.INT, -5);
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testSSAExceptionMonotone2() {
+    SSAMap.emptySSAMap().builder()
+        .setIndex("a", CNumericTypes.INT, 2)
+        .setIndex("a", CNumericTypes.INT, 1);
   }
 }
