@@ -140,7 +140,7 @@ public class BAMPredicateReducer implements Reducer {
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
       for (String var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+        if (!oldSSA.containsVariable(var)) {
           //add an index (with the value of rootSSA)
           builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
         }
@@ -406,7 +406,7 @@ public class BAMPredicateReducer implements Reducer {
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
     for (String var : rootSSA.allVariables()) {
       //if we do not have the index in the reduced map..
-      if (oldSSA.getIndex(var) == SSAMap.DEFAULT_DEFAULT_IDX) {
+      if (!oldSSA.containsVariable(var)) {
         //add an index (with the value of rootSSA)
         builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
       }

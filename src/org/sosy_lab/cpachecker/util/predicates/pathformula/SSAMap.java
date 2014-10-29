@@ -60,7 +60,7 @@ public class SSAMap implements Serializable {
   private static final long serialVersionUID = 7618801653203679876L;
 
   // Default value for the default value
-  public static final int DEFAULT_DEFAULT_IDX = -1;
+  private static final int DEFAULT_DEFAULT_IDX = -1;
 
   private final int defaultValue;
 
