@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,11 +56,20 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+import com.google.common.collect.ImmutableSet;
+
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
+  // The following options will be forced in the counterexample check
+  // to have the same value as in the actual analysis.
+  private static final ImmutableSet<String> OVERWRITE_OPTIONS = ImmutableSet.of(
+      "analysis.machineModel", "cpa.predicate.handlePointerAliasing"
+      );
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
   private final CFA cfa;
   private final String filename;
 
@@ -79,6 +89,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
     this.logger = logger;
+    this.config = config;
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
@@ -90,6 +101,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename,
       ARGCPA pCpa) throws InvalidConfigurationException {
     this.logger = logger;
+    this.config = config;
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
@@ -132,10 +144,19 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {
-      Configuration lConfig = Configuration.builder()
+      ConfigurationBuilder lConfigBuilder = Configuration.builder()
               .loadFromFile(configFile)
-              .setOption("specification", automatonFile.toAbsolutePath().toString())
-              .build();
+              .setOption("specification", automatonFile.toAbsolutePath().toString());
+
+      for (String option : OVERWRITE_OPTIONS) {
+        if (config.hasProperty(option)) {
+          lConfigBuilder.copyOptionFrom(config, option);
+        } else {
+          lConfigBuilder.clearOption(option);
+        }
+      }
+
+      Configuration lConfig = lConfigBuilder.build();
       ShutdownNotifier lShutdownNotifier = ShutdownNotifier.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
 

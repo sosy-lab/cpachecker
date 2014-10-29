@@ -147,5 +147,4 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
     return SmtInterpolUtil.isIfThenElse(pBits);
   }
 
-
 }

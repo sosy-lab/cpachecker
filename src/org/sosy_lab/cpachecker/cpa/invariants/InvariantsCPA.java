@@ -345,7 +345,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       return precision;
     }
     getInitialState(pNode);
-    return initialPrecisionMap.get(pNode);
+    precision = initialPrecisionMap.get(pNode);
+
+    // If no precision was mapped to the state, use the empty precision
+    if (precision == null) {
+      return InvariantsPrecision.getEmptyPrecision();
+    }
+    return precision;
   }
 
   public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {

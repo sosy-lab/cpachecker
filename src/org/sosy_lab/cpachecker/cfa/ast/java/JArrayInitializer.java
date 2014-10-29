@@ -72,7 +72,7 @@ public class JArrayInitializer extends AExpression implements JAstNode, JInitial
       // delete ', ' at the end of the current string
       int stringLength = astString.length();
 
-      astString.delete(stringLength - 2, stringLength - 1);
+      astString.delete(stringLength - 2, stringLength);
     }
 
     astString.append("}");

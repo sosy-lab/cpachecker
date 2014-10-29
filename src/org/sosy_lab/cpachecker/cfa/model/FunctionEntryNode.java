@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import com.google.common.collect.ImmutableList;
 
 
-public  class FunctionEntryNode extends CFANode {
+public abstract class FunctionEntryNode extends CFANode {
 
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
@@ -83,9 +83,5 @@ public  class FunctionEntryNode extends CFANode {
     return parameterNames;
   }
 
-  public List<? extends AParameterDeclaration> getFunctionParameters() {
-    //return functionDefinition.getType().getParameters();
-    return null;
-  }
-
+  public abstract List<? extends AParameterDeclaration> getFunctionParameters();
 }

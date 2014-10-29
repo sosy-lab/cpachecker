@@ -172,4 +172,5 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
   protected boolean isIfThenElse(IExpression pBits) {
     return PrincessUtil.isIfThenElse(pBits);
   }
+
 }

@@ -109,9 +109,6 @@ public class CBinaryExpressionBuilder {
       BinaryOperator.BINARY_OR,
       BinaryOperator.BINARY_XOR);
 
-  private final static Set<CBasicType> integerTypes = Sets.immutableEnumSet(INT, CHAR, BOOL);
-
-
   private final MachineModel machineModel;
   private final LogManager logger;
 
@@ -520,7 +517,7 @@ public class CBinaryExpressionBuilder {
   }
 
   private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) {
-    if (!integerTypes.contains(((CSimpleType) pType).getType())) {
+    if (!((CSimpleType) pType).getType().isIntegerType()) {
       throw new CFAGenerationRuntimeException("unexpected type " + pType + " for operation " + op, e);
     }
   }

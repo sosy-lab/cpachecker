@@ -39,10 +39,10 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
 
-  private final Function<BooleanFormula, TFormulaInfo> extractor =
-      new Function<BooleanFormula, TFormulaInfo>() {
+  private final Function<Formula, TFormulaInfo> extractor =
+      new Function<Formula, TFormulaInfo>() {
         @Override
-        public TFormulaInfo apply(BooleanFormula pInput) {
+        public TFormulaInfo apply(Formula pInput) {
           return extractInfo(pInput);
         }
       };

@@ -88,7 +88,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateExpressionValue(smgState, cfaEdge, rValue);
+    return eee.evaluateExpressionValueV2(smgState, cfaEdge, rValue);
   }
 
   public SMGAddressValue evaluateSMGAddressExpression(CRightHandSide rValue)
@@ -96,7 +96,7 @@ public class ValueAnalysisSMGCommunicator {
 
     SMGExplicitExpressionEvaluator eee =
         new SMGExplicitExpressionEvaluator();
-    return eee.evaluateAddress(smgState, cfaEdge, rValue);
+    return eee.evaluateAddressV2(smgState, cfaEdge, rValue);
   }
 
   public MemoryLocation evaluateLeftHandSide(CExpression lValue)
@@ -134,7 +134,7 @@ public class ValueAnalysisSMGCommunicator {
       LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
 
       try {
-        value = pOperand.accept(visitor);
+        value = pOperand.accept(visitor).getAddress();
       } catch (CPATransferException e) {
         if (e instanceof UnrecognizedCCodeException) {
           throw (UnrecognizedCCodeException) e;
@@ -258,7 +258,7 @@ public class ValueAnalysisSMGCommunicator {
         SMGSymbolicValue value;
 
         try {
-          value = smgEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
+          value = smgEvaluator.evaluateExpressionValueV2(smgState, cfaEdge, rValue);
         } catch (CPATransferException e) {
           logger.logDebugException(e);
           throw new UnrecognizedCCodeException("Rvalue Could not be evaluated by smgEvaluator", cfaEdge,rValue);
@@ -299,7 +299,7 @@ public class ValueAnalysisSMGCommunicator {
     }
 
     @Override
-    public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
+    public SMGExplicitValue evaluateExplicitValueV2(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
       Value value = pRValue.accept(evv);
 

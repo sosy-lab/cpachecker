@@ -1428,15 +1428,19 @@ class ASTConverter {
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
-      CType canonicalType = type.getCanonicalType();
-      if (canonicalType instanceof CFunctionType) {
+      // We need to resolve typedefs, but we cannot call getCanonicalType()
+      // because we need to leave the parameter types unchanged.
+      while (type instanceof CTypedefType) {
+        type = ((CTypedefType)type).getRealType();
+      }
+      if (type instanceof CFunctionType) {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d, niceFileNameFunction);
         }
 
         List<CParameterDeclaration> params;
 
-        CFunctionType functionType = (CFunctionType)canonicalType;
+        CFunctionType functionType = (CFunctionType)type;
         if (functionType instanceof CFunctionTypeWithNames) {
           params = ((CFunctionTypeWithNames)functionType).getParameterDeclarations();
         } else {

@@ -69,6 +69,11 @@ public interface FormulaManager {
   UnsafeFormulaManager getUnsafeFormulaManager();
 
   /**
+   * Returns the interface for handling quantifiers.
+   */
+  QuantifiedFormulaManager getQuantifiedFormulaManager();
+
+  /**
    * Returns the type of the given Formula.
    * Undefined behavior when an untyped Formula from UnsafeFormulaManager is given.
    */

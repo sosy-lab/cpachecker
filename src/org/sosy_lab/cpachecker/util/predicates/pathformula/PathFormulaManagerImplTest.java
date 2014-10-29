@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -265,14 +266,13 @@ public class PathFormulaManagerImplTest {
   private FunctionEntryNode dummyFunction(String name) {
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
-    FunctionEntryNode main = new FunctionEntryNode(
+    FunctionEntryNode main = new CFunctionEntryNode(
         FileLocation.DUMMY,
-        name,
-        new FunctionExitNode(name),
         new CFunctionDeclaration(
             FileLocation.DUMMY, functionType, name,
             Collections.<CParameterDeclaration>emptyList()
         ),
+        new FunctionExitNode(name),
         Collections.<String>emptyList()
     );
 

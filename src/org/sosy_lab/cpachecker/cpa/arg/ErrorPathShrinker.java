@@ -244,7 +244,7 @@ public final class ErrorPathShrinker {
 
   private void handleFunctionCallEdge(List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
     addCurrentCFAEdgeToShortPath(); // functioncalls are important
-    for (int i = 0; i < arguments.size(); i++) {
+    for (int i = 0; i < functionParameters.size(); i++) {
       IAExpression arg = arguments.get(i);
       final String paramName = functionParameters.get(i).getQualifiedName();
       if (isImportant(paramName)) {

@@ -21,7 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.predicates.interfaces;
+
+import java.util.List;
+
+
 /**
- * Implementation of a wrapper layer around SMT solvers.
+ * This interface represents the a theory with quantifiers.
+ *  TODO: Not every theory has the quantifier elimination property.
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view.wrapping;
+public interface QuantifiedFormulaManager {
+
+  public BooleanFormula exists (List<Formula> pVariables, BooleanFormula pBody);
+
+  public BooleanFormula forall (List<Formula> pVariables, BooleanFormula pBody);
+
+  public BooleanFormula eliminatedQuantifiers (BooleanFormula pF);
+
+}

@@ -121,11 +121,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
   }
 
   @Override
-  public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
-    return wrapInView(manager.equivalence(extractFromView(pFormula1), extractFromView(pFormula2)));
-  }
-
-  @Override
   public boolean isTrue(BooleanFormula pFormula) {
     return manager.isTrue(extractFromView(pFormula));
   }
@@ -174,6 +169,10 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     return manager.isImplication(extractFromView(pFormula));
   }
 
+  @Override
+  public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
+    return wrapInView(manager.equivalence(extractFromView(pFormula1), extractFromView(pFormula2)));
+  }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
     return not(equivalence(p, q));

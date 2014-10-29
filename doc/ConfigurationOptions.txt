@@ -1740,6 +1740,9 @@ pcc.useCores = 1
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
+# If this option is used, variables that are addressedare tracked.
+precision.trackAddressedVariables = true
+
 # If this option is used, booleans from the cfa are tracked.
 precision.trackBooleanVariables = true
 
@@ -1786,6 +1789,10 @@ spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
+
+# Do not try to "catch up" with witness lines: If they do not match, go to
+# the sink.
+spec.strictLineMatching = false
 
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false

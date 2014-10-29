@@ -101,7 +101,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       final ShutdownNotifier pShutdownNotifier) {
 
     super(creator, unsafeManager, pFunctionManager,
-            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager);
+            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager, null);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;

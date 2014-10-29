@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -90,6 +91,7 @@ public class FormulaManagerView {
     public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> manager);
     public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> manager);
     public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
+    public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager manager);
     public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
   }
 
@@ -119,6 +121,11 @@ public class FormulaManagerView {
         public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager) {
           return new FunctionFormulaManagerView(pManager);
         }
+
+        @Override
+        public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager pManager) {
+          return new QuantifiedFormulaManagerView(pManager);
+        }
       };
 
   public static enum Theory {
@@ -138,6 +145,7 @@ public class FormulaManagerView {
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
+  private final QuantifiedFormulaManagerView quantifiedFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -182,6 +190,9 @@ public class FormulaManagerView {
     booleanFormulaManager.couple(this);
     functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
     functionFormulaManager.couple(this);
+    quantifiedFormulaManager = loadManagers.wrapManager(manager.getQuantifiedFormulaManager());
+    quantifiedFormulaManager.couple(this);
+
     logger = pLogger;
   }
 
@@ -636,6 +647,10 @@ public class FormulaManagerView {
 
   public FunctionFormulaManagerView getFunctionFormulaManager() {
     return functionFormulaManager;
+  }
+
+  public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
+    return quantifiedFormulaManager;
   }
 
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
@@ -1177,4 +1192,4 @@ public class FormulaManagerView {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     return unsafeManager.simplify(input);
   }
-}
+  }

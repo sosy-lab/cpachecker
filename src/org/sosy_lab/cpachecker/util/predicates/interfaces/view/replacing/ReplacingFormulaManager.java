@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
 
@@ -55,12 +56,14 @@ public class ReplacingFormulaManager implements FormulaManager {
   private final FunctionFormulaManager functionTheory;
   private final BooleanFormulaManager booleanTheory;
   private final UnsafeFormulaManager unsafeManager;
+  private final QuantifiedFormulaManager quantifiedFormulaManager;
 
   public ReplacingFormulaManager(
       FormulaManager rawFormulaManager,
       final Theory bitvectorReplacement,
       final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
+    this.quantifiedFormulaManager = rawFormulaManager.getQuantifiedFormulaManager();
     replacedRationalTheory = false;
 
     final Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
@@ -233,6 +236,11 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public String getVersion() {
     return rawFormulaManager.getVersion();
+  }
+
+  @Override
+  public QuantifiedFormulaManager getQuantifiedFormulaManager() {
+    return quantifiedFormulaManager;
   }
 
 }

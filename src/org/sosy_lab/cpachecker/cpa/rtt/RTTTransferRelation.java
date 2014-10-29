@@ -87,15 +87,16 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Transfer Relation traversing the the CFA an tracking Run Type Time Information
+ * Transfer Relation traversing the CFA and tracking Run Time Type Information
  * of Java Programs.
- *
- *
  */
 public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
+
+  // variable name for temporary storage of information
+  private static final String TEMP_VAR_NAME = "___cpa_temp_result_var_";
   private final Set<String> staticFieldVariables = new HashSet<>();
   private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
@@ -201,12 +202,9 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       return;
     }
 
-
-    JVariableDeclaration decl =
-        (JVariableDeclaration) declarationEdge.getDeclaration();
+    JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
 
     if (decl.getType() instanceof JSimpleType) {
-
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
           switch (simpleType) {
@@ -223,7 +221,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
             // Unnecessary to track Primitive types.
             return;
       }
-
     }
 
     // get the variable name in the declarator
@@ -253,22 +250,18 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue =
-          getExpressionValue(newElement, exp, methodName, declarationEdge);
-
+      initialValue = getExpressionValue(newElement, exp, methodName, declarationEdge);
     }
 
     // assign initial value
-    String scopedVarName =
-        getScopedVariableName(varName, methodName,
-                              newElement.getClassObjectScope());
+    String scopedVarName = getScopedVariableName(varName, methodName,
+        newElement.getClassObjectScope());
 
     if (initialValue == null) {
       newElement.forget(scopedVarName);
     } else {
       newElement.assignObject(scopedVarName, initialValue);
     }
-
   }
 
   private String getExpressionValue(RTTState element, JExpression expression,
@@ -285,11 +278,10 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
     // In Case Of Class Instance Creation, return unique Object
     if (returnEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
-      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
-          newElement.getClassObjectScope(), newElement,
-          methodName);
+      handleAssignmentToVariable(TEMP_VAR_NAME, expression,
+          newElement.getClassObjectScope(), newElement, methodName);
     } else {
-      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
+      handleAssignmentToVariable(TEMP_VAR_NAME, expression,
           new ExpressionValueVisitor(returnEdge, newElement, methodName));
     }
   }
@@ -448,7 +440,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
       if ((op1 instanceof JIdExpression)) {
 
-        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getClassObjectScope());
+        String returnVarName = getScopedVariableName(TEMP_VAR_NAME, calledFunctionName, newElement.getClassObjectScope());
 
         String assignedVarName = getScopedVariableName(((JIdExpression) op1).getName(), callerFunctionName, newElement.getClassObjectStack().peek());
 
@@ -462,7 +454,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
           newElement.forget(assignedVarName);
         }
       }
-
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof JArraySubscriptExpression) {
         return newElement;

@@ -189,6 +189,10 @@ public abstract class VariableTrackingPrecision implements Precision {
         + " or float are tracked.")
     private boolean trackFloatVariables = true;
 
+    @Option(secure=true, description ="If this option is used, variables that are addressed"
+        + "are tracked.")
+    private boolean trackAddressedVariables = true;
+
     private Optional<VariableClassification> vc;
 
     private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc) throws InvalidConfigurationException {
@@ -202,6 +206,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     return !trackBooleanVariables
       || !trackIntEqualVariables
       || !trackIntAddVariables
+      || !trackAddressedVariables
       || !variableBlacklist.toString().isEmpty();
     }
 
@@ -237,12 +242,14 @@ public abstract class VariableTrackingPrecision implements Precision {
       final boolean isBoolean = varClass.getIntBoolVars().contains(variable.getAsSimpleString());
       final boolean isIntEqual = varClass.getIntEqualVars().contains(variable.getAsSimpleString());
       final boolean isIntAdd = varClass.getIntAddVars().contains(variable.getAsSimpleString());
+      final boolean isAddressed = varClass.getAddressedVariables().contains(variable.getAsSimpleString());
 
       final boolean isIgnoredBoolean = !trackBooleanVariables && isBoolean;
       final boolean isIgnoredIntEqual = !trackIntEqualVariables && isIntEqual;
       final boolean isIgnoredIntAdd = !trackIntAddVariables && isIntAdd;
+      final boolean isIgnoredAddressed = !trackAddressedVariables && isAddressed;
 
-      return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
+      return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd || isIgnoredAddressed;
     }
 
     @Override

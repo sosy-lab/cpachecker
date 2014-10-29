@@ -28,10 +28,12 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implements InterpolatingProverEnvironment<Integer> {
 
@@ -49,6 +51,22 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     msat_set_option_checked(cfg, "theory.bv.eager", "false");
 
     return cfg;
+  }
+
+  @Override
+  public boolean isUnsat() throws InterruptedException, SolverException {
+    Preconditions.checkState(curEnv != 0);
+    try {
+      return !msat_check_sat(curEnv);
+    } catch (IllegalStateException e) {
+      String msg = Strings.nullToEmpty(e.getMessage());
+      if (msg.contains("too many iterations")
+          || msg.contains("impossible to build a suitable congruence graph!")) {
+        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
+        throw new SolverException(e.getMessage(), e);
+      }
+      throw e;
+    }
   }
 
   @Override

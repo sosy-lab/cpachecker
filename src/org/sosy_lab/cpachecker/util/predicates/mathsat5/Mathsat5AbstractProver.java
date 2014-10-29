@@ -50,11 +50,6 @@ abstract class Mathsat5AbstractProver {
     terminationTest = mgr.addTerminationTest(curEnv);
   }
 
-  public boolean isUnsat() throws InterruptedException {
-    Preconditions.checkState(curEnv != 0);
-    return !msat_check_sat(curEnv);
-  }
-
   public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
     return Mathsat5Model.createMathsatModel(curEnv, mgr);

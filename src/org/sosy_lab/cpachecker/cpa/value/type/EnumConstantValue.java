@@ -39,8 +39,8 @@ public class EnumConstantValue implements Value {
   /**
    * Creates a new <code>EnumValue</code>.
    *
-   * @param enumType the type of the enum constant.
-   * @param fullyQualifiedName the fully qualified name of this constant
+   * @param pEnumType the type of the enum constant.
+   * @param pFullyQualifiedName the fully qualified name of this constant
    */
   public EnumConstantValue(Type pEnumType, String pFullyQualifiedName) {
     assert pEnumType instanceof JClassType || pEnumType instanceof CComplexType;

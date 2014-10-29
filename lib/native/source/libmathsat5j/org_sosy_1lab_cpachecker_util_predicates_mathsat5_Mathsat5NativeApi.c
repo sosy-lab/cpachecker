@@ -74,6 +74,11 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     goto out##num; \
   }
 
+#define MPZ_ARG(num) \
+  mpz_t m_arg##num; \
+  mpz_init(m_arg##num); \
+  mpz_set_si(m_arg##num, arg##num);
+
 #define STRUCT_ARRAY_ARG(mtype, num) \
   mtype * m_arg##num; \
   { \
@@ -125,6 +130,9 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
 #define FREE_STRING_ARG(num) \
   (*jenv)->ReleaseStringUTFChars(jenv, arg##num, m_arg##num); \
   out##num:
+
+#define FREE_MPZ_ARG(num) \
+  mpz_clear(m_arg##num);
 
 #define FREE_STRUCT_ARRAY_ARG(num) \
   out##num##b: \
@@ -615,6 +623,15 @@ make_term_binary(equal)
 make_term_binary(leq)
 make_term_binary(plus)
 make_term_binary(times)
+
+DEFINE_FUNC(jterm, 1make_1int_1modular_1congruence) WITH_FOUR_ARGS(jenv, long, jterm, jterm)
+ENV_ARG(1)
+MPZ_ARG(2)
+TERM_ARG(3)
+TERM_ARG(4)
+CALL4(msat_term, make_int_modular_congruence)
+FREE_MPZ_ARG(2)
+TERM_RETURN
 
 DEFINE_FUNC(jterm, 1make_1floor) WITH_TWO_ARGS(jenv, jterm)
 ENV_ARG(1)

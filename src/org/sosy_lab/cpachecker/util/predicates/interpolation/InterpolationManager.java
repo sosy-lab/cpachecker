@@ -335,6 +335,8 @@ public final class InterpolationManager {
 
       try {
         return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+      } catch (SolverException e) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       } finally {
         if (!reuseInterpolationEnvironment) {
           currentInterpolator.close();
@@ -546,7 +548,7 @@ public final class InterpolationManager {
    */
   private <T> List<BooleanFormula> getInterpolants(
       final Interpolator<T> interpolator, List<T> itpGroupsIds,
-      final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) throws InterruptedException {
+      final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) throws InterruptedException, SolverException {
 
     assert itpGroupsIds.size() == orderedFormulas.size();
 
@@ -777,7 +779,7 @@ public final class InterpolationManager {
           final List<BooleanFormula> interpolants,
           final Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack,
           final InterpolatingProverEnvironment<T> itpProver,
-          int positionOfA, BooleanFormula lastItp) throws InterruptedException {
+          int positionOfA, BooleanFormula lastItp) throws InterruptedException, SolverException {
 
     final List<T> A = buildFormulas(orderedFormulas, lastItp, callstack, positionOfA, itpProver);
 
@@ -868,7 +870,7 @@ public final class InterpolationManager {
           final List<BooleanFormula> interpolants,
           final Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack,
           final InterpolatingProverEnvironment<T> itpProver,
-          int positionOfA, BooleanFormula lastItp) throws InterruptedException {
+          int positionOfA, BooleanFormula lastItp) throws InterruptedException, SolverException {
     final List<T> A = new ArrayList<>();
     final List<T> B = new ArrayList<>();
 
@@ -942,7 +944,7 @@ public final class InterpolationManager {
           final List<BooleanFormula> interpolants,
           final Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack,
           final Interpolator<T> interpolator,
-          int positionOfA, BooleanFormula lastItp) throws InterruptedException {
+          int positionOfA, BooleanFormula lastItp) throws InterruptedException, SolverException {
     try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
 
       final boolean log = false;
@@ -1210,7 +1212,7 @@ public final class InterpolationManager {
    */
   private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
       InterpolatingProverEnvironment<T> pItpProver, Set<ARGState> elementsOnPath)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, SolverException, InterruptedException {
 
     // get the branchingFormula
     // this formula contains predicates for all branches we took
@@ -1400,7 +1402,7 @@ public final class InterpolationManager {
      * @throws InterruptedException
      */
     private boolean checkInfeasabilityOfTrace(List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
-        List<T> itpGroupsIds) throws InterruptedException {
+        List<T> itpGroupsIds) throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
