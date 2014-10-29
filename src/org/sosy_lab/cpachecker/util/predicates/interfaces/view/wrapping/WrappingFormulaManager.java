@@ -34,12 +34,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 
 
 public class WrappingFormulaManager extends FormulaManagerView {
@@ -77,5 +79,11 @@ public class WrappingFormulaManager extends FormulaManagerView {
       public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager) {
         return new WrappingFunctionFormulaManagerView(pManager);
       }
+
+      @Override
+      public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager pManager) {
+        return new WrappingQuantifiedFormulaManagerView(pManager);
+      }
+
     };
 }

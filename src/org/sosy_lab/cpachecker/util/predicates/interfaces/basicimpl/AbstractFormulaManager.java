@@ -51,6 +51,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
+  private final AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager;
+
   private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
   /**
@@ -69,10 +71,14 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
+      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
+      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager) {
+
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
+
+    this.quantifiedManager = quantifiedManager;
 
     this.functionManager = functionManager;
 
@@ -142,10 +148,13 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   @Override
   public AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> getUnsafeFormulaManager() {
-
     return unsafeManager;
   }
 
+  @Override
+  public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
+    return quantifiedManager;
+  }
 
   public abstract Appender dumpFormula(TFormulaInfo t);
 

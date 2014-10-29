@@ -147,5 +147,10 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
     return SmtInterpolUtil.isIfThenElse(pBits);
   }
 
+  @Override
+  protected Term exists(List<Term> pTransform, Term pExtractInfo) {
+    throw new RuntimeException("Not implemented");
+  }
+
 
 }

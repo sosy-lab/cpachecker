@@ -165,6 +165,6 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   protected Long simplify(Long pF) {
-    throw new UnsupportedOperationException();
+    return Z3NativeApi.simplify(z3context, pF);
   }
 }
