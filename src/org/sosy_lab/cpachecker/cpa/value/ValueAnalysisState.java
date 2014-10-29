@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBased
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -882,4 +883,47 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     return checker==null? pFmgr.getBooleanFormulaManager().makeBoolean(false):checker.getErrorCondition(pFmgr);
   }
 
+
+  /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
+   * This function rebuilds a new state with the correct values from the previous callState.
+   * We delete the wrong values and insert new values, if necessary. */
+  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState) {
+
+    // we build a new state from:
+    // - local variables from callState,
+    // - global variables from THIS,
+    // - the local return variable from THIS.
+    // we copy callState and override all global values and the return variable.
+
+    final ValueAnalysisState rebuildState = ValueAnalysisState.copyOf(callState);
+
+    // first forget all global information
+    for (final ValueAnalysisState.MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+      if (!trackedVar.isOnFunctionStack()) { // global -> delete
+        rebuildState.forget(trackedVar);
+      }
+    }
+
+    // second: learn new information
+    for (final ValueAnalysisState.MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+
+      if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
+        rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
+
+      } else if (VariableClassification.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
+        // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
+        // so that we can ignore the functionname for this condition.
+        assert (!rebuildState.contains(trackedVar)) :
+                "calling function should not contain return-variable of called function: " + trackedVar;
+        if (this.contains(trackedVar)) {
+          rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
+        }
+      }
+    }
+
+    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
+    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
+    rebuildState.addToDelta(rebuildState);
+    return rebuildState;
+  }
 }

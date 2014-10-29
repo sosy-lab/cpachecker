@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMFreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.testing.ClassSanityTester;
@@ -91,6 +92,47 @@ public class PathFormulaTest {
 
     Assert.assertTrue(builder.getIndex("b") == 5);
     Assert.assertTrue(builder.getFreshIndex("b") == 6);
+  }
+
+  @Test
+  public void testSSAbam() {
+    SSAMap.SSAMapBuilder builder = SSAMap.emptySSAMap().builder()
+        .setIndex("a", CNumericTypes.INT, 1)
+        .setIndex("b", CNumericTypes.INT, 2)
+        .setIndex("c", CNumericTypes.INT, 3);
+
+    Assert.assertTrue(builder.getIndex("a") == 1);
+    Assert.assertTrue(builder.getIndex("b") == 2);
+    Assert.assertTrue(builder.getIndex("c") == 3);
+
+    Assert.assertTrue(builder.getFreshIndex("a") == 2);
+    Assert.assertTrue(builder.getFreshIndex("b") == 3);
+    Assert.assertTrue(builder.getFreshIndex("c") == 4);
+
+    // simple var
+    builder = builder.setIndex("b", CNumericTypes.INT, 5);
+
+    Assert.assertTrue(builder.getIndex("b") == 5);
+    Assert.assertTrue(builder.getFreshIndex("b") == 6);
+
+
+    // latest used var
+    BAMFreshValueProvider bamfvp = new BAMFreshValueProvider();
+    bamfvp.put("c", 7);
+    builder.mergeFreshValueProviderWith(bamfvp);
+
+    Assert.assertTrue(builder.getIndex("c") == 3);
+    Assert.assertTrue(builder.getFreshIndex("c") + " vs " + 8, builder.getFreshIndex("c") == 8);
+
+    BAMFreshValueProvider bamfvp2 = new BAMFreshValueProvider();
+    bamfvp2.put("c", 9);
+    builder.mergeFreshValueProviderWith(bamfvp2);
+    Assert.assertTrue(builder.getFreshIndex("c") == 10);
+
+    builder = builder.setIndex("c", CNumericTypes.INT, 15);
+
+    Assert.assertTrue(builder.getIndex("c") == 15);
+    Assert.assertTrue(builder.getFreshIndex("c") == 16);
   }
 
   @Test(expected=IllegalArgumentException.class)

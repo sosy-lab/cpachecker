@@ -137,7 +137,7 @@ public class VariableClassification {
   private boolean printStatsOnStartup = false;
 
   /** name for return-variables, it is used for function-returns. */
-  private static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+  public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
   private static final String SCOPE_SEPARATOR = "::";
 
   /** normally a boolean value would be 0 or 1,

@@ -137,4 +137,12 @@ public class ValueAnalysisReducer implements Reducer {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState, CFANode exitLocation) {
+
+    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
+    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
+
+    return expandedState.rebuildStateAfterFunctionCall(rootState);
+  }
 }
