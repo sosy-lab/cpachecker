@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractQuantifiedFormulaManager;
+
+import com.google.common.primitives.Longs;
 
 
 class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, Long, Long> {
@@ -39,19 +42,31 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
 
   @Override
   protected Long exists(List<Long> pVariables, Long pBody) {
-    // TODO Auto-generated method stub
-    return null;
+    return Z3NativeApi.mk_exists_const(
+        z3context,
+        0,
+        pVariables.size(),
+        Longs.toArray(pVariables),
+        0,
+        Longs.toArray(Collections.<Long>emptyList()),
+        pBody);
   }
 
   @Override
   protected Long forall(List<Long> pVariables, Long pBody) {
-    // TODO Auto-generated method stub
-    return null;
+    return Z3NativeApi.mk_forall_const(
+        z3context,
+        0,
+        pVariables.size(),
+        Longs.toArray(pVariables),
+        0,
+        Longs.toArray(Collections.<Long>emptyList()),
+        pBody);
   }
+
 
   @Override
   protected Long eliminatedQuantifiers(Long pF) {
-    // TODO Auto-generated method stub
     return null;
   }
 

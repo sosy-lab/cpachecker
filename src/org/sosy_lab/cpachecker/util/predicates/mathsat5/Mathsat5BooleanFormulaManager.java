@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
@@ -155,9 +153,4 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, 
     return msat_term_is_term_ite(mathsatEnv, pBits);
   }
 
-
-  @Override
-  protected Long exists(List<Long> pTransform, Long pExtractInfo) {
-    throw new RuntimeException("Not implemented");
-  }
 }

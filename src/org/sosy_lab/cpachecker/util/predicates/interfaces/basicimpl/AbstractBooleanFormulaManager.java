@@ -148,8 +148,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
     return wrap(result);
   }
 
-  protected abstract TFormulaInfo exists(List<TFormulaInfo> pTransform, TFormulaInfo pExtractInfo);
-
   protected TFormulaInfo orImpl(List<TFormulaInfo> pParams) {
     TFormulaInfo result = makeBooleanImpl(false);
     for (TFormulaInfo formula : pParams) {

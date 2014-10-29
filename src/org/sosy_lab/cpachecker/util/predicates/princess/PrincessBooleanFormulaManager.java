@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.*;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
@@ -175,8 +173,4 @@ class PrincessBooleanFormulaManager extends AbstractBooleanFormulaManager<IExpre
     return PrincessUtil.isIfThenElse(pBits);
   }
 
-  @Override
-  protected IExpression exists(List<IExpression> pTransform, IExpression pExtractInfo) {
-    throw new RuntimeException("Not implemented");
-  }
 }

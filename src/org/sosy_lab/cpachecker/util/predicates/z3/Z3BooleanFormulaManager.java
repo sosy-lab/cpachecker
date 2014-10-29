@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
@@ -145,15 +144,4 @@ class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, 
     return isOP(z3context, pParam, Z3_OP_ITE);
   }
 
-  @Override
-  protected Long exists(List<Long> pVariables, Long pBody) {
-    return mk_exists_const(
-        z3context,
-        0,
-        pVariables.size(),
-        Longs.toArray(pVariables),
-        0,
-        Longs.toArray(Collections.<Long>emptyList()),
-        pBody);
-  }
 }
