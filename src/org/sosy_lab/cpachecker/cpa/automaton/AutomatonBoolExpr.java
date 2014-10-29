@@ -494,7 +494,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
             matches = false;
           }
         }
-        if (matches && l.getStartingLineInOrigin() == matchStartingLineInOrigin) {
+        if (matches && l.getStartingLineNumber() <= matchStartingLineInOrigin && l.getEndingLineNumber() >= matchStartingLineInOrigin) {
           return CONST_TRUE;
         }
       }
