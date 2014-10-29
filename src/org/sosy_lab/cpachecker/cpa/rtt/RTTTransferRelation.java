@@ -202,12 +202,9 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
       return;
     }
 
-
-    JVariableDeclaration decl =
-        (JVariableDeclaration) declarationEdge.getDeclaration();
+    JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
 
     if (decl.getType() instanceof JSimpleType) {
-
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
           switch (simpleType) {
@@ -224,7 +221,6 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
             // Unnecessary to track Primitive types.
             return;
       }
-
     }
 
     // get the variable name in the declarator
@@ -254,22 +250,18 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue =
-          getExpressionValue(newElement, exp, methodName, declarationEdge);
-
+      initialValue = getExpressionValue(newElement, exp, methodName, declarationEdge);
     }
 
     // assign initial value
-    String scopedVarName =
-        getScopedVariableName(varName, methodName,
-                              newElement.getClassObjectScope());
+    String scopedVarName = getScopedVariableName(varName, methodName,
+        newElement.getClassObjectScope());
 
     if (initialValue == null) {
       newElement.forget(scopedVarName);
     } else {
       newElement.assignObject(scopedVarName, initialValue);
     }
-
   }
 
   private String getExpressionValue(RTTState element, JExpression expression,

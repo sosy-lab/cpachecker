@@ -310,7 +310,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
-    if (expression!= null) {
+    if (expression != null) {
       MemoryLocation functionReturnVar = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
 
       return handleAssignmentToVariable(functionReturnVar,
@@ -458,7 +458,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
 
       } else {
-        ((CExpression)expression).accept(avv);
+        ((CExpression) expression).accept(avv);
       }
 
       if (isMissingCExpressionInformation(evv, expression)) {
@@ -514,7 +514,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-    AVariableDeclaration decl = (AVariableDeclaration)declaration;
+    AVariableDeclaration decl = (AVariableDeclaration) declaration;
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -668,7 +668,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   }
 
   private ValueAnalysisState handleAssignment(IAssignment assignExpression, CFAEdge cfaEdge)
-    throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException {
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
 
@@ -684,14 +684,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           notScopedField = (JIdExpression) op1;
         }
 
-        String varName = ((AIdExpression) op1).getName();
-        MemoryLocation memloc;
-
-        if (isGlobal(op1)) {
-          memloc = MemoryLocation.valueOf(varName, 0);
-        } else {
-          memloc = MemoryLocation.valueOf(functionName, varName, 0);
-        }
+        MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
 
         return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
@@ -715,7 +708,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
       }
 
-    } else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
+    } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
       if (op1 instanceof CArraySubscriptExpression) {
 
@@ -738,6 +731,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     return state; // the default return-value is the old state
   }
 
+  private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
+    String varName = pIdExpression.getName();
+
+    if (isGlobal(pIdExpression)) {
+      return MemoryLocation.valueOf(varName, 0);
+    } else {
+      return MemoryLocation.valueOf(functionName, varName, 0);
+    }
+  }
 
   private boolean isRelevant(IAExpression pOp1, IARightHandSide pOp2) {
     return pOp1 instanceof CExpression && pOp2 instanceof CExpression;
@@ -908,15 +910,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     @Override
     public Value visit(JBinaryExpression pE) {
-      JBinaryExpression.BinaryOperator binaryOperator   = pE.getOperator();
+      JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
 
-      JExpression lVarInBinaryExp  = pE.getOperand1();
+      JExpression lVarInBinaryExp = pE.getOperand1();
 
       lVarInBinaryExp = (JExpression) unwrap(lVarInBinaryExp);
 
-      JExpression rVarInBinaryExp  = pE.getOperand2();
+      JExpression rVarInBinaryExp = pE.getOperand2();
 
-      Value leftValueV  = lVarInBinaryExp.accept(this);
+      Value leftValueV = lVarInBinaryExp.accept(this);
       Value rightValueV = rVarInBinaryExp.accept(this);
 
       if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)

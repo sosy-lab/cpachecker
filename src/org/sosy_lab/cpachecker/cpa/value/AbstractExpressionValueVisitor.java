@@ -747,9 +747,9 @@ public abstract class AbstractExpressionValueVisitor
       }
 
     // calculate the result for enum constant and null values
-    } else if (isEnumType(lValue)) {
+    } else if (isValidEnumType(lValue)) {
 
-      assert isEnumType(rValue);
+      assert lValue instanceof NullValue || isValidEnumType(rValue);
       assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
         || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
 
@@ -1049,7 +1049,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private boolean isEnumType(Value value) {
+  private boolean isValidEnumType(Value value) {
     return value instanceof NullValue || value instanceof EnumConstantValue;
   }
 
