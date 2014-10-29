@@ -661,43 +661,45 @@ public final class LoopStructure {
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
-
     NavigableSet<Integer> toRemove = new TreeSet<>();
-    for (int i1 = 0; i1 < loops.size(); i1++) {
-      Loop l1 = loops.get(i1);
+    do {
+      toRemove.clear();
+      for (int i1 = 0; i1 < loops.size(); i1++) {
+        Loop l1 = loops.get(i1);
 
-      for (int i2 = i1+1; i2 < loops.size(); i2++) {
-        Loop l2 = loops.get(i2);
+        for (int i2 = i1+1; i2 < loops.size(); i2++) {
+          Loop l2 = loops.get(i2);
 
-        if (!l1.intersectsWith(l2)) {
-          // loops have nothing in common
-          continue;
-        }
+          if (!l1.intersectsWith(l2)) {
+            // loops have nothing in common
+            continue;
+          }
 
-        if (l1.isOuterLoopOf(l2)) {
+          if (l1.isOuterLoopOf(l2)) {
 
-          // l2 is an inner loop
-          // add it's nodes to l1
-          l1.addNodes(l2);
+            // l2 is an inner loop
+            // add it's nodes to l1
+            l1.addNodes(l2);
 
-        } else if (l2.isOuterLoopOf(l1)) {
+          } else if (l2.isOuterLoopOf(l1)) {
 
-          // l1 is an inner loop
-          // add it's nodes to l2
-          l2.addNodes(l1);
+            // l1 is an inner loop
+            // add it's nodes to l2
+            l2.addNodes(l1);
 
-        } else {
-          // strange goto loop, merge the two together
+          } else {
+            // strange goto loop, merge the two together
 
-          l1.mergeWith(l2);
-          toRemove.add(i2);
+            l1.mergeWith(l2);
+            toRemove.add(i2);
+          }
         }
       }
-    }
 
-    for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
-      loops.remove(i);
-    }
+      for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
+        loops.remove(i);
+      }
+    } while (!toRemove.isEmpty());
 
     return loops;
   }
