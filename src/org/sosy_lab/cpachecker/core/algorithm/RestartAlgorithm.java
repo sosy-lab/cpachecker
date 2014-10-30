@@ -193,6 +193,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean lastAnalysisInterrupted = false;
       boolean lastAnalysisFailed = false;
       boolean lastAnalysisTerminated = false;
+      boolean recursionFound = false;
 
       try {
         Path singleConfigFileName = configFilesIterator.next();
@@ -249,6 +250,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           lastAnalysisFailed = true;
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
+            if (e.getMessage().contains("Unsupported C feature (recursion)")) {
+              recursionFound = true;
+            }
           } else {
             throw e;
           }
@@ -266,7 +270,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
       if (configFilesIterator.hasNext()) {
         // Check if the next config file has a condition,
-        // and if it has a condition, check if it maches.
+        // and if it has a condition, check if it matches.
         boolean foundConfig;
         do {
           foundConfig = true;
@@ -283,6 +287,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               break;
             case "if-terminated":
               foundConfig = lastAnalysisTerminated;
+              break;
+            case "if-recursive":
+              foundConfig = recursionFound;
               break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
