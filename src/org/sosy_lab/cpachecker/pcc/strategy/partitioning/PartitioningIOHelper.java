@@ -53,10 +53,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.CompleteCertificateConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GraphPartitionerFactory.PartitioningHeuristics;
@@ -86,22 +82,7 @@ public class PartitioningIOHelper {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
-    switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
-    case ALL:
-      partialConstructor = new CompleteCertificateConstructionAlgorithm();
-      break;
-    case HEURISTIC:
-      logger.log(Level.WARNING,
-          "Only heuristic, constructed certificate may not be checkable, especially if merge is not join operator.");
-      partialConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
-      break;
-    case MONOTONESTOPARG:
-      partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
-      break;
-    default: // ARG
-      partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
-    }
-
+    partialConstructor = new PartialCertificateTypeProvider(pConfig, false).getCertificateConstructor();
     partitioner = GraphPartitionerFactory.createPartitioner(partitioningStrategy, pShutdownNotifier);
   }
 
