@@ -27,12 +27,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -82,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -499,6 +502,45 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
+
+    Collection<? extends AbstractState> results;
+
+    if(cfaEdge instanceof MultiEdge) {
+
+      MultiEdge multiEdge = (MultiEdge) cfaEdge;
+
+      Queue<SMGState> processQueue = new ArrayDeque<>();
+      Queue<SMGState> resultQueue = new ArrayDeque<>();
+      processQueue.add((SMGState) state);
+
+      for(CFAEdge edge : multiEdge) {
+
+        while(!processQueue.isEmpty()) {
+          SMGState next = processQueue.poll();
+          Collection<? extends AbstractState> resultOfOneOp = getAbstractSuccessorsForEdge(next, precision, edge);
+
+          for(AbstractState result : resultOfOneOp) {
+            resultQueue.add((SMGState) result);
+          }
+        }
+
+        while(!resultQueue.isEmpty()) {
+          processQueue.add(resultQueue.poll());
+        }
+      }
+
+      results = ImmutableSet.copyOf(processQueue);
+    } else {
+      results = getAbstractSuccessorsForEdge((SMGState)state, precision, cfaEdge);
+    }
+
+    return results;
+  }
+
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
@@ -508,9 +550,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     id_counter = new AtomicInteger(0);
   }
 
-  @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
+  private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      SMGState state, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
@@ -518,7 +559,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState successor;
 
-    SMGState smgState = (SMGState) state;
+    SMGState smgState = state;
 
     setInfo(smgState);
 
