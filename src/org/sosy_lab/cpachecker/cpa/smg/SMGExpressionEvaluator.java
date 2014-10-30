@@ -811,6 +811,8 @@ public class SMGExpressionEvaluator {
     SMGState newState = arrayAddressAndState.getSmgState();
 
     if (arrayAddress.isUnknown()) {
+      // assume address is invalid
+      newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
       return SMGAddressAndState.of(newState);
     }
 
@@ -820,6 +822,8 @@ public class SMGExpressionEvaluator {
     newState = subscriptValueAndState.getSmgState();
 
     if (subscriptValue.isUnknown()) {
+   // assume address is invalid
+      newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
       return SMGAddressAndState.of(newState);
     }
 
