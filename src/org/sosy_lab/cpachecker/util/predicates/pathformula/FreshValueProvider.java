@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import org.sosy_lab.common.collect.PersistentSortedMap;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 /** Class for retrieving fresh indices for an old value from an SSAMap, based on some increment. */
 public interface FreshValueProvider {
