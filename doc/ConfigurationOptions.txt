@@ -585,6 +585,9 @@ cpa.bam.exportBlocksPath = "block_cfa.dot"
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
 
+# BAM allows to analyse recursive procedures depending on the underlying CPA.
+cpa.bam.handleRecursiveProcedures = false
+
 # export single blocked ARG as .dot files, should contain '%d'
 cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 
@@ -934,6 +937,10 @@ cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 # force abstractions at each branch node, regardless of threshold
 cpa.predicate.blk.alwaysAtBranch = false
 
+# force abstractions at each function call (node before entering the body),
+# regardless of threshold
+cpa.predicate.blk.alwaysAtFunctionCallNodes = false
+
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionHeads = false
@@ -1194,8 +1201,10 @@ cpa.predicate.refinement.splitItpAtoms = false
 # - CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the
 # partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
 # lastFunctionEntryIndex-1 , i+1 .. n].
+# - NESTED: use callstack and previous interpolants for next interpolants
+# (see 'Nested Interpolants').
 cpa.predicate.refinement.strategy = CPACHECKER_SEQ
-  enum:     [CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED]
+  enum:     [CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
@@ -1343,6 +1352,9 @@ cpa.smg.exportSMG.file = "smg-%s.dot"
 # Describes when SMG graphs should be dumped. One of: {never, leaf,
 # interesting, every}
 cpa.smg.exportSMGwhen = "never"
+
+# Size of memory that cannot be calculated will be guessed.
+cpa.smg.guessSizeOfUnknownMemorySize = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main

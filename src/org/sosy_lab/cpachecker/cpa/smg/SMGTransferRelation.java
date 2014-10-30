@@ -114,7 +114,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -146,8 +148,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
   private String handleUnknownFunctions = "strict";
 
- // @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
- // private boolean guessSizeOfUnknownMemorySize = false;
+  @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
+  private boolean guessSizeOfUnknownMemorySize = false;
 
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
@@ -377,7 +379,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
       } catch (IndexOutOfBoundsException e) {
         logger.logDebugException(e);
-        throw new UnrecognizedCCodeException("Malloc argument not found.", cfaEdge, functionCall);
+        throw new UnrecognizedCCodeException("alloca argument not found.", cfaEdge, functionCall);
       }
 
       SMGExplicitValueAndState valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
@@ -385,8 +387,25 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
-        throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
-        //return null;
+
+        if (guessSizeOfUnknownMemorySize) {
+          SMGExplicitValueAndState forcedValueAndState = expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
+          currentState = forcedValueAndState.getSmgState();
+
+          //Sanity check
+
+          valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+          value = valueAndState.getValue();
+          currentState = valueAndState.getSmgState();
+
+          if(value.isUnknown()) {
+            throw new UnrecognizedCCodeException(
+                "Not able to compute allocation size", cfaEdge);
+          }
+        } else {
+          throw new UnrecognizedCCodeException(
+              "Not able to compute allocation size", cfaEdge);
+        }
       }
 
       // TODO line numbers are not unique when we have multiple input files!
@@ -1342,6 +1361,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       super(pLogger, pMachineModel);
     }
 
+    public SMGExplicitValueAndState forceExplicitValue(SMGState smgState,
+        CFAEdge pCfaEdge, CRightHandSide rVal)
+        throws UnrecognizedCCodeException {
+
+      ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(smgState,
+          null, machineModel, logger, pCfaEdge);
+
+      Value val = rVal.accept(v);
+
+      if (val.isUnknown()) {
+        return SMGExplicitValueAndState.of(v.getNewState());
+      }
+
+      return SMGExplicitValueAndState.of(v.getNewState(),
+          SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
+    }
+
     public SMGState deriveFurtherInformation(SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)
         throws CPATransferException {
       AssigningValueVisitor v = new AssigningValueVisitor(pNewState, pTruthValue, pCfaEdge);
@@ -1671,13 +1707,99 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    private class ForceExplicitValueVisitor extends
+        SMGExpressionEvaluator.ExplicitValueVisitor {
+
+      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(3);
+
+      public ForceExplicitValueVisitor(SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
+          LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
+        super(pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
+      }
+
+      @Override
+      protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+          throws UnrecognizedCCodeException {
+        Value result = super.evaluateCArraySubscriptExpression(pLValue);
+
+        if (result.isUnknown()) {
+          return guessLHS(pLValue);
+        } else {
+          return result;
+        }
+      }
+
+      @Override
+      protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
+          throws UnrecognizedCCodeException {
+
+        Value result = super.evaluateCIdExpression(pCIdExpression);
+
+        if (result.isUnknown()) {
+          return guessLHS(pCIdExpression);
+        } else {
+          return result;
+        }
+      }
+
+      private Value guessLHS(CLeftHandSide exp)
+          throws UnrecognizedCCodeException {
+
+        SMGValueAndState symbolicValueAndState;
+
+        try {
+          symbolicValueAndState = evaluateExpressionValue(getNewState(),
+              getEdge(), exp);
+        } catch (CPATransferException e) {
+          UnrecognizedCCodeException e2 = new UnrecognizedCCodeException(
+              "SMG cannot get symbolic value of : " + exp.toASTString(), exp);
+          e2.initCause(e);
+          throw e2;
+        }
+
+        SMGSymbolicValue value = symbolicValueAndState.getValue();
+        setSmgState(symbolicValueAndState.getSmgState());
+
+        if (value.isUnknown()) {
+          return UnknownValue.getInstance();
+        }
+
+        getNewState().putExplicit((SMGKnownSymValue) value, GUESS);
+
+        return new NumericValue(GUESS.getValue());
+      }
+
+      @Override
+      protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+        Value result = super.evaluateCFieldReference(pLValue);
+
+        if (result.isUnknown()) {
+          return guessLHS(pLValue);
+        } else {
+          return result;
+        }
+      }
+
+      @Override
+      protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+          throws UnrecognizedCCodeException {
+        Value result = super.evaluateCPointerExpression(pCPointerExpression);
+
+        if (result.isUnknown()) {
+          return guessLHS(pCPointerExpression);
+        } else {
+          return result;
+        }
+      }
+    }
+
     private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerVisitor {
 
-   public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
-      super(pEdge, pSmgState);
-   }
+      public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+        super(pEdge, pSmgState);
+      }
 
-    @Override
+      @Override
       public SMGAddressValueAndState visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws CPATransferException {
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
@@ -1770,6 +1892,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       isRequiered = false;
       missingExplicitInformation= false;
     }
+
+
+
   }
 
   @Override

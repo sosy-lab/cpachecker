@@ -1720,6 +1720,10 @@ public class SMGExpressionEvaluator {
       return smgState;
     }
 
+    public CFAEdge getEdge() {
+      return edge;
+    }
+
     private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
 
       if (pValue.isUnknown()) {
@@ -1729,6 +1733,10 @@ public class SMGExpressionEvaluator {
       SMGExplicitValue explicitValue = smgState.getExplicit((SMGKnownSymValue) pValue);
 
       return explicitValue;
+    }
+
+    protected void setSmgState(SMGState pSmgState) {
+      smgState = pSmgState;
     }
 
     @Override
