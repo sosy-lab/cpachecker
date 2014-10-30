@@ -252,7 +252,7 @@ public class BAMTransferRelation implements TransferRelation {
         potentialRecursionUpdateStates.clear();
       }
 
-      logger.log(Level.INFO, "Starting recursive analysis of main-block");
+      logger.log(Level.FINE, "Starting recursive analysis of main-block");
 
       resultStates = doRecursiveAnalysis(pHeadOfMainFunctionState, pPrecision, pHeadOfMainFunction);
 
