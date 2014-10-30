@@ -358,7 +358,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
-      // TODO: the witness automaton contains is complete in that regard, so use that
+      // TODO: the witness automaton is complete in that regard, so use that in future
       if(assumptionContainsProblemType(assumption)) {
         continue;
       }
