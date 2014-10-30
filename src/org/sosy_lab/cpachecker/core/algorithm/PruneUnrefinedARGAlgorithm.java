@@ -85,7 +85,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       throw new CPAException("Reset in PruneUnrefinedARGAlgorithm did not work");
     }
 
-    if (from(reached).anyMatch(IS_TARGET_STATE)) {
+    if (from(reachedOrig).anyMatch(IS_TARGET_STATE)) {
       logger.log(Level.INFO, "Possible target states in program, try to eliminate them with CEGAR.");
       // compute predicate version of ART
       sound = algorithm.run(reached);
