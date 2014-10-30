@@ -1219,25 +1219,33 @@ public class SMGExpressionEvaluator {
         }
       }
 
-      private boolean isUnequal(SMGSymbolicValue value1, SMGSymbolicValue value2, boolean isPointerOp1, boolean isPointerOp2) throws SMGInconsistentException {
+      private boolean isUnequal(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2, boolean isPointerOp1,
+          boolean isPointerOp2) throws SMGInconsistentException {
 
-          if (isPointerOp1 && isPointerOp2) {
+        int value1 = pValue1.getAsInt();
+        int value2 = pValue2.getAsInt();
 
-            if (value1 != value2) {
+        if (isPointerOp1 && isPointerOp2) {
 
-              SMGAddressValue pointerValue1 = getAddressOfPointer(value1);
-              SMGAddressValue pointerValue2 = getAddressOfPointer(value2);
+          if (value1 != value2) {
 
-              /* This is just a safety check,
-              equal pointers should have equal symbolic values.*/
-              return pointerValue1.getObject() != pointerValue2.getObject() || pointerValue1.getOffset() != pointerValue2.getOffset();
-            } else {
-              return false;
-            }
+            SMGAddressValue pointerValue1 = getAddressOfPointer(pValue1);
+            SMGAddressValue pointerValue2 = getAddressOfPointer(pValue2);
+
+            /* This is just a safety check,
+            equal pointers should have equal symbolic values.*/
+            return pointerValue1.getObject() != pointerValue2.getObject()
+                || pointerValue1.getOffset() != pointerValue2.getOffset();
           } else {
-            return smgState.isInNeq(value1, value2);
+            return false;
           }
+        } else if (isPointerOp1 && value2 == 0 ||
+            isPointerOp2 && value1 == 0) {
+          return value1 != value2;
+        } else {
+          return smgState.isInNeq(pValue1, pValue2);
         }
+      }
 
       private SMGAddressValue getAddressOfPointer(SMGSymbolicValue pPointer)
           throws SMGInconsistentException {
