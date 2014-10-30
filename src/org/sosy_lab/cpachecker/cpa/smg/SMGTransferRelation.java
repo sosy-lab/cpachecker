@@ -146,6 +146,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
   private String handleUnknownFunctions = "strict";
 
+ // @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
+ // private boolean guessSizeOfUnknownMemorySize = false;
+
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
@@ -1370,8 +1373,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGValueAndState.of(pSmgState.setInvalidRead());
       }
 
-      // We don't want to modify the state while reading
-      return pSmgState.readValue(pObject, fieldOffset, pType);
+      return pSmgState.forceReadValue(pObject, fieldOffset, pType);
     }
 
     /**

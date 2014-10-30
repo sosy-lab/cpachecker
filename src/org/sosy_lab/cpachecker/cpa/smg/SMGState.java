@@ -415,6 +415,30 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
+   * Read Value in field (object, type) of an Object. If a Value cannot be determined,
+   * but the given object and field is a valid place to read a value, a new value will be
+   * generated and returned. (Does not create a new State but modifies this state).
+   *
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
+   * @return the value and the state (may be the given state)
+   * @throws SMGInconsistentException
+   */
+  public SMGValueAndState forceReadValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
+
+    // Do not create a value if the read is invalid.
+    if(valueAndState.getValue().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
+      Integer newValue = SMGValueFactory.getNewValue();
+      SMGStateEdgePair stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
+      return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
+    } else {
+      return valueAndState;
+    }
+  }
+
+  /**
    * Read Value in field (object, type) of an Object.
    *
    * @param pObject SMGObject representing the memory the field belongs to.
