@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -81,6 +84,8 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       throw new CPAException("Reset in PruneUnrefinedARGAlgorithm did not work");
     }
 
+    if(from(reached).anyMatch(IS_TARGET_STATE)){
+
     // compute predicate version of ART
     sound = algorithm.run(reached);
 
@@ -134,6 +139,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       }
     }
     ARGUtils.checkARG(reachedOrig);
+    }
 
     return sound;
   }
