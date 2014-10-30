@@ -115,8 +115,6 @@ public class ArrayValue implements Value {
     elementType = arrayType.getElementType();
     arraySize = pValues.size();
 
-    assert arraySize <= Integer.MAX_VALUE;
-
     for (Value currentValue : pValues) {
       checkValidValue(currentValue);
     }
@@ -229,14 +227,14 @@ public class ArrayValue implements Value {
       final Type enumType = concreteValue.getEnumType();
 
       if (enumType instanceof JClassType) {
-        if (enumType.equals(arrayType)) {
+        if (enumType.equals(elementType)) {
           return true;
 
         } else {
           Set<JClassOrInterfaceType> superTypes = ((JClassType) enumType).getAllSuperTypesOfClass();
 
           // rely on hash function/equals method for comparison
-          return superTypes.contains(arrayType);
+          return superTypes.contains(elementType);
         }
       } else {
         throw new AssertionError("Unhandled enum type " + enumType);
