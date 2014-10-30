@@ -202,7 +202,6 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
       } finally {
         invariantGeneration.stop();
-        cancel();
       }
     }
 
