@@ -111,8 +111,9 @@ public class MultiEdgeCreator extends DefaultCFAVisitor {
   }
 
   private boolean nodeQualifiesAsStartNode(CFANode node) {
-    return node.getNumLeavingEdges() == 1
-        && node.getLeavingSummaryEdge() == null;
+    return node.getNumLeavingEdges() == 1         // linear chain of edges
+        && node.getLeavingSummaryEdge() == null   // without a functioncall
+        && node.getNumEnteringEdges() > 0;        // without a functionstart
   }
 
   private boolean nodeQualifies(CFANode node) {
