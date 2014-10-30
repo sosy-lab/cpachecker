@@ -530,17 +530,25 @@ class ASTConverter {
   }
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
-    CType arrayType = typeConverter.convert(e.getExpressionType());
     CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
     CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
 
-    if (arrayType instanceof CProblemType) {
-      CType exprType = arrayExpr.getExpressionType();
-      if (exprType instanceof CArrayType) {
-        arrayType = ((CArrayType) exprType).getType();
-      }
+    // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
+    CType resultType = arrayExpr.getExpressionType();
+    while (resultType instanceof CTypedefType) {
+      resultType = ((CTypedefType)resultType).getRealType();
     }
-    return new CArraySubscriptExpression(getLocation(e), arrayType, arrayExpr, subscriptExpr);
+    if (resultType instanceof CArrayType) {
+      resultType = ((CArrayType)resultType).getType();
+    } else if (resultType instanceof CPointerType) {
+      resultType = ((CPointerType)resultType).getType();
+    } else {
+      // TODO probably we should throw exception,
+      // but for now we delegate to Eclipse CDT and see whether it knows better than we do
+      resultType = typeConverter.convert(e.getExpressionType());
+    }
+
+    return new CArraySubscriptExpression(getLocation(e), resultType, arrayExpr, subscriptExpr);
   }
 
   /**
