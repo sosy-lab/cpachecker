@@ -479,7 +479,7 @@ public class BAMTransferRelation implements TransferRelation {
     assert reached != null : "cached entry has no reached set";
     if (previousResult == null) {
       // outer block was not finished, abort recursion
-      reducedResult = Collections.EMPTY_SET;
+      reducedResult = Collections.emptySet();
       logger.logf(Level.FINEST, "skipping recursive call with new empty result");
     } else {
       // use previously computed outer block as inner block,
