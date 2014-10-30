@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -85,7 +86,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
     }
 
     if (from(reached).anyMatch(IS_TARGET_STATE)) {
-
+      logger.log(Level.INFO, "Possible target states in program, try to eliminate them with CEGAR.");
       // compute predicate version of ART
       sound = algorithm.run(reached);
 
