@@ -1,3 +1,4 @@
+
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -40,10 +41,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -351,10 +355,14 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     // TODO how to get a pseudo variable for the current function with the correct type here?
     // We would need to have access to the current function's declaration.
     CIdExpression retVar = null;
-
     for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
-
-        pf = convertEdgeToPathFormula(pf, assumption);
+      // assumptions do not contain compete type nor scope information
+      // hence, not all types can be resolved, so ignore these
+      // TODO: the witness automaton contains is complete in that regard, so use that
+      if(assumptionContainsProblemType(assumption)) {
+        continue;
+      }
+      pf = convertEdgeToPathFormula(pf, assumption);
     }
 
     if (pf != pElement.getPathFormula()) {
@@ -485,5 +493,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return result;
+  }
+
+  private boolean assumptionContainsProblemType(AssumeEdge assumption) {
+    CExpression expression = (CExpression) assumption.getExpression();
+    CBinaryExpression binaryExpression = (CBinaryExpression)expression;
+
+    return binaryExpression.getOperand1().getExpressionType() instanceof CProblemType;
   }
 }
