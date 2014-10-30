@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
@@ -76,6 +77,11 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
       return getSuccessorState(null);
     }
 
+    @Override
+    public AbstractionState from(AbstractionState pOther) {
+      return getAbstractionState();
+    }
+
   },
 
   ENTERING_EDGES {
@@ -86,7 +92,16 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
     }
 
     @Override
-    public AbstractionState getSuccessorState(final AbstractionState pPrevious) {
+    public AbstractionState from(AbstractionState pOther) {
+      return from(pOther, true);
+    }
+
+    @Override
+    public AbstractionState getSuccessorState(AbstractionState pOther) {
+      return from(pOther, false);
+    }
+
+    private AbstractionState from(final AbstractionState pPrevious, boolean pWithEnteringEdges) {
       class EnteringEdgesBasedAbstractionState implements AbstractionState {
 
         private final Set<CFAEdge> visitedEdges;
@@ -230,11 +245,12 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
           Set<String> newWideningTargets = determineWideningTargets(pEdge);
           Set<InvariantsFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
           if (visitedEdges.contains(pEdge)
-              && wideningTargets.equals(newWideningTargets)
+              && wideningTargets.containsAll(newWideningTargets)
               && wideningHints.containsAll(newWideningHints)) {
             return this;
           }
           newWideningHints = union(wideningHints, newWideningHints);
+          newWideningTargets = union(wideningTargets, newWideningTargets);
           return new EnteringEdgesBasedAbstractionState(
               add(visitedEdges, pEdge),
               newWideningTargets, newWideningHints);
@@ -276,6 +292,12 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
                 toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand2());
               } else {
                 builder.add(hint);
+                builder.add(CompoundIntervalFormulaManager.INSTANCE.negate(hint));
+                if (hint instanceof Equal) {
+                  Equal<CompoundInterval> eq = (Equal<CompoundInterval>) hint;
+                  toNormalize.offer(CompoundIntervalFormulaManager.INSTANCE.lessThan(eq.getOperand1(), eq.getOperand2()));
+                  toNormalize.offer(CompoundIntervalFormulaManager.INSTANCE.greaterThan(eq.getOperand1(), eq.getOperand2()));
+                }
               }
             }
           }
@@ -348,6 +370,9 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         }
 
       }
+      if (pWithEnteringEdges && pPrevious instanceof EnteringEdgesBasedAbstractionState) {
+        return pPrevious;
+      }
       final Set<String> previousWideningTargets;
       final Set<InvariantsFormula<CompoundInterval>> previousWideningHints;
       if (pPrevious instanceof EnteringEdgesBasedAbstractionState) {
@@ -372,6 +397,11 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
     @Override
     public AbstractionState getAbstractionState() {
       return getSuccessorState(null);
+    }
+
+    @Override
+    public AbstractionState from(AbstractionState pOther) {
+      return getAbstractionState();
     }
 
   };
