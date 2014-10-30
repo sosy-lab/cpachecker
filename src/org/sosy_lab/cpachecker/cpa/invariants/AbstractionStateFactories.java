@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
@@ -262,10 +263,15 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
             IAExpression expression = assumeEdge.getExpression();
             final InvariantsFormula<CompoundInterval> wideningHint;
             try {
+              ExpressionToFormulaVisitor expressionToFormulaVisitor =
+                  new ExpressionToFormulaVisitor(
+                      new VariableNameExtractor(
+                          pEdge,
+                          Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap()));
               if (expression instanceof CExpression) {
-                wideningHint = ((CExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
               } else if (expression instanceof JExpression) {
-                wideningHint = ((JExpression) expression).accept(InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge));
+                wideningHint = ((JExpression) expression).accept(expressionToFormulaVisitor);
               } else {
                 return Collections.emptySet();
               }

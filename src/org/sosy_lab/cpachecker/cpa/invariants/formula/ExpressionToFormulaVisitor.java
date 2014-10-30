@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.VariableNameExtractor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -122,6 +123,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
    *
    * @param pVariableNameExtractor the variable name extractor used to obtain
    * variable names for c id expressions.
+   */
+  public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
+    this(pVariableNameExtractor, Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap());
+  }
+
+  /**
+   * Creates a new visitor for converting c expressions to compound state
+   * invariants formulae with the given variable name extractor.
+   *
+   * @param pVariableNameExtractor the variable name extractor used to obtain
+   * variable names for c id expressions.
    * @param pEnvironment the current environment information.
    */
   public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
@@ -136,17 +148,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CIdExpression pCIdExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCIdExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCIdExpression));
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CFieldReference pCFieldReference) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCFieldReference));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCFieldReference));
   }
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCArraySubscriptExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCArraySubscriptExpression));
   }
 
   @Override
@@ -178,7 +190,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.extract(pCPointerExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(this.variableNameExtractor.getVarName(pCPointerExpression));
   }
 
   @Override
@@ -241,26 +253,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundInterval> visit(CFunctionCallExpression pIastFunctionCallExpression) {
     return TOP;
-  }
-
-  /**
-   * Instances of implementing classes are used to obtain variable names for c
-   * id expressions.
-   */
-  public interface VariableNameExtractor {
-
-    /**
-     * Provides a variable name for the given c expression.
-     *
-     * @param pCExpression the c id expression to provide a variable name
-     * for.
-     *
-     * @return the variable name for the given c id expression.
-     * @throws UnrecognizedCodeException if the extraction process cannot be
-     * completed because involved code is unrecognized.
-     */
-    String extract(IAExpression pIAExpression) throws UnrecognizedCodeException;
-
   }
 
   private InvariantsFormula<CompoundInterval> topIfProblematicType(CType pType, InvariantsFormula<CompoundInterval> pFormula) {
@@ -465,7 +457,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   public InvariantsFormula<CompoundInterval> visit(JIdExpression pIdExpression) throws UnrecognizedCodeException {
-    return CompoundIntervalFormulaManager.INSTANCE.asVariable(variableNameExtractor.extract(pIdExpression));
+    return CompoundIntervalFormulaManager.INSTANCE.asVariable(variableNameExtractor.getVarName(pIdExpression));
   }
 
   @Override
