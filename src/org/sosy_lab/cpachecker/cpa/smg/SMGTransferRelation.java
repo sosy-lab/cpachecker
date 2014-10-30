@@ -193,6 +193,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             "free",
             "memset",
             "calloc",
+            "__builtin_alloca",
             //TODO: Properly model printf (dereferences and stuff)
             //TODO: General modelling system for functions which do not modify state?
             "printf",
@@ -231,7 +232,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
-    // TODO: Seems like there is large code sharing with evaluate calloc
+    // TODO: Seems like there is large code sharing with evaluate calloc and alloc
     public final SMGEdgePointsToAndState evaluateMalloc(CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
         throws CPATransferException {
       CRightHandSide sizeExpr;
@@ -249,8 +250,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
-        //throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
-        return null;
+        throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
+        //return null;
       }
 
       // TODO line numbers are not unique when we have multiple input files!
@@ -300,7 +301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = bufferAddressAndState.getSmgState();
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
-        return null;
+        return SMGEdgePointsToAndState.of(currentState, null);
       }
 
       SMGEdgePointsTo pointer = currentState.getPointerFromValue(bufferAddress.getAsInt());
@@ -361,6 +362,36 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
     }
 
+    public final SMGEdgePointsToAndState evaluateAlloc(CFunctionCallExpression functionCall,
+        SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+      CRightHandSide sizeExpr;
+      SMGState currentState = pState;
+
+      try {
+        sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
+      } catch (IndexOutOfBoundsException e) {
+        logger.logDebugException(e);
+        throw new UnrecognizedCCodeException("Malloc argument not found.", cfaEdge, functionCall);
+      }
+
+      SMGExplicitValueAndState valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+      SMGExplicitValue value = valueAndState.getValue();
+      currentState = valueAndState.getSmgState();
+
+      if (value.isUnknown()) {
+        throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
+        //return null;
+      }
+
+      // TODO line numbers are not unique when we have multiple input files!
+      String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
+      SMGEdgePointsTo new_pointer = currentState.addNewAllocAllocation(value.getAsInt(), allocation_label);
+
+      possibleMallocFail = true;
+      return SMGEdgePointsToAndState.of(currentState, new_pointer);
+    }
+
+
     public final SMGEdgePointsToAndState evaluateCalloc(CFunctionCallExpression functionCall,
         SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
 
@@ -392,9 +423,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = sizeValueAndState.getSmgState();
 
       if (numValue.isUnknown() || sizeValue.isUnknown()) {
-        //throw new UnrecognizedCCodeException(
-          //"Not able to compute allocation size", cfaEdge);
-        return null;
+        throw new UnrecognizedCCodeException(
+          "Not able to compute allocation size", cfaEdge);
+        //return null;
       }
 
       int num = numValue.getAsInt();
@@ -827,6 +858,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
               "Calling malloc and not using the result, resulting in memory leak.");
           newState.setMemLeak();
           isRequiered = true;
+          break;
+        case "__builtin_alloca":
+          logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+              "Calling alloc and not using the result.");
+          newState = builtins.evaluateAlloc(cFCExpression, newState, pCfaEdge).getSmgState();
           break;
         case "calloc":
           logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
@@ -1548,6 +1584,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
         String functionName = fileNameExpression.toASTString();
 
+        //TODO extreme code sharing ...
+
         // If Calloc and Malloc have not been properly declared,
         // they may be shown to return void
         if (builtins.isABuiltIn(functionName)) {
@@ -1559,6 +1597,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             possibleMallocFail = true;
             SMGEdgePointsToAndState mallocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return createAddress(mallocEdge);
+          case "__builtin_alloca":
+            possibleMallocFail = true;
+            SMGEdgePointsToAndState allocEdge = builtins.evaluateAlloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            return createAddress(allocEdge);
           case "calloc":
             possibleMallocFail = true;
             SMGEdgePointsToAndState callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
@@ -1604,6 +1646,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             possibleMallocFail = true;
             SMGEdgePointsToAndState mallocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return createAddress(mallocEdge);
+          case "__builtin_alloca":
+            SMGEdgePointsToAndState allocEdge = builtins.evaluateAlloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            return createAddress(allocEdge);
           case "calloc":
             possibleMallocFail = true;
             SMGEdgePointsToAndState callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
@@ -1870,6 +1915,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       case "malloc":
         SMGEdgePointsToAndState mallocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, pSmgState, pEdge);
         return createAddress(mallocEdge);
+      case "__builtin_alloca":
+        SMGEdgePointsToAndState allocEdge = builtins.evaluateAlloc(pIastFunctionCallExpression, pSmgState, pEdge);
+        return createAddress(allocEdge);
       case "calloc":
         SMGEdgePointsToAndState callocEdge = builtins.evaluateCalloc(pIastFunctionCallExpression, pSmgState, pEdge);
         return createAddress(callocEdge);
