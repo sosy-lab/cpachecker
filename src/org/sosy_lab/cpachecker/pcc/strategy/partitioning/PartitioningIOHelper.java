@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialR
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GraphPartitionerFactory.PartitioningHeuristics;
 
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
@@ -71,13 +72,6 @@ public class PartitioningIOHelper {
 
   @Option(secure=true, description = "Heuristic for computing partitioning of proof (partial reached set).")
   private PartitioningHeuristics partitioningStrategy = PartitioningHeuristics.RANDOM;
-
-  public enum PartitioningHeuristics {
-    RANDOM,
-    DFS,
-    BFS,
-    OPTIMAL
-  }
 
   private final LogManager logger;
   private final PartialReachedConstructionAlgorithm partialConstructor;
@@ -108,19 +102,7 @@ public class PartitioningIOHelper {
       partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
     }
 
-    switch (partitioningStrategy) {
-    case OPTIMAL:
-      partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
-      break;
-    case BFS:
-      partitioner = new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
-      break;
-    case DFS:
-      partitioner = new ExplorationOrderBalancedGraphPartitioner(true, pShutdownNotifier);
-      break;
-    default: // RANDOM
-      partitioner = new RandomBalancedGraphPartitioner();
-    }
+    partitioner = GraphPartitionerFactory.createPartitioner(partitioningStrategy, pShutdownNotifier);
   }
 
   public int getSavedReachedSetSize() {
