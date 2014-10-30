@@ -84,61 +84,64 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
       throw new CPAException("Reset in PruneUnrefinedARGAlgorithm did not work");
     }
 
-    if(from(reached).anyMatch(IS_TARGET_STATE)){
+    if (from(reached).anyMatch(IS_TARGET_STATE)) {
 
-    // compute predicate version of ART
-    sound = algorithm.run(reached);
+      // compute predicate version of ART
+      sound = algorithm.run(reached);
 
-    // compute all error locations that are reachable
-    Set<CFANode> locations = new HashSet<>();
-    for (AbstractState e : reached) {
-      ARGState artEle = (ARGState) e;
-      LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
-      if (artEle.isTarget()) {
-        locations.add(le.getLocationNode());
-      }
-    }
-
-    Deque<ARGState> leaves = new ArrayDeque<>();
-
-    // remove all error nodes from reachedOrig that are not reachable in reached
-    for (AbstractState e : reachedOrig) {
-      ARGState artEle = (ARGState) e;
-      LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
-      if (artEle.isTarget()) {
-        System.out.print("Found target " + le.getLocationNode().getLineNumber());
-        if (artEle.isCovered()) {
-          System.out.print(" COV");
+      // compute all error locations that are reachable
+      Set<CFANode> locations = new HashSet<>();
+      for (AbstractState e : reached) {
+        ARGState artEle = (ARGState) e;
+        LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
+        if (artEle.isTarget()) {
+          locations.add(le.getLocationNode());
         }
-        if (!locations.contains(le.getLocationNode())) {
-          leaves.add(artEle);
-          for (ARGState e2 : artEle.getCoveredByThis()) {
-            System.out.print(" (added " + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().getLineNumber() + " )");
-            leaves.add(e2);
+      }
+
+      Deque<ARGState> leaves = new ArrayDeque<>();
+
+      // remove all error nodes from reachedOrig that are not reachable in reached
+      for (AbstractState e : reachedOrig) {
+        ARGState artEle = (ARGState) e;
+        LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
+        if (artEle.isTarget()) {
+          System.out.print("Found target " + le.getLocationNode().getLineNumber());
+          if (artEle.isCovered()) {
+            System.out.print(" COV");
           }
-          System.out.println(" RM");
-        } else {
-          System.out.println(" IGN");
+          if (!locations.contains(le.getLocationNode())) {
+            leaves.add(artEle);
+            for (ARGState e2 : artEle.getCoveredByThis()) {
+              System.out
+                  .print(" (added "
+                      + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().getLineNumber()
+                      + " )");
+              leaves.add(e2);
+            }
+            System.out.println(" RM");
+          } else {
+            System.out.println(" IGN");
+          }
         }
       }
-    }
-    ARGUtils.checkARG(reachedOrig);
-    while (!leaves.isEmpty()) {
-      ARGState leaf = leaves.pop();
+      ARGUtils.checkARG(reachedOrig);
+      while (!leaves.isEmpty()) {
+        ARGState leaf = leaves.pop();
 
-      Collection<ARGState> parents = new ArrayList<>();
-      parents.addAll(leaf.getParents());
+        Collection<ARGState> parents = new ArrayList<>();
+        parents.addAll(leaf.getParents());
 
-      reachedOrig.remove(leaf);
-      leaf.removeFromARG();
+        reachedOrig.remove(leaf);
+        leaf.removeFromARG();
 
-      for (ARGState parent : parents) {
-        if (parent.getChildren().size() == 0) {
-          leaves.push(parent);
+        for (ARGState parent : parents) {
+          if (parent.getChildren().size() == 0) {
+            leaves.push(parent);
+          }
         }
       }
-    }
-    ARGUtils.checkARG(reachedOrig);
+      ARGUtils.checkARG(reachedOrig);
     }
 
     return sound;
