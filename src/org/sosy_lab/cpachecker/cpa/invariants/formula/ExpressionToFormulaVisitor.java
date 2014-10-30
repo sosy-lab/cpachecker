@@ -289,15 +289,15 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     InvariantsFormula<CompoundInterval> right = pBinaryExpression.getOperand2().accept(this);
     switch (pBinaryExpression.getOperator()) {
       case BINARY_AND:
-        return fmgr.binaryAnd(left, right);
+        return TOP;
       case BINARY_OR:
-        return fmgr.binaryOr(left, right);
+        return TOP;
       case BINARY_XOR:
-        return fmgr.binaryXor(left, right);
+        return TOP;
       case CONDITIONAL_AND:
-        return fmgr.logicalAnd(left, right);
+        return TOP;
       case CONDITIONAL_OR:
-        return fmgr.logicalOr(left, right);
+        return TOP;
       case DIVIDE:
         return fmgr.divide(left, right);
       case EQUALS:
