@@ -77,6 +77,9 @@ public class BlockOperator {
   @Option(secure=true, description="force abstractions at each function head (first node in the body), regardless of threshold")
   private boolean alwaysAtFunctionHeads = false;
 
+  @Option(secure=true, description="force abstractions at each function call (node before entering the body), regardless of threshold")
+  private boolean alwaysAtFunctionCallNodes = false;
+
   @Option(secure=true, description="force abstractions at each join node, regardless of threshold")
   private boolean alwaysAtJoin = false;
 
@@ -122,6 +125,11 @@ public class BlockOperator {
     }
 
     if (alwaysAtFunctionHeads && isFunctionHead(edge)) {
+      numBlkFunctionHeads++;
+      return true;
+    }
+
+    if (alwaysAtFunctionCallNodes && isBeforeFunctionCall(succLoc)) {
       numBlkFunctionHeads++;
       return true;
     }
@@ -230,5 +238,9 @@ public class BlockOperator {
       }
     }
     return false;
+  }
+
+  private boolean isBeforeFunctionCall(CFANode succLoc) {
+    return succLoc.getLeavingSummaryEdge() != null;
   }
 }
