@@ -75,6 +75,21 @@ class Mathsat5FloatingPointFormulaManager
   }
 
   @Override
+  protected Long makePlusInfinityImpl(FloatingPointType type) {
+    return msat_make_fp_plus_inf(mathsatEnv, type.getExponentSize(), type.getMantissaSize());
+  }
+
+  @Override
+  protected Long makeMinusInfinityImpl(FloatingPointType type) {
+    return msat_make_fp_minus_inf(mathsatEnv, type.getExponentSize(), type.getMantissaSize());
+  }
+
+  @Override
+  protected Long makeNaNImpl(FloatingPointType type) {
+    return msat_make_fp_nan(mathsatEnv, type.getExponentSize(), type.getMantissaSize());
+  }
+
+  @Override
   protected Long castToImpl(Long pNumber, FormulaType<?> pTargetType) {
     if (pTargetType.isFloatingPointType()) {
       FormulaType.FloatingPointType targetType = (FormulaType.FloatingPointType)pTargetType;

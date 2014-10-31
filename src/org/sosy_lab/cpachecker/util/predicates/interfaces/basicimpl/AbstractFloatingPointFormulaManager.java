@@ -94,6 +94,25 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
   protected abstract TFormulaInfo makeVariableImpl(String pVar, FormulaType.FloatingPointType pType);
 
   @Override
+  public FloatingPointFormula makePlusInfinity(FormulaType.FloatingPointType pType) {
+    return wrap(makePlusInfinityImpl(pType));
+  }
+  protected abstract TFormulaInfo makePlusInfinityImpl(FormulaType.FloatingPointType pType);
+
+  @Override
+  public FloatingPointFormula makeMinusInfinity(FormulaType.FloatingPointType pType) {
+    return wrap(makeMinusInfinityImpl(pType));
+  }
+  protected abstract TFormulaInfo makeMinusInfinityImpl(FormulaType.FloatingPointType pType);
+
+  @Override
+  public FloatingPointFormula makeNaN(FormulaType.FloatingPointType pType) {
+    return wrap(makeNaNImpl(pType));
+  }
+  protected abstract TFormulaInfo makeNaNImpl(FormulaType.FloatingPointType pType);
+
+
+  @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
     return getFormulaCreator().encapsulate(pTargetType, castToImpl(extractInfo(pNumber), pTargetType));
   }

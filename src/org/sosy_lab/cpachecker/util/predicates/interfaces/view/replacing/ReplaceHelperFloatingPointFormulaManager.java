@@ -129,4 +129,19 @@ class ReplaceHelperFloatingPointFormulaManager implements FloatingPointFormulaMa
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
     return rawFloatingPointManager.makeVariable(pVar, pType);
   }
+
+  @Override
+  public FloatingPointFormula makePlusInfinity(FloatingPointType pType) {
+    return rawFloatingPointManager.makePlusInfinity(pType);
+  }
+
+  @Override
+  public FloatingPointFormula makeMinusInfinity(FloatingPointType pType) {
+    return rawFloatingPointManager.makePlusInfinity(pType);
+  }
+
+  @Override
+  public FloatingPointFormula makeNaN(FloatingPointType pType) {
+    return rawFloatingPointManager.makePlusInfinity(pType);
+  }
 }

@@ -129,4 +129,19 @@ public class FloatingPointFormulaManagerView
   public FloatingPointFormula makeVariable(String pVar, int idx, FormulaType.FloatingPointType pType) {
     return wrapInView(manager.makeVariable(FormulaManagerView.makeName(pVar, idx), pType));
   }
+
+  @Override
+  public FloatingPointFormula makePlusInfinity(FloatingPointType pType) {
+    return wrapInView(manager.makePlusInfinity(pType));
+  }
+
+  @Override
+  public FloatingPointFormula makeMinusInfinity(FloatingPointType pType) {
+    return wrapInView(manager.makeMinusInfinity(pType));
+  }
+
+  @Override
+  public FloatingPointFormula makeNaN(FloatingPointType pType) {
+    return wrapInView(manager.makeNaN(pType));
+  }
 }
