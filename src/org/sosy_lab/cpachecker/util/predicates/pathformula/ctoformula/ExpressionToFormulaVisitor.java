@@ -541,14 +541,44 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       } else if (functionName.equals("__builtin_inf")
           || functionName.equals("__builtin_inff")
-          || functionName.equals("__builtin_inff")) {
+          || functionName.equals("__builtin_infl")) {
 
-        CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
 
-        FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
-        if (formulaType.isFloatingPointType()) {
-          return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
-              (FormulaType.FloatingPointType)formulaType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_huge_val")
+          || functionName.equals("__builtin_huge_valf")
+          || functionName.equals("__builtin_huge_vall")) {
+
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_huge_val", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_nan")
+          || functionName.equals("__builtin_nanf")
+          || functionName.equals("__builtin_nanl")) {
+
+        if (parameters.size() == 1) {
+          CType resultType = getTypeForFloatFunction("__builtin_nan", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makeNaN(
+                (FormulaType.FloatingPointType)formulaType);
+          }
         }
 
       } else if (functionName.equals("__builtin_fabs")
