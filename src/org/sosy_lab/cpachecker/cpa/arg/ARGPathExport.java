@@ -186,10 +186,7 @@ public class ARGPathExport {
       } else if (decl instanceof CTypeDeclaration) {
         return true;
       } else if (decl instanceof CVariableDeclaration) {
-        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-        if (varDecl.getInitializer() == null) {
-          return true;
-        }
+        return false;
       }
     }
 
@@ -400,8 +397,8 @@ public class ARGPathExport {
         Map<ARGState, CFAEdgeWithAssignments> valueMap) {
       TransitionCondition desc = new TransitionCondition();
 
-      desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
-      desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
+      //desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
+      //desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
 
       if (exportFunctionCallsAndReturns) {
         if (edge.getSuccessor() instanceof FunctionEntryNode) {

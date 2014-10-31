@@ -298,6 +298,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
 
   static abstract class OnRelevantEdgesBoolExpr implements AutomatonBoolExpr {
+
     protected boolean handleAsEpsilonEdge(CFAEdge edge) {
       if (edge instanceof BlankEdge) {
         return true;
@@ -311,10 +312,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         } else if (decl instanceof CTypeDeclaration) {
           return true;
         } else if (decl instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-          if (varDecl.getInitializer() == null) {
-            return true;
-          }
+          return false;
         }
       }
 
