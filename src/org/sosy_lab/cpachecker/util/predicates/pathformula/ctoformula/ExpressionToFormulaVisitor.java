@@ -217,10 +217,18 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case MODULO:
       ret = conv.fmgr.makeModulo(f1, f2, signed);
 
+      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
+
+      if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+        long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+        BooleanFormula modularCongruence = conv.fmgr.makeModularCongruence(ret, f1, modulo);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
+      }
+
       FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
       Formula zero = conv.fmgr.makeNumber(numberType, 0L);
-
-      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
 
       // Sign of the remainder is set by the sign of the
       // numerator, and it is bounded by the numerator.
