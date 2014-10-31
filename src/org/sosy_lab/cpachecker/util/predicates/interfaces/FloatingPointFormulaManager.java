@@ -52,7 +52,20 @@ public interface FloatingPointFormulaManager {
 
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
-  public BooleanFormula equal(FloatingPointFormula number1, FloatingPointFormula number2);
+  /**
+   * Create a term for assigning one floating-point term to another.
+   * This means both terms are considered equal afterwards.
+   * This method is the same as the method <code>equal</code> for other theories.
+   */
+  public BooleanFormula assignment(FloatingPointFormula number1, FloatingPointFormula number2);
+
+  /**
+   * Create a term for comparing the equality of two floating-point terms,
+   * according to standard floating-point semantics (i.e., NaN != NaN).
+   * Be careful to not use this method when you really need
+   * {@link #assignment(FloatingPointFormula, FloatingPointFormula)}.
+   */
+  public BooleanFormula equalWithFPSemantics(FloatingPointFormula number1, FloatingPointFormula number2);
 
   public BooleanFormula greaterThan(FloatingPointFormula number1, FloatingPointFormula number2);
 

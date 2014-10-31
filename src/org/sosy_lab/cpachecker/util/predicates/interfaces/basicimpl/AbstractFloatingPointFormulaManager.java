@@ -159,14 +159,25 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
 
 
   @Override
-  public BooleanFormula equal(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+  public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrapBool(equal(param1, param2));
+    return wrapBool(assignment(param1, param2));
   }
 
-  protected abstract TFormulaInfo equal(TFormulaInfo pParam1, TFormulaInfo pParam2);
+  protected abstract TFormulaInfo assignment(TFormulaInfo pParam1, TFormulaInfo pParam2);
+
+
+  @Override
+  public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    TFormulaInfo param1 = extractInfo(pNumber1);
+    TFormulaInfo param2 = extractInfo(pNumber2);
+
+    return wrapBool(equalWithFPSemantics(param1, param2));
+  }
+
+  protected abstract TFormulaInfo equalWithFPSemantics(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
 
   @Override

@@ -85,8 +85,12 @@ class ReplaceHelperFloatingPointFormulaManager implements FloatingPointFormulaMa
     return rawFloatingPointManager.multiply(pNumber1, pNumber2);
   }
   @Override
-  public BooleanFormula equal(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
-    return rawFloatingPointManager.equal(pNumber1, pNumber2);
+  public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return rawFloatingPointManager.assignment(pNumber1, pNumber2);
+  }
+  @Override
+  public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return rawFloatingPointManager.equalWithFPSemantics(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula greaterThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {

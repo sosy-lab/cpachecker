@@ -436,7 +436,7 @@ class AssignmentHandler {
     final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, edge) : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
-        result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
+        result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -450,7 +450,7 @@ class AssignmentHandler {
                                                   targetType,
                                                   lvalue.asAliased().getAddress());
       if (rhs != null) {
-        result = fmgr.makeEqual(lhs, rhs);
+        result = fmgr.assignment(lhs, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }

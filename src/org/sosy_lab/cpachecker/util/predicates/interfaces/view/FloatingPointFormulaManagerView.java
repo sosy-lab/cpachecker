@@ -81,8 +81,12 @@ public class FloatingPointFormulaManagerView
     return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
-  public BooleanFormula equal(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
+  public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return wrapInView(manager.assignment(extractFromView(pNumber1), extractFromView(pNumber2)));
+  }
+  @Override
+  public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
+    return wrapInView(manager.equalWithFPSemantics(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula greaterThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {

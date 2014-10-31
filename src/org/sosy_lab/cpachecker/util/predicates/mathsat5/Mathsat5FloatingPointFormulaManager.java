@@ -147,7 +147,12 @@ class Mathsat5FloatingPointFormulaManager
   }
 
   @Override
-  public Long equal(Long pNumber1, Long pNumber2) {
+  protected Long assignment(Long pNumber1, Long pNumber2) {
+    return msat_make_equal(mathsatEnv, pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long equalWithFPSemantics(Long pNumber1, Long pNumber2) {
     return msat_make_fp_equal(mathsatEnv, pNumber1, pNumber2);
   }
 

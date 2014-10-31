@@ -603,7 +603,7 @@ public class FormulaManagerView {
     } else if (pLhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.equal((BitvectorFormula)pLhs, (BitvectorFormula)pRhs);
     } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
-      t = floatingPointFormulaManager.equal((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
+      t = floatingPointFormulaManager.equalWithFPSemantics((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -749,6 +749,10 @@ public class FormulaManagerView {
       throw new IllegalArgumentException("Can't assign different types! (" + lformulaType + " and " + rformulaType + ")");
     }
 
+    if (lformulaType.isFloatingPointType()) {
+      return getFloatingPointFormulaManager().assignment(
+          (FloatingPointFormula)left, (FloatingPointFormula)right);
+    }
     return makeEqual(left, right);
   }
 
