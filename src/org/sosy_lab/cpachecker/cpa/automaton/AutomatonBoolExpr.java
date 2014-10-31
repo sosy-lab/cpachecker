@@ -33,16 +33,10 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -297,37 +292,20 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static abstract class OnRelevantEdgesBoolExpr implements AutomatonBoolExpr {
+  static interface OnRelevantEdgesBoolExpr extends AutomatonBoolExpr {
 
-    protected boolean handleAsEpsilonEdge(CFAEdge edge) {
-      if (edge instanceof BlankEdge) {
-        return true;
-      } else if (edge instanceof CFunctionReturnEdge) {
-        return true;
-      } else if (edge instanceof CDeclarationEdge) {
-        CDeclarationEdge declEdge = (CDeclarationEdge) edge;
-        CDeclaration decl = declEdge.getDeclaration();
-        if (decl instanceof CFunctionDeclaration) {
-          return true;
-        } else if (decl instanceof CTypeDeclaration) {
-          return true;
-        } else if (decl instanceof CVariableDeclaration) {
-          return false;
-        }
-      }
+    // Marker interface
 
-      return false;
-    }
   }
 
-  static class MatchPathRelevantEdgesBoolExpr extends OnRelevantEdgesBoolExpr {
+  static class MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (FileLocation.DUMMY.equals(pArgs.getCfaEdge().getFileLocation())) {
         return CONST_FALSE;
       }
-      return handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
+      return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
     }
 
     @Override
@@ -337,12 +315,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static class MatchNonEmptyEdgeTokens extends OnRelevantEdgesBoolExpr {
+  static class MatchNonEmptyEdgeTokens implements OnRelevantEdgesBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       Set<Integer> edgeTokens;
-      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
         edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
@@ -358,7 +336,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static abstract class MatchEdgeTokens extends OnRelevantEdgesBoolExpr {
+  static abstract class MatchEdgeTokens implements OnRelevantEdgesBoolExpr {
 
     protected final Set<Comparable<Integer>> matchTokens;
 
@@ -373,7 +351,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       boolean match = false;
 
       Set<Integer> edgeTokens;
-      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
         edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);

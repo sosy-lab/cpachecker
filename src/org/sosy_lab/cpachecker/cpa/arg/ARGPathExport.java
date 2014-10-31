@@ -53,11 +53,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -66,20 +64,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
@@ -171,26 +164,6 @@ public class ARGPathExport {
 
   private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount) {
     return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
-  }
-
-  private boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (edge instanceof BlankEdge) {
-      return true;
-    } else if (edge instanceof CFunctionReturnEdge) {
-      return true;
-    } else if (edge instanceof CDeclarationEdge) {
-      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
-      CDeclaration decl = declEdge.getDeclaration();
-      if (decl instanceof CFunctionDeclaration) {
-        return true;
-      } else if (decl instanceof CTypeDeclaration) {
-        return true;
-      } else if (decl instanceof CVariableDeclaration) {
-        return false;
-      }
-    }
-
-    return false;
   }
 
   private static class TransitionCondition {
@@ -456,7 +429,7 @@ public class ARGPathExport {
         }
       }
 
-      if (!handleAsEpsilonEdge(edge)) {
+      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(edge)) {
         if (exportAssumeCaseInfo) {
           if (edge instanceof AssumeEdge) {
             AssumeEdge a = (AssumeEdge) edge;

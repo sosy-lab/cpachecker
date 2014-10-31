@@ -38,6 +38,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -302,6 +310,26 @@ public class AutomatonGraphmlCommon {
       target.append("</graphml>\n");
     }
 
+  }
+
+  public static boolean handleAsEpsilonEdge(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return true;
+    } else if (edge instanceof CFunctionReturnEdge) {
+      return true;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+      CDeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof CFunctionDeclaration) {
+        return true;
+      } else if (decl instanceof CTypeDeclaration) {
+        return true;
+      } else if (decl instanceof CVariableDeclaration) {
+        return false;
+      }
+    }
+
+    return false;
   }
 
 
