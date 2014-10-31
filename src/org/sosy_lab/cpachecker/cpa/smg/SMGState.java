@@ -1045,9 +1045,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (pValue1.isUnknown() || pValue2.isUnknown()) {
       return false;
     } else {
-      heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
+      return heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
     }
-
-    return false;
   }
 }

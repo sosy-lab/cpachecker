@@ -1105,6 +1105,9 @@ public class SMGExpressionEvaluator {
       private boolean impliesEqWhenFalse = false;
       private boolean impliesNeqWhenFalse = false;
 
+      private final SMGSymbolicValue val1;
+      private final SMGSymbolicValue val2;
+
       private final SMGState smgState;
 
       /**
@@ -1127,6 +1130,9 @@ public class SMGExpressionEvaluator {
           throws SMGInconsistentException {
 
         smgState = newState;
+
+        val1 = pV1;
+        val2 = pV2;
 
         // If a value is unknown, we can't make further assumptions about it.
         if (pV2.isUnknown() || pV1.isUnknown()) {
@@ -1296,6 +1302,14 @@ public class SMGExpressionEvaluator {
       public boolean impliesNeq(boolean pTruth) {
         return pTruth ? impliesNeqWhenTrue : impliesNeqWhenFalse;
       }
+
+      public SMGSymbolicValue getVal2() {
+        return val2;
+      }
+
+      public SMGSymbolicValue getVal1() {
+        return val1;
+      }
     }
 
     public SMGSymbolicValue evaluateBinaryAssumption(SMGState newState, BinaryOperator pOp, SMGSymbolicValue v1, SMGSymbolicValue v2) throws SMGInconsistentException {
@@ -1309,7 +1323,6 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    @SuppressWarnings("unused")
     public boolean impliesEqOn(boolean pTruth) {
       if (relation == null) {
         return false;
@@ -1317,13 +1330,19 @@ public class SMGExpressionEvaluator {
       return relation.impliesEq(pTruth);
     }
 
-    @SuppressWarnings("unused")
     public boolean impliesNeqOn(boolean pTruth) {
       if (relation == null) {
         return false;
       }
       return relation.impliesNeq(pTruth);
+    }
 
+    public SMGSymbolicValue impliesVal1() {
+      return relation.getVal1();
+    }
+
+    public SMGSymbolicValue impliesVal2() {
+      return relation.getVal2();
     }
   }
   /**
