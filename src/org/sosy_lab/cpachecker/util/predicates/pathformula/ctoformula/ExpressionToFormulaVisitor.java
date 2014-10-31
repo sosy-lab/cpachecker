@@ -539,6 +539,31 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
+      } else if (functionName.equals("__builtin_inf")
+          || functionName.equals("__builtin_inff")
+          || functionName.equals("__builtin_inff")) {
+
+        CType resultType;
+        switch (functionName) {
+        case "__builtin_inf":
+          resultType = CNumericTypes.DOUBLE;
+          break;
+        case "__builtin_inff":
+          resultType = CNumericTypes.FLOAT;
+          break;
+        case "__builtin_infl":
+          resultType = CNumericTypes.LONG_DOUBLE;
+          break;
+        default:
+          throw new AssertionError();
+        }
+
+        FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+        if (formulaType.isFloatingPointType()) {
+          return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+              (FormulaType.FloatingPointType)formulaType);
+        }
+
       } else if (functionName.equals("__builtin_fabs")
           || functionName.equals("__builtin_fabsf")
           || functionName.equals("__builtin_fabsl")) {
