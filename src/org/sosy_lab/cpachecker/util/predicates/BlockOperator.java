@@ -78,6 +78,9 @@ public class BlockOperator {
   @Option(secure=true, description="force abstractions at each function head (first node in the body), regardless of threshold")
   private boolean alwaysAtFunctionHeads = false;
 
+  @Option(secure=true, description="force abstractions at the head of the analysis-entry function (first node in the body), regardless of threshold")
+  private boolean alwaysAtEntryFunctionHead = false;
+
   @Option(secure=true, description="force abstractions at each function call (node before entering the body), regardless of threshold")
   private boolean alwaysAtFunctionCallNodes = false;
 
