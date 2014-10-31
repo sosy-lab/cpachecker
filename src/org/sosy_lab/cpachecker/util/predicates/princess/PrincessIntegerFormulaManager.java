@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
 import ap.basetypes.IdealInt;
+import ap.parser.IBoolLit;
 import ap.parser.IExpression;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
@@ -67,5 +68,10 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predica
   protected IExpression makeVariableImpl(String varName) {
     TermType t = getFormulaCreator().getIntegerType();
     return getFormulaCreator().makeVariable(t, varName);
+  }
+
+  @Override
+  protected IExpression modularCongruence(IExpression pNumber1, IExpression pNumber2, long pModulo) {
+    return new IBoolLit(true);
   }
 }

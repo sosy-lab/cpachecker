@@ -50,6 +50,11 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula modulo(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 
+  /**
+   * @see NumeralFormulaManager#modularCongruence(NumeralFormula, NumeralFormula, long)
+   */
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, long pModulo);
+
   public BitvectorFormula multiply(BitvectorFormula number1, BitvectorFormula number2);
 
   // ----------------- Numeric relations -----------------

@@ -118,6 +118,17 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumber2, long pModulo) {
+    TFormulaInfo param1 = extractInfo(pNumber1);
+    TFormulaInfo param2 = extractInfo(pNumber2);
+
+    return wrapBool(modularCongruence(param1, param2, pModulo));
+  }
+
+  protected abstract TFormulaInfo modularCongruence(TFormulaInfo pNumber1, TFormulaInfo pNumber2, long pModulo);
+
+
+  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2)
         : "Can't multiply bitvectors with different sizes (" + getLength(pNumber1) + " and " + getLength(pNumber2) + ")";

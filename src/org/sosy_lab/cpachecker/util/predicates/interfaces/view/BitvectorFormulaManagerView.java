@@ -103,6 +103,10 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
     return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumber2, long pModulo) {
+    return manager.modularCongruence(extractFromView(pNumber1), extractFromView(pNumber2), pModulo);
+  }
+  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
     return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }

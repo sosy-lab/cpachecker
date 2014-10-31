@@ -153,6 +153,11 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return mk_true(z3context);
+  }
+
+  @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
     return mk_bvmul(z3context, pNumber1, pNumber2);
   }

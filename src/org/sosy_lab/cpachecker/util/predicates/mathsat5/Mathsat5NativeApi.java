@@ -195,6 +195,7 @@ class Mathsat5NativeApi {
   public static native long msat_make_times(long e, long t1, long t2);
   public static native long msat_make_floor(long e, long t);
   public static native long msat_make_number(long e, String num_rep);
+  public static native long msat_make_int_modular_congruence(long e, long modulo, long t1, long t2);
   public static native long msat_make_term_ite(long e, long c, long tt, long te);
   public static native long msat_make_constant(long e, long var);
   public static native long msat_make_uf(long e, long func, long[] args);

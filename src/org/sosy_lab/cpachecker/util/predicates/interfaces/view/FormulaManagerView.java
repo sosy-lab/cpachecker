@@ -404,6 +404,21 @@ public class FormulaManagerView {
     return (T) t;
   }
 
+  public <T extends Formula> BooleanFormula makeModularCongruence(T pF1, T pF2, long pModulo) {
+    BooleanFormula t;
+    if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
+      t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
+    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
+      t = getRationalFormulaManager().modularCongruence((NumeralFormula) pF1, (NumeralFormula) pF2, pModulo);
+    } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
+      t = bitvectorFormulaManager.modularCongruence((BitvectorFormula) pF1, (BitvectorFormula) pF2, pModulo);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return t;
+  }
+
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNot(T pF1) {
     Formula t;

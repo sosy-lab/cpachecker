@@ -90,6 +90,11 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
+  protected Term modularCongruence(Term pNumber1, Term pNumber2, long pModulo) {
+    return env.getTheory().mTrue;
+  }
+
+  @Override
   public Term equal(Term pNumber1, Term pNumber2) {
     return env.term("=", pNumber1, pNumber2);
   }

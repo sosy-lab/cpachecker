@@ -118,6 +118,11 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return mk_true(z3context);
+  }
+
+  @Override
   public Long equal(Long pNumber1, Long pNumber2) {
     return mk_eq(z3context, pNumber1, pNumber2);
   }

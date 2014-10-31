@@ -210,6 +210,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   @Override
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumber2, long pModulo) {
+    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    return numericFormulaManager.modularCongruence(unwrap(pNumber1), unwrap(pNumber2), pModulo);
+  }
+
+  @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
