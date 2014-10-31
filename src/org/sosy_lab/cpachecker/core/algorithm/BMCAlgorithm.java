@@ -465,10 +465,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       final boolean shouldCheckBranching;
       if (targetStates.size() == 1) {
         ARGState state = Iterables.getOnlyElement(targetStates);
-        while (state.getParents().size() == 1) {
+        while (state.getParents().size() == 1 && state.getChildren().size() <= 1) {
           state = Iterables.getOnlyElement(state.getParents());
         }
-        shouldCheckBranching = !state.getParents().isEmpty();
+        shouldCheckBranching = (state.getParents().size() > 1)
+            || (state.getChildren().size() > 1);
       } else {
         shouldCheckBranching = true;
       }
