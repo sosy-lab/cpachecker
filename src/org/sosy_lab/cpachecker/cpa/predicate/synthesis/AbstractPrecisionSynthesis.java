@@ -71,7 +71,7 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
     relview = pRelView;
 
     FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
 
     converter = new CtoFormulaConverter(
         options, fmgr,

@@ -50,6 +50,7 @@ public class CtoFormulaTypeHandler {
   private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
+      FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
