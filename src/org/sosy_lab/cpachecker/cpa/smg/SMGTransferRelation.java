@@ -1746,7 +1746,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private class ForceExplicitValueVisitor extends
         SMGExpressionEvaluator.ExplicitValueVisitor {
 
-      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(3);
+      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(4);
 
       public ForceExplicitValueVisitor(SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
           LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
