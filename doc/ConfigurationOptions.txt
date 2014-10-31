@@ -341,6 +341,9 @@ cfa.moveDeclarationsToFunctionStart = false
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
+# Remove all edges which don't have any effect on the program
+cfa.simplifyCfa = true
+
 # simplify simple const expressions like 1+2
 cfa.simplifyConstExpressions = true
 
@@ -348,9 +351,6 @@ cfa.simplifyConstExpressions = true
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
-
-# Remove all edges which don't have any effect on the program
-cfa.simplyfyCfa = true
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
