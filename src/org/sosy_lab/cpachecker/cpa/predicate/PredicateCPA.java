@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractionInstanceSynthesis;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractPrecisionSynthesis;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullPrecisionSynthesis;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullRelationStore;
@@ -142,6 +142,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
+
+  private final AbstractPrecisionSynthesis precisionSynthesis;
 
   private final PreconditionWriter preconditions;
   private final RelationStore relstore;
@@ -236,13 +238,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
+        cfa, preconditions, relstore, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
     machineModel = cfa.getMachineModel();
 
-    AbstractionInstanceSynthesis precisionSynthesis;
     if (synthesizePrecisionOnAbstraction) {
       precisionSynthesis = new PrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
     } else {
