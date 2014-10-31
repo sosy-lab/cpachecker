@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -386,7 +387,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       try {
         info2 = pathChecker.checkPath(targetPath.getInnerEdges());
 
-      } catch (CPATransferException e) {
+      } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path");
         return null;

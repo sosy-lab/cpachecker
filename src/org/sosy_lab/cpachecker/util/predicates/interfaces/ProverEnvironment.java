@@ -55,9 +55,8 @@ public interface ProverEnvironment extends AutoCloseable {
 
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
    */
-  boolean isUnsat() throws InterruptedException;
+  boolean isUnsat() throws SolverException, InterruptedException;
 
   /**
    * Get a satisfying assignment.

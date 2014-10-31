@@ -74,7 +74,8 @@ public class PathChecker {
     machineModel = pMachineModel;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath)
+      throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
 

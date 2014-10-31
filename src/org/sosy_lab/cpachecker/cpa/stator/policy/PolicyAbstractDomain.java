@@ -129,7 +129,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       PolicyTemplateBound oldValue = prevState.getPolicyTemplateBound(template).orNull();
 
       // Can't do better than unbounded.
-      if (oldValue == null) continue;
+      if (oldValue == null) {
+        continue;
+      }
 
       // We are unbounded already, no point in doing value determination for
       // this template.
@@ -346,7 +348,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   PARTIAL_ORDER compare(PolicyAbstractState newState,
                         PolicyAbstractState prevState) {
 
-    if (newState == prevState) return PARTIAL_ORDER.EQUAL;
+    if (newState == prevState) {
+      return PARTIAL_ORDER.EQUAL;
+    }
 
     boolean less_or_equal = true;
     boolean greater_or_equal = true;
@@ -428,9 +432,13 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     for (BooleanFormula constraint : constraints) {
       env.push(constraint);
     }
-    if (env.isUnsat()) {
-      List<BooleanFormula> l = env.getUnsatCore();
-      logger.log(Level.FINE, "# UNSAT core: ", Joiner.on("\n").join(l));
+    try {
+      if (env.isUnsat()) {
+        List<BooleanFormula> l = env.getUnsatCore();
+        logger.log(Level.FINE, "# UNSAT core: ", Joiner.on("\n").join(l));
+      }
+    } catch (SolverException e) {
+      logger.logDebugException(e);
     }
   }
 

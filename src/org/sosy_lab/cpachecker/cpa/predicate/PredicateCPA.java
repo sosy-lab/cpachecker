@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
@@ -341,7 +342,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+    try {
+      return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed during abstract-successor check", e);
+    }
   }
 
   @Override

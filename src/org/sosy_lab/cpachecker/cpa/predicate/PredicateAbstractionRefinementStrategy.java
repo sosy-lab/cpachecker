@@ -60,7 +60,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -255,7 +257,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      PredicatePrecision heuristicPrecision;
+      try {
+        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      } catch (CPATransferException | SolverException e) {
+        logger.logUserException(Level.WARNING, e, "Static refinement failed");
+        lastRefinementUsedHeuristics = false;
+        super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+        return;
+      }
 
       shutdownNotifier.shutdownIfNecessary();
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);

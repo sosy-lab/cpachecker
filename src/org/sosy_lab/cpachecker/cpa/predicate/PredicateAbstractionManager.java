@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
@@ -242,7 +243,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(CFANode location,
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
-      Collection<AbstractionPredicate> pPredicates) throws InterruptedException {
+      Collection<AbstractionPredicate> pPredicates) throws SolverException, InterruptedException {
 
     stats.numCallsAbstraction++;
 
@@ -622,7 +623,8 @@ public class PredicateAbstractionManager {
       final CFANode location,
       final BooleanFormula f,
       final PathFormula blockFormula,
-      final Collection<AbstractionPredicate> predicates) throws InterruptedException {
+      final Collection<AbstractionPredicate> predicates)
+          throws SolverException, InterruptedException {
 
     PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
@@ -655,7 +657,8 @@ public class PredicateAbstractionManager {
   }
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
-      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates) throws InterruptedException {
+      ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates)
+          throws SolverException, InterruptedException {
 
     stats.abstractionSolveTime.start();
     boolean feasibility = !thmProver.isUnsat();
@@ -819,7 +822,8 @@ public class PredicateAbstractionManager {
   /**
    * Checks if (a1 & p1) => a2
    */
-  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2) throws InterruptedException {
+  public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2)
+      throws SolverException, InterruptedException {
     BooleanFormula absFormula = a1.asInstantiatedFormula();
     BooleanFormula symbFormula = buildFormula(p1.getFormula());
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
@@ -836,7 +840,8 @@ public class PredicateAbstractionManager {
    * @param pPathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
-  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula) throws InterruptedException {
+  public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)
+      throws SolverException, InterruptedException {
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);

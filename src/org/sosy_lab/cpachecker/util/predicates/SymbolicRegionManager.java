@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -116,7 +117,13 @@ public class SymbolicRegionManager implements RegionManager {
     SymbolicRegion r1 = (SymbolicRegion)pF1;
     SymbolicRegion r2 = (SymbolicRegion)pF2;
 
-    return solver.implies(r1.f, r2.f);
+    try {
+      return solver.implies(r1.f, r2.f);
+    } catch (SolverException e) {
+      // Entailment checks are supposed to be easy and fast (as for BDDs),
+      // so we do not have the checked exception in the interface.
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

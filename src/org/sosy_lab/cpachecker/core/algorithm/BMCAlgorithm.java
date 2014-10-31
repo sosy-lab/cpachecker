@@ -505,13 +505,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           return;
         }
 
-        try {
-          model = pProver.getModel();
-        } catch (SolverException e) {
-          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
-          logger.logDebugException(e);
-          return;
-        }
+        model = pProver.getModel();
+
+      } catch (SolverException e) {
+        logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
+        logger.logDebugException(e);
+        return;
+
       } finally {
         if (shouldCheckBranching) {
           pProver.pop(); // remove branchingFormula
@@ -551,7 +551,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
               dumpCounterexampleFormula);
         }
 
-      } catch (CPATransferException e) {
+      } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         counterexample = CounterexampleInfo.feasible(targetPath, model);
@@ -576,7 +576,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    *
    * @throws InterruptedException if the satisfiability check was interrupted.
    */
-  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
+  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover)
+      throws SolverException, InterruptedException {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
                                             .toList();
@@ -625,7 +626,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    *
    * @throws InterruptedException if the satisfiability check is interrupted.
    */
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) throws InterruptedException {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover)
+      throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 
