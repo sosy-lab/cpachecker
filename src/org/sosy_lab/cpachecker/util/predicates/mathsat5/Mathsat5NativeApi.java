@@ -172,6 +172,8 @@ class Mathsat5NativeApi {
   public static native int msat_get_bv_type_size(long e, long t);
   public static native boolean msat_is_array_type(long e, long t);
   public static native boolean msat_is_fp_type(long e, long t);
+  public static native int msat_get_fp_type_exp_width(long e, long t);
+  public static native int msat_get_fp_type_mant_width(long e, long t);
   public static native boolean msat_is_fp_roundingmode_type(long e, long t);
 
   public static native boolean msat_type_equals(long t1, long t2);
@@ -237,6 +239,33 @@ class Mathsat5NativeApi {
   public static native long msat_make_bv_rol(long e, int size, long t);
   public static native long msat_make_bv_ror(long e, int size, long t);
   public static native long msat_make_bv_comp(long e, long t1, long t2);
+  public static native long msat_make_fp_roundingmode_nearest_even(long e);
+  public static native long msat_make_fp_roundingmode_zero(long e);
+  public static native long msat_make_fp_roundingmode_plus_inf(long e);
+  public static native long msat_make_fp_roundingmode_minus_inf(long e);
+  public static native long msat_make_fp_equal(long e, long t1, long t2);
+  public static native long msat_make_fp_lt(long e, long t1, long t2);
+  public static native long msat_make_fp_leq(long e, long t1, long t2);
+  public static native long msat_make_fp_neg(long e, long t);
+  public static native long msat_make_fp_plus(long e, long rounding, long t1, long t2);
+  public static native long msat_make_fp_minus(long e, long rounding, long t1, long t2);
+  public static native long msat_make_fp_times(long e, long rounding, long t1, long t2);
+  public static native long msat_make_fp_div(long e, long rounding, long t1, long t2);
+  public static native long msat_make_fp_cast(long e, long exp_w, long mant_w, long rounding, long t);
+  public static native long msat_make_fp_to_bv(long e, long width, long rounding, long t);
+  public static native long msat_make_fp_from_sbv(long e, long exp_w, long mant_w, long rounding, long t);
+  public static native long msat_make_fp_from_ubv(long e, long exp_w, long mant_w, long rounding, long t);
+  public static native long msat_make_fp_as_ieeebv(long e, long t);
+  public static native long msat_make_fp_from_ieeebv(long e, long exp_w, long mant_w, long t);
+  public static native long msat_make_fp_isnan(long e, long t);
+  public static native long msat_make_fp_isinf(long e, long t);
+  public static native long msat_make_fp_iszero(long e, long t);
+  public static native long msat_make_fp_issubnormal(long e, long t);
+  public static native long msat_make_fp_plus_inf(long e, long exp_w, long mant_w);
+  public static native long msat_make_fp_minus_inf(long e, long exp_w, long mant_w);
+  public static native long msat_make_fp_nan(long e, long exp_w, long mant_w);
+  public static native long msat_make_fp_rat_number(long e, String numRep, long exp_w, long mant_w, long rounding);
+  public static native long msat_make_fp_bits_number(long e, String bitRep, long exp_w, long mant_w);
   public static native long msat_make_term(long e, long d, long[] args);
   public static native long msat_make_copy_from(long e, long t, long src);
 

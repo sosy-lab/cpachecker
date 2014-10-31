@@ -68,6 +68,24 @@ public class Mathsat5NativeApiTest0 {
   }
 
   @Test
+  public void fpExpWidth() {
+    long type = msat_get_fp_type(env, 8, 23);
+    assertEquals(8, msat_get_fp_type_exp_width(env, type));
+  }
+
+  @Test
+  public void fpMantWidth() {
+    long type = msat_get_fp_type(env, 8, 23);
+    assertEquals(23, msat_get_fp_type_mant_width(env, type));
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void fpExpWidthIllegal() {
+    long type = msat_get_integer_type(env);
+    msat_get_fp_type_exp_width(env, type);
+  }
+
+  @Test
   public void modularCongruence() throws InterruptedException {
     long type = msat_get_integer_type(env);
 
