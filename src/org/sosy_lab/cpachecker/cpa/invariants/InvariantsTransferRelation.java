@@ -104,12 +104,19 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
+
+  //set of functions that may not appear in the source code
+ // the value of the map entry is the explanation for the user
+ private static final Map<String, String> UNSUPPORTED_FUNCTIONS
+     = ImmutableMap.of("pthread_create", "threads");
 
   static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
 
@@ -283,6 +290,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+
+    if (pEdge.getStatement() instanceof CFunctionCall) {
+      CExpression fn = ((CFunctionCall) pEdge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression) {
+        String func = ((CIdExpression)fn).getName();
+        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
+        }
+      }
+    }
 
     if (pEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
