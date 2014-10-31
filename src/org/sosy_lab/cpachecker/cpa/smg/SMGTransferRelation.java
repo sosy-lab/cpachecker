@@ -258,8 +258,25 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
-        throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
-        //return null;
+
+        if (guessSizeOfUnknownMemorySize) {
+          SMGExplicitValueAndState forcedValueAndState = expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
+          currentState = forcedValueAndState.getSmgState();
+
+          //Sanity check
+
+          valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+          value = valueAndState.getValue();
+          currentState = valueAndState.getSmgState();
+
+          if(value.isUnknown()) {
+            throw new UnrecognizedCCodeException(
+                "Not able to compute allocation size", cfaEdge);
+          }
+        } else {
+          throw new UnrecognizedCCodeException(
+              "Not able to compute allocation size", cfaEdge);
+        }
       }
 
       // TODO line numbers are not unique when we have multiple input files!
