@@ -75,11 +75,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -554,6 +556,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeBoolean(true);
+    }
+
+    if (declarationType instanceof CArrayType) {
+      CType elementType = ((CArrayType)declarationType).getType();
+      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
+
+        CExpression length = ((CArrayType)declarationType).getLength();
+        if (length instanceof CIntegerLiteralExpression) {
+          if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
+            throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+          }
+        }
+      }
     }
 
     // Constraint is only necessary for correct error conditions,
