@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -221,10 +220,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final BooleanFormulaManagerView bfmgr;
 
-  private final TargetLocationProvider tlp;
-
-  private final Configuration config;
-
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -232,7 +227,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
-    config = pConfig;
     algorithm = pAlgorithm;
     cpa = pCpa;
     logger = pLogger;
@@ -257,8 +251,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
     machineModel = predCpa.getMachineModel();
-
-    tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, config, cfa);
   }
 
   @Override
