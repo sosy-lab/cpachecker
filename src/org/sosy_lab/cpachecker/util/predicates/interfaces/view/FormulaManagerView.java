@@ -745,7 +745,7 @@ public class FormulaManagerView {
     right = extractFromView(right);
     FormulaType<T> lformulaType = this.getFormulaType(left);
     FormulaType<T> rformulaType = this.getFormulaType(right);
-    if (lformulaType != rformulaType) {
+    if (!lformulaType.equals(rformulaType)) {
       throw new IllegalArgumentException("Can't assign different types! (" + lformulaType + " and " + rformulaType + ")");
     }
 
