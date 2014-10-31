@@ -726,6 +726,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return Collections.unmodifiableMap(environment);
   }
 
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   @Override
   public boolean isLessOrEqual(InvariantsState pState2) {
     if (equals(pState2)) { return true; }

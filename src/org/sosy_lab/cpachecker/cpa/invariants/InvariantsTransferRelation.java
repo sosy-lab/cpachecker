@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -236,7 +235,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
-    value = topIfProblematicType(pElement, value, decl.getType());
+    value = handlePotentialOverflow(pElement, value, decl.getType());
     return pElement.assign(varName, value);
   }
 
@@ -270,7 +269,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       String formalParam = VariableNameExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
 
-      value = topIfProblematicType(pElement, value, declaration.getType());
+      value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);
     }
 
@@ -317,7 +316,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           }
         }
       }
-      value = topIfProblematicType(pElement, value, leftHandSide.getExpressionType());
+      value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
@@ -344,17 +343,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private InvariantsFormula<CompoundInterval> topIfProblematicType(
-      InvariantsState pElement,
+  private InvariantsFormula<CompoundInterval> handlePotentialOverflow(
+      InvariantsState pState,
       InvariantsFormula<CompoundInterval> pFormula,
       CType pType) {
-    if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned()) {
-      CompoundInterval value = evaluate(pFormula, pElement.getEnvironment());
-      if (value.containsNegative()) {
-        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-      }
-    }
-    return pFormula;
+    return ExpressionToFormulaVisitor.handlePotentialOverflow(pFormula, pState.getMachineModel(), pType, pState.getEnvironment());
   }
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {

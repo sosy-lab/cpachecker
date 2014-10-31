@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
 
@@ -60,6 +61,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -438,4 +441,65 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
       throws UnrecognizedCodeException {
     return TOP;
   }
+
+  public static InvariantsFormula<CompoundInterval> handlePotentialOverflow(
+      InvariantsFormula<CompoundInterval> pFormula,
+      MachineModel pMachineModel,
+      Type pTargetType,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    CompoundIntervalFormulaManager fm = CompoundIntervalFormulaManager.INSTANCE;
+    final boolean isSigned;
+    final int bitLength;
+
+    if (pTargetType instanceof CSimpleType) {
+      CSimpleType targetType = ((CSimpleType) pTargetType).getCanonicalType();
+      isSigned = pMachineModel.isSigned(targetType);
+      bitLength = pMachineModel.getSizeof(targetType) * pMachineModel.getSizeofCharInBits();
+    } else {
+      // TODO java types
+      return TOP;
+    }
+
+    BigInteger lowerInclusiveBound = BigInteger.ZERO;
+    BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitLength);
+
+    CompoundInterval value = pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), pEnvironment);
+
+    if (isSigned) {
+      upperExclusiveBound = upperExclusiveBound.shiftRight(1);
+      lowerInclusiveBound = upperExclusiveBound.negate();
+      if (!value.hasLowerBound() || !value.hasUpperBound()) {
+        return TOP;
+      }
+      if (value.getLowerBound().compareTo(lowerInclusiveBound) < 0) {
+        return TOP;
+      }
+      if (value.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
+        return TOP;
+      }
+      return pFormula;
+    }
+
+    assert lowerInclusiveBound.compareTo(upperExclusiveBound) < 0;
+
+    if (!value.hasLowerBound()) {
+      return TOP;
+    }
+
+    if (value.getLowerBound().compareTo(lowerInclusiveBound) >= 0
+        && value.hasUpperBound()
+        && value.getUpperBound().compareTo(upperExclusiveBound) < 0) {
+      return pFormula;
+    }
+
+    CompoundInterval negativePart = value.intersectWith(CompoundInterval.one().negate().extendToNegativeInfinity());
+    CompoundInterval negativePartMod = negativePart.modulo(upperExclusiveBound);
+    CompoundInterval negativePartResult = CompoundInterval.singleton(upperExclusiveBound).add(negativePartMod);
+
+    CompoundInterval nonNegativePart = value.intersectWith(CompoundInterval.zero().extendToPositiveInfinity());
+    CompoundInterval nonNegativePartResult = nonNegativePart.modulo(upperExclusiveBound);
+
+    return fm.asConstant(negativePartResult.unionWith(nonNegativePartResult));
+  }
+
 }
