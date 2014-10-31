@@ -599,6 +599,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         }
 
       } else if (functionName.equals("__fpclassify")
+          || functionName.equals("__fpclassifyd")
           || functionName.equals("__fpclassifyf")
           || functionName.equals("__fpclassifyl")) {
 
@@ -698,6 +699,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     switch (name.charAt(0)) {
     case 'f':
       return CNumericTypes.FLOAT;
+    case 'd':
+      return CNumericTypes.DOUBLE;
     case 'l':
       return CNumericTypes.LONG_DOUBLE;
     default:
