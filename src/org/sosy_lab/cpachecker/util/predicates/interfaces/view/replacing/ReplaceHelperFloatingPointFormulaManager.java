@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 
 import com.google.common.base.Function;
 
@@ -53,6 +54,12 @@ class ReplaceHelperFloatingPointFormulaManager implements FloatingPointFormulaMa
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
     return replaceManager.wrap(pTargetType,
         rawFloatingPointManager.castTo(pNumber, unwrapTypes.apply(pTargetType)));
+  }
+
+  @Override
+  public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
+    return rawFloatingPointManager.castFrom(
+        replaceManager.unwrap(pNumber), pSigned, pTargetType);
   }
 
   @Override

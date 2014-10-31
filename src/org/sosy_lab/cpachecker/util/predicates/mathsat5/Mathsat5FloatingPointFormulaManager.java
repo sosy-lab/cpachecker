@@ -82,12 +82,43 @@ class Mathsat5FloatingPointFormulaManager
           targetType.getExponentSize(), targetType.getMantissaSize(),
           roundingMode, pNumber);
 
+    } else if (pTargetType.isBitvectorType()) {
+      FormulaType.BitvectorType targetType = (FormulaType.BitvectorType)pTargetType;
+      return msat_make_fp_to_bv(mathsatEnv, targetType.getSize(), roundingMode, pNumber);
+
     } else {
-      FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
-      FunctionFormulaType<?> castFuncType = ffmgr.declareUninterpretedFunction(
-          "__cast_" + formulaType + "_to_" + pTargetType, pTargetType, ImmutableList.<FormulaType<?>>of(formulaType));
-      return ffmgr.createUninterpretedFunctionCallImpl(castFuncType, ImmutableList.of(pNumber));
+      return genericCast(pNumber, pTargetType);
     }
+  }
+
+  @Override
+  protected Long castFromImpl(Long pNumber, boolean signed, FloatingPointType pTargetType) {
+    FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
+
+    if (formulaType.isFloatingPointType()) {
+      return castToImpl(pNumber, pTargetType);
+
+    } else if (formulaType.isBitvectorType()) {
+      if (signed) {
+        return msat_make_fp_from_sbv(mathsatEnv,
+            pTargetType.getExponentSize(), pTargetType.getMantissaSize(),
+            roundingMode, pNumber);
+      } else {
+        return msat_make_fp_from_ubv(mathsatEnv,
+            pTargetType.getExponentSize(), pTargetType.getMantissaSize(),
+            roundingMode, pNumber);
+      }
+
+    } else {
+      return genericCast(pNumber, pTargetType);
+    }
+  }
+
+  private Long genericCast(Long pNumber, FormulaType<?> pTargetType) {
+    FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
+    FunctionFormulaType<?> castFuncType = ffmgr.declareUninterpretedFunction(
+        "__cast_" + formulaType + "_to_" + pTargetType, pTargetType, ImmutableList.<FormulaType<?>>of(formulaType));
+    return ffmgr.createUninterpretedFunctionCallImpl(castFuncType, ImmutableList.of(pNumber));
   }
 
   @Override

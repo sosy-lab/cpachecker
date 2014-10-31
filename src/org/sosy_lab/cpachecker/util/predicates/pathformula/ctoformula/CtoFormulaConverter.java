@@ -520,6 +520,10 @@ public class CtoFormulaConverter {
       ret = fmgr.getFloatingPointFormulaManager().castTo(
           (FloatingPointFormula)pFormula, toType);
 
+    } else if (toType.isFloatingPointType()) {
+      ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
+          machineModel.isSigned(pFromCType), (FormulaType.FloatingPointType)toType);
+
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
           + " needs theory conversion between " + fromType + " and " + toType);

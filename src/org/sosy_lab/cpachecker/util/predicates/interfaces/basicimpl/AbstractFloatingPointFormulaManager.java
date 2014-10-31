@@ -99,6 +99,12 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
   }
   protected abstract TFormulaInfo castToImpl(TFormulaInfo pNumber, FormulaType<?> pTargetType);
 
+  @Override
+  public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FormulaType.FloatingPointType pTargetType) {
+    return wrap(castFromImpl(extractInfo(pNumber), pSigned, pTargetType));
+  }
+  protected abstract TFormulaInfo castFromImpl(TFormulaInfo pNumber, boolean pSigned, FormulaType.FloatingPointType pTargetType);
+
 
   @Override
   public FloatingPointFormula negate(FloatingPointFormula pNumber) {

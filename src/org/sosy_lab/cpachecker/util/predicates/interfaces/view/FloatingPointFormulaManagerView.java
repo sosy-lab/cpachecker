@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 
 
 public class FloatingPointFormulaManagerView
@@ -49,6 +50,12 @@ public class FloatingPointFormulaManagerView
   @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
     return getViewManager().wrapInView(manager.castTo(extractFromView(pNumber), pTargetType));
+  }
+
+  @Override
+  public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
+    return wrapInView(manager.castFrom(
+        getViewManager().extractFromView(pNumber), pSigned, pTargetType));
   }
 
   @Override
