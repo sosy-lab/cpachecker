@@ -285,15 +285,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
           if (induction) {
-            if (targetLocations == null && invariantGenerator instanceof CPAInvariantGenerator) {
-              CPAInvariantGenerator invariantGenerator = (CPAInvariantGenerator) BMCAlgorithm.this.invariantGenerator;
-              InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invariantGenerator.getCPAs(), InvariantsCPA.class);
-              if (invariantsCPA != null) {
-                targetLocations = tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-              } else {
-                targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
-              }
-            } else {
+            if (targetLocations == null) {
               targetLocations = kInductionProver.getCurrentPotentialTargetLocations();
             }
             if (targetLocations != null && targetLocations.isEmpty()) {
@@ -772,15 +764,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             trivialResult = null;
             reachedSet = reachedSetFactory.create();
-            CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
-
-            if (invariantGenerator instanceof CPAInvariantGenerator) {
-              CPAInvariantGenerator invariantGenerator = (CPAInvariantGenerator) BMCAlgorithm.this.invariantGenerator;
-              InvariantsCPA invariantsCPA = CPAs.retrieveCPA(invariantGenerator.getCPAs(), InvariantsCPA.class);
-              if (invariantsCPA != null) {
-                targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
-              }
-            }
+            // TODO find a better solution; causes false negatives for pthread programs
+            //CFANode loopHead = Iterables.getOnlyElement(loop.getLoopHeads());
+            //targetLocations = tlp.tryGetAutomatonTargetLocations(loopHead);
           }
           stats.inductionPreparation.stop();
         }
