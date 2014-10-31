@@ -856,7 +856,7 @@ public final class InterpolationManager {
       // Furthermore, check if the interpolants contains only the allowed variables
       List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
       for (BooleanFormula f : formulas) {
-        variablesInFormulas.add(fmgr.extractVariables(f));
+        variablesInFormulas.add(fmgr.extractVariableNames(f));
       }
 
       for (int i = 0; i < interpolants.size(); i++) {
@@ -874,7 +874,7 @@ public final class InterpolationManager {
         }
 
         Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
-        Set<String> variablesInInterpolant = fmgr.extractVariables(interpolants.get(i));
+        Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
         variablesInInterpolant.removeAll(allowedVariables);
 

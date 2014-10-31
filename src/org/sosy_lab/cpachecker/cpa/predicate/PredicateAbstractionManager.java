@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatResult;
@@ -103,6 +105,7 @@ public class PredicateAbstractionManager {
     public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
     public final Timer trivialPredicatesTime = new Timer();
     public final Timer cartesianAbstractionTime = new Timer();
+    public final Timer quantifierEliminationTime = new Timer();
     public final Timer booleanAbstractionTime = new Timer();
     public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
     public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
@@ -126,7 +129,7 @@ public class PredicateAbstractionManager {
     CARTESIAN,
     BOOLEAN,
     COMBINED,
-    ;
+    ELIMINATION;
   }
 
   @Option(secure=true, name = "abstraction.cartesian",
@@ -429,6 +432,14 @@ public class PredicateAbstractionManager {
           abs = rmgr.makeFalse();
         }
 
+      } else if (abstractionType == AbstractionType.ELIMINATION) {
+        stats.quantifierEliminationTime.start();
+        try {
+          abs = rmgr.makeAnd(abs,
+              eliminateNonLiveVariablePropositions(f, location, ssa, thmProver, predicates));
+        } finally {
+          stats.quantifierEliminationTime.stop();
+        }
       } else {
         if (abstractionType != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
@@ -503,6 +514,14 @@ public class PredicateAbstractionManager {
     return result;
   }
 
+  private Region eliminateNonLiveVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
+      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) {
+    Set<Formula> relevantVariables;
+
+    fmgr.makeVariable(NumeralType.IntegerType, "b");
+    return null;
+  }
+
   /**
    * Extract all relevant predicates (with respect to a given formula)
    * from a given set of predicates.
@@ -522,7 +541,7 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f, final SSAMap ssa) {
 
-    Set<String> variables = fmgr.extractVariables(f);
+    Set<String> variables = fmgr.extractVariableNames(f);
     ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
     for (AbstractionPredicate predicate : pPredicates) {
       BooleanFormula predicateTerm = predicate.getSymbolicAtom();
@@ -534,7 +553,7 @@ public class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
-      Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
+      Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty()
           || !Sets.intersection(predVariables, variables).isEmpty()) {
@@ -564,7 +583,7 @@ public class PredicateAbstractionManager {
       final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws InterruptedException {
 
     final SSAMap ssa = pBlockFormula.getSsa();
-    final Set<String> blockVariables = fmgr.extractVariables(pBlockFormula.getFormula());
+    final Set<String> blockVariables = fmgr.extractVariableNames(pBlockFormula.getFormula());
     final Region oldAbs = pOldAbs.asRegion();
 
     final RegionCreator regionCreator = amgr.getRegionCreator();
@@ -574,7 +593,7 @@ public class PredicateAbstractionManager {
       final BooleanFormula predicateTerm = predicate.getSymbolicAtom();
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
-      final Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
+      final Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (Sets.intersection(predVariables, blockVariables).isEmpty()) {
         // predicate irrelevant with respect to block formula

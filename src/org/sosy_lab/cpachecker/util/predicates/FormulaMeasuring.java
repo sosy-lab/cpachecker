@@ -107,7 +107,7 @@ public class FormulaMeasuring {
         }
       }
 
-      measures.variables.addAll(fmgr.extractVariables(atom));
+      measures.variables.addAll(fmgr.extractVariableNames(atom));
       return null;
     }
 

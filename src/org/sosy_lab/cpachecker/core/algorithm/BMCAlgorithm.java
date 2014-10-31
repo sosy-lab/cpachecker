@@ -1268,7 +1268,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           }
         } else {
           PathFormula formula = pmgr.makeFormulaForPath(Collections.singletonList(leavingEdge));
-          result.addAll(fmgr.extractVariables(fmgr.uninstantiate(formula.getFormula())));
+          result.addAll(fmgr.extractVariableNames(fmgr.uninstantiate(formula.getFormula())));
         }
       }
     }

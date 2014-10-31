@@ -1087,7 +1087,7 @@ public class FormulaManagerView {
     return res;
   }
 
-  public Set<String> extractVariables(Formula f) {
+  public Set<String> extractVariableNames(Formula f) {
     return myExtractVariables(extractFromView(f));
   }
 

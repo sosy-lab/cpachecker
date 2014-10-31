@@ -323,14 +323,14 @@ public class LinearConstraintManager {
     List<BooleanFormula> toProcess = new ArrayList<>(origConstraints);
     List<BooleanFormula> newToProcess = new ArrayList<>();
 
-    Set<String> careAbout = fmgr.extractVariables(relatedTo);
+    Set<String> careAbout = fmgr.extractVariableNames(relatedTo);
     final List<BooleanFormula> related = new ArrayList<>();
     Set<String> newCareAbout = new HashSet<>(careAbout);
 
     // Fix-point computation to find out all the related constraints.
     while (true) {
       for (BooleanFormula f : toProcess) {
-        Set<String> containedVars = fmgr.extractVariables(f);
+        Set<String> containedVars = fmgr.extractVariableNames(f);
         Set<String> intersection = new HashSet<>(containedVars);
 
         intersection.retainAll(careAbout);

@@ -174,7 +174,7 @@ public class ValueDeterminationFormulaManager {
     List<Formula> fromVars = new ArrayList<>();
     List<Formula> toVars = new ArrayList<>();
 
-    Set<String> allVars = fmgr.extractVariables(edgeFormula);
+    Set<String> allVars = fmgr.extractVariableNames(edgeFormula);
     for (String varNameWithIdx : allVars) {
 
       Pair<String, Integer> pair = FormulaManagerView.parseName(varNameWithIdx);
