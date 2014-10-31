@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
@@ -509,6 +510,10 @@ public class CtoFormulaConverter {
       } else {
         ret = pFormula;
       }
+
+    } else if (fromType.isFloatingPointType() && toType.isFloatingPointType()) {
+      ret = fmgr.getFloatingPointFormulaManager().castTo(
+          (FloatingPointFormula)pFormula, (FormulaType.FloatingPointType)toType);
 
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType

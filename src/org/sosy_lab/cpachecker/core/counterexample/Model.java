@@ -64,6 +64,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     Uninterpreted,
     Integer,
     Real,
+    FloatingPoint,
     Bitvector;
   }
 
