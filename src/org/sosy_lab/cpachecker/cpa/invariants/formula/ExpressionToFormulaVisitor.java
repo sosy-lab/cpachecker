@@ -156,7 +156,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case MINUS:
       return CompoundIntervalFormulaManager.INSTANCE.negate(pCUnaryExpression.getOperand().accept(this));
     case TILDE:
-      return CompoundIntervalFormulaManager.INSTANCE.binaryNot(pCUnaryExpression.getOperand().accept(this));
+      return TOP;
     default:
       return super.visit(pCUnaryExpression);
     }
@@ -181,11 +181,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     right = topIfProblematicType(pCBinaryExpression.getCalculationType(), right);
     switch (pCBinaryExpression.getOperator()) {
     case BINARY_AND:
-      return fmgr.binaryAnd(left, right);
+      return TOP;
     case BINARY_OR:
-      return fmgr.binaryOr(left, right);
+      return TOP;
     case BINARY_XOR:
-      return fmgr.binaryXor(left, right);
+      return TOP;
     case DIVIDE:
       return fmgr.divide(left, right);
     case EQUALS:
@@ -342,7 +342,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case MINUS:
       return CompoundIntervalFormulaManager.INSTANCE.negate(pUnaryExpression.getOperand().accept(this));
     case COMPLEMENT:
-      return CompoundIntervalFormulaManager.INSTANCE.binaryNot(pUnaryExpression.getOperand().accept(this));
+      return TOP;
     case NOT:
       return CompoundIntervalFormulaManager.INSTANCE.logicalNot(pUnaryExpression.getOperand().accept(this));
     case PLUS:
