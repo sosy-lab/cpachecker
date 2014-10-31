@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatResult;
@@ -80,6 +80,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
@@ -353,7 +354,7 @@ public class PredicateAbstractionManager {
     // <-- End of reuse
 
     // Shortcut if the precision is empty
-    if (pPredicates.isEmpty()) {
+    if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
       return makeTrueAbstractionFormula(pathFormula);
@@ -417,7 +418,7 @@ public class PredicateAbstractionManager {
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
 
-      if (predicates.isEmpty()) {
+      if (predicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
         stats.numSatCheckAbstractions++;
 
         stats.abstractionSolveTime.start();
@@ -436,7 +437,7 @@ public class PredicateAbstractionManager {
         stats.quantifierEliminationTime.start();
         try {
           abs = rmgr.makeAnd(abs,
-              eliminateNonLiveVariablePropositions(f, location, ssa, thmProver, predicates));
+              eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
         } finally {
           stats.quantifierEliminationTime.stop();
         }
@@ -514,12 +515,52 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private Region eliminateNonLiveVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) {
-    Set<Formula> relevantVariables;
+  private List<Formula> getDeadVariables(BooleanFormula pFormula, CFANode pLocation, SSAMap pSsa) {
+    Set<Triple<Formula, String, Integer>> formulaVariables = fmgr.extractVariables(pFormula);
+    List<Formula> result = Lists.newArrayList();
 
-    fmgr.makeVariable(NumeralType.IntegerType, "b");
-    return null;
+    for (Triple<Formula, String, Integer> var: formulaVariables) {
+
+      Formula varFormula = var.getFirst();
+      String varName = var.getSecond();
+
+      int varSsaIndex = var.getThird();
+      int liveIndex = pSsa.getIndex(varName);
+
+      if (liveIndex != varSsaIndex) {
+        result.add(varFormula);
+      }
+    }
+
+    return result;
+  }
+
+  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
+      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException {
+
+    BooleanFormula eliminationResult = fmgr.simplify(pF); // TODO: Benchmark the effect!
+
+    List<Formula> irrelevantVariables = getDeadVariables(eliminationResult, pLocation, pSsa);
+
+    if (!irrelevantVariables.isEmpty()) {
+      try {
+        BooleanFormula quantifiedFormula = fmgr.getQuantifiedFormulaManager().exists(irrelevantVariables, pF);
+        eliminationResult = pThmProver.eliminateQuantifiers(quantifiedFormula);
+
+      } catch (SolverException e) {
+        logger.log(Level.WARNING, "Eliminating variaiables failed!", e.getMessage());
+        throw new RuntimeException(e);
+      }
+    }
+
+    eliminationResult = fmgr.uninstantiate(eliminationResult);
+    Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false, false);
+    for (BooleanFormula atom: atoms) {
+      amgr.makePredicate(atom);
+      extractPredicates(atom);
+    }
+    return amgr.buildRegionFromFormula(eliminationResult);
+
   }
 
   /**
