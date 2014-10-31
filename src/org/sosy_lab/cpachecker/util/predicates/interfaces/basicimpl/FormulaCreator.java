@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
@@ -91,6 +92,10 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return new BitvectorFormulaImpl<>(pTerm);
   }
 
+  protected FloatingPointFormula encapsulateFloatingPoint(TFormulaInfo pTerm) {
+    return new FloatingPointFormulaImpl<>(pTerm);
+  }
+
   @SuppressWarnings("unchecked")
   protected <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
     if (pType.isBooleanType()) {
@@ -101,6 +106,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       return (T)new RationalFormulaImpl<>(pTerm);
     } else if (pType.isBitvectorType()) {
       return (T)new BitvectorFormulaImpl<>(pTerm);
+    } else if (pType.isFloatingPointType()) {
+      return (T)new FloatingPointFormulaImpl<>(pTerm);
     }
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }

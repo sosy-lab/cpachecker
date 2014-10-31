@@ -99,9 +99,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5BitvectorFormulaManager pBitpreciseManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
-
-    super(creator, unsafeManager, pFunctionManager,
-            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager, null);
+    super(creator, unsafeManager, pFunctionManager, pBooleanManager,
+        pIntegerManager, pRationalManager, pBitpreciseManager, null, null);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;

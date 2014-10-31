@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
@@ -108,6 +109,15 @@ final class WrappingBooleanFormula<TWrap extends Formula>
     implements BooleanFormula {
 
   WrappingBooleanFormula(FormulaType<BooleanFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
+  }
+}
+
+final class WrappingFloatingPointFormula<TWrap extends Formula>
+    extends WrappingFormula<TWrap, FloatingPointFormula>
+    implements FloatingPointFormula {
+
+  WrappingFloatingPointFormula(FormulaType<FloatingPointFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }

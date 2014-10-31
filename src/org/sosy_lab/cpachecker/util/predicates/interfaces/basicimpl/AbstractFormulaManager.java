@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -46,6 +47,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> rationalManager;
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
+
+  private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
 
   private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
 
@@ -72,8 +75,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
       AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
+      AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
       AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager) {
-
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
@@ -90,6 +93,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
     this.bitvectorManager = bitvectorManager;
 
+    this.floatingPointManager = floatingPointManager;
+
     this.unsafeManager = unsafeManager;
 
     this.formulaCreator = pFormulaCreator;
@@ -100,6 +105,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
             || (integerManager != null && integerManager.getFormulaCreator() != formulaCreator)
             || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
+        || (floatingPointManager != null && floatingPointManager.getFormulaCreator() != formulaCreator)
         ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
     }
@@ -139,6 +145,14 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       throw new UnsupportedOperationException();
     }
     return bitvectorManager;
+  }
+
+  @Override
+  public FloatingPointFormulaManager getFloatingPointFormulaManager() {
+    if (floatingPointManager == null) {
+      throw new UnsupportedOperationException();
+    }
+    return floatingPointManager;
   }
 
   @Override

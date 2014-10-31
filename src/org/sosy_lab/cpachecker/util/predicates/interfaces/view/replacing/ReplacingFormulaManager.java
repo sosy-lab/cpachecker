@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -137,6 +139,8 @@ public class ReplacingFormulaManager implements FormulaManager {
       f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
     } else if (type.isBooleanType()) {
       f = new WrappingBooleanFormula<>((FormulaType<BooleanFormula>)type, toWrap);
+    } else if (type.isFloatingPointType()) {
+      f = new WrappingFloatingPointFormula<>((FormulaType<FloatingPointFormula>)type, toWrap);
     } else {
       throw new IllegalArgumentException("cant wrap this type");
     }
@@ -183,6 +187,11 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rawFormulaManager.getRationalFormulaManager();
+  }
+
+  @Override
+  public FloatingPointFormulaManager getFloatingPointFormulaManager() {
+    return rawFormulaManager.getFloatingPointFormulaManager();
   }
 
   @Override
