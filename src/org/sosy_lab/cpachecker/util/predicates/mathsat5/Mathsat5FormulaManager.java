@@ -155,7 +155,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5IntegerFormulaManager integerTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
     Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
-    Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator);
+    Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator, functionTheory);
 
     return new Mathsat5FormulaManager(logger, msatConf, creator,
         unsafeManager, functionTheory, booleanTheory,

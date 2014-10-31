@@ -35,7 +35,7 @@ public interface FloatingPointFormulaManager {
 
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType type);
 
-  public FloatingPointFormula castTo(FloatingPointFormula number, FormulaType.FloatingPointType targetType);
+  public <T extends Formula> T castTo(FloatingPointFormula number, FormulaType<T> targetType);
 
   // ----------------- Arithmetic relations, return type NumeralFormula -----------------
 

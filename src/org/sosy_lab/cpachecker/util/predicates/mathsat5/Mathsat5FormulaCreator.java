@@ -89,6 +89,10 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
       return FormulaType.RationalType;
     } else if (msat_is_bv_type(env, type)) {
       return FormulaType.getBitvectorTypeWithSize(msat_get_bv_type_size(env, type));
+    } else if (msat_is_fp_type(env, type)) {
+      return FormulaType.getFloatingPointType(
+          msat_get_fp_type_exp_width(env, type),
+          msat_get_fp_type_mant_width(env, type));
     }
     throw new IllegalArgumentException("Unknown formula type");
   }

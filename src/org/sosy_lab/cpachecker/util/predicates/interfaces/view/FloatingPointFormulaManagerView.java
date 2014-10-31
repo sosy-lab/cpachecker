@@ -28,8 +28,8 @@ import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 
 
 public class FloatingPointFormulaManagerView
@@ -47,8 +47,8 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
-  public FloatingPointFormula castTo(FloatingPointFormula pNumber, FloatingPointType pTargetType) {
-    return wrapInView(manager.castTo(extractFromView(pNumber), pTargetType));
+  public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
+    return getViewManager().wrapInView(manager.castTo(extractFromView(pNumber), pTargetType));
   }
 
   @Override

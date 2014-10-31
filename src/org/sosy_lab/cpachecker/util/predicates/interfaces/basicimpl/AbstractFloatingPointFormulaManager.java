@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
@@ -95,10 +94,10 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
   protected abstract TFormulaInfo makeVariableImpl(String pVar, FormulaType.FloatingPointType pType);
 
   @Override
-  public FloatingPointFormula castTo(FloatingPointFormula pNumber, FloatingPointType pTargetType) {
-    return wrap(castToImpl(extractInfo(pNumber), pTargetType));
+  public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
+    return getFormulaCreator().encapsulate(pTargetType, castToImpl(extractInfo(pNumber), pTargetType));
   }
-  protected abstract TFormulaInfo castToImpl(TFormulaInfo pNumber, FloatingPointType pTargetType);
+  protected abstract TFormulaInfo castToImpl(TFormulaInfo pNumber, FormulaType<?> pTargetType);
 
 
   @Override

@@ -27,19 +27,27 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFloatingPointFormulaManager;
+
+import com.google.common.collect.ImmutableList;
 
 class Mathsat5FloatingPointFormulaManager
         extends AbstractFloatingPointFormulaManager<Long, Long, Long> {
+
+  private final Mathsat5FunctionFormulaManager ffmgr;
 
   private final long mathsatEnv;
 
   private final long roundingMode;
 
-  public Mathsat5FloatingPointFormulaManager(Mathsat5FormulaCreator pCreator) {
+  public Mathsat5FloatingPointFormulaManager(Mathsat5FormulaCreator pCreator,
+      Mathsat5FunctionFormulaManager pFfmgr) {
     super(pCreator);
 
+    ffmgr = pFfmgr;
     mathsatEnv = pCreator.getEnv();
     roundingMode = msat_make_fp_roundingmode_nearest_even(mathsatEnv);
   }
@@ -67,10 +75,19 @@ class Mathsat5FloatingPointFormulaManager
   }
 
   @Override
-  protected Long castToImpl(Long pNumber, FloatingPointType pTargetType) {
-    return msat_make_fp_cast(mathsatEnv,
-        pTargetType.getExponentSize(), pTargetType.getMantissaSize(),
-        roundingMode, pNumber);
+  protected Long castToImpl(Long pNumber, FormulaType<?> pTargetType) {
+    if (pTargetType.isFloatingPointType()) {
+      FormulaType.FloatingPointType targetType = (FormulaType.FloatingPointType)pTargetType;
+      return msat_make_fp_cast(mathsatEnv,
+          targetType.getExponentSize(), targetType.getMantissaSize(),
+          roundingMode, pNumber);
+
+    } else {
+      FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
+      FunctionFormulaType<?> castFuncType = ffmgr.declareUninterpretedFunction(
+          "__cast_" + formulaType + "_to_" + pTargetType, pTargetType, ImmutableList.<FormulaType<?>>of(formulaType));
+      return ffmgr.createUninterpretedFunctionCallImpl(castFuncType, ImmutableList.of(pNumber));
+    }
   }
 
   @Override

@@ -141,5 +141,5 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return (FormulaType<T>) t;
   }
 
-  protected abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
+  public abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
 }

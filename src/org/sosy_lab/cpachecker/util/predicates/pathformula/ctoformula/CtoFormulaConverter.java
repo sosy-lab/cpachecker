@@ -516,9 +516,9 @@ public class CtoFormulaConverter {
         ret = pFormula;
       }
 
-    } else if (fromType.isFloatingPointType() && toType.isFloatingPointType()) {
+    } else if (fromType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castTo(
-          (FloatingPointFormula)pFormula, (FormulaType.FloatingPointType)toType);
+          (FloatingPointFormula)pFormula, toType);
 
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
