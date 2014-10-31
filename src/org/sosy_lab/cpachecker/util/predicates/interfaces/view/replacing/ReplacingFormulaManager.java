@@ -57,6 +57,7 @@ public class ReplacingFormulaManager implements FormulaManager {
   private final boolean replacedRationalTheory;
   private final FunctionFormulaManager functionTheory;
   private final BooleanFormulaManager booleanTheory;
+  private final FloatingPointFormulaManager floatingPointTheory;
   private final UnsafeFormulaManager unsafeManager;
   private final QuantifiedFormulaManager quantifiedFormulaManager;
 
@@ -121,6 +122,16 @@ public class ReplacingFormulaManager implements FormulaManager {
         new ReplaceHelperBooleanFormulaManager(
             this,
             rawFormulaManager.getBooleanFormulaManager());
+
+    FloatingPointFormulaManager fpTheory = null;
+    try {
+      fpTheory = new ReplaceHelperFloatingPointFormulaManager(this,
+          rawFormulaManager.getFloatingPointFormulaManager(), unwrapTypes);
+    } catch (UnsupportedOperationException e) {
+      // optional theory
+    }
+    floatingPointTheory = fpTheory;
+
     unsafeManager =
         new ReplaceUnsafeFormulaManager(
             this,
@@ -191,7 +202,10 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public FloatingPointFormulaManager getFloatingPointFormulaManager() {
-    return rawFormulaManager.getFloatingPointFormulaManager();
+    if (floatingPointTheory == null) {
+      return rawFormulaManager.getFloatingPointFormulaManager(); // should throw UnsupportedOperationException
+    }
+    return floatingPointTheory;
   }
 
   @Override
