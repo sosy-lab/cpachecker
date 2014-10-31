@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -77,29 +74,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * expressions to compound state invariants formulae.
  */
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException> implements CRightHandSideVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException>, JRightHandSideVisitor<InvariantsFormula<CompoundInterval>, UnrecognizedCodeException> {
-
-  /**
-   * The set of allowed operators. Logical AND and logical OR are not allowed
-   * because they are deprecated.
-   */
-  private static final List<CBinaryExpression.BinaryOperator> allowedOperators = Arrays.asList(
-    BinaryOperator.BINARY_AND,
-    BinaryOperator.BINARY_OR,
-    BinaryOperator.BINARY_XOR,
-    BinaryOperator.DIVIDE,
-    BinaryOperator.EQUALS,
-    BinaryOperator.GREATER_EQUAL,
-    BinaryOperator.GREATER_THAN,
-    BinaryOperator.LESS_EQUAL,
-    BinaryOperator.LESS_THAN,
-    BinaryOperator.MINUS,
-    BinaryOperator.MODULO,
-    BinaryOperator.MULTIPLY,
-    BinaryOperator.NOT_EQUALS,
-    BinaryOperator.PLUS,
-    BinaryOperator.SHIFT_LEFT,
-    BinaryOperator.SHIFT_RIGHT
-  );
 
   /**
    * The compound state invariants formula representing the top state.
@@ -239,13 +213,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case SHIFT_RIGHT:
       return fmgr.shiftRight(left, right);
     default:
-      /*
-       * While invariants formulae support logical AND and logical NOT and thus
-       * also logical OR, logical AND and logical OR are deprecated c binary
-       * operators in CPAchecker.
-       */
-      assert allowedOperators.contains(pCBinaryExpression.getOperator())
-          : ("Unexpected operator: " + pCBinaryExpression.getOperator());
       return TOP;
     }
   }
