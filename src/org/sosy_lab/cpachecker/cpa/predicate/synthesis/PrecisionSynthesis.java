@@ -62,7 +62,8 @@ public class PrecisionSynthesis extends AbstractPrecisionSynthesis {
 
   public PrecisionSynthesis(Configuration pConfig, LogManager pLogger, FormulaManagerView pFmgr,
       Optional<VariableClassification> pVariableClassification, FormulaManager pRawFmgr, AbstractionManager pAmgr,
-      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationView pRelView, AnalysisDirection pDirection)
+      MachineModel pMachineModel, ShutdownNotifier pShutdownNotifier, CFA pCfa, RelationView pRelView,
+      AnalysisDirection pDirection)
           throws InvalidConfigurationException {
     super(pConfig, pLogger, pFmgr, pVariableClassification, pRawFmgr, pAmgr, pMachineModel, pShutdownNotifier, pCfa, pRelView, pDirection);
 
@@ -109,7 +110,5 @@ public class PrecisionSynthesis extends AbstractPrecisionSynthesis {
 
     return result;
   }
-
-
 
 }

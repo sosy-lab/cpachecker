@@ -23,23 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class CExpressionScout extends AbstractCExpressionScout {
 
-  private final Set<CIdExpression> searchFor;
+public class UnsupportedExpressionException extends Exception {
 
-  public CExpressionScout(Set<CIdExpression> pFindAnyOf) {
-    super();
-    searchFor = pFindAnyOf;
+  private static final long serialVersionUID = -280569602862253435L;
+
+  private final CExpression expression;
+
+  public UnsupportedExpressionException(String pMessage, CExpression pExpression) {
+    super(pMessage);
+    this.expression = pExpression;
   }
 
-  @Override
-  public boolean matches(CExpression pExpr) {
-    return searchFor.contains(pExpr);
+  public CExpression getExpression() {
+    return expression;
   }
-
 }

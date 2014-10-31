@@ -49,7 +49,7 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
   protected final AbstractionManager amgr;
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  protected  final CFA cfa;
+  protected final CFA cfa;
   protected final CtoFormulaConverter converter;
   protected final RelationView relview;
 
@@ -79,5 +79,4 @@ public abstract class AbstractPrecisionSynthesis implements AbstractionInstanceS
         logger, pShutdownNotifier,
         typeHandler, pDirection);
   }
-
 }

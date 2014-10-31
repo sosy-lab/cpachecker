@@ -47,53 +47,56 @@ public class RelationSynthesis {
 
   private final LogManager logger;
   private final RelationView relview;
+  private final CBinaryExpressionBuilder binExprBuilder;
 
   public RelationSynthesis(LogManager pLogger, RelationView pRelView) {
     relview = pRelView;
     logger = pLogger;
+    binExprBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger); // TODO
   }
 
-  public Collection<CBinaryExpression> getCombinedExpressionsOn(Set<CIdExpression> pIdExprs, SSAMap pSsaMap) {
-    Set<CIdExpression> instanciatedIds = Sets.newHashSet();
-    for (CIdExpression id: pIdExprs) {
-      instanciatedIds.add(instanciate(id, pSsaMap, 0));
+  public Collection<CBinaryExpression> getCombinedExpressionsOn(Set<CIdExpression> uninstanciatedIds, SSAMap pSsaMap) {
+
+    Set<CIdExpression> idInstances = Sets.newHashSet();
+    for (CIdExpression id: uninstanciatedIds) {
+      idInstances.add(instanciate(id, pSsaMap, 0));
     }
-    return getCombinedExpressionsOnInstances(instanciatedIds);
-  }
-
-  public Collection<CBinaryExpression> getCombinedExpressionsOnInstances(Set<CIdExpression> pIdExprs) {
 
     Collection<CBinaryExpression> result = Lists.newArrayList();
 
-    for (CExpression lhs: relview.getStoredExpressionsWith(pIdExprs)) {
-      Pair<CExpression, Set<CIdExpression>> inlinedLhs = relview.getInlined(lhs, pIdExprs);
-      Map<CExpression, Relation> row = relview.getRelationTo(lhs);
+    for (CExpression lhs: relview.getStoredExpressionsWithOrGlobal(idInstances)) {
+      // e is a expression that contains interface variables.
 
-      if (inlinedLhs.getSecond().size() > 0) { // only if all substitutions were possible
+      // inline e, i.e., substitute all non-interface variables
+      final Pair<CExpression, Set<CIdExpression>> lhsInliningResult = relview.getInlined(lhs, idInstances);
+      final CExpression lhsInlined = lhsInliningResult.getFirst();
+      final Set<CIdExpression> notInlinedIds = lhsInliningResult.getSecond();
+
+      if (!notInlinedIds.isEmpty()) { // only if all substitutions were possible
         continue;
       }
 
-      for (CExpression rhs: row.keySet()) {
-        Pair<CExpression, Set<CIdExpression>> inlinedRhs = relview.getInlined(rhs, pIdExprs);
-        Relation rel = row.get(rhs);
+      Map<CExpression, Relation> row = relview.getRelationTo(lhs);
 
-        if (inlinedRhs.getSecond().size() > 0) { // only if all substitutions were possible
+      for (CExpression rhs: row.keySet()) {
+        final Pair<CExpression, Set<CIdExpression>> rhsInliningResult = relview.getInlined(rhs, idInstances);
+        final CExpression rhsInlined = rhsInliningResult.getFirst();
+        final Set<CIdExpression> rhsNotInlinedIds = rhsInliningResult.getSecond();
+
+        final Relation relation = row.get(rhs);
+
+        if (!rhsNotInlinedIds.isEmpty()) { // only if all substitutions were possible
           continue;
         }
 
-        CBinaryExpressionBuilder b = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger); // TODO
-        CBinaryExpression bin = b.buildBinaryExpression(
-            inlinedLhs.getFirst(),
-            inlinedRhs.getFirst(),
-            rel.binaryOperator);
+        CBinaryExpression bin = binExprBuilder.buildBinaryExpression(lhsInlined, rhsInlined, relation.binaryOperator);
 
         result.add(uninstanciate(bin));
       }
     }
 
+    System.out.println(result);
     return result;
   }
-
-
 
 }

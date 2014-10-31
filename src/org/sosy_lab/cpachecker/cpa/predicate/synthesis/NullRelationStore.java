@@ -53,8 +53,13 @@ public class NullRelationStore implements RelationStore, RelationView {
   }
 
   @Override
-  public Set<CExpression> getStoredExpressionsWith(Set<CIdExpression> pIds) {
+  public Set<CExpression> getStoredExpressionsWithOrGlobal(Set<CIdExpression> pIds) {
     throw new RuntimeException("Tracking of relations is disabled!");
+  }
+
+  @Override
+  public void dumpStoreContent(Appendable pTarget) {
+    return;
   }
 
 }

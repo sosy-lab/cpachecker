@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore.Rela
 
 public interface RelationView {
 
-  public  Map<CExpression, Relation> getRelationTo(CExpression pLhs);
+  public Map<CExpression, Relation> getRelationTo(CExpression pLhs);
 
   public Pair<CExpression, Set<CIdExpression>> getInlined(CExpression pLhs, Set<CIdExpression> pIdExprs);
 
-  public Set<CExpression> getStoredExpressionsWith(Set<CIdExpression> ids);
+  public Set<CExpression> getStoredExpressionsWithOrGlobal(Set<CIdExpression> ids);
 }
