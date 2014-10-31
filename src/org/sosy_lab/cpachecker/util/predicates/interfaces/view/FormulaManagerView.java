@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.Replaci
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * This class is the central entry point for all formula creation
@@ -1088,13 +1089,24 @@ public class FormulaManagerView {
   }
 
   public Set<String> extractVariableNames(Formula f) {
+    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
+    Set<String> result = Sets.newHashSet();
+
+    for (Formula v: myExtractVariables(extractFromView(f))) {
+      result.add(unsafeManager.getName(v));
+    }
+
+    return result;
+  }
+
+  public Set<Formula> extractVariableFormulas(Formula f) {
     return myExtractVariables(extractFromView(f));
   }
 
-  private Set<String> myExtractVariables(Formula f) {
+  private Set<Formula> myExtractVariables(Formula f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Formula> seen = new HashSet<>();
-    Set<String> vars = new HashSet<>();
+    Set<Formula> varFormulas = new HashSet<>();
 
     Deque<Formula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
@@ -1107,7 +1119,8 @@ public class FormulaManagerView {
 //      }
 
       if (unsafeManager.isVariable(t)) {
-        vars.add(unsafeManager.getName(t));
+        varFormulas.add(t);
+
       } else {
         // ok, go into this formula
         for (int i = 0; i < unsafeManager.getArity(t); ++i) {
@@ -1120,7 +1133,7 @@ public class FormulaManagerView {
       }
     }
 
-    return vars;
+    return varFormulas;
   }
 
   public Appender dumpFormula(Formula pT) {
