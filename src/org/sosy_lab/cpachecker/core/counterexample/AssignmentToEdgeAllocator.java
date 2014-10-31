@@ -1222,6 +1222,7 @@ public class AssignmentToEdgeAllocator {
 
       switch (basicType) {
       case BOOL:
+      case CHAR:
       case INT:
         return handleIntegerNumbers(pValue, simpleType);
       case FLOAT:
