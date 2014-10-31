@@ -36,6 +36,4 @@ public interface QuantifiedFormulaManager {
 
   public BooleanFormula forall (List<Formula> pVariables, BooleanFormula pBody);
 
-  public BooleanFormula eliminatedQuantifiers (BooleanFormula pF);
-
 }

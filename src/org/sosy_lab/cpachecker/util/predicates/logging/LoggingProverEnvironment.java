@@ -97,4 +97,11 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     wrapped.close();
     logger.log(Level.FINER, "closed");
   }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    BooleanFormula result = eliminateQuantifiers(pF);
+    logger.log(Level.FINE, "eliminate-quantifiers", pF, result);
+    return result;
+  }
 }

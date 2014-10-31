@@ -41,6 +41,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1094,6 +1095,30 @@ public class FormulaManagerView {
 
     for (Formula v: myExtractVariables(extractFromView(f))) {
       result.add(unsafeManager.getName(v));
+    }
+
+    return result;
+  }
+
+  public Set<Triple<Formula, String, Integer>> extractVariables(Formula f) {
+    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
+    Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
+
+    for (Formula varFormula: myExtractVariables(extractFromView(f))) {
+      String varFormulaString = unsafeManager.getName(varFormula);
+      String[] varFormulaStringElements = varFormulaString.split("@");
+
+      if (varFormulaStringElements.length < 2) {
+        // SMT let statements might introduce new variables!! :-(
+
+        result.add(Triple.of(varFormula, varFormulaString, -1));
+        // throw new AssertionError("Variable has no valid SSA index: " + varFormulaString);
+
+      } else {
+        String varName = varFormulaStringElements[0];
+        int varSsaIndex = Integer.parseInt(varFormulaStringElements[1]);
+        result.add(Triple.of(varFormula, varName, varSsaIndex));
+      }
     }
 
     return result;
