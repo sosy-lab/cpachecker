@@ -801,7 +801,8 @@ public final class InterpolationManager {
    * The sublist is taken from the list of GroupIds, including both start and end of A.
    */
   private <T> BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth) throws InterruptedException {
+        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A, final int depth)
+            throws SolverException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A, "(depth", depth, ")");

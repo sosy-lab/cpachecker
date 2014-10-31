@@ -76,7 +76,7 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA) {
+  public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
     return mainFmgr.parse(itpFmgr.dumpFormula(itpF).toString());
   }

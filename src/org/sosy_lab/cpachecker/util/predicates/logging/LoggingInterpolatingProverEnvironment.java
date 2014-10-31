@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -70,8 +69,8 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> formulasOfA) {
-    logger.log(Level.FINE, "formulasOfA:", Arrays.toString(formulasOfA.toArray()));
+  public BooleanFormula getInterpolant(List<T> formulasOfA) throws SolverException {
+    logger.log(Level.FINE, "formulasOfA:", formulasOfA);
     BooleanFormula bf = wrapped.getInterpolant(formulasOfA);
     logger.log(Level.FINE, "interpolant:", bf);
     return bf;

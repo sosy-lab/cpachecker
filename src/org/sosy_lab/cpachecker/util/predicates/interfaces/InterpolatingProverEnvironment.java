@@ -71,7 +71,7 @@ public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
    * @param formulasOfA A list of values returned by {@link #push(BooleanFormula)}. All the corresponding formulas from group A, the remaining formulas form group B.
    * @return An interpolant for A and B
    */
-  BooleanFormula getInterpolant(List<T> formulasOfA);
+  BooleanFormula getInterpolant(List<T> formulasOfA) throws SolverException;
 
   /**
    * This method returns interpolants of an 'inductive sequence'.
