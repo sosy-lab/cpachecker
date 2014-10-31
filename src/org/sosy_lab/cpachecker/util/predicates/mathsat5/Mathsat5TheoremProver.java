@@ -71,12 +71,6 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
-    Preconditions.checkState(curEnv != 0);
-    return !msat_check_sat(curEnv);
-  }
-
-  @Override
   public List<BooleanFormula> getUnsatCore() {
     Preconditions.checkState(curEnv != 0);
     long[] terms = msat_get_unsat_core(curEnv);

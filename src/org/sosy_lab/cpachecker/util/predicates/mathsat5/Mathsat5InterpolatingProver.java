@@ -54,22 +54,6 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException, SolverException {
-    Preconditions.checkState(curEnv != 0);
-    try {
-      return !msat_check_sat(curEnv);
-    } catch (IllegalStateException e) {
-      String msg = Strings.nullToEmpty(e.getMessage());
-      if (msg.contains("too many iterations")
-          || msg.contains("impossible to build a suitable congruence graph!")) {
-        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
-        throw new SolverException(e.getMessage(), e);
-      }
-      throw e;
-    }
-  }
-
-  @Override
   public Integer push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     long t = Mathsat5FormulaManager.getMsatTerm(f);
@@ -85,7 +69,7 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Integer> formulasOfA) {
+  public BooleanFormula getInterpolant(List<Integer> formulasOfA) throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
     int[] groupsOfA = new int[formulasOfA.size()];
@@ -93,7 +77,18 @@ public class Mathsat5InterpolatingProver extends Mathsat5AbstractProver implemen
     for (Integer f : formulasOfA) {
       groupsOfA[i++] = f;
     }
-    long itp = msat_get_interpolant(curEnv, groupsOfA);
+
+    long itp;
+    try {
+      itp = msat_get_interpolant(curEnv, groupsOfA);
+    } catch (IllegalArgumentException e) {
+      String msg = Strings.nullToEmpty(e.getMessage());
+      if (msg.contains("impossible to build a suitable congruence graph")) {
+        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
+        throw new SolverException(e.getMessage(), e);
+      }
+      throw e;
+    }
 
     if (!useSharedEnv) {
       itp = msat_make_copy_from(mgr.getEnvironment(), itp, curEnv);
