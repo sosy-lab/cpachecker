@@ -817,8 +817,9 @@ public class SMGExpressionEvaluator {
 
     if (subscriptValue.isUnknown()) {
    // assume address is invalid
-      newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
-      return SMGAddressAndState.of(newState);
+      throw new SMGInconsistentException("Can't properly evaluate array subscript");
+      //newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
+      //return SMGAddressAndState.of(newState);
     }
 
     SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge,
