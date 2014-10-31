@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
@@ -399,6 +400,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
     final BigDecimal val = fExp.getValue();
+
+    if (t.isFloatingPointType()) {
+      return conv.fmgr.getFloatingPointFormulaManager().makeNumber(val, (FloatingPointType)t);
+    }
+
     if (val.scale() <= 0) {
       // actually an integral number
       return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
