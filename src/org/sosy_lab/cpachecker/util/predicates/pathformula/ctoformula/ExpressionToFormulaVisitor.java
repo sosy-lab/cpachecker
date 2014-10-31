@@ -543,20 +543,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           || functionName.equals("__builtin_inff")
           || functionName.equals("__builtin_inff")) {
 
-        CType resultType;
-        switch (functionName) {
-        case "__builtin_inf":
-          resultType = CNumericTypes.DOUBLE;
-          break;
-        case "__builtin_inff":
-          resultType = CNumericTypes.FLOAT;
-          break;
-        case "__builtin_infl":
-          resultType = CNumericTypes.LONG_DOUBLE;
-          break;
-        default:
-          throw new AssertionError();
-        }
+        CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
 
         FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
         if (formulaType.isFloatingPointType()) {
@@ -569,21 +556,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           || functionName.equals("__builtin_fabsl")) {
 
         if (parameters.size() == 1) {
-          CType paramType;
-          switch (functionName) {
-          case "__builtin_fabs":
-            paramType = CNumericTypes.DOUBLE;
-            break;
-          case "__builtin_fabsf":
-            paramType = CNumericTypes.FLOAT;
-            break;
-          case "__builtin_fabsl":
-            paramType = CNumericTypes.LONG_DOUBLE;
-            break;
-          default:
-            throw new AssertionError();
-          }
-
+          CType paramType = getTypeForFloatFunction("__builtin_fabs", functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             Formula param = processOperand(parameters.get(0), paramType, paramType);
@@ -654,6 +627,23 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
+    }
+  }
+
+  private CType getTypeForFloatFunction(String prefix, String name) {
+    assert name.startsWith(prefix);
+    name = name.substring(prefix.length());
+    assert name.length() <= 1;
+    if (name.isEmpty()) {
+      return CNumericTypes.DOUBLE;
+    }
+    switch (name.charAt(0)) {
+    case 'f':
+      return CNumericTypes.FLOAT;
+    case 'l':
+      return CNumericTypes.LONG_DOUBLE;
+    default:
+      throw new AssertionError();
     }
   }
 
