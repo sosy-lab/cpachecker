@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGEdgePointsToAndState;
@@ -417,12 +416,7 @@ public class SMGExpressionEvaluator {
   }
 
   public CType getRealExpressionType(CType type) {
-
-    while (type instanceof CTypedefType) {
-      type = ((CTypedefType) type).getRealType();
-    }
-
-    return type;
+    return type.getCanonicalType();
   }
 
   public CType getRealExpressionType(CSimpleDeclaration decl) {
@@ -1005,6 +999,29 @@ public class SMGExpressionEvaluator {
           handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
               address, arrayOffset, addressType, lVarIsAddress, binaryExp);
       return result.asSMGAddressAndState();
+    }
+
+    @Override
+    public SMGAddressAndState visit(CIdExpression pVariableName) throws CPATransferException {
+
+      SMGAddressAndState addressAndState = super.visit(pVariableName);
+
+      //TODO correct?
+      // parameter declaration array types are converted to pointer
+      if (pVariableName.getDeclaration() instanceof CParameterDeclaration) {
+        SMGAddress address = addressAndState.getAddress();
+        SMGState newState = addressAndState.getSmgState();
+
+        SMGValueAndState pointerAndState =
+            readValue(newState, address.getObject(),
+                address.getOffset(), getRealExpressionType(pVariableName), getCfaEdge());
+
+        SMGAddressValueAndState trueAddressAndState = getAddressFromSymbolicValue(pointerAndState);
+
+        return trueAddressAndState.asSMGAddressAndState();
+      } else {
+        return addressAndState;
+      }
     }
 
     @Override

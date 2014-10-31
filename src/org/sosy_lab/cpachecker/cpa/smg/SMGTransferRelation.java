@@ -797,9 +797,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String varName = paramDecl.get(i).getName();
       CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
 
-      // Create Object to assign missing value if necessary
-      int size = machineModel.getSizeof(cType);
-      SMGRegion paramObj = new SMGRegion(size, varName);
+
+      SMGRegion paramObj;
+      // If parameter is a array, convert to pointer
+      if (cType instanceof CArrayType) {
+        int size = machineModel.getSizeofPtr();
+        paramObj = new SMGRegion(size, varName);
+      } else {
+        int size = machineModel.getSizeof(cType);
+        paramObj = new SMGRegion(size, varName);
+      }
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters

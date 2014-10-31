@@ -259,7 +259,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
-    assert smgObject.getSize() == size;
+    // arrays are converted to pointers
+    assert smgObject.getSize() == size || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
