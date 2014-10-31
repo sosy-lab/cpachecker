@@ -325,6 +325,10 @@ public class AutomatonGraphmlCommon {
       } else if (decl instanceof CTypeDeclaration) {
         return true;
       } else if (decl instanceof CVariableDeclaration) {
+        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+        if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
+          return true; // Dirty hack; would be better if these edges had no file location
+        }
         return false;
       }
     }
