@@ -94,7 +94,7 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
           msat_get_fp_type_exp_width(env, type),
           msat_get_fp_type_mant_width(env, type));
     }
-    throw new IllegalArgumentException("Unknown formula type");
+    throw new IllegalArgumentException("Unknown formula type " + msat_type_repr(type) + " for term " + msat_term_repr(pFormula));
   }
 
   @Override
