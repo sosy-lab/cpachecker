@@ -55,12 +55,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
@@ -536,6 +538,36 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+
+      } else if (functionName.equals("__builtin_fabs")
+          || functionName.equals("__builtin_fabsf")
+          || functionName.equals("__builtin_fabsl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType;
+          switch (functionName) {
+          case "__builtin_fabs":
+            paramType = CNumericTypes.DOUBLE;
+            break;
+          case "__builtin_fabsf":
+            paramType = CNumericTypes.FLOAT;
+            break;
+          case "__builtin_fabsl":
+            paramType = CNumericTypes.LONG_DOUBLE;
+            break;
+          default:
+            throw new AssertionError();
+          }
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            Formula param = processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula zero = conv.fmgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
+            BooleanFormula isNegative = conv.fmgr.makeLessThan(param, zero, true);
+            return conv.fmgr.getBooleanFormulaManager().ifThenElse(isNegative,
+                conv.fmgr.makeNegate(param), param);
+          }
+        }
 
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
