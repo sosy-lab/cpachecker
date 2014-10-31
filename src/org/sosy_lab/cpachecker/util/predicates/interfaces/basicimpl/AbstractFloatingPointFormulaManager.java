@@ -240,4 +240,32 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
   }
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2);
+
+  @Override
+  public BooleanFormula isNaN(FloatingPointFormula pNumber) {
+    return wrapBool(isNaN(extractInfo(pNumber)));
+  }
+
+  protected abstract TFormulaInfo isNaN(TFormulaInfo pParam);
+
+  @Override
+  public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
+    return wrapBool(isInfinity(extractInfo(pNumber)));
+  }
+
+  protected abstract TFormulaInfo isInfinity(TFormulaInfo pParam);
+
+  @Override
+  public BooleanFormula isZero(FloatingPointFormula pNumber) {
+    return wrapBool(isZero(extractInfo(pNumber)));
+  }
+
+  protected abstract TFormulaInfo isZero(TFormulaInfo pParam);
+
+  @Override
+  public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
+    return wrapBool(isSubnormal(extractInfo(pNumber)));
+  }
+
+  protected abstract TFormulaInfo isSubnormal(TFormulaInfo pParam);
 }

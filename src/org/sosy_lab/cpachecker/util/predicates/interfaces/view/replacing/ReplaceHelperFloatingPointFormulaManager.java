@@ -109,6 +109,22 @@ class ReplaceHelperFloatingPointFormulaManager implements FloatingPointFormulaMa
     return rawFloatingPointManager.lessOrEquals(pNumber1, pNumber2);
   }
 
+  @Override
+  public BooleanFormula isNaN(FloatingPointFormula pNumber) {
+    return rawFloatingPointManager.isNaN(pNumber);
+  }
+  @Override
+  public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
+    return rawFloatingPointManager.isInfinity(pNumber);
+  }
+  @Override
+  public BooleanFormula isZero(FloatingPointFormula pNumber) {
+    return rawFloatingPointManager.isZero(pNumber);
+  }
+  @Override
+  public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
+    return rawFloatingPointManager.isSubnormal(pNumber);
+  }
 
   @Override
   public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {

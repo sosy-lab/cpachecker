@@ -190,4 +190,24 @@ class Mathsat5FloatingPointFormulaManager
   public Long lessOrEquals(Long pNumber1, Long pNumber2) {
     return msat_make_fp_leq(mathsatEnv, pNumber1, pNumber2);
   }
+
+  @Override
+  protected Long isNaN(Long pParam) {
+    return msat_make_fp_isnan(mathsatEnv, pParam);
+  }
+
+  @Override
+  protected Long isInfinity(Long pParam) {
+    return msat_make_fp_isinf(mathsatEnv, pParam);
+  }
+
+  @Override
+  protected Long isZero(Long pParam) {
+    return msat_make_fp_iszero(mathsatEnv, pParam);
+  }
+
+  @Override
+  protected Long isSubnormal(Long pParam) {
+    return msat_make_fp_issubnormal(mathsatEnv, pParam);
+  }
 }

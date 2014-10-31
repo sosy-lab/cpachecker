@@ -105,6 +105,22 @@ public class FloatingPointFormulaManagerView
     return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
 
+  @Override
+  public BooleanFormula isNaN(FloatingPointFormula pNumber) {
+    return wrapInView(manager.isNaN(pNumber));
+  }
+  @Override
+  public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
+    return wrapInView(manager.isInfinity(pNumber));
+  }
+  @Override
+  public BooleanFormula isZero(FloatingPointFormula pNumber) {
+    return wrapInView(manager.isZero(pNumber));
+  }
+  @Override
+  public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
+    return wrapInView(manager.isSubnormal(pNumber));
+  }
 
   @Override
   public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {

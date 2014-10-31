@@ -78,4 +78,9 @@ public interface FloatingPointFormulaManager {
   public BooleanFormula lessThan(FloatingPointFormula number1, FloatingPointFormula number2);
 
   public BooleanFormula lessOrEquals(FloatingPointFormula number1, FloatingPointFormula number2);
+
+  public BooleanFormula isNaN(FloatingPointFormula number);
+  public BooleanFormula isInfinity(FloatingPointFormula number);
+  public BooleanFormula isZero(FloatingPointFormula number);
+  public BooleanFormula isSubnormal(FloatingPointFormula number);
 }
