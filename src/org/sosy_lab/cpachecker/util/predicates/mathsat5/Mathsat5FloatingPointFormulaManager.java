@@ -44,10 +44,6 @@ class Mathsat5FloatingPointFormulaManager
     roundingMode = msat_make_fp_roundingmode_nearest_even(mathsatEnv);
   }
 
-  private long getMathsatType(FloatingPointType pType) {
-    return msat_get_fp_type(mathsatEnv, pType.getExponentSize(), pType.getMantissaSize());
-  }
-
   @Override
   public Long makeNumberImpl(double pN, FloatingPointType pType) {
     return makeNumberImpl(Double.toString(pN), pType);
@@ -66,7 +62,8 @@ class Mathsat5FloatingPointFormulaManager
 
   @Override
   public Long makeVariableImpl(String var, FloatingPointType type) {
-    return getFormulaCreator().makeVariable(getMathsatType(type), var);
+    return getFormulaCreator().makeVariable(
+        getFormulaCreator().getFloatingPointType(type), var);
   }
 
   @Override

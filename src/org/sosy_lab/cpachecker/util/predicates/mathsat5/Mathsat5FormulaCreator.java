@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 
@@ -95,6 +96,11 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   public Long getBitvectorType(int pBitwidth) {
     return msat_get_bv_type(getEnv(), pBitwidth);
+  }
+
+  @Override
+  public Long getFloatingPointType(FloatingPointType pType) {
+    return msat_get_fp_type(getEnv(), pType.getExponentSize(), pType.getMantissaSize());
   }
 
   @SuppressWarnings("unchecked")

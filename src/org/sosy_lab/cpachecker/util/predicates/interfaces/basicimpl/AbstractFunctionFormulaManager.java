@@ -91,6 +91,9 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
       t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
+    } else if (formulaType.isFloatingPointType()) {
+      FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType)formulaType;
+      t = getFormulaCreator().getFloatingPointType(fpType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

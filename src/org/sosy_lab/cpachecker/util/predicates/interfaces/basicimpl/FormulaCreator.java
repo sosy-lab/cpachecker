@@ -82,6 +82,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   public abstract TType getBitvectorType(int bitwidth);
 
+  public abstract TType getFloatingPointType(FormulaType.FloatingPointType type);
+
   public abstract TFormulaInfo makeVariable(TType type, String varName);
 
   public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
