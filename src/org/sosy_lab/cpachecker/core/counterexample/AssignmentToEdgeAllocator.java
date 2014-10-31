@@ -1240,13 +1240,22 @@ public class AssignmentToEdgeAllocator {
 
       if (pValue instanceof ExtendedRational) {
         double val = ((ExtendedRational) pValue).toDouble();
-        // TODO should we handle infinity and NaN here?
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
-        return ExplicitValueLiteral.valueOf(new BigDecimal(((Double)pValue).doubleValue()), pType);
+        double doubleValue = ((Double)pValue).doubleValue();
+        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
+        return ExplicitValueLiteral.valueOf(new BigDecimal(doubleValue), pType);
       } else if (pValue instanceof Float) {
-        return ExplicitValueLiteral.valueOf(new BigDecimal(((Float)pValue).floatValue()), pType);
+        float floatValue = ((Float)pValue).floatValue();
+        if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
+        return ExplicitValueLiteral.valueOf(new BigDecimal(floatValue), pType);
       }
 
 
