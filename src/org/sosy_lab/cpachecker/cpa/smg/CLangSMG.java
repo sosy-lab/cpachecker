@@ -435,6 +435,7 @@ public class CLangSMG extends SMG {
 
   @Override
   public void mergeValues(int v1, int v2) {
+
     super.mergeValues(v1, v2);
 
     if (CLangSMG.performChecks()) {
