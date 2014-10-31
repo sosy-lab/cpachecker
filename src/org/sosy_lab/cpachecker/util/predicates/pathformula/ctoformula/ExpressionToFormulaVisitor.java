@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
@@ -594,6 +595,33 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             BooleanFormula isNegative = conv.fmgr.makeLessThan(param, zero, true);
             return conv.fmgr.getBooleanFormulaManager().ifThenElse(isNegative,
                 conv.fmgr.makeNegate(param), param);
+          }
+        }
+
+      } else if (functionName.equals("__fpclassify")
+          || functionName.equals("__fpclassifyf")
+          || functionName.equals("__fpclassifyl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeForFloatFunction("__fpclassify", functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = conv.fmgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = conv.fmgr.makeNumber(resultType, 0);
+            Formula one = conv.fmgr.makeNumber(resultType, 1);
+            Formula two = conv.fmgr.makeNumber(resultType, 2);
+            Formula three = conv.fmgr.makeNumber(resultType, 3);
+            Formula four = conv.fmgr.makeNumber(resultType, 4);
+
+            return
+              conv.bfmgr.ifThenElse(fpfmgr.isNaN(param), zero,
+                  conv.bfmgr.ifThenElse(fpfmgr.isInfinity(param), one,
+                      conv.bfmgr.ifThenElse(fpfmgr.isZero(param), two,
+                          conv.bfmgr.ifThenElse(fpfmgr.isSubnormal(param), three,
+                              four))));
           }
         }
 
