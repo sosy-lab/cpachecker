@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -126,7 +127,13 @@ class AssignmentHandler {
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
       CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
-      rhsExpression = rhs.accept(rhsVisitor);
+
+      CRightHandSide r = rhs;
+      if (r instanceof CExpression) {
+        r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
+      }
+
+      rhsExpression = r.accept(rhsVisitor);
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       rhsUsedFields = rhsVisitor.getUsedFields();
       rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();

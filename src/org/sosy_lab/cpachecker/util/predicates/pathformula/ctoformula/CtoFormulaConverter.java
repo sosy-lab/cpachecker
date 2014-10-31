@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -87,6 +89,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -523,6 +528,47 @@ public class CtoFormulaConverter {
     assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
   }
+
+  /**
+   * If the given expression is a integer literal,
+   * and the given type is a floating-point type,
+   * convert the literal into a floating-point literal.
+   * Otherwise return the expression unchanged.
+   */
+  public CExpression convertLiteralToFloatIfNecessary(final CExpression pExp, final CType targetType) {
+    if (!isFloatingPointType(targetType)) {
+      return pExp;
+    }
+    CExpression e = pExp;
+
+    boolean negative = false;
+    if (e instanceof CUnaryExpression
+        && ((CUnaryExpression)e).getOperator() == UnaryOperator.MINUS) {
+      e = ((CUnaryExpression)e).getOperand();
+      negative = true;
+    }
+
+    if (e instanceof CIntegerLiteralExpression) {
+      NumericValue intValue = new NumericValue(((CIntegerLiteralExpression)e).getValue());
+      if (negative) {
+        intValue = intValue.negate();
+      }
+      Value floatValue = AbstractExpressionValueVisitor.castCValue(
+          intValue, e.getExpressionType(), targetType,
+          machineModel, logger, e.getFileLocation());
+      return new CFloatLiteralExpression(e.getFileLocation(), targetType,
+          floatValue.asNumericValue().bigDecimalValue());
+    }
+    return pExp;
+  }
+
+  private static boolean isFloatingPointType(final CType pType) {
+    if (pType instanceof CSimpleType) {
+      return ((CSimpleType)pType).getType().isFloatingPointType();
+    }
+    return false;
+  }
+
 
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,

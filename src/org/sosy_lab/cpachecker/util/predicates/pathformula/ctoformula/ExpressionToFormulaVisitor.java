@@ -96,6 +96,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+    e = conv.convertLiteralToFloatIfNecessary(e, calculationType);
     e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
     final CType t = e.getExpressionType();
     Formula f = toFormula(e);
