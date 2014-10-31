@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -566,6 +567,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (length instanceof CIntegerLiteralExpression) {
           if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
             throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+          }
+        }
+      }
+
+      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType() == CBasicType.INT) {
+
+        CExpression length = ((CArrayType)declarationType).getLength();
+        if (length instanceof CIntegerLiteralExpression) {
+          if (((CIntegerLiteralExpression) length).getValue().longValue() >= 10000) {
+            throw new UnsupportedCCodeException("large integer array", declarationEdge);
           }
         }
       }
