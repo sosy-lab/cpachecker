@@ -1553,6 +1553,10 @@ cpa.value.initialPrecisionFile = no default value
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Assume that variables used only in a boolean context are either zero or
+# one.
+cpa.value.optimizeBooleanVariables = true
+
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 

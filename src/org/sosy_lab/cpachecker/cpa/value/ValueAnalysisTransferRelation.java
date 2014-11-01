@@ -151,6 +151,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       + " assumtions.")
   private boolean automatonAssumesAsStatements = false;
 
+  @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
+  private boolean optimizeBooleanVariables = true;
+
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   private JRightHandSide missingInformationRightJExpression = null;
@@ -961,11 +964,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
+          if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
             assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
 
-        } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+        } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
