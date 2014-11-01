@@ -597,6 +597,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       if (safe) {
         pReachedSet.removeAll(targetStates);
+        for (ARGState s : from(targetStates).filter(ARGState.class)) {
+          s.removeFromARG();
+        }
       }
 
       return safe;
