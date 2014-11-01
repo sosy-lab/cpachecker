@@ -258,8 +258,25 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
-        throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
-        //return null;
+
+        if (guessSizeOfUnknownMemorySize) {
+          SMGExplicitValueAndState forcedValueAndState = expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
+          currentState = forcedValueAndState.getSmgState();
+
+          //Sanity check
+
+          valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+          value = valueAndState.getValue();
+          currentState = valueAndState.getSmgState();
+
+          if(value.isUnknown()) {
+            throw new UnrecognizedCCodeException(
+                "Not able to compute allocation size", cfaEdge);
+          }
+        } else {
+          throw new UnrecognizedCCodeException(
+              "Not able to compute allocation size", cfaEdge);
+        }
       }
 
       // TODO line numbers are not unique when we have multiple input files!
@@ -780,9 +797,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String varName = paramDecl.get(i).getName();
       CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
 
-      // Create Object to assign missing value if necessary
-      int size = machineModel.getSizeof(cType);
-      SMGRegion paramObj = new SMGRegion(size, varName);
+
+      SMGRegion paramObj;
+      // If parameter is a array, convert to pointer
+      if (cType instanceof CArrayType) {
+        int size = machineModel.getSizeofPtr();
+        paramObj = new SMGRegion(size, varName);
+      } else {
+        int size = machineModel.getSizeof(cType);
+        paramObj = new SMGRegion(size, varName);
+      }
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
@@ -842,6 +866,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    boolean impliesEqOn = visitor.impliesEqOn(truthValue);
+    boolean impliesNeqOn = visitor.impliesNeqOn(truthValue);
+
+    SMGSymbolicValue val1ImpliesOn;
+    SMGSymbolicValue val2ImpliesOn;
+
+    if(impliesEqOn || impliesNeqOn ) {
+      val1ImpliesOn = visitor.impliesVal1();
+      val2ImpliesOn = visitor.impliesVal2();
+    } else {
+      val1ImpliesOn = SMGUnknownValue.getInstance();
+      val2ImpliesOn = SMGUnknownValue.getInstance();
+    }
+
     SMGExplicitValueAndState explicitValueAndState = expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression);
     SMGExplicitValue explicitValue = explicitValueAndState.getValue();
     smgState = explicitValueAndState.getSmgState();
@@ -863,15 +901,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         newState = smgState;
       }
 
-      /*
-      Changing the state here breaks strengthen of ExplicitCPA
-      which acceses newState instead of oldState.
-      if (visitor.impliesEqOn(truthValue)) {
-        newState.identifyEqualValues(visitor.knownVal1, visitor.knownVal2);
-      } else if (visitor.impliesNeqOn(truthValue)) {
-        newState.identifyNonEqualValues(visitor.knownVal1, visitor.knownVal2);
+      if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
+        if (impliesEqOn) {
+          newState.identifyEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+        } else if (impliesNeqOn) {
+          newState.identifyNonEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+        }
       }
-      */
 
       newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
       return newState;
@@ -1710,7 +1746,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private class ForceExplicitValueVisitor extends
         SMGExpressionEvaluator.ExplicitValueVisitor {
 
-      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(3);
+      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
 
       public ForceExplicitValueVisitor(SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
           LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {

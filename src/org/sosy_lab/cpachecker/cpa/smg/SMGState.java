@@ -259,7 +259,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
-    assert smgObject.getSize() == size;
+    // arrays are converted to pointers
+    assert smgObject.getSize() == size || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1010,6 +1011,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+
+    if(isInNeq(pKnownVal1, pKnownVal2)) {
+      System.out.println("Error");
+    }
+
     heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
@@ -1044,9 +1050,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (pValue1.isUnknown() || pValue2.isUnknown()) {
       return false;
     } else {
-      heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
+      return heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
     }
-
-    return false;
   }
 }
