@@ -41,9 +41,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -508,8 +508,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean assumptionContainsProblemType(AssumeEdge assumption) {
     CExpression expression = (CExpression) assumption.getExpression();
-    CBinaryExpression binaryExpression = (CBinaryExpression)expression;
-
-    return binaryExpression.getOperand1().getExpressionType() instanceof CProblemType;
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+    expression.accept(collector);
+    for (CIdExpression var : collector.getReferencedIdExpressions()) {
+      if (var.getExpressionType() instanceof CProblemType) {
+        return true;
+      }
+    }
+    return false;
   }
 }
