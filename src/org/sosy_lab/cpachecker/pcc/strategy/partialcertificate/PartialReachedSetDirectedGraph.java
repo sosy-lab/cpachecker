@@ -32,7 +32,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class PartialReachedSetDirectedGraph {
 
@@ -72,6 +74,7 @@ public class PartialReachedSetDirectedGraph {
   public int getNumNodes() {
     return numNodes;
   }
+
   public List<AbstractState> getNodes() {
     return ImmutableList.copyOf(nodes);
   }
@@ -83,16 +86,20 @@ public class PartialReachedSetDirectedGraph {
 
   public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     CollectingOutsideSuccessorVisitor visitor = new CollectingOutsideSuccessorVisitor(pAsARGState);
-    visitOutsideSuccessors(pNodeSetIndices, visitor);
+    visitOutsideSuccessors(pNodeSetIndices, Optional.<Set<Integer>>absent(), visitor);
 
     return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
   }
 
-  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
+  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pSrcNodeSetIndices, final Optional<Set<Integer>> pDstNodeSetIndices) {
     CountingOutsideSuccessorVisitor visitor = new CountingOutsideSuccessorVisitor();
-    visitOutsideSuccessors(pNodeSetIndices, visitor);
+    visitOutsideSuccessors(pSrcNodeSetIndices, pDstNodeSetIndices,  visitor);
 
     return visitor.numOutside;
+  }
+
+  public long getNumAdjacentNodesOutsideSet(final Integer pSrcNodeIndex, final Optional<Set<Integer>> pDstNodeSetIndices) {
+    return getNumAdjacentNodesOutsideSet(Sets.newHashSet(pSrcNodeIndex), pDstNodeSetIndices);
   }
 
   public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
@@ -113,14 +120,22 @@ public class PartialReachedSetDirectedGraph {
      return listRes.toArray(new AbstractState[listRes.size()]);
   }
 
-  private void visitOutsideSuccessors(final Set<Integer> pNodeSetIndices, final OutsideSuccessorVisitor pVisitor) {
+  private void visitOutsideSuccessors(
+      final Set<Integer> pSrcNodeSetIndices,
+      final Optional<Set<Integer>> pDstNodeSetIndices,
+      final OutsideSuccessorVisitor pVisitor) {
     try {
       List<Integer> successors;
-      for (Integer predecessor : pNodeSetIndices) {
+      for (Integer predecessor : pSrcNodeSetIndices) {
         successors = adjacencyList.get(predecessor);
         for (int successor : successors) {
-          if (!pNodeSetIndices.contains(successor)) {
-            pVisitor.visit(successor);
+          if (!pSrcNodeSetIndices.contains(successor)) {
+            if(pDstNodeSetIndices.isPresent()) {
+              if(pDstNodeSetIndices.get().contains(successor))
+                pVisitor.visit(successor);
+            } else {
+              pVisitor.visit(successor);
+            }
           }
         }
       }
@@ -129,6 +144,8 @@ public class PartialReachedSetDirectedGraph {
           + "-1].");
     }
   }
+
+
 
   private interface OutsideSuccessorVisitor {
 

@@ -33,7 +33,8 @@ public class GraphPartitionerFactory {
     RANDOM,
     DFS,
     BFS,
-    OPTIMAL
+    OPTIMAL,
+    FM
   }
 
   public static BalancedGraphPartitioner createPartitioner(final PartitioningHeuristics pHeuristic,
@@ -45,6 +46,8 @@ public class GraphPartitionerFactory {
       return new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
     case OPTIMAL:
       return new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
+    case FM:
+      return new FiducciaMattheysesBalancedGraphPartitioner(pShutdownNotifier);
     default: // RANDOM
       return new RandomBalancedGraphPartitioner();
     }
