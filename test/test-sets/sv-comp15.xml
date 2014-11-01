@@ -56,6 +56,7 @@
   </sourcefiles>
   <sourcefiles name="Termination">
     <includesfile>../programs/benchmarks/Termination-crafted.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
 
   <rundefinition name="sv-comp15">
