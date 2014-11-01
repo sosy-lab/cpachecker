@@ -313,6 +313,23 @@ public class AutomatonGraphmlCommon {
   }
 
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
+    if (handleAsEpsilonEdge0(edge)) {
+      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
+        return false;
+      }
+      if (edge.getSuccessor().getNumLeavingEdges() == 1) {
+        CFAEdge nextEdge = edge.getSuccessor().getLeavingEdge(0);
+        if (nextEdge.getFileLocation().getStartingLineNumber() > edge.getFileLocation().getStartingLineNumber()
+            || nextEdge.getFileLocation().getEndingLineNumber() < edge.getFileLocation().getEndingLineNumber()) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
     if (edge instanceof BlankEdge) {
       return true;
     } else if (edge instanceof CFunctionReturnEdge) {
