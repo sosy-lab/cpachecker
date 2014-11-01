@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,7 +36,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -204,16 +202,15 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
     }).toSet().asList();
 
-    List<Precision> waitlistPrecisions = new ArrayList<>(waitlist.size());
-    for (AbstractState s : waitlist) {
-      waitlistPrecisions.add(pReachedSet.getPrecision(s));
+    pReachedSet.removeAll(toRemove);
+    for (ARGState s : from(toRemove).filter(ARGState.class)) {
+      s.removeFromARG();
     }
 
-    pReachedSet.removeAll(waitlist);
-
     // Add the new waitlist
-    pReachedSet.addAll(Pair.zipList(waitlist, waitlistPrecisions));
-    pReachedSet.removeAll(toRemove);
+    for (AbstractState s : waitlist) {
+      pReachedSet.reAddToWaitlist(s);
+    }
   }
 
   private static interface MaxLoopIterationAdjuster {

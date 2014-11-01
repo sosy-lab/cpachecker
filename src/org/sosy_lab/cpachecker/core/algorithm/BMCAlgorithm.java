@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsPrecision;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
+import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -460,7 +461,42 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Set<ARGState> targetStates = from(pReachedSet).filter(ARGState.class).filter(IS_TARGET_STATE).toSet();
+      LoopstackCPA loopstackCPA = CPAs.retrieveCPA(cpa, LoopstackCPA.class);
+
+      Set<ARGState> realTargetStates = new HashSet<>();
+
+      for (ARGState targetState : from(pReachedSet).filter(ARGState.class).filter(IS_TARGET_STATE).toSet()) {
+        LoopstackState ls = AbstractStates.extractStateByType(targetState, LoopstackState.class);
+        if (ls.getIteration() != loopstackCPA.getMaxLoopIterations()) {
+          Queue<ARGState> toRemove = new ArrayDeque<>();
+          Set<ARGState> visited = new HashSet<>();
+          toRemove.offer(targetState);
+          visited.add(targetState);
+          while (!toRemove.isEmpty()) {
+            ARGState r = toRemove.poll();
+            if (r.getParents().size() == 1) {
+              ARGState parent = r.getParents().iterator().next();
+              if (visited.add(parent)) {
+                toRemove.offer(parent);
+              }
+            }
+            if (!r.isDestroyed()) {
+              if (r.getChildren().size() == 1) {
+                ARGState child = r.getChildren().iterator().next();
+                if (visited.add(child)) {
+                  toRemove.offer(child);
+                }
+              }
+              r.removeFromARG();
+            }
+            pReachedSet.remove(r);
+          }
+        } else {
+          realTargetStates.add(targetState);
+        }
+      }
+
+      Set<ARGState> targetStates = realTargetStates;
 
       final boolean shouldCheckBranching;
       if (targetStates.size() == 1) {
@@ -597,6 +633,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       if (safe) {
         pReachedSet.removeAll(targetStates);
+        for (ARGState s : from(targetStates).filter(ARGState.class)) {
+          s.removeFromARG();
+        }
       }
 
       return safe;
