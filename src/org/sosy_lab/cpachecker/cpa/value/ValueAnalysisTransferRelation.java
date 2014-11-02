@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -427,10 +428,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
 
-    ExpressionValueVisitor evv = getVisitor();
+    final ExpressionValueVisitor evv = getVisitor();
+    final Type booleanType = getBooleanType(expression);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
+    Value value = getExpressionValue(expression, booleanType, evv);
 
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
@@ -482,6 +484,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       // assumption not fulfilled
       return null;
+    }
+  }
+
+  private Type getBooleanType(IAExpression pExpression) {
+    if (pExpression instanceof JExpression) {
+      return new JSimpleType(JBasicType.BOOLEAN);
+    } else if (pExpression instanceof CExpression) {
+      return CNumericTypes.INT;
+
+    } else {
+      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
   }
 
@@ -783,8 +796,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value;
     if (exp instanceof JRightHandSide) {
-       value = ((JRightHandSide) exp).accept(visitor); // TODO - find out whether something's wrong with this
-      //value = Value.UnknownValue.getInstance();
+       value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -1194,7 +1206,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (expression instanceof JRightHandSide) {
 
-      final Value value = ((JRightHandSide) expression).accept(evv);
+      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
 
       if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;

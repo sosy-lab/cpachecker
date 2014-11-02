@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
@@ -1340,6 +1341,9 @@ public abstract class AbstractExpressionValueVisitor
     return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, pExp.getFileLocation());
   }
 
+  public Value evaluate(final JRightHandSide pExp, final JType pTargetType) {
+    return castJValue(pExp.accept(this), (JType) pExp.getExpressionType(), pTargetType, logger, pExp.getFileLocation());
+  }
 
   /**
    * This method returns the input-value, casted to match the type.
@@ -1539,6 +1543,8 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue((byte) value);
 
     case CHAR:
+      char castedValue = (char) value;
+      return new NumericValue((int) castedValue);
     case SHORT:
       return new NumericValue((short) value);
 
