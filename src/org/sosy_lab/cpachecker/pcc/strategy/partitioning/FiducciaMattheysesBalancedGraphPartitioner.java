@@ -53,7 +53,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
   }
 
   @Option(description = "Balance criterion for pairwise optimization of partitions")
-  private double balanceCriterion = 4.5d;
+  private double balanceCriterion = 1.5d;
 
   private final BalancedGraphPartitioner partitioner;
 
@@ -79,27 +79,24 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
     /* Create initial partition which is going to be optimized later on */
     List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, pGraph);
 
-    long cutSizeBefore = 0;
-    long cutSizeAfter = 0;
-
     /* Optimize partitions pairwisely with FM algorithm */
     // TODO find better strategy or/and make this parallel
+    long cutSizeAfter = 0;
     for(Set<Integer> v1 : partition) {
       for(Set<Integer> v2 : partition) {
-        if(v1 != v2) {
+        if(v1 == v2)
+          break;
+        shutdownNotifier.shutdownIfNecessary();
+        FiducciaMattheysesAlgorithm fm = new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
+        long gain;
+        do {
           shutdownNotifier.shutdownIfNecessary();
-          cutSizeBefore += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
-          FiducciaMattheysesAlgorithm fm = new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
-          long gain;
-          do {
-            shutdownNotifier.shutdownIfNecessary();
-            gain = fm.improvePartitions();
-          } while(gain > 0);
-          cutSizeAfter += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
-        }
+          gain = fm.improvePartitions();
+        } while(gain > 0);
+        cutSizeAfter += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
       }
     }
-    logger.log(Level.FINE, String.format("[FM] Reduced cut size from %d to %d", cutSizeBefore, cutSizeAfter));
+    logger.log(Level.FINE, String.format("[FM] Computed partitioning of cut size %d", cutSizeAfter));
     return partition;
   }
 
