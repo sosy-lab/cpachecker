@@ -78,6 +78,7 @@
     <withoutfile>SyntaxError</withoutfile>
     <withoutfile>Type_true_assert</withoutfile>
     <withoutfile>TypeParameter_true_assert</withoutfile>
+    <withoutfile>UnallowedCast_false_assert</withoutfile>
     <withoutfile>UnaryNumberOperators_true_assert</withoutfile>
     <withoutfile>WhileLoop1_true_assert</withoutfile>
     <withoutfile>WhileLoop2_true_assert</withoutfile>
