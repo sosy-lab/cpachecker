@@ -25,6 +25,7 @@
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.TreeMap;
@@ -61,13 +62,18 @@ public class FiducciaMattheysesAlgorithm {
   private long computeGain(int pNode) {
     Set<Integer> src = v1.contains(pNode) ? v1 : v2;
     Set<Integer> dest = src == v1 ? v2 : v1;
-    long dV2 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(src));
-    long dV1 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(dest));
-    return dV2 - dV1;
+    long dV1 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(dest), true);
+    long dV2 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(src), true);
+    return dV1 - dV2;
   }
 
-  private void fillBuckets(Set<Integer> pV, TreeMap<Long, LinkedList<Integer>> pBuckets, HashMap<Integer, Long> pGain) {
+  private void initDataStructures(
+      Set<Integer> pV,
+      TreeMap<Long, LinkedList<Integer>> pBuckets,
+      HashMap<Integer, Long> pGain,
+      HashMap<Integer, Boolean> lock) {
     for(Integer i : pV) {
+      lock.put(i, false);
       long g = computeGain(i);
       pGain.put(i, g);
       if(!pBuckets.containsKey(g))
@@ -89,7 +95,7 @@ public class FiducciaMattheysesAlgorithm {
     return Optional.of(Pair.of(bestGain.get(), bucket));
   }
 
-  // TODO make balanceCriterion configurable
+  // TODO make this configurable
   private boolean isBalanced(int pSizeP1, int pSizeP2) {
     return Math.max(pSizeP1, pSizeP2)/Math.min(pSizeP1, pSizeP2) <= balanceCriterion;
   }
@@ -141,11 +147,15 @@ public class FiducciaMattheysesAlgorithm {
       int node,
       TreeMap<Long, LinkedList<Integer>> v1Buckets,
       TreeMap<Long, LinkedList<Integer>> v2Buckets,
-      HashMap<Integer, Long> gain) {
-    for(int n : graph.getAdjacencyList().get(node)) {
+      HashMap<Integer, Long> gain,
+      HashMap<Integer, Boolean> lock) {
+    Set<Integer> neighbors = new HashSet<>();
+    neighbors.addAll(graph.getAdjacencyList().get(node));
+    neighbors.addAll(graph.getNodesAdjacentTo(node));
+    for(int n : neighbors) {
       boolean nInV1 = v1.contains(n);
       boolean nInV2 = v2.contains(n);
-      if(nInV1 || nInV2) {
+      if((nInV1 || nInV2) && !lock.get(n)) {
         long updatedGain = gain.get(n);
         if(nInV1 && v1.contains(node) || nInV2 && v2.contains(node)) {
           updatedGain += 1;
@@ -167,11 +177,12 @@ public class FiducciaMattheysesAlgorithm {
     TreeMap<Long, LinkedList<Integer>> v1Buckets = new TreeMap<>();
     TreeMap<Long, LinkedList<Integer>> v2Buckets = new TreeMap<>();
     HashMap<Integer, Long> gain = new HashMap<>();
+    HashMap<Integer, Boolean> lock = new HashMap<>();
 
       /* Initialize all the stuff */
-    fillBuckets(v1, v1Buckets, gain);
-    fillBuckets(v2, v2Buckets, gain);
-    cutSizes.add(graph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2)));
+    initDataStructures(v1, v1Buckets, gain, lock);
+    initDataStructures(v2, v2Buckets, gain, lock);
+    cutSizes.add(graph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true));
     int iterationWithSmallestCutSize = 0;
     long smallestCutSize = cutSizes.get(0);
 
@@ -182,11 +193,14 @@ public class FiducciaMattheysesAlgorithm {
         break;
       long g = gainAndBuckets.get().getFirst();
       int node = pollNodeFromBucketByGain(g, gainAndBuckets.get().getSecond());
+      lock.put(node, true);
 
-      updateNeighbors(node, v1Buckets, v2Buckets, gain);
+      updateNeighbors(node, v1Buckets, v2Buckets, gain, lock);
 
         /* update log */
       long newCutSize = cutSizes.getLast() - g;
+      assert(newCutSize >= 0);
+
       if(newCutSize < smallestCutSize) {
         iterationWithSmallestCutSize = i;
         smallestCutSize = newCutSize;

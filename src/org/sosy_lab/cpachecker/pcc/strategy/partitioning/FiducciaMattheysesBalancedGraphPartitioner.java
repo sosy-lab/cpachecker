@@ -47,7 +47,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
   }
 
   @Option(description = "Balance criterion for pairwise optimization of partitions")
-  private double balanceCriterion = 1.5d;
+  private double balanceCriterion = 4.5d;
 
   private final BalancedGraphPartitioner partitioner;
 
@@ -67,7 +67,6 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
   public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
       throws InterruptedException {
 
-    // TODO use bidirectional graph
     // TODO insert assertions
 
     /* Create initial partition which is going to be optimized later on */

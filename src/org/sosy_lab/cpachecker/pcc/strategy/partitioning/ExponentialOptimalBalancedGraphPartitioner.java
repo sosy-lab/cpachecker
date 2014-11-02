@@ -137,7 +137,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
       final List<Set<Integer>> partitioning) {
     long result = 0;
     for (Set<Integer> partition : partitioning) {
-      result += pGraph.getNumAdjacentNodesOutsideSet(partition, Optional.<Set<Integer>>absent());
+      result += pGraph.getNumAdjacentNodesOutsideSet(partition, Optional.<Set<Integer>>absent(), false);
     }
     return result;
   }
