@@ -27,17 +27,23 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+
+import com.google.common.base.Optional;
 
 @Options(prefix = "pcc.partitioning.fm")
 public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraphPartitioner {
 
   private final ShutdownNotifier shutdownNotifier;
+
+  private final LogManager logger;
 
   @Option(description = "Heuristic for computing an initial partitioning of proof (e.g. as required by Fiduccia-Mattheyses algorithm heuristic")
   private InitPartitioningHeuristics initialPartitioningStrategy = InitPartitioningHeuristics.RANDOM;
@@ -51,9 +57,10 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final BalancedGraphPartitioner partitioner;
 
-  public FiducciaMattheysesBalancedGraphPartitioner(ShutdownNotifier pShutdownNotifier) {
+  public FiducciaMattheysesBalancedGraphPartitioner(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
 
     switch (initialPartitioningStrategy) {
       // TODO support better strategies for initial partitioning
@@ -72,21 +79,27 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
     /* Create initial partition which is going to be optimized later on */
     List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, pGraph);
 
+    long cutSizeBefore = 0;
+    long cutSizeAfter = 0;
+
     /* Optimize partitions pairwisely with FM algorithm */
     // TODO find better strategy or/and make this parallel
     for(Set<Integer> v1 : partition) {
       for(Set<Integer> v2 : partition) {
         if(v1 != v2) {
           shutdownNotifier.shutdownIfNecessary();
+          cutSizeBefore += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
           FiducciaMattheysesAlgorithm fm = new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
           long gain;
           do {
             shutdownNotifier.shutdownIfNecessary();
             gain = fm.improvePartitions();
           } while(gain > 0);
+          cutSizeAfter += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
         }
       }
     }
+    logger.log(Level.FINE, String.format("[FM] Reduced cut size from %d to %d", cutSizeBefore, cutSizeAfter));
     return partition;
   }
 

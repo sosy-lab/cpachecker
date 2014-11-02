@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 
@@ -37,7 +38,9 @@ public class GraphPartitionerFactory {
     FM
   }
 
-  public static BalancedGraphPartitioner createPartitioner(final PartitioningHeuristics pHeuristic,
+  public static BalancedGraphPartitioner createPartitioner(
+      final LogManager pLogger,
+      final PartitioningHeuristics pHeuristic,
       final ShutdownNotifier pShutdownNotifier) {
     switch (pHeuristic) {
     case DFS:
@@ -47,7 +50,7 @@ public class GraphPartitionerFactory {
     case OPTIMAL:
       return new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
     case FM:
-      return new FiducciaMattheysesBalancedGraphPartitioner(pShutdownNotifier);
+      return new FiducciaMattheysesBalancedGraphPartitioner(pLogger, pShutdownNotifier);
     default: // RANDOM
       return new RandomBalancedGraphPartitioner();
     }

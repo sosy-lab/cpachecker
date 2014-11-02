@@ -83,7 +83,7 @@ public class PartitioningIOHelper {
     logger = pLogger;
 
     partialConstructor = new PartialCertificateTypeProvider(pConfig, false).getCertificateConstructor();
-    partitioner = GraphPartitionerFactory.createPartitioner(partitioningStrategy, pShutdownNotifier);
+    partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier);
   }
 
   public int getSavedReachedSetSize() {
