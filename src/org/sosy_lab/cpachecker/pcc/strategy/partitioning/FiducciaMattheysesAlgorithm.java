@@ -97,7 +97,10 @@ public class FiducciaMattheysesAlgorithm {
 
   // TODO make this configurable
   private boolean isBalanced(int pSizeP1, int pSizeP2) {
-    return Math.max(pSizeP1, pSizeP2)/Math.min(pSizeP1, pSizeP2) <= balanceCriterion;
+    int min = Math.min(pSizeP1, pSizeP2);
+    if(min <= 0)
+      return false;
+    return Math.max(pSizeP1, pSizeP2)/min <= balanceCriterion;
   }
 
   private Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> tryPickBestGain(
