@@ -1324,7 +1324,8 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
+        logger, pExp.getFileLocation());
   }
 
   /**
@@ -1338,11 +1339,23 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel, logger, pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
+        logger,pExp.getFileLocation());
   }
 
+  /**
+   * This method returns the value of an expression, reduced to match the given target type.
+   * This method handles overflows and casts.
+   * If necessary warnings for the user are printed.
+   *
+   * @param pExp the expression to evaluate
+   * @param pTargetType the target type of the assignment (the type of the left side of the assignment)
+   * @return the corresponding value of the given expression, if the evaluation was successful.
+   *        <code>Null</code>, otherwise
+   */
   public Value evaluate(final JRightHandSide pExp, final JType pTargetType) {
-    return castJValue(pExp.accept(this), (JType) pExp.getExpressionType(), pTargetType, logger, pExp.getFileLocation());
+    return castJValue(pExp.accept(this), (JType) pExp.getExpressionType(), pTargetType, logger,
+        pExp.getFileLocation());
   }
 
   /**
@@ -1493,13 +1506,21 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * TODO
-   * @param value
-   * @param sourceType
-   * @param targetType
-   * @param logger
-   * @param fileLocation
-   * @return
+   * <p>Casts the given value to the specified Java type. This also handles overflows.</p>
+   *
+   * <p>
+   * In Java, numeric values are the only primitive types that can be cast. In consequence, all
+   * values of other primitive types (and not explicitly known values) will simply be returned
+   * in their original form.
+   * </p>
+   *
+   * @param value the value to cast
+   * @param sourceType the original type of the given value
+   * @param targetType the type the given value should be cast to
+   * @param logger the logger error and warning messages will be logged to
+   * @param fileLocation the location of the corresponding code in the source file
+   * @return the cast value, if a cast from the source to the target type is possible. Otherwise,
+   *         the given value will be returned without a change
    */
   public static Value castJValue(@Nonnull final Value value, JType sourceType,
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
