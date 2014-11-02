@@ -171,7 +171,7 @@ public class FiducciaMattheysesAlgorithm {
     }
   }
 
-  public long improvePartitions() {
+  public long improvePartitioning() {
     LinkedList<Integer> moved = new LinkedList<>();
     LinkedList<Long> cutSizes = new LinkedList<>();
     TreeMap<Long, LinkedList<Integer>> v1Buckets = new TreeMap<>();

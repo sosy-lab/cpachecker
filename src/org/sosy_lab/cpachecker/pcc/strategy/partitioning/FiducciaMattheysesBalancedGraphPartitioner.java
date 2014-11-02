@@ -45,7 +45,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final LogManager logger;
 
-  @Option(description = "Heuristic for computing an initial partitioning of proof (e.g. as required by Fiduccia-Mattheyses algorithm heuristic")
+  @Option(description = "Heuristic for computing an initial partitioning of proof")
   private InitPartitioningHeuristics initialPartitioningStrategy = InitPartitioningHeuristics.RANDOM;
 
   public enum InitPartitioningHeuristics {
@@ -91,7 +91,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
         long gain;
         do {
           shutdownNotifier.shutdownIfNecessary();
-          gain = fm.improvePartitions();
+          gain = fm.improvePartitioning();
         } while(gain > 0);
         cutSizeAfter += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
       }
