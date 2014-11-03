@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -68,7 +66,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -192,9 +189,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
     VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -214,14 +209,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     }
 
     refinedOctPrecision  = octPrecision.withIncrement(increment);
-    refinedPrecisions.add(refinedOctPrecision);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
       reached.removeSubtree(refinementRoot.getFirst(),
-                            refinedPrecisions,
-                            Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)));
-
+                            refinedOctPrecision,
+                            VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
       return true;
     } else {
       return false;
@@ -231,20 +224,17 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
-    // no newly tracked variables, so the refinement was not successful
+    // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;
     }
 
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    refinedPrecisions.add(octPrecision.withIncrement(increment));
-
     reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
-                          refinedPrecisions,
-                          Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)));
+                           octPrecision.withIncrement(increment),
+                          VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
 
     return true;
