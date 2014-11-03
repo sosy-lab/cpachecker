@@ -25,11 +25,21 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.regex.Pattern;
 
+import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+
 
 public class CheckUtil {
 
-  public static boolean isLong(String s) {
+  public static boolean isLong (String s) {
     return Pattern.matches("-?\\d+", s);
   }
 
+  public static boolean isSIGN (String s) {
+    try{
+      SIGN.valueOf(s);
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+    return true;
+  }
 }
