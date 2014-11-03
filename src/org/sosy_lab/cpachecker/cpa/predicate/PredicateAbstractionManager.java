@@ -626,7 +626,7 @@ public class PredicateAbstractionManager {
    */
   private Region identifyTrivialPredicates(
       final Collection<AbstractionPredicate> pPredicates,
-      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws InterruptedException {
+      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws SolverException, InterruptedException {
 
     final SSAMap ssa = pBlockFormula.getSsa();
     final Set<String> blockVariables = fmgr.extractVariableNames(pBlockFormula.getFormula());
@@ -880,7 +880,8 @@ public class PredicateAbstractionManager {
   /**
    * Checks if a1 => a2
    */
-  public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2) throws InterruptedException {
+  public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2)
+      throws SolverException, InterruptedException {
     return amgr.entails(a1.asRegion(), a2.asRegion());
   }
 

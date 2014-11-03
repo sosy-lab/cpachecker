@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -270,7 +271,7 @@ public final class AbstractionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws InterruptedException {
+  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
     return rmgr.entails(f1, f2);
   }
 
