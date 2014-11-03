@@ -149,7 +149,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private boolean initAssumptionVars = false;
 
   @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
-      + " assumtions.")
+      + " assumptions.")
   private boolean automatonAssumesAsStatements = false;
 
   @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
@@ -264,7 +264,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       } else if (exp instanceof CExpression) {
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
-        throw new AssertionError("unknown expression: " + exp);
+        throw new AssertionError("Unknown expression: " + exp);
       }
 
       String paramName = parameters.get(i).getName();
