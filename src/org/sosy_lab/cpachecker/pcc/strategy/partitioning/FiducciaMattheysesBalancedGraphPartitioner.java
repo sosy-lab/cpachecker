@@ -45,14 +45,14 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final LogManager logger;
 
-  @Option(description = "Heuristic for computing an initial partitioning of proof")
+  @Option(secure=true, description = "Heuristic for computing an initial partitioning of proof")
   private InitPartitioningHeuristics initialPartitioningStrategy = InitPartitioningHeuristics.RANDOM;
 
   public enum InitPartitioningHeuristics {
     RANDOM
   }
 
-  @Option(description = "Balance criterion for pairwise optimization of partitions")
+  @Option(secure=true, description = "Balance criterion for pairwise optimization of partitions")
   private double balanceCriterion = 1.5d;
 
   private final BalancedGraphPartitioner partitioner;
