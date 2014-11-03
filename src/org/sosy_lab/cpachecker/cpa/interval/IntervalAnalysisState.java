@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -342,57 +341,41 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    String[] parts = pProperty.trim().split(" ");
+    String[] parts = pProperty.split("<=");
 
-    if (parts.length == 3) {
+    if (parts.length == 2) {
 
       // pProperty = value <= varName
-      if (Pattern.matches("\\d+ <= \\w+", pProperty)) {
-        int value = Integer.parseInt(parts[0]);
-        Interval iv = intervals.get(parts[2]);
-        if (value <= iv.getLow()) {
-          return true;
-        } else {
-          return false;
-        }
+      if (CheckUtil.isLong(parts[0])) {
+        long value = Long.parseLong(parts[0].trim());
+        Interval iv = intervals.get(parts[1].trim());
+        return (value <= iv.getLow());
+      }
 
       // pProperty = varName <= value
-      } else if (Pattern.matches("\\w+ <= \\d+", pProperty)){
-        int value = Integer.parseInt(parts[2]);
-        Interval iv = intervals.get(parts[0]);
+      else if (CheckUtil.isLong(parts[1])){
+        long value = Long.parseLong(parts[1].trim());
+        Interval iv = intervals.get(parts[0].trim());
+        return (iv.getHigh() <= value);
+      }
 
-        if (iv.getHigh() <= value) {
-          return true;
-        } else {
-          return false;
-        }
+      // pProperty = varName1 <= varName2
+      else {
+        Interval iv1 = intervals.get(parts[0].trim());
+        Interval iv2 = intervals.get(parts[1].trim());
+        return (iv1.contains(iv2));
       }
 
     // pProperty = value1 <= varName <= value2
-    } else if (parts.length == 5){
-      if (Pattern.matches("\\d+ <= \\w+ <= \\d+", pProperty)) {
-        int value1 = Integer.parseInt(parts[0]);
-        int value2 = Integer.parseInt(parts[4]);
-        Interval iv = intervals.get(parts[2]);
-
-        if (value1 <= iv.getLow() && iv.getHigh() <= value2) {
-          return true;
-        } else {
-          return false;
-        }
-
-      // pProperty = value <= varName
-      } else if (Pattern.matches("\\w+ <= \\w+", pProperty)) {
-        Interval iv1 = intervals.get(parts[0]);
-        Interval iv2 = intervals.get(parts[2]);
-
-        if (iv1.getLow() >= iv2.getLow() && iv1.getHigh() <= iv2.getHigh()) {
-          return true;
-        } else {
-          return false;
-        }
+    } else if (parts.length == 3){
+      if ( CheckUtil.isLong(parts[0]) && CheckUtil.isLong(parts[2]) ) {
+        long value1 = Long.parseLong(parts[0].trim());
+        long value2 = Long.parseLong(parts[2].trim());
+        Interval iv = intervals.get(parts[1].trim());
+        return (value1 <= iv.getLow() && iv.getHigh() <= value2);
       }
     }
+
     return false;
   }
 
