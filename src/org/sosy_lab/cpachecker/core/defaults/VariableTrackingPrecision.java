@@ -399,7 +399,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
       return super.isTracking(pVariable, pType, pLocation)
-              && rawPrecision.containsValue(pVariable);
+              && rawPrecision.containsEntry(pLocation, pVariable);
     }
   }
 
