@@ -62,8 +62,8 @@ public class FiducciaMattheysesAlgorithm {
   private long computeGain(int pNode) {
     Set<Integer> src = v1.contains(pNode) ? v1 : v2;
     Set<Integer> dest = src == v1 ? v2 : v1;
-    long dV1 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(dest), true);
-    long dV2 = graph.getNumAdjacentNodesOutsideSet(pNode, Optional.of(src), true);
+    long dV1 = graph.getNumEdgesBetween(pNode, dest);
+    long dV2 = graph.getNumEdgesBetween(pNode, src);
     return dV1 - dV2;
   }
 
@@ -76,8 +76,9 @@ public class FiducciaMattheysesAlgorithm {
       lock.put(i, false);
       long g = computeGain(i);
       pGain.put(i, g);
-      if(!pBuckets.containsKey(g))
+      if(!pBuckets.containsKey(g)) {
         pBuckets.put(g, new LinkedList<Integer>());
+      }
       pBuckets.get(g).addFirst(i);
     }
   }
@@ -90,16 +91,18 @@ public class FiducciaMattheysesAlgorithm {
         return !bucket.get(pLong).isEmpty();
       }
     });
-    if(!bestGain.isPresent())
+    if(!bestGain.isPresent()) {
       return Optional.absent();
+    }
     return Optional.of(Pair.of(bestGain.get(), bucket));
   }
 
   // TODO make this configurable
   private boolean isBalanced(int pSizeP1, int pSizeP2) {
     int min = Math.min(pSizeP1, pSizeP2);
-    if(min <= 0)
+    if(min <= 0) {
       return false;
+    }
     return Math.max(pSizeP1, pSizeP2)/min <= balanceCriterion;
   }
 
@@ -140,8 +143,9 @@ public class FiducciaMattheysesAlgorithm {
       long pNewGain) {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
     assert(success);
-    if(!pBucket.containsKey(pNewGain))
+    if(!pBucket.containsKey(pNewGain)) {
       pBucket.put(pNewGain, new LinkedList<Integer>());
+    }
     pBucket.get(pNewGain).add(pNode);
     pGain.put(pNode, pNewGain);
   }
@@ -154,7 +158,7 @@ public class FiducciaMattheysesAlgorithm {
       HashMap<Integer, Boolean> lock) {
     Set<Integer> neighbors = new HashSet<>();
     neighbors.addAll(graph.getAdjacencyList().get(node));
-    neighbors.addAll(graph.getNodesAdjacentTo(node));
+    neighbors.addAll(graph.getPredecessorsOf(node));
     for(int n : neighbors) {
       boolean nInV1 = v1.contains(n);
       boolean nInV2 = v2.contains(n);
@@ -185,15 +189,16 @@ public class FiducciaMattheysesAlgorithm {
       /* Initialize all the stuff */
     initDataStructures(v1, v1Buckets, gain, lock);
     initDataStructures(v2, v2Buckets, gain, lock);
-    cutSizes.add(graph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true));
+    cutSizes.add(graph.getNumEdgesBetween(v1, v2));
     int iterationWithSmallestCutSize = 0;
     long smallestCutSize = cutSizes.get(0);
 
       /* Start algorithm */
     for(int i = 1; i < v1.size() + v2.size(); i++) {
       Optional<Pair<Long, TreeMap<Long, LinkedList<Integer>>>> gainAndBuckets = tryPickBestGain(v1Buckets, v2Buckets);
-      if(!gainAndBuckets.isPresent())
+      if(!gainAndBuckets.isPresent()) {
         break;
+      }
       long g = gainAndBuckets.get().getFirst();
       int node = pollNodeFromBucketByGain(g, gainAndBuckets.get().getSecond());
       lock.put(node, true);
@@ -215,8 +220,9 @@ public class FiducciaMattheysesAlgorithm {
       /* move nodes until best cut size reached */
     int i = 1;
     for(int node : moved) {
-      if(i > iterationWithSmallestCutSize)
+      if(i > iterationWithSmallestCutSize) {
         break;
+      }
       if(v1.contains(node)) {
         v1.remove(node);
         v2.add(node);

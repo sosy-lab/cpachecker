@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-import com.google.common.base.Optional;
-
 
 public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraphPartitioner {
 
@@ -137,7 +135,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
       final List<Set<Integer>> partitioning) {
     long result = 0;
     for (Set<Integer> partition : partitioning) {
-      result += pGraph.getNumAdjacentNodesOutsideSet(partition, Optional.<Set<Integer>>absent(), false);
+      result += pGraph.getNumSuccessorNodesOutsideSet(partition);
     }
     return result;
   }

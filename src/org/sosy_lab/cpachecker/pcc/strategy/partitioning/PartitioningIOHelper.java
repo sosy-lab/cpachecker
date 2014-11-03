@@ -114,7 +114,7 @@ public class PartitioningIOHelper {
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       partitions.add(Pair.of(partitionDescription.getFirst().getSetNodes(partition, false), partitionDescription
           .getFirst()
-          .getAdjacentNodesOutsideSet(partition, false, false)));
+          .getSuccessorNodesOutsideSet(partition, false)));
     }
   }
 
@@ -192,7 +192,7 @@ public class PartitioningIOHelper {
       final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
     logger.log(Level.FINER, "Write partition");
     writePartition(pOut, pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false),
-        pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false, false));
+        pPartialReachedSetDirectedGraph.getSuccessorNodesOutsideSet(pPartition, false));
   }
 
   public void writePartition(ObjectOutputStream pOut, Pair<AbstractState[], AbstractState[]> pPartition)
