@@ -461,7 +461,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         ((JExpression) expression).accept(avv);
 
-        if (avv.hasMissingFieldAccessInformation() || avv.hasMissingEnumComparisonInformation()) {
+        if (avv.hasMissingFieldAccessInformation()) {
           assert missingInformationRightJExpression != null;
           missingAssumeInformation = true;
         }
@@ -815,7 +815,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // here we clone the state, because we get new information or must forget it.
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    if (visitor.hasMissingFieldAccessInformation() || visitor.hasMissingEnumComparisonInformation()) {
+    if (visitor.hasMissingFieldAccessInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (!value.isUnknown()) {
@@ -1208,7 +1208,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
 
-      if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
+      if (evv.hasMissingFieldAccessInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
         return Value.UnknownValue.getInstance();
       } else {

@@ -141,7 +141,6 @@ public abstract class AbstractExpressionValueVisitor
   private final LogManagerWithoutDuplicates logger;
 
   private boolean missingFieldAccessInformation = false;
-  private boolean missingEnumComparisonInformation = false;
 
   /** This Visitor returns the numeral value for an expression.
    * @param pFunctionName current scope, used only for variable-names
@@ -161,10 +160,6 @@ public abstract class AbstractExpressionValueVisitor
     return missingFieldAccessInformation;
   }
 
-  public boolean hasMissingEnumComparisonInformation() {
-    return missingEnumComparisonInformation;
-  }
-
   @Override
   protected Value visitDefault(CExpression pExp) {
     return Value.UnknownValue.getInstance();
@@ -172,7 +167,6 @@ public abstract class AbstractExpressionValueVisitor
 
   public void reset() {
     missingFieldAccessInformation = false;
-    missingEnumComparisonInformation = false;
   }
 
   @Override
