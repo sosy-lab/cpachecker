@@ -309,19 +309,14 @@ def parseCloudRunResultFile(filePath):
     wallTime = None
     returnValue = None
 
-    def parseTimeValue(s):
-        if s[-1] != 's':
-            raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
-        return float(s[:-1])
-
     with open(filePath, 'rt') as file:
         for line in file:
             (key, value) = line.split("=", 2)
             value = value.strip()
             if key == 'cpuTime':
-                cpuTime = parseTimeValue(value)
+                cpuTime = float(value)
             elif key == 'wallTime':
-                wallTime = parseTimeValue(value)
+                wallTime = float(value)
             elif key == 'memory':
                 values['memUsage'] = value
             elif key == 'exitcode':
