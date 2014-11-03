@@ -1105,20 +1105,8 @@ public class FormulaManagerView {
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
     for (Formula varFormula: myExtractVariables(extractFromView(f))) {
-      String varFormulaString = unsafeManager.getName(varFormula);
-      String[] varFormulaStringElements = varFormulaString.split("@");
-
-      if (varFormulaStringElements.length < 2) {
-        // SMT let statements might introduce new variables!! :-(
-
-        result.add(Triple.of(varFormula, varFormulaString, -1));
-        // throw new AssertionError("Variable has no valid SSA index: " + varFormulaString);
-
-      } else {
-        String varName = varFormulaStringElements[0];
-        int varSsaIndex = Integer.parseInt(varFormulaStringElements[1]);
-        result.add(Triple.of(varFormula, varName, varSsaIndex));
-      }
+      Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
+      result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
     }
 
     return result;

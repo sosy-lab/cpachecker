@@ -523,12 +523,17 @@ public class PredicateAbstractionManager {
 
       Formula varFormula = var.getFirst();
       String varName = var.getSecond();
+      Integer varSsaIndex = var.getThird();
 
-      int varSsaIndex = var.getThird();
-      int liveIndex = pSsa.getIndex(varName);
+      if (varSsaIndex == null) {
+        if (pSsa.containsVariable(varName)) {
+          result.add(varFormula);
+        }
+      } else {
+        if (varSsaIndex != pSsa.getIndex(varName)) {
 
-      if (liveIndex != varSsaIndex) {
-        result.add(varFormula);
+          result.add(varFormula);
+        }
       }
     }
 
