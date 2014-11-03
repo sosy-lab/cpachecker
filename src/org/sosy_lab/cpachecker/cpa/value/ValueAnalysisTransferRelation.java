@@ -625,12 +625,10 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           default:
             throw new AssertionError("Impossible type for declaration: " + basicType);
         }
-      } else {
-        return UnknownValue.getInstance();
       }
-    } else {
-      return UnknownValue.getInstance();
     }
+
+    return UnknownValue.getInstance();
   }
 
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
