@@ -163,6 +163,14 @@ public abstract class VariableTrackingPrecision implements Precision {
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
+   * This method checks if the caller precision is empty, thus there is
+   * no variable that should be tracked.
+   *
+   * @return indicates whether there are variables that should be tracked or not
+   */
+  public abstract boolean isEmpty();
+
+  /**
    * This method returns the CPA class to which this Precision belongs. This way
    * more CPAs can have a VariableTrackingPrecision without interfering with
    * each other.
@@ -194,8 +202,13 @@ public abstract class VariableTrackingPrecision implements Precision {
   public static class ConfigurablePrecision extends VariableTrackingPrecision{
 
     @Option(secure=true, name="variableBlacklist",
-        description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
+        description="blacklist regex for variables that won't be tracked by the CPA using this precision")
     private Pattern variableBlacklist = Pattern.compile("");
+
+
+    @Option(secure = true, name="variableWhitelist",
+        description="whitelist regex for variables that will always be tracked by the CPA using this precision")
+    private Pattern variableWhitelist = Pattern.compile("");
 
     @Option(secure=true, description = "If this option is used, booleans from the cfa are tracked.")
     private boolean trackBooleanVariables = true;
@@ -251,12 +264,17 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     private boolean isTracking(MemoryLocation pVariable) {
-      return !isOnBlacklist(pVariable.getIdentifier())
+      return  isOnWhitelist(pVariable.getIdentifier())
+              || !isOnBlacklist(pVariable.getIdentifier())
               && !isInIgnoredVarClass(pVariable);
     }
 
     private boolean isOnBlacklist(String variable) {
       return variableBlacklist.matcher(variable).matches();
+    }
+
+    private boolean isOnWhitelist(String variable) {
+      return variableWhitelist.matcher(variable).matches();
     }
 
     /** returns true, iff the variable is in an varClass, that should be ignored. */
@@ -299,9 +317,28 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
+    public boolean isEmpty() {
+      if (variableWhitelist.toString().isEmpty()) { return true; }
+      if (!vc.isPresent()) { return true; }
+      VariableClassification varClass = vc.get();
+
+      boolean trackSomeIntBools = trackBooleanVariables &&
+          !varClass.getIntBoolVars().isEmpty();
+      boolean trackSomeIntEquals = trackIntEqualVariables &&
+          !varClass.getIntEqualVars().isEmpty();
+      boolean trackSomeIntAdds = trackIntAddVariables &&
+          !varClass.getIntAddVars().isEmpty();
+      boolean trackSomeAddressed = trackAddressedVariables &&
+          !varClass.getAddressedVariables().isEmpty();
+
+      return !(trackSomeIntBools || trackSomeIntEquals || trackSomeIntAdds || trackSomeAddressed);
+    }
+
+    @Override
     protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return cpaClass;
     }
+
   }
 
 
@@ -332,7 +369,12 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+    public final boolean isEmpty() {
+      return false;
+    }
+
+    @Override
+    public final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return baseline.getCPAClass();
     }
   }
