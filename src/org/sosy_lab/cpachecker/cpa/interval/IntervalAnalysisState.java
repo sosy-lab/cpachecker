@@ -342,42 +342,46 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    String[] parts = pProperty.split(" ");
+    String[] parts = pProperty.trim().split(" ");
 
     if (parts.length == 3) {
 
+      // pProperty = value <= varName
       if (Pattern.matches("\\d+ <= \\w+", pProperty)) {
-        int wert = Integer.parseInt(parts[0]);
+        int value = Integer.parseInt(parts[0]);
         Interval iv = intervals.get(parts[2]);
-        if (wert <= iv.getLow()) {
+        if (value <= iv.getLow()) {
           return true;
         } else {
           return false;
         }
 
+      // pProperty = varName <= value
       } else if (Pattern.matches("\\w+ <= \\d+", pProperty)){
-        int wert = Integer.parseInt(parts[2]);
+        int value = Integer.parseInt(parts[2]);
         Interval iv = intervals.get(parts[0]);
 
-        if (iv.getHigh() <= wert) {
+        if (iv.getHigh() <= value) {
           return true;
         } else {
           return false;
         }
       }
 
+    // pProperty = value1 <= varName <= value2
     } else if (parts.length == 5){
       if (Pattern.matches("\\d+ <= \\w+ <= \\d+", pProperty)) {
-        int wert1 = Integer.parseInt(parts[0]);
-        int wert2 = Integer.parseInt(parts[4]);
+        int value1 = Integer.parseInt(parts[0]);
+        int value2 = Integer.parseInt(parts[4]);
         Interval iv = intervals.get(parts[2]);
 
-        if (wert1 <= iv.getLow() && iv.getHigh() <= wert2) {
+        if (value1 <= iv.getLow() && iv.getHigh() <= value2) {
           return true;
         } else {
           return false;
         }
 
+      // pProperty = value <= varName
       } else if (Pattern.matches("\\w+ <= \\w+", pProperty)) {
         Interval iv1 = intervals.get(parts[0]);
         Interval iv2 = intervals.get(parts[2]);
@@ -400,6 +404,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("The Query " + pModification + " is an unsupported operation!");
+    throw new InvalidQueryException("The Query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
   }
 }
