@@ -235,7 +235,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
   private VariableTrackingPrecision extractPrecision(final ReachedSet pReached,
       ARGState state) {
-    return Precisions.extractPrecisionByType(pReached.getPrecision(state), VariableTrackingPrecision.class);
+    return (VariableTrackingPrecision) Precisions.asIterable(pReached.getPrecision(state)).filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)
