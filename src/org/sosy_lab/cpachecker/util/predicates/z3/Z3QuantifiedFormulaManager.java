@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractQuantifiedFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -62,6 +65,46 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
         0,
         Longs.toArray(Collections.<Long>emptyList()),
         pBody);
+  }
+
+  private Long applyTactic(Long pF, String pTactic) throws InterruptedException, SolverException {
+    long tactic_qe = mk_tactic(z3context, pTactic);
+    tactic_inc_ref(z3context, tactic_qe);
+
+    long goal = mk_goal(z3context, true, true, false);
+    goal_inc_ref(z3context, goal);
+
+    try {
+      goal_assert(z3context, goal, pF);
+
+      long result = tactic_apply(z3context, tactic_qe, goal);
+      apply_result_inc_ref(z3context, result);
+
+      try {
+        long resultSubGoal = apply_result_get_subgoal(z3context, result, 0);
+        goal_inc_ref(z3context, resultSubGoal);
+
+        long subGoalFormula = goal_formula(z3context, resultSubGoal, 0);
+        inc_ref(z3context, subGoalFormula);
+
+        goal_dec_ref(z3context, resultSubGoal);
+
+        // TODO: Check the reference-counting!!
+
+        return subGoalFormula;
+      } finally {
+        apply_result_dec_ref(z3context, result);
+      }
+
+    } finally {
+      goal_dec_ref(z3context, goal);
+      tactic_dec_ref(z3context, tactic_qe);
+    }
+  }
+
+  @Override
+  protected Long eliminateQuantifiers(Long pExtractInfo) throws SolverException, InterruptedException {
+    return applyTactic(applyTactic(pExtractInfo, "qe"), "ctx-solver-simplify");
   }
 
 }

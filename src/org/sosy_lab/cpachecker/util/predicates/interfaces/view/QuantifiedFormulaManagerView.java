@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
@@ -48,6 +49,11 @@ public class QuantifiedFormulaManagerView
   @Override
   public BooleanFormula forall(List<Formula> pVariables, BooleanFormula pBody) {
     return wrapInView(manager.forall(pVariables, extractFromView(pBody)));
+  }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    return wrapInView(manager.eliminateQuantifiers(extractFromView(pF)));
   }
 
 }

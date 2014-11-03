@@ -98,7 +98,7 @@ public class Z3Test {
       assertFalse(env.isUnsat());
 
       System.out.println("=== QE ===>");
-      BooleanFormula result = ((Z3TheoremProver) env).eliminateQuantifiers(f);
+      BooleanFormula result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(f);
       fmgr.dumpFormula(result).appendTo(System.out);
     }
 

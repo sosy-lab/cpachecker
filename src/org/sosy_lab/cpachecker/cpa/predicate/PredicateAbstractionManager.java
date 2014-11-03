@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllS
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -549,8 +550,9 @@ public class PredicateAbstractionManager {
 
     if (!irrelevantVariables.isEmpty()) {
       try {
-        BooleanFormula quantifiedFormula = fmgr.getQuantifiedFormulaManager().exists(irrelevantVariables, pF);
-        eliminationResult = pThmProver.eliminateQuantifiers(quantifiedFormula);
+        QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
+        BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
+        eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Eliminating variaiables failed!", e.getMessage());

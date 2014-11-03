@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
@@ -73,5 +74,11 @@ public abstract class AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv
         extractInfo(pBody)));
   }
   protected abstract TFormulaInfo forall(List<TFormulaInfo> pVariables, TFormulaInfo pBody);
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    return wrap(eliminateQuantifiers(extractInfo(pF)));
+  }
+  protected abstract TFormulaInfo eliminateQuantifiers(TFormulaInfo pExtractInfo) throws SolverException, InterruptedException;
 
 }
