@@ -152,8 +152,6 @@ public class ASTConverter {
 
   private static final int FIRST = 0;
 
-  private static final int SECOND = 1;
-
   private final LogManager logger;
 
   private Scope scope;
