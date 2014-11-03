@@ -318,9 +318,9 @@ def parseCloudRunResultFile(filePath):
         for line in file:
             (key, value) = line.split("=", 2)
             value = value.strip()
-            if key == 'cputime':
+            if key == 'cpuTime':
                 cpuTime = parseTimeValue(value)
-            elif key == 'walltime':
+            elif key == 'wallTime':
                 wallTime = parseTimeValue(value)
             elif key == 'memory':
                 values['memUsage'] = value
