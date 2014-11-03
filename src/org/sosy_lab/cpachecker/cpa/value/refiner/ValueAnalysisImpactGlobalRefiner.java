@@ -233,7 +233,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
 
     if (forceRestart != 0 && totalRefinements % forceRestart == 0) {
       new ARGReachedSet(pReached).removeSubtree(((ARGState)pReached.getFirstState()).getChildren().iterator().next(),
-          globalPrecision, VariableTrackingPrecision.class);
+          globalPrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
 
       totalTime.stop();
       return true;
@@ -271,7 +271,7 @@ public class ValueAnalysisImpactGlobalRefiner implements UnsoundRefiner, Statist
         timerReaddToWaitlist.start();
 
         if (!currentState.isCovered()) {
-          reached.readdToWaitlist(currentState, currentPrecision.withIncrement(increment), VariableTrackingPrecision.class);
+          reached.readdToWaitlist(currentState, currentPrecision.withIncrement(increment), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
         }
 
         timerReaddToWaitlist.stop();

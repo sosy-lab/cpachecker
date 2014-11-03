@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
@@ -68,9 +70,9 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @return
    * @throws InvalidConfigurationException
    */
-  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc)
+  public static VariableTrackingPrecision createStaticPrecision(Configuration config, Optional<VariableClassification> vc, Class<? extends ConfigurableProgramAnalysis> cpaClass)
           throws InvalidConfigurationException {
-    return new ConfigurablePrecision(config, vc);
+    return new ConfigurablePrecision(config, vc, cpaClass);
   }
 
   /**
@@ -93,6 +95,18 @@ public abstract class VariableTrackingPrecision implements Precision {
       default:
         throw new AssertionError("Unhandled case in switch statement");
     }
+  }
+
+  public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
+     return new Predicate<Precision>() {
+
+      @Override
+      public boolean apply(Precision pPrecision) {
+        if (!(pPrecision instanceof VariableTrackingPrecision)) {
+          return false;
+        }
+          return ((VariableTrackingPrecision)pPrecision).getCPAClass() == cpaClass;
+      }};
   }
 
   /**
@@ -148,6 +162,15 @@ public abstract class VariableTrackingPrecision implements Precision {
    */
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
+  /**
+   * This method returns the CPA class to which this Precision belongs. This way
+   * more CPAs can have a VariableTrackingPrecision without interfering with
+   * each other.
+   *
+   * @return the owner CPA of this precision
+   */
+  protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
+
 
   @Options(prefix="precision")
   private static class RefinablePrecisionOptions {
@@ -194,10 +217,12 @@ public abstract class VariableTrackingPrecision implements Precision {
     private boolean trackAddressedVariables = true;
 
     private Optional<VariableClassification> vc;
+    private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-    private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc) throws InvalidConfigurationException {
+    private ConfigurablePrecision(Configuration config, Optional<VariableClassification> pVc, Class<? extends ConfigurableProgramAnalysis> cpaClass) throws InvalidConfigurationException {
       super();
       config.inject(this);
+      this.cpaClass = cpaClass;
       this.vc = pVc;
     }
 
@@ -272,6 +297,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     public int getSize() {
       return -1;
     }
+
+    @Override
+    protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+      return cpaClass;
+    }
   }
 
 
@@ -296,6 +326,11 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     protected VariableTrackingPrecision getBaseline() {
       return baseline;
+    }
+
+    @Override
+    protected Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
+      return baseline.getCPAClass();
     }
   }
 

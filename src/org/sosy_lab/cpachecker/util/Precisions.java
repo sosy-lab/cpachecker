@@ -26,6 +26,11 @@ package org.sosy_lab.cpachecker.util;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.TreeTraverser;
+
 public class Precisions {
 
   private Precisions() { }
@@ -54,11 +59,50 @@ public class Precisions {
     return null;
   }
 
-  public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision, Class<? extends Precision> type) {
+  /**
+   * Creates a {@link FluentIterable} that enumerates all the <code>Precision</code>
+   * contained in a given precision pre-order. The root precision itself is included, the
+   * precisions are unwrapped recursively.
+   *
+   * <p><b>Example</b>: Precision A wraps precisions B and C. Precision B wraps precisions D and E.<br />
+   *             The resulting tree (see below) is traversed pre-order.
+   * <pre>
+   *                  A
+   *                 / \
+   *                B   C
+   *               / \
+   *              D   E
+   * </pre>
+   * The returned <code>FluentIterable</code> iterates over the items in the following
+   * order : A, B, D, E, C.
+   * </p>
+   *
+   * @param as the root state
+   *
+   * @return a <code>FluentIterable</code> over the given root precision and all precisions
+   *         that are wrapped in it, recursively
+   */
+  public static FluentIterable<Precision> asIterable(final Precision prec) {
+
+    return new TreeTraverser<Precision>() {
+
+      @Override
+      public Iterable<Precision> children(Precision precision) {
+        if (precision instanceof WrapperPrecision) {
+          return ((WrapperPrecision)precision).getWrappedPrecisions();
+        }
+
+        return ImmutableList.of();
+      }
+    }.preOrderTraversal(prec);
+  }
+
+  public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision, Predicate<? super Precision> pPrecisionType) {
     if (pOldPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision)pOldPrecision).replaceWrappedPrecision(pNewPrecision, type);
+      return ((WrapperPrecision)pOldPrecision).replaceWrappedPrecision(pNewPrecision, pPrecisionType);
     } else {
-      assert type.isAssignableFrom(pOldPrecision.getClass());
+      assert pNewPrecision.getClass().isAssignableFrom(pOldPrecision.getClass());
+
       return pNewPrecision;
     }
   }

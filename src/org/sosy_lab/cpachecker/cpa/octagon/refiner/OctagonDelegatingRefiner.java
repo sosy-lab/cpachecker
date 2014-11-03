@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -193,7 +195,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
     VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -214,17 +215,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     refinedOctPrecision  = octPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-//      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getRefinablePrecision()., octPrecision.getTrackedVars());
-//      if (strIncrement.isEmpty()) {
-//        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
-//      } else {
-//        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
-//      }
+      reached.removeSubtree(refinementRoot.getFirst(),
+                            refinedPrecisions,
+                            Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)));
 
       return true;
     } else {
@@ -244,11 +240,11 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     }
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
     refinedPrecisions.add(octPrecision.withIncrement(increment));
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
+                          refinedPrecisions,
+                          Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)));
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
 
     return true;

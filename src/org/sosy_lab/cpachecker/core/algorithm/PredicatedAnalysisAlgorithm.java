@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -339,7 +340,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       throw new RefinementFailedException(Reason.InterpolationFailed, pathToFailure, e);
     }
 
-    return Precisions.replaceByType(initialPrecision, newPredPrec, PredicatePrecision.class);
+    return Precisions.replaceByType(initialPrecision, newPredPrec, Predicates.instanceOf(PredicatePrecision.class));
   }
 
   private boolean noNewPredicates(PredicatePrecision oldPrecision, PredicatePrecision newPrecision)

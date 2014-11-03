@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -815,7 +816,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
       ARGState element, List<Precision> pNewPrecisions,
-      List<Class<? extends Precision>> pNewPrecisionTypes,
+      List<Predicate<? super Precision>> pNewPrecisionTypes,
       Map<ARGState, ARGState> pPathElementToReachedState) {
     removeSubtreeTimer.start();
 

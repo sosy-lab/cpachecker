@@ -201,7 +201,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
     for (Map.Entry<ARGState, VariableTrackingPrecision> info : refinementInformation.entrySet()) {
-      reached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.class);
+      reached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
     totalTime.stop();

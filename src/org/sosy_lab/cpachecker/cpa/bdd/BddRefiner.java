@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 
 /**
@@ -176,7 +177,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
     BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
 
     numberOfSuccessfulValueAnalysisRefinements++;
-    reached.removeSubtree(refinementRoot.getFirst(), refinedBDDPrecision, BDDPrecision.class);
+    reached.removeSubtree(refinementRoot.getFirst(), refinedBDDPrecision, Predicates.instanceOf(BDDPrecision.class));
     return true;
   }
 

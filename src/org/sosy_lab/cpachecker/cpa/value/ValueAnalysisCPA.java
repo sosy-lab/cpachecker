@@ -180,12 +180,12 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
+      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     } else {
       // create precision with empty, refinable component precision
       VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
-                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
+                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       // refine the refinable component precision with increment from file
       return precision.withIncrement(restoreMappingFromFile(cfa));
     }

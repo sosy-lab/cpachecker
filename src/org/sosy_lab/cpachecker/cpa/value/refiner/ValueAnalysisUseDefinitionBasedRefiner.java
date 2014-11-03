@@ -185,7 +185,7 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     reached.removeSubtree(errorPath.get(1).getFirst(),
        valueAnalysisPrecision.withIncrement(increment),
-        VariableTrackingPrecision.class);
+       VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
 
     numberOfSuccessfulRefinements++;
     return true;
