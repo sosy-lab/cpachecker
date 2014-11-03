@@ -53,12 +53,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.CompleteCertificateConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GraphPartitionerFactory.PartitioningHeuristics;
 
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
@@ -71,13 +68,6 @@ public class PartitioningIOHelper {
 
   @Option(secure=true, description = "Heuristic for computing partitioning of proof (partial reached set).")
   private PartitioningHeuristics partitioningStrategy = PartitioningHeuristics.RANDOM;
-
-  public enum PartitioningHeuristics {
-    RANDOM,
-    DFS,
-    BFS,
-    OPTIMAL
-  }
 
   private final LogManager logger;
   private final PartialReachedConstructionAlgorithm partialConstructor;
@@ -92,35 +82,8 @@ public class PartitioningIOHelper {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
-    switch (new PartialCertificateTypeProvider(pConfig, false).getCertificateType()) {
-    case ALL:
-      partialConstructor = new CompleteCertificateConstructionAlgorithm();
-      break;
-    case HEURISTIC:
-      logger.log(Level.WARNING,
-          "Only heuristic, constructed certificate may not be checkable, especially if merge is not join operator.");
-      partialConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
-      break;
-    case MONOTONESTOPARG:
-      partialConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(true);
-      break;
-    default: // ARG
-      partialConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(true);
-    }
-
-    switch (partitioningStrategy) {
-    case OPTIMAL:
-      partitioner = new ExponentialOptimalBalancedGraphPartitioner(pShutdownNotifier);
-      break;
-    case BFS:
-      partitioner = new ExplorationOrderBalancedGraphPartitioner(false, pShutdownNotifier);
-      break;
-    case DFS:
-      partitioner = new ExplorationOrderBalancedGraphPartitioner(true, pShutdownNotifier);
-      break;
-    default: // RANDOM
-      partitioner = new RandomBalancedGraphPartitioner();
-    }
+    partialConstructor = new PartialCertificateTypeProvider(pConfig, false).getCertificateConstructor();
+    partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier);
   }
 
   public int getSavedReachedSetSize() {
@@ -151,7 +114,7 @@ public class PartitioningIOHelper {
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       partitions.add(Pair.of(partitionDescription.getFirst().getSetNodes(partition, false), partitionDescription
           .getFirst()
-          .getAdjacentNodesOutsideSet(partition, false)));
+          .getAdjacentNodesOutsideSet(partition, false, false)));
     }
   }
 
@@ -229,7 +192,7 @@ public class PartitioningIOHelper {
       final PartialReachedSetDirectedGraph pPartialReachedSetDirectedGraph) throws IOException {
     logger.log(Level.FINER, "Write partition");
     writePartition(pOut, pPartialReachedSetDirectedGraph.getSetNodes(pPartition, false),
-        pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false));
+        pPartialReachedSetDirectedGraph.getAdjacentNodesOutsideSet(pPartition, false, false));
   }
 
   public void writePartition(ObjectOutputStream pOut, Pair<AbstractState[], AbstractState[]> pPartition)

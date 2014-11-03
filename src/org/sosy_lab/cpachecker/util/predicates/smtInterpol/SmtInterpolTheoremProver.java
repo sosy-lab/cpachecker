@@ -33,6 +33,7 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -105,6 +106,11 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
       result.add(mgr.encapsulateBooleanFormula(t));
     }
     return result;
+  }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    throw new RuntimeException("eliminateQuantifiers not implemented for this theorem prover!");
   }
 
   @Override

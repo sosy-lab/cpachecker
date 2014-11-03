@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
+import java.io.IOException;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -31,5 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 public interface RelationStore {
 
   public void addFact(CFAEdge pEdge, SSAMap pSsa) throws UnrecognizedCCodeException;
+  public void dumpStoreContent(Appendable pTarget) throws IOException;
 
 }

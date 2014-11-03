@@ -35,6 +35,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -108,7 +109,7 @@ public class SolverTest {
     }
   }
 
-  private void simpleStackTestBool(BooleanFormulaManager bmgr, ProverEnvironment stack) throws InterruptedException {
+  private void simpleStackTestBool(BooleanFormulaManager bmgr, ProverEnvironment stack) throws SolverException, InterruptedException {
 
     int i = index++;
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
@@ -152,7 +153,7 @@ public class SolverTest {
     stack.pop(); //L0 empty stack
   }
 
-  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws InterruptedException {
+  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws SolverException, InterruptedException {
 
     int i = index++;
     X a = nmgr.makeVariable("num_a"+i);

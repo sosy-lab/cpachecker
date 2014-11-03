@@ -75,4 +75,9 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
 
     return result;
   }
+
+  @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return msat_make_true(getFormulaCreator().getEnv());
+  }
 }

@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 
 @Options(prefix = "pcc.partial")
 public class PartialCertificateTypeProvider {
@@ -50,8 +51,22 @@ public class PartialCertificateTypeProvider {
     }
   }
 
-  public PartialCertificateTypes getCertificateType() {
-    return certificateType;
+  public PartialReachedConstructionAlgorithm getPartialCertificateConstructor() {
+    switch (certificateType) {
+    case ARG:
+      return new ARGBasedPartialReachedSetConstructionAlgorithm(false);
+    case MONOTONESTOPARG:
+      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);
+    default:// HEURISTIC
+      return new HeuristicPartialReachedSetConstructionAlgorithm();
+    }
+  }
+
+  public PartialReachedConstructionAlgorithm getCertificateConstructor() {
+    if (certificateType == PartialCertificateTypes.ALL) {
+      return new CompleteCertificateConstructionAlgorithm();
+    }
+    return getPartialCertificateConstructor();
   }
 
 }

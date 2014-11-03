@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -329,16 +331,20 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     // construct new predicate precision
     PredicatePrecision newPredPrec = new PredicatePrecision(locationInstancPreds, localPreds, functionPreds, globalPreds);
 
-    // assure that refinement fails if same path is encountered twice and precision not refined on that path
-    if (repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
+    try {
+      // assure that refinement fails if same path is encountered twice and precision not refined on that path
+      if (repeatedFailure && noNewPredicates(oldPrecision, newPredPrec)) {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
+      }
+    } catch (SolverException e) {
+      throw new RefinementFailedException(Reason.InterpolationFailed, pathToFailure, e);
     }
 
-    return Precisions.replaceByType(initialPrecision, newPredPrec, PredicatePrecision.class);
+    return Precisions.replaceByType(initialPrecision, newPredPrec, Predicates.instanceOf(PredicatePrecision.class));
   }
 
   private boolean noNewPredicates(PredicatePrecision oldPrecision, PredicatePrecision newPrecision)
-      throws InterruptedException {
+      throws SolverException, InterruptedException {
     PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
 
     // check if global precision changed
@@ -369,7 +375,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
   private boolean isMorePrecise(Set<AbstractionPredicate> lessPrecise, Set<AbstractionPredicate> morePrecise,
-      PredicateCPA predCPA) throws InterruptedException {
+      PredicateCPA predCPA) throws SolverException, InterruptedException {
     if (lessPrecise != null && morePrecise != null) {
       if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
 

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -108,10 +109,21 @@ class PredicateCPAStatistics extends AbstractStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
+  @Option(description="Export one abstraction formula for each abstraction state into a file?",
+      name="abstractions.export")
+  private boolean abstractionsExport = true;
   @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path abstractionsFile = Paths.get("abstractions.txt");
+
+  @Option(description="enable export of all relations that were collected to synthecise the abstract precision?",
+      name="relations.export")
+  private boolean relationsExport = false;
+  @Option(description="file that consists all relations that were collected to synthecise the abstract precision",
+      name="relations.file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path relationsFile = Paths.get("relations.txt");
 
   private final PredicateCPA cpa;
   private final BlockOperator blk;
@@ -121,12 +133,15 @@ class PredicateCPAStatistics extends AbstractStatistics {
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PreconditionWriter preconditionWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
+  private final RelationStore relationStore;
 
   private final Timer invariantGeneratorTime;
 
   public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
       RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-      PreconditionWriter pPreconditions, Timer pInvariantGeneratorTimer, Configuration pConfig)
+      PreconditionWriter pPreconditions, RelationStore pRelationStore,
+      Timer pInvariantGeneratorTimer,
+      Configuration pConfig)
           throws InvalidConfigurationException {
 
     cpa = pCpa;
@@ -140,6 +155,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, cpa.getLogger(), pAbsmgr, cpa.getFormulaManager(), pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(cpa.getLogger(), pAbsmgr, cpa.getFormulaManager());
     preconditionWriter = checkNotNull(pPreconditions);
+    relationStore = checkNotNull(pRelationStore);
 
     if (exportPredmap && predmapFile != null) {
       precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
@@ -246,12 +262,19 @@ class PredicateCPAStatistics extends AbstractStatistics {
       loopInvariantsWriter.exportLoopInvariants(invariantsFile, reached);
     }
 
-    if (abstractionsFile != null) {
+    if (abstractionsExport && abstractionsFile != null) {
       abstractionsWriter.writeAbstractions(abstractionsFile, reached);
     }
 
     if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
+    }
+
+    if (relationsExport && relationsFile != null) {
+      try (Writer f = Files.openOutputFile(relationsFile)) {
+        relationStore.dumpStoreContent(f);
+      } catch (IOException e) {
+      }
     }
 
     PredicateAbstractionManager.Stats as = amgr.stats;

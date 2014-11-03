@@ -44,8 +44,25 @@ import com.google.common.base.Optional;
 public enum RelationUtils {
   SINGLETON;
 
-  public static boolean includes(CExpression findInside, Set<CIdExpression> findAnyOf) {
-    CExpressionScout scout = new CExpressionScout(findAnyOf);
+  public static boolean includesOrGlobalVariable(CExpression findInside, final Set<CIdExpression> findAnyOf) {
+    final AbstractCExpressionScout scout = new AbstractCExpressionScout() {
+      @Override
+      public boolean matches(CExpression pExpr) {
+        if (findAnyOf.contains(pExpr)) {
+          return true;
+        }
+        if (pExpr instanceof CIdExpression) {
+          CIdExpression id = (CIdExpression) pExpr;
+          if (id.getDeclaration() instanceof CVariableDeclaration) {
+            if (((CVariableDeclaration) id.getDeclaration()).isGlobal()) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+    };
+
     return findInside.accept(scout);
   }
 
@@ -96,7 +113,7 @@ public enum RelationUtils {
         final Function<String, String> addSsaIndex = new Function<String, String>() {
           @Override
           public String apply(String pArg0) {
-            int varSsaIndex = pSsaMap.getIndex(pLhs.getName()) + ssaDelta;
+            int varSsaIndex = pSsaMap.getIndex(pLhs.getDeclaration().getQualifiedName()) + ssaDelta;
             String ssaPostfix = "@" + varSsaIndex;
             return pArg0 + ssaPostfix;
           }

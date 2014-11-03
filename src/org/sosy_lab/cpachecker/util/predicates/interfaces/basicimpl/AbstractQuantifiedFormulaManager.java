@@ -74,10 +74,4 @@ public abstract class AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv
   }
   protected abstract TFormulaInfo forall(List<TFormulaInfo> pVariables, TFormulaInfo pBody);
 
-  @Override
-  public final BooleanFormula eliminatedQuantifiers(BooleanFormula pF) {
-    return null;
-  }
-  protected abstract TFormulaInfo eliminatedQuantifiers(TFormulaInfo pF);
-
 }

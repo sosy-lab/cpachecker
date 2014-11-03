@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -68,7 +68,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPATransferException,
+  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPAException,
       InterruptedException {
     return patchChecher.checkPath(pPath);
   }

@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -150,6 +151,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
       + " assumtions.")
   private boolean automatonAssumesAsStatements = false;
+
+  @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
+  private boolean optimizeBooleanVariables = true;
 
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
@@ -403,10 +407,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
 
-    ExpressionValueVisitor evv = getVisitor();
+    final ExpressionValueVisitor evv = getVisitor();
+    final Type booleanType = getBooleanType(expression);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Value value = getExpressionValue(expression, CNumericTypes.INT, evv);
+    Value value = getExpressionValue(expression, booleanType, evv);
 
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
@@ -435,7 +440,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
         ((JExpression) expression).accept(avv);
 
-        if (avv.hasMissingFieldAccessInformation() || avv.hasMissingEnumComparisonInformation()) {
+        if (avv.hasMissingFieldAccessInformation()) {
           assert missingInformationRightJExpression != null;
           missingAssumeInformation = true;
         }
@@ -458,6 +463,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     } else {
       // assumption not fulfilled
       return null;
+    }
+  }
+
+  private Type getBooleanType(IAExpression pExpression) {
+    if (pExpression instanceof JExpression) {
+      return new JSimpleType(JBasicType.BOOLEAN);
+    } else if (pExpression instanceof CExpression) {
+      return CNumericTypes.INT;
+
+    } else {
+      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
   }
 
@@ -759,8 +775,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     Value value;
     if (exp instanceof JRightHandSide) {
-       value = ((JRightHandSide) exp).accept(visitor); // TODO - find out whether something's wrong with this
-      //value = Value.UnknownValue.getInstance();
+       value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
@@ -779,7 +794,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // here we clone the state, because we get new information or must forget it.
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    if (visitor.hasMissingFieldAccessInformation() || visitor.hasMissingEnumComparisonInformation()) {
+    if (visitor.hasMissingFieldAccessInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (!value.isUnknown()) {
@@ -940,11 +955,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          if (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars) {
+          if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
             assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
 
-        } else if (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp)) {
+        } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
@@ -1170,9 +1185,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     if (expression instanceof JRightHandSide) {
 
-      final Value value = ((JRightHandSide) expression).accept(evv);
+      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
 
-      if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
+      if (evv.hasMissingFieldAccessInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
         return Value.UnknownValue.getInstance();
       } else {

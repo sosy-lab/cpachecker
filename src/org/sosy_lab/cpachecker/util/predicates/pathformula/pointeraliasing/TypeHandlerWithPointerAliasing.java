@@ -55,7 +55,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
       FormulaManagerView pFmgr, FormulaEncodingWithPointerAliasingOptions pOptions) {
-    super(pLogger, pMachineModel, pFmgr);
+    super(pLogger, pOptions, pMachineModel, pFmgr);
 
     sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);
   }

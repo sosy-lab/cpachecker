@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -50,6 +51,20 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   @Override
   public int getArity(Long pT) {
     return msat_term_arity(pT);
+  }
+
+  @Override
+  public Formula getArg(Formula pF, int pN) {
+    long f = Mathsat5FormulaManager.getMsatTerm(pF);
+    long arg = msat_term_get_arg(f, pN);
+    if (msat_is_fp_roundingmode_type(msatEnv, msat_term_get_type(arg))) {
+      // We have terms that are of type fp_roundingmode
+      // (for example, arguments to floating-point arithmetic operators),
+      // but we do not want to work with them.
+      // So we just return an untyped formula here.
+      return new Mathsat5Formula(f) { };
+    }
+    return super.getArg(pF, pN);
   }
 
   @Override

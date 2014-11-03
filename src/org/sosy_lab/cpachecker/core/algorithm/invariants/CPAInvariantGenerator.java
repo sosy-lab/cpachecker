@@ -137,6 +137,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
         @Override
         public UnmodifiableReachedSet call() throws Exception {
+          shutdownNotifier.shutdownIfNecessary();
           UnmodifiableReachedSet result = new InvariantGenerationTask(reachedSetFactory, initialLocation).call();
           CPAs.closeCpaIfPossible(invariantCPAs, logger);
           CPAs.closeIfPossible(invariantAlgorithm, logger);
@@ -158,6 +159,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
   @Override
   public UnmodifiableReachedSet get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
+    shutdownNotifier.shutdownIfNecessary();
     try {
       return invariantGenerationFuture.get();
 
@@ -228,7 +230,9 @@ public class CPAInvariantGenerator implements InvariantGenerator {
 
       };
       currentFuture.set(executorService.submit(initialTask));
-      scheduleTask(pReachedSetFactory, pInitialLocation);
+      if (!shutdownNotifier.shouldShutdown()) {
+        scheduleTask(pReachedSetFactory, pInitialLocation);
+      }
     }
 
     @Override
@@ -275,7 +279,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
           // wrapping this call itself, so this function must not be called
           // before ref is set to the wrapping future
           currentFuture.set(ref.get());
-          if (adjustConditions()) {
+          if (adjustConditions() && !shutdownNotifier.shouldShutdown()) {
             scheduleTask(pReachedSetFactory, pInitialLocation);
           } else {
             setDone();
@@ -288,14 +292,16 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       // Set the wrapping future as value of the reference
       ref.set(future);
       // From here on it is safe to call the task, so it is submit to a scheduler
-      ref.set(executorService.submit(new Callable<UnmodifiableReachedSet>() {
+      if (!shutdownNotifier.shouldShutdown() && !executorService.isShutdown()) {
+        ref.set(executorService.submit(new Callable<UnmodifiableReachedSet>() {
 
-        @Override
-        public UnmodifiableReachedSet call() throws ExecutionException, InterruptedException {
-          return future.get();
-        }
+          @Override
+          public UnmodifiableReachedSet call() throws ExecutionException, InterruptedException {
+            return future.get();
+          }
 
-      }));
+        }));
+      }
       return future;
     }
 

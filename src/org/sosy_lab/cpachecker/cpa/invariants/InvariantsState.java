@@ -229,13 +229,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   public AbstractionState determineAbstractionState(InvariantsPrecision pPrecision) {
-    return determineAbstractionState(pPrecision.getAbstractionStateFactory().getSuccessorState(abstractionState));
+    return determineAbstractionState(
+        pPrecision.getAbstractionStateFactory()
+        .from(abstractionState));
   }
 
   public InvariantsState updateAbstractionState(InvariantsPrecision pPrecision, CFAEdge pEdge) {
-    AbstractionState state = determineAbstractionState(pPrecision);
+    AbstractionState state =
+        pPrecision.getAbstractionStateFactory()
+        .getSuccessorState(abstractionState);
     state = state.addEnteringEdge(pEdge);
-    if (state.equals(this.abstractionState)) {
+    if (state.equals(abstractionState)) {
       return this;
     }
     return new InvariantsState(environment, variableSelection, machineModel, variableTypes, state);
@@ -718,8 +722,12 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @return the environment of this state.
    */
-  public Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> getEnvironment() {
+  public Map<String, InvariantsFormula<CompoundInterval>> getEnvironment() {
     return Collections.unmodifiableMap(environment);
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override
@@ -750,8 +758,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       Set<InvariantsFormula<CompoundInterval>> pWideningHints) {
 
     Set<String> wideningTargets = pWideningTargets == null ? environment.keySet() : pWideningTargets;
-
-    FluentIterable<InvariantsFormula<CompoundInterval>> matchingHints = FluentIterable.from(pWideningHints).filter(this.implies);
 
     if (wideningTargets.isEmpty()) {
       return this;
@@ -810,7 +816,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     }
     InvariantsState result = new InvariantsState(resultEnvironment, variableSelection, machineModel, variableTypes, abstractionState);
 
-    for (InvariantsFormula<CompoundInterval> hint : matchingHints) {
+    for (InvariantsFormula<CompoundInterval> hint : FluentIterable.from(pWideningHints).filter(this.implies)) {
       result = result.assume(hint);
     }
     if (equals(result)) {

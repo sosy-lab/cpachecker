@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -55,6 +57,7 @@ public class ReplacingFormulaManager implements FormulaManager {
   private final boolean replacedRationalTheory;
   private final FunctionFormulaManager functionTheory;
   private final BooleanFormulaManager booleanTheory;
+  private final FloatingPointFormulaManager floatingPointTheory;
   private final UnsafeFormulaManager unsafeManager;
   private final QuantifiedFormulaManager quantifiedFormulaManager;
 
@@ -119,6 +122,16 @@ public class ReplacingFormulaManager implements FormulaManager {
         new ReplaceHelperBooleanFormulaManager(
             this,
             rawFormulaManager.getBooleanFormulaManager());
+
+    FloatingPointFormulaManager fpTheory = null;
+    try {
+      fpTheory = new ReplaceHelperFloatingPointFormulaManager(this,
+          rawFormulaManager.getFloatingPointFormulaManager(), unwrapTypes);
+    } catch (UnsupportedOperationException e) {
+      // optional theory
+    }
+    floatingPointTheory = fpTheory;
+
     unsafeManager =
         new ReplaceUnsafeFormulaManager(
             this,
@@ -137,6 +150,8 @@ public class ReplacingFormulaManager implements FormulaManager {
       f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
     } else if (type.isBooleanType()) {
       f = new WrappingBooleanFormula<>((FormulaType<BooleanFormula>)type, toWrap);
+    } else if (type.isFloatingPointType()) {
+      f = new WrappingFloatingPointFormula<>((FormulaType<FloatingPointFormula>)type, toWrap);
     } else {
       throw new IllegalArgumentException("cant wrap this type");
     }
@@ -183,6 +198,14 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     return rawFormulaManager.getRationalFormulaManager();
+  }
+
+  @Override
+  public FloatingPointFormulaManager getFloatingPointFormulaManager() {
+    if (floatingPointTheory == null) {
+      return rawFormulaManager.getFloatingPointFormulaManager(); // should throw UnsupportedOperationException
+    }
+    return floatingPointTheory;
   }
 
   @Override

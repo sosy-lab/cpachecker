@@ -1106,9 +1106,21 @@ class CFAFunctionBuilder extends ASTVisitor {
         elseNodeForLastElse = elseNode;
       }
 
+      FileLocation loc = astCreator.getLocation(condition);
+      if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
+        loc = new FileLocation(
+            loc.getEndingLineNumber(),
+            loc.getFileName(),
+            niceFileNameFunction.apply(loc.getFileName()),
+            loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
+            fileLocation.getNodeOffset(),
+            fileLocation.getStartingLineNumber(),
+            fileLocation.getStartingLineInOrigin());
+      }
+
       if (ASTOperatorConverter.isBooleanExpression(exp)) {
         addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse,
-            astCreator.getLocation(condition));
+            loc);
         return Optional.of(exp);
 
       } else {
@@ -1116,7 +1128,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         CExpression conv = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ZERO, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
-            astCreator.getLocation(condition));
+            loc);
 
         return Optional.<CExpression>of(exp);
       }
@@ -1806,12 +1818,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       CExpression one = new CIntegerLiteralExpression(loc, intType, BigInteger.ONE);
       CStatement assignOne = createStatement(loc, tempVar, one);
-      CFAEdge trueEdge = new CStatementEdge(binExp.getRawSignature(), assignOne, fileLocation, thenNode, lastNode);
+      CFAEdge trueEdge = new CStatementEdge(binExp.getRawSignature(), assignOne, FileLocation.DUMMY, thenNode, lastNode);
       addToCFA(trueEdge);
 
       CExpression zero = new CIntegerLiteralExpression(loc, intType, BigInteger.ZERO);
       CStatement assignZero = createStatement(loc, tempVar, zero);
-      CFAEdge falseEdge = new CStatementEdge(binExp.getRawSignature(), assignZero, fileLocation, elseNode, lastNode);
+      CFAEdge falseEdge = new CStatementEdge(binExp.getRawSignature(), assignZero, FileLocation.DUMMY, elseNode, lastNode);
       addToCFA(falseEdge);
 
     } else {

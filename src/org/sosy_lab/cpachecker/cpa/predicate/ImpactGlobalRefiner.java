@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -397,7 +398,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    *          on all of the state's parents is also not necessary)
    */
   private boolean performRefinementForState(BooleanFormula interpolant,
-      ARGState state) throws InterruptedException {
+      ARGState state) throws SolverException, InterruptedException {
 
     // Passing null as lastAbstraction is ok because
     // we check for impact.requirePreviousBlockAbstraction() in the constructor.

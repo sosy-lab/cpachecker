@@ -8,8 +8,14 @@
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
+  <sourcefiles name="Arrays">
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+  </sourcefiles>
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Concurrency">
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
@@ -24,6 +30,7 @@
   </sourcefiles>
   <sourcefiles name="Floats">
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
   <sourcefiles name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
@@ -31,8 +38,14 @@
   <sourcefiles name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
   </sourcefiles>
+  <sourcefiles name="MemorySafety">
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+  </sourcefiles>
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
   </sourcefiles>
   <sourcefiles name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
@@ -41,25 +54,10 @@
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
-
-<!-- for now, leave these out during first rounds of evaluation 
-  <sourcefiles name="Concurrency">
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-  </sourcefiles>
-
-  <sourcefiles name="Recursive">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-  </sourcefiles>
-
-  <sourcefiles name="MemorySafety">
-    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-  </sourcefiles>
-
   <sourcefiles name="Termination">
     <includesfile>../programs/benchmarks/Termination-crafted.set</includesfile>
-    <includesfile>../programs/benchmarks/Termination-ext.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </sourcefiles>
--->
 
   <rundefinition name="sv-comp15">
     <option name="-sv-comp15"/>

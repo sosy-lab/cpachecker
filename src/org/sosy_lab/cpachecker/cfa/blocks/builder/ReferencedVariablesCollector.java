@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -124,6 +125,13 @@ public class ReferencedVariablesCollector {
   private void collectVars(final CFAEdge edge) {
 
     switch (edge.getEdgeType()) {
+
+      case MultiEdge: {
+        for (CFAEdge innerEdge : (MultiEdge)edge) {
+          collectVars(innerEdge);
+        }
+        break;
+      }
       case AssumeEdge: {
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
         Set<String> vars = collectVars(assumeEdge.getExpression());

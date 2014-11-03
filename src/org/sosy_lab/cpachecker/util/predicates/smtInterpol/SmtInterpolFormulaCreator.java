@@ -62,4 +62,9 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   public Sort getBitvectorType(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
   }
+
+  @Override
+  public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
+    throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
+  }
 }

@@ -77,4 +77,13 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
 
     return result;
   }
+
+  @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    if (pModulo > 0) {
+      return msat_make_int_modular_congruence(getFormulaCreator().getEnv(),
+          pModulo, pNumber1, pNumber2);
+    }
+    return msat_make_true(getFormulaCreator().getEnv());
+  }
 }

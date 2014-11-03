@@ -159,7 +159,6 @@ public class SSAMap implements Serializable {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {
         vars = vars.removeAndCopy(variable);
-
         varsHashCode -= mapEntryHashCode(variable, index);
 
         varTypes = varTypes.removeAndCopy(variable);

@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -52,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
@@ -71,16 +67,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -96,8 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -105,7 +93,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor.VariableNameExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
@@ -116,12 +103,19 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
+
+  //set of functions that may not appear in the source code
+ // the value of the map entry is the explanation for the user
+ private static final Map<String, String> UNSUPPORTED_FUNCTIONS
+     = ImmutableMap.of("pthread_create", "threads");
 
   static final InvariantsTransferRelation INSTANCE = new InvariantsTransferRelation();
 
@@ -226,7 +220,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     String varName = decl.getName();
     if (!decl.isGlobal()) {
-      varName = scope(varName, pEdge.getSuccessor().getFunctionName());
+      varName = VariableNameExtractor.scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
     InvariantsFormula<CompoundInterval> value;
@@ -234,14 +228,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
-        value = toConstant(value, pElement);
+        value = toConstant(value, pElement.getEnvironment());
       }
 
     } else {
       value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
     }
 
-    value = topIfProblematicType(pElement, value, decl.getType());
+    value = handlePotentialOverflow(pElement, value, decl.getType());
     return pElement.assign(varName, value);
   }
 
@@ -253,14 +247,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
 
-    ExpressionToFormulaVisitor actualParamExpressionToFormulaVisitor = getExpressionToFormulaVisitor(new VariableNameExtractor() {
-
-      @Override
-      public String extract(IAExpression pExpression) throws UnrecognizedCodeException {
-        return getVarName(pExpression, pEdge, pEdge.getPredecessor().getFunctionName(), pElement);
-      }
-
-    }, pElement);
+    ExpressionToFormulaVisitor actualParamExpressionToFormulaVisitor =
+        getExpressionToFormulaVisitor(new VariableNameExtractor(pEdge, true, pElement.getEnvironment()), pElement);
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
       return handleAssumption(pElement, pEdge, actualParams.get(0).accept(
@@ -277,28 +265,40 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       InvariantsFormula<CompoundInterval> value = actualParam.accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
-        value = toConstant(value, pElement);
+        value = toConstant(value, pElement.getEnvironment());
       }
-      String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
+      String formalParam = VariableNameExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
 
-      value = topIfProblematicType(pElement, value, declaration.getType());
+      value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);
     }
 
     return newElement;
   }
 
-  private static CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula, @Nullable InvariantsState pState) {
-    Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment =
-        pState == null ? Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap() : pState.getEnvironment();
-    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), environment);
+  private static CompoundInterval evaluate(
+      InvariantsFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), pEnvironment);
   }
 
-  private static InvariantsFormula<CompoundInterval> toConstant(InvariantsFormula<CompoundInterval> pFormula, InvariantsState pState) {
-    return CompoundIntervalFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pState));
+  private static InvariantsFormula<CompoundInterval> toConstant(
+      InvariantsFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+    return CompoundIntervalFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pEnvironment));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+
+    if (pEdge.getStatement() instanceof CFunctionCall) {
+      CExpression fn = ((CFunctionCall) pEdge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression) {
+        String func = ((CIdExpression)fn).getName();
+        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
+        }
+      }
+    }
 
     if (pEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
@@ -316,34 +316,38 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           }
         }
       }
-      value = topIfProblematicType(pElement, value, leftHandSide.getExpressionType());
+      value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());
       return handleAssignment(pElement, pEdge.getPredecessor().getFunctionName(), pEdge, leftHandSide, value, pPrecision);
     }
 
     return pElement;
   }
 
-  private InvariantsState handleAssignment(InvariantsState pElement, String pFunctionName, CFAEdge pEdge, CExpression pLeftHandSide, InvariantsFormula<CompoundInterval> pValue, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+  private InvariantsState handleAssignment(
+      InvariantsState pElement,
+      String pFunctionName,
+      CFAEdge pEdge,
+      CExpression pLeftHandSide,
+      InvariantsFormula<CompoundInterval> pValue,
+      InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
+    VariableNameExtractor variableNameExtractor = new VariableNameExtractor(pEdge, pElement.getEnvironment());
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
-      String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge, pFunctionName);
+      String array = variableNameExtractor.getVarName(arraySubscriptExpression.getArrayExpression());
       InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       return pElement.assignArray(array, subscript, pValue);
     } else {
-      String varName = getVarName(pLeftHandSide, pEdge, pFunctionName);
+      String varName = variableNameExtractor.getVarName(pLeftHandSide);
       return pElement.assign(varName, pValue);
     }
   }
 
-  private InvariantsFormula<CompoundInterval> topIfProblematicType(InvariantsState pElement, InvariantsFormula<CompoundInterval> pFormula, CType pType) {
-    if (pType instanceof CSimpleType && ((CSimpleType) pType).isUnsigned()) {
-      CompoundInterval value = evaluate(pFormula, pElement);
-      if (value.containsNegative()) {
-        return CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-      }
-    }
-    return pFormula;
+  private InvariantsFormula<CompoundInterval> handlePotentialOverflow(
+      InvariantsState pState,
+      InvariantsFormula<CompoundInterval> pFormula,
+      CType pType) {
+    return ExpressionToFormulaVisitor.handlePotentialOverflow(pFormula, pState.getMachineModel(), pType, pState.getEnvironment());
   }
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -354,7 +358,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     InvariantsFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
-    String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
+    String returnValueName = VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
     return pElement.assign(returnValueName, returnedState);
   }
 
@@ -366,7 +370,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
-      String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
+      String returnValueName = VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
       InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(returnValueName);
 
@@ -405,110 +409,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       // Remove all variables that are in the scope of the returning function
       for (String variableName : result.getEnvironment().keySet()) {
-        if (isFunctionScoped(variableName, calledFunctionName)) {
+        if (VariableNameExtractor.isFunctionScoped(variableName, calledFunctionName)) {
           result = result.clear(variableName);
         }
       }
 
       return result;
-  }
-
-  public static String getVarName(IAExpression pLhs, CFAEdge pEdge) throws UnrecognizedCodeException {
-    return getVarName(pLhs, pEdge, pEdge.getSuccessor().getFunctionName());
-  }
-
-  public static String getVarName(IAExpression pLhs, CFAEdge pEdge, String pFunctionName) throws UnrecognizedCodeException {
-    return getVarName(pLhs, pEdge, pFunctionName, null);
-  }
-
-  public static String getVarName(AIdExpression pIdExpression, CFAEdge pEdge, String pFunctionName) {
-    CIdExpression var = (CIdExpression) pIdExpression;
-    String varName = var.getName();
-    if (var.getDeclaration() != null) {
-      CSimpleDeclaration decl = var.getDeclaration();
-
-      if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal() || decl instanceof CEnumerator) {
-      } else {
-        varName = scope(varName, pFunctionName);
-      }
-    }
-    return varName;
-  }
-
-  public static String getFieldReferenceVarName(String pVarName, @Nullable IAExpression pOwner, CFAEdge pEdge, String pFunctionName, boolean pIsPointerDereference) throws UnrecognizedCodeException {
-    String varName = pVarName;
-    if (pOwner != null) {
-      varName = getVarName(pOwner, pEdge, pFunctionName) + (pIsPointerDereference ? "->" : ".") + varName;
-    }
-    return varName;
-  }
-
-  public static String getArraySubscriptVarName(IAExpression pOwner, IAExpression pSubscript, InvariantsState pState, CFAEdge pEdge, String pFunctionName) throws UnrecognizedCodeException {
-    if (pSubscript instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
-      return String.format("%s[%d]", getVarName(pOwner, pEdge, pFunctionName), literal.asLong()).toString();
-    }
-    final CompoundInterval subscriptValue;
-    ExpressionToFormulaVisitor expressionToFormulaVisitor = InvariantsTransferRelation.getExpressionToFormulaVisitor(pEdge, pState);
-    if (pSubscript instanceof CExpression) {
-      subscriptValue = evaluate(((CExpression) pSubscript).accept(expressionToFormulaVisitor), pState);
-    } else if (pSubscript instanceof JExpression) {
-      subscriptValue = evaluate(((JExpression) pSubscript).accept(expressionToFormulaVisitor), pState);
-    } else {
-      subscriptValue = CompoundInterval.top();
-    }
-    if (subscriptValue.isSingleton()) {
-      return String.format("%s[%d]", getVarName(pOwner, pEdge, pFunctionName), subscriptValue.getValue()).toString();
-    }
-    return String.format("%s[*]", getVarName(pOwner, pEdge, pFunctionName)).toString();
-  }
-
-  public static String getVarName(IAExpression pLhs, CFAEdge pEdge, String pFunctionName, InvariantsState pState) throws UnrecognizedCodeException {
-    if (pLhs instanceof AIdExpression) {
-      return getVarName((AIdExpression) pLhs, pEdge, pFunctionName);
-    } else if (pLhs instanceof CFieldReference) {
-      CFieldReference fieldRef = (CFieldReference) pLhs;
-      String varName = fieldRef.getFieldName();
-      CExpression owner = fieldRef.getFieldOwner();
-      return getFieldReferenceVarName(varName, owner, pEdge, pFunctionName, fieldRef.isPointerDereference());
-    } else if (pLhs instanceof JFieldAccess) {
-      JFieldAccess fieldRef = (JFieldAccess) pLhs;
-      String varName = fieldRef.getName();
-      JIdExpression owner = fieldRef.getReferencedVariable();
-      return getFieldReferenceVarName(varName, owner, pEdge, pFunctionName, false);
-    } else if (pLhs instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
-      CExpression subscript = arraySubscript.getSubscriptExpression();
-      CExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptVarName(owner, subscript, pState, pEdge, pFunctionName);
-    } else if (pLhs instanceof JArraySubscriptExpression) {
-      JArraySubscriptExpression arraySubscript = (JArraySubscriptExpression) pLhs;
-      JExpression subscript = arraySubscript.getSubscriptExpression();
-      JExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptVarName(owner, subscript, pState, pEdge, pFunctionName);
-    } else if (pLhs instanceof CPointerExpression) {
-      CPointerExpression pe = (CPointerExpression) pLhs;
-      if (pe.getOperand() instanceof CLeftHandSide) {
-        return String.format("*(%s)", getVarName(pe.getOperand(), pEdge));
-      }
-      return pLhs.toString();
-    } else if (pLhs instanceof CCastExpression) {
-      CCastExpression cast = (CCastExpression) pLhs;
-      return getVarName(cast.getOperand(), pEdge);
-    } else if (pLhs instanceof JCastExpression) {
-      JCastExpression cast = (JCastExpression) pLhs;
-      return getVarName(cast.getOperand(), pEdge);
-    } else {
-      return pLhs.toString(); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
-    }
-  }
-
-  static String scope(String pVar, String pFunction) {
-    return pFunction + "::" + pVar;
-  }
-
-  private boolean isFunctionScoped(String pScopedVariableName, String pFunction) {
-    return pScopedVariableName.startsWith(pFunction + "::");
   }
 
   @Override
@@ -581,29 +487,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return null;
   }
 
-  public static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
-    return getExpressionToFormulaVisitor(pEdge, null);
+  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {
+    return getExpressionToFormulaVisitor(new VariableNameExtractor(pEdge, pState.getEnvironment()), pState);
   }
 
-  public static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor) {
-    return getExpressionToFormulaVisitor(pVariableNameExtractor, null);
-  }
-
-  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final @Nullable InvariantsState pState) {
-    return getExpressionToFormulaVisitor(new VariableNameExtractor() {
-
-      @Override
-      public String extract(IAExpression pExpression) throws UnrecognizedCodeException {
-        return getVarName(pExpression, pEdge);
-      }
-
-    }, pState);
-  }
-
-  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final @Nullable InvariantsState pState) {
-    final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
-    environment = pState == null ? Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap() : pState.getEnvironment();
-    return new ExpressionToFormulaVisitor(pVariableNameExtractor, environment);
+  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final InvariantsState pState) {
+    return new ExpressionToFormulaVisitor(pVariableNameExtractor, pState.getEnvironment());
   }
 
   private static boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
@@ -697,7 +586,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (returnStatementEdge.getExpression().isPresent()) {
         IAExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<String, CType> result = new HashMap<>();
-        result.put(scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
+        result.put(VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
             (CType) returnExpression.getExpressionType());
         result.putAll(getInvolvedVariables(returnExpression, pCfaEdge));
         return result;
@@ -743,7 +632,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
           Map<String, CType> result = new HashMap<>();
-          result.put(scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
+          result.put(VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
               (CType) functionCallExpression.getExpressionType());
           result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
@@ -871,7 +760,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         )) {
         InvariantsFormula<CompoundInterval> formula;
         try {
-          formula = ((CExpression) leftHandSide).accept(getExpressionToFormulaVisitor(pCfaEdge));
+          formula = ((CExpression) leftHandSide).accept(new ExpressionToFormulaVisitor(
+              new VariableNameExtractor(
+                  pCfaEdge,
+                  Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap())));
 
           for (String variableName : formula.accept(COLLECT_VARS_VISITOR)) {
             result.put(variableName, (CType) leftHandSide.getExpressionType());

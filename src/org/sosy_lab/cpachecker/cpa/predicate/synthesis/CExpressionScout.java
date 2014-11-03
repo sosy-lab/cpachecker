@@ -25,93 +25,21 @@ package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 
-import com.google.common.collect.Sets;
-
-public class CExpressionScout extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+public class CExpressionScout extends AbstractCExpressionScout {
 
   private final Set<CIdExpression> searchFor;
-  private final Set<CExpression> visited;
 
   public CExpressionScout(Set<CIdExpression> pFindAnyOf) {
     super();
     searchFor = pFindAnyOf;
-    visited = Sets.newHashSet();
-  }
-
-
-  public Boolean x(CExpression pParent, CExpression... pExprOperands)  {
-    if (!visited.add(pParent)) {
-      return false;
-    }
-
-    if (searchFor.contains(pParent)) {
-      return true;
-    }
-
-    for (CExpression op: pExprOperands) {
-
-      if (searchFor.contains(op)) {
-        return true;
-      }
-
-      if (op.accept(this)) {
-        return true;
-      }
-
-    }
-
-    return false;
   }
 
   @Override
-  public Boolean visit(CTypeIdExpression pE) throws RuntimeException {
-    return x(pE);
-  }
-
-  @Override
-  public Boolean visit(CPointerExpression pE) throws RuntimeException {
-    return x(pE, pE.getOperand());
-  }
-
-  @Override
-  public Boolean visit(CComplexCastExpression pE) throws RuntimeException {
-    return x(pE, pE.getOperand());
-  }
-
-  @Override
-  public Boolean visit(CArraySubscriptExpression pE) throws RuntimeException {
-    return x(pE, pE.getArrayExpression(), pE.getSubscriptExpression());
-  }
-
-  @Override
-  protected Boolean visitDefault(CExpression pE) {
-    return x(pE);
-  }
-
-  @Override
-  public Boolean visit(CCastExpression pE) throws RuntimeException {
-    return x(pE, pE.getOperand());
-  }
-
-  @Override
-  public Boolean visit(CUnaryExpression pE) throws RuntimeException {
-    return x(pE, pE.getOperand());
-  }
-
-  @Override
-  public Boolean visit(CBinaryExpression pE) throws RuntimeException {
-    return x(pE, pE.getOperand1(), pE.getOperand2());
+  public boolean matches(CExpression pExpr) {
+    return searchFor.contains(pExpr);
   }
 
 }

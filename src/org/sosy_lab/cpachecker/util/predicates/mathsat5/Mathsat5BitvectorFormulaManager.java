@@ -167,6 +167,11 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
+  public Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return msat_make_true(mathsatEnv);
+  }
+
+  @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
     return msat_make_bv_times(mathsatEnv, pNumber1, pNumber2);
   }

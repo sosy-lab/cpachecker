@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CFunctionType;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -126,7 +127,13 @@ class AssignmentHandler {
          !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
          !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
       CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
-      rhsExpression = rhs.accept(rhsVisitor);
+
+      CRightHandSide r = rhs;
+      if (r instanceof CExpression) {
+        r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
+      }
+
+      rhsExpression = r.accept(rhsVisitor);
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       rhsUsedFields = rhsVisitor.getUsedFields();
       rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
@@ -429,7 +436,7 @@ class AssignmentHandler {
     final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, edge) : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
-        result = fmgr.makeEqual(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
+        result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -443,7 +450,7 @@ class AssignmentHandler {
                                                   targetType,
                                                   lvalue.asAliased().getAddress());
       if (rhs != null) {
-        result = fmgr.makeEqual(lhs, rhs);
+        result = fmgr.assignment(lhs, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }

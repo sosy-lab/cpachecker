@@ -45,9 +45,6 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.ARGBasedPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.HeuristicPartialReachedSetConstructionAlgorithm;
-import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -66,16 +63,8 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
     pConfig.inject(this, PartialReachedSetStrategy.class);
-    switch (new PartialCertificateTypeProvider(pConfig, true).getCertificateType()) {
-    case ARG:
-      certificateConstructor = new ARGBasedPartialReachedSetConstructionAlgorithm(false);
-      break;
-    case MONOTONESTOPARG:
-      certificateConstructor = new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(false);
-      break;
-    default:
-      certificateConstructor = new HeuristicPartialReachedSetConstructionAlgorithm();
-    }
+
+    certificateConstructor = new PartialCertificateTypeProvider(pConfig, true).getPartialCertificateConstructor();
   }
 
   @Override

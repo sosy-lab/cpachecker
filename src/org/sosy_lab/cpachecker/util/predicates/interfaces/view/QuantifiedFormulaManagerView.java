@@ -50,9 +50,4 @@ public class QuantifiedFormulaManagerView
     return wrapInView(manager.forall(pVariables, extractFromView(pBody)));
   }
 
-  @Override
-  public BooleanFormula eliminatedQuantifiers(BooleanFormula pF) {
-    return null;
-  }
-
 }

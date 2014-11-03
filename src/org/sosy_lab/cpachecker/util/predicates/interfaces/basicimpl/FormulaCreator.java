@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
@@ -81,6 +82,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   public abstract TType getBitvectorType(int bitwidth);
 
+  public abstract TType getFloatingPointType(FormulaType.FloatingPointType type);
+
   public abstract TFormulaInfo makeVariable(TType type, String varName);
 
   public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
@@ -89,6 +92,10 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   protected BitvectorFormula encapsulateBitvector(TFormulaInfo pTerm) {
     return new BitvectorFormulaImpl<>(pTerm);
+  }
+
+  protected FloatingPointFormula encapsulateFloatingPoint(TFormulaInfo pTerm) {
+    return new FloatingPointFormulaImpl<>(pTerm);
   }
 
   @SuppressWarnings("unchecked")
@@ -101,6 +108,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       return (T)new RationalFormulaImpl<>(pTerm);
     } else if (pType.isBitvectorType()) {
       return (T)new BitvectorFormulaImpl<>(pTerm);
+    } else if (pType.isFloatingPointType()) {
+      return (T)new FloatingPointFormulaImpl<>(pTerm);
     }
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }
@@ -132,5 +141,5 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return (FormulaType<T>) t;
   }
 
-  protected abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
+  public abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
 }

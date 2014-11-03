@@ -74,4 +74,9 @@ public class BAMFreshValueProvider implements FreshValueProvider {
   public boolean equals(Object other) {
     return other instanceof BAMFreshValueProvider && this.vars.equals(((BAMFreshValueProvider)other).vars);
   }
+
+  @Override
+  public int hashCode() {
+    return vars.hashCode();
+  }
 }

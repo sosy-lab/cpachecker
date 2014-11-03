@@ -96,8 +96,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     Preconditions.checkArgument(pElement instanceof AutomatonState);
 
+    if (pElement instanceof AutomatonUnknownState) {
+      // the last CFA edge could not be processed properly
+      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
+      AutomatonState top = cpa.getTopState();
+      return Collections.singleton(top);
+    }
+
     if (!(pCfaEdge instanceof MultiEdge)) {
-      Collection<? extends AbstractState> result = getAbstractSuccessors0(pElement, pPrecision, pCfaEdge);
+      Collection<? extends AbstractState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
       automatonSuccessors.setNextValue(result.size());
       return result;
     }
@@ -161,23 +168,18 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AutomatonState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     totalPostTime.start();
     try {
-
       if (pElement instanceof AutomatonUnknownState) {
-        // the last CFA edge could not be processed properly
-        // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
-        AutomatonState top = cpa.getTopState();
-        return Collections.singleton(top);
-      }
-      if (! (pElement instanceof AutomatonState)) {
-        throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-AutomatonState AbstractStates.");
+        // happens only inside MultiEdges,
+        // here we have no chance (because strengthen is called only at the end of the edge),
+        // so we just stay in the previous state
+        pElement = ((AutomatonUnknownState)pElement).getPreviousState();
       }
 
-      AutomatonState lCurrentAutomatonState = (AutomatonState)pElement;
-      return getFollowStates(lCurrentAutomatonState, null, pCfaEdge, false);
+      return getFollowStates(pElement, null, pCfaEdge, false);
 
     } finally {
       totalPostTime.stop();

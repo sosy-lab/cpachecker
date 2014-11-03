@@ -64,11 +64,4 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
         pBody);
   }
 
-
-  @Override
-  protected Long eliminatedQuantifiers(Long pF) {
-    return null;
-  }
-
-
 }

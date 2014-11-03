@@ -97,11 +97,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5IntegerFormulaManager pIntegerManager,
       Mathsat5RationalFormulaManager pRationalManager,
       Mathsat5BitvectorFormulaManager pBitpreciseManager,
+      Mathsat5FloatingPointFormulaManager pFloatingPointmanager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
-
-    super(creator, unsafeManager, pFunctionManager,
-            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager, null);
+    super(creator, unsafeManager, pFunctionManager, pBooleanManager,
+        pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;
@@ -155,10 +155,12 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5IntegerFormulaManager integerTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
     Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
+    Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator, functionTheory);
 
     return new Mathsat5FormulaManager(logger, msatConf, creator,
         unsafeManager, functionTheory, booleanTheory,
-        integerTheory, rationalTheory, bitvectorTheory, settings, pShutdownNotifier);
+        integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory,
+        settings, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(long t) {

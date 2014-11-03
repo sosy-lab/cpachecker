@@ -64,7 +64,7 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws SolverException, InterruptedException {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
@@ -96,5 +96,12 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   public void close() {
     wrapped.close();
     logger.log(Level.FINER, "closed");
+  }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    BooleanFormula result = eliminateQuantifiers(pF);
+    logger.log(Level.FINE, "eliminate-quantifiers", pF, result);
+    return result;
   }
 }

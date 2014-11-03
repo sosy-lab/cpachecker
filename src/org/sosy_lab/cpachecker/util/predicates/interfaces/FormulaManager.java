@@ -59,6 +59,11 @@ public interface FormulaManager {
   BitvectorFormulaManager getBitvectorFormulaManager();
 
   /**
+   * Returns the Floating-Point-Theory.
+   */
+  FloatingPointFormulaManager getFloatingPointFormulaManager();
+
+  /**
    * Returns the Function-Theory.
    */
   FunctionFormulaManager getFunctionFormulaManager();

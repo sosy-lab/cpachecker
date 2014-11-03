@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -120,7 +121,8 @@ final class ImpactUtility {
    * @return True if the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
-      final ARGState s, final AbstractionFormula lastAbstraction) throws InterruptedException {
+      final ARGState s, final AbstractionFormula lastAbstraction)
+          throws SolverException, InterruptedException {
     checkState(!requiresPreviousBlockAbstraction()
         || lastAbstraction != null);
 

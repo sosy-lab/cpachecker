@@ -28,6 +28,7 @@ import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -76,6 +77,16 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
 @SuppressWarnings("serial")
 class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BitvectorFormula {
   public BitvectorFormulaImpl(TFormulaInfo info) {
+    super(info);
+  }
+}
+
+/**
+ * Simple FloatingPointFormula implementation.
+ */
+@SuppressWarnings("serial")
+class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
+  public FloatingPointFormulaImpl(TFormulaInfo info) {
     super(info);
   }
 }

@@ -127,5 +127,11 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
     checkArgument(pBitwidth > 0, "Cannot use bitvector type with size %s", pBitwidth);
     long bvSort = mk_bv_sort(getEnv(), pBitwidth);
     inc_ref(getEnv(), sort_to_ast(getEnv(), bvSort));
-    return bvSort;  }
+    return bvSort;
+  }
+
+  @Override
+  public Long getFloatingPointType(FormulaType.FloatingPointType type) {
+    throw new UnsupportedOperationException("FloatingPoint theory is not supported by Z3");
+  }
 }

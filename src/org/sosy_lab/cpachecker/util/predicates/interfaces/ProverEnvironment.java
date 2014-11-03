@@ -55,9 +55,8 @@ public interface ProverEnvironment extends AutoCloseable {
 
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
    */
-  boolean isUnsat() throws InterruptedException;
+  boolean isUnsat() throws SolverException, InterruptedException;
 
   /**
    * Get a satisfying assignment.
@@ -86,6 +85,15 @@ public interface ProverEnvironment extends AutoCloseable {
   AllSatResult allSat(Collection<BooleanFormula> important,
                       RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException;
 
+  /**
+   * Eliminate the quantifiers for a given formula.
+   *  ATTENTION: Incremental checking is not supported by this method at the moment!
+   *
+   * @param   Formula with quantifiers.
+   * @return  New formula without quantifiers.
+   */
+  BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException;
+
   @Override
   void close();
 
@@ -102,4 +110,5 @@ public interface ProverEnvironment extends AutoCloseable {
      */
     public int getCount();
   }
+
 }

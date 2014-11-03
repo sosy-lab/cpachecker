@@ -1,3 +1,4 @@
+
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -40,10 +41,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -147,6 +152,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       return createState(element, pathFormula, loc, doAbstraction);
 
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed during successor generation", e);
+
     } finally {
       postTimer.stop();
     }
@@ -169,7 +177,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Collection<? extends PredicateAbstractState> createState(PredicateAbstractState oldState, PathFormula pathFormula,
-      CFANode loc, boolean doAbstraction) throws InterruptedException {
+      CFANode loc, boolean doAbstraction)
+          throws SolverException, InterruptedException {
     if (doAbstraction) {
       return Collections.singleton(
           new PredicateAbstractState.ComputeAbstractionState(
@@ -185,7 +194,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
    * successor. This currently only envolves an optional sat check.
    */
   private Collection<PredicateAbstractState> handleNonAbstractionFormulaLocation(
-      PathFormula pathFormula, PredicateAbstractState oldState) throws InterruptedException {
+      PathFormula pathFormula, PredicateAbstractState oldState)
+          throws SolverException, InterruptedException {
     boolean satCheck = (satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize);
 
     logger.log(Level.FINEST, "Handling non-abstraction location",
@@ -293,7 +303,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException, InterruptedException {
+      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
 
     strengthenTimer.start();
     try {
@@ -335,6 +346,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       }
 
       return Collections.singleton(element);
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed during strengthen sat check", e);
 
     } finally {
       strengthenTimer.stop();
@@ -351,10 +364,14 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     // TODO how to get a pseudo variable for the current function with the correct type here?
     // We would need to have access to the current function's declaration.
     CIdExpression retVar = null;
-
     for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
-
-        pf = convertEdgeToPathFormula(pf, assumption);
+      // assumptions do not contain compete type nor scope information
+      // hence, not all types can be resolved, so ignore these
+      // TODO: the witness automaton is complete in that regard, so use that in future
+      if(assumptionContainsProblemType(assumption)) {
+        continue;
+      }
+      pf = convertEdgeToPathFormula(pf, assumption);
     }
 
     if (pf != pElement.getPathFormula()) {
@@ -396,7 +413,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private PredicateAbstractState strengthenSatCheck(
-      PredicateAbstractState pElement, CFANode loc) throws InterruptedException {
+      PredicateAbstractState pElement, CFANode loc)
+          throws SolverException, InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
     strengthenCheckTimer.start();
@@ -429,7 +447,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+      Collection<? extends AbstractState> pSuccessors)
+          throws SolverException, CPATransferException, InterruptedException {
     PredicateAbstractState predicateElement = (PredicateAbstractState) pElement;
     PathFormula pathFormula = computedPathFormulae.get(predicateElement);
     if (pathFormula == null) {
@@ -485,5 +504,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return result;
+  }
+
+  private boolean assumptionContainsProblemType(AssumeEdge assumption) {
+    CExpression expression = (CExpression) assumption.getExpression();
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+    expression.accept(collector);
+    for (CIdExpression var : collector.getReferencedIdExpressions()) {
+      if (var.getExpressionType() instanceof CProblemType) {
+        return true;
+      }
+    }
+    return false;
   }
 }

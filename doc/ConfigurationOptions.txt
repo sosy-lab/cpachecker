@@ -353,6 +353,9 @@ cfa.moveDeclarationsToFunctionStart = false
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
+# Remove all edges which don't have any effect on the program
+cfa.simplifyCfa = true
+
 # simplify simple const expressions like 1+2
 cfa.simplifyConstExpressions = true
 
@@ -360,9 +363,6 @@ cfa.simplifyConstExpressions = true
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
-
-# Remove all edges which don't have any effect on the program
-cfa.simplyfyCfa = true
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
@@ -584,6 +584,9 @@ cpa.bam.exportBlocksPath = "block_cfa.dot"
 # if enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
+
+# BAM allows to analyse recursive procedures depending on the underlying CPA.
+cpa.bam.handleRecursiveProcedures = false
 
 # export single blocked ARG as .dot files, should contain '%d'
 cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
@@ -887,7 +890,7 @@ cpa.predicate.abstraction.cartesian = false
 
 # whether to use Boolean or Cartesian abstraction or both
 cpa.predicate.abstraction.computation = BOOLEAN
-  enum:     [CARTESIAN, BOOLEAN, COMBINED]
+  enum:     [CARTESIAN, BOOLEAN, COMBINED, ELIMINATION]
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
@@ -918,6 +921,9 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, SYLVAN, FORMULA]
 
+# Export one abstraction formula for each abstraction state into a file?
+cpa.predicate.abstractions.export = true
+
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
 
@@ -933,6 +939,14 @@ cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
 # force abstractions at each branch node, regardless of threshold
 cpa.predicate.blk.alwaysAtBranch = false
+
+# force abstractions at the head of the analysis-entry function (first node
+# in the body), regardless of threshold
+cpa.predicate.blk.alwaysAtEntryFunctionHead = false
+
+# force abstractions at each function call (node before entering the body),
+# regardless of threshold
+cpa.predicate.blk.alwaysAtFunctionCallNodes = false
 
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
@@ -1213,6 +1227,14 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
+# enable export of all relations that were collected to synthecise the
+# abstract precision?
+cpa.predicate.relations.export = false
+
+# file that consists all relations that were collected to synthecise the
+# abstract precision
+cpa.predicate.relations.file = "relations.txt"
+
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
@@ -1276,6 +1298,9 @@ cpa.predicate.targetStateSatCheck = true
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
+
+# Use precise floating point arithmetic (slow and only suppored by MathSAT).
+cpa.predicate.useFloatingPointArithmetic = false
 
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
@@ -1349,6 +1374,9 @@ cpa.smg.exportSMG.file = "smg-%s.dot"
 # Describes when SMG graphs should be dumped. One of: {never, leaf,
 # interesting, every}
 cpa.smg.exportSMGwhen = "never"
+
+# Size of memory that cannot be calculated will be guessed.
+cpa.smg.guessSizeOfUnknownMemorySize = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
@@ -1544,6 +1572,10 @@ cpa.value.initialPrecisionFile = no default value
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# Assume that variables used only in a boolean context are either zero or
+# one.
+cpa.value.optimizeBooleanVariables = true
+
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
@@ -1706,6 +1738,13 @@ pcc.partial.enableLoadDistribution = false
 # false.
 pcc.partial.stopAddingAtReachedSetSize = false
 
+# Balance criterion for pairwise optimization of partitions
+pcc.partitioning.fm.balanceCriterion = 1.5d
+
+# Heuristic for computing an initial partitioning of proof
+pcc.partitioning.fm.initialPartitioningStrategy = RANDOM
+  enum:     [RANDOM]
+
 # Specifies the maximum size of the partition. This size is used to compute
 # the number of partitions if a proof (reached set) should be written.
 # Default value 0 means always a single partition.
@@ -1713,7 +1752,7 @@ pcc.partitioning.maxNumElemsPerPartition = 0
 
 # Heuristic for computing partitioning of proof (partial reached set).
 pcc.partitioning.partitioningStrategy = RANDOM
-  enum:     [RANDOM, DFS, BFS, OPTIMAL]
+  enum:     [RANDOM, DFS, BFS, OPTIMAL, FM]
 
 # If enabled uses the number of nodes saved in certificate to compute
 # partition number otherwise the size of certificate

@@ -165,7 +165,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
       converter = createCtoFormulaConverter(options, pMachineModel, pVariableClassification, typeHandler);
       ptsManager = null;
 
@@ -425,6 +425,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     assert oldIndex > 0;
     assert newIndex > oldIndex;
 
+    // Important note:
+    // we need to use fmgr.assignment in these methods,
+    // because fmgr.equal has undesired semantics for floating points.
+
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
 
@@ -453,7 +457,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
 
-    return fmgr.makeEqual(newVariable, oldVariable);
+    return fmgr.assignment(newVariable, oldVariable);
   }
 
   private BooleanFormula makeSsaUFMerger(final String functionName,
@@ -470,7 +474,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
-      final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(functionName,
+      final BooleanFormula retention = fmgr.assignment(ffmgr.declareAndCallUninterpretedFunction(functionName,
                                                                               newIndex,
                                                                               returnFormulaType,
                                                                               targetAddress),
@@ -493,7 +497,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
       Formula currentVar = fmgr.makeVariable(type, NONDET_FLAG_VARIABLE, i);
-      BooleanFormula e = fmgr.makeEqual(currentVar, pInitialValue);
+      BooleanFormula e = fmgr.assignment(currentVar, pInitialValue);
       lResult = bfmgr.and(lResult, e);
     }
 

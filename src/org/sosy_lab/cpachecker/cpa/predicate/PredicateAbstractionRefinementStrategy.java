@@ -60,7 +60,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -77,6 +79,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -255,10 +258,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      PredicatePrecision heuristicPrecision;
+      try {
+        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      } catch (CPATransferException | SolverException e) {
+        logger.logUserException(Level.WARNING, e, "Static refinement failed");
+        lastRefinementUsedHeuristics = false;
+        super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+        return;
+      }
 
       shutdownNotifier.shutdownIfNecessary();
-      pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
+      pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
@@ -443,12 +454,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision, PredicatePrecision.class);
+    pReached.removeSubtree(refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
     assert (refinementCount > 0) || reached.size() == 1;
 
     if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision, PredicatePrecision.class);
+      pReached.updatePrecisionGlobally(newPrecision, Predicates.instanceOf(PredicatePrecision.class));
     }
 
     argUpdate.stop();

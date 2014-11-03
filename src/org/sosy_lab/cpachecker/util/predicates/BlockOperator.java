@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -77,6 +78,9 @@ public class BlockOperator {
   @Option(secure=true, description="force abstractions at each function head (first node in the body), regardless of threshold")
   private boolean alwaysAtFunctionHeads = false;
 
+  @Option(secure=true, description="force abstractions at the head of the analysis-entry function (first node in the body), regardless of threshold")
+  private boolean alwaysAtEntryFunctionHead = false;
+
   @Option(secure=true, description="force abstractions at each function call (node before entering the body), regardless of threshold")
   private boolean alwaysAtFunctionCallNodes = false;
 
@@ -93,12 +97,15 @@ public class BlockOperator {
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
+  public int numBlkEntryFunctionHeads = 0;
   public int numBlkFunctionHeads = 0;
   public int numBlkFunctions = 0;
   public int numBlkLoops = 0;
   public int numBlkJoins = 0;
   public int numBlkBranch = 0;
   public int numBlkThreshold = 0;
+
+  private CFA cfa = null;
 
   /**
    * Check whether an abstraction should be computed.
@@ -122,6 +129,14 @@ public class BlockOperator {
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
       numBlkFunctions++;
       return true;
+    }
+
+    if (alwaysAtEntryFunctionHead && isFunctionHead(edge)) {
+      Preconditions.checkNotNull(cfa);
+      if (cfa.getMainFunction().getFunctionName().equals(edge.getPredecessor().getFunctionName())) {
+        numBlkEntryFunctionHeads++;
+        return true;
+      }
     }
 
     if (alwaysAtFunctionHeads && isFunctionHead(edge)) {
@@ -218,7 +233,8 @@ public class BlockOperator {
     this.explicitAbstractionNodes = pNodes;
   }
 
-  public void setCFA(CFA cfa) {
+  public void setCFA(CFA pCfa) {
+    this.cfa = pCfa;
     if (absOnLoop || alwaysAtLoops) {
       if (cfa.getAllLoopHeads().isPresent()) {
         loopHeads = cfa.getAllLoopHeads().get();

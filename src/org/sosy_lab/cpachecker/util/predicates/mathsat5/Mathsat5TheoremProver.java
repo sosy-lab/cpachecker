@@ -34,6 +34,7 @@ import java.util.List;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -68,12 +69,6 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
-  }
-
-  @Override
-  public boolean isUnsat() throws InterruptedException {
-    Preconditions.checkState(curEnv != 0);
-    return !msat_check_sat(curEnv);
   }
 
   @Override
@@ -219,5 +214,10 @@ public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements Pro
 
       regionTime.stop();
     }
+  }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    throw new RuntimeException("eliminateQuantifiers not implemented for this theorem prover!");
   }
 }

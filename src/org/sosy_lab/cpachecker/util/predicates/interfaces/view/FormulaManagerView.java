@@ -41,6 +41,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,6 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -68,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.Replaci
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * This class is the central entry point for all formula creation
@@ -91,6 +95,7 @@ public class FormulaManagerView {
     public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> manager);
     public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> manager);
     public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
+    public FloatingPointFormulaManagerView wrapManager(FloatingPointFormulaManager manager);
     public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager manager);
     public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
   }
@@ -100,6 +105,11 @@ public class FormulaManagerView {
         @Override
         public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager pManager) {
           return new BitvectorFormulaManagerView(pManager);
+        }
+
+        @Override
+        public FloatingPointFormulaManagerView wrapManager(FloatingPointFormulaManager pManager) {
+          return new FloatingPointFormulaManagerView(pManager);
         }
 
         @Override
@@ -142,6 +152,7 @@ public class FormulaManagerView {
 
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
+  private final FloatingPointFormulaManagerView floatingPointFormulaManager;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
@@ -184,6 +195,14 @@ public class FormulaManagerView {
           + "to approximate bitvectors with another theory.",
           e);
     }
+    FloatingPointFormulaManagerView fpfmgr = null;
+    try {
+      fpfmgr = loadManagers.wrapManager(manager.getFloatingPointFormulaManager());
+      fpfmgr.couple(this);
+    } catch (UnsupportedOperationException e) {
+      // optional theory
+    }
+    floatingPointFormulaManager = fpfmgr;
     integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
     integerFormulaManager.couple(this);
     booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
@@ -236,6 +255,8 @@ public class FormulaManagerView {
     } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType impl = (FormulaType.BitvectorType) formulaType;
       t = bitvectorFormulaManager.makeVariable(impl.getSize(), name);
+    } else if (formulaType.isFloatingPointType()) {
+      t = floatingPointFormulaManager.makeVariable(name, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -258,6 +279,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else if (formulaType.isFloatingPointType()) {
+      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -302,6 +325,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
+    } else if (formulaType.isFloatingPointType()) {
+      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -318,6 +343,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().negate((RationalFormula)pNum);
     } else if (pNum instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.negate((BitvectorFormula)pNum);
+    } else if (pNum instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.negate((FloatingPointFormula)pNum);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -334,6 +361,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.add((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -350,6 +379,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.subtract((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -365,6 +396,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.multiply((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -381,6 +414,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().divide((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.divide((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
+    } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.divide((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -402,6 +437,21 @@ public class FormulaManagerView {
     }
 
     return (T) t;
+  }
+
+  public <T extends Formula> BooleanFormula makeModularCongruence(T pF1, T pF2, long pModulo) {
+    BooleanFormula t;
+    if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
+      t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
+    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
+      t = getRationalFormulaManager().modularCongruence((NumeralFormula) pF1, (NumeralFormula) pF2, pModulo);
+    } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
+      t = bitvectorFormulaManager.modularCongruence((BitvectorFormula) pF1, (BitvectorFormula) pF2, pModulo);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return t;
   }
 
   @SuppressWarnings("unchecked")
@@ -554,6 +604,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().equal((NumeralFormula)pLhs, (NumeralFormula)pRhs);
     } else if (pLhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.equal((BitvectorFormula)pLhs, (BitvectorFormula)pRhs);
+    } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.equalWithFPSemantics((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -569,6 +621,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().lessOrEquals((NumeralFormula)pLhs, (NumeralFormula)pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.lessOrEquals((BitvectorFormula)pLhs, (BitvectorFormula)pRhs, signed);
+    } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.lessOrEquals((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -583,6 +637,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().lessThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.lessThan((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
+    } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.lessThan((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -598,6 +654,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().greaterThan((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.greaterThan((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
+    } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.greaterThan((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -613,6 +671,8 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().greaterOrEquals((NumeralFormula) pLhs, (NumeralFormula) pRhs);
     } else if (pLhs instanceof BitvectorFormula && pRhs instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.greaterOrEquals((BitvectorFormula) pLhs, (BitvectorFormula) pRhs, signed);
+    } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
+      t = floatingPointFormulaManager.greaterOrEquals((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -645,6 +705,10 @@ public class FormulaManagerView {
     return bitvectorFormulaManager;
   }
 
+  public FloatingPointFormulaManagerView getFloatingPointFormulaManager() {
+    return floatingPointFormulaManager;
+  }
+
   public FunctionFormulaManagerView getFunctionFormulaManager() {
     return functionFormulaManager;
   }
@@ -672,6 +736,9 @@ public class FormulaManagerView {
     if (formula instanceof BitvectorFormula) {
       return (T) bitvectorFormulaManager.wrapInView((BitvectorFormula) formula);
     }
+    if (formula instanceof FloatingPointFormula) {
+      return (T) floatingPointFormulaManager.wrapInView((FloatingPointFormula) formula);
+    }
     throw new IllegalArgumentException("Unknown formula type " + formula);
   }
 
@@ -680,10 +747,14 @@ public class FormulaManagerView {
     right = extractFromView(right);
     FormulaType<T> lformulaType = this.getFormulaType(left);
     FormulaType<T> rformulaType = this.getFormulaType(right);
-    if (lformulaType != rformulaType) {
+    if (!lformulaType.equals(rformulaType)) {
       throw new IllegalArgumentException("Can't assign different types! (" + lformulaType + " and " + rformulaType + ")");
     }
 
+    if (lformulaType.isFloatingPointType()) {
+      return getFloatingPointFormulaManager().assignment(
+          (FloatingPointFormula)left, (FloatingPointFormula)right);
+    }
     return makeEqual(left, right);
   }
 
@@ -700,6 +771,9 @@ public class FormulaManagerView {
     }
     if (formula instanceof BitvectorFormula) {
       return (T) bitvectorFormulaManager.extractFromView((BitvectorFormula) formula);
+    }
+    if (formula instanceof FloatingPointFormula) {
+      return (T) floatingPointFormulaManager.extractFromView((FloatingPointFormula) formula);
     }
 
     throw new IllegalArgumentException("Invalid class");
@@ -1015,14 +1089,49 @@ public class FormulaManagerView {
     return res;
   }
 
-  public Set<String> extractVariables(Formula f) {
+  public Set<String> extractVariableNames(Formula f) {
+    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
+    Set<String> result = Sets.newHashSet();
+
+    for (Formula v: myExtractVariables(extractFromView(f))) {
+      result.add(unsafeManager.getName(v));
+    }
+
+    return result;
+  }
+
+  public Set<Triple<Formula, String, Integer>> extractVariables(Formula f) {
+    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
+    Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
+
+    for (Formula varFormula: myExtractVariables(extractFromView(f))) {
+      String varFormulaString = unsafeManager.getName(varFormula);
+      String[] varFormulaStringElements = varFormulaString.split("@");
+
+      if (varFormulaStringElements.length < 2) {
+        // SMT let statements might introduce new variables!! :-(
+
+        result.add(Triple.of(varFormula, varFormulaString, -1));
+        // throw new AssertionError("Variable has no valid SSA index: " + varFormulaString);
+
+      } else {
+        String varName = varFormulaStringElements[0];
+        int varSsaIndex = Integer.parseInt(varFormulaStringElements[1]);
+        result.add(Triple.of(varFormula, varName, varSsaIndex));
+      }
+    }
+
+    return result;
+  }
+
+  public Set<Formula> extractVariableFormulas(Formula f) {
     return myExtractVariables(extractFromView(f));
   }
 
-  private Set<String> myExtractVariables(Formula f) {
+  private Set<Formula> myExtractVariables(Formula f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Formula> seen = new HashSet<>();
-    Set<String> vars = new HashSet<>();
+    Set<Formula> varFormulas = new HashSet<>();
 
     Deque<Formula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
@@ -1035,7 +1144,8 @@ public class FormulaManagerView {
 //      }
 
       if (unsafeManager.isVariable(t)) {
-        vars.add(unsafeManager.getName(t));
+        varFormulas.add(t);
+
       } else {
         // ok, go into this formula
         for (int i = 0; i < unsafeManager.getArity(t); ++i) {
@@ -1048,7 +1158,7 @@ public class FormulaManagerView {
       }
     }
 
-    return vars;
+    return varFormulas;
   }
 
   public Appender dumpFormula(Formula pT) {

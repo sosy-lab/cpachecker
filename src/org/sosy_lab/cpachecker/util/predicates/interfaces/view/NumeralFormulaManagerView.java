@@ -81,6 +81,10 @@ public class NumeralFormulaManagerView
     return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
+  public BooleanFormula modularCongruence(ParamFormulaType pNumber1, ParamFormulaType pNumber2, long pModulo) {
+    return wrapInView(manager.modularCongruence(extractFromView(pNumber1), extractFromView(pNumber2), pModulo));
+  }
+  @Override
   public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumbe2) {
     return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }

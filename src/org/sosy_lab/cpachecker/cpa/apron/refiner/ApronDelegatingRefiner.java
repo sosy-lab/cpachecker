@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.apron.refiner;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import apron.ApronException;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -200,7 +202,6 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     VariableTrackingPrecision apronPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
 
     VariableTrackingPrecision refinedApronPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -221,11 +222,12 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     refinedApronPrecision  = apronPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedApronPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision, refinedApronPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
+      reached.removeSubtree(refinementRoot.getFirst(),
+                            refinedPrecisions,
+                            Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)));
       return true;
 
     } else {
@@ -245,11 +247,11 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     }
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
     refinedPrecisions.add(apronPrecision.withIncrement(increment));
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
+                          refinedPrecisions,
+                          Collections.<Predicate<? super Precision>>singletonList(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)));
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
 
     return true;

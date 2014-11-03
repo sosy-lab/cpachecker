@@ -266,6 +266,8 @@ public class SourceLocationMapper {
       result.addAll(collectFileLocationsFrom(n));
     }
 
+    result.add(pEdge.getFileLocation());
+
     return result;
   }
 
@@ -276,6 +278,11 @@ public class SourceLocationMapper {
     for (CAstNode n: astNodes) {
       result.addAll(collectRowsAndColsFrom(n, overApproximateTokens));
     }
+
+    RowAndColumn rc = new RowAndColumn(
+        pEdge.getFileLocation().getStartingLineNumber(),
+        pEdge.getFileLocation().getNodeOffset());
+    result.add(rc);
 
     return result;
   }

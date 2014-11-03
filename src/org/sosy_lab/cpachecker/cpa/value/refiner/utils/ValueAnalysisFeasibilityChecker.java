@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,7 +67,7 @@ public class ValueAnalysisFeasibilityChecker {
     logger    = pLogger;
 
     transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification());
+    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
   /**

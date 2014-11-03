@@ -66,19 +66,26 @@ public class RelationSynthesisTest {
   private RelationSynthesis relsynth;
   private LogManager logger;
 
-  private CIdExpression c;
   private CIdExpression a;
+  private CIdExpression b;
+  private CIdExpression c;
 
   private CIntegerLiteralExpression l1;
+  private CIntegerLiteralExpression l2;
   private CIntegerLiteralExpression l7;
+  private CIntegerLiteralExpression l1000;
   private CIntegerLiteralExpression l65535;
 
   private CBinaryExpression c_eq_7;
   private CBinaryExpression c_plus_1;
   private CBinaryExpression c_eq_c_plus_1;
+  private CBinaryExpression c_gt_l2;
   private CBinaryExpression a_lt_c;
   private CBinaryExpression a_eq_c;
   private CBinaryExpression a_gt_l65535;
+
+  private CBinaryExpression b_minus_c;
+  private CBinaryExpression b_minus_c_leq_l1000;
 
   @Before
   public void setUp() throws Exception {
@@ -104,10 +111,13 @@ public class RelationSynthesisTest {
     CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
 
     a = makeVariable("a", CNumericTypes.INT);
+    b = makeVariable("b", CNumericTypes.INT);
     c = makeVariable("c", CNumericTypes.INT);
 
     l1 = makeIntLiteral(1);
+    l2 = makeIntLiteral(2);
     l7 = makeIntLiteral(7);
+    l1000 = makeIntLiteral(1000);
     l65535 = makeIntLiteral(65535);
 
     a_gt_l65535 = builder.buildBinaryExpression(a, l65535, BinaryOperator.GREATER_THAN);
@@ -116,6 +126,10 @@ public class RelationSynthesisTest {
     c_eq_7 = builder.buildBinaryExpression(c, l7, BinaryOperator.EQUALS);
     c_plus_1 = builder.buildBinaryExpression(c, l1, BinaryOperator.PLUS);
     c_eq_c_plus_1 = builder.buildBinaryExpression(c, c_plus_1, BinaryOperator.EQUALS);
+
+    c_gt_l2 = builder.buildBinaryExpression(c, l2, BinaryOperator.GREATER_THAN);
+    b_minus_c = builder.buildBinaryExpression(b, c, BinaryOperator.MINUS);
+    b_minus_c_leq_l1000 = builder.buildBinaryExpression(b_minus_c, l1000, BinaryOperator.LESS_EQUAL);
   }
 
   private void addFactToStore(CBinaryExpression pFact, SSAMap pSsa) {
@@ -138,7 +152,7 @@ public class RelationSynthesisTest {
   }
 
   @Test
-  public void testFactGeneration() {
+  public void testFactGeneration1() {
     SSAMap ssa = SSAMap.emptySSAMap().withDefault(0);
     final CIdExpression aAt0 = instanciate(a, ssa, 0);
     addFactToStore(a_gt_l65535, ssa);
@@ -154,7 +168,7 @@ public class RelationSynthesisTest {
 
     TreeSet<String> resultExpressions = Sets.newTreeSet(Iterables.transform(
 
-        relsynth.getCombinedExpressionsOnInstances(Collections.singleton(aAt0)),
+        relsynth.getCombinedExpressionsOn(Collections.singleton(a), ssa),
 
         new Function<CExpression,String>(){
           @Override
@@ -197,7 +211,7 @@ public class RelationSynthesisTest {
   }
 
   @Test
-  public void testInlining() {
+  public void testInlining1() {
     SSAMap ssa = SSAMap.emptySSAMap().withDefault(0).builder().build();
     addFactToStore(a_lt_c, ssa, 0);
     addFactToStore(c_eq_c_plus_1, ssa, 0);
@@ -263,7 +277,7 @@ public class RelationSynthesisTest {
 
   @Test
   public void testScout() {
-    assertTrue(includes(a_gt_l65535, Collections.singleton(a)));
+    assertTrue(includesOrGlobalVariable(a_gt_l65535, Collections.singleton(a)));
   }
 
 

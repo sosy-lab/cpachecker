@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -60,6 +61,12 @@ abstract class Mathsat5Formula implements Formula {
 
 class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
   public Mathsat5BitvectorFormula(long pTerm) {
+    super(pTerm);
+  }
+}
+
+class Mathsat5FloatingPointFormula extends Mathsat5Formula implements FloatingPointFormula {
+  public Mathsat5FloatingPointFormula(long pTerm) {
     super(pTerm);
   }
 }

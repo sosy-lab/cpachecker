@@ -120,8 +120,9 @@ public class BlockToDotWriter {
       }
     }
 
-    // assert hierarchy.values().size() == blockPartitioning.getBlocks().size() - 1 :
-    //         "all blocks except mainBlock must appear exact once as child.";
+    assert hierarchy.values().size() <= blockPartitioning.getBlocks().size() - 1 :
+            "all blocks except mainBlock might appear at most once as child.";
+            // there might also be blocks, that are not part of the hierarchy, for example unused functions.
 
     return hierarchy;
   }

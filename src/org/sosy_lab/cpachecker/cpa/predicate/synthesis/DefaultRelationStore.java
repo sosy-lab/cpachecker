@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
 import static org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationUtils.*;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -49,6 +51,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.CExpressionInliner.SubstitutionProvider;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -61,7 +65,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 @Options
-public class DefaultRelationStore implements RelationStore, RelationView {
+public class DefaultRelationStore implements RelationStore, RelationView, StatisticsProvider {
 
   public static enum RelationMode {
     BACKWARDS_SEQUENCE,
@@ -96,7 +100,7 @@ public class DefaultRelationStore implements RelationStore, RelationView {
 
     this.log = pLogger;
 
-    this.store = HashBasedTable.create();
+    this.store = HashBasedTable.create(); //TODO: Ensure deterministic behavior!!!
     this.operatorRelationMap = Maps.newTreeMap(); //TODO: Ensure deterministic behavior!!!
     this.direction = pDirection;
 
@@ -106,15 +110,15 @@ public class DefaultRelationStore implements RelationStore, RelationView {
   }
 
   @Override
-  public Set<CExpression> getStoredExpressionsWith(Set<CIdExpression> ids) {
+  public Set<CExpression> getStoredExpressionsWithOrGlobal(Set<CIdExpression> ids) {
     Set<CExpression> result = Sets.newHashSet();
     for (CExpression e: store.columnKeySet()) {
-      if (includes(e, ids)) {
+      if (includesOrGlobalVariable(e, ids)) {
         result.add(e);
       }
     }
     for (CExpression e: store.rowKeySet()) {
-      if (includes(e, ids)) {
+      if (includesOrGlobalVariable(e, ids)) {
         result.add(e);
       }
     }
@@ -245,17 +249,37 @@ public class DefaultRelationStore implements RelationStore, RelationView {
    */
   @Override
   public Map<CExpression, Relation> getRelationTo(CExpression pId) {
+
     Map<CExpression, Relation> result = Maps.newHashMap();
+
     Map<CExpression, Relation> row = store.row(pId);
     Map<CExpression, Relation> col = store.column(pId);
+
     if (row != null) {
       result.putAll(row);
     }
+
     if (col != null) {
       result.putAll(col);
     }
+
     return result;
   }
 
+  @Override
+  public void dumpStoreContent(Appendable pTarget) throws IOException {
+    Map<CExpression, Map<CExpression, Relation>> rowMap = store.rowMap();
+    for (CExpression rowKey: rowMap.keySet()) {
+      Map<CExpression, Relation> rowValueMap = rowMap.get(rowKey);
+      for (CExpression colKey: rowValueMap.keySet()) {
+        Relation value = rowValueMap.get(colKey);
+        pTarget.append(String.format("%s\t%s\t%s\n", rowKey.toParenthesizedASTString(), value, colKey.toParenthesizedASTString()));
+      }
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  }
 
 }

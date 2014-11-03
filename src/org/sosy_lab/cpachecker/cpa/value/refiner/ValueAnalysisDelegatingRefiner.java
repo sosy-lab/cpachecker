@@ -78,6 +78,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 
 /**
@@ -298,7 +300,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     BDDPrecision bddPrecision                     = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
+    ArrayList<Predicate<? super Precision>> newPrecisionTypes = new ArrayList<>(2);
 
     Multimap<CFANode, MemoryLocation> increment;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -324,12 +326,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     VariableTrackingPrecision refinedValueAnalysisPrecision  = valueAnalysisPrecision.withIncrement(increment);
     refinedPrecisions.add(refinedValueAnalysisPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
+    newPrecisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
 
     if (bddPrecision != null) {
       BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
       refinedPrecisions.add(refinedBDDPrecision);
-      newPrecisionTypes.add(BDDPrecision.class);
+      newPrecisionTypes.add(Predicates.instanceOf(BDDPrecision.class));
     }
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, valueAnalysisPrecision, refinedValueAnalysisPrecision)) {

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -43,6 +44,8 @@ public class CtoFormulaTypeHandler {
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
+  private final boolean useFloats;
+
   private final BaseSizeofVisitor sizeofVisitor;
 
   private final FormulaType<?> pointerType;
@@ -50,9 +53,11 @@ public class CtoFormulaTypeHandler {
   private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
+      FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
+    useFloats = pOptions.useFloatingPointArithmetic();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
@@ -88,14 +93,30 @@ public class CtoFormulaTypeHandler {
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
     FormulaType<?> result = typeCache.get(type);
     if (result == null) {
-      int byteSize = getSizeof(type);
-
-      int bitsPerByte = machineModel.getSizeofCharInBits();
-      // byte to bits
-      result = FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
+      result = getFormulaTypeFromCType0(type);
       typeCache.put(type, result);
     }
     return result;
+  }
+
+  private FormulaType<?> getFormulaTypeFromCType0(CType type) {
+    if (useFloats && type instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType)type;
+      switch (simpleType.getType()) {
+      case FLOAT:
+        return FormulaType.getSinglePrecisionFloatingPointType();
+      case DOUBLE:
+        return FormulaType.getDoublePrecisionFloatingPointType();
+      default:
+        break;
+      }
+    }
+
+    int byteSize = getSizeof(type);
+
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+    // byte to bits
+    return FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
   }
 
   public FormulaType<?> getPointerType() {

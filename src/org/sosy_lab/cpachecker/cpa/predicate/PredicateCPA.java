@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractionInstanceSynthesis;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractPrecisionSynthesis;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.DefaultRelationStore;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullPrecisionSynthesis;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.NullRelationStore;
@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationView;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
@@ -141,6 +142,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
+
+  private final AbstractPrecisionSynthesis precisionSynthesis;
 
   private final PreconditionWriter preconditions;
   private final RelationStore relstore;
@@ -235,13 +238,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
+        cfa, preconditions, relstore, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
     machineModel = cfa.getMachineModel();
 
-    AbstractionInstanceSynthesis precisionSynthesis;
     if (synthesizePrecisionOnAbstraction) {
       precisionSynthesis = new PrecisionSynthesis(config, logger, formulaManager, Optional.<VariableClassification>absent(), realFormulaManager, abstractionManager, machineModel, pShutdownNotifier, cfa, relview, direction);
     } else {
@@ -341,7 +343,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+    try {
+      return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed during abstract-successor check", e);
+    }
   }
 
   @Override

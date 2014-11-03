@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 
 public class ARGSubtreeRemover {
@@ -82,7 +84,7 @@ public class ARGSubtreeRemover {
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
-                     List<Class<? extends Precision>> pNewPrecisionTypes,
+                     List<Predicate<? super Precision>> pNewPrecisionTypes,
                      Map<ARGState, ARGState> pPathElementToReachedState) {
 
     List<ARGState> path = trimPath(pPath, element);
@@ -142,7 +144,7 @@ public class ARGSubtreeRemover {
    * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
    */
   private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement,
-                                       List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+                                       List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     ARGReachedSet argReachSet = new ARGReachedSet(reachedSet);
     boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstState());
     removeSubtree(argReachSet, argElement, newPrecisions, pPrecisionTypes);
@@ -158,7 +160,7 @@ public class ARGSubtreeRemover {
   }
 
   private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement,
-                                    List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+                                    List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     if (newPrecisions == null || newPrecisions.size() == 0) {
       removeSubtree(reachedSet, argElement);
     } else {
@@ -168,7 +170,7 @@ public class ARGSubtreeRemover {
 
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
-                                   List<Class<? extends Precision>> pPrecisionTypes) {
+                                   List<Predicate<? super Precision>> pPrecisionTypes) {
     removeCachedSubtreeTimer.start();
 
     try {
@@ -201,7 +203,7 @@ public class ARGSubtreeRemover {
 
         newReducedRemovePrecision.add(wrappedReducer.getVariableReducedPrecision(removePrecision, rootSubtree));
         pPrecisionTypes = new ArrayList<>();
-        pPrecisionTypes.add(newReducedRemovePrecision.get(0).getClass());
+        pPrecisionTypes.add(Predicates.instanceOf(newReducedRemovePrecision.get(0).getClass()));
       }
 
       assert !removeElement.getParents().isEmpty();
@@ -340,7 +342,7 @@ public class ARGSubtreeRemover {
     Precision rootPrecision = outerReachedSet.getPrecision(pPathElementToReachedState.get(rootState));
 
     for (Precision pNewPrecision : pNewPrecisions) {
-      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecision, pNewPrecision.getClass());
+      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
     }
     Precision reducedNewPrecision =
             wrappedReducer.getVariableReducedPrecision(

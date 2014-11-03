@@ -59,9 +59,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3BitvectorFormulaManager pBitpreciseManager,
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
-
-    super(pFormulaCreator, pUnsafeManager, pFunctionManager,
-            pBooleanManager, pIntegerManager, pRationalManager, pBitpreciseManager, pQuantifiedManager);
+    super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
+        pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager);
     config.inject(this);
     this.z3smtLogger = smtLogger;
   }

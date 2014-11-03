@@ -251,9 +251,9 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
         // does not clear waitlist
         if (!currentState.isCovered()) {
           if (useGlobalPrecision) {
-            argReachedSet.readdToWaitlist(currentState, globalPrecision, VariableTrackingPrecision.class);
+            argReachedSet.readdToWaitlist(currentState, globalPrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
           } else {
-            argReachedSet.readdToWaitlist(currentState, currentPrecision.withIncrement(increment), VariableTrackingPrecision.class);
+            argReachedSet.readdToWaitlist(currentState, currentPrecision.withIncrement(increment), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
           }
         }
 

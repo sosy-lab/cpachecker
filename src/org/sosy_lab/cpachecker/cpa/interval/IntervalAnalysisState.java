@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -341,35 +342,68 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    String[] parts = pProperty.split(";");
-    if (parts.length != 2) {
-      throw new InvalidQueryException("The Query \"" + pProperty
-            + "\" is invalid. Could not split the property string correctly.");
-    } else {
-      parts[1] = parts[1].trim();
-      Long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
-      Long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+    String[] parts = pProperty.trim().split(" ");
 
-      if (low == null || high == null) {
-        return false;
+    if (parts.length == 3) {
+
+      // pProperty = value <= varName
+      if (Pattern.matches("\\d+ <= \\w+", pProperty)) {
+        int value = Integer.parseInt(parts[0]);
+        Interval iv = intervals.get(parts[2]);
+        if (value <= iv.getLow()) {
+          return true;
+        } else {
+          return false;
+        }
+
+      // pProperty = varName <= value
+      } else if (Pattern.matches("\\w+ <= \\d+", pProperty)){
+        int value = Integer.parseInt(parts[2]);
+        Interval iv = intervals.get(parts[0]);
+
+        if (iv.getHigh() <= value) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+    // pProperty = value1 <= varName <= value2
+    } else if (parts.length == 5){
+      if (Pattern.matches("\\d+ <= \\w+ <= \\d+", pProperty)) {
+        int value1 = Integer.parseInt(parts[0]);
+        int value2 = Integer.parseInt(parts[4]);
+        Interval iv = intervals.get(parts[2]);
+
+        if (value1 <= iv.getLow() && iv.getHigh() <= value2) {
+          return true;
+        } else {
+          return false;
+        }
+
+      // pProperty = value <= varName
+      } else if (Pattern.matches("\\w+ <= \\w+", pProperty)) {
+        Interval iv1 = intervals.get(parts[0]);
+        Interval iv2 = intervals.get(parts[2]);
+
+        if (iv1.getLow() >= iv2.getLow() && iv1.getHigh() <= iv2.getHigh()) {
+          return true;
+        } else {
+          return false;
+        }
       }
     }
-
-    long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
-    long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
-
     return false;
   }
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    return null;
+    checkProperty(pProperty);
+    return null; // TODO was hier zurückgeben?
   }
 
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("Unsupported Operation");
+    throw new InvalidQueryException("The Query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
   }
 }

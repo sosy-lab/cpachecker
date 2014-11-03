@@ -383,7 +383,7 @@ public final class InterpolationManager {
    * @param f The list of formulas to check.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) throws InterruptedException {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) throws SolverException, InterruptedException {
 
     cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -1113,7 +1113,7 @@ public final class InterpolationManager {
    * The sublist is taken from the list of GroupIds, including both start and end of A.
    */
   private <T> BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A) throws InterruptedException {
+        final List<T> itpGroupsIds, final int start_of_A, final int end_of_A) throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
@@ -1167,7 +1167,7 @@ public final class InterpolationManager {
       // Furthermore, check if the interpolants contains only the allowed variables
       List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
       for (BooleanFormula f : formulas) {
-        variablesInFormulas.add(fmgr.extractVariables(f));
+        variablesInFormulas.add(fmgr.extractVariableNames(f));
       }
 
       for (int i = 0; i < interpolants.size(); i++) {
@@ -1185,7 +1185,7 @@ public final class InterpolationManager {
         }
 
         Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
-        Set<String> variablesInInterpolant = fmgr.extractVariables(interpolants.get(i));
+        Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
         variablesInInterpolant.removeAll(allowedVariables);
 

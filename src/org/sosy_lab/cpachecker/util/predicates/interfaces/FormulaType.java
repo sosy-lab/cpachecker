@@ -45,6 +45,10 @@ public abstract class FormulaType<T extends Formula> {
     return false;
   }
 
+  public boolean isFloatingPointType() {
+    return false;
+  }
+
   public boolean isNumeralType() {
     return false;
   }
@@ -149,6 +153,68 @@ public abstract class FormulaType<T extends Formula> {
     @Override
     public String toString() {
       return "Bitvector<" + getSize() + ">";
+    }
+  }
+
+  public static FloatingPointType getFloatingPointType(int exponentSize, int mantissaSize) {
+    return new FloatingPointType(exponentSize, mantissaSize);
+  }
+
+  private static final FloatingPointType SINGLE_PRECISION_FP_TYPE = new FloatingPointType(8, 23);
+  private static final FloatingPointType DOUBLE_PRECISION_FP_TYPE = new FloatingPointType(11, 52);
+
+  public static FloatingPointType getSinglePrecisionFloatingPointType() {
+    return SINGLE_PRECISION_FP_TYPE;
+  }
+
+  public static FloatingPointType getDoublePrecisionFloatingPointType() {
+    return DOUBLE_PRECISION_FP_TYPE;
+  }
+
+  public static final class FloatingPointType extends FormulaType<FloatingPointFormula> {
+
+    private final int exponentSize;
+    private final int mantissaSize;
+
+    private FloatingPointType(int pExponentSize, int pMantissaSize) {
+      exponentSize = pExponentSize;
+      mantissaSize = pMantissaSize;
+    }
+
+    @Override
+    public boolean isFloatingPointType() {
+      return true;
+    }
+
+    public int getExponentSize() {
+      return exponentSize;
+    }
+
+    public int getMantissaSize() {
+      return mantissaSize;
+    }
+
+    @Override
+    public int hashCode() {
+      return (31 + exponentSize) * 31 + mantissaSize;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof FloatingPointType)) {
+        return false;
+      }
+      FloatingPointType other = (FloatingPointType) obj;
+      return this.exponentSize == other.exponentSize
+          && this.mantissaSize == other.mantissaSize;
+    }
+
+    @Override
+    public String toString() {
+      return "FloatingPoint<exp=" + exponentSize + ",mant=" + mantissaSize + ">";
     }
   }
 }

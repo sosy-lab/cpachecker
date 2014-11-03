@@ -447,7 +447,7 @@ class DynamicMemoryHandler {
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
         !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
+      final Set<String> rhsVariables = conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (String variable : rhsVariables) {
         if (PointerTargetSet.isBaseName(variable)) {

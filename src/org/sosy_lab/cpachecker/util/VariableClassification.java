@@ -1588,7 +1588,9 @@ public class VariableClassification {
 
     @Override
     public Void visit(final CArraySubscriptExpression e) {
-      e.getArrayExpression().accept(this);
+      CollectingRHSVisitor arrayExprVisitor = new CollectingRHSVisitor(null);
+      arrayExprVisitor.addressed = true;
+      e.getArrayExpression().accept(arrayExprVisitor);
       return e.getSubscriptExpression().accept(this);
     }
 

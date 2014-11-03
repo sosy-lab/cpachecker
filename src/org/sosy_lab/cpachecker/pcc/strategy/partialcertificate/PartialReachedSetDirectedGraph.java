@@ -32,7 +32,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class PartialReachedSetDirectedGraph {
 
@@ -69,9 +71,23 @@ public class PartialReachedSetDirectedGraph {
     this.adjacencyList = ImmutableList.copyOf(newList);
   }
 
+  // TODO offer bidirectional graph instead?
+  public Set<Integer> getNodesAdjacentTo(int node) {
+    Set<Integer> ret = new HashSet<>();
+    for(int i = 0; i < getNumNodes(); i++) {
+      if(i != node) {
+        if(getAdjacencyList().get(i).contains(node)) {
+          ret.add(i);
+        }
+      }
+    }
+    return ret;
+  }
+
   public int getNumNodes() {
     return numNodes;
   }
+
   public List<AbstractState> getNodes() {
     return ImmutableList.copyOf(nodes);
   }
@@ -81,18 +97,22 @@ public class PartialReachedSetDirectedGraph {
     return adjacencyList;
   }
 
-  public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
+  public AbstractState[] getAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices, final boolean pAsARGState, boolean bidirectional) {
     CollectingOutsideSuccessorVisitor visitor = new CollectingOutsideSuccessorVisitor(pAsARGState);
-    visitOutsideSuccessors(pNodeSetIndices, visitor);
+    visitOutsideSuccessors(pNodeSetIndices, Optional.<Set<Integer>>absent(), visitor, bidirectional);
 
     return visitor.setRes.toArray(new AbstractState[visitor.setRes.size()]);
   }
 
-  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pNodeSetIndices) {
+  public long getNumAdjacentNodesOutsideSet(final Set<Integer> pSrcNodeSetIndices, final Optional<Set<Integer>> pDstNodeSetIndices, boolean bidirectional) {
     CountingOutsideSuccessorVisitor visitor = new CountingOutsideSuccessorVisitor();
-    visitOutsideSuccessors(pNodeSetIndices, visitor);
+    visitOutsideSuccessors(pSrcNodeSetIndices, pDstNodeSetIndices,  visitor, bidirectional);
 
     return visitor.numOutside;
+  }
+
+  public long getNumAdjacentNodesOutsideSet(final Integer pSrcNodeIndex, final Optional<Set<Integer>> pDstNodeSetIndices, boolean bidirectional) {
+    return getNumAdjacentNodesOutsideSet(Sets.newHashSet(pSrcNodeIndex), pDstNodeSetIndices, bidirectional);
   }
 
   public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
@@ -113,14 +133,25 @@ public class PartialReachedSetDirectedGraph {
      return listRes.toArray(new AbstractState[listRes.size()]);
   }
 
-  private void visitOutsideSuccessors(final Set<Integer> pNodeSetIndices, final OutsideSuccessorVisitor pVisitor) {
+  private void visitOutsideSuccessors(
+      final Set<Integer> pSrcNodeSetIndices,
+      final Optional<Set<Integer>> pDstNodeSetIndices,
+      final OutsideSuccessorVisitor pVisitor,
+      boolean bidirectional) {
     try {
-      List<Integer> successors;
-      for (Integer predecessor : pNodeSetIndices) {
-        successors = adjacencyList.get(predecessor);
+      for (Integer predecessor : pSrcNodeSetIndices) {
+        Set<Integer> successors = new HashSet<>();
+        successors.addAll(adjacencyList.get(predecessor));
+        if(bidirectional)
+          successors.addAll(getNodesAdjacentTo(predecessor));
         for (int successor : successors) {
-          if (!pNodeSetIndices.contains(successor)) {
-            pVisitor.visit(successor);
+          if (!pSrcNodeSetIndices.contains(successor)) {
+            if(pDstNodeSetIndices.isPresent()) {
+              if(pDstNodeSetIndices.get().contains(successor))
+                pVisitor.visit(successor);
+            } else {
+              pVisitor.visit(successor);
+            }
           }
         }
       }
@@ -129,6 +160,8 @@ public class PartialReachedSetDirectedGraph {
           + "-1].");
     }
   }
+
+
 
   private interface OutsideSuccessorVisitor {
 

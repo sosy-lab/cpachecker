@@ -55,15 +55,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
@@ -95,6 +99,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+    e = conv.convertLiteralToFloatIfNecessary(e, calculationType);
     e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
     final CType t = e.getExpressionType();
     Formula f = toFormula(e);
@@ -212,10 +217,18 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case MODULO:
       ret = conv.fmgr.makeModulo(f1, f2, signed);
 
+      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
+
+      if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+        long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+        BooleanFormula modularCongruence = conv.fmgr.makeModularCongruence(ret, f1, modulo);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
+      }
+
       FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
       Formula zero = conv.fmgr.makeNumber(numberType, 0L);
-
-      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
 
       // Sign of the remainder is set by the sign of the
       // numerator, and it is bounded by the numerator.
@@ -399,6 +412,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
     final BigDecimal val = fExp.getValue();
+
+    if (t.isFloatingPointType()) {
+      return conv.fmgr.getFloatingPointFormulaManager().makeNumber(val, (FloatingPointType)t);
+    }
+
     if (val.scale() <= 0) {
       // actually an integral number
       return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
@@ -530,6 +548,92 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
+      } else if (functionName.equals("__builtin_inf")
+          || functionName.equals("__builtin_inff")
+          || functionName.equals("__builtin_infl")) {
+
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_huge_val")
+          || functionName.equals("__builtin_huge_valf")
+          || functionName.equals("__builtin_huge_vall")) {
+
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_huge_val", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_nan")
+          || functionName.equals("__builtin_nanf")
+          || functionName.equals("__builtin_nanl")) {
+
+        if (parameters.size() == 1) {
+          CType resultType = getTypeForFloatFunction("__builtin_nan", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makeNaN(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_fabs")
+          || functionName.equals("__builtin_fabsf")
+          || functionName.equals("__builtin_fabsl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeForFloatFunction("__builtin_fabs", functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            Formula param = processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula zero = conv.fmgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
+            BooleanFormula isNegative = conv.fmgr.makeLessThan(param, zero, true);
+            return conv.fmgr.getBooleanFormulaManager().ifThenElse(isNegative,
+                conv.fmgr.makeNegate(param), param);
+          }
+        }
+
+      } else if (functionName.equals("__fpclassify")
+          || functionName.equals("__fpclassifyd")
+          || functionName.equals("__fpclassifyf")
+          || functionName.equals("__fpclassifyl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeForFloatFunction("__fpclassify", functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = conv.fmgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = conv.fmgr.makeNumber(resultType, 0);
+            Formula one = conv.fmgr.makeNumber(resultType, 1);
+            Formula two = conv.fmgr.makeNumber(resultType, 2);
+            Formula three = conv.fmgr.makeNumber(resultType, 3);
+            Formula four = conv.fmgr.makeNumber(resultType, 4);
+
+            return
+              conv.bfmgr.ifThenElse(fpfmgr.isNaN(param), zero,
+                  conv.bfmgr.ifThenElse(fpfmgr.isInfinity(param), one,
+                      conv.bfmgr.ifThenElse(fpfmgr.isZero(param), two,
+                          conv.bfmgr.ifThenElse(fpfmgr.isSubnormal(param), three,
+                              four))));
+          }
+        }
+
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -590,6 +694,25 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
+    }
+  }
+
+  private CType getTypeForFloatFunction(String prefix, String name) {
+    assert name.startsWith(prefix);
+    name = name.substring(prefix.length());
+    assert name.length() <= 1;
+    if (name.isEmpty()) {
+      return CNumericTypes.DOUBLE;
+    }
+    switch (name.charAt(0)) {
+    case 'f':
+      return CNumericTypes.FLOAT;
+    case 'd':
+      return CNumericTypes.DOUBLE;
+    case 'l':
+      return CNumericTypes.LONG_DOUBLE;
+    default:
+      throw new AssertionError();
     }
   }
 

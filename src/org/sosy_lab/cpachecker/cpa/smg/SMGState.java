@@ -259,7 +259,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
-    assert smgObject.getSize() == size;
+    // arrays are converted to pointers
+    assert smgObject.getSize() == size || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -412,6 +413,30 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public boolean isPointer(Integer pValue) {
 
     return heap.isPointer(pValue);
+  }
+
+  /**
+   * Read Value in field (object, type) of an Object. If a Value cannot be determined,
+   * but the given object and field is a valid place to read a value, a new value will be
+   * generated and returned. (Does not create a new State but modifies this state).
+   *
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
+   * @return the value and the state (may be the given state)
+   * @throws SMGInconsistentException
+   */
+  public SMGValueAndState forceReadValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
+
+    // Do not create a value if the read is invalid.
+    if(valueAndState.getValue().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
+      Integer newValue = SMGValueFactory.getNewValue();
+      SMGStateEdgePair stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
+      return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
+    } else {
+      return valueAndState;
+    }
   }
 
   /**
@@ -758,6 +783,19 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return points_to;
   }
 
+  //TODO ()code sharing with addNewAllocation
+  public SMGEdgePointsTo addNewAllocAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pSize, pLabel);
+    int new_value = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addStackObject(new_object);
+    heap.addValue(new_value);
+    heap.addPointsToEdge(points_to);
+
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return points_to;
+  }
+
   public void setMemLeak() {
     heap.setMemoryLeak();
   }
@@ -973,6 +1011,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+
+    if(isInNeq(pKnownVal1, pKnownVal2)) {
+      System.out.println("Error");
+    }
+
     heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
@@ -1007,9 +1050,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (pValue1.isUnknown() || pValue2.isUnknown()) {
       return false;
     } else {
-      heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
+      return heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
     }
-
-    return false;
   }
 }
