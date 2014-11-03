@@ -273,7 +273,7 @@ public class DefaultRelationStore implements RelationStore, RelationView, Statis
       Map<CExpression, Relation> rowValueMap = rowMap.get(rowKey);
       for (CExpression colKey: rowValueMap.keySet()) {
         Relation value = rowValueMap.get(colKey);
-        pTarget.append(String.format("%s\t%s\t%s\n", rowKey.toParenthesizedASTString(), value, colKey.toParenthesizedASTString()));
+        pTarget.append(String.format("%s\t%s\t%s%n", rowKey.toParenthesizedASTString(), value, colKey.toParenthesizedASTString()));
       }
     }
   }
