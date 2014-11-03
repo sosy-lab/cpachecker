@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -321,6 +321,9 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     @Override
     public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
+      checkNotNull(pVariable);
+      checkNotNull(pType);
+      checkNotNull(pLocation);
       return baseline.isTracking(pVariable, pType, pLocation);
     }
 
