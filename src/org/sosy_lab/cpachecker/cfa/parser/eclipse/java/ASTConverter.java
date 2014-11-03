@@ -1076,33 +1076,15 @@ public class ASTConverter {
     assert type instanceof JClassOrInterfaceType : "There are other types for this expression?";
 
     JIdExpression referenceVariable = (JIdExpression) leftOperand;
-    JClassOrInterfaceType instanceCompatible = (JClassOrInterfaceType) type;
     JRunTimeTypeEqualsType firstCond = null;
 
-
-
-    List<JClassType> subClassTypes;
-
-    if (instanceCompatible instanceof JInterfaceType) {
-
-      Set<JClassType> subClassTypeSet = ((JInterfaceType) instanceCompatible).getAllKnownImplementingClassesOfInterface();
-
-      subClassTypes =  transformSetToList(subClassTypeSet);
-
-      if (subClassTypes.isEmpty()) {
+    List<JClassType> subClassTypes = getSubClassTypes((JClassOrInterfaceType) type);
+    if (type instanceof JInterfaceType && subClassTypes.isEmpty()) {
         return new JBooleanLiteralExpression(fileloc, false);
-      } else if (subClassTypes.size() == 1) {
-        return convertClassRunTimeCompileTimeAccord(fileloc,
-          referenceVariable, subClassTypes.get(FIRST)); }
 
-    } else if (instanceCompatible instanceof JClassType) {
-
-      Set<JClassType> subClassSet = ((JClassType) instanceCompatible).getAllSubTypesOfClass();
-
-      subClassTypes = transformSetToList(subClassSet);
-
-      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, instanceCompatible);
-      if (subClassTypes.isEmpty()) { return firstCond; }
+    } else if (type instanceof JClassType) {
+      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
+          (JClassOrInterfaceType) type);
 
     } else {
       // Through assertions above, instanceCompatible has to be a sub type of JClassOrInterfaceType
@@ -1112,38 +1094,57 @@ public class ASTConverter {
           " or interface type");
     }
 
-    JBinaryExpression firstOrConnection;
+    return createInstanceofExpression(referenceVariable, subClassTypes,
+        convert(e.resolveTypeBinding()), fileloc, firstCond);
+  }
 
+  private List<JClassType> getSubClassTypes(JClassOrInterfaceType pType) {
+    Set<JClassType> subClassTypeSet;
 
-    if (firstCond == null) {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), convertClassRunTimeCompileTimeAccord(fileloc,
-              referenceVariable, subClassTypes.get(FIRST)), convertClassRunTimeCompileTimeAccord(
-              fileloc, referenceVariable, subClassTypes.get(SECOND)),
-              JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(SECOND);
-      subClassTypes.remove(FIRST);
+    assert pType instanceof JInterfaceType || pType instanceof JClassType;
+    if (pType instanceof JInterfaceType) {
+      subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
     } else {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), firstCond,
-              convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
-                  subClassTypes.get(FIRST)), JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(FIRST);
+      subClassTypeSet = ((JClassType) pType).getAllSubTypesOfClass();
     }
 
-    JBinaryExpression nextConnection = firstOrConnection;
+    return transformSetToList(subClassTypeSet);
+  }
 
-    for (JClassType subType : subClassTypes) {
-      JRunTimeTypeEqualsType cond =
-          convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, subType);
-      nextConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), nextConnection, cond,
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation) {
+
+    final JRunTimeTypeEqualsType firstCond = convertClassRunTimeCompileTimeAccord(pLocation,
+        pLeftOperand, pClassTypes.remove(FIRST));
+
+    return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType,
+        pLocation, firstCond);
+  }
+
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation,
+      @Nullable JRunTimeTypeEqualsType pFirstCondition) {
+
+    if (pFirstCondition == null) {
+      return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType, pLocation);
+    }
+
+    JRunTimeTypeEqualsType newCondition;
+    JExpression currentCondition = pFirstCondition;
+
+    for (JClassType currentSubType : pClassTypes) {
+      newCondition = convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, currentSubType);
+      currentCondition =
+          new JBinaryExpression(pLocation, pExpressionType, currentCondition, newCondition,
               BinaryOperator.CONDITIONAL_OR);
     }
 
-    return nextConnection;
+    return currentCondition;
   }
-
 
   private List<JClassType> transformSetToList(Set<JClassType> pSubClassTypeSet) {
     List<JClassType> result = new ArrayList<>(pSubClassTypeSet.size());
