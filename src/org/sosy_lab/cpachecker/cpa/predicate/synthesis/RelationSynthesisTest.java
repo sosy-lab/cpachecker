@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationUtils.*;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
@@ -38,7 +38,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -46,12 +45,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -71,21 +67,15 @@ public class RelationSynthesisTest {
   private CIdExpression c;
 
   private CIntegerLiteralExpression l1;
-  private CIntegerLiteralExpression l2;
   private CIntegerLiteralExpression l7;
-  private CIntegerLiteralExpression l1000;
   private CIntegerLiteralExpression l65535;
 
   private CBinaryExpression c_eq_7;
   private CBinaryExpression c_plus_1;
   private CBinaryExpression c_eq_c_plus_1;
-  private CBinaryExpression c_gt_l2;
   private CBinaryExpression a_lt_c;
   private CBinaryExpression a_eq_c;
   private CBinaryExpression a_gt_l65535;
-
-  private CBinaryExpression b_minus_c;
-  private CBinaryExpression b_minus_c_leq_l1000;
 
   @Before
   public void setUp() throws Exception {
@@ -115,9 +105,7 @@ public class RelationSynthesisTest {
     c = makeVariable("c", CNumericTypes.INT);
 
     l1 = makeIntLiteral(1);
-    l2 = makeIntLiteral(2);
     l7 = makeIntLiteral(7);
-    l1000 = makeIntLiteral(1000);
     l65535 = makeIntLiteral(65535);
 
     a_gt_l65535 = builder.buildBinaryExpression(a, l65535, BinaryOperator.GREATER_THAN);
@@ -126,10 +114,6 @@ public class RelationSynthesisTest {
     c_eq_7 = builder.buildBinaryExpression(c, l7, BinaryOperator.EQUALS);
     c_plus_1 = builder.buildBinaryExpression(c, l1, BinaryOperator.PLUS);
     c_eq_c_plus_1 = builder.buildBinaryExpression(c, c_plus_1, BinaryOperator.EQUALS);
-
-    c_gt_l2 = builder.buildBinaryExpression(c, l2, BinaryOperator.GREATER_THAN);
-    b_minus_c = builder.buildBinaryExpression(b, c, BinaryOperator.MINUS);
-    b_minus_c_leq_l1000 = builder.buildBinaryExpression(b_minus_c, l1000, BinaryOperator.LESS_EQUAL);
   }
 
   private void addFactToStore(CBinaryExpression pFact, SSAMap pSsa) {
@@ -140,21 +124,9 @@ public class RelationSynthesisTest {
     relstoreBwd.addFact(pFact, pSsa, lhsDelta);
   }
 
-  private CIdExpression makeVariable(String varName, CSimpleType varType) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
-    CVariableDeclaration decl = new CVariableDeclaration(loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
-    return new CIdExpression(loc, decl);
-  }
-
-  private CIntegerLiteralExpression makeIntLiteral(int value) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
-    return new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(value));
-  }
-
   @Test
   public void testFactGeneration1() {
     SSAMap ssa = SSAMap.emptySSAMap().withDefault(0);
-    final CIdExpression aAt0 = instanciate(a, ssa, 0);
     addFactToStore(a_gt_l65535, ssa);
     addFactToStore(a_lt_c, ssa);
     ssa = ssa.builder().setIndex("c", CNumericTypes.INT, 1).build();
