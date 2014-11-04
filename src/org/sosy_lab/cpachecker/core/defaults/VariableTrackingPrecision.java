@@ -265,8 +265,8 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     private boolean isTracking(MemoryLocation pVariable) {
       return  isOnWhitelist(pVariable.getIdentifier())
-              || !isOnBlacklist(pVariable.getIdentifier())
-              && !isInIgnoredVarClass(pVariable);
+              || (!isOnBlacklist(pVariable.getIdentifier())
+                  && isInTrackedVarClass(pVariable.getAsSimpleString()));
     }
 
     private boolean isOnBlacklist(String variable) {
@@ -278,21 +278,39 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     /** returns true, iff the variable is in an varClass, that should be ignored. */
-    private boolean isInIgnoredVarClass(final MemoryLocation variable) {
-      if (!vc.isPresent()) { return false; }
+    private boolean isInTrackedVarClass(final String variableName) {
+      // when there is no variable classification we cannot make any assumptions
+      // about the tracking of variables and say that all variables are tracked
+      if (!vc.isPresent()) {
+        return true;
+      }
       VariableClassification varClass = vc.get();
 
-      final boolean isBoolean = varClass.getIntBoolVars().contains(variable.getAsSimpleString());
-      final boolean isIntEqual = varClass.getIntEqualVars().contains(variable.getAsSimpleString());
-      final boolean isIntAdd = varClass.getIntAddVars().contains(variable.getAsSimpleString());
-      final boolean isAddressed = varClass.getAddressedVariables().contains(variable.getAsSimpleString());
+      final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
 
-      final boolean isIgnoredBoolean = !trackBooleanVariables && isBoolean;
-      final boolean isIgnoredIntEqual = !trackIntEqualVariables && isIntEqual;
-      final boolean isIgnoredIntAdd = !trackIntAddVariables && isIntAdd;
-      final boolean isIgnoredAddressed = !trackAddressedVariables && isAddressed;
+      // addressed variables do not belong to a specific type, so they have to
+      // be handled extra. We want the precision to be as strict as possible,
+      // therefore, when a variable is addressed but addressed variables should
+      // not be tracked, we do not consider the other parts of the variable classification
+      if (varIsAddressed && !trackAddressedVariables) {
+        return false;
 
-      return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd || isIgnoredAddressed;
+
+        // in this case addressed variables can at most be included in the
+        // tracking variables and the rest of the variable classification is
+        // the limiting factor
+      } else {
+        final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
+        final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
+        final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
+
+        final boolean isIgnoredBoolean = !trackBooleanVariables && varIsBoolean;
+        final boolean isIgnoredIntEqual = !trackIntEqualVariables && varIsIntEqual;
+        final boolean isIgnoredIntAdd = !trackIntAddVariables && varIsIntAdd;
+        final boolean isIgnoredAddressed = !trackAddressedVariables && varIsAddressed;
+
+        return !(isIgnoredBoolean || isIgnoredIntAdd || isIgnoredIntEqual || isIgnoredAddressed);
+      }
     }
 
     @Override
