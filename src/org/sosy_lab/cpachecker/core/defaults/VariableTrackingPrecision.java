@@ -387,11 +387,6 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public final boolean isEmpty() {
-      return false;
-    }
-
-    @Override
     public final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return baseline.getCPAClass();
     }
@@ -457,6 +452,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     public String toString() {
       return rawPrecision.toString();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return rawPrecision.isEmpty();
     }
 
     @Override
@@ -540,6 +540,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     public String toString() {
       return rawPrecision.toString();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return rawPrecision.isEmpty();
     }
 
     @Override
