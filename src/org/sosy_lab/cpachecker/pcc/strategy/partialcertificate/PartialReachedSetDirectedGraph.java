@@ -142,8 +142,8 @@ public class PartialReachedSetDirectedGraph {
      return listRes.toArray(new AbstractState[listRes.size()]);
   }
 
-  private void visitOutsideSuccessorsOf(final int pPredecessor, final Set<Integer> pNodeSet,
-      final NodeVisitor pVisitor, Predicate<Integer> pMustVisit) {
+  private void visitOutsideSuccessorsOf(final int pPredecessor, final NodeVisitor pVisitor,
+      final Predicate<Integer> pMustVisit) {
     for (Integer successor : adjacencyList.get(pPredecessor)) {
       if (pMustVisit.apply(successor)) {
         pVisitor.visit(successor);
@@ -153,12 +153,15 @@ public class PartialReachedSetDirectedGraph {
 
   private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
+      Predicate<Integer> isOutsideSet = new Predicate<Integer>() {
+
+        @Override
+        public boolean apply(@Nullable Integer pNode) {
+          return !pNodeSet.contains(pNode);
+        }
+      };
       for (int predecessor : pNodeSet) {
-        visitOutsideSuccessorsOf(predecessor, pNodeSet, pVisitor, new Predicate<Integer>() {
-          @Override
-          public boolean apply(@Nullable Integer pNode) {
-            return !pNodeSet.contains(pNode);
-          }});
+        visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
       throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes
@@ -167,23 +170,27 @@ public class PartialReachedSetDirectedGraph {
   }
 
   private void visitOutsideAdjacentNodes(final Set<Integer> pSrcNodeSetIndices, final Set<Integer> pDstNodeSetIndices,
-      final NodeVisitor pVisitor){
+      final NodeVisitor pVisitor) {
     try {
-      Predicate<Integer> whenToVisit = new Predicate<Integer>() {
-        @Override
-        public boolean apply(@Nullable Integer pNode) {
-          return pDstNodeSetIndices.contains(pNode);
-        }};
-
-      for (int predecessor : pSrcNodeSetIndices) {
-        visitOutsideSuccessorsOf(predecessor, pSrcNodeSetIndices, pVisitor, whenToVisit);
-      }
-      for(int predecessor : pDstNodeSetIndices) {
-        visitOutsideSuccessorsOf(predecessor, pDstNodeSetIndices, pVisitor, whenToVisit);
-      }
+      visitSuccessorsInOtherSet(pSrcNodeSetIndices, pDstNodeSetIndices, pVisitor);
+      visitSuccessorsInOtherSet(pDstNodeSetIndices, pSrcNodeSetIndices, pVisitor);
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
       throw new IllegalArgumentException("Wrong index set must not be null and all indices be within [0;" + numNodes
           + "-1].");
+    }
+  }
+
+  private void visitSuccessorsInOtherSet(final Set<Integer> pNodeSet, final Set<Integer> pOtherNodeSet,
+      final NodeVisitor pVisitor) {
+    Predicate<Integer> isInOtherSet = new Predicate<Integer>() {
+
+      @Override
+      public boolean apply(@Nullable Integer pNode) {
+        return pOtherNodeSet.contains(pNode);
+      }
+    };
+    for (int predecessor : pNodeSet) {
+      visitOutsideSuccessorsOf(predecessor, pVisitor, isInOtherSet);
     }
   }
 
