@@ -1077,9 +1077,11 @@ public class ASTConverter {
     JRunTimeTypeEqualsType firstCond = null;
 
     List<JClassType> subClassTypes = getSubClassTypes((JClassOrInterfaceType) type);
-    if (type instanceof JInterfaceType && subClassTypes.isEmpty()) {
+    if (type instanceof JInterfaceType) {
+      if (subClassTypes.isEmpty()) {
         return new JBooleanLiteralExpression(fileloc, false);
-
+      }
+      
     } else if (type instanceof JClassType) {
       firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
           (JClassOrInterfaceType) type);
