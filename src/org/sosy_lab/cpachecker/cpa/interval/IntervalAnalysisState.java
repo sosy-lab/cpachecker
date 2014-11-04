@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -346,14 +347,14 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
     if (parts.length == 2) {
 
       // pProperty = value <= varName
-      if (CheckUtil.isLong(parts[0])) {
+      if (CheckTypesOfStringsUtil.isLong(parts[0])) {
         long value = Long.parseLong(parts[0].trim());
         Interval iv = intervals.get(parts[1].trim());
         return (value <= iv.getLow());
       }
 
       // pProperty = varName <= value
-      else if (CheckUtil.isLong(parts[1])){
+      else if (CheckTypesOfStringsUtil.isLong(parts[1])){
         long value = Long.parseLong(parts[1].trim());
         Interval iv = intervals.get(parts[0].trim());
         return (iv.getHigh() <= value);
@@ -368,7 +369,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
     // pProperty = value1 <= varName <= value2
     } else if (parts.length == 3){
-      if ( CheckUtil.isLong(parts[0]) && CheckUtil.isLong(parts[2]) ) {
+      if ( CheckTypesOfStringsUtil.isLong(parts[0]) && CheckTypesOfStringsUtil.isLong(parts[2]) ) {
         long value1 = Long.parseLong(parts[0].trim());
         long value2 = Long.parseLong(parts[2].trim());
         Interval iv = intervals.get(parts[1].trim());
@@ -381,12 +382,11 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    checkProperty(pProperty);
-    return null; // TODO was hier zurückgeben?
+    return Boolean.valueOf(checkProperty(pProperty));
   }
 
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("The Query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
   }
 }

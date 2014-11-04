@@ -21,14 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.interval;
+package org.sosy_lab.cpachecker.util;
 
 import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 
 
-public class CheckUtil {
+public class CheckTypesOfStringsUtil {
+
+  private CheckTypesOfStringsUtil(){
+  }
 
   public static boolean isLong (String s) {
     return Pattern.matches("-?\\d+", s);

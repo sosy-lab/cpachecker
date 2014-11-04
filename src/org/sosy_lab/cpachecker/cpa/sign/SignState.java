@@ -36,8 +36,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.cpa.interval.CheckUtil;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -227,8 +227,7 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    checkProperty(pProperty);
-    return null; //TODO was hier zurückgeben?
+    return Boolean.valueOf(checkProperty(pProperty));
   }
 
   @Override
@@ -239,23 +238,23 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
     if (parts.length == 2) {
 
       // pProperty = value <= varName
-      if (CheckUtil.isSIGN(parts[0])) {
+      if (CheckTypesOfStringsUtil.isSIGN(parts[0])) {
         SIGN value = SIGN.valueOf(parts[0]);
-        SIGN varName = signMap.get(parts[1]);
+        SIGN varName = getSignForVariable(parts[1]);
         return (varName.covers(value));
       }
 
       // pProperty = varName <= value
-      else if (CheckUtil.isSIGN(parts[1])){
-        SIGN varName = signMap.get(parts[0]);
+      else if (CheckTypesOfStringsUtil.isSIGN(parts[1])){
+        SIGN varName = getSignForVariable(parts[0]);
         SIGN value = SIGN.valueOf(parts[1]);
         return (value.covers(varName));
       }
 
       // pProperty = varName1 <= varName2
       else {
-        SIGN varName1 = signMap.get(parts[0]);
-        SIGN varName2 = signMap.get(parts[1]);
+        SIGN varName1 = getSignForVariable(parts[0]);
+        SIGN varName2 = getSignForVariable(parts[1]);
         return (varName2.covers(varName1));
       }
     }
@@ -263,10 +262,9 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
     return false;
   }
 
-
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("The Query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
   }
 
 }
