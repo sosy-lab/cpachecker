@@ -155,6 +155,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
 
+  @Option(secure=true, description = "Track Java array values in explicit value analysis. " +
+      "This may be costly if the verified program uses big or lots of arrays. " +
+      "Arrays in C programs will always be tracked, even if this value is false.")
+  private boolean trackJavaArrayValues = true;
+
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   private JRightHandSide missingInformationRightJExpression = null;
@@ -528,7 +533,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, IADeclaration declaration)
     throws UnrecognizedCCodeException {
 
-    if (!(declaration instanceof AVariableDeclaration)) {
+    if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
     }
@@ -691,6 +696,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
 
+    if (!isTrackedType(op1.getExpressionType())) {
+      return state;
+    }
 
     if (op1 instanceof AIdExpression) {
       /*
@@ -770,6 +778,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     return state; // the default return-value is the old state
+  }
+
+  private boolean isTrackedType(Type pType) {
+    if (pType instanceof JType) {
+      return trackJavaArrayValues || !(pType instanceof JArrayType);
+    } else {
+      return true;
+    }
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
@@ -1087,7 +1103,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       boolean result = false;
 
       if (expression instanceof JIdExpression) {
-
         JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
 
         if (decl == null) {
@@ -1201,6 +1216,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Value getExpressionValue(IAExpression expression, final Type type, ExpressionValueVisitor evv)
       throws UnrecognizedCCodeException {
+    if (!isTrackedType(type)) {
+      return UnknownValue.getInstance();
+    }
 
     if (expression instanceof JRightHandSide) {
 
