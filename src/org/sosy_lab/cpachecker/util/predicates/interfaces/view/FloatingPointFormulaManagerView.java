@@ -45,121 +45,116 @@ public class FloatingPointFormulaManagerView
     this.manager = pManager;
   }
 
-  private BooleanFormula wrapInView(BooleanFormula pFormula) {
-    return getViewManager().getBooleanFormulaManager().wrapInView(pFormula);
-  }
-
   @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
-    return getViewManager().wrapInView(manager.castTo(extractFromView(pNumber), pTargetType));
+    return manager.castTo(pNumber, pTargetType);
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    return wrapInView(manager.castFrom(
-        getViewManager().extractFromView(pNumber), pSigned, pTargetType));
+    return manager.castFrom(pNumber, pSigned, pTargetType);
   }
 
   @Override
   public FloatingPointFormula negate(FloatingPointFormula pNumber) {
-    return wrapInView(manager.negate(extractFromView(pNumber)));
+    return manager.negate(pNumber);
   }
 
   @Override
   public FloatingPointFormula add(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.add(pNumber1, pNumbe2);
   }
 
   @Override
   public FloatingPointFormula subtract(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.subtract(pNumber1, pNumbe2);
   }
   @Override
   public FloatingPointFormula divide(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.divide(pNumber1, pNumbe2);
   }
   @Override
   public FloatingPointFormula multiply(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.multiply(pNumber1, pNumbe2);
   }
   @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
-    return wrapInView(manager.assignment(extractFromView(pNumber1), extractFromView(pNumber2)));
+    return manager.assignment(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.equalWithFPSemantics(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.equalWithFPSemantics(pNumber1, pNumbe2);
   }
   @Override
   public BooleanFormula greaterThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.greaterThan(pNumber1, pNumbe2);
   }
   @Override
   public BooleanFormula greaterOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.greaterOrEquals(pNumber1, pNumbe2);
   }
   @Override
   public BooleanFormula lessThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.lessThan(pNumber1, pNumbe2);
   }
   @Override
   public BooleanFormula lessOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
-    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
+    return manager.lessOrEquals(pNumber1, pNumbe2);
   }
 
   @Override
   public BooleanFormula isNaN(FloatingPointFormula pNumber) {
-    return wrapInView(manager.isNaN(pNumber));
+    return manager.isNaN(pNumber);
   }
   @Override
   public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
-    return wrapInView(manager.isInfinity(pNumber));
+    return manager.isInfinity(pNumber);
   }
   @Override
   public BooleanFormula isZero(FloatingPointFormula pNumber) {
-    return wrapInView(manager.isZero(pNumber));
+    return manager.isZero(pNumber);
   }
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
-    return wrapInView(manager.isSubnormal(pNumber));
+    return manager.isSubnormal(pNumber);
   }
 
   @Override
   public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {
-    return wrapInView(manager.makeNumber(pN, type));
+    return manager.makeNumber(pN, type);
   }
 
   @Override
   public FloatingPointFormula makeNumber(BigDecimal pN, FormulaType.FloatingPointType type) {
-    return wrapInView(manager.makeNumber(pN, type));
+    return manager.makeNumber(pN, type);
   }
 
   @Override
   public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
-    return wrapInView(manager.makeNumber(pN, type));
+    return manager.makeNumber(pN, type);
   }
 
   @Override
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
-    return wrapInView(manager.makeVariable(pVar, pType));
+    return manager.makeVariable(pVar, pType);
   }
 
   public FloatingPointFormula makeVariable(String pVar, int idx, FormulaType.FloatingPointType pType) {
-    return wrapInView(manager.makeVariable(FormulaManagerView.makeName(pVar, idx), pType));
+    return manager.makeVariable(FormulaManagerView.makeName(pVar, idx), pType);
   }
 
   @Override
   public FloatingPointFormula makePlusInfinity(FloatingPointType pType) {
-    return wrapInView(manager.makePlusInfinity(pType));
+    return manager.makePlusInfinity(pType);
   }
 
   @Override
   public FloatingPointFormula makeMinusInfinity(FloatingPointType pType) {
-    return wrapInView(manager.makeMinusInfinity(pType));
+    return manager.makeMinusInfinity(pType);
   }
 
   @Override
   public FloatingPointFormula makeNaN(FloatingPointType pType) {
-    return wrapInView(manager.makeNaN(pType));
+    return manager.makeNaN(pType);
   }
 }

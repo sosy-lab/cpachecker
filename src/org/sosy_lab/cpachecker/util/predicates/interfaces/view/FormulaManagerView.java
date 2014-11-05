@@ -657,29 +657,7 @@ public class FormulaManagerView {
     return manager.getFormulaType(pFormula);
   }
 
-  @SuppressWarnings("unchecked")
-  <T extends Formula> T wrapInView(T formula) {
-    if (formula instanceof BooleanFormula) {
-      return (T) booleanFormulaManager.wrapInView((BooleanFormula) formula);
-    }
-    if (formula instanceof IntegerFormula) {
-      return (T) integerFormulaManager.wrapInView((IntegerFormula) formula);
-    }
-    if (formula instanceof RationalFormula) {
-      return (T) getRationalFormulaManager().wrapInView((RationalFormula) formula);
-    }
-    if (formula instanceof BitvectorFormula) {
-      return (T) bitvectorFormulaManager.wrapInView((BitvectorFormula) formula);
-    }
-    if (formula instanceof FloatingPointFormula) {
-      return (T) floatingPointFormulaManager.wrapInView((FloatingPointFormula) formula);
-    }
-    throw new IllegalArgumentException("Unknown formula type " + formula);
-  }
-
   public <T extends Formula> BooleanFormula assignment(T left, T right) {
-    left = extractFromView(left);
-    right = extractFromView(right);
     FormulaType<T> lformulaType = this.getFormulaType(left);
     FormulaType<T> rformulaType = this.getFormulaType(right);
     if (!lformulaType.equals(rformulaType)) {
@@ -693,35 +671,14 @@ public class FormulaManagerView {
     return makeEqual(left, right);
   }
 
-  @SuppressWarnings("unchecked")
-  <T extends Formula> T extractFromView(T formula) {
-    if (formula instanceof BooleanFormula) {
-      return (T) booleanFormulaManager.extractFromView((BooleanFormula) formula);
-    }
-    if (formula instanceof IntegerFormula) {
-      return (T) integerFormulaManager.extractFromView((IntegerFormula) formula);
-    }
-    if (formula instanceof RationalFormula) {
-      return (T) getRationalFormulaManager().extractFromView((RationalFormula) formula);
-    }
-    if (formula instanceof BitvectorFormula) {
-      return (T) bitvectorFormulaManager.extractFromView((BitvectorFormula) formula);
-    }
-    if (formula instanceof FloatingPointFormula) {
-      return (T) floatingPointFormulaManager.extractFromView((FloatingPointFormula) formula);
-    }
-
-    throw new IllegalArgumentException("Invalid class");
-  }
-
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return wrapInView(manager.parse(pS));
+    return manager.parse(pS);
   }
 
   public <T extends Formula> T  instantiate(T fView, SSAMap ssa) {
-    T f = extractFromView(fView);
+    T f = fView;
     T endResult = myInstantiate(ssa, f);
-    return wrapInView(endResult);
+    return endResult;
   }
 
   // the character for separating name and index of a value
@@ -815,7 +772,7 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> T uninstantiate(T pF) {
-    return wrapInView(myUninstantiate(extractFromView(pF)));
+    return myUninstantiate(pF);
   }
 
   // various caches for speeding up expensive tasks
@@ -908,11 +865,11 @@ public class FormulaManagerView {
   }
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Collection<BooleanFormula> unwrapped = myExtractAtoms(extractFromView(f), splitArithEqualities, conjunctionsOnly);
+    Collection<BooleanFormula> unwrapped = myExtractAtoms(f, splitArithEqualities, conjunctionsOnly);
 
     List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
     for (BooleanFormula booleanFormula : unwrapped) {
-      atoms.add(wrapInView(booleanFormula));
+      atoms.add(booleanFormula);
     }
 
     return atoms;
@@ -997,7 +954,7 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyArithmetic(Formula f) {
-    return myIsPurelyArithmetic(extractFromView(f));
+    return myIsPurelyArithmetic(f);
   }
 
   // returns true if the given term is a pure arithmetic term
@@ -1028,7 +985,7 @@ public class FormulaManagerView {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<String> result = Sets.newHashSet();
 
-    for (Formula v: myExtractVariables(extractFromView(f))) {
+    for (Formula v: myExtractVariables(f)) {
       result.add(unsafeManager.getName(v));
     }
 
@@ -1039,7 +996,7 @@ public class FormulaManagerView {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
-    for (Formula varFormula: myExtractVariables(extractFromView(f))) {
+    for (Formula varFormula: myExtractVariables(f)) {
       Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
       result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
     }
@@ -1048,7 +1005,7 @@ public class FormulaManagerView {
   }
 
   public Set<Formula> extractVariableFormulas(Formula f) {
-    return myExtractVariables(extractFromView(f));
+    return myExtractVariables(f);
   }
 
   private Set<Formula> myExtractVariables(Formula f) {
@@ -1085,11 +1042,11 @@ public class FormulaManagerView {
   }
 
   public Appender dumpFormula(Formula pT) {
-    return manager.dumpFormula(extractFromView(pT));
+    return manager.dumpFormula(pT);
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    return myIsPurelyConjunctive(extractFromView(t));
+    return myIsPurelyConjunctive(t);
   }
 
   private boolean myIsPurelyConjunctive(BooleanFormula t) {
@@ -1192,7 +1149,7 @@ public class FormulaManagerView {
 
     // returns a formula with some "static learning" about some bitwise
     public BooleanFormula getBitwiseAxioms(Formula f) {
-      return wrapInView(myGetBitwiseAxioms(extractFromView(f)));
+      return myGetBitwiseAxioms(f);
     }
 
 
@@ -1218,7 +1175,7 @@ public class FormulaManagerView {
   }
 
   public BooleanFormula createPredicateVariable(String pName) {
-    return wrapInView(myCreatePredicateVariable(pName));
+    return myCreatePredicateVariable(pName);
   }
 
   public BooleanFormula simplify(BooleanFormula input) {

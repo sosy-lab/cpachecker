@@ -97,17 +97,8 @@ public class FunctionFormulaManagerView extends BaseManagerView<Formula, Formula
   @Override
   public <T extends Formula> T callUninterpretedFunction(
       FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
-    final FormulaManagerView viewManager = getViewManager();
-    List<Formula> args =
-        from(pArgs)
-        .transform(
-            new Function<Formula, Formula>() {
-              @Override
-              public Formula apply(Formula pArg0) {
-                return viewManager.extractFromView(pArg0);
-              }}).toList();
 
-    return viewManager.wrapInView(manager.callUninterpretedFunction(pFuncType, args));
+    return manager.callUninterpretedFunction(pFuncType, pArgs);
   }
 
   public <T extends Formula> T callUninterpretedFunction(

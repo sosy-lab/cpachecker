@@ -45,17 +45,17 @@ public class QuantifiedFormulaManagerView
 
   @Override
   public BooleanFormula exists(List<Formula> pVariables, BooleanFormula pBody) {
-    return wrapInView(manager.exists(pVariables, extractFromView(pBody)));
+    return manager.exists(pVariables, pBody);
   }
 
   @Override
   public BooleanFormula forall(List<Formula> pVariables, BooleanFormula pBody) {
-    return wrapInView(manager.forall(pVariables, extractFromView(pBody)));
+    return manager.forall(pVariables, pBody);
   }
 
   @Override
   public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
-    return wrapInView(manager.eliminateQuantifiers(extractFromView(pF)));
+    return manager.eliminateQuantifiers(pF);
   }
 
 }

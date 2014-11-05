@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
-import com.google.common.collect.Lists;
-
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
 
@@ -57,54 +55,52 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   @Override
   public BooleanFormula not(BooleanFormula pBits) {
-    return wrapInView(manager.not(extractFromView(pBits)));
+    return manager.not(pBits);
   }
 
   @Override
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.and(pBits1, pBits2);
   }
 
   @Override
   public BooleanFormula and(List<BooleanFormula> pBits) {
-    BooleanFormula result = manager.and(Lists.transform(pBits, extractor));
-    return wrapInView(result);
+    return manager.and(pBits);
   }
 
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.or(pBits1, pBits2);
   }
 
   @Override
   public BooleanFormula or(List<BooleanFormula> pBits) {
-    BooleanFormula result = manager.or(Lists.transform(pBits, extractor));
-    return wrapInView(result);
+    return manager.or(pBits);
   }
 
   @Override
   public BooleanFormula xor(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.xor(pBits1, pBits2);
   }
 
   @Override
   public boolean isNot(BooleanFormula pBits) {
-    return manager.isNot(extractFromView(pBits));
+    return manager.isNot(pBits);
   }
 
   @Override
   public boolean isAnd(BooleanFormula pBits) {
-    return manager.isAnd(extractFromView(pBits));
+    return manager.isAnd(pBits);
   }
 
   @Override
   public boolean isOr(BooleanFormula pBits) {
-    return manager.isOr(extractFromView(pBits));
+    return manager.isOr(pBits);
   }
 
   @Override
   public boolean isXor(BooleanFormula pBits) {
-    return manager.isXor(extractFromView(pBits));
+    return manager.isXor(pBits);
   }
 
   @Override
@@ -114,34 +110,32 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   @Override
   public BooleanFormula makeBoolean(boolean pValue) {
-    return wrapInView(manager.makeBoolean(pValue));
+    return manager.makeBoolean(pValue);
   }
 
   @Override
   public BooleanFormula makeVariable(String pVar) {
-    return wrapInView(manager.makeVariable(pVar));
+    return manager.makeVariable(pVar);
   }
 
   @Override
   public boolean isTrue(BooleanFormula pFormula) {
-    return manager.isTrue(extractFromView(pFormula));
+    return manager.isTrue(pFormula);
   }
 
   @Override
   public boolean isFalse(BooleanFormula pFormula) {
-    return manager.isFalse(extractFromView(pFormula));
+    return manager.isFalse(pFormula);
   }
 
   @Override
   public <T extends Formula> T ifThenElse(BooleanFormula pCond, T pF1, T pF2) {
-    FormulaManagerView viewManager = getViewManager();
-    return viewManager.wrapInView(manager.ifThenElse(extractFromView(pCond), viewManager.extractFromView(pF1), viewManager.extractFromView(pF2)));
+    return manager.ifThenElse(pCond, pF1, pF2);
   }
 
   @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
-    FormulaManagerView viewManager = getViewManager();
-    return manager.isIfThenElse(viewManager.extractFromView(pF));
+    return manager.isIfThenElse(pF);
   }
 
   public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
@@ -150,16 +144,16 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
     FormulaManagerView fmgr = getViewManager();
     assert unsafe.getArity(pF) == 3;
 
-    BooleanFormula cond = wrapInView((BooleanFormula)unsafe.getArg(pF, 0));
-    T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
-    T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
+    BooleanFormula cond = (BooleanFormula)unsafe.getArg(pF, 0);
+    T thenBranch = unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1));
+    T elseBranch = unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2));
 
     return Triple.of(cond, thenBranch, elseBranch);
   }
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
-    return manager.isEquivalence(extractFromView(pFormula));
+    return manager.isEquivalence(pFormula);
   }
 
   public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
@@ -168,12 +162,12 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   @Override
   public boolean isImplication(BooleanFormula pFormula) {
-    return manager.isImplication(extractFromView(pFormula));
+    return manager.isImplication(pFormula);
   }
 
   @Override
   public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
-    return wrapInView(manager.equivalence(extractFromView(pFormula1), extractFromView(pFormula2)));
+    return manager.equivalence(pFormula1, pFormula2);
   }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
@@ -203,7 +197,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
         return visitFalse();
       }
 
-      if (unsafe.isAtom(fmgr.extractFromView(f))) {
+      if (unsafe.isAtom(f)) {
         return visitAtom(f);
       }
 
