@@ -4,6 +4,6 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init :
   !CHECK(ValidVars,"main::x") || CHECK(SignAnalysis,"main::x<=PLUSMINUS") -> GOTO Init;
-  TRUE -> ERROR;
+  TRUE -> ASSUME {x==0} ERROR;
   
 END AUTOMATON
