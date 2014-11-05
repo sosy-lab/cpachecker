@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 
-public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, BooleanFormula> implements BooleanFormulaManager {
+public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
   private final UnsafeFormulaManager unsafe;

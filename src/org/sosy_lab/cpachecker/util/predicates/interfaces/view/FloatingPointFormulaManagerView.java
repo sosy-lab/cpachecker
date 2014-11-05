@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPo
 
 
 public class FloatingPointFormulaManagerView
-        extends BaseManagerView<FloatingPointFormula, FloatingPointFormula>
+        extends BaseManagerView
         implements FloatingPointFormulaManager {
 
   private final FloatingPointFormulaManager manager;

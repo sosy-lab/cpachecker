@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
-abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula extends Formula> {
+abstract class BaseManagerView {
 
   private final FormulaManagerView baseManager;
 

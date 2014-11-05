@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 public class NumeralFormulaManagerView
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
-        extends BaseManagerView<ParamFormulaType, ResultFormulaType>
+        extends BaseManagerView
         implements NumeralFormulaManager<ParamFormulaType, ResultFormulaType> {
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManag
 
 
 public class QuantifiedFormulaManagerView
-  extends BaseManagerView<BooleanFormula, BooleanFormula>
+  extends BaseManagerView
   implements QuantifiedFormulaManager {
 
   private final QuantifiedFormulaManager manager;

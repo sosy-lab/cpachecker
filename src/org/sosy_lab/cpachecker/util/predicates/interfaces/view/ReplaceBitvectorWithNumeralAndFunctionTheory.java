@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
-  extends BaseManagerView<T, T> implements BitvectorFormulaManager {
+  extends BaseManagerView implements BitvectorFormulaManager {
 
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FunctionFormulaManager functionManager;
