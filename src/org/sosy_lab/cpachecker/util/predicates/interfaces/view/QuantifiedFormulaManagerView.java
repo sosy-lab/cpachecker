@@ -45,12 +45,12 @@ public class QuantifiedFormulaManagerView
 
   @Override
   public BooleanFormula exists(List<Formula> pVariables, BooleanFormula pBody) {
-    return manager.exists(pVariables, pBody);
+    return manager.exists(unwrap(pVariables), pBody);
   }
 
   @Override
   public BooleanFormula forall(List<Formula> pVariables, BooleanFormula pBody) {
-    return manager.forall(pVariables, pBody);
+    return manager.forall(unwrap(pVariables), pBody);
   }
 
   @Override

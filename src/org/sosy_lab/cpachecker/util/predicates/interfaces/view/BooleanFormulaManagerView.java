@@ -33,6 +33,7 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 
@@ -130,25 +131,32 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
 
   @Override
   public <T extends Formula> T ifThenElse(BooleanFormula pCond, T pF1, T pF2) {
-    return manager.ifThenElse(pCond, pF1, pF2);
+    Formula f1 = unwrap(pF1);
+    Formula f2 = unwrap(pF2);
+    FormulaType<T> targetType = getViewManager().getFormulaType(pF1);
+
+    return wrap(targetType, manager.ifThenElse(pCond, f1, f2));
   }
 
   @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
-    return manager.isIfThenElse(pF);
+    return manager.isIfThenElse(unwrap(pF));
   }
 
   public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
     checkArgument(isIfThenElse(pF));
+    Formula f = unwrap(pF);
 
     FormulaManagerView fmgr = getViewManager();
-    assert unsafe.getArity(pF) == 3;
+    assert unsafe.getArity(f) == 3;
 
-    BooleanFormula cond = (BooleanFormula)unsafe.getArg(pF, 0);
-    T thenBranch = unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1));
-    T elseBranch = unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2));
+    BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
+    FormulaType<Formula> innerType = fmgr.getFormulaType(f);
+    Formula thenBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 1));
+    Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
-    return Triple.of(cond, thenBranch, elseBranch);
+    FormulaType<T> targetType = fmgr.getFormulaType(pF);
+    return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
   }
 
   @Override

@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import java.util.List;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula extends Formula> {
 
@@ -36,5 +41,35 @@ abstract class BaseManagerView<ParamFormula extends Formula, ResultFormula exten
 
   FormulaManagerView getViewManager() {
     return baseManager;
+  }
+
+  final <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    return baseManager.wrap(targetType, toWrap);
+  }
+
+  final Formula unwrap(Formula f) {
+    return baseManager.unwrap(f);
+  }
+
+  final List<Formula> unwrap(List<? extends Formula> f) {
+    return Lists.transform(f, new Function<Formula, Formula>() {
+      @Override
+      public Formula apply(Formula pInput) {
+        return unwrap(pInput);
+      }
+    });
+  }
+
+  final FormulaType<?> unwrapType(FormulaType<?> pType) {
+    return baseManager.unwrapType(pType);
+  }
+
+  final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
+    return Lists.transform(pTypes, new Function<FormulaType<?>, FormulaType<?>>() {
+          @Override
+          public FormulaType<?> apply(FormulaType<?> pInput) {
+            return unwrapType(pInput);
+          }
+        });
   }
 }

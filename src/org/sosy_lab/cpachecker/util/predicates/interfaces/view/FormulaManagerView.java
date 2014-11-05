@@ -54,7 +54,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -154,6 +153,44 @@ public class FormulaManagerView {
 
     logger = pLogger;
   }
+
+
+  @SuppressWarnings("unchecked")
+  <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    assert !(toWrap instanceof WrappingFormula<?, ?>);
+
+    if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
+      return (T1) new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)targetType, toWrap);
+    } else if (targetType.equals(manager.getFormulaType(toWrap))) {
+      return (T1) toWrap;
+    } else {
+      throw new IllegalArgumentException("invalid wrap call");
+    }
+  }
+
+  Formula unwrap(Formula f) {
+    if (f instanceof WrappingFormula<?, ?>) {
+      return ((WrappingFormula<?, ?>)f).getWrapped();
+    } else {
+      return f;
+    }
+  }
+
+  FormulaType<?> unwrapType(FormulaType<?> type) {
+    if (type.isBitvectorType()) {
+      switch (encodeBitvectorAs) {
+      case BITVECTOR:
+        return type;
+      case INTEGER:
+        return FormulaType.IntegerType;
+      case RATIONAL:
+        return FormulaType.RationalType;
+      }
+    }
+
+    return type;
+  }
+
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
     if (formulaDumpFile == null) {
@@ -652,9 +689,16 @@ public class FormulaManagerView {
     return quantifiedFormulaManager;
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
-    return manager.getFormulaType(pFormula);
+
+    if (pFormula instanceof WrappingFormula<?, ?>) {
+      WrappingFormula<?, ?> castFormula = (WrappingFormula<?, ?>)pFormula;
+      return (FormulaType<T>)castFormula.getType();
+    } else {
+      return manager.getFormulaType(pFormula);
+    }
   }
 
   public <T extends Formula> BooleanFormula assignment(T left, T right) {
@@ -675,10 +719,8 @@ public class FormulaManagerView {
     return manager.parse(pS);
   }
 
-  public <T extends Formula> T  instantiate(T fView, SSAMap ssa) {
-    T f = fView;
-    T endResult = myInstantiate(ssa, f);
-    return endResult;
+  public BooleanFormula instantiate(BooleanFormula f, SSAMap ssa) {
+    return myInstantiate(ssa, f);
   }
 
   // the character for separating name and index of a value
@@ -771,7 +813,7 @@ public class FormulaManagerView {
     return name.startsWith("*");
   }
 
-  public <T extends Formula> T uninstantiate(T pF) {
+  public BooleanFormula uninstantiate(BooleanFormula pF) {
     return myUninstantiate(pF);
   }
 
@@ -877,8 +919,6 @@ public class FormulaManagerView {
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
       boolean conjunctionsOnly) {
-    BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
-    BitvectorFormulaManager rawBitpreciseManager = manager.getBitvectorFormulaManager();
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 
     Set<BooleanFormula> handled = new HashSet<>();
@@ -892,7 +932,7 @@ public class FormulaManagerView {
       BooleanFormula tt = toProcess.pop();
       assert handled.contains(tt);
 
-      if (rawBooleanManager.isTrue(tt) || rawBooleanManager.isFalse(tt)) {
+      if (booleanFormulaManager.isTrue(tt) || booleanFormulaManager.isFalse(tt)) {
         continue;
       }
 
@@ -912,13 +952,13 @@ public class FormulaManagerView {
             RationalFormula a0 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 0));
             RationalFormula a1 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 1));
             tt1 = rationalFormulaManager.lessOrEquals(a0, a1);
-          } else if (rawBitpreciseManager.isEqual(tt)) {
+          } else if (bitvectorFormulaManager.isEqual(tt)) {
             // NOTE: the type doesn't matter in the current implementations under this situation,
             // however if it does in the future we will have to add an (unsafe) api to read the bitlength (at least)
             FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(32);
             BitvectorFormula a0 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 0));
             BitvectorFormula a1 = unsafeManager.typeFormula(type, unsafeManager.getArg(tt, 1));
-            tt1 = rawBitpreciseManager.lessOrEquals(a0, a1, true);
+            tt1 = bitvectorFormulaManager.lessOrEquals(a0, a1, true);
           }
           if (tt1 != null) {
             //SymbolicFormula tt2 = encapsulate(t2);
@@ -933,7 +973,7 @@ public class FormulaManagerView {
         }
 
       } else if (conjunctionsOnly
-          && !(rawBooleanManager.isNot(tt) || rawBooleanManager.isAnd(tt))) {
+          && !(booleanFormulaManager.isNot(tt) || booleanFormulaManager.isAnd(tt))) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(myUninstantiate(tt));
@@ -954,7 +994,7 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyArithmetic(Formula f) {
-    return myIsPurelyArithmetic(f);
+    return myIsPurelyArithmetic(unwrap(f));
   }
 
   // returns true if the given term is a pure arithmetic term
@@ -985,7 +1025,7 @@ public class FormulaManagerView {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<String> result = Sets.newHashSet();
 
-    for (Formula v: myExtractVariables(f)) {
+    for (Formula v: myExtractVariables(unwrap(f))) {
       result.add(unsafeManager.getName(v));
     }
 
@@ -996,7 +1036,7 @@ public class FormulaManagerView {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
-    for (Formula varFormula: myExtractVariables(f)) {
+    for (Formula varFormula: myExtractVariables(unwrap(f))) {
       Pair<String, Integer> var = parseName(unsafeManager.getName(varFormula));
       result.add(Triple.of(varFormula, var.getFirst(), var.getSecond()));
     }
@@ -1005,10 +1045,13 @@ public class FormulaManagerView {
   }
 
   public Set<Formula> extractVariableFormulas(Formula f) {
-    return myExtractVariables(f);
+    return myExtractVariables(unwrap(f));
   }
 
   private Set<Formula> myExtractVariables(Formula f) {
+    // TODO The FormulaType of returned formulas may not be correct,
+    // because we cannot determine if for example a Rational formula
+    // is really rational, or should be wrapped as a Bitvector formula
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Formula> seen = new HashSet<>();
     Set<Formula> varFormulas = new HashSet<>();
@@ -1042,7 +1085,7 @@ public class FormulaManagerView {
   }
 
   public Appender dumpFormula(Formula pT) {
-    return manager.dumpFormula(pT);
+    return manager.dumpFormula(unwrap(pT));
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
@@ -1052,17 +1095,15 @@ public class FormulaManagerView {
   private boolean myIsPurelyConjunctive(BooleanFormula t) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 
-    BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
-
     if (unsafeManager.isAtom(t) || unsafeManager.isUF(t)) {
       // term is atom
       return true;
 
-    } else if (rawBooleanManager.isNot(t)) {
+    } else if (booleanFormulaManager.isNot(t)) {
       t = (BooleanFormula)unsafeManager.getArg(t, 0);
       return (unsafeManager.isUF(t) || unsafeManager.isAtom(t));
 
-    } else if (rawBooleanManager.isAnd(t)) {
+    } else if (booleanFormulaManager.isAnd(t)) {
       for (int i = 0; i < unsafeManager.getArity(t); ++i) {
         if (!myIsPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
           return false;
@@ -1087,8 +1128,6 @@ public class FormulaManagerView {
   // But only if an bitwise "and" occurs in the formula.
   private BooleanFormula myGetBitwiseAxioms(Formula f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-    BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
-
     Deque<Formula> toProcess = new ArrayDeque<>();
     Set<Formula> seen = new HashSet<>();
     Set<Formula> allLiterals = new HashSet<>();
@@ -1119,25 +1158,24 @@ public class FormulaManagerView {
       }
     }
 
-    BooleanFormula result = rawBooleanManager.makeBoolean(true);
-    BitvectorFormulaManager bitMgr = manager.getBitvectorFormulaManager();
+    BooleanFormula result = booleanFormulaManager.makeBoolean(true);
     if (andFound) {
       // Note: We can assume that we have no real bitvectors here, so size should be not important
       // If it ever should be we can just add an method to the unsafe-manager to read the size.
-      BitvectorFormula z = bitMgr.makeBitvector(1, 0);
+      BitvectorFormula z = bitvectorFormulaManager.makeBitvector(1, 0);
       FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(1);
       //Term z = env.numeral("0");
       for (Formula nn : allLiterals) {
         BitvectorFormula n = unsafeManager.typeFormula(type, nn);
-        BitvectorFormula u1 = bitMgr.and(z, n);
-        BitvectorFormula u2 = bitMgr.and(n, z);
+        BitvectorFormula u1 = bitvectorFormulaManager.and(z, n);
+        BitvectorFormula u2 = bitvectorFormulaManager.and(n, z);
         //Term u1 = env.term(bitwiseAndUfDecl, n, z);
         //Term u2 = env.term(bitwiseAndUfDecl, z, n);
         //Term e1;
         //e1 = env.term("=", u1, z);
-        BooleanFormula e1 = bitMgr.equal(u1, z);
+        BooleanFormula e1 = bitvectorFormulaManager.equal(u1, z);
         //Term e2 = env.term("=", u2, z);
-        BooleanFormula e2 = bitMgr.equal(u2, z);
+        BooleanFormula e2 = bitvectorFormulaManager.equal(u2, z);
         BooleanFormula a = booleanFormulaManager.and(e1, e2);
         //Term a = env.term("and", e1, e2);
 
@@ -1148,7 +1186,7 @@ public class FormulaManagerView {
   }
 
     // returns a formula with some "static learning" about some bitwise
-    public BooleanFormula getBitwiseAxioms(Formula f) {
+    public BooleanFormula getBitwiseAxioms(BooleanFormula f) {
       return myGetBitwiseAxioms(f);
     }
 
@@ -1162,8 +1200,8 @@ public class FormulaManagerView {
     return useBitwiseAxioms;
   }
 
-  private BooleanFormula myCreatePredicateVariable(String pName) {
-    return manager.getBooleanFormulaManager().makeVariable(pName);
+  public BooleanFormula createPredicateVariable(String pName) {
+    return booleanFormulaManager.makeVariable(pName);
 //    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 //    BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
 //
@@ -1172,10 +1210,6 @@ public class FormulaManagerView {
 //    String repr = unsafeManager.isAtom(atom)
 //        ? unsafeManager.getTermRepr(atom)  : ("#" + unsafeManager.getTermId( atom));
 //    return rawBooleanManager.makeVariable("\"PRED" + repr + "\"");
-  }
-
-  public BooleanFormula createPredicateVariable(String pName) {
-    return myCreatePredicateVariable(pName);
   }
 
   public BooleanFormula simplify(BooleanFormula input) {

@@ -47,12 +47,12 @@ public class FloatingPointFormulaManagerView
 
   @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
-    return manager.castTo(pNumber, pTargetType);
+    return wrap(pTargetType, manager.castTo(pNumber, unwrapType(pTargetType)));
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    return manager.castFrom(pNumber, pSigned, pTargetType);
+    return wrap(pTargetType, manager.castFrom(unwrap(pNumber), pSigned, pTargetType));
   }
 
   @Override
