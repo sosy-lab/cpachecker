@@ -36,7 +36,9 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
 
   private final BitvectorFormulaManager manager;
 
-  public BitvectorFormulaManagerView(BitvectorFormulaManager pManager) {
+  public BitvectorFormulaManagerView(FormulaManagerView pViewManager,
+      BitvectorFormulaManager pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 

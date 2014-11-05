@@ -43,8 +43,10 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula, B
   private final BooleanFormulaManager manager;
   private final UnsafeFormulaManager unsafe;
 
-  public BooleanFormulaManagerView(BooleanFormulaManager pManager,
+  public BooleanFormulaManagerView(FormulaManagerView pViewManager,
+      BooleanFormulaManager pManager,
       UnsafeFormulaManager pUnsafe) {
+    super(pViewManager);
     this.manager = pManager;
     this.unsafe = pUnsafe;
   }

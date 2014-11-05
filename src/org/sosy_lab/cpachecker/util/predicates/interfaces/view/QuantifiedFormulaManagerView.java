@@ -37,7 +37,9 @@ public class QuantifiedFormulaManagerView
 
   private final QuantifiedFormulaManager manager;
 
-  public QuantifiedFormulaManagerView(QuantifiedFormulaManager pManager) {
+  public QuantifiedFormulaManagerView(FormulaManagerView pViewManager,
+      QuantifiedFormulaManager pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 

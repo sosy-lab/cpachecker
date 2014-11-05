@@ -56,16 +56,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManage
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -90,54 +86,6 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
 
-  public interface LoadManagers {
-    public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager, UnsafeFormulaManager unsafe);
-    public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> manager);
-    public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> manager);
-    public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager manager);
-    public FloatingPointFormulaManagerView wrapManager(FloatingPointFormulaManager manager);
-    public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager manager);
-    public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
-  }
-
-  private static LoadManagers DEFAULTMANAGERS =
-      new LoadManagers() {
-        @Override
-        public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager pManager) {
-          return new BitvectorFormulaManagerView(pManager);
-        }
-
-        @Override
-        public FloatingPointFormulaManagerView wrapManager(FloatingPointFormulaManager pManager) {
-          return new FloatingPointFormulaManagerView(pManager);
-        }
-
-        @Override
-        public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> wrapIntegerManager(NumeralFormulaManager<IntegerFormula, IntegerFormula> pManager) {
-          return new NumeralFormulaManagerView<>(pManager);
-        }
-
-        @Override
-        public NumeralFormulaManagerView<NumeralFormula, RationalFormula> wrapRationalManager(NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
-          return new NumeralFormulaManagerView<>(pManager);
-        }
-
-        @Override
-        public BooleanFormulaManagerView wrapManager(BooleanFormulaManager pManager, UnsafeFormulaManager pUnsafe) {
-          return new BooleanFormulaManagerView(pManager, pUnsafe);
-        }
-
-        @Override
-        public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager) {
-          return new FunctionFormulaManagerView(pManager);
-        }
-
-        @Override
-        public QuantifiedFormulaManagerView wrapManager(QuantifiedFormulaManager pManager) {
-          return new QuantifiedFormulaManagerView(pManager);
-        }
-      };
-
   public static enum Theory {
     INTEGER,
     RATIONAL,
@@ -148,7 +96,6 @@ public class FormulaManagerView {
   private final LogManager logger;
 
   private final FormulaManager manager;
-  private final LoadManagers loadManagers;
 
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
@@ -176,9 +123,8 @@ public class FormulaManagerView {
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
-  protected FormulaManagerView(LoadManagers pLoadManagers, FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
-    loadManagers = pLoadManagers;
     if (encodeBitvectorAs != Theory.BITVECTOR) {
       manager = new ReplacingFormulaManager(pBaseManager, encodeBitvectorAs, ignoreExtractConcat);
     } else {
@@ -186,8 +132,7 @@ public class FormulaManagerView {
     }
 
     try {
-      bitvectorFormulaManager = loadManagers.wrapManager(manager.getBitvectorFormulaManager());
-      bitvectorFormulaManager.couple(this);
+      bitvectorFormulaManager = new BitvectorFormulaManagerView(this, manager.getBitvectorFormulaManager());
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
           + "please choose another SMT solver "
@@ -197,26 +142,17 @@ public class FormulaManagerView {
     }
     FloatingPointFormulaManagerView fpfmgr = null;
     try {
-      fpfmgr = loadManagers.wrapManager(manager.getFloatingPointFormulaManager());
-      fpfmgr.couple(this);
+      fpfmgr = new FloatingPointFormulaManagerView(this, manager.getFloatingPointFormulaManager());
     } catch (UnsupportedOperationException e) {
       // optional theory
     }
     floatingPointFormulaManager = fpfmgr;
-    integerFormulaManager = loadManagers.wrapIntegerManager(manager.getIntegerFormulaManager());
-    integerFormulaManager.couple(this);
-    booleanFormulaManager = loadManagers.wrapManager(manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
-    booleanFormulaManager.couple(this);
-    functionFormulaManager = loadManagers.wrapManager(manager.getFunctionFormulaManager());
-    functionFormulaManager.couple(this);
-    quantifiedFormulaManager = loadManagers.wrapManager(manager.getQuantifiedFormulaManager());
-    quantifiedFormulaManager.couple(this);
+    integerFormulaManager = new NumeralFormulaManagerView<>(this, manager.getIntegerFormulaManager());
+    booleanFormulaManager = new BooleanFormulaManagerView(this, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
+    functionFormulaManager = new FunctionFormulaManagerView(this, manager.getFunctionFormulaManager());
+    quantifiedFormulaManager = new QuantifiedFormulaManagerView(this, manager.getQuantifiedFormulaManager());
 
     logger = pLogger;
-  }
-
-  public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    this(DEFAULTMANAGERS, wrapped, config, pLogger);
   }
 
   public Path formatFormulaOutputFile(String function, int call, String formula, int index) {
@@ -691,8 +627,7 @@ public class FormulaManagerView {
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     // lazy initialisation, because not all SMT-solvers support Rationals and maybe we only want to use Integers.
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = checkNotNull(loadManagers.wrapRationalManager(manager.getRationalFormulaManager()));
-      rationalFormulaManager.couple(this);
+      rationalFormulaManager = new NumeralFormulaManagerView<>(this, manager.getRationalFormulaManager());
     }
     return rationalFormulaManager;
   }

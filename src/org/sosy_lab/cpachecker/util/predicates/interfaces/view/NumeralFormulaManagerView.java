@@ -41,7 +41,9 @@ public class NumeralFormulaManagerView
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
+  public NumeralFormulaManagerView(FormulaManagerView pViewManager,
+      NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 

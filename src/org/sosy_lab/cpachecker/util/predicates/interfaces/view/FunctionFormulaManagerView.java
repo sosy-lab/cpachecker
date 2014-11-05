@@ -36,11 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import com.google.common.base.Function;
 
 
-public class FunctionFormulaManagerView extends AbstractBaseManagerView implements FunctionFormulaManager {
+public class FunctionFormulaManagerView extends BaseManagerView<Formula, Formula> implements FunctionFormulaManager {
 
   private final FunctionFormulaManager manager;
 
-  public FunctionFormulaManagerView(FunctionFormulaManager pManager) {
+  public FunctionFormulaManagerView(FormulaManagerView pViewManager,
+      FunctionFormulaManager pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 
