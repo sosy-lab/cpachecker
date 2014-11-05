@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -865,17 +865,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
         memLocToType = memLocToType.removeAndCopy(memoryLocation);
       }
     }
-  }
-
-  @Override
-  public boolean isTarget() {
-    return checker != null && checker.isTarget(constantsMap);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
   }
 
   @Override

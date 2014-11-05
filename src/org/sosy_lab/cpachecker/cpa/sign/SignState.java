@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -173,17 +171,6 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
   @Override
   public int hashCode() {
     return signMap.hashCode();
-  }
-
-  @Override
-  public boolean isTarget() {
-    return targetChecker == null ? false : targetChecker.isTarget(this);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
   }
 
   @Override

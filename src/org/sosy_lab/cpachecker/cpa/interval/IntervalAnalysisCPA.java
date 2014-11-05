@@ -106,7 +106,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    IntervalAnalysisState.init(config, ignoreRefCount);
+    IntervalAnalysisState.init(config);
   }
 
   /* (non-Javadoc)

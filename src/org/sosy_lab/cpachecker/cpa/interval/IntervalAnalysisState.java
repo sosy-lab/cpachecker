@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.Serializable;
 import java.util.Map;
 
@@ -34,23 +32,20 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable,
+public class IntervalAnalysisState implements TargetableWithPredicatedAnalysis, Serializable,
     LatticeAbstractState<IntervalAnalysisState>, AbstractQueryableState {
 
   private static final long serialVersionUID = -2030700797958100666L;
   private static IntervalTargetChecker targetChecker;
-  private static boolean ignoreRefInMerge;
 
-  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
+  static void init(Configuration config) throws InvalidConfigurationException{
     targetChecker = new IntervalTargetChecker(config);
-    ignoreRefInMerge = pIgnoreRefCount;
   }
 
   /**
@@ -211,10 +206,12 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (!ignoreRefInMerge && mergedInterval != reachedState.getInterval(variableName)
+        if (mergedInterval != reachedState.getInterval(variableName)
             && newRefCount > reachedState.getReferenceCount(variableName)) {
           changed = true;
           newReferences = newReferences.putAndCopy(variableName, newRefCount);
+        } else {
+          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         }
 
       } else {
@@ -320,17 +317,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   @Override
-  public boolean isTarget() {
-   return targetChecker == null? false: targetChecker.isTarget(this);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
-  @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
     return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
   }
@@ -349,21 +335,21 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
       // pProperty = value <= varName
       if (CheckTypesOfStringsUtil.isLong(parts[0])) {
         long value = Long.parseLong(parts[0].trim());
-        Interval iv = intervals.get(parts[1].trim());
+        Interval iv = getInterval(parts[1].trim());
         return (value <= iv.getLow());
       }
 
       // pProperty = varName <= value
       else if (CheckTypesOfStringsUtil.isLong(parts[1])){
         long value = Long.parseLong(parts[1].trim());
-        Interval iv = intervals.get(parts[0].trim());
+        Interval iv = getInterval(parts[0].trim());
         return (iv.getHigh() <= value);
       }
 
       // pProperty = varName1 <= varName2
       else {
-        Interval iv1 = intervals.get(parts[0].trim());
-        Interval iv2 = intervals.get(parts[1].trim());
+        Interval iv1 = getInterval(parts[0].trim());
+        Interval iv2 = getInterval(parts[1].trim());
         return (iv1.contains(iv2));
       }
 
@@ -372,7 +358,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
       if ( CheckTypesOfStringsUtil.isLong(parts[0]) && CheckTypesOfStringsUtil.isLong(parts[2]) ) {
         long value1 = Long.parseLong(parts[0].trim());
         long value2 = Long.parseLong(parts[2].trim());
-        Interval iv = intervals.get(parts[1].trim());
+        Interval iv = getInterval(parts[1].trim());
         return (value1 <= iv.getLow() && iv.getHigh() <= value2);
       }
     }

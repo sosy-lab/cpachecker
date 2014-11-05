@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
-public interface TargetableWithPredicatedAnalysis extends Targetable{
+public interface TargetableWithPredicatedAnalysis {
 
   /**
    *

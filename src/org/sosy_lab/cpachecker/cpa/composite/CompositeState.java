@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 public class CompositeState implements AbstractWrapperState,
-    TargetableWithPredicatedAnalysis, Partitionable, Serializable, Graphable {
+    Targetable, Partitionable, Serializable, Graphable, TargetableWithPredicatedAnalysis {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
