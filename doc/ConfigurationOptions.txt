@@ -1825,6 +1825,12 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
+# If a witness represents a single path in Automaton match both starting and
+# ending lines of the CFA edge (ending line = starting line of the next
+# edge). If matching CFA edge exists, go to the sink for the other edges,
+# otherwise match starting lines as usual.
+spec.singlePathMatching = false
+
 # Do not try to "catch up" with witness lines: If they do not match, go to
 # the sink.
 spec.strictLineMatching = false
