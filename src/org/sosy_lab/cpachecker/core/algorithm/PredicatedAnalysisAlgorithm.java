@@ -40,6 +40,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -49,18 +50,19 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinPredicatedAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -199,6 +201,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       PredicateAbstractState errorPred = AbstractStates.extractStateByType(predecessor, PredicateAbstractState.class);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
+      String functionName=" ";
       if (!e.isMergeViolationCause()) {
         if (errorPred.isAbstractionState()) {
           // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
@@ -218,6 +221,9 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
                 wrappedStates.add(state);
             } else {
               wrappedStates.add(errorPred);
+            }
+            if(state instanceof LocationState){
+              functionName = ((LocationState)state).getLocationNode().getFunctionName();
             }
           }
 
@@ -247,8 +253,14 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       FormulaManagerView fm = predCPA.getFormulaManager();
 
       // create path to fake node
-      PathFormula pf = pfm.makeAnd(errorPred.getPathFormula(),
-          ((TargetableWithPredicatedAnalysis) predecessor).getErrorCondition(fm));
+      PathFormula pf=errorPred.getPathFormula();
+      for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
+        if (s.isTarget()) {
+          for (AssumeEdge assume : s.getAsAssumeEdges(null, functionName)) {
+            pf = pfm.makeAnd(pf, assume);
+          }
+        }
+      }
 
       // build abstraction which is needed for refinement, set to true, we do not know better
       AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
