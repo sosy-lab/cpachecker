@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -263,15 +264,21 @@ public class AutomatonGraphmlParser {
 
       Preconditions.checkNotNull(entryNodeId, "You must define an entry node.");
 
+      Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
       waitingEdges.addAll(graph.get(entryNodeId));
+      visitedEdges.addAll(waitingEdges);
       while (!waitingEdges.isEmpty()) {
         Node stateTransitionEdge = waitingEdges.poll();
 
         String sourceStateId = docDat.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = docDat.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
-        waitingEdges.addAll(graph.get(targetStateId));
+        for (Node successorEdge : graph.get(targetStateId)) {
+          if (visitedEdges.add(successorEdge)) {
+            waitingEdges.add(successorEdge);
+          }
+        }
 
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
