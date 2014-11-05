@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 public class TestDataTools {
 
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
+    FileLocation loc = FileLocation.DUMMY;
     CVariableDeclaration decl = new CVariableDeclaration(loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
     return new CIdExpression(loc, decl);
   }
