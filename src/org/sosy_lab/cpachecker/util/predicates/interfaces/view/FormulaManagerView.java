@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.Lists;
@@ -124,21 +123,36 @@ public class FormulaManagerView {
 
   public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
-    if (encodeBitvectorAs != Theory.BITVECTOR) {
-      manager = new ReplacingFormulaManager(pBaseManager, encodeBitvectorAs, ignoreExtractConcat);
-    } else {
-      manager = pBaseManager;
-    }
+    manager = checkNotNull(pBaseManager);
 
-    try {
-      bitvectorFormulaManager = new BitvectorFormulaManagerView(this, manager.getBitvectorFormulaManager());
-    } catch (UnsupportedOperationException e) {
-      throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
-          + "please choose another SMT solver "
-          + "or use the option cpa.predicate.encodeBitvectorAs "
-          + "to approximate bitvectors with another theory.",
-          e);
+    BitvectorFormulaManager rawBitvectorFormulaManager;
+    switch (encodeBitvectorAs) {
+      case BITVECTOR:
+        try {
+          rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
+        } catch (UnsupportedOperationException e) {
+          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
+              + "please choose another SMT solver "
+              + "or use the option cpa.predicate.encodeBitvectorAs "
+              + "to approximate bitvectors with another theory.",
+              e);
+        }
+        break;
+      case INTEGER:
+        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(this,
+            manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+        break;
+      case RATIONAL:
+        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(this,
+            manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
+            ignoreExtractConcat);
+      break;
+      default:
+        throw new AssertionError();
     }
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(this, rawBitvectorFormulaManager);
+
     FloatingPointFormulaManagerView fpfmgr = null;
     try {
       fpfmgr = new FloatingPointFormulaManagerView(this, manager.getFloatingPointFormulaManager());

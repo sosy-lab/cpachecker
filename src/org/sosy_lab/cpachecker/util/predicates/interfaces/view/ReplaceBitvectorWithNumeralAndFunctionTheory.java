@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
-class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> implements BitvectorFormulaManager {
+class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
+  extends BaseManagerView<T, T> implements BitvectorFormulaManager {
 
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FunctionFormulaManager functionManager;
-  private final ReplacingFormulaManager replaceManager;
   private final FunctionFormulaType<T> bitwiseAndUfDecl;
   private final FunctionFormulaType<T> bitwiseOrUfDecl;
   private final FunctionFormulaType<T> bitwiseXorUfDecl;
@@ -58,16 +58,16 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   private final boolean ignoreExtractConcat;
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
-      ReplacingFormulaManager pReplacingFormulaManager,
-      NumeralFormulaManager<? super T, T> pNumericFormulaManager,
+      FormulaManagerView pViewManager,
+      NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
       final boolean ignoreExtractConcat) {
-    replaceManager = pReplacingFormulaManager;
-    numericFormulaManager = pNumericFormulaManager;
+    super(pViewManager);
+    numericFormulaManager = rawNumericFormulaManager;
     this.ignoreExtractConcat = ignoreExtractConcat;
     this.functionManager = rawFunctionManager;
 
-    formulaType = pNumericFormulaManager.getFormulaType();
+    formulaType = numericFormulaManager.getFormulaType();
     bitwiseAndUfDecl = createBinaryFunction(BitwiseAndUfName);
     bitwiseOrUfDecl = createBinaryFunction(BitwiseOrUfName);
     bitwiseXorUfDecl = createBinaryFunction(BitwiseXorUfName);
@@ -75,6 +75,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
     leftShiftUfDecl = createBinaryFunction("_<<_");
     rightShiftUfDecl = createBinaryFunction("_>>_");
+  }
+
+  @SuppressWarnings("unchecked")
+  private T unwrap(BitvectorFormula pNumber) {
+    return (T)super.unwrap(pNumber);
   }
 
   private FunctionFormulaType<T> createUnaryFunction(String name) {
@@ -86,7 +91,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<T> decl, BitvectorFormula... t1) {
-    List<Formula> args = replaceManager.unwrap(Arrays.<Formula>asList(t1));
+    List<Formula> args = unwrap(Arrays.<Formula>asList(t1));
 
     return wrap(realreturn, functionManager.callUninterpretedFunction(decl, args));
   }
@@ -155,15 +160,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
-  private BitvectorFormula wrap(FormulaType<BitvectorFormula> pFormulaType, T number) {
-    return replaceManager.wrap(pFormulaType, number);
-  }
-
-  @SuppressWarnings("unchecked")
-  private T unwrap(BitvectorFormula pNumber) {
-    return (T)replaceManager.unwrap(pNumber);
-  }
-
   @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
     return wrap(getBitvectorTypeWithSize(pLength), numericFormulaManager.makeVariable(pVar));
@@ -171,7 +167,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> imp
 
   @Override
   public int getLength(BitvectorFormula pNumber) {
-    BitvectorType fmgr = (BitvectorType)replaceManager.getFormulaType(pNumber);
+    BitvectorType fmgr = (BitvectorType)getViewManager().getFormulaType(pNumber);
     return fmgr.getSize();
   }
 
