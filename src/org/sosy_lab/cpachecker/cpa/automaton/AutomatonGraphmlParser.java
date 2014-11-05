@@ -35,6 +35,7 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -333,7 +335,7 @@ public class AutomatonGraphmlParser {
             scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
           }
           for (String assumeCode : transAssumes) {
-            assumptions.addAll(AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, cparser, scope));
+            assumptions.addAll(AutomatonASTComparator.generateSourceASTOfBlock(tryFixArrayInitializers(assumeCode), cparser, scope));
           }
         }
 
@@ -494,6 +496,56 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
+  }
+
+  /**
+   * Let's be nice to tools that ignore the restriction that array initializers
+   * are not allowed as right-hand sides of assignment statements and try to
+   * help them. This is a hack, no good solution.
+   * We would need a kind-of-but-not-really-C-parser to properly handle these
+   * declarations-that-aren't-declarations.
+   *
+   * @param pAssumeCode the code from the witness assumption.
+   *
+   * @return the code from the witness assumption if no supported array
+   * initializer is contained; otherwise the fixed code.
+   */
+  private static String tryFixArrayInitializers(String pAssumeCode) {
+    String C_INTEGER = "([\\+\\-])?(0[xX])?[0-9a-fA-F]+";
+    String assumeCode = pAssumeCode.trim();
+    if (assumeCode.endsWith(";")) {
+      assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
+    }
+    /*
+     * This only covers the special case of one assignment statement using one
+     * array of integers.
+     */
+    if (assumeCode.matches(".+=\\s*\\{\\s*(" + C_INTEGER + "\\s*(,\\s*" + C_INTEGER + "\\s*)*)?\\}\\s*")) {
+      Iterable<String> assignmentParts = Splitter.on('=').trimResults().split(assumeCode);
+      Iterator<String> assignmentPartIterator = assignmentParts.iterator();
+      if (!assignmentPartIterator.hasNext()) {
+        return pAssumeCode;
+      }
+      String leftHandSide = assignmentPartIterator.next();
+      if (!assignmentPartIterator.hasNext()) {
+        return pAssumeCode;
+      }
+      String rightHandSide = assignmentPartIterator.next().trim();
+      if (assignmentPartIterator.hasNext()) {
+        return pAssumeCode;
+      }
+      assert rightHandSide.startsWith("{") && rightHandSide.endsWith("}");
+      rightHandSide = rightHandSide.substring(1, rightHandSide.length() - 1).trim();
+      Iterable<String> elements = Splitter.on(',').trimResults().split(rightHandSide);
+      StringBuilder resultBuilder = new StringBuilder();
+      int index = 0;
+      for (String element : elements) {
+        resultBuilder.append(String.format("%s[%d] = %s; ", leftHandSide, index, element));
+        ++index;
+      }
+      return resultBuilder.toString();
+    }
+    return pAssumeCode;
   }
 
   Set<Comparable<Integer>> parseTokens(final String tokenString) {
