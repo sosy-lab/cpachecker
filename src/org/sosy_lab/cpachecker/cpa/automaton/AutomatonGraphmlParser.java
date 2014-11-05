@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
@@ -106,6 +107,9 @@ public class AutomatonGraphmlParser {
 
   @Option(secure=true, description="Do not try to \"catch up\" with witness lines: If they do not match, go to the sink.")
   private boolean strictLineMatching = false;
+
+  @Option(secure=true, description="If a witness represents a single path in Automaton match both starting and ending lines of the CFA edge (ending line = starting line of the next edge). If matching CFA edge exists, go to the sink for the other edges, otherwise match starting lines as usual.")
+  private boolean singlePathMatching = false;
 
   @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -351,19 +355,63 @@ public class AutomatonGraphmlParser {
             int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
             OriginDescriptor originDescriptor = new OriginDescriptor(matchOriginFileName, matchOriginLineNumber);
 
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
+            AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.And(conjunctedTriggers,
                 new AutomatonBoolExpr.MatchStartingLineInOrigin(originDescriptor, true));
 
             if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
               // Transition to the BOTTOM state
               AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
                   new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
-                  conjunctedTriggers);
+                  startingLineMatchingExpr);
               transitions.add(new AutomatonTransition(
                   trigger,
                   emptyAssertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
             } else {
+              //Generate special conditions for single path error trace
+              Collection<Node> siblings = graph.get(sourceStateId);
+              Collection<Node> children = graph.get(targetStateId);
+              assert siblings != null;
+              if(singlePathMatching &&
+                  siblings.size() <= 1 && children!=null && children.size()==1) {
+                Node targetTransitionEdge = children.iterator().next();
 
+                Set<String> targetOriginFileTags = docDat.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINFILE);
+                Preconditions.checkArgument(targetOriginFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
+
+                Set<String> targetOriginLineTags = docDat.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINLINE);
+                Preconditions.checkArgument(targetOriginLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
+
+                Optional<String> matchTargetOriginFileName = targetOriginFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(targetOriginFileTags.iterator().next());
+                int matchTargetOriginLineNumber = Integer.parseInt(targetOriginLineTags.iterator().next());
+
+                OriginDescriptor targetOriginDescriptor = new OriginDescriptor(matchTargetOriginFileName, matchTargetOriginLineNumber);
+
+                AutomatonBoolExpr matchEdgeTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
+                    new AutomatonBoolExpr.MatchEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
+
+                AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, emptyAssertions, assumptions, actions, targetStateId);
+                transitions.add(0, tr);
+
+                //TODO: repetition
+
+                AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
+                    new AutomatonBoolExpr.Negation(matchEdgeTriggers),
+                    new AutomatonBoolExpr.ExistsMatchingEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
+
+                AutomatonTransition trSink = new AutomatonTransition(
+                    existsMatchEdgeTriggers,
+                    emptyAssertions,
+                    Collections.<AutomatonAction>emptyList(),
+                    AutomatonInternalState.BOTTOM);
+                auxilaryTransitions.add(trSink);
+                transitions.add(trSink);
+
+                conjunctedTriggers = new AutomatonBoolExpr.And(
+                    new AutomatonBoolExpr.Negation(existsMatchEdgeTriggers),
+                    startingLineMatchingExpr);
+              } else {
+                conjunctedTriggers = startingLineMatchingExpr;
+              }
               AutomatonBoolExpr lineMatchTrigger = new AutomatonBoolExpr.And(
                   new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(), conjunctedTriggers);
 
