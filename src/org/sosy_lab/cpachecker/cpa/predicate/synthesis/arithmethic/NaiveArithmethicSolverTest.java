@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.synthesis.arithmethic;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 
-import java.math.BigInteger;
 import java.util.Set;
 
 import org.junit.Before;
@@ -34,18 +34,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.predicate.synthesis.arithmethic.ExpressionSolver.SolvingFailedException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 
 public class NaiveArithmethicSolverTest {
@@ -69,17 +66,6 @@ public class NaiveArithmethicSolverTest {
   private CBinaryExpression l5_times_b_plus_c;
   private CBinaryExpression l5_times_b_plus_c_gt_a_plus_1_plus_2;
 
-  private CIdExpression makeVariable(String varName, CSimpleType varType) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
-    CVariableDeclaration decl = new CVariableDeclaration(loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
-    return new CIdExpression(loc, decl);
-  }
-
-  private CIntegerLiteralExpression makeIntLiteral(int value) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
-    return new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(value));
-  }
-
   @Before
   public void setUp() throws Exception {
     this.logger = mock(LogManager.class);
@@ -87,14 +73,14 @@ public class NaiveArithmethicSolverTest {
 
     CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX32, logger);
 
-    l1000 = makeIntLiteral(1000);
-    l1 = makeIntLiteral(1);
-    l2 = makeIntLiteral(2);
-    l5 = makeIntLiteral(5);
+    l1000 = createDummyLiteral(1000, CNumericTypes.INT);
+    l1 = CIntegerLiteralExpression.ONE;
+    l2 = createDummyLiteral(2, CNumericTypes.INT);
+    l5 = createDummyLiteral(5, CNumericTypes.INT);
 
-    a = makeVariable("a", CNumericTypes.INT);
-    b = makeVariable("b", CNumericTypes.INT);
-    c = makeVariable("c", CNumericTypes.INT);
+    a = TestDataTools.makeVariable("a", CNumericTypes.INT);
+    b = TestDataTools.makeVariable("b", CNumericTypes.INT);
+    c = TestDataTools.makeVariable("c", CNumericTypes.INT);
 
     l1_plus_2 = builder.buildBinaryExpression(l1, l2, BinaryOperator.PLUS);
     b_plus_c = builder.buildBinaryExpression(b, c, BinaryOperator.PLUS);
