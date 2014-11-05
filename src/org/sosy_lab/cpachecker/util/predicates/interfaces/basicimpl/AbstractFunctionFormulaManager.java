@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 /**
@@ -66,15 +65,7 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
   @Override
   public final <T extends Formula> T callUninterpretedFunction(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();
-    List<TFormulaInfo> list = Lists.transform(pArgs,
-        new Function<Formula, TFormulaInfo>() {
-          @SuppressWarnings("unchecked")
-          @Override
-          public TFormulaInfo apply(Formula pArg0) {
-            return
-                getFormulaCreator().extractInfo(pArg0);
-          }
-        });
+    List<TFormulaInfo> list = Lists.transform(pArgs, extractor);
 
     TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFuncType, list);
     return unsafeManager.typeFormula(retType, formulaInfo);
