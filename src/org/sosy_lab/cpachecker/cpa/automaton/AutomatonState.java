@@ -250,7 +250,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         }
       }
 
-      // TODO Philip fragen
       if (statement instanceof CExpressionStatement) {
         if (((CExpressionStatement) statement).getExpression().getExpressionType() instanceof CSimpleType
             && ((CSimpleType) (((CExpressionStatement) statement).getExpression().getExpressionType())).getType().isIntegerType()) {
