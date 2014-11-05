@@ -94,6 +94,7 @@ public class FormulaManagerView {
   private final LogManager logger;
 
   private final FormulaManager manager;
+  private final UnsafeFormulaManager unsafeManager;
 
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
@@ -124,6 +125,7 @@ public class FormulaManagerView {
   public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     manager = checkNotNull(pBaseManager);
+    unsafeManager = manager.getUnsafeFormulaManager();
 
     BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
@@ -711,9 +713,14 @@ public class FormulaManagerView {
       WrappingFormula<?, ?> castFormula = (WrappingFormula<?, ?>)pFormula;
       return (FormulaType<T>)castFormula.getType();
     } else {
-      return manager.getFormulaType(pFormula);
+      return getRawFormulaType(pFormula);
     }
   }
+
+  private <T extends Formula> FormulaType<T> getRawFormulaType(T pFormula) {
+    return manager.getFormulaType(pFormula);
+  }
+
 
   public <T extends Formula> BooleanFormula assignment(T left, T right) {
     FormulaType<T> lformulaType = this.getFormulaType(left);
@@ -748,7 +755,6 @@ public class FormulaManagerView {
   }
 
   private <T extends Formula> T myInstantiate(SSAMap ssa, T f) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Deque<Formula> toProcess = new ArrayDeque<>();
     Map<Formula, Formula> cache = new HashMap<>();
 
@@ -819,7 +825,7 @@ public class FormulaManagerView {
     @SuppressWarnings("unchecked")
     T result = (T)cache.get(f);
     assert result != null;
-    assert manager.getFormulaType(f).equals(manager.getFormulaType(result));
+    assert getRawFormulaType(f).equals(getRawFormulaType(result));
     return result;
   }
 
@@ -856,8 +862,6 @@ public class FormulaManagerView {
   }
 
   private <T extends Formula> T myUninstantiate(T f) {
-
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Map<Formula, Formula> cache = uninstantiateCache;
     Deque<Formula> toProcess = new ArrayDeque<>();
 
@@ -916,7 +920,7 @@ public class FormulaManagerView {
     @SuppressWarnings("unchecked")
     T result = (T)cache.get(f);
     assert result != null;
-    assert manager.getFormulaType(f).equals(manager.getFormulaType(result));
+    assert getRawFormulaType(f).equals(getRawFormulaType(result));
     return result;
   }
 
@@ -933,8 +937,6 @@ public class FormulaManagerView {
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
       boolean conjunctionsOnly) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
 
@@ -996,7 +998,7 @@ public class FormulaManagerView {
         // ok, go into this formula
         for (int i = 0; i < unsafeManager.getArity(tt); ++i) {
           Formula c = unsafeManager.getArg(tt, i);
-          assert manager.getFormulaType(c).isBooleanType();
+          assert getRawFormulaType(c).isBooleanType();
           if (handled.add((BooleanFormula)c)) {
             toProcess.push((BooleanFormula)c);
           }
@@ -1016,8 +1018,6 @@ public class FormulaManagerView {
     Boolean result = arithCache.get(f);
     if (result != null) { return result; }
 
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-
     boolean res = true;
     if (unsafeManager.isUF(f)) {
       res = false;
@@ -1036,7 +1036,6 @@ public class FormulaManagerView {
   }
 
   public Set<String> extractVariableNames(Formula f) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<String> result = Sets.newHashSet();
 
     for (Formula v: myExtractVariables(unwrap(f))) {
@@ -1047,7 +1046,6 @@ public class FormulaManagerView {
   }
 
   public Set<Triple<Formula, String, Integer>> extractVariables(Formula f) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Triple<Formula, String, Integer>> result = Sets.newHashSet();
 
     for (Formula varFormula: myExtractVariables(unwrap(f))) {
@@ -1066,7 +1064,6 @@ public class FormulaManagerView {
     // TODO The FormulaType of returned formulas may not be correct,
     // because we cannot determine if for example a Rational formula
     // is really rational, or should be wrapped as a Bitvector formula
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Set<Formula> seen = new HashSet<>();
     Set<Formula> varFormulas = new HashSet<>();
 
@@ -1107,8 +1104,6 @@ public class FormulaManagerView {
   }
 
   private boolean myIsPurelyConjunctive(BooleanFormula t) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-
     if (unsafeManager.isAtom(t) || unsafeManager.isUF(t)) {
       // term is atom
       return true;
@@ -1141,7 +1136,6 @@ public class FormulaManagerView {
   // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
   // But only if an bitwise "and" occurs in the formula.
   private BooleanFormula myGetBitwiseAxioms(Formula f) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Deque<Formula> toProcess = new ArrayDeque<>();
     Set<Formula> seen = new HashSet<>();
     Set<Formula> allLiterals = new HashSet<>();
@@ -1227,7 +1221,6 @@ public class FormulaManagerView {
   }
 
   public BooleanFormula simplify(BooleanFormula input) {
-    UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     return unsafeManager.simplify(input);
   }
   }
