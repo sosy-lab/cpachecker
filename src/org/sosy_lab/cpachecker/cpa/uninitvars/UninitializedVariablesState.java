@@ -35,18 +35,12 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class UninitializedVariablesState implements AbstractQueryableState, TargetableWithPredicatedAnalysis {
+public class UninitializedVariablesState implements AbstractQueryableState, Targetable {
 
-  private static boolean checkTarget;
-
-  public static void init(boolean check) {
-    checkTarget = check;
-  }
+  private final boolean checkTargetEnabled;
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
@@ -56,20 +50,22 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
   static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
-  public UninitializedVariablesState(String entryFunction) {
+  public UninitializedVariablesState(String entryFunction, boolean pCheckTargetEnabled) {
     globalVars = new ArrayList<>();
     localVars = new LinkedList<>();
     warnings = new ArrayList<>();
+    checkTargetEnabled = pCheckTargetEnabled;
     // create context of the entry function
     callFunction(entryFunction);
   }
 
   public UninitializedVariablesState(Collection<String> globalVars,
                                        Deque<Pair<String, Collection<String>>> localVars,
-                                       Collection<Triple<Integer, String, String>> warnings) {
+                                       Collection<Triple<Integer, String, String>> warnings, boolean pCheckTargetEnabled) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
+    checkTargetEnabled = pCheckTargetEnabled;
   }
 
   public void addGlobalVariable(String name) {
@@ -158,7 +154,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
     }
 
     return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
-                                             new ArrayList<>(warnings));
+                                             new ArrayList<>(warnings), checkTargetEnabled);
   }
 
   @Override
@@ -229,7 +225,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
 
   @Override
   public boolean isTarget() {
-    return checkTarget && getWarnings().size()!=0;
+    return checkTargetEnabled && getWarnings().size()!=0;
   }
 
   @Override
@@ -238,11 +234,4 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
     return "";
   }
 
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    if (checkTarget) {
-      return pFmgr.getBooleanFormulaManager().makeBoolean(true);
-    }
-    return pFmgr.getBooleanFormulaManager().makeBoolean(false);
-  }
 }

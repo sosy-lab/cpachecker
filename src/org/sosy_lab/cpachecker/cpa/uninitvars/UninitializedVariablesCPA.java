@@ -65,7 +65,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   @Option(secure=true, name="stop", values={"sep", "join"},
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
-  @Option(secure=true, description="if enabled checks if states are target states (there exist warning for uninitilized use of variables")
+  @Option(secure=true, description="if enabled checks if states are target states (there exists warning for uninitilized use of variables")
   private boolean checkTarget = false;
 
   private final AbstractDomain abstractDomain;
@@ -99,7 +99,6 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     if (checkTarget) {
       printWarnings = "true";
     }
-    UninitializedVariablesState.init(checkTarget);
 
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
@@ -117,7 +116,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new UninitializedVariablesState(pNode.getFunctionName());
+    return new UninitializedVariablesState(pNode.getFunctionName(), checkTarget);
   }
 
   @Override
