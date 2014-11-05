@@ -692,7 +692,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 

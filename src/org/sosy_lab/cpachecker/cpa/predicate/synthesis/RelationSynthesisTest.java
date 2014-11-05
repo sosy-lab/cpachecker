@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate.synthesis;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 import static org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationUtils.*;
-import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeVariable;
 
 import java.util.Collections;
 import java.util.Set;
@@ -104,9 +105,9 @@ public class RelationSynthesisTest {
     b = makeVariable("b", CNumericTypes.INT);
     c = makeVariable("c", CNumericTypes.INT);
 
-    l1 = makeIntLiteral(1);
-    l7 = makeIntLiteral(7);
-    l65535 = makeIntLiteral(65535);
+    l1 = CIntegerLiteralExpression.ONE;
+    l7 = createDummyLiteral(7, CNumericTypes.INT);
+    l65535 = createDummyLiteral(65535, CNumericTypes.INT);
 
     a_gt_l65535 = builder.buildBinaryExpression(a, l65535, BinaryOperator.GREATER_THAN);
     a_lt_c = builder.buildBinaryExpression(a, c, BinaryOperator.LESS_THAN);

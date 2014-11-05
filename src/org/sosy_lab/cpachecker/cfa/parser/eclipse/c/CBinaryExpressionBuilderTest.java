@@ -33,9 +33,9 @@ import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -208,13 +208,13 @@ public class CBinaryExpressionBuilderTest {
 
 
   private void checkCalculation(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op, CNumericTypes.ZERO, CNumericTypes.ZERO));
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op, CNumericTypes.ZERO, CNumericTypes.ZERO));
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
   }
 
 
   private void checkResult(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op, CNumericTypes.ZERO, CNumericTypes.ZERO));
-    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op, CNumericTypes.ZERO, CNumericTypes.ZERO));
+    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
+    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
   }
 }

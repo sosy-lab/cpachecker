@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 
@@ -40,11 +36,6 @@ public class TestDataTools {
     FileLocation loc = new FileLocation(0, "", 0, 0, 0);
     CVariableDeclaration decl = new CVariableDeclaration(loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
     return new CIdExpression(loc, decl);
-  }
-
-  public static CIntegerLiteralExpression makeIntLiteral(int value) {
-    FileLocation loc = new FileLocation(0, "", 0, 0, 0);
-    return new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(value));
   }
 
 }

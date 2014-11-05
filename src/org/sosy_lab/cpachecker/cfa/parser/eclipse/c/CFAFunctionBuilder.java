@@ -1082,7 +1082,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
-        return Optional.<CExpression>of(CNumericTypes.ZERO);
+        return Optional.<CExpression>of(CIntegerLiteralExpression.ZERO);
 
       case ALWAYS_TRUE:
         final BlankEdge trueEdge = new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
@@ -1090,7 +1090,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
-        return Optional.<CExpression>of(CNumericTypes.ONE);
+        return Optional.<CExpression>of(CIntegerLiteralExpression.ONE);
 
       default:
         throw new AssertionError();
@@ -1125,7 +1125,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
         // build new boolean expression: a==0 and switch branches
-        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ZERO, BinaryOperator.EQUALS);
+        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
             loc);

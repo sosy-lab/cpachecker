@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -318,7 +317,7 @@ public class ConstraintManager {
 
     IAExpression expression = aRetEdge.getExpression().isPresent()
         ? aRetEdge.getExpression().get()
-        : CNumericTypes.ZERO; // this is the default in C
+        : CIntegerLiteralExpression.ZERO; // this is the default in C
 
     String varName = "FRET_" + aRetEdge.getSuccessor().getFunctionName();
 

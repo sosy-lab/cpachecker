@@ -307,7 +307,7 @@ class ASTConverter {
       final CLeftHandSide exp, final FileLocation fileLoc,
       final CType type, final BinaryOperator op) {
     final CIdExpression tmp = createInitializedTemporaryVariable(fileLoc, exp.getExpressionType(), exp);
-    final CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ONE, op);
+    final CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(exp, CIntegerLiteralExpression.ONE, op);
     sideAssignmentStack.addPreSideAssignment(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
   }
@@ -941,9 +941,9 @@ class ASTConverter {
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
           if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
-            return CNumericTypes.ONE;
+            return CIntegerLiteralExpression.ONE;
           } else {
-            return CNumericTypes.ZERO;
+            return CIntegerLiteralExpression.ZERO;
           }
         }
       }
@@ -963,9 +963,9 @@ class ASTConverter {
           && params.size() == 1
           && scope.lookupFunction("__builtin_constant_p") == null) {
         if (params.get(0) instanceof CLiteralExpression) {
-          return CNumericTypes.ONE;
+          return CIntegerLiteralExpression.ONE;
         } else {
-          return CNumericTypes.ZERO;
+          return CIntegerLiteralExpression.ZERO;
         }
       }
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
@@ -1156,7 +1156,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      CBinaryExpression preExp = binExprBuilder.buildBinaryExpression(operand, CNumericTypes.ONE, preOp);
+      CBinaryExpression preExp = binExprBuilder.buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
       CLeftHandSide lhsPre = (CLeftHandSide) operand;
 
       return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
@@ -1176,7 +1176,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(operand, CNumericTypes.ONE, postOp);
+      CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, postOp);
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
@@ -1231,7 +1231,7 @@ class ASTConverter {
     // at this point, we have an expression, that is not directly boolean (!a, !(a+b), !123), so we compare it with Zero.
     // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
     // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
-    return binExprBuilder.buildBinaryExpression(CNumericTypes.ZERO, expr, BinaryOperator.EQUALS);
+    return binExprBuilder.buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
   }
 
   /** returns a CPointerExpression, that may be simplified. */

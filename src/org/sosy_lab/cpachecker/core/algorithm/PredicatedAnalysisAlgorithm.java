@@ -39,10 +39,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -187,7 +187,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         // do nothing we require that the edge does not exist
       }
       // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, CNumericTypes.ONE, true);
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, CIntegerLiteralExpression.ONE, true);
 
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);

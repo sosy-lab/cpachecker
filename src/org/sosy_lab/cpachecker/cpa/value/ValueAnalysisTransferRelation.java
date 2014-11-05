@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -320,7 +321,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     IAExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
-      expression = CNumericTypes.ZERO; // this is the default in C
+      expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
     if (expression != null) {

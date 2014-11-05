@@ -177,7 +177,7 @@ public class PathFormulaManagerImplTest {
         "x",
         new CInitializerExpression(
             FileLocation.DUMMY,
-            CNumericTypes.ZERO
+            CIntegerLiteralExpression.ZERO
         )
     );
 
@@ -197,7 +197,7 @@ public class PathFormulaManagerImplTest {
             "x",
             xDeclaration
         ),
-        CNumericTypes.ONE, // expression B.
+        CIntegerLiteralExpression.ONE, // expression B.
         CBinaryExpression.BinaryOperator.PLUS
     );
 
