@@ -76,8 +76,8 @@ public class CFACreationUtils {
       if (!edge.getDescription().isEmpty()) {
         // warn user, but not if its due to dead code produced by CIL
         Level level = Level.INFO;
-        if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
-          // don't mention dead code produced by CIL on normal log levels
+        if (edge.getDescription().matches("^Goto: (switch|while|ldv)_\\d+(_[a-z0-9]+)?$")) {
+          // don't mention dead code produced by CIL/LDV on normal log levels
           level = Level.FINER;
         } else if (edge.getPredecessor().getNodeNumber() == lastDetectedDeadCode) {
           // don't warn on subsequent lines of dead code

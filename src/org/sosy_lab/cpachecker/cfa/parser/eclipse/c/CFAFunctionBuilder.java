@@ -510,8 +510,8 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private void logDeadLabel(CLabelNode n) {
     Level level = Level.INFO;
-    if (n.getLabel().matches("(switch|while)_(\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
-      // don't mention dead code produced by CIL on normal log levels
+    if (n.getLabel().matches("(switch|while|ldv)_(\\d+$|\\d+_[a-z0-9]+|[a-z0-9]+___\\d+)")) {
+      // don't mention dead code produced by CIL/LDV on normal log levels
       level = Level.FINER;
     }
     logger.log(level, "Dead code detected: Label", n.getLabel(), "is not reachable.");

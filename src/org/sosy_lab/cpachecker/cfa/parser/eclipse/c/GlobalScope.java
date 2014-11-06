@@ -179,7 +179,7 @@ class GlobalScope extends AbstractScope {
 
     if (globalVars.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of global variable "
-          + name + " from line " + globalVars.get(name).getFileLocation().getStartingLineNumber()
+          + name + " from " + globalVars.get(name).getFileLocation()
           + " is reused as function declaration", declaration);
     }
 
@@ -199,7 +199,7 @@ class GlobalScope extends AbstractScope {
 
     if (functions.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of function "
-          + name + " from line " + functions.get(name).getFileLocation().getStartingLineNumber()
+          + name + " from " + functions.get(name).getFileLocation()
           + " is reused as identifier in global scope", declaration);
     }
 
@@ -262,8 +262,8 @@ class GlobalScope extends AbstractScope {
         // declaring struct twice is not allowed, even with equal signatures
         if (oldType.getClass() == type.getClass()) {
           throw new CFAGenerationRuntimeException("Redeclaring " + name
-              + " in line " + declaration.getFileLocation().getStartingLineNumber()
-              + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber());
+              + " in " + declaration.getFileLocation()
+              + ", originally declared in " + oldDeclaration.getFileLocation());
         }
       }
 
@@ -446,9 +446,9 @@ class GlobalScope extends AbstractScope {
 
       if (!type.getCanonicalType().equals(oldType.getCanonicalType())) {
         throw new CFAGenerationRuntimeException("Redeclaring " + name
-            + " in line " + declaration.getFileLocation().getStartingLineNumber()
+            + " in " + declaration.getFileLocation()
             + " with type " + type.toASTString("")
-            + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
+            + ", originally declared in " + oldDeclaration.getFileLocation()
             + " with type " + oldType.toASTString(""));
       }
       // redundant typedef, ignore it
