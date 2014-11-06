@@ -479,12 +479,14 @@ public class AutomatonGraphmlParser {
         if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
           Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
+          final AutomatonBoolExpr exactEdgeMatch;
           if (sourceCodeDataTags.isEmpty()) {
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(""));
+            exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact("");
           } else {
             final String sourceCode = sourceCodeDataTags.iterator().next();
-            conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode));
+            exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
           }
+          conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, exactEdgeMatch);
 
           if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
             // Transition to the BOTTOM state
@@ -493,6 +495,14 @@ public class AutomatonGraphmlParser {
             // Transition to the next state
             transitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
             transitions.add(new AutomatonTransition(new AutomatonBoolExpr.Negation(conjunctedTriggers), emptyAssertions, actions, AutomatonInternalState.BOTTOM));
+
+            // If CPAchecker has more than one edge for the same piece of source code, allow the automaton to wait them out
+            LinkedList<AutomatonTransition> followStateTransitions = stateTransitions.get(targetStateId);
+            if (followStateTransitions == null) {
+              followStateTransitions = Lists.newLinkedList();
+              stateTransitions.put(targetStateId, followStateTransitions);
+            }
+            followStateTransitions.add(new AutomatonTransition(conjunctedTriggers, emptyAssertions, actions, targetStateId));
           }
         } else {
           if (considerNegativeSemanticsAttribute) {
