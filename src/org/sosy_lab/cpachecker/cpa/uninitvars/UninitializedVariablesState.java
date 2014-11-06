@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -35,12 +33,9 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class UninitializedVariablesState implements AbstractQueryableState, Targetable {
-
-  private final boolean checkTargetEnabled;
+public class UninitializedVariablesState implements AbstractQueryableState {
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
@@ -50,22 +45,20 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
   static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
-  public UninitializedVariablesState(String entryFunction, boolean pCheckTargetEnabled) {
+  public UninitializedVariablesState(String entryFunction) {
     globalVars = new ArrayList<>();
     localVars = new LinkedList<>();
     warnings = new ArrayList<>();
-    checkTargetEnabled = pCheckTargetEnabled;
     // create context of the entry function
     callFunction(entryFunction);
   }
 
   public UninitializedVariablesState(Collection<String> globalVars,
                                        Deque<Pair<String, Collection<String>>> localVars,
-                                       Collection<Triple<Integer, String, String>> warnings, boolean pCheckTargetEnabled) {
+                                       Collection<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
-    checkTargetEnabled = pCheckTargetEnabled;
   }
 
   public void addGlobalVariable(String name) {
@@ -154,7 +147,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
     }
 
     return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
-                                             new ArrayList<>(warnings), checkTargetEnabled);
+                                             new ArrayList<>(warnings));
   }
 
   @Override
@@ -222,16 +215,4 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
   public String getCPAName() {
     return "uninitVars";
   }
-
-  @Override
-  public boolean isTarget() {
-    return checkTargetEnabled && getWarnings().size()!=0;
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
 }
