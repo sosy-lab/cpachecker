@@ -222,7 +222,6 @@ public class AutomatonGraphmlParser {
   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
-    Set<AutomatonTransition> auxilaryTransitions = Sets.newHashSet();
     try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -299,12 +298,6 @@ public class AutomatonGraphmlParser {
           stateTransitions.put(sourceStateId, transitions);
         }
 
-        LinkedList<AutomatonTransition> targetStateTransitions = stateTransitions.get(targetStateId);
-        if (targetStateTransitions == null) {
-          targetStateTransitions = Lists.newLinkedList();
-          stateTransitions.put(targetStateId, targetStateTransitions);
-        }
-
         // Handle stack
         Deque<String> currentStack = stacks.get(sourceStateId);
         if (currentStack == null) {
@@ -361,18 +354,20 @@ public class AutomatonGraphmlParser {
             if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
               // Transition to the BOTTOM state
               AutomatonBoolExpr trigger = new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(),
+                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
                   startingLineMatchingExpr);
               transitions.add(new AutomatonTransition(
                   trigger,
                   emptyAssertions, assumptions, actions, AutomatonInternalState.BOTTOM, null));
             } else {
-              //Generate special conditions for single path error trace
+              // Generate special conditions for single path error trace
               Collection<Node> siblings = graph.get(sourceStateId);
               Collection<Node> children = graph.get(targetStateId);
               assert siblings != null;
-              if(singlePathMatching &&
-                  siblings.size() <= 1 && children!=null && children.size()==1) {
+              if (singlePathMatching
+                  && siblings.size() <= 1
+                  && children != null
+                  && children.size() == 1) {
                 Node targetTransitionEdge = children.iterator().next();
 
                 Set<String> targetOriginFileTags = GraphMlDocumentData.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINFILE);
@@ -392,8 +387,6 @@ public class AutomatonGraphmlParser {
                 AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, emptyAssertions, assumptions, actions, targetStateId);
                 transitions.add(0, tr);
 
-                //TODO: repetition
-
                 AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
                     new AutomatonBoolExpr.Negation(matchEdgeTriggers),
                     new AutomatonBoolExpr.ExistsMatchingEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
@@ -403,7 +396,6 @@ public class AutomatonGraphmlParser {
                     emptyAssertions,
                     Collections.<AutomatonAction>emptyList(),
                     AutomatonInternalState.BOTTOM);
-                auxilaryTransitions.add(trSink);
                 transitions.add(trSink);
 
                 conjunctedTriggers = new AutomatonBoolExpr.And(
@@ -412,34 +404,59 @@ public class AutomatonGraphmlParser {
               } else {
                 conjunctedTriggers = startingLineMatchingExpr;
               }
-              AutomatonBoolExpr lineMatchTrigger = new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr(), conjunctedTriggers);
+              AutomatonBoolExpr relevantLineMatchTrigger = new AutomatonBoolExpr.And(
+                  AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE, conjunctedTriggers);
 
-              AutomatonTransition tr = new AutomatonTransition(lineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
-              transitions.add(0, tr);
+              AutomatonTransition relevantLineMatchTransition = new AutomatonTransition(relevantLineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
+              transitions.add(0, relevantLineMatchTransition);
 
-              AutomatonTransition trRepetition = new AutomatonTransition(lineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
-              auxilaryTransitions.add(trRepetition);
-              targetStateTransitions.add(0, trRepetition);
+              if (!matchSourcecodeData) {
+                AutomatonBoolExpr auxiliaryEdgeTrigger = new AutomatonBoolExpr.And(
+                    new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+                    new AutomatonBoolExpr.And(
+                        conjunctedTriggers,
+                        new AutomatonBoolExpr.Negation(
+                            new AutomatonBoolExpr.And(
+                                new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(
+                                    new AutomatonBoolExpr.And(
+                                        AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
+                                        conjunctedTriggers
+                                        )
+                                    ),
+                                new AutomatonBoolExpr.Negation(
+                                    new AutomatonBoolExpr.MatchAllSuccessorEdgesBoolExpr(
+                                        new AutomatonBoolExpr.And(
+                                            AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
+                                            new AutomatonBoolExpr.Negation(conjunctedTriggers)
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    );
+                AutomatonTransition triggerAuxiliaryEdge = new AutomatonTransition(auxiliaryEdgeTrigger, emptyAssertions, assumptions, actions, targetStateId);
+                transitions.add(0, triggerAuxiliaryEdge);
+              }
 
               // If the line trigger does not apply
               // and the edge is not path relevant
               // loop back to the state
               AutomatonBoolExpr triggerIrrelevantEdge = new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.Negation(lineMatchTrigger),
-                  new AutomatonBoolExpr.Negation(new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr()));
-              trRepetition = new AutomatonTransition(
+                  new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
+                  new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE));
+
+              AutomatonTransition trRepetition = new AutomatonTransition(
                   triggerIrrelevantEdge,
                   emptyAssertions,
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId);
-              auxilaryTransitions.add(trRepetition);
               transitions.add(trRepetition);
 
               if (strictLineMatching) {
                 // If both do not apply, go to the sink
                 AutomatonBoolExpr triggerSink = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(lineMatchTrigger),
+                    new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
                     new AutomatonBoolExpr.Negation(triggerIrrelevantEdge)
                     );
                 AutomatonTransition trSink = new AutomatonTransition(
@@ -447,14 +464,13 @@ public class AutomatonGraphmlParser {
                     emptyAssertions,
                     Collections.<AutomatonAction>emptyList(),
                     AutomatonInternalState.BOTTOM);
-                auxilaryTransitions.add(trSink);
                 transitions.add(trSink);
               }
             }
           } else {
             AutomatonTransition tr = new AutomatonTransition(
                 new AutomatonBoolExpr.Negation(
-                    new AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr()),
+                    AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
                       emptyAssertions, assumptions, actions, targetStateId);
             transitions.add(0, tr);
           }

@@ -293,13 +293,91 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
+  static class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr operandExpression;
+
+    MatchAllSuccessorEdgesBoolExpr(AutomatonBoolExpr pOperandExpression) {
+      Preconditions.checkNotNull(pOperandExpression);
+      operandExpression = pOperandExpression;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+        return CONST_TRUE;
+      }
+      ResultValue<Boolean> result = null;
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+        result = operandExpression.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                cfaEdge,
+                pArgs.getLogger()));
+        if (result.canNotEvaluate() || !result.getValue()) {
+          return result;
+        }
+      }
+      assert result != null;
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("MATCH FORALL SUCCESSOR EDGES (%s)", operandExpression);
+    }
+
+  }
+
+  static class MatchAnySuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr operandExpression;
+
+    MatchAnySuccessorEdgesBoolExpr(AutomatonBoolExpr pOperandExpression) {
+      Preconditions.checkNotNull(pOperandExpression);
+      operandExpression = pOperandExpression;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+        return CONST_FALSE;
+      }
+      ResultValue<Boolean> result = null;
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+        result = operandExpression.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                cfaEdge,
+                pArgs.getLogger()));
+        if (!result.canNotEvaluate() && result.getValue()) {
+          return result;
+        }
+      }
+      assert result != null;
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("MATCH EXISTS SUCCESSOR EDGE (%s)", operandExpression);
+    }
+
+  }
+
   static interface OnRelevantEdgesBoolExpr extends AutomatonBoolExpr {
 
     // Marker interface
 
   }
 
-  static class MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
+  static enum MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
+
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -465,7 +543,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return eval(pArgs.getCfaEdge())?CONST_TRUE:CONST_FALSE;
+      return eval(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
     }
 
     protected boolean eval(CFAEdge edge) {
