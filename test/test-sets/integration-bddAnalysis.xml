@@ -35,6 +35,7 @@
       <option name="-explicitAnalysis-BDD-bool-intEQ-intADD"/>
       <include>../programs/benchmarks/ssh/*srvr*.c</include>
       <exclude>../programs/benchmarks/ssh/*srvr*1*.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.06_true-unreach-call.i.cil.c</exclude>
       <include>../programs/benchmarks/ssh-simplified/*srvr*.c</include>
       <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.c</exclude>
       <include>../programs/benchmarks/product-lines/*product2*.c</include>
