@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalys
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -201,7 +200,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       PredicateAbstractState errorPred = AbstractStates.extractStateByType(predecessor, PredicateAbstractState.class);
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
-      String functionName=" ";
       if (!e.isMergeViolationCause()) {
         if (errorPred.isAbstractionState()) {
           // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
@@ -221,9 +219,6 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
                 wrappedStates.add(state);
             } else {
               wrappedStates.add(errorPred);
-            }
-            if(state instanceof LocationState){
-              functionName = ((LocationState)state).getLocationNode().getFunctionName();
             }
           }
 
@@ -256,7 +251,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       PathFormula pf=errorPred.getPathFormula();
       for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
         if (s.isTarget()) {
-          for (AssumeEdge assume : s.getAsAssumeEdges(null, functionName)) {
+          for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
             pf = pfm.makeAnd(pf, assume);
           }
         }
