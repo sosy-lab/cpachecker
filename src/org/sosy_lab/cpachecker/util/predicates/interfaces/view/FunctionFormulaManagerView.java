@@ -92,14 +92,13 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
   public <T extends Formula> T declareAndCallUninterpretedFunction(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
-    final FormulaManagerView viewManager = getViewManager();
 
     List<FormulaType<?>> argTypes = from(pArgs).
       transform(
           new Function<Formula, FormulaType<?>>() {
             @Override
             public FormulaType<?> apply(Formula pArg0) {
-              return viewManager.getFormulaType(pArg0);
+              return getFormulaType(pArg0);
             }}).toList();
 
 

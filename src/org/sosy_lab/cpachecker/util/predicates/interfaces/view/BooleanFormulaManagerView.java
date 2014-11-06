@@ -133,7 +133,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public <T extends Formula> T ifThenElse(BooleanFormula pCond, T pF1, T pF2) {
     Formula f1 = unwrap(pF1);
     Formula f2 = unwrap(pF2);
-    FormulaType<T> targetType = getViewManager().getFormulaType(pF1);
+    FormulaType<T> targetType = getFormulaType(pF1);
 
     return wrap(targetType, manager.ifThenElse(pCond, f1, f2));
   }
@@ -147,15 +147,14 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     checkArgument(isIfThenElse(pF));
     Formula f = unwrap(pF);
 
-    FormulaManagerView fmgr = getViewManager();
     assert unsafe.getArity(f) == 3;
 
     BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
-    FormulaType<Formula> innerType = fmgr.getFormulaType(f);
+    FormulaType<Formula> innerType = getFormulaType(f);
     Formula thenBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 1));
     Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
-    FormulaType<T> targetType = fmgr.getFormulaType(pF);
+    FormulaType<T> targetType = getFormulaType(pF);
     return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
   }
 

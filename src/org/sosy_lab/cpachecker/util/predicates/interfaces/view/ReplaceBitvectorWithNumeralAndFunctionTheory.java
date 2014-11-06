@@ -167,19 +167,13 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public int getLength(BitvectorFormula pNumber) {
-    BitvectorType fmgr = (BitvectorType)getViewManager().getFormulaType(pNumber);
-    return fmgr.getSize();
+    return ((BitvectorType)getFormulaType(pNumber)).getSize();
   }
 
   @Override
   public BitvectorFormula negate(BitvectorFormula pNumber) {
     return wrap(getFormulaType(pNumber), numericFormulaManager.negate(unwrap(pNumber)));
   }
-
-  private FormulaType<BitvectorFormula> getFormulaType(BitvectorFormula pNumber) {
-    return getBitvectorTypeWithSize(getLength(pNumber));
-  }
-
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {

@@ -43,6 +43,10 @@ abstract class BaseManagerView {
     return baseManager;
   }
 
+  final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    return baseManager.getFormulaType(pFormula);
+  }
+
   final <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
     return baseManager.wrap(targetType, toWrap);
   }
