@@ -762,15 +762,6 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
-# Highest allowed value of the variable
-cpa.interval.allowedHigh = Long.MAX_VALUE
-
-# Lowest allowed value of the variable
-cpa.interval.allowedLow = Long.MIN_VALUE
-
-# do not consider number of references to variables during merge in analysis
-cpa.interval.ignoreReferenceCounts = false
-
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -782,10 +773,6 @@ cpa.interval.splitIntervals = false
 # at most that many intervals will be tracked per variable, -1 if number not
 # restricted
 cpa.interval.threshold = -1
-
-# Variable name of the variable for which should be checked that its value is
-# globally in a certain bound 
-cpa.interval.varName = ""
 
 # controls whether to use abstract evaluation always, never, or depending on
 # entering edges.
@@ -1340,11 +1327,6 @@ cpa.seplogic.partingstar.logicsfile = no default value
 # path to partingstar command
 cpa.seplogic.partingstar.pspath = no default value
 
-# Abstract value describing all values which are allowed for the variable
-# which is checked
-cpa.sign.allowedAbstractValue = ALL
-  enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
-
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -1352,10 +1334,6 @@ cpa.sign.merge = "JOIN"
 # which stop operator to use for SignCPA
 cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
-
-# Variable name of the variable for which should be checked that its value is
-# globally in a certain bound 
-cpa.sign.varName = ""
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
@@ -1512,10 +1490,6 @@ cpa.stator.policy.runAcceleratedValueDetermination = true
 # Use only relevant nodes for value determination
 cpa.stator.policy.useCompactedValueDetermination = true
 
-# if enabled checks if states are target states (there exist warning for
-# uninitilized use of variables
-cpa.uninitvars.checkTarget = false
-
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -1531,11 +1505,8 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Value which is allowed for the variable which is checked
-cpa.value.allowedValue = 0
-
 # Process the Automaton ASSUMEs as if they were statements, not as if they
-# were assumtions.
+# were assumptions.
 cpa.value.automatonAssumesAsStatements = false
 
 # restrict abstractions to assume edges
@@ -1549,13 +1520,6 @@ cpa.value.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
-
-# enables target checking for value-analysis, needed for predicate-analysis
-cpa.value.doTargetCheck = false
-
-# enable if will be used in predicated analysis but all variables should be
-# tracked, no refinement
-cpa.value.inPredicatedAnalysis = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -1625,9 +1589,10 @@ cpa.value.stop = "SEP"
 # enables generation of symbolic values
 cpa.value.symbolicValues = false
 
-# Variable name of the variable for which should be checked that its value is
-# globally a certain value 
-cpa.value.varName = ""
+# Track Java array values in explicit value analysis. This may be costly if
+# the verified program uses big or lots of arrays. Arrays in C programs will
+# always be tracked, even if this value is false.
+cpa.value.trackJavaArrayValues = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1683,6 +1648,10 @@ memorysafety.check = false
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
+
+# which merge operator to use for LiveVariablesCPA
+merge = "JOIN"
+  allowed values: [SEP, JOIN]
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -1793,8 +1762,13 @@ precision.trackIntAddVariables = true
 # tracked.
 precision.trackIntEqualVariables = true
 
-# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+# blacklist regex for variables that won't be tracked by the CPA using this
+# precision
 precision.variableBlacklist = ""
+
+# whitelist regex for variables that will always be tracked by the CPA using
+# this precision
+precision.variableWhitelist = ""
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
@@ -1869,6 +1843,10 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
+
+# which stop operator to use for LiveVariablesCPA
+stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # Where to write the ARGS to.
 testgen.argExportPaths = "args/arg%d.dot"
