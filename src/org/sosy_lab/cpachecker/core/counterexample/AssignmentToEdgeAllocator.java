@@ -1328,7 +1328,7 @@ public class AssignmentToEdgeAllocator {
 
       BigInteger lowerInclusiveBound = BigInteger.ZERO;
       BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitLength);
-      if (pType.isSigned()) {
+      if (machineModel.isSigned(pType)) {
         upperExclusiveBound = upperExclusiveBound.shiftRight(1);
         lowerInclusiveBound = upperExclusiveBound.negate();
       }
