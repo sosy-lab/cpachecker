@@ -39,11 +39,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -179,21 +182,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       ARGState predecessor = (ARGState) pReachedSet.getLastState();
       CFANode node = AbstractStates.extractLocation(predecessor);
 
-      // create fake edge
       logger.log(Level.FINEST, "Prepare for refinement by CEGAR algorithm");
-      try {
-        node.getEdgeTo(node);
-        throw new CPAException("Predicated Analysis cannot be run with programs whose CFAs have self-loops.");
-      } catch (IllegalArgumentException e1) {
-        // do nothing we require that the edge does not exist
-      }
-      // note: expression of created edge does not match error condition, only error condition will describe correct failure cause
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, CIntegerLiteralExpression.ONE, true);
-
-      fakeEdgeFromLastRun = assumeEdge;
-      node.addEnteringEdge(assumeEdge);
-      node.addLeavingEdge(assumeEdge);
-
 
       // get predicate state
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
@@ -241,21 +230,46 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
       pathToFailure = currentFailurePath;
 
+      // create fake edge
+      try {
+        node.getEdgeTo(node);
+        throw new CPAException("Predicated Analysis cannot be run with programs whose CFAs have self-loops.");
+      } catch (IllegalArgumentException e1) {
+        // do nothing we require that the edge does not exist
+      }
+
+      // create error condition stored on fake edge
+      CExpression errorExpr = CIntegerLiteralExpression.ONE;
+      CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+      PathFormula pf=errorPred.getPathFormula();
+      try {
+        for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
+          if (s.isTarget()) {
+            for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
+              errorExpr =
+                  expressionBuilder.buildBinaryExpression(errorExpr, (CExpression) assume.getExpression(),
+                      CBinaryExpression.BinaryOperator.BINARY_AND);
+            }
+          }
+        }
+      } catch (ClassCastException e2) {
+        throw new CPAException("Predicated Analysis requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
+      }
+
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, errorExpr, true);
+
+      fakeEdgeFromLastRun = assumeEdge;
+      node.addEnteringEdge(assumeEdge);
+      node.addLeavingEdge(assumeEdge);
+
       // create fake state
-      // build predicate state
+      // build predicate state, use error condition stored in fake edge
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
 
       // create path to fake node
-      PathFormula pf=errorPred.getPathFormula();
-      for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
-        if (s.isTarget()) {
-          for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
-            pf = pfm.makeAnd(pf, assume);
-          }
-        }
-      }
+      pf = pfm.makeAnd(pf, assumeEdge);
 
       // build abstraction which is needed for refinement, set to true, we do not know better
       AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
