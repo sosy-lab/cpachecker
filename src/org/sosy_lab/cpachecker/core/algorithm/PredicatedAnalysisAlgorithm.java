@@ -39,14 +39,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -239,16 +237,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }
 
       // create error condition stored on fake edge
-      CExpression errorExpr = CIntegerLiteralExpression.ONE;
-      CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-      PathFormula pf=errorPred.getPathFormula();
+      CExpression errorExpr = null;
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
             for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
-              errorExpr =
-                  expressionBuilder.buildBinaryExpression(errorExpr, (CExpression) assume.getExpression(),
-                      CBinaryExpression.BinaryOperator.BINARY_AND);
+              // TODO multiple edges if multiple assumes here
+              errorExpr = (CExpression) assume.getExpression();
             }
           }
         }
@@ -256,7 +251,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         throw new CPAException("Predicated Analysis requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
       }
 
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node, errorExpr, true);
+      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node,
+                                      errorExpr == null ? CIntegerLiteralExpression.ONE : errorExpr, true);
 
       fakeEdgeFromLastRun = assumeEdge;
       node.addEnteringEdge(assumeEdge);
@@ -264,6 +260,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
       // create fake state
       // build predicate state, use error condition stored in fake edge
+      PathFormula pf=errorPred.getPathFormula();
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
