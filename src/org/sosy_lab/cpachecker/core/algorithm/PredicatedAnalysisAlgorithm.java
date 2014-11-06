@@ -94,10 +94,12 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
+  @SuppressWarnings("unused")
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private CAssumeEdge fakeEdgeFromLastRun = null;
+  @SuppressWarnings("unused")
   private AbstractState initialWrappedState = null;
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
@@ -140,7 +142,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
-    Precision precision =
+    Precision precision;/* =
         buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
     oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
 
@@ -151,7 +153,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     if (initialWrappedState == null) {
       initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
     }
-    pReachedSet.add(new ARGState(initialWrappedState, null), precision);
+    pReachedSet.add(new ARGState(initialWrappedState, null), precision);*/
 
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
@@ -159,7 +161,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     try {
       result = algorithm.run(pReachedSet);
     } catch (PredicatedAnalysisPropertyViolationException e) {
-      precision =  pReachedSet.getPrecision(pReachedSet.getLastState());
+      if(e.getFailureCause()==null){
+        throw new CPAException("Error state not known to predicated analysis algorithm. Cannot continue analysis.");
+      }
+      precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
       if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
           && ((ARGState) e.getFailureCause()).getParents().size() != 0) {
         // add element
@@ -224,6 +229,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }
 
       // check if it is the same failure (CFA path) as last time
+      // TODO delete, if keep lazy refinement, remove other parts
       ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
       repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
       pathToFailure = currentFailurePath;
@@ -309,6 +315,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return result;
   }
 
+  @SuppressWarnings("unused")
   private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
       throws InterruptedException, RefinementFailedException {
     if (precisions.size()==0) {
