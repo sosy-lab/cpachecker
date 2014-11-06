@@ -86,10 +86,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, name="inPredicatedAnalysis",
-      description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
-  private boolean useInPredicatedAnalysisWithoutRefinement = false; // TODO needed?
-
   @Option(secure=true, name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
