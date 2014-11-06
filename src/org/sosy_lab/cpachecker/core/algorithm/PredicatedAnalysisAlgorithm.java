@@ -123,8 +123,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
             + "Add cpa.composite.inPredicatedAnalysis=true to your configuration options.");
     }
 
-    if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
-        "Composite CPA must be informed about predicated analysis. "
+    if (!(cpa.getMergeOperator() instanceof ARGMergeJoinPredicatedAnalysis)) { throw new InvalidConfigurationException(
+        "ARG CPA must be informed about predicated analysis. "
             + "Add cpa.arg.inPredicatedAnalysis=true to your configuration options.");
     }
   }
