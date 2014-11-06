@@ -76,7 +76,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     ARGState mergedElement = new ARGState(retElement, null);
     // now replace argElement2 by mergedElement in ARG
     // deleteChildren(argElement2);
-    deleteChildren2(argElement2);
+    //deleteChildren2(argElement2);
     argElement2.replaceInARGWith(mergedElement);
 
 
@@ -145,6 +145,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     }
   }
 
+  @SuppressWarnings("unused")
   private void deleteChildren2(ARGState parent) {
     // assumes that covered elements are not saved in reached set
     HashSet<ARGState> subtreeNodes = getSubtreeNodes(parent);
