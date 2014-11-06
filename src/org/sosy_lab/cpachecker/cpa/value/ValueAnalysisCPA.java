@@ -86,12 +86,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, description="enables target checking for value-analysis, needed for predicate-analysis")
-  private boolean doTargetCheck = false;
-
   @Option(secure=true, name="inPredicatedAnalysis",
       description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
-  private boolean useInPredicatedAnalysisWithoutRefinement = false;
+  private boolean useInPredicatedAnalysisWithoutRefinement = false; // TODO needed?
 
   @Option(secure=true, name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
@@ -138,10 +135,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
-
-    if (doTargetCheck) {
-      ValueAnalysisState.initChecker(config);
-    }
   }
 
   private MergeOperator initializeMergeOperator() {

@@ -29,31 +29,19 @@ import java.io.Serializable;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableMap;
 
 
-public class SignState implements TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<SignState>, AbstractQueryableState {
+public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
-
-  private static SignTargetChecker targetChecker;
-
-  static void init(Configuration config) throws InvalidConfigurationException {
-    targetChecker = new SignTargetChecker(config);
-  }
 
   private PersistentMap<String, SIGN> signMap;
 
@@ -172,13 +160,6 @@ public class SignState implements TargetableWithPredicatedAnalysis, Serializable
   public int hashCode() {
     return signMap.hashCode();
   }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker == null ? pFmgr.getBooleanFormulaManager().makeBoolean(false) : targetChecker
-        .getErrorCondition(this, pFmgr);
-  }
-
 
   private Object writeReplace() throws ObjectStreamException {
     if (this == TOP) {

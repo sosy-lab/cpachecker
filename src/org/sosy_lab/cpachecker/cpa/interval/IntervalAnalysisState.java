@@ -28,25 +28,15 @@ import java.util.Map;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class IntervalAnalysisState implements TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<IntervalAnalysisState>, AbstractQueryableState {
+public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
+    AbstractQueryableState {
 
   private static final long serialVersionUID = -2030700797958100666L;
-  private static IntervalTargetChecker targetChecker;
-
-  static void init(Configuration config) throws InvalidConfigurationException{
-    targetChecker = new IntervalTargetChecker(config);
-  }
 
   /**
    * the intervals of the element
@@ -314,11 +304,6 @@ public class IntervalAnalysisState implements TargetableWithPredicatedAnalysis, 
     }
 
     return sb.append("] size->  ").append(intervals.size()).toString();
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
   }
 
   @Override
