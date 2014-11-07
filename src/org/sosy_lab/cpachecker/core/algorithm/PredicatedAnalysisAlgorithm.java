@@ -98,7 +98,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private CAssumeEdge fakeEdgeFromLastRun = null;
+  private final List<CAssumeEdge> fakeEdgesFromLastRun = new ArrayList<>();
   @SuppressWarnings("unused")
   private AbstractState initialWrappedState = null;
   private ARGPath pathToFailure = null;
@@ -133,12 +133,13 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    // delete fake edge from previous run
+    // delete fake edges from previous run
     logger.log(Level.FINEST, "Clean up from previous run");
-    if (fakeEdgeFromLastRun!=null) {
-      fakeEdgeFromLastRun.getPredecessor().removeLeavingEdge(fakeEdgeFromLastRun);
-      fakeEdgeFromLastRun.getSuccessor().removeEnteringEdge(fakeEdgeFromLastRun);
+    for (CAssumeEdge edge :fakeEdgesFromLastRun) {
+      edge.getPredecessor().removeLeavingEdge(edge);
+      edge.getSuccessor().removeEnteringEdge(edge);
     }
+    fakeEdgesFromLastRun.clear();
 
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
@@ -234,22 +235,21 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
       pathToFailure = currentFailurePath;
 
-      // create fake edge
-      try {
+      // create fake edges
+      /*try {
         node.getEdgeTo(node);
         throw new CPAException("Predicated Analysis cannot be run with programs whose CFAs have self-loops.");
       } catch (IllegalArgumentException e1) {
         // do nothing we require that the edge does not exist
-      }
+      }*/
 
-      // create error condition stored on fake edge
-      CExpression errorExpr = null;
+      // create error conditions stored on fake edges
+      CFANode predNode = node;
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
             for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
-              // TODO multiple edges if multiple assumes here
-              errorExpr = (CExpression) assume.getExpression();
+              predNode = createFakeEdge(assume.getRawStatement(),  (CExpression) assume.getExpression(), predNode);
             }
           }
         }
@@ -257,54 +257,67 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         throw new CPAException("Predicated Analysis requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
       }
 
-      CAssumeEdge assumeEdge = new CAssumeEdge("1", FileLocation.DUMMY, node, node,
-                                      errorExpr == null ? CIntegerLiteralExpression.ONE : errorExpr, true);
+      if(fakeEdgesFromLastRun.isEmpty()){
+        // create fake edge with assumption true
+        createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
+      }
 
-      fakeEdgeFromLastRun = assumeEdge;
-      node.addEnteringEdge(assumeEdge);
-      node.addLeavingEdge(assumeEdge);
-
-      // create fake state
-      // build predicate state, use error condition stored in fake edge
-      PathFormula pf=errorPred.getPathFormula();
+      // create fake states, one per fake edge, note that location state will be incorrect
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
+      PathFormula pf;
+      PredicateAbstractState fakePred = errorPred;
+      int i=1;
+      for(CAssumeEdge assumeEdge:fakeEdgesFromLastRun) {
+        errorPred = fakePred;
 
-      // create path to fake node
-      pf = pfm.makeAnd(pf, assumeEdge);
+        // build predicate state, use error condition stored in fake edge
+        pf = fakePred.getPathFormula();
 
-      // build abstraction which is needed for refinement, set to true, we do not know better
-      AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
-      pf = pfm.makeEmptyPathFormula(pf);
 
-      PersistentMap<CFANode, Integer> abstractionLocations = errorPred.getAbstractionLocationsOnPath();
-      Integer newLocInstance = firstNonNull(abstractionLocations.get(node), 0) + 1;
-      abstractionLocations = abstractionLocations.putAndCopy(node, newLocInstance);
+        // create path to fake node
+        pf = pfm.makeAnd(pf, assumeEdge);
 
-      // create fake predicate state
-      PredicateAbstractState fakePred =
-          PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
-              abstractionLocations);
+        // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
+        if (i == fakeEdgesFromLastRun.size())
+        {
+          AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
+          pf = pfm.makeEmptyPathFormula(pf);
 
-      // build composite state
-      ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
-      for (AbstractState state : comp.getWrappedStates()) {
-        if (state != errorPred) {
-            wrappedStates.add(state);
+          PersistentMap<CFANode, Integer> abstractionLocations = errorPred.getAbstractionLocationsOnPath();
+          Integer newLocInstance = firstNonNull(abstractionLocations.get(node), 0) + 1;
+          abstractionLocations = abstractionLocations.putAndCopy(node, newLocInstance);
+
+          // create fake abstraction predicate state
+          fakePred = PredicateAbstractState.mkAbstractionState(fm.getBooleanFormulaManager(), pf, abf,
+                  abstractionLocations);
         } else {
-          wrappedStates.add(fakePred);
+          // create fake non abstraction predicate state
+          fakePred = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, fakePred);
         }
+
+        // build composite state
+        ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
+        for (AbstractState state : comp.getWrappedStates()) {
+          if (state != errorPred) {
+            wrappedStates.add(state);
+          } else {
+            wrappedStates.add(fakePred);
+          }
+        }
+
+
+        comp = new CompositeState(wrappedStates.build());
+
+        // build ARG state and add to ARG
+        ARGState successor = new ARGState(comp, predecessor);
+
+        // insert into reached set
+        pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
+        predecessor = successor;
+        i++;
       }
-
-
-      comp = new CompositeState(wrappedStates.build());
-
-      // build ARG state and add to ARG
-      ARGState successor = new ARGState(comp, predecessor);
-
-      // insert into reached set
-      pReachedSet.add(successor, pReachedSet.getPrecision(predecessor));
 
       assert (ARGUtils.checkARG(pReachedSet));
 
@@ -313,6 +326,16 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     }
 
     return result;
+  }
+
+  private CFANode createFakeEdge(final String pRawAssumeExpr, final CExpression pAssumeExpr, final CFANode pPredecessor) {
+    CFANode successor = new CFANode(pPredecessor.getFunctionName());
+    CAssumeEdge assumeEdge =
+        new CAssumeEdge(pRawAssumeExpr, FileLocation.DUMMY, pPredecessor, successor, pAssumeExpr, true);
+    pPredecessor.addLeavingEdge(assumeEdge);
+    successor.addEnteringEdge(assumeEdge);
+    fakeEdgesFromLastRun.add(assumeEdge);
+    return successor;
   }
 
   @SuppressWarnings("unused")
