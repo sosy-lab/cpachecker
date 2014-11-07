@@ -45,7 +45,7 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
     boolean mayVisit;
     List<ARGState> removeChildren = new ArrayList<>(2);
 
-    // TODO add initial element to toVisit
+    toVisit.add((ARGState) pReached.getFirstState());
 
     while (!toVisit.isEmpty()) {
       currentVisit = toVisit.poll();
@@ -54,10 +54,13 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
       for (ARGState child : currentVisit.getChildren()) {
         mayVisit = true;
         for (ARGState otherChild : currentVisit.getChildren()) {
+          if(child==otherChild) {
+            continue;
+          }
           if (currentVisit.getEdgeToChild(child).equals(currentVisit.getEdgeToChild(otherChild))) {
             assert (child.isCovered() || otherChild.isCovered());
 
-            if (child.isCovered() && (!otherChild.isCovered() || otherChild.getStateId() < child.getStateId())) {
+            if (child.isCovered() && !otherChild.isCovered()) {
               removeChildren.add(child);
             }
             mayVisit = false;
