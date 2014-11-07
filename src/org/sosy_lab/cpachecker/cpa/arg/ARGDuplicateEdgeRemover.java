@@ -45,6 +45,8 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
     boolean mayVisit;
     List<ARGState> removeChildren = new ArrayList<>(2);
 
+    // TODO add initial element to toVisit
+
     while (!toVisit.isEmpty()) {
       currentVisit = toVisit.poll();
       removeChildren.clear();

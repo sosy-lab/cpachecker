@@ -34,7 +34,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -59,6 +59,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
+  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
   public PruneUnrefinedARGAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, LogManager pLogger, ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
@@ -107,7 +108,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
         ARGState artEle = (ARGState) e;
         LocationState le = AbstractStates.extractStateByType(artEle, LocationState.class);
         if (artEle.isTarget()) {
-          System.out.print("Found target " + le.getLocationNode().getLineNumber());
+          System.out.print("Found target " + le.getLocationNode().describeFileLocation());
           if (artEle.isCovered()) {
             System.out.print(" COV");
           }
@@ -116,7 +117,7 @@ public class PruneUnrefinedARGAlgorithm implements Algorithm {
             for (ARGState e2 : artEle.getCoveredByThis()) {
               System.out
                   .print(" (added "
-                      + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().getLineNumber()
+                      + AbstractStates.extractStateByType(e2, LocationState.class).getLocationNode().describeFileLocation()
                       + " )");
               leaves.add(e2);
             }

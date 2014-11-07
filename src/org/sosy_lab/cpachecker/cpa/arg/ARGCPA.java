@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
@@ -118,7 +119,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final CEXExporter cexExporter;
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, ShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;

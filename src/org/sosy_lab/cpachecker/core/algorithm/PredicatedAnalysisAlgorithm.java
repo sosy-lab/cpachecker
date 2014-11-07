@@ -473,7 +473,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   @Override
   public boolean reset() {
-    fakeEdgeFromLastRun = null;
+    fakeEdgesFromLastRun.clear();
     initialWrappedState = null;
     pathToFailure = null;
     repeatedFailure = false;

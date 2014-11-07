@@ -56,4 +56,9 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
     return innerAlgorithm.run(pReachedSet);
   }
 
+  @Override
+  public boolean reset() {
+    return innerAlgorithm.reset();
+  }
+
 }

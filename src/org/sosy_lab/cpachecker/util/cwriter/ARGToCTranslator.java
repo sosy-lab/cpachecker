@@ -338,7 +338,7 @@ public class ARGToCTranslator {
       if(returnEdge.getExpression() != null) {
         addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
 
-        String retval = returnEdge.getExpression().toASTString();
+        String retval = returnEdge.getExpression().get().toASTString();
         String returnVar = " __return_" + childElement.getStateId();
         currentBlock.addStatement(new SimpleStatement(returnVar + " = " + retval + ";"));
       }

@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix="cpa.arg")
 public class ARGDumper implements PostProcessor {
-  @Option(name="dumpARG", description="export final ARG as C program")
+  @Option(secure=true, name="dumpARG", description="export final ARG as C program")
   private boolean dumpARG = false;
 
-  @Option(name = "addInclude", description = "whether or not add #include <stdio.h> in front of transformed program")
+  @Option(secure=true, name = "addInclude", description = "whether or not add #include <stdio.h> in front of transformed program")
   private boolean addDefaultInclude = true;
 
   @Option(name="dumpFile", description="export final ARG as .c file")

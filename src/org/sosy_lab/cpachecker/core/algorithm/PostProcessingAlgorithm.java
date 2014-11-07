@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -39,6 +39,7 @@ public class PostProcessingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm innerAlgorithm;
   private final PostProcessor postProcessor;
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
   public PostProcessingAlgorithm(Algorithm pAlgorithm,

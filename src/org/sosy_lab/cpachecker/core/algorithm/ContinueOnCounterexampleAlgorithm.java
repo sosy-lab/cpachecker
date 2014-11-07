@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -48,6 +48,7 @@ import com.google.common.collect.Iterables;
 public class ContinueOnCounterexampleAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
   private final Timer checkTime = new Timer();

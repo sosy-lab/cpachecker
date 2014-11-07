@@ -254,4 +254,11 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
       logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
     }
   }
+
+
+  @Override
+  public boolean reset() {
+    // currently do not know if can be restarted
+    return false;
+  }
 }
