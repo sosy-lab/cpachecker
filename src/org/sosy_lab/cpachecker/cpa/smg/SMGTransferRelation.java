@@ -1928,9 +1928,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       isRequiered = false;
       missingExplicitInformation= false;
     }
-
-
-
   }
 
   @Override
@@ -1942,6 +1939,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
         retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
+        if (retVal.size() == 0) {
+          break;
+        }
       }
     }
 
