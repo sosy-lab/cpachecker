@@ -410,26 +410,27 @@ public class AutomatonGraphmlParser {
               AutomatonTransition relevantLineMatchTransition = new AutomatonTransition(relevantLineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
               transitions.add(0, relevantLineMatchTransition);
 
+              // If the line trigger does not apply,
+              // loop back to the state
+              AutomatonBoolExpr triggerIrrelevantEdge = new AutomatonBoolExpr.Negation(startingLineMatchingExpr);
+
+              AutomatonTransition trRepetition = new AutomatonTransition(
+                  triggerIrrelevantEdge,
+                  emptyAssertions,
+                  Collections.<AutomatonAction>emptyList(),
+                  sourceStateId);
+              transitions.add(trRepetition);
+
               if (!matchSourcecodeData) {
                 AutomatonBoolExpr auxiliaryEdgeTrigger = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+                    new AutomatonBoolExpr.Negation(triggerIrrelevantEdge),
                     new AutomatonBoolExpr.And(
-                        conjunctedTriggers,
-                        new AutomatonBoolExpr.Negation(
-                            new AutomatonBoolExpr.And(
+                        new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+                        new AutomatonBoolExpr.And(
+                            conjunctedTriggers,
+                            new AutomatonBoolExpr.Negation(
                                 new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(
-                                    new AutomatonBoolExpr.And(
-                                        AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
-                                        conjunctedTriggers
-                                        )
-                                    ),
-                                new AutomatonBoolExpr.Negation(
-                                    new AutomatonBoolExpr.MatchAllSuccessorEdgesBoolExpr(
-                                        new AutomatonBoolExpr.And(
-                                            AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE,
-                                            new AutomatonBoolExpr.Negation(conjunctedTriggers)
-                                            )
-                                        )
+                                    conjunctedTriggers
                                     )
                                 )
                             )
@@ -438,20 +439,6 @@ public class AutomatonGraphmlParser {
                 AutomatonTransition triggerAuxiliaryEdge = new AutomatonTransition(auxiliaryEdgeTrigger, emptyAssertions, assumptions, actions, targetStateId);
                 transitions.add(0, triggerAuxiliaryEdge);
               }
-
-              // If the line trigger does not apply
-              // and the edge is not path relevant
-              // loop back to the state
-              AutomatonBoolExpr triggerIrrelevantEdge = new AutomatonBoolExpr.And(
-                  new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
-                  new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE));
-
-              AutomatonTransition trRepetition = new AutomatonTransition(
-                  triggerIrrelevantEdge,
-                  emptyAssertions,
-                  Collections.<AutomatonAction>emptyList(),
-                  sourceStateId);
-              transitions.add(trRepetition);
 
               if (strictLineMatching) {
                 // If both do not apply, go to the sink
