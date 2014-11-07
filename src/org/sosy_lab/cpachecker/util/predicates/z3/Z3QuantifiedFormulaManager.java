@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -67,63 +65,6 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
         pBody);
   }
 
-  private long applyTactic(Long pF, String pTactic) throws InterruptedException, SolverException {
-    long tactic_qe = mk_tactic(z3context, pTactic);
-    tactic_inc_ref(z3context, tactic_qe);
-
-    long goal = mk_goal(z3context, true, true, false);
-    goal_inc_ref(z3context, goal);
-
-    try {
-      goal_assert(z3context, goal, pF);
-
-      long applyResult = tactic_apply(z3context, tactic_qe, goal);
-      apply_result_inc_ref(z3context, applyResult);
-
-      try {
-        long resultSubGoal = apply_result_get_subgoal(z3context, applyResult, 0);
-        goal_inc_ref(z3context, resultSubGoal);
-
-        // TODO: Check the reference-counting!!
-
-        // CNF!
-        int goalResultItemCount = goal_size(z3context, resultSubGoal);
-        long[] goalResultItems = new long[goalResultItemCount];
-        for(int i=0; i<goalResultItemCount; i++) {
-          long subGoalFormula = goal_formula(z3context, resultSubGoal, i);
-          inc_ref(z3context, subGoalFormula);
-
-          goalResultItems[i] = subGoalFormula;
-        }
-
-        goal_dec_ref(z3context, resultSubGoal);
-
-        assert goalResultItemCount > 0;
-
-        long result;
-        if (goalResultItemCount > 1) {
-          result = mk_and(z3context, goalResultItems);
-
-          for(int i=0; i<goalResultItems.length; i++) {
-            dec_ref(z3context, goalResultItems[i]);
-          }
-
-        } else {
-          result = goalResultItems[0];
-        }
-
-        return result;
-
-      } finally {
-        apply_result_dec_ref(z3context, applyResult);
-      }
-
-    } finally {
-      goal_dec_ref(z3context, goal);
-      tactic_dec_ref(z3context, tactic_qe);
-    }
-  }
-
   @Override
   protected Long eliminateQuantifiers(Long pExtractInfo) throws SolverException, InterruptedException {
     // It is recommended (personal communication with Nikolaj Bjorner) to run "qe-light" before "qe".
@@ -131,7 +72,7 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
 
     // You might want to run the tactic "ctx-solver-simplify" on the result...
 
-    return applyTactic(applyTactic(pExtractInfo, "qe-light"), "qe");
+    return Z3NativeApiHelpers.applyTactics(z3context, pExtractInfo, "qe-light", "qe");
   }
 
 }
