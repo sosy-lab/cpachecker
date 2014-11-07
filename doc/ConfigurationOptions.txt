@@ -487,6 +487,11 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # whether or not add #include <stdio.h> in front of transformed program
 cpa.arg.addInclude = true
 
+# inform merge operator in predicated analysis that it should delete the
+# subgraph of the merged nodewhich is required to get at most one successor
+# per CFA edge.
+cpa.arg.deleteInPredicatedAnalysis = false
+
 # disable post processor for runtime verification ARG simplification, always
 # disable if CPA does not contain an automaton/monitor for error
 # specification
