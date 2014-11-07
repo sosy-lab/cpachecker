@@ -86,6 +86,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
 
+  @Option(secure=true,
+      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
+        + "which is required to get at most one successor per CFA edge.")
+      private boolean deleteInPredicatedAnalysis = false;
+
   @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
       + " Only relevant with analysis.stopAfterErrors=false and cpa.arg.errorPath.exportImmediately=true."
@@ -146,7 +151,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       if (inPredicatedAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge);
+        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInPredicatedAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }
