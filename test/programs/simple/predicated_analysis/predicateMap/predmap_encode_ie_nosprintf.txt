@@ -1,44 +1,34 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |encode_ie::index| () Real)
-(define-fun .def_822 () Bool (<= |encode_ie::index| (to_real 1)))
-(declare-fun |encode_ie::leader_len| () Real)
-(define-fun .def_475 () Bool (<= (to_real 1) |encode_ie::leader_len|))
-(define-fun .def_823 () Bool (<= (to_real 1) |encode_ie::index|))
-(declare-fun |memcpy::n| () Real)
-(define-fun .def_478 () Bool (<= (to_real 1) |memcpy::n|))
-(define-fun .def_1240 () Bool (<= |encode_ie::index| (to_real 3)))
-(declare-fun |memcpy::i| () Real)
-(define-fun .def_481 () Bool (<= (to_real 0) |memcpy::i|))
-(define-fun .def_1241 () Bool (<= (to_real 3) |encode_ie::index|))
-(define-fun .def_814 () Bool (<= |encode_ie::leader_len| (to_real 1)))
-(define-fun .def_817 () Real (+ |encode_ie::leader_len| |encode_ie::index|))
-(define-fun .def_818 () Bool (<= .def_817 (to_real 1)))
-(define-fun .def_819 () Bool (<= (to_real 1) .def_817))
+(declare-fun |encode_ie::leader_len| () (_ BitVec 32))
+(define-fun .def_476 () Bool (= |encode_ie::leader_len| (_ bv1 32)))
+(declare-fun |memcpy::n| () (_ BitVec 32))
+(define-fun .def_479 () Bool (= |memcpy::n| (_ bv1 32)))
+(declare-fun |memcpy::i| () (_ BitVec 32))
+(define-fun .def_482 () Bool (= |memcpy::i| (_ bv0 32)))
+(declare-fun |encode_ie::index| () (_ BitVec 32))
+(define-fun .def_834 () Bool (= |encode_ie::index| (_ bv0 32)))
+(define-fun .def_836 () Bool (= |encode_ie::index| (_ bv1 32)))
 
 memcpy N1:
-(assert .def_478)
-(assert .def_818)
-(assert .def_819)
+(assert .def_476)
+(assert .def_479)
+(assert .def_834)
 
 memcpy N9:
-(assert .def_481)
-(assert .def_818)
-(assert .def_819)
+(assert .def_476)
+(assert .def_482)
+(assert .def_834)
 
 encode_ie N21:
-(assert .def_475)
-(assert .def_814)
+(assert .def_476)
 
 encode_ie N33:
+(assert .def_476)
 (assert false)
-(assert .def_818)
-(assert .def_819)
+(assert .def_834)
 
 encode_ie N37:
-(assert .def_822)
-(assert .def_823)
-(assert .def_1240)
-(assert .def_1241)
+(assert .def_836)
 
 encode_ie N50:
 (assert false)

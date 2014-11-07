@@ -3,13 +3,12 @@ int flag  =    0;
 static int gdTcl_UtfToUniChar(char *str , int *chPtr );
 void gdImageStringFTEx(char *string );
 int main(void);
-int __return_3473;
-int __return_3417;
-int __return_3256;
+int __return_1969;
+int __return_1153;
 int main()
 {
 char in[3] ;
-in[2] = (char)0;
+in[2] = 0;
 {
 char *__tmp_1 = in;
 char *string = __tmp_1;
@@ -21,38 +20,31 @@ unsigned char c ;
 encoding = __VERIFIER_nondet_int();
 if (encoding > 2)
 {
-label_3372:; 
+label_68:; 
 }
 else 
 {
 if (encoding < 0)
 {
-goto label_3372;
+goto label_68;
 }
 else 
 {
 next = 0;
-label_3227:; 
 flag = next;
 ch = (int)(*(string + next));
 if (ch == 13)
 {
 next = next + 1;
-label_3393:; 
-flag = next;
-ch = (int)(*(string + next));
-if (ch == 13)
-{
-next = next + 1;
-label_3343:; 
-goto label_3372;
+label_1173:; 
+goto label_68;
 }
 else 
 {
 if (ch == 10)
 {
 next = next + 1;
-goto label_3343;
+goto label_1173;
 }
 else 
 {
@@ -63,12 +55,12 @@ char *__tmp_2 = string + next;
 int *__tmp_3 = &ch;
 char *str = __tmp_2;
 int *chPtr = __tmp_3;
- __return_3417 = 1;
+ __return_1153 = 1;
 }
-len = __return_3417;
+len = __return_1153;
 next = next + len;
-label_3464:; 
-goto label_3343;
+label_1215:; 
+goto label_1173;
 }
 else 
 {
@@ -81,93 +73,19 @@ if (161 <= ((int)c))
 if (((int)c) <= 254)
 {
 next = next + 1;
-goto label_3459;
-}
-else 
-{
-goto label_3444;
-}
-}
-else 
-{
-label_3439:; 
 next = next + 1;
-label_3459:; 
-goto label_3464;
+goto label_68;
+}
+else 
+{
+goto label_1183;
 }
 }
 else 
 {
-if (encoding == 2)
-{
-flag = next;
-ch = ((int)(*(string + next))) & 255;
+label_1183:; 
 next = next + 1;
-if (ch >= 161)
-{
-goto label_3329;
-}
-else 
-{
-goto label_3464;
-}
-}
-else 
-{
-goto label_3381;
-}
-}
-}
-}
-}
-}
-else 
-{
-if (ch == 10)
-{
-next = next + 1;
-goto label_3393;
-}
-else 
-{
-if (encoding == 0)
-{
-{
-char *__tmp_4 = string + next;
-int *__tmp_5 = &ch;
-char *str = __tmp_4;
-int *chPtr = __tmp_5;
- __return_3256 = 1;
-}
-len = __return_3256;
-next = next + len;
-label_3381:; 
-goto label_3393;
-}
-else 
-{
-if (encoding == 1)
-{
-flag = next;
-c = (unsigned char)(*(string + next));
-if (161 <= ((int)c))
-{
-if (((int)c) <= 254)
-{
-next = next + 1;
-label_3444:; 
-goto label_3439;
-}
-else 
-{
-goto label_3286;
-}
-}
-else 
-{
-label_3286:; 
-next = next + 1;
-goto label_3381;
+goto label_1215;
 }
 }
 else 
@@ -182,17 +100,134 @@ if (ch >= 161)
 flag = next;
 ch = (ch * 256) + (((int)(*(string + next))) & 255);
 next = next + 1;
-label_3329:; 
-goto label_3372;
+goto label_68;
 }
 else 
 {
-goto label_3381;
+goto label_1215;
 }
 }
 else 
 {
-goto label_3227;
+label_1793:; 
+flag = next;
+ch = (int)(*(string + next));
+if (ch == 10)
+{
+next = next + 1;
+flag = next;
+ch = (int)(*(string + next));
+if (ch == 13)
+{
+next = next + 1;
+label_1866:; 
+goto label_68;
+}
+else 
+{
+if (ch == 10)
+{
+next = next + 1;
+goto label_1866;
+}
+else 
+{
+if (encoding == 1)
+{
+flag = next;
+c = (unsigned char)(*(string + next));
+if (161 <= ((int)c))
+{
+if (((int)c) <= 254)
+{
+next = next + 1;
+return 1;
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+if (encoding == 2)
+{
+flag = next;
+ch = ((int)(*(string + next))) & 255;
+next = next + 1;
+if (ch >= 161)
+{
+return 1;
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+label_1889:; 
+flag = next;
+ch = (int)(*(string + next));
+if (ch == 13)
+{
+next = next + 1;
+return 1;
+}
+else 
+{
+if (ch == 10)
+{
+next = next + 1;
+goto label_1866;
+}
+else 
+{
+if (encoding == 1)
+{
+flag = next;
+c = (unsigned char)(*(string + next));
+if (161 <= ((int)c))
+{
+if (((int)c) <= 254)
+{
+next = next + 1;
+return 1;
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+if (encoding == 2)
+{
+flag = next;
+ch = ((int)(*(string + next))) & 255;
+next = next + 1;
+if (ch >= 161)
+{
+return 1;
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+goto label_1889;
 }
 }
 }
@@ -200,7 +235,30 @@ goto label_3227;
 }
 }
 }
- __return_3473 = 0;
+}
+}
+else 
+{
+if (encoding == 1)
+{
+flag = next;
+c = (unsigned char)(*(string + next));
+next = next + 1;
+return 1;
+}
+else 
+{
+goto label_1793;
+}
+}
+}
+}
+}
+}
+}
+}
+}
+ __return_1969 = 0;
 return 1;
 }
 }

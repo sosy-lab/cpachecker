@@ -4,22 +4,23 @@ extern char *ap_cpystrn(char *dst , char const   *src , size_t dst_size ) ;
 int flag  =    0;
 char *get_tag(char *tag , int tagbuf_len );
 int main(void);
-char *__return_2180;
-char *__return_2369;
-int __return_2420;
-char *__return_2198;
-char *__return_2219;
-char *__return_2418;
-char *__return_2409;
-char *__return_2293;
-char *__return_2245;
-char *__return_2284;
-char *__return_2405;
-char *__return_2373;
-char *__return_2322;
-char *__return_2364;
-char *__return_2413;
-char *__return_2368;
+char *__return_1537;
+char *__return_1751;
+int __return_1806;
+char *__return_1555;
+char *__return_1576;
+char *__return_1804;
+char *__return_1795;
+char *__return_1651;
+char *__return_1730;
+char *__return_1602;
+char *__return_1642;
+char *__return_1791;
+char *__return_1756;
+char *__return_1689;
+char *__return_1746;
+char *__return_1799;
+char *__return_1750;
 int main()
 {
 char tag[4] ;
@@ -54,21 +55,21 @@ c = (char)tmp___1;
 if (((int)c) == 62)
 {
 ap_cpystrn(tag, "done", tagbuf_len);
- __return_2180 = tag;
-goto label_2369;
+ __return_1537 = tag;
+goto label_1751;
 }
 else 
 {
-goto label_2163;
+goto label_1520;
 }
 }
 else 
 {
-label_2163:; 
- __return_2369 = (char *)((void *)0);
-label_2369:; 
+label_1520:; 
+ __return_1751 = (char *)((void *)0);
+label_1751:; 
 }
- __return_2420 = 0;
+ __return_1806 = 0;
 return 1;
 }
 else 
@@ -76,13 +77,13 @@ else
 if (((int)c) == 61)
 {
 flag = t;
-*(tag + t) = (char)0;
+*(tag + t) = 0;
 t = t + 1;
 tag_val = tag + t;
 if (((int)c) != 61)
 {
- __return_2198 = (char *)((void *)0);
-goto label_2369;
+ __return_1555 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
@@ -92,19 +93,18 @@ if (((int)c) != 34)
 {
 if (((int)c) != 39)
 {
- __return_2219 = (char *)((void *)0);
-goto label_2369;
+ __return_1576 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
-goto label_2215;
+goto label_1572;
 }
 }
 else 
 {
-label_2215:; 
+label_1572:; 
 term = c;
-label_2227:; 
 tmp___4 = nondet_char();
 c = (char)tmp___4;
 if (((int)c) == 92)
@@ -114,10 +114,10 @@ c = (char)tmp___5;
 if (((int)c) != ((int)term))
 {
 flag = t;
-*(tag + t) = (char)'a';
+*(tag + t) = 92;
 t = t + 1;
-label_2313:; 
-label_2319:; 
+label_1675:; 
+label_1683:; 
 tmp___4 = nondet_char();
 c = (char)tmp___4;
 if (((int)c) == 92)
@@ -127,36 +127,16 @@ c = (char)tmp___5;
 if (((int)c) != ((int)term))
 {
 flag = t;
-*(tag + t) = (char)'a';
+*(tag + t) = 92;
 t = t + 1;
 flag = t;
-*(tag + t) = (char)0;
- __return_2418 = (char *)((void *)0);
-goto label_2369;
+*(tag + t) = 0;
+ __return_1804 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
-goto label_2313;
-}
-}
-else 
-{
-if (((int)c) == ((int)term))
-{
-flag = t;
-*(tag + t) = (char)0;
- __return_2409 = tag;
-goto label_2369;
-}
-else 
-{
-goto label_2319;
-}
-}
-}
-else 
-{
-goto label_2264;
+goto label_1675;
 }
 }
 else 
@@ -164,14 +144,66 @@ else
 if (((int)c) == ((int)term))
 {
 flag = t;
-*(tag + t) = (char)0;
- __return_2293 = tag;
-goto label_2369;
+*(tag + t) = 0;
+ __return_1795 = tag;
+goto label_1751;
 }
 else 
 {
-label_2264:; 
-goto label_2227;
+goto label_1683;
+}
+}
+}
+else 
+{
+label_1638:; 
+goto label_1621;
+}
+}
+else 
+{
+if (((int)c) == ((int)term))
+{
+flag = t;
+*(tag + t) = 0;
+ __return_1651 = tag;
+goto label_1751;
+}
+else 
+{
+label_1621:; 
+tmp___4 = nondet_char();
+c = (char)tmp___4;
+if (((int)c) == 92)
+{
+tmp___5 = nondet_char();
+c = (char)tmp___5;
+if (((int)c) != ((int)term))
+{
+flag = t;
+*(tag + t) = 92;
+t = t + 1;
+goto label_1675;
+}
+else 
+{
+goto label_1638;
+}
+}
+else 
+{
+if (((int)c) == ((int)term))
+{
+flag = t;
+*(tag + t) = 0;
+ __return_1730 = tag;
+goto label_1751;
+}
+else 
+{
+goto label_1621;
+}
+}
 }
 }
 }
@@ -187,13 +219,13 @@ c = (char)tmp___2;
 if (((int)c) == 61)
 {
 flag = t;
-*(tag + t) = (char)0;
+*(tag + t) = 0;
 t = t + 1;
 tag_val = tag + t;
 if (((int)c) != 61)
 {
- __return_2245 = (char *)((void *)0);
-goto label_2369;
+ __return_1602 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
@@ -203,17 +235,17 @@ if (((int)c) != 34)
 {
 if (((int)c) != 39)
 {
- __return_2284 = (char *)((void *)0);
-goto label_2369;
+ __return_1642 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
-goto label_2276;
+goto label_1633;
 }
 }
 else 
 {
-label_2276:; 
+label_1633:; 
 term = c;
 tmp___4 = nondet_char();
 c = (char)tmp___4;
@@ -224,16 +256,16 @@ c = (char)tmp___5;
 if (((int)c) != ((int)term))
 {
 flag = t;
-*(tag + t) = (char)'a';
+*(tag + t) = 92;
 t = t + 1;
 flag = t;
-*(tag + t) = (char)0;
- __return_2405 = (char *)((void *)0);
-goto label_2369;
+*(tag + t) = 0;
+ __return_1791 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
-goto label_2313;
+goto label_1675;
 }
 }
 else 
@@ -241,13 +273,13 @@ else
 if (((int)c) == ((int)term))
 {
 flag = t;
-*(tag + t) = (char)0;
- __return_2373 = tag;
-goto label_2369;
+*(tag + t) = 0;
+ __return_1756 = tag;
+goto label_1751;
 }
 else 
 {
-goto label_2319;
+goto label_1683;
 }
 }
 }
@@ -263,13 +295,13 @@ c = (char)tmp___2;
 if (((int)c) == 61)
 {
 flag = t;
-*(tag + t) = (char)0;
+*(tag + t) = 0;
 t = t + 1;
 tag_val = tag + t;
 if (((int)c) != 61)
 {
- __return_2322 = (char *)((void *)0);
-goto label_2369;
+ __return_1689 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
@@ -279,24 +311,24 @@ if (((int)c) != 34)
 {
 if (((int)c) != 39)
 {
- __return_2364 = (char *)((void *)0);
-goto label_2369;
+ __return_1746 = (char *)((void *)0);
+goto label_1751;
 }
 else 
 {
-goto label_2356;
+goto label_1737;
 }
 }
 else 
 {
-label_2356:; 
+label_1737:; 
 term = c;
 tmp___4 = nondet_char();
 c = (char)tmp___4;
 flag = t;
-*(tag + t) = (char)0;
- __return_2413 = (char *)((void *)0);
-goto label_2369;
+*(tag + t) = 0;
+ __return_1799 = (char *)((void *)0);
+goto label_1751;
 }
 }
 }
@@ -308,9 +340,9 @@ t = t + 1;
 tmp___2 = nondet_char();
 c = (char)tmp___2;
 flag = t;
-*(tag + t) = (char)0;
- __return_2368 = (char *)((void *)0);
-goto label_2369;
+*(tag + t) = 0;
+ __return_1750 = (char *)((void *)0);
+goto label_1751;
 }
 }
 }

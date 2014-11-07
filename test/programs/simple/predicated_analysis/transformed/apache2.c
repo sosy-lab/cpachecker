@@ -2,12 +2,12 @@ extern int __VERIFIER_nondet_int() ;
 int flag  =    0;
 void escape_absolute_uri(char *uri , int scheme );
 int main(void);
-int __return_2504;
+int __return_2057;
 int main()
 {
 char uri[11] ;
 int scheme ;
-uri[10] = (char)0;
+uri[10] = 0;
 scheme = 6;
 {
 char *__tmp_1 = uri;
@@ -35,7 +35,7 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_2406;
+goto label_1959;
 }
 else 
 {
@@ -47,14 +47,14 @@ if (((int)(*(uri + cp))) == 63)
 c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
-*(uri + cp) = (char)0;
-goto label_2385;
+*(uri + cp) = 0;
+goto label_1938;
 }
 else 
 {
-label_2385:; 
+label_1938:; 
 cp = cp + 1;
-goto label_2397;
+goto label_1950;
 }
 }
 }
@@ -69,27 +69,27 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_2406;
+goto label_1959;
 }
 else 
 {
 c = 0;
 token[0] = uri;
-label_2397:; 
+label_1950:; 
 flag = cp;
 if (((int)(*(uri + cp))) == 63)
 {
 c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
-*(uri + cp) = (char)0;
-goto label_2460;
+*(uri + cp) = 0;
+goto label_2013;
 }
 else 
 {
-label_2460:; 
+label_2013:; 
 cp = cp + 1;
-goto label_2466;
+goto label_2019;
 }
 }
 }
@@ -104,13 +104,13 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_2406;
+goto label_1959;
 }
 else 
 {
 c = 0;
 token[0] = uri;
-label_2466:; 
+label_2019:; 
 if (c < 2)
 {
 flag = cp;
@@ -119,20 +119,20 @@ if (((int)(*(uri + cp))) == 63)
 c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
-*(uri + cp) = (char)0;
-goto label_2492;
+*(uri + cp) = 0;
+goto label_2045;
 }
 else 
 {
-label_2492:; 
+label_2045:; 
 cp = cp + 1;
-goto label_2500;
+goto label_2053;
 }
 }
 else 
 {
-label_2500:; 
-goto label_2425;
+label_2053:; 
+goto label_1978;
 }
 }
 }
@@ -142,12 +142,12 @@ cp = cp + 1;
 flag = cp;
 if (((int)(*(uri + cp))) != 47)
 {
-goto label_2425;
+goto label_1978;
 }
 else 
 {
 cp = cp + 1;
-goto label_2425;
+goto label_1978;
 }
 }
 }
@@ -155,15 +155,15 @@ goto label_2425;
 }
 else 
 {
-label_2406:; 
-goto label_2425;
+label_1959:; 
+goto label_1978;
 }
 }
 else 
 {
-label_2425:; 
+label_1978:; 
 }
- __return_2504 = 0;
+ __return_2057 = 0;
 return 1;
 }
 }

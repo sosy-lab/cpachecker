@@ -6,9 +6,9 @@ void *memcpy(void *dest , void const   *src , size_t n );
 static u_int encode_ie(void *buf , size_t bufsize , u_int8_t const   *ie , size_t ielen ,
                        char const   *leader , size_t leader_len );
 int main(void);
-void *__return_359;
-u_int __return_405;
-int __return_409;
+void *__return_230;
+u_int __return_276;
+int __return_280;
 int main()
 {
 u_int8_t buf[6] ;
@@ -49,7 +49,7 @@ i = n - 1;
 flag = i;
 *(d + i) = *(s + i);
 i = i - 1;
- __return_359 = dest;
+ __return_230 = dest;
 }
 bufsize = bufsize - leader_len;
 index = index + leader_len;
@@ -69,8 +69,8 @@ index = index + 2;
 bufsize = bufsize - 2;
 i = i + 1;
 tmp = 0;
- __return_405 = (u_int )tmp;
+ __return_276 = (u_int )tmp;
 }
- __return_409 = 0;
+ __return_280 = 0;
 return 1;
 }

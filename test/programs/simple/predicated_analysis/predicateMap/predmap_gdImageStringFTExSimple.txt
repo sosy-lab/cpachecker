@@ -1,73 +1,65 @@
 (set-info :source |printed by MathSAT|)
-(declare-fun |gdImageStringFTEx::next| () Real)
-(define-fun .def_772 () Bool (<= |gdImageStringFTEx::next| (to_real 2)))
-(define-fun .def_144 () Bool (<= |gdImageStringFTEx::next| (to_real 0)))
-(define-fun .def_773 () Bool (<= (to_real 2) |gdImageStringFTEx::next|))
-(define-fun .def_145 () Bool (<= (to_real 0) |gdImageStringFTEx::next|))
-(declare-fun |gdImageStringFTEx::len| () Real)
-(define-fun .def_655 () Real (+ |gdImageStringFTEx::next| |gdImageStringFTEx::len|))
-(define-fun .def_1103 () Bool (<= .def_655 (to_real 2)))
-(define-fun .def_1104 () Bool (<= (to_real 2) .def_655))
-(define-fun .def_382 () Bool (<= |gdImageStringFTEx::next| (to_real 1)))
-(define-fun .def_1197 () Bool (= |gdImageStringFTEx::next| (to_real 2)))
-(define-fun .def_383 () Bool (<= (to_real 1) |gdImageStringFTEx::next|))
-(define-fun .def_656 () Bool (<= .def_655 (to_real 1)))
-(define-fun .def_657 () Bool (<= (to_real 1) .def_655))
+(declare-fun |gdImageStringFTEx::encoding| () (_ BitVec 32))
+(define-fun .def_1482 () Bool (= |gdImageStringFTEx::encoding| (_ bv2 32)))
+(declare-fun |gdImageStringFTEx::next| () (_ BitVec 32))
+(define-fun .def_144 () Bool (= |gdImageStringFTEx::next| (_ bv0 32)))
+(define-fun .def_1588 () Bool (= |gdImageStringFTEx::encoding| (_ bv1 32)))
+(declare-fun |gdImageStringFTEx::len| () (_ BitVec 32))
+(define-fun .def_354 () Bool (= |gdImageStringFTEx::len| (_ bv1 32)))
+(define-fun .def_356 () Bool (= |gdImageStringFTEx::next| (_ bv1 32)))
+(declare-fun |gdImageStringFTEx::string| () (_ BitVec 32))
+(declare-fun *char ((_ BitVec 32)) (_ BitVec 8))
+(define-fun .def_651 () (_ BitVec 32) (bvadd |gdImageStringFTEx::next| |gdImageStringFTEx::string|))
+(define-fun .def_653 () (_ BitVec 8) (*char .def_651))
+(define-fun .def_654 () (_ BitVec 32) ((_ sign_extend 24) .def_653))
+(define-fun .def_655 () Bool (= .def_654 (_ bv13 32)))
+(define-fun .def_752 () Bool (= |gdImageStringFTEx::next| (_ bv2 32)))
+(define-fun .def_969 () Bool (= |gdImageStringFTEx::encoding| (_ bv0 32)))
 
 gdTcl_UtfToUniChar N1:
 (assert .def_144)
-(assert .def_145)
-(assert .def_382)
-(assert .def_383)
+(assert false)
 
 gdImageStringFTEx N22:
-(assert .def_772)
+(assert .def_1482)
 (assert .def_144)
-(assert .def_773)
-(assert .def_145)
-(assert .def_382)
-(assert .def_383)
+(assert .def_1588)
+(assert false)
+(assert .def_356)
+(assert .def_655)
+(assert .def_752)
+(assert .def_969)
 
 gdImageStringFTEx N29:
 (assert false)
 
 gdImageStringFTEx N42:
-(assert .def_772)
-(assert .def_144)
-(assert .def_773)
-(assert .def_145)
-(assert .def_382)
-(assert .def_383)
+(assert .def_1482)
+(assert .def_1588)
+(assert .def_356)
+(assert .def_655)
+(assert .def_752)
+(assert .def_969)
 
 gdImageStringFTEx N46:
-(assert .def_1103)
-(assert .def_1104)
-(assert .def_656)
-(assert .def_657)
+(assert .def_144)
+(assert .def_354)
 
 gdImageStringFTEx N53:
 (assert .def_144)
-(assert .def_145)
-(assert .def_382)
-(assert .def_1197)
-(assert .def_383)
+(assert false)
 
 gdImageStringFTEx N56:
 (assert .def_144)
-(assert .def_145)
-(assert .def_382)
-(assert .def_383)
 
 gdImageStringFTEx N60:
-(assert .def_772)
-(assert .def_773)
-(assert false)
-(assert .def_382)
-(assert .def_383)
+(assert .def_356)
 
 gdImageStringFTEx N70:
-(assert .def_772)
-(assert .def_773)
-(assert .def_382)
-(assert .def_383)
+(assert false)
+(assert .def_356)
+(assert .def_752)
+
+gdImageStringFTEx N73:
+(assert .def_752)
 
