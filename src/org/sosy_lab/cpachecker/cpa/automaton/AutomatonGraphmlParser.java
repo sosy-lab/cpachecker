@@ -428,10 +428,13 @@ public class AutomatonGraphmlParser {
                         new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
                         new AutomatonBoolExpr.And(
                             conjunctedTriggers,
-                            new AutomatonBoolExpr.Negation(
-                                new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(
-                                    conjunctedTriggers
-                                    )
+                            new AutomatonBoolExpr.And(
+                                new AutomatonBoolExpr.Negation(
+                                    new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(
+                                        conjunctedTriggers
+                                        )
+                                    ),
+                                AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE
                                 )
                             )
                         )
