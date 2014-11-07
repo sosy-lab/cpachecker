@@ -335,7 +335,7 @@ public class ARGToCTranslator {
     else if (edge instanceof CReturnStatementEdge) {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
 
-      if(returnEdge.getExpression() != null) {
+      if(returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
         addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
 
         String retval = returnEdge.getExpression().get().toASTString();
