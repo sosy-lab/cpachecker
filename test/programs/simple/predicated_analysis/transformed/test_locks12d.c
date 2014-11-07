@@ -1,6 +1,6 @@
 extern int __VERIFIER_nondet_int();
 int main();
-int __return_7238;
+int __return_4831;
 int main()
 {
 int lk1;
@@ -18,12 +18,12 @@ int lk12;
 int cond;
 int p;
 int flag = 1;
-label_7227:; 
+label_3467:; 
 cond = __VERIFIER_nondet_int();
 p = __VERIFIER_nondet_int();
 if (cond == 0)
 {
- __return_7238 = 0;
+ __return_4831 = 0;
 return 1;
 }
 else 
@@ -124,11 +124,11 @@ if (p > 11)
 {
 flag = lk12;
 lk12 = 0;
-goto label_8588;
+goto label_4821;
 }
 else 
 {
-goto label_8588;
+goto label_4821;
 }
 }
 else 
@@ -230,7 +230,7 @@ flag = lk10;
 lk10 = 0;
 flag = lk11;
 lk11 = 0;
-goto label_8226;
+goto label_4799;
 }
 else 
 {
@@ -330,7 +330,7 @@ flag = lk9;
 lk9 = 0;
 flag = lk10;
 lk10 = 0;
-goto label_8186;
+goto label_4771;
 }
 else 
 {
@@ -429,7 +429,7 @@ flag = lk8;
 lk8 = 0;
 flag = lk9;
 lk9 = 0;
-goto label_8143;
+goto label_4734;
 }
 else 
 {
@@ -527,7 +527,7 @@ flag = lk7;
 lk7 = 0;
 flag = lk8;
 lk8 = 0;
-goto label_8098;
+goto label_4688;
 }
 else 
 {
@@ -624,7 +624,7 @@ flag = lk6;
 lk6 = 0;
 flag = lk7;
 lk7 = 0;
-goto label_8053;
+goto label_4633;
 }
 else 
 {
@@ -720,7 +720,7 @@ flag = lk5;
 lk5 = 0;
 flag = lk6;
 lk6 = 0;
-goto label_8003;
+goto label_4569;
 }
 else 
 {
@@ -815,7 +815,7 @@ flag = lk4;
 lk4 = 0;
 flag = lk5;
 lk5 = 0;
-goto label_7953;
+goto label_4496;
 }
 else 
 {
@@ -909,7 +909,7 @@ flag = lk3;
 lk3 = 0;
 flag = lk4;
 lk4 = 0;
-goto label_7897;
+goto label_4414;
 }
 else 
 {
@@ -1002,7 +1002,7 @@ flag = lk2;
 lk2 = 0;
 flag = lk3;
 lk3 = 0;
-goto label_7838;
+goto label_4323;
 }
 else 
 {
@@ -1094,7 +1094,7 @@ flag = lk1;
 lk1 = 0;
 flag = lk2;
 lk2 = 0;
-goto label_7776;
+goto label_4223;
 }
 else 
 {
@@ -1185,7 +1185,7 @@ else
 {
 flag = lk1;
 lk1 = 0;
-goto label_7710;
+goto label_4114;
 }
 }
 }
@@ -1200,19 +1200,19 @@ goto label_7710;
 }
 else 
 {
-label_7710:; 
-label_7776:; 
-label_7838:; 
-label_7897:; 
-label_7953:; 
-label_8003:; 
-label_8053:; 
-label_8098:; 
-label_8143:; 
-label_8186:; 
-label_8226:; 
-label_8588:; 
-goto label_7227;
+label_4114:; 
+label_4223:; 
+label_4323:; 
+label_4414:; 
+label_4496:; 
+label_4569:; 
+label_4633:; 
+label_4688:; 
+label_4734:; 
+label_4771:; 
+label_4799:; 
+label_4821:; 
+goto label_3467;
 }
 }
 }

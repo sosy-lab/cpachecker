@@ -20,10 +20,7 @@ List extract_even(List head );
 float calc_mean(List head );
 float variance(List head );
 int main(void);
-int __return_986;
-List __return_1216;
-List __return_1219;
-List __return_1179;
+int __return_41;
 int main()
 {
 List l ;
@@ -39,12 +36,12 @@ List tmp___2 ;
 float m ;
 float tmp___3 ;
 int tmp___4 ;
-tmp = malloc(sizeof(struct node ));
+tmp = malloc(8);
 l = (List )tmp;
 temp = l;
 if (((unsigned long)temp) == ((unsigned long)((void *)0)))
 {
- __return_986 = -1;
+ __return_41 = -1;
 return 1;
 }
 else 
@@ -52,22 +49,22 @@ else
 tmp___0 = __VERIFIER_nondet_int();
 size = tmp___0;
 i = 0;
-label_1127:; 
+label_464:; 
 if (i < size)
 {
-tmp___1 = malloc(sizeof(struct node ));
+tmp___1 = malloc(8);
 next = (List )tmp___1;
 if (((unsigned long)next) != ((unsigned long)((void *)0)))
 {
 next->n = l;
 l = next;
-goto label_1255;
+goto label_581;
 }
 else 
 {
-label_1255:; 
+label_581:; 
 i = i + 1;
-goto label_1127;
+goto label_464;
 }
 }
 else 
@@ -77,116 +74,28 @@ List __tmp_1 = l;
 List head = __tmp_1;
 void *tmp ;
 newHead = (List )((void *)0);
-label_1140:; 
+label_477:; 
 if (((head->h) % 2) == 0)
 {
 successor = newHead;
-tmp = malloc(sizeof(struct node ));
+tmp = malloc(8);
 newHead = (List )tmp;
 if (((unsigned long)newHead) == ((unsigned long)((void *)0)))
 {
 newHead = successor;
-goto label_1151;
+label_602:; 
+goto label_549;
 }
 else 
 {
 newHead->n = successor;
-label_1169:; 
-if (((unsigned long)head) != ((unsigned long)((void *)0)))
-{
-if (((head->h) % 2) == 0)
-{
-successor = newHead;
-tmp = malloc(sizeof(struct node ));
-newHead = (List )tmp;
-if (((unsigned long)newHead) == ((unsigned long)((void *)0)))
-{
-newHead = successor;
-label_1193:; 
-label_1197:; 
-if (((unsigned long)head) != ((unsigned long)((void *)0)))
-{
-if (((head->h) % 2) == 0)
-{
-successor = newHead;
-tmp = malloc(sizeof(struct node ));
-newHead = (List )tmp;
-if (((unsigned long)newHead) == ((unsigned long)((void *)0)))
-{
-newHead = successor;
-goto label_1193;
-}
-else 
-{
-newHead->n = successor;
-goto label_1195;
+goto label_602;
 }
 }
 else 
 {
-goto label_1197;
-}
-}
-else 
-{
- __return_1216 = newHead;
-}
-tmp___2 = __return_1216;
-return 1;
-}
-else 
-{
-newHead->n = successor;
-label_1195:; 
-label_1199:; 
-if (((unsigned long)head) != ((unsigned long)((void *)0)))
-{
-if (((head->h) % 2) == 0)
-{
-successor = newHead;
-tmp = malloc(sizeof(struct node ));
-newHead = (List )tmp;
-if (((unsigned long)newHead) == ((unsigned long)((void *)0)))
-{
-newHead = successor;
-goto label_1195;
-}
-else 
-{
-newHead->n = successor;
-goto label_1195;
-}
-}
-else 
-{
-goto label_1199;
-}
-}
-else 
-{
- __return_1219 = newHead;
-}
-tmp___2 = __return_1219;
-return 1;
-}
-}
-else 
-{
-goto label_1169;
-}
-}
-else 
-{
- __return_1179 = newHead;
-}
-tmp___2 = __return_1179;
-return 1;
-}
-}
-else 
-{
-label_1151:; 
-goto label_1140;
+label_549:; 
+goto label_477;
 }
 }
 }

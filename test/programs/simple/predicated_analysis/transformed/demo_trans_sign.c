@@ -7,17 +7,24 @@ if (y > 1)
 {
 x = 1;
 int z=y;
-label_197:; 
 if (y < 5)
 {
 x = x + 1;
+label_129:; 
 y = y + 1;
-goto label_197;
+if (y < 5)
+{
+x = x + 1;
+goto label_129;
 }
 else 
 {
-label_212:; 
-return 1;
+goto label_119;
+}
+}
+else 
+{
+goto label_119;
 }
 }
 else 
@@ -27,21 +34,22 @@ int z=y;
 if (y < 5)
 {
 x = x - 1;
-label_218:; 
+label_131:; 
 y = y + 1;
 if (y < 5)
 {
 x = x - 1;
-goto label_218;
+goto label_131;
 }
 else 
 {
-goto label_212;
+goto label_119;
 }
 }
 else 
 {
-goto label_212;
+label_119:; 
+return 1;
 }
 }
 }

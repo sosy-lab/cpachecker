@@ -9,13 +9,11 @@ extern int __VERIFIER_nondet_int() ;
 int flag  =    1;
 float harmonicMean(List l );
 int main(void);
-int __return_268;
-float __return_416;
-int __return_488;
-float __return_474;
-int __return_492;
-float __return_458;
-int __return_490;
+int __return_166;
+float __return_419;
+int __return_424;
+float __return_409;
+float __return_418;
 int main()
 {
 List l ;
@@ -26,12 +24,13 @@ int tmp___0 ;
 int i ;
 List next ;
 void *tmp___1 ;
-tmp = malloc(sizeof(struct node ));
+tmp = malloc(8);
 l = (List )tmp;
 temp = l;
 if (((unsigned long)temp) == ((unsigned long)((void *)0)))
 {
- __return_268 = -1;
+ __return_166 = -1;
+label_166:; 
 return 1;
 }
 else 
@@ -39,22 +38,22 @@ else
 tmp___0 = __VERIFIER_nondet_int();
 size = tmp___0;
 i = 0;
-label_389:; 
+label_323:; 
 if (i < size)
 {
-tmp___1 = malloc(sizeof(struct node ));
+tmp___1 = malloc(8);
 next = (List )tmp___1;
 if (((unsigned long)next) != ((unsigned long)((void *)0)))
 {
 next->n = l;
 l = next;
-goto label_497;
+goto label_429;
 }
 else 
 {
-label_497:; 
+label_429:; 
 i = i + 1;
-goto label_389;
+goto label_323;
 }
 }
 else 
@@ -67,69 +66,56 @@ int length ;
 float sum ;
 neg = 0;
 length = 0;
-sum = (float)0;
+sum = 0.0;
 if ((l->h) == 0)
 {
- __return_416 = (float)(-1);
+ __return_419 = -1.0;
+label_419:; 
 }
 else 
 {
 if ((l->h) < 0)
 {
 neg = 1;
-flag = l->h;
-sum = (float)(1 / (l->h));
-length = length + 1;
-label_436:; 
-if (((unsigned long)l) != ((unsigned long)((void *)0)))
-{
-neg = 1;
-goto label_469;
+goto label_387;
 }
 else 
 {
-flag = (int)sum;
- __return_474 = ((float)length) / sum;
-}
- __return_492 = 0;
-return 1;
-}
-else 
-{
+label_387:; 
 flag = l->h;
 sum = (float)(1 / (l->h));
 length = length + 1;
-label_434:; 
 if (((unsigned long)l) != ((unsigned long)((void *)0)))
 {
 if ((l->h) < 0)
 {
 neg = 1;
-label_469:; 
-flag = l->h;
-sum = (float)(1 / (l->h));
-length = length + 1;
-goto label_436;
+goto label_387;
 }
 else 
 {
-flag = l->h;
-sum = (float)(1 / (l->h));
-length = length + 1;
-goto label_434;
+goto label_387;
 }
+}
+else 
+{
+if (neg == 0)
+{
+flag = (int)sum;
+ __return_409 = ((float)length) / sum;
+goto label_419;
 }
 else 
 {
 flag = (int)sum;
- __return_458 = ((float)length) / sum;
-}
- __return_490 = 0;
-return 1;
+ __return_418 = ((float)length) / sum;
+goto label_419;
 }
 }
- __return_488 = 0;
-return 1;
+}
+}
+ __return_424 = 0;
+goto label_166;
 }
 }
 }

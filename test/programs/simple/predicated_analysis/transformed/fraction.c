@@ -8,21 +8,22 @@ int inter  ;
 int gcd(int x , int y );
 void reduceFraction(struct fraction frac );
 void main(void);
-int __return_241;
-int __return_273;
-int __return_279;
-int __return_213;
-int __return_219;
+int __return_234;
+int __return_265;
+int __return_274;
+int __return_243;
+int __return_211;
+int __return_216;
 void main()
 {
 struct fraction frac ;
 struct fraction frac2 ;
 frac.c = __VERIFIER_nondet_int();
-label_189:; 
+label_14:; 
 frac.d = __VERIFIER_nondet_int();
 if ((frac.d) == 0)
 {
-goto label_189;
+goto label_14;
 }
 else 
 {
@@ -40,14 +41,14 @@ int x = __tmp_2;
 int y = __tmp_3;
 if (x != 0)
 {
- __return_241 = 1;
+ __return_234 = 1;
 }
 else 
 {
- __return_241 = 1;
+ __return_243 = 0;
+return 1;
 }
-inter = __return_241;
-label_245:; 
+inter = __return_234;
 flag = inter;
 frac.c = (frac.c) / inter;
 flag = inter;
@@ -63,20 +64,20 @@ int x = __tmp_5;
 int y = __tmp_6;
 if (x != 0)
 {
- __return_273 = 1;
+ __return_265 = 1;
 }
 else 
 {
- __return_273 = 1;
+ __return_274 = 0;
+return 1;
 }
-inter = __return_273;
-label_277:; 
+inter = __return_265;
 flag = inter;
 frac.c = (frac.c) / inter;
 flag = inter;
 frac.d = (frac.d) / inter;
 }
-return 1;
+goto label_283;
 }
 }
 }
@@ -90,22 +91,22 @@ int __tmp_8 = frac.c;
 int __tmp_9 = frac.d;
 int x = __tmp_8;
 int y = __tmp_9;
-if (x != 0)
+if (y != 0)
 {
- __return_213 = 1;
+ __return_211 = 1;
 }
 else 
 {
- __return_213 = 1;
+ __return_216 = 0;
+return 1;
 }
-inter = __return_213;
-label_217:; 
+inter = __return_211;
 flag = inter;
 frac.c = (frac.c) / inter;
 flag = inter;
 frac.d = (frac.d) / inter;
 }
-label_1:
+label_283:; 
 return 1;
 }
 }

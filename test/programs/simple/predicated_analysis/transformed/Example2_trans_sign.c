@@ -13,30 +13,33 @@ y = b * a;
 if (y > x)
 {
 i = 0;
+label_219:; 
 if (b > 0)
 {
 x = x + y;
-label_349:; 
-goto label_352;
+x = x + y;
+label_267:; 
+x = x + y;
+goto label_267;
 }
 else 
 {
-label_340:; 
+label_238:; 
 return 1;
 }
 }
 else 
 {
 i = 1;
-label_310:; 
-label_316:; 
+label_222:; 
 if (b > 0)
 {
-goto label_316;
+label_265:; 
+goto label_265;
 }
 else 
 {
-goto label_340;
+goto label_238;
 }
 }
 }
@@ -47,28 +50,12 @@ y = b * a;
 if (y > x)
 {
 i = 0;
-label_352:; 
-if (b > 0)
-{
-if (i == 0)
-{
-x = x + y;
-goto label_349;
-}
-else 
-{
-return 1;
-}
-}
-else 
-{
-goto label_340;
-}
+goto label_219;
 }
 else 
 {
 i = 1;
-goto label_310;
+goto label_222;
 }
 }
 }

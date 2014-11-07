@@ -1,66 +1,65 @@
 (set-info :source |printed by MathSAT|)
 (declare-fun |main::p| () Real)
-(define-fun .def_111 () Bool (<= |main::p| (to_real 0)))
-(define-fun .def_145 () Bool (<= |main::p| (to_real 1)))
-(define-fun .def_196 () Bool (<= |main::p| (to_real 2)))
-(define-fun .def_263 () Bool (<= |main::p| (to_real 3)))
-(define-fun .def_343 () Bool (<= |main::p| (to_real 4)))
+(define-fun .def_108 () Bool (<= |main::p| (to_real 0)))
+(define-fun .def_153 () Bool (<= |main::p| (to_real 1)))
+(define-fun .def_220 () Bool (<= |main::p| (to_real 2)))
+(define-fun .def_297 () Bool (<= |main::p| (to_real 3)))
+(define-fun .def_381 () Bool (<= |main::p| (to_real 4)))
 
 main N25:
-(assert .def_111)
+(assert .def_108)
 
 main N29:
-(assert .def_111)
-(assert .def_145)
+(assert .def_108)
+(assert .def_153)
 
 main N33:
-(assert .def_111)
-(assert .def_145)
-(assert .def_196)
+(assert .def_108)
+(assert .def_153)
+(assert .def_220)
 
 main N37:
-(assert .def_111)
-(assert .def_145)
-(assert .def_196)
-(assert .def_263)
+(assert .def_108)
+(assert .def_153)
+(assert .def_220)
+(assert .def_297)
 
 main N41:
-(assert .def_111)
-(assert .def_145)
-(assert .def_196)
-(assert .def_263)
-(assert .def_343)
+(assert .def_108)
+(assert .def_153)
+(assert .def_220)
+(assert .def_297)
+(assert .def_381)
 
 main N45:
-(assert .def_145)
-(assert .def_196)
-(assert .def_263)
-(assert .def_343)
+(assert .def_153)
+(assert .def_220)
+(assert .def_297)
+(assert .def_381)
 
 main N48:
 (assert false)
 
 main N50:
-(assert .def_196)
-(assert .def_263)
-(assert .def_343)
+(assert .def_220)
+(assert .def_297)
+(assert .def_381)
 
 main N53:
 (assert false)
 
 main N55:
-(assert .def_263)
-(assert .def_343)
+(assert .def_297)
+(assert .def_381)
 
 main N58:
 (assert false)
 
 main N60:
-(assert .def_343)
+(assert .def_381)
 
 main N63:
 (assert false)
 
 main N68:
 (assert false)
-
