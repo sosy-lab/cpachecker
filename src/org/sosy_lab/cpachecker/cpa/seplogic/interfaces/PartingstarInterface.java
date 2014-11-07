@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,14 +29,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState.SeplogicQueryUnsuccessful;
 
 
@@ -79,17 +79,17 @@ public class PartingstarInterface {
   private Timer specAssTimer = new Timer();
   private Timer abstractionTimer = new Timer();
 
-  @Option(name="pspath", required=true,
+  @Option(secure=true, name="pspath", required=true,
       description="path to partingstar command")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path psPath = null;
 
-  @Option(name="logicsfile", required=true,
+  @Option(secure=true, name="logicsfile", required=true,
       description="path to a file with logic rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path logicsFile = null;
 
-  @Option(name="abstractionfile", required=true,
+  @Option(secure=true, name="abstractionfile", required=true,
       description="path to a file with abstraction rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path abstractionFile = null;
@@ -360,16 +360,7 @@ public class PartingstarInterface {
   private void writeToProcess(byte[] data) throws IOException {
     logger.log(Level.FINER, "Query:\n", new String(data));
     psProcess.getOutputStream().write(data);
-    System.err.print(new String(data));
     psProcess.getOutputStream().flush();
-  }
-
-  @SuppressWarnings("unused")
-  private void readFromProcess(byte[] buffer, int len) throws IOException {
-    if (psProcess.getInputStream().read(buffer, 0, len) != len) {
-      throw new IOException("Smaller read");
-    }
-    System.err.print(new String(buffer));
   }
 
   private int readFromProcess() throws IOException {
@@ -377,7 +368,6 @@ public class PartingstarInterface {
     if (read == -1) {
       throw new IOException("EOF?");
     }
-    System.err.print((char) read);
     return read;
   }
 

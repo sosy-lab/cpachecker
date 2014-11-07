@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2014  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
@@ -7,31 +33,33 @@ import sys
 import string
 import os
 import re
-import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 if __name__ == "__main__":
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
+import benchmark.result as result
 import benchmark.util as Util
 import benchmark.tools.template
+from benchmark.benchmarkDataStructures import SOFTTIMELIMIT
 
 REQUIRED_PATHS = [
                   "lib/java/runtime",
-                  "lib/JavaParser",
                   "lib/*.jar",
-                  "lib/native",
+                  "lib/native/x86_64-linux",
                   "scripts",
                   "cpachecker.jar",
                   "config",
                   ]
 
+timeLimitWarningCounter = 10 # print the warning for 10 runs, then ignore silently.
+
 class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
         executable = Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
-        executableDir = os.path.join(os.path.dirname(executable),"../")
+        executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         if os.path.isdir(os.path.join(executableDir, 'src')):
             self._buildCPAchecker(executableDir)
         if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
@@ -40,15 +68,15 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def _buildCPAchecker(self, executableDir):
-        logging.info('Building CPAchecker in directory {0}.'.format(executableDir))
-        ant = subprocess.Popen(['ant', '-q', 'jar'], cwd=executableDir)
+        logging.debug('Building CPAchecker in directory {0}.'.format(executableDir))
+        ant = subprocess.Popen(['ant', '-lib', 'lib/java/build', '-q', 'jar'], cwd=executableDir, shell=Util.isWindows())
         (stdout, stderr) = ant.communicate()
         if ant.returncode:
             sys.exit('Failed to build CPAchecker, please fix the build first.')
 
 
     def getProgrammFiles(self, executable):
-        executableDir = os.path.join(os.path.dirname(executable),"../")
+        executableDir = os.path.join(os.path.dirname(executable), os.path.pardir)
         return Util.flatten(Util.expandFileNamePattern(path, executableDir) for path in REQUIRED_PATHS)
 
 
@@ -57,65 +85,48 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getVersion(self, executable):
-        process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = process.communicate()
+        try:
+            process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = process.communicate()
+        except OSError as e:
+            logging.warning('Cannot run CPAchecker to determine version: {0}'.format(e.strerror))
+            return ''
         if stderr:
-            sys.exit(Util.decodeToString(stderr))
+            logging.warning('Cannot determine CPAchecker version, error output: {0}'.format(Util.decodeToString(stderr)))
+            return ''
         if process.returncode:
-            sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
+            logging.warning('Cannot determine CPAchecker version, exit code {0}'.format(process.returncode))
+            return ''
         stdout = Util.decodeToString(stdout)
-        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
-
-        # CPAchecker might be within a SVN repository
-        # Determine the revision and add it to the version.
-        cpaShDir = os.path.dirname(os.path.realpath(executable))
-        cpacheckerDir = os.path.join(cpaShDir, os.path.pardir)
-        try:
-            svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = svnProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (svnProcess.returncode or stderr or (stdout == 'exported')):
-                return version + ' ' + stdout
-        except OSError:
-            pass
-
-        # CPAchecker might be within a git-svn repository
-        try:
-            gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-    
-            # CPAchecker might be within a git repository
-            gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = gitProcess.communicate()
-            stdout = Util.decodeToString(stdout).strip()
-            if not (gitProcess.returncode or stderr) and stdout:
-                return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '')
-        except OSError:
-            pass
-
-        return version
-
-
-    def _isGitRepositoryDirty(self, dir):
-        gitProcess = subprocess.Popen(['git', 'status', '--porcelain'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdout, stderr) = gitProcess.communicate()
-        if not (gitProcess.returncode or stderr):
-            return True if stdout else False  # True if stdout is non-empty
-        return None
-
+        line = next(l for l in stdout.splitlines() if l.startswith('CPAchecker'))
+        line = line.replace('CPAchecker' , '')
+        line = line.split('(')[0]
+        return line.strip()
 
     def getName(self):
         return 'CPAchecker'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
+        if SOFTTIMELIMIT in rlimits:
+            if "-timelimit" in options:
+                global timeLimitWarningCounter
+                if timeLimitWarningCounter > 0: # print the warning for 10 runs, then ignore silently.
+                    timeLimitWarningCounter -= 1
+                    logging.warning('soft-time-limit already specified. ignoring benchmark-limit as tool-parameter.')
+            else:
+                options = options + ["-timelimit", str(rlimits[SOFTTIMELIMIT]) + "s"] # benchmark-xml uses seconds as unit
+
+        # if data.MEMLIMIT in rlimits:
+        #     if "-heap" not in options:
+        #         heapsize = rlimits[MEMLIMIT]*0.8 # 20% overhead for non-java-memory
+        #         options = options + ["-heap", str(int(heapsize)) + "MiB"] # benchmark-xml uses MiB as unit
+
         if ("-stats" not in options):
             options = options + ["-stats"]
+
         spec = ["-spec", propertyfile] if propertyfile is not None else []
-        return [executable] + options + spec + [sourcefile]
+        return [executable] + options + spec + sourcefiles
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
@@ -155,7 +166,7 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):
@@ -171,7 +182,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
             elif 'Could not reserve enough space for object heap' in line:
                 status = 'JAVA HEAP ERROR'
-            elif line.startswith('Error: ') and not status.startswith('ERROR'):
+            elif line.startswith('Error: ') and not status:
                 status = 'ERROR'
                 if 'Unsupported C feature (recursion)' in line:
                     status = 'ERROR (recursion)'
@@ -179,25 +190,28 @@ class Tool(benchmark.tools.template.BaseTool):
                     status = 'ERROR (threads)'
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
+            elif line.startswith('For your information: CPAchecker is currently hanging at') and status == 'ERROR (1)' and isTimeout:
+                status = 'TIMEOUT'
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                    newStatus = result.STR_FALSE_LABEL
-                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
-                    if match:
-                        newStatus = newStatus + '(' + match.group(1) + ')'
+                    newStatus = result.STATUS_FALSE_REACH
+                    match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                    if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
+                        newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
-                if newStatus:
-                    status = newStatus if not status else "{0} ({1})".format(status, newStatus)
+                    newStatus = result.STATUS_UNKNOWN
 
-        if status == 'KILLED (UNKNOWN)':
-            status = 'KILLED'
+                if not status:
+                    status = newStatus
+                elif newStatus != result.STATUS_UNKNOWN:
+                    status = "{0} ({1})".format(status, newStatus)
+
         if not status:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 
@@ -207,7 +221,7 @@ class Tool(benchmark.tools.template.BaseTool):
             # search for the text in output and get its value,
             # stop after the first line, that contains the searched text
             column.value = "-" # default value
-            for line in output.splitlines():
+            for line in output:
                 if column.text in line:
                     startPosition = line.find(':') + 1
                     endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)

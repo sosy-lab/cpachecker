@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,15 +25,13 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
@@ -44,28 +42,28 @@ import com.google.common.collect.Multimap;
 @Options(prefix = "cpa.bdd")
 public class BDDPrecision implements Precision {
 
-  @Option(description = "track boolean variables from cfa")
+  @Option(secure=true, description = "track boolean variables from cfa")
   private boolean trackBoolean = true;
 
-  @Option(description = "track variables from cfa, that are only compared " +
+  @Option(secure=true, description = "track variables from cfa, that are only compared " +
       "for equality, they are tracked as (small) bitvectors")
   private boolean trackIntEqual = true;
 
-  @Option(description = "track variables, only used in simple calculations " +
+  @Option(secure=true, description = "track variables, only used in simple calculations " +
       "(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
   private boolean trackIntAdd = true;
 
-  @Option(name = "forceTrackingPattern",
+  @Option(secure=true, name = "forceTrackingPattern",
       description = "Pattern for variablenames that will always be tracked with BDDs." +
           "This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
-  @Option(name = "precision.refinement.useScopedInterpolation",
+  @Option(secure=true, name = "precision.refinement.useScopedInterpolation",
       description = "whether or not to add newly-found variables " +
           "only to the exact program location or to the whole scope of the variable.")
   private boolean useScopedInterpolation = false;
 
-  @Option(description = "whether the precision is initially empty (this should be set to true when refinement is used)")
+  @Option(secure=true, description = "whether the precision is initially empty (this should be set to true when refinement is used)")
   private boolean initiallyEmptyPrecision = false;
 
   private final Pattern forceTrackingPattern;
@@ -104,7 +102,7 @@ public class BDDPrecision implements Precision {
   public boolean isDisabled() {
     if (forceTrackingPattern != null) { return false; }
 
-	if (cegarPrecision.isEmpty()) { return true; }
+    if (cegarPrecision.isEmpty()) { return true; }
 
     if (!varClass.isPresent()) { return true; }
 
@@ -121,11 +119,10 @@ public class BDDPrecision implements Precision {
   /**
    * This method tells if the precision demands the given variable to be tracked.
    *
-   * @param variable the name of the variable to check
-   * @param variable function of current scope or null, if variable is global
+   * @param var the name of the variable to check
    * @return true, if the variable has to be tracked, else false
    */
-  public boolean isTracking(@Nullable String function, String var) {
+  public boolean isTracking(String var) {
 
     // this pattern should only be used, if we know the class of the matching variables
     if (this.forceTrackingPattern != null &&
@@ -133,19 +130,19 @@ public class BDDPrecision implements Precision {
       return true;
     }
 
-    if (!cegarPrecision.allowsTrackingAt(function, var)) {
+    if (!cegarPrecision.allowsTrackingAt(var)) {
       return false;
     }
 
-    return isInTrackedClass(function, var);
+    return isInTrackedClass( var);
   }
 
-  private boolean isInTrackedClass(@Nullable String function, String var) {
+  private boolean isInTrackedClass(String var) {
     if (!varClass.isPresent()) { return false; }
 
-    final boolean isIntBool = varClass.get().getIntBoolVars().containsEntry(function, var);
-    final boolean isIntEq = varClass.get().getIntEqualVars().containsEntry(function, var);
-    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(function, var);
+    final boolean isIntBool = varClass.get().getIntBoolVars().contains(var);
+    final boolean isIntEq = varClass.get().getIntEqualVars().contains(var);
+    final boolean isIntAdd = varClass.get().getIntAddVars().contains(var);
 
     final boolean isTrackedBoolean = trackBoolean && isIntBool;
     final boolean isTrackedIntEqual = trackIntEqual && isIntEq;
@@ -198,15 +195,14 @@ public class BDDPrecision implements Precision {
      * tracked at the given location.
      *
      * @param location the location to check at
-     * @param function the function of the variable or null, if global scope
      * @param var the variable to check for
      * @return if the given variable is being tracked at the given location
      */
-    public boolean allowsTrackingAt(@Nullable String function, String var) {
+    public boolean allowsTrackingAt(String var) {
       if (mapping == null) { return true; }
 
-      final MemoryLocation variable = function == null ? MemoryLocation.valueOf(var, 0)
-                                                       : MemoryLocation.valueOf(function, var, 0);
+
+      final MemoryLocation variable = MemoryLocation.valueOf(var);
 
       // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
       if (useScopedInterpolation) {

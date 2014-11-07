@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,8 +34,10 @@ public interface FunctionFormulaManager {
   /**
    * Creates a functiontype
    */
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String name, FormulaType<T> returnType, List<FormulaType<?>> args);
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String name, FormulaType<T> returnType, FormulaType<?>... args);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String name, FormulaType<T> returnType, List<FormulaType<?>> args);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String name, FormulaType<T> returnType, FormulaType<?>... args);
 
   /**
    * Create a uninterpreted function call.
@@ -43,14 +45,6 @@ public interface FunctionFormulaManager {
    * @param args
    * @return
    */
-  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> funcType, List<? extends Formula> args);
-
-  /**
-   * Checks if the given formula is a uninterpreted function call of the given type.
-   * @param funcType
-   * @param f
-   * @return
-   */
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> funcType, Formula f);
-
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> funcType, List<? extends Formula> args);
 }

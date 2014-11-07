@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,14 +27,13 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Constant;
-import org.sosy_lab.cpachecker.core.Model.Function;
-import org.sosy_lab.cpachecker.core.Model.TermType;
-import org.sosy_lab.cpachecker.core.Model.Variable;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -46,17 +45,15 @@ class SmtInterpolModel {
 
   private static TermType toSmtInterpolType(Sort sort) {
 
-    if (Type.BOOL.toString().equals(sort.getName())) {
-      return TermType.Boolean;
-    } else if (Type.INT.toString().equals(sort.getName())) {
-      return TermType.Integer;
-    } else if (Type.REAL.toString().equals(sort.getName())) {
-      return TermType.Real;
-
-      // TODO TermType.Uninterpreted; TermType.Bitvector;
-
-    } else {
-      throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
+    switch (sort.getName()) {
+      case "Bool":
+        return TermType.Boolean;
+      case "Int":
+        return TermType.Integer;
+      case "Real":
+        return TermType.Real;
+      default:
+        throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + sort);
     }
   }
 
@@ -134,8 +131,7 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnv();
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 

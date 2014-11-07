@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -76,15 +76,15 @@ public class CFACreationUtils {
       if (!edge.getDescription().isEmpty()) {
         // warn user, but not if its due to dead code produced by CIL
         Level level = Level.INFO;
-        if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
-          // don't mention dead code produced by CIL on normal log levels
+        if (edge.getDescription().matches("^Goto: (switch|while|ldv)_\\d+(_[a-z0-9]+)?$")) {
+          // don't mention dead code produced by CIL/LDV on normal log levels
           level = Level.FINER;
         } else if (edge.getPredecessor().getNodeNumber() == lastDetectedDeadCode) {
           // don't warn on subsequent lines of dead code
           level = Level.FINER;
         }
 
-        logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
+        logger.logf(level, "%s: Dead code detected: %s", edge.getFileLocation(), edge.getRawStatement());
       }
 
       lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();

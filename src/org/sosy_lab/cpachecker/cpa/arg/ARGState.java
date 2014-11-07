@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,18 +36,20 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Function;
-import com.google.common.primitives.Ints;
+import com.google.common.collect.Sets;
 
-public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, TargetableWithPredicatedAnalysis {
+public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -71,11 +73,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private final int stateId;
 
-  private static int nextArgStateId = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
+  public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
-    stateId = ++nextArgStateId;
+    stateId = idGenerator.getFreshId();
     if (pParentElement != null) {
       addParent(pParentElement);
     }
@@ -114,13 +116,34 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return Collections.unmodifiableCollection(children);
   }
 
+  /**
+   * Returns the edge from current state to child or Null, if there is no edge.
+   * Both forward and backward analysis must be considered!
+   */
+  @Nullable
   public CFAEdge getEdgeToChild(ARGState pChild) {
     checkArgument(children.contains(pChild));
 
     CFANode currentLoc = extractLocation(this);
-    CFANode childNode = extractLocation(pChild);
+    CFANode childLoc = extractLocation(pChild);
 
-    return currentLoc.getEdgeTo(childNode);
+    if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
+      return currentLoc.getEdgeTo(childLoc);
+
+    } else if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+      return currentLoc.getLeavingSummaryEdge();
+
+    } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
+      return childLoc.getEdgeTo(currentLoc);
+
+    } else if (currentLoc.getEnteringSummaryEdge() != null
+          && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
+      return currentLoc.getEnteringSummaryEdge();
+
+    } else {
+      return null;
+    }
   }
 
   public Set<ARGState> getSubgraph() {
@@ -142,7 +165,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   // coverage
 
-  public void setCovered(ARGState pCoveredBy) {
+  public void setCovered(@Nonnull ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -155,7 +178,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     pCoveredBy.mCoveredByThis.add(this);
   }
 
-  void uncover() {
+  public void uncover() {
     assert isCovered();
     assert mCoveredBy.mCoveredByThis.contains(this);
 
@@ -219,8 +242,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     wasExpanded = true;
   }
 
-  void deleteChild(ARGState child){
-    assert(children.contains(child));
+  void deleteChild(ARGState child) {
+    assert (children.contains(child));
     children.remove(child);
     child.parents.remove(this);
   }
@@ -237,13 +260,24 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   /**
    * The ordering of this class is the chronological creation order.
-   *
-   * Note: Although equals() is not overwritten, this ordering is consistent
-   * with equals() as the stateId field is unique.
    */
   @Override
-  public int compareTo(ARGState pO) {
-    return Ints.compare(this.stateId, pO.stateId);
+  public final int compareTo(ARGState pO) {
+    return Integer.compare(this.stateId, pO.stateId);
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    // Object.equals() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.hashCode();
   }
 
   public boolean isOlderThan(ARGState other) {
@@ -283,6 +317,22 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     sb.append(") ");
     sb.append(getWrappedState());
     return sb.toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    if (getWrappedState() instanceof Graphable) {
+      return ((Graphable)getWrappedState()).toDOTLabel();
+    }
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    if (getWrappedState() instanceof Graphable) {
+      return ((Graphable)getWrappedState()).shouldBeHighlighted();
+    }
+    return false;
   }
 
   private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
@@ -354,7 +404,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    *
    * @param replacement
    */
-  void replaceInARGWith(ARGState replacement) {
+  public void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
@@ -378,7 +428,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<>(mCoveredByThis.size());
+        replacement.mCoveredByThis = Sets.newHashSetWithExpectedSize(mCoveredByThis.size());
       }
 
       for (ARGState covered : mCoveredByThis) {
@@ -392,14 +442,5 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    if (isTarget() && super.getWrappedState() instanceof TargetableWithPredicatedAnalysis) {
-      return ((TargetableWithPredicatedAnalysis) super.getWrappedState()).getErrorCondition(pFmgr);
-    } else {
-      return pFmgr.getBooleanFormulaManager().makeBoolean(false);
-    }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,24 +23,29 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -50,29 +55,37 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
-class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
+                                        implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
-  protected final CtoFormulaConverter conv;
-  protected final CFAEdge       edge;
-  protected final String        function;
-  protected final SSAMapBuilder ssa;
-  protected final Constraints   constraints;
+  private final CtoFormulaConverter conv;
+  private final CFAEdge       edge;
+  private final String        function;
+  private final SSAMapBuilder ssa;
+  private final Constraints   constraints;
 
-  public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+  public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
+      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
     conv = pCtoFormulaConverter;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
-    constraints = pCo;
+    constraints = pConstraints;
   }
 
   @Override
@@ -81,32 +94,34 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
+  protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+    return e.accept(this);
+  }
+
+  public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+    e = conv.convertLiteralToFloatIfNecessary(e, calculationType);
+    e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
+    final CType t = e.getExpressionType();
+    Formula f = toFormula(e);
+    return conv.makeCast(t, calculationType, f, edge);
+  }
+
   private Formula getPointerTargetSizeLiteral(final CPointerType pointerType, final CType implicitType) {
     final int pointerTargetSize = conv.getSizeof(pointerType.getType());
     return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
+  private CType getPromotedCType(CType t) {
+    t = t.getCanonicalType();
+    if (t instanceof CSimpleType) {
+      // Integer types smaller than int are promoted when an operation is performed on them.
+      return conv.machineModel.getPromotedCType((CSimpleType)t);
+    }
+    return t;
+  }
+
   @Override
   public Formula visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
-    final BinaryOperator op = exp.getOperator();
-    final CType returnType = exp.getExpressionType();
-    final CType calculationType = exp.getCalculationType();
-
-    // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-
-    CExpression e1 = exp.getOperand1();
-    CExpression e2 = exp.getOperand2();
-    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
-    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
-    final CType t1 = e1.getExpressionType();
-    final CType t2 = e2.getExpressionType();
-    Formula f1 = e1.accept(this);
-    Formula f2 = e2.accept(this);
-
-    f1 = conv.makeCast(t1, calculationType, f1, edge);
-    f2 = conv.makeCast(t2, calculationType, f2, edge);
-
     /* FOR SHIFTS:
      * We would not need to cast the second operand, but we do casting,
      * because Mathsat assumes 2 bitvectors of same length.
@@ -120,6 +135,25 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
      * to the width of the promoted left operand, the behavior is undefined.
      */
 
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    final Formula f1 = processOperand(exp.getOperand1(), calculationType, returnType);
+    final Formula f2 = processOperand(exp.getOperand2(), calculationType, returnType);
+
+    return handleBinaryExpression(exp, f1, f2);
+  }
+
+  public final Formula handleBinaryExpression(final CBinaryExpression exp,
+      final Formula f1, final Formula f2) throws UnrecognizedCCodeException {
+    final BinaryOperator op = exp.getOperator();
+    final CType returnType = exp.getExpressionType();
+    final CType calculationType = exp.getCalculationType();
+
+    // these operators expect numeric arguments
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+
+
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
@@ -128,8 +162,10 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     }
 
     // to INT or bigger
-    final CType promT1 = conv.getPromotedCType(t1).getCanonicalType();
-    final CType promT2 = conv.getPromotedCType(t2).getCanonicalType();
+    final CType t1 = exp.getOperand1().getExpressionType();
+    final CType t2 = exp.getOperand2().getExpressionType();
+    final CType promT1 = getPromotedCType(t1).getCanonicalType();
+    final CType promT2 = getPromotedCType(t2).getCanonicalType();
 
     final Formula ret;
 
@@ -179,7 +215,55 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       ret =  conv.fmgr.makeDivide(f1, f2, signed);
       break;
     case MODULO:
-      ret =  conv.fmgr.makeModulo(f1, f2, signed);
+      ret = conv.fmgr.makeModulo(f1, f2, signed);
+
+      BooleanFormulaManagerView bfmgr = conv.fmgr.getBooleanFormulaManager();
+
+      if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+        long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+        BooleanFormula modularCongruence = conv.fmgr.makeModularCongruence(ret, f1, modulo);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
+      }
+
+      FormulaType<Formula> numberType = conv.fmgr.getFormulaType(f1);
+      Formula zero = conv.fmgr.makeNumber(numberType, 0L);
+
+      // Sign of the remainder is set by the sign of the
+      // numerator, and it is bounded by the numerator.
+      BooleanFormula signAndNumBound = bfmgr.ifThenElse(
+          conv.fmgr.makeGreaterOrEqual(f1, zero, signed),
+          bfmgr.and(
+
+              // Remainder positive or zero.
+              conv.fmgr.makeGreaterOrEqual(ret, zero, signed),
+
+              // Remainder is bounded above by the numerator (both positive)
+              conv.fmgr.makeLessOrEqual(ret, f1, signed)
+          ),
+          bfmgr.and(
+
+              // Remainder negative or zero.
+              conv.fmgr.makeLessOrEqual(ret, zero, signed),
+
+              // Remainder is bounded below by the numerator (both negative)
+              conv.fmgr.makeGreaterOrEqual(ret, f1, signed)
+          )
+      );
+
+      BooleanFormula denomBound = bfmgr.ifThenElse(
+          conv.fmgr.makeGreaterOrEqual(f2, zero, signed),
+
+          // Denominator is positive => remainder is strictly less than denominator.
+          conv.fmgr.makeLessThan(ret, f2, signed),
+
+          // Denominator is negative => remainder is strictly more.
+          conv.fmgr.makeLessThan(f2, ret, signed)
+      );
+
+      constraints.addConstraint(signAndNumBound);
+      constraints.addConstraint(denomBound);
       break;
     case BINARY_AND:
       ret =  conv.fmgr.makeAnd(f1, f2);
@@ -229,8 +313,13 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
         default:
           throw new AssertionError();
       }
-      ret = conv.ifTrueThenOneElseZero(returnFormulaType, result);
-      break;
+
+      // Here we directly use the returnFormulaType instead of the calculcationType
+      // to avoid a useless cast.
+      // However, this means that we may not call makeCast() below
+      // because it expects the input in the calculationType.
+      // So we return here directly.
+      return conv.ifTrueThenOneElseZero(returnFormulaType, result);
     }
     default:
       throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
@@ -241,11 +330,10 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     // If the types are equal, the cast returns the Formula unchanged.
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, edge);
 
-    assert returnFormulaType == conv.fmgr.getFormulaType(castedResult)
+    assert returnFormulaType.equals(conv.fmgr.getFormulaType(castedResult))
          : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
     return castedResult;
   }
-
 
 
 
@@ -254,17 +342,11 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     CExpression op = cexp.getOperand();
     op = conv.makeCastFromArrayToPointerIfNecessary(op, cexp.getExpressionType());
 
-    Formula operand = op.accept(this);
+    Formula operand = toFormula(op);
 
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
     return conv.makeCast(before, after, operand, edge);
-  }
-
-  @Override
-  public Formula visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
-    // TODO complex numbers are not supported for evaluation right now
-    return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
   @Override
@@ -277,18 +359,18 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
         return conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
       } else {
         // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t, ssa);
+        return conv.makeConstant(enumerator.getName(), t);
       }
     }
 
-    return conv.makeVariable(conv.scopedIfNecessary(idExp, ssa, function), ssa);
+    return conv.makeVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
   }
 
   @Override
   public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
     if (conv.options.handleFieldAccess()) {
       CExpression fieldOwner = getRealFieldOwner(fExp);
-      Formula f = fieldOwner.accept(this);
+      Formula f = toFormula(fieldOwner);
       return conv.accessField(fExp, f);
     }
 
@@ -323,13 +405,18 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
   @Override
   public Formula visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-    return exp.getValue().accept(this);
+    return toFormula(exp.getValue());
   }
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
     final BigDecimal val = fExp.getValue();
+
+    if (t.isFloatingPointType()) {
+      return conv.fmgr.getFloatingPointFormulaManager().makeNumber(val, (FloatingPointType)t);
+    }
+
     if (val.scale() <= 0) {
       // actually an integral number
       return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
@@ -337,7 +424,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     } else {
       if (t.isBitvectorType()) {
         // not representible
-        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType(), ssa);
+        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType());
       }
 
       // represent x.y by xy / (10^z) where z is the number of digits in y
@@ -379,18 +466,15 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
     switch (op) {
-    case PLUS:
     case MINUS:
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
-      CType promoted = conv.getPromotedCType(t);
-      Formula operandFormula = operand.accept(this);
+      CType promoted = getPromotedCType(t.getCanonicalType());
+      Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
-      if (op == UnaryOperator.PLUS) {
-        ret = operandFormula;
-      } else if (op == UnaryOperator.MINUS) {
+      if (op == UnaryOperator.MINUS) {
         ret = conv.fmgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
@@ -400,15 +484,9 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
       CType returnType = exp.getExpressionType();
       FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-      assert returnFormulaType == conv.fmgr.getFormulaType(ret)
+      assert returnFormulaType.equals(conv.fmgr.getFormulaType(ret))
             : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
       return ret;
-    }
-
-    case NOT: {
-      Formula f = operand.accept(this);
-      BooleanFormula term = conv.toBooleanFormula(f);
-      return conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
     }
 
     case AMPER:
@@ -421,11 +499,6 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     default:
       throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
     }
-  }
-
-  @Override
-  public Formula visit(CPointerExpression exp) throws UnrecognizedCCodeException {
-    return visitDefault(exp);
   }
 
   @Override
@@ -446,5 +519,204 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),
         conv.getSizeof(pCType));
+  }
+
+  @Override
+  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+    final CExpression functionNameExpression = e.getFunctionNameExpression();
+    final CType returnType = e.getExpressionType();
+    final List<CExpression> parameters = e.getParameterExpressions();
+
+    // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
+    final String functionName;
+    if (functionNameExpression instanceof CIdExpression) {
+      functionName = ((CIdExpression)functionNameExpression).getName();
+      if (conv.options.isNondetFunction(functionName)
+          || conv.options.isMemoryAllocationFunction(functionName)
+          || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
+        // Function call like "random()".
+        // Also "malloc()" etc. just return a random value, so handle them similarly.
+        // Ignore parameters and just create a fresh variable for it.
+        return makeNondet(functionName, returnType);
+
+      } else if (conv.options.isExternModelFunction(functionName)) {
+        ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
+        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
+        return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+
+      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+
+      } else if (functionName.equals("__builtin_inf")
+          || functionName.equals("__builtin_inff")
+          || functionName.equals("__builtin_infl")) {
+
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_inf", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_huge_val")
+          || functionName.equals("__builtin_huge_valf")
+          || functionName.equals("__builtin_huge_vall")) {
+
+        if (parameters.size() == 0) {
+          CType resultType = getTypeForFloatFunction("__builtin_huge_val", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makePlusInfinity(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_nan")
+          || functionName.equals("__builtin_nanf")
+          || functionName.equals("__builtin_nanl")) {
+
+        if (parameters.size() == 1) {
+          CType resultType = getTypeForFloatFunction("__builtin_nan", functionName);
+
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          if (formulaType.isFloatingPointType()) {
+            return conv.fmgr.getFloatingPointFormulaManager().makeNaN(
+                (FormulaType.FloatingPointType)formulaType);
+          }
+        }
+
+      } else if (functionName.equals("__builtin_fabs")
+          || functionName.equals("__builtin_fabsf")
+          || functionName.equals("__builtin_fabsl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeForFloatFunction("__builtin_fabs", functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            Formula param = processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula zero = conv.fmgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
+            BooleanFormula isNegative = conv.fmgr.makeLessThan(param, zero, true);
+            return conv.fmgr.getBooleanFormulaManager().ifThenElse(isNegative,
+                conv.fmgr.makeNegate(param), param);
+          }
+        }
+
+      } else if (functionName.equals("__fpclassify")
+          || functionName.equals("__fpclassifyd")
+          || functionName.equals("__fpclassifyf")
+          || functionName.equals("__fpclassifyl")) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeForFloatFunction("__fpclassify", functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = conv.fmgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = conv.fmgr.makeNumber(resultType, 0);
+            Formula one = conv.fmgr.makeNumber(resultType, 1);
+            Formula two = conv.fmgr.makeNumber(resultType, 2);
+            Formula three = conv.fmgr.makeNumber(resultType, 3);
+            Formula four = conv.fmgr.makeNumber(resultType, 4);
+
+            return
+              conv.bfmgr.ifThenElse(fpfmgr.isNaN(param), zero,
+                  conv.bfmgr.ifThenElse(fpfmgr.isInfinity(param), one,
+                      conv.bfmgr.ifThenElse(fpfmgr.isZero(param), two,
+                          conv.bfmgr.ifThenElse(fpfmgr.isSubnormal(param), three,
+                              four))));
+          }
+        }
+
+      } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
+        if (parameters.isEmpty()) {
+          // function of arity 0
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a constant function.");
+        } else {
+          conv.logger.logOnce(Level.INFO, "Assuming external function", functionName, "to be a pure function.");
+        }
+      }
+    } else {
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
+      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      functionName = ("<func>{" + escapedName + "}").intern();
+    }
+
+    // Now let's handle "normal" functions assumed to be pure
+    if (parameters.isEmpty()) {
+      // This is a function of arity 0 and we assume its constant.
+      return conv.makeConstant(functionName, returnType);
+
+    } else {
+      final CFunctionDeclaration functionDeclaration = e.getDeclaration();
+      if (functionDeclaration == null) {
+        if (functionNameExpression instanceof CIdExpression) {
+          // This happens only if there are undeclared functions.
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
+                               functionNameExpression);
+        }
+        return makeNondet(functionName, returnType); // BUG when expType = void
+      }
+
+      if (functionDeclaration.getType().takesVarArgs()) {
+        // Create a fresh variable instead of an UF for varargs functions.
+        // This is sound but slightly more imprecise (we loose the UF axioms).
+        return makeNondet(functionName, returnType);
+      }
+
+      final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
+      if (formalParameterTypes.size() != parameters.size()) {
+        throw new UnrecognizedCCodeException("Function " + functionDeclaration
+            + " received " + parameters.size() + " parameters"
+            + " instead of the expected " + formalParameterTypes.size(),
+            edge, e);
+      }
+
+      final List<Formula> arguments = new ArrayList<>(parameters.size());
+      final Iterator<CType> formalParameterTypesIt = formalParameterTypes.iterator();
+      final Iterator<CExpression> parametersIt = parameters.iterator();
+      while (formalParameterTypesIt.hasNext() && parametersIt.hasNext()) {
+        final CType formalParameterType = formalParameterTypesIt.next();
+        CExpression parameter = parametersIt.next();
+        parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
+
+        Formula argument = toFormula(parameter);
+        arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, edge));
+      }
+      assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
+
+      final CType realReturnType = conv.getReturnType(e, edge);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
+      return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
+    }
+  }
+
+  private CType getTypeForFloatFunction(String prefix, String name) {
+    assert name.startsWith(prefix);
+    name = name.substring(prefix.length());
+    assert name.length() <= 1;
+    if (name.isEmpty()) {
+      return CNumericTypes.DOUBLE;
+    }
+    switch (name.charAt(0)) {
+    case 'f':
+      return CNumericTypes.FLOAT;
+    case 'd':
+      return CNumericTypes.DOUBLE;
+    case 'l':
+      return CNumericTypes.LONG_DOUBLE;
+    default:
+      throw new AssertionError();
+    }
+  }
+
+  protected Formula makeNondet(final String varName, final CType type) {
+    return conv.makeFreshVariable(varName, type, ssa);
   }
 }

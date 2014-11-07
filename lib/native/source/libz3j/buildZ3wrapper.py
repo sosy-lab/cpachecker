@@ -51,24 +51,24 @@ extBlock = False
 out3=[]
 for line in tmp2.splitlines():
   assert line.endswith(");")
-  
+
   # skip ext-functions
-  if "Z3_reduce_eq_callback_fptr" in line: 
+  if "Z3_reduce_eq_callback_fptr" in line:
     extBlock = True
-  if "Z3_theory_get_app" in line: 
+  if "Z3_theory_get_app" in line:
     extBlock = False
     continue
   if extBlock: continue
-  
+
   if "fptr" in line: continue # functionpointers currently unsupported
   if "set_error_handler" in line: continue # not supported
   if "_interpolation_problem" in line: continue # not supported
   if "_check_interpolant" in line: continue # not supported
   if line.startswith("typedef"): continue
   line = line.replace(" Z3_API ", " ")
-  line = line.replace("const ", " ")  
-  line = line.replace("const*", " * ")  
-  line = line.replace("*", " * ")  
+  line = line.replace("const ", " ")
+  line = line.replace("const*", " * ")
+  line = line.replace("*", " * ")
   out3.append(line)
   # if "__" in line: print line
 
@@ -76,7 +76,7 @@ tmp3 = "\n".join(out3)
 if DEBUG: open("out3","w").write(tmp3)
 
 
-# now do the real replacing and build the new language... 
+# now do the real replacing and build the new language...
 
 def getType(typ):
     return typ.replace("Z3","J")
@@ -106,23 +106,23 @@ for line in tmp3.splitlines():
   paramStr = name0[name0.find("(")+1:] + " " + " ".join(spl[2:])
   params = [p for p in paramStr.replace(");", "").strip().split(",") if p]
   #print "\t\t", paramStr, params
-      
-  x = "DEFINE_FUNC(" + getType(retval) + ", " + name.replace("Z3_","").replace("_", "_1") + ") " 
+
+  x = "DEFINE_FUNC(" + getType(retval) + ", " + name.replace("Z3_","").replace("_", "_1") + ") "
   l = len(params)
   isVoidArgCall = (l==0 or (l==1 and params[0] == "void"))
   if isVoidArgCall:
       x += "WITHOUT_ARGS"
   else:
       x += "WITH_" + str(l) + "_ARGS("
-  
+
   inputs = []
   cleanups = []
   typs = []
-  
+
   def checkAndClean(inp, typ, i):
       inputs.append(                inp + "_" + typ + "(" + str(i+1) + ")")
       cleanups.insert(0, "CLEAN_" + inp + "_" + typ + "(" + str(i+1) + ")")
-          
+
   for i, param in enumerate(params):
       parts = param.split()
      # print(parts)
@@ -135,7 +135,7 @@ for line in tmp3.splitlines():
       # modifier available
       if parts[0].startswith("__"):
         mod = parts[0]
-        
+
 
         if mod == "__in":
             assert "[" not in param
@@ -155,7 +155,7 @@ for line in tmp3.splitlines():
                 typs.append(getType(typ))
                 inp = typ.replace("Z3_", "").upper()
                 checkAndClean(inp, "ARG", i)
-          
+
         # mod + type + pname[]
         elif mod.startswith("__in_ecount(") \
                 and len(parts) == 3 and parts[2].endswith("[]"):
@@ -165,7 +165,7 @@ for line in tmp3.splitlines():
             checkAndClean(inp, "ARRAY_ARG", i)
 
         # mod + type + * + pname --> in java we use an array
-        elif mod.startswith("__in_ecount("): 
+        elif mod.startswith("__in_ecount("):
             assert len(parts) == 4 and parts[2] is "*"
             typ = parts[1]
             typs.append(getType(typ) + "_array")
@@ -180,7 +180,7 @@ for line in tmp3.splitlines():
             inp = typ.replace("Z3_", "").upper()
             checkAndClean(inp, "POINTER_ARG", i)
             cleanups.insert(0, "SET_" + inp + "_POINTER_ARG(" + str(i+1) + ")")
-        
+
         # mod + type... + * + pname
         elif mod == "__out" or mod == "__out_opt":
             assert "*" in param and len(parts) >= 4 and parts[-2] == "*"
@@ -202,21 +202,21 @@ for line in tmp3.splitlines():
         # "__inout_ecount(num_constructors) Z3_constructor constructors[]"
         elif mod.startswith("__inout_ecount("):
             assert len(parts) == 3 and parts[2].endswith("[]")
-            
+
             #lenParam = mod[15 : -1] # value of __inout_ecount()
             #pnames = [p.split()[-1] for p in params]
             #numLenParam = pnames.index(lenParam)
-            
+
             typ = parts[1]
             typs.append(getType(typ) + "_array")
             inp = typ.replace("Z3_", "").upper()
             checkAndClean(inp, "OUT_ARRAY_ARG", i)
             cleanups.insert(0, "SET_" + inp + "_OUT_ARRAY_ARG(" + str(i+1) + ")")
-      
+
         # "__out_ecount(num_sorts) Z3_sort sorts[]"
         elif mod.startswith("__out_ecount(") \
             and len(parts) == 3 and parts[2].endswith("[]"):
-            
+
             #lenParam = mod[13 : -1] # value of __out_ecount()
             #pnames = [p.split()[-1] for p in params]
             #numLenParam = pnames.index(lenParam)
@@ -226,11 +226,11 @@ for line in tmp3.splitlines():
             inp = typ.replace("Z3_", "").upper()
             checkAndClean(inp, "OUT_ARRAY_ARG", i)
             cleanups.insert(0, "SET_" + inp + "_OUT_ARRAY_ARG(" + str(i+1) + ")")
-        
+
         # "__out_ecount(num_sorts) Z3_sort sorts[]"
         elif mod.startswith("__out_ecount("):
             assert len(parts) == 4 and parts[2] is "*"
-            
+
             #lenParam = mod[13 : -1] # value of __out_ecount()
             #pnames = [p.split()[-1] for p in params]
             #numLenParam = pnames.index(lenParam)
@@ -240,28 +240,31 @@ for line in tmp3.splitlines():
             inp = typ.replace("Z3_", "").upper()
             checkAndClean(inp, "OUT_ARRAY_ARG", i)
             cleanups.insert(0, "SET_" + inp + "_OUT_ARRAY_ARG(" + str(i+1) + ")")
-        
+
         else:
             pass
             print parts
-        
-      
+
+
       # normal param: [type, pname]
       else:
-        assert len(parts) == 2
+        try:
+            assert len(parts) == 2, parts
+        except:
+            import pdb; pdb.set_trace()
         typ, pname = parts
         typs.append(getType(typ))
         inp = typ.replace("Z3_", "").upper()
         checkAndClean(inp, "ARG", i)
 
- 
+
   x += ", ".join(typs)
-      
+
   if isVoidArgCall:
       x += "\n"
   else:
       x += ")\n"
-  
+
   # INPUT_ARG
   if inputs: x += "\n".join(inputs) + "\n"
 
@@ -281,7 +284,7 @@ for line in tmp3.splitlines():
 
   # FREE_ARG, SET_ARG
   if cleanups: x += "\n".join(cleanups) + "\n"
-  
+
   # RETURN_VALUE
   simpleRetvals = ["void", "Z3_bool", "Z3_lbool", "Z3_bool_opt", "unsigned", "int", "double", "Z3_error_code", "Z3_goal_prec"]
   if retval not in simpleRetvals and not retval.endswith("kind") \

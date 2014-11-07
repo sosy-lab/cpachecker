@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,16 +46,6 @@ public class ToFormulaVisitorWrapper<ConstantType, FormulaType> extends Paramete
     this.wrapped = pToWrap;
   }
 
-  @Override
-  public FormulaType getZero() {
-    return this.wrapped.getZero();
-  }
-
-  @Override
-  public FormulaType getOne() {
-    return this.wrapped.getOne();
-  }
-
   public ToFormulaVisitor<ConstantType, FormulaType> getWrapped() {
     return this.wrapped;
   }
@@ -85,6 +75,9 @@ public class ToFormulaVisitorWrapper<ConstantType, FormulaType> extends Paramete
     return this.wrapped.greaterOrEqual(pOp1, pOp2);
   }
 
-
+  @Override
+  public BooleanFormula asBoolean(FormulaType pOp1) {
+    return this.wrapped.asBoolean(pOp1);
+  }
 
 }

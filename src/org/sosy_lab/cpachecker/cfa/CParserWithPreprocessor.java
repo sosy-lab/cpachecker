@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -49,16 +49,16 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
     String programCode = preprocessor.preprocess(pFilename);
     if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
     }
-    return realParser.parseString(programCode);
+    return realParser.parseString(pFilename, programCode, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws ParserException, InvalidConfigurationException {
+  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -74,34 +74,34 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<Pair<String, String>> pFilenames) throws CParserException, IOException,
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException,
       InvalidConfigurationException, InterruptedException {
 
-    List<Pair<String, String>> programs = new ArrayList<>(pFilenames.size());
-    for (Pair<String, String> p : pFilenames) {
-      String programCode = preprocessor.preprocess(p.getFirst());
+    List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
+    for (FileToParse p : pFilenames) {
+      String programCode = preprocessor.preprocess(p.getFileName());
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(Pair.of(programCode, p.getSecond()));
+      programs.add(new FileContentToParse(p.getFileName(), programCode, p.getStaticVariablePrefix()));
     }
-    return realParser.parseString(programs);
+    return realParser.parseString(programs, sourceOriginMapping);
   }
 
   @Override
-  public ParseResult parseString(List<Pair<String, String>> pCode) throws CParserException,
-      InvalidConfigurationException {
+  public ParseResult parseString(List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, InvalidConfigurationException {
     // TODO
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
-    return realParser.parseSingleStatement(pCode);
+  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+    return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode) throws CParserException, InvalidConfigurationException {
-    return realParser.parseStatements(pCode);
+  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+    return realParser.parseStatements(pCode, pScope);
   }
 }

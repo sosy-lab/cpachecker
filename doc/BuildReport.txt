@@ -17,7 +17,7 @@ Generate a Report
 1) It's best to clear the output directory of CPAchecker,
    so that old files won't get mixed up with the new files.
 
-2) Run CPAchecker as usual (be sure to not use -noout):
+2) Run CPAchecker as usual (make sure to not use -noout):
 
 3) After CPAchecker has completed, generate the report:
 
@@ -39,7 +39,7 @@ Quick Reference to use the report
   - Left Panel: Error Path (if a bug is found)
 
      - Indentation reflects height of call stack.
-     - Click nodes/edges to jump to the location in the CFA/ARG/CIL (depending on the active tab).
+     - Click nodes/edges to jump to the location in the CFA/ARG/Source (depending on the active tab).
      - Function Start,Function Return, and unlabeled edges are not displayed.
      - Use Start (or click a node/edge) and Prev/Next to walk along the error path.
 
@@ -47,24 +47,24 @@ Quick Reference to use the report
 
     - CFA Tab
 
-      - The CFA has been cut into multiple images(one image per function).
+      - The CFA has been cut into multiple images (one image per function).
          Change the displayed function by using the select box at the top.
-      - Linear sequences of "normal" edges(StatementEdges, DeclarationEdges, and BlankEdges)
+      - Linear sequences of "normal" edges (StatementEdges, DeclarationEdges, and BlankEdges)
          are displayed as a node containing a table. The left column contains the node number
          of the predecessor of an edge. The right column contains the edge label.
          The successor can be found in the left column of the next row.
       - Special function call nodes and edges have been introduced, as the CFA is spread out over multiple images.
       - The error path is highlighted in red.
-      - Click an edge(or the edge label) to jump to the location in the CIL code.
+      - Click an edge (or the edge label) to jump to the location in the source code.
 
     - ARG Tab
 
       - The error path is highlighted in red.
       - Click an edge to jump to the location in the CFA.
 
-    - CIL Tab
+    - Source Tab
 
-      - Displays CIL code.
+      - Displays source code.
 
     - Log Tab
 
@@ -81,7 +81,7 @@ Known Problems
      Workaround: When using Next and the displayed function changes, but the error path is not highlighted or the arrow is not displayed,
      press Prev followed by Next. This time the SVG will be most likely served out of the local cache.
 
-  - Clicking edges leaving the introduced multistatement nodes does not jump to the correct location in the CIL code.
+  - Clicking edges leaving the introduced multistatement nodes does not jump to the correct location in the source code.
      All other edges in the CFA should be ok.
 
   - When an item is selected in the error path window on the left, only the active tab on the right is updated.

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -55,14 +54,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
 
-public class LDDAbstractionTransferRelation implements TransferRelation {
+public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
   private final LDDRegionManager regionManager;
 
@@ -76,8 +75,9 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends LDDAbstractState> getAbstractSuccessors(AbstractState element, Precision precision,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
+  public Collection<? extends LDDAbstractState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge edge)
+          throws CPATransferException, InterruptedException {
     if (!(element instanceof LDDAbstractState)) { return Collections.emptyList(); }
     LDDAbstractState analysisElement = (LDDAbstractState) element;
     LDDRegion region = toRegion(edge, analysisElement.getRegion());
@@ -160,15 +160,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       Integer constant = reduceToConstant(pExpression);
       if (constant == null || constant == 0) { return this.regionManager.makeFalse(); }
       return this.regionManager.makeTrue();
-    }
-    if (pExpression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
-      if (unaryExpression.getOperator() == UnaryOperator.NOT) {
-        LDDRegion assumeRegion = assumeToRegion(unaryExpression.getOperand());
-        if (assumeRegion == null) { return null; }
-        return this.regionManager.makeNot(assumeRegion);
-      }
-      return null;
     }
     if (pExpression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
@@ -524,8 +515,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       CUnaryExpression unaryExpression = (CUnaryExpression) expression;
       CExpression operand = unaryExpression.getOperand();
       switch (unaryExpression.getOperator()) {
-      case PLUS:
-        return reduceToRationalTerm(operand);
       case MINUS:
         Map<String, Pair<Integer, Integer>> innerTerm = reduceToRationalTerm(operand);
         if (innerTerm != null) {
@@ -605,8 +594,6 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
       Integer reducedInner = reduceToConstant(unaryExpression.getOperand());
       if (reducedInner == null) { return null; }
       switch (unaryExpression.getOperator()) {
-      case PLUS:
-        return reducedInner;
       case MINUS:
         return -reducedInner;
       case TILDE:

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
+class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
   SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
-      Sort pNumberType) {
-    super(pMathsatEnv, pBoolType, pNumberType);
+      Sort pIntegerType,
+      Sort pRealType) {
+    super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Term pFormula) {
+    if (SmtInterpolUtil.isBoolean(pFormula)) {
+      return FormulaType.BooleanType;
+    } else if (SmtInterpolUtil.hasIntegerType(pFormula)) {
+      return FormulaType.IntegerType;
+    } else if (SmtInterpolUtil.hasRationalType(pFormula)) {
+      return FormulaType.RationalType;
+    }
+    throw new IllegalArgumentException("Unknown formula type");
   }
 
   @Override
@@ -45,7 +59,12 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   }
 
   @Override
-  public Sort getBittype(int pBitwidth) {
+  public Sort getBitvectorType(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
+  }
+
+  @Override
+  public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
+    throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
   }
 }

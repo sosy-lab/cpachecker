@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,12 +33,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
@@ -210,7 +210,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert formulas.size() == path.size() + 2;
 
         // C) Compute interpolants
-        CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+        CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas);
 
         if (!interpolantInfo.isSpurious()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -273,8 +273,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private ImmutableList<ARGState> getAbstractionPathTo(ARGState argState) {
     ARGPath pathFromRoot = ARGUtils.getOnePathTo(argState);
 
-    return from(pathFromRoot)
-        .transform(Pair.<ARGState>getProjectionToFirst())
+    return from(pathFromRoot.asStatesList())
         .filter(Predicates.compose(
                 PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                 AbstractStates.toState(PredicateAbstractState.class)))
@@ -296,7 +295,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     Iterator<?> it1 = i1.iterator();
     Iterator<?> it2 = i2.iterator();
     while (it1.hasNext() && it2.hasNext()) {
-      if (!Objects.equal(it1.next(), it2.next())) {
+      if (!Objects.equals(it1.next(), it2.next())) {
         break;
       }
       i++;

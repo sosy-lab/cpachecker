@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -100,7 +100,7 @@ public enum MachineModel {
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
-  private CSimpleType ptrEquivalent;
+  private final CSimpleType ptrEquivalent;
 
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
@@ -269,9 +269,27 @@ public enum MachineModel {
     }
   }
 
-  public CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+  /** returns INT, if the type is smaller than INT, else the type itself. */
+  public CSimpleType getPromotedCType(CSimpleType pType) {
+
+    /*
+     * ISO-C99 (6.3.1.1 #2):
+     * If an int can represent all values of the original type, the value is
+     * converted to an int; otherwise, it is converted to an unsigned int.
+     * These are called the integer promotions.
+     */
+    // TODO when do we really need unsigned_int?
+    if (getSizeof(pType) < getSizeofInt()) {
+      return CNumericTypes.SIGNED_INT;
+    } else {
+      return pType;
+    }
+  }
+
+  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
-    private MachineModel model;
+    private final MachineModel model;
 
     public BaseSizeofVisitor(MachineModel model) {
       this.model = model;
@@ -384,5 +402,85 @@ public enum MachineModel {
 
   public int getSizeof(CType type) {
     return type.accept(sizeofVisitor);
+  }
+
+  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor = new BaseAlignofVisitor(this);
+
+  public static class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
+    private final MachineModel model;
+
+    public BaseAlignofVisitor(MachineModel model) {
+      this.model = model;
+    }
+
+    @Override
+    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+      // the alignment of an array is the same as the alignment of an member of the array
+      return pArrayType.getType().accept(this);
+    }
+
+    @Override
+    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+
+      switch (pCompositeType.getKind()) {
+        case STRUCT:
+        case UNION:
+
+          int size = 0;
+          int sizeOfType = 0;
+          // TODO: Take possible padding into account
+          for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
+            sizeOfType = decl.getType().accept(this);
+            size = Math.max(size, sizeOfType);
+          }
+          return size;
+
+        case ENUM: // There is no such kind of Composite Type.
+        default: throw new AssertionError();
+      }
+    }
+
+    @Override
+    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      return pElaboratedType.getRealType().accept(this);
+    }
+
+    @Override
+    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+      // enums are always ints
+      return model.getSizeofInt();
+    }
+
+    @Override
+    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+      // function types have per definition the value 1 if compiled with gcc
+      return 1;
+    }
+
+    @Override
+    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
+      // for now we assume that for pointer types alignof has the same value as sizeof
+      return model.getSizeofPtr();
+    }
+
+    @Override
+    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+    }
+
+    @Override
+    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      // for now we assume that for simple types alignof has the same values as sizeof
+      return model.getSizeof(pSimpleType);
+    }
+
+    @Override
+    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+      return pTypedefType.getRealType().accept(this);
+    }
+  }
+
+  public int getAlignof(CType type) {
+    return type.accept(alignofVisitor);
   }
 }

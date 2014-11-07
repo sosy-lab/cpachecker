@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.cpa.chc;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -36,14 +35,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
-  private static LogManager logger;
+  private final LogManager logger;
 
   public CHCPrecisionAdjustment(LogManager logM) {
     logger = logM;
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState successor, Precision precision,
+  public PrecisionAdjustmentResult prec(AbstractState successor, Precision precision,
       UnmodifiableReachedSet states) throws CPAException {
 
     CHCState candidateState = (CHCState)successor;
@@ -52,9 +51,9 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
     if (ancestor != null) {
       AbstractState newState = generalize(candidateState, ancestor, precision);
-      return Triple.of(newState, precision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE);
     } else {
-      return Triple.of(successor, precision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE);
     }
 
   }

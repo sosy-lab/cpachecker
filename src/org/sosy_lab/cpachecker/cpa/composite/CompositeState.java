@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,20 +28,20 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
-public class CompositeState implements AbstractWrapperState, TargetableWithPredicatedAnalysis, Partitionable, Serializable {
+public class CompositeState implements AbstractWrapperState,
+    Targetable, Partitionable, Serializable, Graphable {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
@@ -65,18 +65,16 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+  public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    // prefer a specific property over the default OTHER property
+    Set<String> descriptions = Sets.newHashSetWithExpectedSize(states.size());
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
-        ViolatedProperty property = ((Targetable)element).getViolatedProperty();
-        if (property != ViolatedProperty.OTHER) {
-          return property;
-        }
+        descriptions.add(((Targetable)element).getViolatedPropertyDescription());
       }
     }
-    return ViolatedProperty.OTHER;
+    descriptions.remove("");
+    return Joiner.on(", ").join(descriptions);
   }
 
   @Override
@@ -92,6 +90,36 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
     builder.replace(builder.length() - 1, builder.length(), ")");
 
     return builder.toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder builder = new StringBuilder();
+    for (AbstractState element : states) {
+      if (element instanceof Graphable) {
+        String label = ((Graphable)element).toDOTLabel();
+        if (!label.isEmpty()) {
+          builder.append(element.getClass().getSimpleName());
+          builder.append(": ");
+          builder.append(label);
+          builder.append("\n ");
+        }
+      }
+    }
+
+    return builder.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    for (AbstractState element : states) {
+      if (element instanceof Graphable) {
+        if (((Graphable)element).shouldBeHighlighted()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public AbstractState get(int idx) {
@@ -154,20 +182,5 @@ public class CompositeState implements AbstractWrapperState, TargetableWithPredi
     public String toString() {
       return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
     }
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView fmgr) {
-    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-    if (isTarget()) {
-      BooleanFormula f = bfmgr.makeBoolean(false);
-      for (AbstractState state : states) {
-        if (state instanceof TargetableWithPredicatedAnalysis) {
-          f = fmgr.makeOr(f, ((TargetableWithPredicatedAnalysis) state).getErrorCondition(fmgr));
-        }
-      }
-      return f;
-    }
-    return bfmgr.makeBoolean(false);
   }
 }

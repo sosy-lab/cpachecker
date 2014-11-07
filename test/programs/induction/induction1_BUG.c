@@ -1,3 +1,5 @@
+extern void __assert_fail();
+
 int main() {
 	int x = 0, y = 0;
 	while (1) {

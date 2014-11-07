@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ public class CLabelNode extends CFANode {
 
   private final String label;
 
-  public CLabelNode(int pLineNumber, String pFunctionName, String pLabel) {
-    super(pLineNumber, pFunctionName);
+  public CLabelNode(String pFunctionName, String pLabel) {
+    super(pFunctionName);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }

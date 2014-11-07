@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -50,9 +51,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
@@ -61,16 +62,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix = "cpa.pointerA")
-public class AndersenTransferRelation implements TransferRelation {
+public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
-  public AndersenTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
-    pConfig.inject(this);
+  private final LogManager logger;
+
+  public AndersenTransferRelation(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    logger = pLogger;
   }
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
-      CFAEdge pCfaEdge)
+  public Collection<AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
     AbstractState successor = null;
@@ -103,7 +105,7 @@ public class AndersenTransferRelation implements TransferRelation {
       successor = andersenState;
       Iterator<CFAEdge> edgeIterator = ((MultiEdge) pCfaEdge).iterator();
       while (pElement != null && edgeIterator.hasNext()) {
-        successor = Iterables.getFirst(getAbstractSuccessors(successor, pPrecision, edgeIterator.next()), null);
+        successor = Iterables.getFirst(getAbstractSuccessorsForEdge(successor, pPrecision, edgeIterator.next()), null);
       }
       break;
 
@@ -237,6 +239,7 @@ public class AndersenTransferRelation implements TransferRelation {
     } else if (pOp2 instanceof CFunctionCallExpression
         && "malloc".equals(((CFunctionCallExpression) pOp2).getFunctionNameExpression().toASTString())) {
 
+      // TODO line numbers are not unique when we have multiple input files!
       return pElement.addConstraint(new BaseConstraint("malloc-" + pCfaEdge.getLineNumber(), pOp1));
 
     }
@@ -276,10 +279,7 @@ public class AndersenTransferRelation implements TransferRelation {
    * <code>cfaEdge</code> was not handled.
    */
   private void printWarning(CFAEdge pCfaEdge) {
-
-    StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-
-    System.err.println("Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" (line: " + pCfaEdge.getLineNumber()
-        + ") not handled. [Method: " + trace[2].toString() + ']');
+    logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+        "Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" not handled.");
   }
 }

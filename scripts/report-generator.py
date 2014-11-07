@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2012  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -121,7 +121,8 @@ def main():
 
     # extract paths to all necessary files from config
     cpaoutdir      = config.get('output.path', 'output/')
-    sourcefile     = config.get('analysis.programNames')
+    sourcefiles    = [sourcefile.strip() for sourcefile in config.get('analysis.programNames').split(',')]
+    assert sourcefiles, "sourcefile not available"
     logfile        = os.path.join(cpaoutdir, config.get('log.file', 'CPALog.txt'))
     statsfile      = os.path.join(cpaoutdir, config.get('statistics.file', 'Statistics.txt'))
     argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
@@ -157,8 +158,8 @@ def main():
     # prepare values that may be used in template
     templatevalues = {}
     templatevalues['time_generated']    = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
-    templatevalues['sourcefilename']    = os.path.basename(sourcefile)
-    templatevalues['sourcefilecontent'] = readfile(sourcefile, optional=True)
+    templatevalues['sourcefilenames']   = sourcefiles
+    templatevalues['sourcefilecontents']= [readfile(sourcefile, optional=True) for sourcefile in sourcefiles]
     templatevalues['logfile']           = readfile(logfile, optional=True)
     templatevalues['statistics']        = readfile(statsfile, optional=True)
     templatevalues['conffile']          = readfile(options.configfile, optional=True)
@@ -175,7 +176,7 @@ def main():
     if errorpathcount > 0:
         for i in range(errorpathcount):
             outfilepath = os.path.join(reportdir, 'ErrorPath.%d.html' % i)
-            templatevalues['sourcefilename'] = '%s (error path %d)' % (os.path.basename(sourcefile), i)
+            templatevalues['title'] = '%s (error path %d)' % (os.path.basename(sourcefiles[0]), i) # use the first sourcefile as name
 
             try:
                 templatevalues['errorpath'] = readfile(errorpath % i)
@@ -186,7 +187,7 @@ def main():
 
     else:
         outfilepath = os.path.join(reportdir, 'report.html')
-
+        templatevalues['title'] = os.path.basename(sourcefiles[0]) # use the first sourcefile as name
         generateReport(outfilepath, template, templatevalues)
 
 

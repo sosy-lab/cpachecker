@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -41,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -59,8 +59,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -81,19 +84,19 @@ import com.google.common.collect.Queues;
 @Options(prefix="staticRefiner")
 public class PredicateStaticRefiner extends StaticRefiner {
 
-  @Option(description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
+  @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(description="Add all assumtions from the control flow automaton to the precision.")
+  @Option(secure=true, description="Add all assumtions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
-  @Option(description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
+  @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumePredicatesFile = null;
 
@@ -101,11 +104,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
   private final FormulaManagerView formulaManagerView;
   private final BooleanFormulaManager booleanManager;
   private final PredicateAbstractionManager predAbsManager;
-  private final VariableClassification varClasses;
+  private final Optional<LoopStructure> loopStructure;
   private final Solver solver;
   private final CFA cfa;
 
-  private Multimap<Pair<String, String>, AStatementEdge> directlyAffectingStatements;
+  private Multimap<String, AStatementEdge> directlyAffectingStatements;
 
   public PredicateStaticRefiner(
       Configuration pConfig,
@@ -120,8 +123,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
     pConfig.inject(this);
 
     this.cfa = pCfa;
-    assert cfa.getVarClassification().isPresent();
-    this.varClasses = cfa.getVarClassification().get();
+    this.loopStructure = cfa.getLoopStructure();
 
     this.pathFormulaManager = pPathFormulaManager;
     this.predAbsManager = pPredAbsManager;
@@ -135,13 +137,14 @@ public class PredicateStaticRefiner extends StaticRefiner {
   }
 
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
+    if (!loopStructure.isPresent()) {
+      return false;
+    }
+    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
 
-    for (String function: referenced.keySet()) {
-      for (String var: referenced.get(function)) {
-        if (varClasses.getLoopExitConditionVariables().containsEntry(function, var)) {
-          return true;
-        }
+    for (String var: referenced) {
+      if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
+        return true;
       }
     }
 
@@ -167,7 +170,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
             if (assign.getLeftHandSide() instanceof CIdExpression) {
-              Pair<String, String> variable = varClasses.idExpressionToVarPair(e, (CIdExpression)assign.getLeftHandSide());
+              String variable = ((CIdExpression)assign.getLeftHandSide()).getDeclaration().getQualifiedName();
               directlyAffectingStatements.put(variable, stmtEdge);
             }
           }
@@ -176,7 +179,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
   }
 
-  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt) throws CPATransferException, InterruptedException {
+  private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt)
+      throws SolverException, CPATransferException, InterruptedException {
     // Check stmt ==> assume?
 
     BooleanFormula stmtFormula = pathFormulaManager.makeAnd(
@@ -206,25 +210,24 @@ public class PredicateStaticRefiner extends StaticRefiner {
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e) throws CPATransferException, InterruptedException {
+  private boolean hasContradictingOperationInFlow(AssumeEdge e)
+      throws SolverException, CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
-    Multimap<String, String> referenced = varClasses.getVariablesOfExpression(e, (CExpression) e.getExpression());
-    for (String function: referenced.keySet()) {
-      for (String varName: referenced.get(function)) {
-        Pair<String, String> varFullQualified = Pair.of(function, varName);
-        Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varFullQualified);
-        for (AStatementEdge stmtEdge: affectedByStmts) {
-          if (isContradicting(e, stmtEdge)) {
-            return true;
-          }
+    Collection<String> referenced = VariableClassification.getVariablesOfExpression((CExpression) e.getExpression());
+    for (String varName: referenced) {
+      Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
+      for (AStatementEdge stmtEdge: affectedByStmts) {
+        if (isContradicting(e, stmtEdge)) {
+          return true;
         }
       }
     }
     return false;
   }
 
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes() throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes()
+      throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     for (CFANode u : cfa.getAllNodes()) {
@@ -243,7 +246,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState) throws CPATransferException, InterruptedException {
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState)
+      throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
@@ -285,7 +289,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
    * @throws InterruptedException
    */
   public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates) throws CPATransferException, InterruptedException {
+      List<ARGState> abstractionStatesTrace, boolean atomicPredicates)
+          throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Predicates that should be tracked on function scope
@@ -353,7 +358,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
         pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
@@ -381,6 +386,9 @@ public class PredicateStaticRefiner extends StaticRefiner {
           }
         }
       }
+    } catch (InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
+      Thread.currentThread().interrupt();
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
     } catch (CPATransferException e) {

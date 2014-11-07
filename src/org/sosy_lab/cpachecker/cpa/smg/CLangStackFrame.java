@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -120,11 +120,12 @@ final public class CLangStackFrame {
    */
   @Override
   public String toString() {
-    String to_return = "<";
+    StringBuilder to_return = new StringBuilder("<");
     for (String key : stack_variables.keySet()) {
-      to_return = to_return + " " + stack_variables.get(key);
+      to_return.append(" ").append(stack_variables.get(key));
     }
-    return to_return + " >";
+    to_return.append(" >");
+    return to_return.toString();
   }
 
   /**

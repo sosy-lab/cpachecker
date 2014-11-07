@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,31 +23,40 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Joiner;
 
-public class BDDState implements AbstractQueryableState {
+public class BDDState implements AbstractQueryableState,
+    LatticeAbstractState<BDDState> {
 
   private Region currentState;
   private final NamedRegionManager manager;
+  private final BitvectorManager bvmgr;
 
-  public BDDState(NamedRegionManager mgr, Region state) {
+  public BDDState(NamedRegionManager mgr, BitvectorManager bvmgr, Region state) {
     this.currentState = state;
     this.manager = mgr;
+    this.bvmgr = bvmgr;
   }
 
   public Region getRegion() {
     return currentState;
   }
 
-  public boolean isLessOrEqual(BDDState other) throws InterruptedException {
+  @Override
+  public boolean isLessOrEqual(BDDState other) throws SolverException, InterruptedException {
     return manager.entails(this.currentState, other.currentState);
   }
 
+  @Override
   public BDDState join(BDDState other) {
      Region result = manager.makeOr(this.currentState, other.currentState);
 
@@ -60,7 +69,7 @@ public class BDDState implements AbstractQueryableState {
       return this;
 
     } else {
-      return new BDDState(this.manager, result);
+      return new BDDState(manager, bvmgr, result);
     }
   }
 
@@ -101,7 +110,7 @@ public class BDDState implements AbstractQueryableState {
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
-      return manager.dumpRegion(this.currentState);
+      return manager.dumpRegion(this.currentState).toString();
     } else if (pProperty.equals("VARSET")) {
       return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
     } else if (pProperty.equals("VARSETSIZE")) {
@@ -122,10 +131,55 @@ public class BDDState implements AbstractQueryableState {
     currentState = manager.makeAnd(currentState, pConstraint);
   }
 
-  /**
-   * Returns the NamedRegionManager used by this state for storing the variables values. Do not modify!
-   */
-  public NamedRegionManager getManager() {
-    return this.manager;
+  /** This function adds the constraint to the state. */
+  public BDDState addConstraint(Region constraint) {
+    return new BDDState(manager, bvmgr, manager.makeAnd(currentState, constraint));
+  }
+
+  /** This function adds the equality of left and right side to the state.
+   * If left or right side is null, the state is returned unchanged. */
+  public BDDState addAssignment(@Nullable Region[] leftSide, @Nullable Region[] rightSide) {
+    return addAssignment(leftSide, rightSide, false);
+  }
+
+
+  /** This function adds the equality of left and right side to the current state.
+   * If left or right side is null, the state is returned unchanged.
+   *
+   * @param addIncreasing order of iteration, might cause better performance */
+  private BDDState addAssignment(@Nullable Region[] leftSide, @Nullable Region[] rightSide, final boolean addIncreasing) {
+    if (leftSide == null || rightSide == null) {
+      return this;
+    } else {
+      assert leftSide.length == rightSide.length : "left side and right side should have equal length: "
+              + leftSide.length + " != " + rightSide.length;
+      final Region[] assignRegions = bvmgr.makeBinaryEqual(leftSide, rightSide);
+
+      Region result;
+
+      if (addIncreasing) {
+        result = assignRegions[0];
+        for (int i = 1; i < assignRegions.length; i++) {
+          result = manager.makeAnd(result, assignRegions[i]);
+        }
+      } else {
+        result = assignRegions[assignRegions.length - 1];
+        for (int i = assignRegions.length - 2; i >= 0; i--) {
+          result = manager.makeAnd(result, assignRegions[i]);
+        }
+      }
+
+      result = manager.makeAnd(currentState, result);
+
+      return new BDDState(manager, bvmgr, result);
+    }
+  }
+
+  /** This function removes all information about the Regions from current state. */
+  public BDDState forget(@Nullable final Region... toForget) {
+    if (toForget == null) {
+      return this;
+    }
+    return new BDDState(manager, bvmgr, manager.makeExists(currentState, toForget));
   }
 }

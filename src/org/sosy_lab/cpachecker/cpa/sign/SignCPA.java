@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -49,17 +50,17 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.sign")
 public class SignCPA implements ConfigurableProgramAnalysis {
 
-  private SignDomain domain;
+  private AbstractDomain domain;
 
   private SignTransferRelation transfer;
 
   private LogManager logger;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for SignCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
       description="which stop operator to use for SignCPA")
   private String stopType = "SEP";
 
@@ -69,7 +70,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    domain = new SignDomain();
+    domain = DelegateAbstractDomain.<SignState>getInstance();
     transfer = new SignTransferRelation(logger);
 
     if (stopType.equals("SEP")) {
@@ -78,12 +79,10 @@ public class SignCPA implements ConfigurableProgramAnalysis {
       stop = new StopJoinOperator(domain);
     }
     if (mergeType.equals("SEP")) {
-      merge = new MergeSepOperator();
+      merge = MergeSepOperator.getInstance();
     } else {
       merge = new MergeJoinOperator(domain);
     }
-
-    SignState.init(config);
   }
 
   public static CPAFactory factory() {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.seplogic;
+
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -170,7 +172,8 @@ public class SeplogicState implements AbstractState, Cloneable, Targetable {
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    return null;
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    checkState(isTarget());
+    return "";
   }
 }

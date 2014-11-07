@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,16 +35,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -126,7 +126,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Option(description="enable the Forced Covering optimization")
+  @Option(secure=true, description="enable the Forced Covering optimization")
   private boolean useForcedCovering = true;
 
 
@@ -140,7 +140,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa));
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
     solver = new Solver(fmgr, factory);
     imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
   }
@@ -171,7 +171,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       CFANode loc = extractLocation(v);
       for (CFAEdge edge : leavingEdges(loc)) {
 
-        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessors(predecessor, precision, edge);
+        Collection<? extends AbstractState> successors = cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex
@@ -204,7 +204,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
-      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
+      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas);
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -328,7 +328,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas);
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -476,7 +476,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException {
+  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException, InterruptedException {
     PathFormula pf = pfmgr.makeEmptyPathFormula();
     for (Vertex w : path) {
       pf = pfmgr.makeAnd(pf, w.getIncomingEdge());

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,5 +71,17 @@ public final class SMGRegion extends SMGObject {
   @Override
   public void accept(SMGObjectVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public SMGObject join(SMGObject pOther) {
+    if (pOther.isAbstract()) {
+      // I am concrete, and the other is abstract: the abstraction should
+      // know how to join with me
+      return pOther.join(this);
+    } else if (getSize() == pOther.getSize()) {
+      return new SMGRegion(this);
+    }
+    throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }
 }

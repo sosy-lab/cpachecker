@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,13 +24,15 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
@@ -39,13 +41,20 @@ public class BlockPartitioning {
   private final Block mainBlock;
   private final Map<CFANode, Block> callNodeToBlock;
   private final Map<CFANode, Block> returnNodeToBlock;
+  private final Set<Block> blocks;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     Block mainBlock = null;
-    Map<CFANode, Block> callNodeToSubtree = new HashMap<>();
-    Map<CFANode, Block> returnNodeToBlock = new HashMap<>();
+    final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = new ImmutableMap.Builder<>();
+    final ImmutableMap.Builder<CFANode, Block> returnNodeToBlock = new ImmutableMap.Builder<>();
+    final ImmutableSet.Builder<Block> blocks = new ImmutableSet.Builder<>();
+
+    // this set is needed for special cases, when different blocks have the same returnNode.
+    // TODO can we avoid this?
+    final Set<CFANode> returnNodes = new HashSet<>();
 
     for (Block subtree : subtrees) {
+      blocks.add(subtree);
       for (CFANode callNode : subtree.getCallNodes()) {
         if (callNode instanceof FunctionEntryNode &&
            callNode.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
@@ -56,15 +65,18 @@ public class BlockPartitioning {
       }
 
       for (CFANode returnNode : subtree.getReturnNodes()) {
-        returnNodeToBlock.put(returnNode, subtree);
+        if (returnNodes.add(returnNode)) {
+          returnNodeToBlock.put(returnNode, subtree);
+        }
       }
     }
 
     assert mainBlock != null;
     this.mainBlock = mainBlock;
 
-    this.callNodeToBlock = ImmutableMap.copyOf(callNodeToSubtree);
-    this.returnNodeToBlock = ImmutableMap.copyOf(returnNodeToBlock);
+    this.callNodeToBlock = callNodeToSubtree.build();
+    this.returnNodeToBlock = returnNodeToBlock.build();
+    this.blocks = blocks.build();
   }
 
   /**
@@ -89,10 +101,15 @@ public class BlockPartitioning {
   }
 
   public boolean isReturnNode(CFANode node) {
-   return returnNodeToBlock.keySet().contains(node);
+   return returnNodeToBlock.containsKey(node);
   }
 
   public Block getBlockForReturnNode(CFANode pCurrentNode) {
     return returnNodeToBlock.get(pCurrentNode);
   }
+
+  public Set<Block> getBlocks() {
+    return blocks;
+  }
+
 }

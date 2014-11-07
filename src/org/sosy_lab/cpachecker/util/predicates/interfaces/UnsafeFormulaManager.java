@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+
+import java.util.List;
 
 /**
  * This interface represents some formula traverse methods which should not be used on higher levels.
@@ -86,25 +88,46 @@ public interface UnsafeFormulaManager {
   String getName(Formula f);
 
   /**
-   * Replaces the name and the arguments of the given formula
+   * Replaces the name and the arguments of the given formula.
+   * The old and the new name need to be of the same type.
    * @param f
    * @param newName
    * @param args
    * @return
    */
-  Formula replaceArgsAndName(Formula f, String newName, Formula[] args);
+  <T extends Formula> T replaceArgsAndName(T f, String newName, List<Formula> args);
   /**
   * Replaces the arguments of the given formula
   * @param f
   * @param args
   * @return
   */
-  Formula replaceArgs(Formula f, Formula[] args);
+  <T extends Formula> T replaceArgs(T f, List<Formula> args);
   /**
    * Replaces the name of the given formula
+   * The old and the new name need to be of the same type.
    * @param f
    * @param newName
    * @return
    */
-  Formula replaceName(Formula f, String newName);
+  <T extends Formula> T replaceName(T f, String newName);
+
+  /**
+   * Substitute every occurrence of any item from {@code changeFrom}
+   * in formula {@code f} to the corresponding occurrence from {@code changeTo}.
+   *
+   * E.g. if {@code changeFrom} contains a variable {@code a} and
+   * {@code changeTo} contains a variable {@code b} all occurrences of {@code a}
+   * will be changed to {@code b} in the returned formula.
+   *
+   * @param f Formula to change
+   * @param changeFrom List of things to change from.
+   * @param changeTo List of things to change to.
+   * @return Formula with variables being replaced.
+   *
+   */
+  <T1 extends Formula, T2 extends Formula> T1
+      substitute(T1 f, List<T2> changeFrom, List<T2> changeTo);
+
+  <T extends Formula> T simplify(T f);
 }

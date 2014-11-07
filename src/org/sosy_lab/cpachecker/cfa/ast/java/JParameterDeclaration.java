@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -33,10 +35,13 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
 
+  private final String qualifiedName;
   private final boolean isFinal;
 
-  public JParameterDeclaration(FileLocation pFileLocation, JType pType, String pName, boolean pIsFinal) {
+  public JParameterDeclaration(FileLocation pFileLocation, JType pType,
+      String pName, String pQualifiedName, boolean pIsFinal) {
     super(pFileLocation, pType, pName);
+    qualifiedName = checkNotNull(pQualifiedName);
     isFinal = pIsFinal;
   }
 
@@ -47,6 +52,11 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
 
   public boolean isFinal() {
     return isFinal;
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 
   /* (non-Javadoc)

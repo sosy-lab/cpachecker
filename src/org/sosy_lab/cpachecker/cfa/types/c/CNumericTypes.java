@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.math.BigInteger;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 
 public class CNumericTypes {
@@ -40,19 +37,11 @@ public class CNumericTypes {
   public final static CSimpleType SIGNED_INT    = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
   public final static CSimpleType SHORT_INT     = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);
   public final static CSimpleType LONG_INT      = new CSimpleType(false, false, CBasicType.INT, true, false, false, false, false, false, false);
+  public final static CSimpleType UNSIGNED_LONG = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
   public final static CSimpleType LONG_LONG_INT = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, true);
+
+  public final static CSimpleType FLOAT         = new CSimpleType(false, false, CBasicType.FLOAT, false, false, false, false, false, false, false);
+  public final static CSimpleType DOUBLE        = new CSimpleType(false, false, CBasicType.DOUBLE, false, false, false, false, false, false, false);
+  public final static CSimpleType LONG_DOUBLE   = new CSimpleType(false, false, CBasicType.DOUBLE, true, false, false, false, false, false, false);
   public final static CSimpleType VOID          = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-
-  private static CIntegerLiteralExpression create(long l, CType type) {
-    return new CIntegerLiteralExpression(null, type, BigInteger.valueOf(l));
-  }
-
-  public static final CIntegerLiteralExpression ZERO = create(0L, INT);
-  public static final CIntegerLiteralExpression ONE = create(1L, INT);
-
-  /* type bounds, assuming 32-bit machine */
-  // TODO move to MachineModel
-  public static final CIntegerLiteralExpression INT_MAX = create(2147483647L, INT);
-  public static final CIntegerLiteralExpression INT_MIN = create(-2147483648L, INT);
-
 }

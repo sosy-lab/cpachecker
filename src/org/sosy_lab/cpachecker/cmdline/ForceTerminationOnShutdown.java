@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,11 +28,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
 import com.google.common.base.Joiner;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class implements a mechanism to forcefully terminate CPAchecker
@@ -111,6 +113,7 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   @SuppressWarnings("deprecation")
+  @SuppressFBWarnings("DM_EXIT")
   @Override
   public void run() {
     // This thread may be killed at any time by the JVM because it is a daemon thread.

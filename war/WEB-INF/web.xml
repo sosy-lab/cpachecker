@@ -20,6 +20,7 @@
         	<param-name>org.restlet.application</param-name>
         	<param-value>org.sosy_lab.cpachecker.appengine.server.CPAcheckerApplication</param-value>
         </init-param>
+        <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
         <servlet-name>CPAcheckerApplication</servlet-name>

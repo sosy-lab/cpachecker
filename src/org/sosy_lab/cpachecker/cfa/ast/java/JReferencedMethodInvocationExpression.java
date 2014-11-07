@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,10 +34,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * This class represents the qualified method invocation expression AST node type.
  *
  *  Qualified MethodInvocation:
+ *  <pre>
  *     Expression .
  *        [ < Type { , Type } > ]
  *        Identifier ( [ Expression { , Expression } ] )
- *
+ *  </pre>
  *  Note that the qualification only consist of variables.
  *  In the cfa, all method names are transformed to have unique names.
  *

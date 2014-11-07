@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -55,6 +57,11 @@ import com.google.common.collect.Lists;
 public class ArithmeticOverflowAssumptionBuilder
 implements GenericAssumptionBuilder {
 
+  /* type bounds, assuming 32-bit machine */
+  // TODO use MachineModel
+  public static final CIntegerLiteralExpression INT_MAX = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(2147483647L));
+  public static final CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-2147483648L));
+
   private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ) {
     if (typ instanceof CSimpleType) {
       CSimpleType btyp = (CSimpleType) typ;
@@ -64,7 +71,7 @@ implements GenericAssumptionBuilder {
           // TODO not handled yet by mathsat so we assume all vars are signed integers for now
           // will enable later
           return Pair.of
-          (CNumericTypes.INT_MIN, CNumericTypes.INT_MAX);
+          (INT_MIN, INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
           //              return new Pair<>
@@ -93,6 +100,9 @@ implements GenericAssumptionBuilder {
           //          else
           //            return new Pair<>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
+        default:
+          // TODO add other bounds
+          break;
       }
     }
     return Pair.of(null, null);
@@ -122,13 +132,13 @@ implements GenericAssumptionBuilder {
 
     if (bounds.getFirst() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(FileLocation.DUMMY, null, null, exp,
               bounds.getFirst(), BinaryOperator.GREATER_EQUAL));
     }
 
     if (bounds.getSecond() != null) {
 
-      result.add(new CBinaryExpression(null, null, null, exp,
+      result.add(new CBinaryExpression(FileLocation.DUMMY, null, null, exp,
               bounds.getSecond(), BinaryOperator.LESS_EQUAL));
     }
   }
@@ -172,9 +182,7 @@ implements GenericAssumptionBuilder {
         CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
         List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
         for (CParameterDeclaration paramdecl : formalParams) {
-          String name = paramdecl.getName();
-          CType type = paramdecl.getType();
-          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
+          CExpression exp = new CIdExpression(paramdecl.getFileLocation(), paramdecl);
           visit(exp, result);
         }
       }
@@ -190,9 +198,12 @@ implements GenericAssumptionBuilder {
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
-      if (returnEdge.getExpression() != null) {
-        visit(returnEdge.getExpression(), result);
+      if (returnEdge.getExpression().isPresent()) {
+        visit(returnEdge.getExpression().get(), result);
       }
+      break;
+    default:
+      // TODO assumptions or other edge types, e.g. declarations?
       break;
     }
     return result;

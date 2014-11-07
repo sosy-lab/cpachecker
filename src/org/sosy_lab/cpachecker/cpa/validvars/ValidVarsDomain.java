@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,22 +30,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ValidVarsDomain implements AbstractDomain{
 
-  private final AbstractDomain wrappedDomain;
-
-  public ValidVarsDomain(AbstractDomain pWrapped){
-    wrappedDomain = pWrapped;
-  }
-
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
+  public AbstractState join(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
     if (pState1 instanceof ValidVarsState && pState2 instanceof ValidVarsState) {
       ValidVarsState v1 = (ValidVarsState) pState1;
       ValidVarsState v2 = (ValidVarsState) pState2;
       ValidVars newVars = v1.getValidVariables().mergeWith(v2.getValidVariables());
-      AbstractState mergedWrappedState = wrappedDomain.join(v1.getWrappedState(), v2.getWrappedState());
 
-      if (newVars != v2.getValidVariables() || mergedWrappedState != v2.getWrappedState()) { return new ValidVarsState(
-          mergedWrappedState, newVars); }
+      if (newVars != v2.getValidVariables()) {
+        return new ValidVarsState(newVars);
+      }
     }
     return pState2;
   }
@@ -55,8 +50,7 @@ public class ValidVarsDomain implements AbstractDomain{
     if (pState1 instanceof ValidVarsState && pState2 instanceof ValidVarsState) {
       ValidVarsState v1 = (ValidVarsState) pState1;
       ValidVarsState v2 = (ValidVarsState) pState2;
-      return v1.getValidVariables().isSubsetOf(v2.getValidVariables())
-          && wrappedDomain.isLessOrEqual(v1.getWrappedState(), v2.getWrappedState());
+      return v1.getValidVariables().isSubsetOf(v2.getValidVariables());
     }
     return false;
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,7 +76,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     ARGState mergedElement = new ARGState(retElement, null);
     // now replace argElement2 by mergedElement in ARG
     // deleteChildren(argElement2);
-    deleteChildren2(argElement2);
+    //deleteChildren2(argElement2);
     argElement2.replaceInARGWith(mergedElement);
 
 
@@ -88,6 +88,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     return mergedElement;
   }
 
+  @SuppressWarnings("unused")
   private void deleteChildren(ARGState parent) {
     // assumes that covered elements are not saved in reached set
     Stack<ARGState> toProcess = new Stack<>();
@@ -144,6 +145,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     }
   }
 
+  @SuppressWarnings("unused")
   private void deleteChildren2(ARGState parent) {
     // assumes that covered elements are not saved in reached set
     HashSet<ARGState> subtreeNodes = getSubtreeNodes(parent);
@@ -193,12 +195,12 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // stop deletion and find out if there are deeper children which are and may reference one of their ancestor
       toProcess.addAll(laterCovered);
-      while(!toProcess.isEmpty()){
+      while (!toProcess.isEmpty()) {
         current = toProcess.pop();
 
-        for(ARGState c: current.getChildren()) {
+        for (ARGState c: current.getChildren()) {
 
-          assert(c.getParents().size()==1);
+          assert (c.getParents().size()==1);
           // relink or delete child
           if (c.getCoveredByThis().size() != 0) {
             // relink child in ARG to parent of first covered element
@@ -227,14 +229,14 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // find out if now covered by external node
       boolean changed = true;
-      while(changed){
+      while (changed) {
         changed = false;
-        for(ARGState later:laterCovered){
-          if(later.getCoveredByThis().size()!=0){
+        for (ARGState later:laterCovered) {
+          if (later.getCoveredByThis().size()!=0) {
             covered = getCoveredNodeFromDifferentSubtree(subtreeNodes, later);
             if (covered != null) {
               // delete edge from parent and introduce covering
-              assert(later.getParents().size()<=1);
+              assert (later.getParents().size()<=1);
               if (later.getParents().size() == 1) {
                 (new ARGState(later.getWrappedState(), later.getParents().iterator().next())).setCovered(later);
                 later.getParents().iterator().next().deleteChild(later);
@@ -255,7 +257,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
 
       // delete rest of subtree
       toProcess.addAll(laterCovered);
-      while(!toProcess.isEmpty()){
+      while (!toProcess.isEmpty()) {
         current = toProcess.pop();
         toDeleteFromReached.add(current);
 
@@ -274,7 +276,7 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     ARGState covered;
     do {
       covered = coveredElems.next();
-      assert(covered.getCoveredByThis().size()==0);
+      assert (covered.getCoveredByThis().size()==0);
       if (covered.getParents().size() == 0 || subtreeNodes.contains(covered)) {
         covered = null;
       }
@@ -282,17 +284,17 @@ public class ARGMergeJoinPredicatedAnalysis implements MergeOperator {
     return covered;
   }
 
-  private HashSet<ARGState> getSubtreeNodes(ARGState top){
+  private HashSet<ARGState> getSubtreeNodes(ARGState top) {
     Stack<ARGState> toProcess = new Stack<>();
     HashSet<ARGState> nodes = new HashSet<>();
 
     toProcess.push(top);
     nodes.add(top);
 
-    while(!toProcess.isEmpty()){
+    while (!toProcess.isEmpty()) {
       top = toProcess.pop();
-      for(ARGState child:top.getChildren()){
-        if(nodes.add(child)){
+      for (ARGState child:top.getChildren()) {
+        if (nodes.add(child)) {
           toProcess.push(child);
         }
       }

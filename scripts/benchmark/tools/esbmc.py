@@ -37,44 +37,47 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'ESBMC'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
         workingDir = self.getWorkingDirectory(executable)
         return [os.path.relpath(executable, start=workingDir)] + options + [os.path.relpath(sourcefile, start=workingDir)]
 
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = result.STR_UNKNOWN
+        output = '\n'.join(output)
+        status = result.STATUS_UNKNOWN
 
         if self.allInText(['Violated property:',
                       'dereference failure: dynamic object lower bound',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_DEREF
+            status = result.STATUS_FALSE_DEREF
         elif self.allInText(['Violated property:',
                       'Operand of free must have zero pointer offset',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_FREE
+            status = result.STATUS_FALSE_FREE
         elif self.allInText(['Violated property:',
                       'error label',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_LABEL
+            status = result.STATUS_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'assertion',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_LABEL
+            status = result.STATUS_FALSE_REACH
         elif self.allInText(['Violated property:',
                       'dereference failure: forgotten memory',
                       'VERIFICATION FAILED'],
                       output):
-            status = result.STR_FALSE_MEMTRACK
+            status = result.STATUS_FALSE_MEMTRACK
         elif 'VERIFICATION SUCCESSFUL' in output:
-            status = result.STR_TRUE
+            status = result.STATUS_TRUE_PROP
 
-        if status == result.STR_UNKNOWN:
+        if status == result.STATUS_UNKNOWN:
             if isTimeout:
                 status = 'TIMEOUT'
             elif output.endswith(('Z3 Error 9', 'Z3 Error 9\n')):

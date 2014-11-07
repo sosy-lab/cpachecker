@@ -6,6 +6,7 @@ import subprocess
 import sys
 import string
 import os
+import re
 import benchmark.result as result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -59,7 +60,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
         memory_leak = False
         bad_deref = False
         undef = False
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):
@@ -100,24 +101,22 @@ class Tool(benchmark.tools.cpachecker.Tool):
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('TRUE'):
-                    newStatus = result.STR_TRUE
+                    newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
-                  newStatus = result.STR_FALSE_LABEL
-                  if memory_leak:
-                    newStatus = result.STR_FALSE_MEMTRACK
-                  if bad_free:
-                    newStatus = result.STR_FALSE_FREE
-                  if bad_deref:
-                    newStatus = result.STR_FALSE_DEREF
+                  newStatus = result.STATUS_FALSE_REACH
+                  match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                  if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
+                      newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
+
                 else:
-                    newStatus = result.STR_UNKNOWN if not status.startswith('ERROR') else None
+                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
                 if newStatus and not status:
                     status = newStatus
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
         if not status or undef:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
         return status
 
 

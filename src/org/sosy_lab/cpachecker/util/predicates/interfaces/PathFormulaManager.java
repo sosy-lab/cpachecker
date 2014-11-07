@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -37,6 +37,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public interface PathFormulaManager {
+
+  public class CheckInfeasibleException extends Exception {
+    private static final long serialVersionUID = -1;
+
+    public CheckInfeasibleException(String message) {
+      super (message);
+    }
+  }
 
   PathFormula makeEmptyPathFormula();
 
@@ -52,16 +60,17 @@ public interface PathFormulaManager {
    * @param pF2 a PathFormula
    * @return (pF1 | pF2)
    */
-  PathFormula makeOr(PathFormula pF1, PathFormula pF2);
+  PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
-  PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
-  Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException;
+  PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
+
+  Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
-  PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException;
+  PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
    * Build a formula containing a predicate for all branching situations in the
@@ -73,10 +82,9 @@ public interface PathFormulaManager {
    *
    * @param elementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
-   * @throws CPATransferException
    */
   BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
-      throws CPATransferException;
+      throws CPATransferException, InterruptedException;
 
   /**
    * Extract the information about the branching predicates created by

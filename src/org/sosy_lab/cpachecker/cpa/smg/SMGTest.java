@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import static org.mockito.Mockito.mock;
-
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -32,7 +30,8 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -40,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGTest {
-  private LogManager logger = mock(LogManager.class);
+  private LogManager logger = TestLogManager.getInstance();
 
   private SMG smg;
   CType mockType = AnonymousTypes.createTypeWithLength(4);
@@ -73,8 +72,8 @@ public class SMGTest {
     smg.addObject(obj1);
     smg.addObject(obj2);
 
-    smg.addValue(val1.intValue());
-    smg.addValue(val2.intValue());
+    smg.addValue(val1);
+    smg.addValue(val2);
 
     smg.addPointsToEdge(pt1to1);
 
@@ -97,7 +96,7 @@ public class SMGTest {
   }
 
   @Test
-  public void replaceHVSetTest(){
+  public void replaceHVSetTest() {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 2, obj1, val1.intValue());
     Set<SMGEdgeHasValue> hvSet = new HashSet<>();
     hvSet.add(hv);
@@ -139,7 +138,7 @@ public class SMGTest {
     SMGObject third_object = new SMGRegion(16, "object-3");
     Integer third_value = Integer.valueOf(3);
     smg_copy.addObject(third_object);
-    smg_copy.addValue(third_value.intValue());
+    smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
@@ -252,14 +251,14 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationValidNullTest() {
+  public void consistencyViolationValidNullTest() {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(smg.getNullObject(), true);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test
-  public void ConsistencyViolationInvalidRegionHasValueTest() {
+  public void consistencyViolationInvalidRegionHasValueTest() {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(obj2, false);
@@ -267,7 +266,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationFieldConsistency() {
+  public void consistencyViolationFieldConsistency() {
     SMG smg1 = getNewSMG64();
     SMG smg2 = getNewSMG64();
 
@@ -294,7 +293,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationHVConsistency() {
+  public void consistencyViolationHVConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGRegion(8, "object_8b");
@@ -334,7 +333,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationPTConsistency() {
+  public void consistencyViolationPTConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGRegion(8, "object_8b");

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNon
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -57,7 +57,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState element1,
-                               AbstractState element2, Precision precision) {
+                               AbstractState element2, Precision precision) throws InterruptedException {
 
     PredicateAbstractState elem1 = (PredicateAbstractState)element1;
     PredicateAbstractState elem2 = (PredicateAbstractState)element2;
@@ -73,9 +73,6 @@ public class PredicateMergeOperator implements MergeOperator {
       if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
 
-      } else if (elem1.getViolatedProperty() != elem2.getViolatedProperty()) {
-        merged = elem2;
-
       } else {
         totalMergeTime.start();
         assert elem1.getAbstractionLocationsOnPath().equals(elem2.getAbstractionLocationsOnPath());
@@ -87,7 +84,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1.getViolatedProperty(), elem1);
+        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1);
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

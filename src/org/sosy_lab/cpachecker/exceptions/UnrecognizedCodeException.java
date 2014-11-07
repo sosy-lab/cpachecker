@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
@@ -99,20 +100,22 @@ public class UnrecognizedCodeException extends CPATransferException {
     }
 
     StringBuilder sb = new StringBuilder();
+    FileLocation fileLocation = null;
+    if (astNode != null) {
+      fileLocation = astNode.getFileLocation();
+    } else if (edge != null) {
+      fileLocation = edge.getFileLocation();
+    }
+    if (fileLocation != null) {
+      sb.append(fileLocation);
+      sb.append(": ");
+    }
+
     sb.append(msg1);
     if (msg2 != null) {
       sb.append(" (");
       sb.append(msg2);
       sb.append(")");
-    }
-
-    if (edge != null || astNode != null) {
-      sb.append(" in line ");
-      if (edge != null) {
-        sb.append(edge.getLineNumber());
-      } else {
-        sb.append(astNode.getFileLocation().getStartingLineNumber());
-      }
     }
 
     if (astNode != null || edge != null) {

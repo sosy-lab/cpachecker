@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,7 +47,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options
-public class ReachedSetStrategy extends AbstractStrategy {
+public class ReachedSetStrategy extends SequentialReadStrategy {
 
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;
@@ -63,7 +63,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
       reachedSet = new AbstractState[pReached.size()];
       pReached.asCollection().toArray(reachedSet);
       orderReachedSetByLocation(reachedSet);
@@ -103,7 +103,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
       try {
         stats.transferTimer.start();
-        successors = cpa.getTransferRelation().getAbstractSuccessors(state, initialPrec, null);
+        successors = cpa.getTransferRelation().getAbstractSuccessors(state, initialPrec);
         stats.transferTimer.stop();
 
         for (AbstractState succ : successors) {
@@ -112,7 +112,6 @@ public class ReachedSetStrategy extends AbstractStrategy {
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                   "of element ", state, "not covered by result.");
-              System.out.println(AbstractStates.extractLocation(succ).getNodeNumber());// TODO remove
               return false;
             }
           } finally {
@@ -136,7 +135,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
+  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
     constructInternalProofRepresentation(pReached);
     return reachedSet;
   }
@@ -149,6 +148,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
     if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
         "Proof Type requires reached set as set of abstract states."); }
     reachedSet = (AbstractState[])pReadProof;
+    stats.increaseProofSize(reachedSet.length);
     orderReachedSetByLocation(reachedSet);
     } finally {
       stats.preparationTimer.stop();

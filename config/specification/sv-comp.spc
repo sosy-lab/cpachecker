@@ -7,7 +7,7 @@ CONTROL AUTOMATON SVCOMP
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  MATCH LABEL [ERROR] -> ERROR;
+  MATCH LABEL [ERROR] -> ERROR("error label in $location");
   MATCH {__assert_fail($?)} || MATCH {abort($?)} || MATCH {exit($?)} -> STOP;
 
 END AUTOMATON

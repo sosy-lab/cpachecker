@@ -16,16 +16,16 @@
   td:first-child { text-align:left; white-space:nowrap}
   tbody td:first-child { font-family: monospace; }
   #options td:not(:first-child) {  text-align:left; font-size: x-small;
-                                   font-family: monospace; }
+                                   font-family: monospace; vertical-align: top; }
   .columnTitles td:first-child { font-family: monospace; font-size: x-small; }
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
   .status { text-align: center; }
-  .correct { color:green}
-  .wrong { color:red; font-weight: bold; }
-  .unknown { color:orange; font-weight: bold; }
-  .error { color:magenta; font-weight: bold; }
-  .correctValue, .wrongValue, .errorValue, .unknownValue { font-family: monospace }
+  .status.correct { color:green}
+  .status.wrong { color:red; font-weight: bold; }
+  .status.unknown { color:orange; font-weight: bold; }
+  .status.error { color:magenta; font-weight: bold; }
+  .value { font-family: monospace }
   .score { text-align:center; font-size:large; font-weight:bold; }
   a { color: inherit; text-decoration: none; display: block; }
   a:hover, .clickable:hover { background: lime; cursor: pointer; }
@@ -62,7 +62,7 @@
 
 // All the data from the table head in nice JS data structures.
 var runSets = {{runSets|json}};   // list with the attributes of all run sets
-var columns = {{columns|json}}; // nested list with all the columns headings
+var columns = {{columnTitles|json}}; // nested list with all the columns headings
 var columnsToRunset = [];         // for each column of the table the runSet it belongs to (first column is 0)
 
 for (var i = 0; i < columns.length; i++) {
@@ -793,7 +793,7 @@ function sortData(data) {
 // returns the textcontent of a cell as numeral
 function getValue(cell, title) {
     var value;
-    if (graphData.showCorrectOnly && !cell.hasClass('correct') && !cell.hasClass('correctValue')) {
+    if (graphData.showCorrectOnly && !cell.hasClass('correct')) {
         value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
 
     } else if (title === 'status') {
@@ -1242,13 +1242,11 @@ $(document).ready(function() {
 {{py:
 def formatOptions(str):
     '''Helper function for formatting the content of the options line'''
-    return html(html_quote(str)
-                    .replace(' -', '<br/>-')
-                    .replace('\', \'', '\',<br/>\'')
-                    .replace('=', '=<wbr/>')
-               )
+    optionsAsList = html_quote(' ' + str).split(' -')
+    optionsAsList = ['<span style="display:block"> -' + option + '</span>' for option in optionsAsList[1:]]
+    return html(''.join(optionsAsList))
 }}
-{{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'title']}}
+{{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'property', 'title']}}
   {{if lineName in head and head[lineName]}}
   {{py:line = head[lineName]}}
   <tr id="{{line.id}}" class="{{line.id}}">
@@ -1273,7 +1271,7 @@ def formatOptions(str):
     <td class="status {{runResult.category}}">{{(value or '-').lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
+  <td class="{{runResult.category}} value">{{formatValue(value, column)}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}
@@ -1283,11 +1281,12 @@ def formatOptions(str):
 
 <tfoot>
 {{py:
-def formatStatTitle(stat):
+def formatStatTitle(stat, column, formatValue):
     '''Helper function to create the tooltip of a status cell containing average etc.'''
     if not stat or not stat.avg:
         return None
-    return 'Min: {min}, Max: {max}, Average: {avg:.3f}, Median: {median}'.format(**stat.__dict__)
+    values = {k: formatValue(v, column) for k, v in stat.__dict__.items()}
+    return 'Min: {min}, Max: {max}, Average: {avg}, Median: {median}'.format(**values)
 }}
 {{py:line = head['title']}}
 <tr class="{{line.id}}">
@@ -1299,8 +1298,8 @@ def formatStatTitle(stat):
 {{for line in foot}}
   <tr class="statistics">
     <td {{attr(title=line.description)}}>{{line.title}}</td>
-    {{for cell in line.content}}
-    <td {{attr(class_=line.id, title=formatStatTitle(cell))}}>{{cell}}</td>
+    {{for cell, column in zip(line.content, flatten(columns))}}
+    <td {{attr(class_=line.id, title=formatStatTitle(cell, column, formatValue))}}>{{formatValue(cell, column)}}</td>
     {{endfor}}
   </tr>
 {{endfor}}

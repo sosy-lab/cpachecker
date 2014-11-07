@@ -12,10 +12,6 @@
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-    <!-- The following files are expected to have timeouts anyway. -->
-    <exclude>../programs/benchmarks/eca/Problem07_*</exclude>
-    <exclude>../programs/benchmarks/eca/Problem08_*</exclude>
-    <exclude>../programs/benchmarks/eca/Problem09_*</exclude>
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>

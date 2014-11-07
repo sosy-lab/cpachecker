@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.io.PrintStream;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
@@ -43,7 +45,7 @@ public interface Statistics {
      * to the disk. Please add a configuration option of the following form
      * in order to determine the file name for output files:
      * <code>
-     * @Option(description="...", name="...)
+     * @Option(secure=true, description="...", name="...)
      * @FileOption(FileOption.Type.OUTPUT_FILE)
      * private File outputFile = new File("Default Filename.txt");
      * </code>
@@ -66,5 +68,5 @@ public interface Statistics {
      * (but may still write output files for example).
      * @return A String with a human-readable name or null.
      */
-    public String getName();
+    public @Nullable String getName();
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,6 +69,6 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public String toString() {
-    return Joiner.on(", ").join(from(assumptions).transform(CExpression.TO_AST_STRING));
+    return from(assumptions).transform(CExpression.TO_AST_STRING).join(Joiner.on(", "));
   }
 }

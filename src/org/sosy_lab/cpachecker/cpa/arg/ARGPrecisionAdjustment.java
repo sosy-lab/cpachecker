@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import org.sosy_lab.common.Triple;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationExc
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -46,7 +49,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement,
+  public PrecisionAdjustmentResult prec(AbstractState pElement,
       Precision oldPrecision, UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ARGState);
@@ -63,21 +66,61 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractState oldElement = element.getWrappedState();
 
-    Triple<AbstractState, Precision, Action> unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
+    PrecisionAdjustmentResult unwrappedResult = wrappedPrecAdjustment.prec(oldElement, oldPrecision, elements);
 
-    AbstractState newElement = unwrappedResult.getFirst();
-    Precision newPrecision = unwrappedResult.getSecond();
-    Action action = unwrappedResult.getThird();
+    // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
+    if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
+      removeUnreachedSiblingsFromARG(element, pElements);
+    }
+
+    AbstractState newElement = unwrappedResult.abstractState();
+    Precision newPrecision = unwrappedResult.precision();
+    Action action = unwrappedResult.action();
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return Triple.of(pElement, oldPrecision, action);
+      return PrecisionAdjustmentResult.create(pElement, oldPrecision, action);
     }
 
     ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
-    return Triple.<AbstractState, Precision, Action>of(resultElement, newPrecision, action);
+    return PrecisionAdjustmentResult.create(resultElement, newPrecision, action);
+  }
+
+  /**
+   * This method removes all siblings of the given element from the ARG, if they are not yet in the reached set.
+   *
+   * These measures are necessary in the cases where precision adjustment signals {@link Action#BREAK} for a state
+   * whose parent has multiple children, and not all children have been processed completely. In this case, not all
+   * children would be in the reached set, however, are already in the ARG (as children of their parent). To avoid this
+   * inconsistency, all children not yet contained in the reached set are removed from the ARG.
+   *
+   * @param element the element for which to remove the siblings
+   * @param pReachedSet the current reached set
+   */
+  private void removeUnreachedSiblingsFromARG(ARGState element, UnmodifiableReachedSet pReachedSet) {
+    Set<ARGState> scheduledForDeletion = new HashSet<>();
+
+    for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
+      if (sibling != element && !pReachedSet.contains(sibling)) {
+        scheduledForDeletion.add(sibling);
+      }
+    }
+
+    for (ARGState sibling : scheduledForDeletion) {
+      sibling.removeFromARG();
+    }
+  }
+
+  /**
+   * This method checks if the given element has a sibling in the ARG.
+   *
+   * @param element the element to check
+   * @return true, if the element has a sibling in the ARG
+   */
+  private boolean elementHasSiblings(ARGState element) {
+    return Iterables.getOnlyElement(element.getParents()).getChildren().size() > 1;
   }
 }

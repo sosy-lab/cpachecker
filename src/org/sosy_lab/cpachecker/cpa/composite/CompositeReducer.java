@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -152,5 +152,20 @@ public class CompositeReducer implements Reducer {
       result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
+  }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
+                                                     AbstractState pExpandedState, CFANode exitLocation) {
+    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<AbstractState> entryStates = ((CompositeState)pEntryState).getWrappedStates();
+    List<AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();
+
+    List<AbstractState> results = new ArrayList<>();
+    for (int i = 0; i < rootStates.size(); i++) {
+      results.add(wrappedReducers.get(i).rebuildStateAfterFunctionCall(
+              rootStates.get(i), entryStates.get(i), expandedStates.get(i), exitLocation));
+    }
+    return new CompositeState(results);
   }
 }

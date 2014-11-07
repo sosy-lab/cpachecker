@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,19 +25,21 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,14 +73,18 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
-  @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
-  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  @Option(secure=true, name="memoryErrors", description = "Determines if memory errors are target states")
   private boolean memoryErrors = true;
 
-  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
+
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER"},
+      description="which stop operator to use for the SMGCPA")
+  private String stopType = "SEP";
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -94,15 +100,16 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     machineModel = cfa.getMachineModel();
     logger = pLogger;
 
-    abstractDomain = new SMGDomain();
+    abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
-    stopOperator = new StopSepOperator(abstractDomain);
+
+    if(stopType.equals("NEVER")) {
+      stopOperator = new StopNeverOperator();
+    } else {
+      stopOperator = new StopSepOperator(abstractDomain);
+    }
+
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
-
-    SMGState.setRuntimeCheck(runtimeCheck);
-
-    SMGState.setTargetMemoryErrors(memoryErrors);
-    SMGState.setUnknownOnUndefined(unknownOnUndefined);
   }
 
   public MachineModel getMachineModel() {
@@ -136,11 +143,11 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel);
+    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
+    } catch (SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
@@ -148,7 +155,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis {
     try {
       initState.addStackFrame(functionNode.getFunctionDefinition());
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
+    } catch (SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.List;
-import java.util.Map;
+import java.util.SortedMap;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -46,7 +46,7 @@ import com.google.common.collect.SortedSetMultimap;
  */
 public class ParseResult {
 
-  private final Map<String, FunctionEntryNode> functions;
+  private final SortedMap<String, FunctionEntryNode> functions;
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
@@ -54,7 +54,7 @@ public class ParseResult {
 
   private final Language language;
 
-  public ParseResult(Map<String, FunctionEntryNode> pFunctions,
+  public ParseResult(SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<Pair<IADeclaration, String>> pGlobalDeclarations,
       Language pLanguage) {
@@ -69,7 +69,7 @@ public class ParseResult {
     return functions.isEmpty();
   }
 
-  public Map<String, FunctionEntryNode> getFunctions() {
+  public SortedMap<String, FunctionEntryNode> getFunctions() {
     return functions;
   }
 

@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,9 @@ CPAchecker web page:
 from __future__ import absolute_import, print_function, unicode_literals
 
 import glob
+import logging
 import os
+import signal
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -34,6 +36,25 @@ import xml.etree.ElementTree as ET
 """
 This module contains some useful functions for Strings, XML or Lists.
 """
+
+ENERGY_TYPES = ['cpu', 'core', 'uncore', 'external']
+
+def isWindows():
+    return os.name == 'nt'
+
+def forceLinuxPath(path):
+    if isWindows():
+        return path.replace('\\', '/')
+    return path
+
+def killProcess(pid, sig=signal.SIGKILL):
+    '''
+    This function kills the process and the children in its process group.
+    '''
+    try:
+        os.killpg(pid, sig)
+    except OSError: # process itself returned and exited before killing
+        pass
 
 def printOut(value, end='\n'):
     """
@@ -132,6 +153,8 @@ def formatNumber(number, numberOfDigits):
     @param number: the number to format
     @param digits: the number of digits
     """
+    if number is None:
+        return ""
     return "%.{0}f".format(numberOfDigits) % number
 
 
@@ -156,6 +179,23 @@ def expandFileNamePattern(pattern, baseDir):
     return fileList
 
 
+def getFiles(paths):
+    changed = False
+    result = []
+    for path in paths:
+        if os.path.isfile(path):
+            result.append(path)
+        elif os.path.isdir(path):
+            changed = True
+            for currentPath, dirs, files in os.walk(path):
+                # ignore hidden files, on Linux they start with '.',
+                # inplace replacement of 'dirs', because it is used later in os.walk
+                files = [f for f in files if not f.startswith('.')]
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                result.extend(os.path.join(currentPath, f) for f in files)
+    return result if changed else paths
+
+
 def appendFileToFile(sourcename, targetname):
     source = open(sourcename, 'r')
     try:
@@ -168,12 +208,12 @@ def appendFileToFile(sourcename, targetname):
         source.close()
 
 
-def findExecutable(program, fallback=None):
+def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
 
-    dirs = os.environ['PATH'].split(os.pathsep)
-    dirs.append(".")
+    dirs = os.environ['PATH'].split(os.path.pathsep)
+    dirs.append(os.path.curdir)
 
     for dir in dirs:
         name = os.path.join(dir, program)
@@ -183,7 +223,15 @@ def findExecutable(program, fallback=None):
     if fallback is not None and isExecutable(fallback):
         return fallback
 
-    sys.exit("ERROR: Could not find '{0}' executable".format(program))
+    if exitOnError:
+        sys.exit("ERROR: Could not find '{0}' executable".format(program))
+    else:
+        return fallback
+
+
+def commonBaseDir(l):
+    # os.path.commonprefix returns the common prefix, not the common directory
+    return os.path.dirname(os.path.commonprefix(l))
 
 
 def addFilesToGitRepository(baseDir, files, description):
@@ -239,3 +287,48 @@ def addFilesToGitRepository(baseDir, files, description):
     if gitCommit.returncode != 0:
         printOut('Git commit failed!')
         return
+
+
+
+def getEnergy(oldEnergy=None):
+    '''
+    returns a dictionary with the currently available values of energy consumptions (like a time-stamp).
+    If oldEnergy is not None, the difference (currentValue - oldEnergy) is returned.
+    '''
+    newEnergy = {}
+
+    executable = findExecutable('read-energy.sh', exitOnError=False)
+    if executable is None: # not available on current system
+        logging.debug('Energy measurement not available because read-energy.sh could not be found.')
+        return newEnergy
+
+    for energyType in ENERGY_TYPES:
+        logging.debug('Reading {0} energy measurement for value.'.format(energyType))
+        energysh = subprocess.Popen([executable, energyType], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = energysh.communicate()
+        if energysh.returncode or stderr:
+            logging.debug('Error while reading {0} energy measurement: retval={3}, out={1}, err={2}'.format(energyType, stdout, stderr, energysh.returncode))
+        try:
+            newEnergy[energyType] = int(stdout)
+        except ValueError:
+            logging.debug('Invalid value while reading {0} energy measurement: {1}'.format(energyType, stdout, stderr, energysh.returncode))
+            pass # do nothing
+
+    logging.debug('Finished reading energy measurements.')
+
+    if oldEnergy is None:
+        return newEnergy
+    else:
+        return _energyDiff(newEnergy, oldEnergy)
+
+
+def _energyDiff(newEnergy, oldEnergy):
+    '''
+    returns a dict with (newEnergy - oldEnergy) for each type (=key) of energy,
+    but only, if both values exist
+    '''
+    diff = {}
+    for key in newEnergy:
+        if key in oldEnergy:
+            diff[key] = newEnergy[key] - oldEnergy[key]
+    return diff

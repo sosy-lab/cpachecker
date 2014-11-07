@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -54,15 +55,15 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Optional;
 
-public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithABM, ProofChecker {
+public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final TransferRelation transferRelation;
+  private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
   public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa);
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -72,7 +73,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(false);
+    return new LocationCPAFactory(LocationStateType.FORWARD);
   }
 
   @Override
@@ -117,7 +118,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(transferRelation.getAbstractSuccessors(pElement, null, pCfaEdge));
+    return pSuccessors.equals(transferRelation.getAbstractSuccessorsForEdge(
+        pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override

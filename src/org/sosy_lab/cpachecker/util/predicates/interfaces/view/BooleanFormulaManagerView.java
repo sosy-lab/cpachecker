@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -34,16 +36,18 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
+public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
-public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
+  private final BooleanFormulaManager manager;
+  private final UnsafeFormulaManager unsafe;
 
-  private BooleanFormulaManager manager;
-
-  public BooleanFormulaManagerView(BooleanFormulaManager pManager) {
+  public BooleanFormulaManagerView(FormulaManagerView pViewManager,
+      BooleanFormulaManager pManager,
+      UnsafeFormulaManager pUnsafe) {
+    super(pViewManager);
     this.manager = pManager;
+    this.unsafe = pUnsafe;
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -52,53 +56,52 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
   @Override
   public BooleanFormula not(BooleanFormula pBits) {
-    return wrapInView(manager.not(extractFromView(pBits)));
+    return manager.not(pBits);
   }
 
   @Override
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.and(pBits1, pBits2);
   }
 
   @Override
   public BooleanFormula and(List<BooleanFormula> pBits) {
-    BooleanFormula result = manager.and(Lists.transform(pBits,
-        new Function<BooleanFormula, BooleanFormula>() {
-          @Override
-          public BooleanFormula apply(BooleanFormula pInput) {
-            return extractFromView(pInput);
-          }
-        }));
-    return wrapInView(result);
+    return manager.and(pBits);
   }
 
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.or(pBits1, pBits2);
   }
+
+  @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    return manager.or(pBits);
+  }
+
   @Override
   public BooleanFormula xor(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));
+    return manager.xor(pBits1, pBits2);
   }
 
   @Override
   public boolean isNot(BooleanFormula pBits) {
-    return manager.isNot(extractFromView(pBits));
+    return manager.isNot(pBits);
   }
 
   @Override
   public boolean isAnd(BooleanFormula pBits) {
-    return manager.isAnd(extractFromView(pBits));
+    return manager.isAnd(pBits);
   }
 
   @Override
   public boolean isOr(BooleanFormula pBits) {
-    return manager.isOr(extractFromView(pBits));
+    return manager.isOr(pBits);
   }
 
   @Override
   public boolean isXor(BooleanFormula pBits) {
-    return manager.isXor(extractFromView(pBits));
+    return manager.isXor(pBits);
   }
 
   @Override
@@ -107,64 +110,57 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   }
 
   @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return manager.getFormulaType();
-  }
-
-  @Override
   public BooleanFormula makeBoolean(boolean pValue) {
-    return wrapInView(manager.makeBoolean(pValue));
+    return manager.makeBoolean(pValue);
   }
 
   @Override
   public BooleanFormula makeVariable(String pVar) {
-    return wrapInView(manager.makeVariable(pVar));
-  }
-
-  @Override
-  public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
-    return wrapInView(manager.equivalence(extractFromView(pFormula1), extractFromView(pFormula2)));
+    return manager.makeVariable(pVar);
   }
 
   @Override
   public boolean isTrue(BooleanFormula pFormula) {
-    return manager.isTrue(extractFromView(pFormula));
+    return manager.isTrue(pFormula);
   }
 
   @Override
   public boolean isFalse(BooleanFormula pFormula) {
-    return manager.isFalse(extractFromView(pFormula));
+    return manager.isFalse(pFormula);
   }
 
   @Override
   public <T extends Formula> T ifThenElse(BooleanFormula pCond, T pF1, T pF2) {
-    FormulaManagerView viewManager = getViewManager();
-    return viewManager.wrapInView(manager.ifThenElse(extractFromView(pCond), viewManager.extractFromView(pF1), viewManager.extractFromView(pF2)));
+    Formula f1 = unwrap(pF1);
+    Formula f2 = unwrap(pF2);
+    FormulaType<T> targetType = getFormulaType(pF1);
+
+    return wrap(targetType, manager.ifThenElse(pCond, f1, f2));
   }
 
   @Override
   public <T extends Formula> boolean isIfThenElse(T pF) {
-    FormulaManagerView viewManager = getViewManager();
-    return manager.isIfThenElse(viewManager.extractFromView(pF));
+    return manager.isIfThenElse(unwrap(pF));
   }
 
   public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
     checkArgument(isIfThenElse(pF));
+    Formula f = unwrap(pF);
 
-    FormulaManagerView fmgr = getViewManager();
-    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
-    assert unsafe.getArity(pF) == 3;
+    assert unsafe.getArity(f) == 3;
 
-    BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
-    T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
-    T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
+    BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
+    FormulaType<Formula> innerType = getFormulaType(f);
+    Formula thenBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 1));
+    Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
-    return Triple.of(cond, thenBranch, elseBranch);
+    FormulaType<T> targetType = getFormulaType(pF);
+    return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
   }
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
-    return manager.isEquivalence(extractFromView(pFormula));
+    return manager.isEquivalence(pFormula);
   }
 
   public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
@@ -173,9 +169,13 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
   @Override
   public boolean isImplication(BooleanFormula pFormula) {
-    return manager.isImplication(extractFromView(pFormula));
+    return manager.isImplication(pFormula);
   }
 
+  @Override
+  public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
+    return manager.equivalence(pFormula1, pFormula2);
+  }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
     return not(equivalence(p, q));
@@ -190,7 +190,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
       fmgr = pFmgr;
       bfmgr = fmgr.getBooleanFormulaManager();
-      unsafe = fmgr.getUnsafeFormulaManager();
+      unsafe = bfmgr.unsafe;
     }
 
     public final R visit(BooleanFormula f) {
@@ -204,7 +204,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
         return visitFalse();
       }
 
-      if (unsafe.isAtom(fmgr.extractFromView(f))) {
+      if (unsafe.isAtom(f)) {
         return visitAtom(f);
       }
 
@@ -241,7 +241,9 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     }
 
     private final BooleanFormula getArg(BooleanFormula pF, int i) {
-      return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
+      Formula arg = unsafe.getArg(pF, i);
+      assert fmgr.getFormulaType(arg).isBooleanType();
+      return (BooleanFormula)arg;
     }
 
     private final BooleanFormula[] getAllArgs(BooleanFormula pF) {
@@ -314,5 +316,79 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       throw new UnsupportedOperationException();
     }
+  }
+
+  /**
+   * Base class for visitors for boolean formulas that traverse recursively
+   * through the full formula (at least the boolean part, not inside atoms).
+   * This class ensures that each identical subtree of the formula
+   * is visited only once to avoid the exponential explosion.
+   *
+   * Subclasses of this class should call super.visit...() to ensure recursive
+   * traversal. If such a call is omitted, the respective part of the formula
+   * is not visited.
+   *
+   * No guarantee on iteration order is made.
+   */
+  public static abstract class RecursiveBooleanFormulaVisitor extends BooleanFormulaVisitor<Void> {
+
+    private final Set<BooleanFormula> seen = new HashSet<>();
+
+    protected RecursiveBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    private Void visitIfNotSeen(BooleanFormula f) {
+      if (seen.add(f)) {
+        return visit(f);
+      }
+      return null;
+    }
+
+    private Void visitMulti(BooleanFormula... pOperands) {
+      for (BooleanFormula operand : pOperands) {
+        visitIfNotSeen(operand);
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitNot(BooleanFormula pOperand) {
+      return visitIfNotSeen(pOperand);
+    }
+
+    @Override
+    protected Void visitAnd(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitOr(BooleanFormula... pOperands) {
+      return visitMulti(pOperands);
+    }
+
+    @Override
+    protected Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      visitIfNotSeen(pOperand1);
+      visitIfNotSeen(pOperand2);
+      return null;
+    }
+
+    @Override
+    protected Void visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      visitIfNotSeen(pCondition);
+      visitIfNotSeen(pThenFormula);
+      visitIfNotSeen(pElseFormula);
+      return null;
+    }
+
+
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,17 +23,57 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
-abstract class BaseManagerView<TFormula extends Formula> extends AbstractBaseManagerView {
+abstract class BaseManagerView {
 
-  protected TFormula wrapInView(TFormula formula) {
-    return formula;
+  private final FormulaManagerView baseManager;
+
+  BaseManagerView(FormulaManagerView pViewManager) {
+    baseManager = pViewManager;
   }
 
-  protected TFormula extractFromView(TFormula pFormula) {
-    return pFormula;
+  FormulaManagerView getViewManager() {
+    return baseManager;
   }
 
+  final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    return baseManager.getFormulaType(pFormula);
+  }
+
+  final <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
+    return baseManager.wrap(targetType, toWrap);
+  }
+
+  final Formula unwrap(Formula f) {
+    return baseManager.unwrap(f);
+  }
+
+  final List<Formula> unwrap(List<? extends Formula> f) {
+    return Lists.transform(f, new Function<Formula, Formula>() {
+      @Override
+      public Formula apply(Formula pInput) {
+        return unwrap(pInput);
+      }
+    });
+  }
+
+  final FormulaType<?> unwrapType(FormulaType<?> pType) {
+    return baseManager.unwrapType(pType);
+  }
+
+  final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
+    return Lists.transform(pTypes, new Function<FormulaType<?>, FormulaType<?>>() {
+          @Override
+          public FormulaType<?> apply(FormulaType<?> pInput) {
+            return unwrapType(pInput);
+          }
+        });
+  }
 }

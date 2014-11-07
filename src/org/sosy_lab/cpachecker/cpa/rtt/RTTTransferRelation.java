@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -73,36 +72,41 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Transfer Relation traversing the the CFA an tracking Run Type Time Information
+ * Transfer Relation traversing the CFA and tracking Run Time Type Information
  * of Java Programs.
- *
- *
  */
-public class RTTTransferRelation implements TransferRelation {
+public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
+
+  // variable name for temporary storage of information
+  private static final String TEMP_VAR_NAME = "___cpa_temp_result_var_";
+  private static final String JAVA_ENUM_OBJECT_NAME = "java.lang.Enum";
+
   private final Set<String> staticFieldVariables = new HashSet<>();
   private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
   private static int nextFreeId = 0;
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
 
@@ -160,14 +164,14 @@ public class RTTTransferRelation implements TransferRelation {
       break;
 
     case ReturnStatementEdge:
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+      JReturnStatementEdge returnEdge = (JReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      if (returnEdge.getExpression() != null) {
-        JExpression exp = (JExpression) returnEdge.getExpression();
+      if (returnEdge.getExpression().isPresent()) {
+        JExpression exp = returnEdge.getExpression().get();
         handleExitFromFunction(element, exp, returnEdge);
       }
       break;
@@ -201,12 +205,9 @@ public class RTTTransferRelation implements TransferRelation {
       return;
     }
 
-
-    JVariableDeclaration decl =
-        (JVariableDeclaration) declarationEdge.getDeclaration();
+    JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
 
     if (decl.getType() instanceof JSimpleType) {
-
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
           switch (simpleType) {
@@ -223,7 +224,6 @@ public class RTTTransferRelation implements TransferRelation {
             // Unnecessary to track Primitive types.
             return;
       }
-
     }
 
     // get the variable name in the declarator
@@ -253,22 +253,18 @@ public class RTTTransferRelation implements TransferRelation {
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue =
-          getExpressionValue(newElement, exp, methodName, declarationEdge);
-
+      initialValue = getExpressionValue(newElement, exp, methodName, declarationEdge);
     }
 
     // assign initial value
-    String scopedVarName =
-        getScopedVariableName(varName, methodName,
-                              newElement.getClassObjectScope());
+    String scopedVarName = getScopedVariableName(varName, methodName,
+        newElement.getClassObjectScope());
 
     if (initialValue == null) {
       newElement.forget(scopedVarName);
     } else {
       newElement.assignObject(scopedVarName, initialValue);
     }
-
   }
 
   private String getExpressionValue(RTTState element, JExpression expression,
@@ -278,18 +274,17 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleExitFromFunction(RTTState newElement,
-                  JExpression expression, AReturnStatementEdge returnEdge)
+                  JExpression expression, JReturnStatementEdge returnEdge)
                                         throws UnrecognizedCodeException {
 
     String methodName = returnEdge.getPredecessor().getFunctionName();
 
     // In Case Of Class Instance Creation, return unique Object
     if (returnEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
-      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
-          newElement.getClassObjectScope(), newElement,
-          methodName);
+      handleAssignmentToVariable(TEMP_VAR_NAME, expression,
+          newElement.getClassObjectScope(), newElement, methodName);
     } else {
-      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
+      handleAssignmentToVariable(TEMP_VAR_NAME, expression,
           new ExpressionValueVisitor(returnEdge, newElement, methodName));
     }
   }
@@ -448,7 +443,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       if ((op1 instanceof JIdExpression)) {
 
-        String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getClassObjectScope());
+        String returnVarName = getScopedVariableName(TEMP_VAR_NAME, calledFunctionName, newElement.getClassObjectScope());
 
         String assignedVarName = getScopedVariableName(((JIdExpression) op1).getName(), callerFunctionName, newElement.getClassObjectStack().peek());
 
@@ -462,13 +457,11 @@ public class RTTTransferRelation implements TransferRelation {
           newElement.forget(assignedVarName);
         }
       }
-
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof JArraySubscriptExpression) {
         return newElement;
-      }
 
-      else {
+      } else {
         throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }
@@ -528,8 +521,8 @@ public class RTTTransferRelation implements TransferRelation {
    // A New Object is created, which is the new classObject scope
     } else if (functionCall instanceof JClassInstanceCreation) {
 
-      AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
-      String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
+      JReturnStatementEdge returnEdge =  (JReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
+      String uniqueObject = returnEdge.getExpression().get().accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
       newElement.assignThisAndNewObjectScope(uniqueObject);
 
       // A Referenced Method Invocation, the new scope is the unique Object
@@ -668,7 +661,6 @@ public class RTTTransferRelation implements TransferRelation {
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
-    @SuppressWarnings("unused")
     protected final CFAEdge edge;
     protected final RTTState state;
     protected final String functionName;
@@ -703,14 +695,54 @@ public class RTTTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+      final JExpression leftOperand = binaryExpression.getOperand1();
+      final JExpression rightOperand = binaryExpression.getOperand2();
 
-      // The only binary Expressions on Class Types is String + which is not yet supported and EnumConstant Assignment
-      if ((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(binaryExpression.getOperand1(), binaryExpression.getOperand2(), binaryExpression.getOperator());
+      // The only binary Expressions on Class Types is String + which is not yet supported and
+      // object comparison.
+
+      /*
+       * For enums, we only have to compare the type of the variable. For 'casual' objects, we
+       * have to compare the concrete references.
+       */
+      if (isObjectComparison(binaryExpression)) {
+        if (isEnum((JClassType) leftOperand.getExpressionType())
+            || isEnum((JClassType) rightOperand.getExpressionType())) {
+
+          return handleEnumComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+
+        } else {
+          return handleObjectComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+        }
       }
 
       return null;
     }
+
+    private boolean isObjectComparison(JBinaryExpression pExpression) {
+      final BinaryOperator operator = pExpression.getOperator();
+      boolean isComparison = operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS;
+
+      final JExpression leftOperand = pExpression.getOperand1();
+      final JExpression rightOperand = pExpression.getOperand2();
+      boolean isObject = leftOperand.getExpressionType() instanceof JClassType
+          && rightOperand.getExpressionType() instanceof JClassType;
+
+      return isComparison && isObject;
+    }
+
+    private boolean isEnum(JClassType pClassType) {
+      List<JClassOrInterfaceType> superTypes = pClassType.getAllSuperTypesOfType();
+
+      for (JClassOrInterfaceType currentType : superTypes) {
+        if (currentType.getName().equals(JAVA_ENUM_OBJECT_NAME)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
 
     private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator)
         throws UnrecognizedCCodeException {
@@ -737,8 +769,21 @@ public class RTTTransferRelation implements TransferRelation {
         break;
       case NOT_EQUALS:
         result = !result;
+        break;
+      default:
+        throw new UnrecognizedCCodeException("unexpected enum comparison", edge);
       }
 
+      return Boolean.toString(result);
+    }
+
+    private String handleObjectComparison(final JExpression pLeftOperand,
+        final JExpression pRightOperand, final BinaryOperator pOperator)
+        throws UnrecognizedCCodeException {
+      String value1 = pLeftOperand.accept(this);
+      String value2 = pRightOperand.accept(this);
+
+      boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
       return Boolean.toString(result);
     }
 

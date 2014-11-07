@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,8 @@ import java.net.URISyntaxException;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 
+import com.google.common.base.StandardSystemProperty;
+
 /**
  * Helper class for loading native libraries.
  */
@@ -47,7 +49,7 @@ public class NativeLibraries {
         return CURRENT_OS;
       }
 
-      String prop = System.getProperty("os.name");
+      String prop = StandardSystemProperty.OS_NAME.value();
       if (isNullOrEmpty(prop)) {
         throw new UnsatisfiedLinkError("No value for os.name, "
             + "please report this together with information about your system (OS, architecture, JVM).");
@@ -62,7 +64,7 @@ public class NativeLibraries {
       } else if (prop.startsWith("macosx")) {
         CURRENT_OS = MACOSX;
       } else {
-        throw new UnsatisfiedLinkError("Unknown value for os.name: '" + System.getProperty("os.name")
+        throw new UnsatisfiedLinkError("Unknown value for os.name: '" + StandardSystemProperty.OS_NAME.value()
             + "', please report this together with information about your system (OS, architecture, JVM).");
       }
 
@@ -95,7 +97,7 @@ public class NativeLibraries {
         }
       } else {
 
-        prop = System.getProperty("java.vm.name");
+        prop = StandardSystemProperty.JAVA_VM_NAME.value();
         if (!isNullOrEmpty(prop)) {
           prop = prop.toLowerCase();
 

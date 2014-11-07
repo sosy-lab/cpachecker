@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -48,7 +47,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -60,7 +60,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -77,6 +79,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -93,12 +96,12 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
-  @Option(name="refinement.atomicPredicates",
+  @Option(secure=true, name="refinement.atomicPredicates",
       description="use only the atoms from the interpolants as predicates, "
           + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(name="precision.sharing",
+  @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
@@ -109,35 +112,35 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     ;
   }
 
-  @Option(name="refinement.keepAllPredicates",
+  @Option(secure=true, name="refinement.keepAllPredicates",
       description="During refinement, keep predicates from all removed parts "
           + "of the ARG. Otherwise, only predicates from the error path are kept.")
   private boolean keepAllPredicates = false;
 
-  @Option(name="refinement.restartAfterRefinements",
+  @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
           + "after N refinements. 0 to disable, 1 for always.")
   @IntegerOption(min=0)
   private int restartAfterRefinements = 0;
 
-  @Option(name="refinement.sharePredicates",
+  @Option(secure=true, name="refinement.sharePredicates",
       description="During refinement, add all new predicates to the precisions "
           + "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
-  @Option(name="refinement.useBddInterpolantSimplification",
+  @Option(secure=true, name="refinement.useBddInterpolantSimplification",
       description="Use BDDs to simplify interpolants "
           + "(removing irrelevant predicates)")
   private boolean useBddInterpolantSimplification = false;
 
-  @Option(name="refinement.dumpPredicates",
+  @Option(secure=true, name="refinement.dumpPredicates",
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(name="refinement.dumpPredicatesFile",
+  @Option(secure=true, name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
-  private Path dumpPredicatesFile = Paths.get("refinement%04d-predicates.prec");
+  private PathTemplate dumpPredicatesFile = PathTemplate.ofFormatString("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -255,10 +258,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      PredicatePrecision heuristicPrecision;
+      try {
+        heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
+      } catch (CPATransferException | SolverException e) {
+        logger.logUserException(Level.WARNING, e, "Static refinement failed");
+        lastRefinementUsedHeuristics = false;
+        super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+        return;
+      }
 
       shutdownNotifier.shutdownIfNecessary();
-      pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
+      pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
@@ -304,8 +315,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     BooleanFormula interpolant = pInterpolant;
 
-    FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
-
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -314,6 +323,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     int allPredsCount = 0;
     if (useBddInterpolantSimplification) {
+      FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
+
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
       allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
@@ -352,13 +363,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {
-
-    if (newPredicates.isEmpty() && pUnreachableState.isTarget()) {
-      // The only reason why this might appear is that the very last block is
-      // infeasible in itself, however, we check for such cases during strengthen,
-      // so they shouldn't appear here.
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
 
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);
@@ -432,7 +436,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getUpdateCount()));
+      Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
       try (Writer w = Files.openOutputFile(precFile)) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
@@ -450,12 +454,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision, PredicatePrecision.class);
+    pReached.removeSubtree(refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
     assert (refinementCount > 0) || reached.size() == 1;
 
     if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision, PredicatePrecision.class);
+      pReached.updatePrecisionGlobally(newPrecision, Predicates.instanceOf(PredicatePrecision.class));
     }
 
     argUpdate.stop();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 enum AlwaysTopTransferRelation implements TransferRelation {
 
@@ -38,12 +39,19 @@ enum AlwaysTopTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
+      AbstractState pElement, Precision pPrecision) {
 
     assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
 
     return Collections.singleton(AlwaysTopState.INSTANCE);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
+    return getAbstractSuccessors(pState, pPrecision);
   }
 
   @Override

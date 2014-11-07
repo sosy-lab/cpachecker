@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.sosy_lab.common.time.TimeSpan;
+
 /**
  * A limit that measures the elapsed time as returned by {@link System#nanoTime()}.
  */
@@ -38,6 +40,10 @@ public class WalltimeLimit implements ResourceLimit {
   private WalltimeLimit(long pDuration) {
     duration = pDuration;
     endTime = getCurrentValue() + pDuration;
+  }
+
+  public static WalltimeLimit fromNowOn(TimeSpan timeSpan) {
+    return fromNowOn(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
   public static WalltimeLimit fromNowOn(long time, TimeUnit unit) {

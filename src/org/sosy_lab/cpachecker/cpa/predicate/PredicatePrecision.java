@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,17 +26,18 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -66,8 +67,8 @@ public class PredicatePrecision implements Precision {
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
 
-  private final int id = idCounter++;
-  private static int idCounter = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int id = idGenerator.getFreshId();
 
   public PredicatePrecision(
       Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
@@ -305,7 +306,7 @@ public class PredicatePrecision implements Precision {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getGlobalPredicates(),
+    return Objects.hash(getGlobalPredicates(),
                              getFunctionPredicates(),
                              getLocalPredicates(),
                              getLocationInstancePredicates());
@@ -317,7 +318,7 @@ public class PredicatePrecision implements Precision {
       return true;
     } else if (pObj == null) {
       return false;
-    } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
+    } else if (!(pObj.getClass().equals(this.getClass()))) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;

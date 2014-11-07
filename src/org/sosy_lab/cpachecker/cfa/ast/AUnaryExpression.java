@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
-
-import com.google.common.base.Objects;
-
 
 public abstract class AUnaryExpression extends AExpression {
 
@@ -60,8 +59,8 @@ public abstract class AUnaryExpression extends AExpression {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(operand);
-    result = prime * result + Objects.hashCode(operator);
+    result = prime * result + Objects.hash(operand);
+    result = prime * result + Objects.hash(operator);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -82,8 +81,8 @@ public abstract class AUnaryExpression extends AExpression {
 
     AUnaryExpression other = (AUnaryExpression) obj;
 
-    return Objects.equal(other.operand, operand)
-            && Objects.equal(other.operator, operator);
+    return Objects.equals(other.operand, operand)
+            && Objects.equals(other.operator, operator);
   }
 
   public static  interface AUnaryOperator {

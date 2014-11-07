@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,13 +34,15 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -50,14 +52,17 @@ import com.google.common.collect.Iterables;
 
 public class CompositeTransferRelation implements TransferRelation {
 
-  protected final ImmutableList<TransferRelation> transferRelations;
-  protected final int size;
+  private final ImmutableList<TransferRelation> transferRelations;
+  private final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
+  private final boolean isErrorStateDetectableInStrengthening;
 
-  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations) {
+  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations, boolean pErrorDetctableInStrengthen) {
     this.transferRelations = transferRelations;
     size = transferRelations.size();
+
+    isErrorStateDetectableInStrengthening = pErrorDetctableInStrengthen;
 
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
@@ -72,29 +77,36 @@ public class CompositeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<CompositeState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
+  public Collection<CompositeState> getAbstractSuccessors(
+      AbstractState element, Precision precision)
         throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
 
-    if (cfaEdge == null) {
-      CFANode node = extractLocation(compositeState);
-      if (node == null) {
-        throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
-      }
-
-      results = new ArrayList<>(node.getNumLeavingEdges());
-
-      for (CFAEdge edge : leavingEdges(node)) {
-        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
-      }
-
-    } else {
-      results = new ArrayList<>(1);
-      getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
-
+    AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
+    if (locState == null) {
+      throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
     }
+
+    results = new ArrayList<>(2);
+
+    for (CFAEdge edge : locState.getOutgoingEdges()) {
+      getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+    }
+
+    return results;
+  }
+
+  @Override
+  public Collection<CompositeState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+        throws CPATransferException, InterruptedException {
+    CompositeState compositeState = (CompositeState) element;
+    CompositePrecision compositePrecision = (CompositePrecision)precision;
+
+    Collection<CompositeState> results = new ArrayList<>(1);
+    getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     return results;
   }
@@ -103,10 +115,10 @@ public class CompositeTransferRelation implements TransferRelation {
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
-
     // first, call all the post operators
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
+    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {
@@ -114,7 +126,8 @@ public class CompositeTransferRelation implements TransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, cfaEdge);
+      Collection<? extends AbstractState> componentSuccessors =
+          lCurrentTransfer.getAbstractSuccessorsForEdge(lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {
@@ -128,6 +141,8 @@ public class CompositeTransferRelation implements TransferRelation {
     // create cartesian product of all elements we got
     Collection<List<AbstractState>> allResultingElements
         = createCartesianProduct(allComponentsSuccessors, resultCount);
+
+    AbstractState foundInStrengthen = null;
 
     // second, call strengthen for each result of the cartesian product
     for (List<AbstractState> lReachedState : allResultingElements) {
@@ -154,6 +169,17 @@ public class CompositeTransferRelation implements TransferRelation {
             break;
           }
 
+          if (isErrorStateDetectableInStrengthening && foundInStrengthen == null) {
+            if (lCurrentElement instanceof AutomatonState) {
+              for (AbstractState strengthenState : lResultsList) {
+                if (((Targetable) strengthenState).isTarget()) {
+                  foundInStrengthen = strengthenState;
+                  break;
+                }
+              }
+            }
+          }
+
           lStrengthenResults.add(lResultsList);
         }
       }
@@ -166,6 +192,18 @@ public class CompositeTransferRelation implements TransferRelation {
         TransferRelation predTransfer = transferRelations.get(predicatesIndex);
 
         Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+        resultCount *= predResult.size();
+
+        lStrengthenResults.set(predicatesIndex, predResult);
+      }
+
+      // special case handling error state found during strengthening if we have predicate
+      if (predicatesIndex >= 0 && foundInStrengthen!=null && resultCount > 0) {
+        AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+        Precision predPrecision = compositePrecision.get(predicatesIndex);
+        TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+
+        Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(foundInStrengthen), cfaEdge, predPrecision);
         resultCount *= predResult.size();
 
         lStrengthenResults.set(predicatesIndex, predResult);

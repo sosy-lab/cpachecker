@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,10 +35,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -137,7 +137,8 @@ public class PredicateAbstractionsWriter {
       writer.append("\n\n");
 
       // -- then the assertions
-      for (ARGState state : stateToAssert.keySet()) {
+      for (Map.Entry<ARGState, String> entry : stateToAssert.entrySet()) {
+        ARGState state = entry.getKey();
         StringBuilder stateSuccessorsSb = new StringBuilder();
         for (ARGState successor : successors.get(state)) {
           if (stateSuccessorsSb.length() > 0) {
@@ -146,11 +147,12 @@ public class PredicateAbstractionsWriter {
           stateSuccessorsSb.append(getAbstractionId(successor));
         }
 
-        writer.append(String.format("%d (%s) @%d:\n",
+        writer.append(String.format("%d (%s) @%d:",
             getAbstractionId(state),
             stateSuccessorsSb.toString(),
             AbstractStates.extractLocation(state).getNodeNumber()));
-        writer.append(stateToAssert.get(state));
+        writer.append("\n");
+        writer.append(entry.getValue());
         writer.append("\n\n");
       }
 

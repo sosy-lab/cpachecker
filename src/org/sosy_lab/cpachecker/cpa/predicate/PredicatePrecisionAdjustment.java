@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
@@ -34,10 +34,9 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
+import org.sosy_lab.cpachecker.cpa.predicate.synthesis.AbstractionInstanceSynthesis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
@@ -76,8 +77,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private @Nullable InvariantGenerator invariantGenerator;
   private @Nullable Map<CFANode, BooleanFormula> invariants = null;
 
+  private final AbstractionInstanceSynthesis precSynthesis;
+
   public PredicatePrecisionAdjustment(PredicateCPA pCpa,
-      InvariantGenerator pInvariantGenerator) {
+      InvariantGenerator pInvariantGenerator,
+      AbstractionInstanceSynthesis pPrecSynthesis) {
+
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
@@ -85,10 +90,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     bfmgr = fmgr.getBooleanFormulaManager();
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
+    precSynthesis = checkNotNull(pPrecSynthesis);
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
 
@@ -102,8 +108,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         element = computeAbstraction((ComputeAbstractionState)element, precision);
       }
 
-      Action action = element.isTarget() ? Action.BREAK : Action.CONTINUE;
-      return Triple.<AbstractState, Precision, Action>of(element, pPrecision, action);
+      return PrecisionAdjustmentResult.create(element, pPrecision, Action.CONTINUE);
 
     } finally {
       totalPrecTime.stop();
@@ -126,8 +131,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
@@ -142,8 +145,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
+      // the basic precision
+      Collection<AbstractionPredicate> locInstancePreds = precision.getPredicates(loc, newLocInstance);
+
+      // the precision synthesis module might add additional predicates...
+      Collection<AbstractionPredicate> synthPreds =
+          precSynthesis.getSyntheticPredicates(element, loc, newLocInstance);
+
+      // union of the predicates that should be considered for computing the abstraction
+      Collection<AbstractionPredicate> toConsiderPreds = ImmutableList.<AbstractionPredicate>builder()
+          .addAll(synthPreds).addAll(locInstancePreds).build();
+
+      // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(
-          loc, abstractionFormula, pathFormula, preds);
+          loc, abstractionFormula, pathFormula, toConsiderPreds);
     } finally {
       computingAbstractionTime.stop();
     }
@@ -166,7 +181,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, element.getViolatedProperty());
+        newAbstractionFormula, abstractionLocations);
   }
 
   private void extractInvariants() throws CPAException {

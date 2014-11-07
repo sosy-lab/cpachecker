@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,9 +42,9 @@ logging.debug("Starting cloud.")
 
 logLevel = "FINER"
 
-cpachecker_dir = os.path.normpath(os.path.dirname(argv[0]) + "/..") # directory above script directory
-lib_dir = os.path.abspath("./lib/java-benchmark")
-cmd_line = ["java", "-jar", lib_dir + "/vcloud.jar", "cpachecker",\
+cpachecker_dir = os.path.normpath(os.path.join(os.path.dirname(argv[0]), os.pardir)) # directory above script directory
+lib_dir = os.path.abspath(os.path.join("lib", "java-benchmark"))
+cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",\
             "--loglevel", logLevel,\
             "--input", in_file,\
             "--cpachecker-dir", cpachecker_dir,\

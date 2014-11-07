@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,8 +68,8 @@ public class RTTCPAStatistics implements Statistics {
     out.println("Max. number of variables: " + maxNumberOfVariables);
     out.println("Max. number of globals variables: " + maxNumberOfGlobalVariables);
 
-    out.println("Avg. number of variables: " + ((totalNumberOfVariables * 10000) / reached.size()) / 10000.0);
-    out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
+    out.println("Avg. number of variables: " + ((totalNumberOfVariables * 10000.0) / reached.size()) / 10000.0);
+    out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000.0) / reached.size()) / 10000.0);
 
   }
 

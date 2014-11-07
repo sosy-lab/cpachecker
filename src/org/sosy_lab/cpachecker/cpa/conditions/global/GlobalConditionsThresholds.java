@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,24 +26,24 @@ package org.sosy_lab.cpachecker.cpa.conditions.global;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.log.LogManager;
 
 @Options(prefix="cpa.conditions.global")
 class GlobalConditionsThresholds {
 
-  @Option(name="reached.size",
+  @Option(secure=true, name="reached.size",
       description="Limit for size of reached set (-1 for infinite)")
   @IntegerOption(min=-1)
   private int reachedSetSize = -1;
 
 
-  @Option(name="time.wall",
+  @Option(secure=true, name="time.wall",
       description="Limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
@@ -52,7 +52,7 @@ class GlobalConditionsThresholds {
 
   private long wallEndTime; // when to end analysis (according to wall time limit)
 
-  @Option(name="time.wall.hardlimit",
+  @Option(secure=true, name="time.wall.hardlimit",
       description="Hard limit for wall time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
                   "\nWhen using adjustable conditions, analysis will end after this threshold")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
@@ -62,7 +62,7 @@ class GlobalConditionsThresholds {
 
   private long wallEndTimeHardLimit;
 
-  @Option(name="time.cpu",
+  @Option(secure=true, name="time.cpu",
       description="Limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
@@ -71,7 +71,7 @@ class GlobalConditionsThresholds {
 
   private long cpuEndTime;  // when to end analysis (according to cpu time limit)
 
-  @Option(name="time.cpu.hardlimit",
+  @Option(secure=true, name="time.cpu.hardlimit",
       description="Hard limit for cpu time used by CPAchecker (use milliseconds or specify a unit; -1 for infinite)" +
           "\nWhen using adjustable conditions, analysis will end after this threshold")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
@@ -80,13 +80,13 @@ class GlobalConditionsThresholds {
   private long cpuTimeHardLimit = -1;
 
 
-  @Option(name="memory.heap",
-      description="Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)")
+  @Option(secure=true, name="memory.heap",
+      description="Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
   @IntegerOption(min=-1)
   private long heapMemory = -1;
 
-  @Option(name="memory.process",
-      description="Limit for process memory used by CPAchecker (in MiB; -1 for infinite)")
+  @Option(secure=true, name="memory.process",
+      description="Limit for process memory used by CPAchecker (in MB, not MiB!; -1 for infinite)")
   @IntegerOption(min=-1)
   private long processMemory = -1;
 

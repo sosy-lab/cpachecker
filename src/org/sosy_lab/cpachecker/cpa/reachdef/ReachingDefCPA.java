@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,21 +27,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -66,15 +61,15 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private LogManager logger;
 
-  private ReachingDefDomain domain;
+  private AbstractDomain domain;
 
   private ReachingDefTransferRelation transfer;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which merge operator to use for ReachingDefCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 
@@ -85,12 +80,12 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
-  private ReachingDefCPA(LogManager logger, Configuration config) throws InvalidConfigurationException {
+  private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
 
-    domain = new ReachingDefDomain();
-    transfer = new ReachingDefTransferRelation(logger);
+    domain = DelegateAbstractDomain.<ReachingDefState>getInstance();
+    transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
@@ -100,7 +95,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
       stop = new StopIgnoringCallstack();
     }
     if (mergeType.equals("SEP")) {
-      merge = new MergeSepOperator();
+      merge = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")) {
       merge = new MergeJoinOperator(domain);
     } else {

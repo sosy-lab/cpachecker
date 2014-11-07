@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.math.BigInteger;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
-
-import com.google.common.base.Objects;
 
 /**
  * This class represents simple convex ranges of BigIntegers.
@@ -298,13 +297,13 @@ public class SimpleInterval {
     }
 
     SimpleInterval other = (SimpleInterval) pObj;
-    return Objects.equal(this.lowerBound, other.lowerBound)
-        && Objects.equal(this.upperBound, other.upperBound);
+    return Objects.equals(this.lowerBound, other.lowerBound)
+        && Objects.equals(this.upperBound, other.upperBound);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(lowerBound, upperBound);
+    return Objects.hash(lowerBound, upperBound);
   }
 
   @Override

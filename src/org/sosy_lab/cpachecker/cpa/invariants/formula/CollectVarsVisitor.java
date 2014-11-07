@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,6 +81,11 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
   @Override
   public Set<String> visit(Equal<T> pEqual) {
     return concat(pEqual.getOperand1().accept(this), pEqual.getOperand2().accept(this));
+  }
+
+  @Override
+  public Set<String> visit(Exclusion<T> pExclusion) {
+    return pExclusion.getExcluded().accept(this);
   }
 
   @Override

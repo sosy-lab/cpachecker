@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -65,6 +66,7 @@ public class CFACheck {
 
       if (visitedNodes.add(node)) {
         Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
+        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node);
@@ -83,8 +85,19 @@ public class CFACheck {
 
   private static final Function<CFANode, String> DEBUG_FORMAT = new Function<CFANode, String>() {
     @Override
-    public String apply(CFANode arg0) {
-      return arg0.getFunctionName() + ":" + arg0.toString() + " (line " + arg0.getLineNumber() + ")";
+    public String apply(CFANode node) {
+      if (node == null) {
+        // nothing useful to do. this line only exists, because input for Function.apply might be NULL.
+        return "NULL";
+      }
+      // try to get some information about location from node
+      FileLocation location = FileLocation.DUMMY;
+      if (node.getNumEnteringEdges() > 0) {
+        location = node.getEnteringEdge(0).getFileLocation();
+      } else if (node.getNumLeavingEdges() > 0) {
+        location = node.getLeavingEdge(0).getFileLocation();
+      }
+      return node.getFunctionName() + ":" + node + " (" + location + ")";
     }
   };
 
@@ -97,7 +110,7 @@ public class CFACheck {
     // check entering edges
     int entering = pNode.getNumEnteringEdges();
     if (entering == 0) {
-      assert (pNode instanceof FunctionEntryNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges";
+      assert (pNode instanceof FunctionEntryNode) : "Dead code: node " + DEBUG_FORMAT.apply(pNode) + " has no incoming edges (successors are " + CFAUtils.successorsOf(pNode).transform(DEBUG_FORMAT) + ")";
     }
 
     // check leaving edges
@@ -106,7 +119,7 @@ public class CFACheck {
       case 0:
         if (!pruned) {
           // not possible to check this when CFA was pruned
-          assert pNode instanceof CFATerminationNode : "Dead end at node " + pNode;
+          assert pNode instanceof CFATerminationNode : "Dead end at node " + DEBUG_FORMAT.apply(pNode);
         }
         break;
 
@@ -163,7 +176,7 @@ public class CFACheck {
 
       boolean hasEdge = enteringEdges(successor).contains(edge);
       assert hasEdge : "Node " + DEBUG_FORMAT.apply(pNode) + " has leaving edge " + edge
-          + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as entering edge!";
+          + ", but pNode " + DEBUG_FORMAT.apply(successor) + " does not have this edge as entering edge!";
     }
 
     seenEdges.clear();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,6 +109,28 @@ public class AFunctionType implements IAFunctionType {
     // because it's not really relevant for type equality.
     return Objects.equals(parameters, other.parameters)
            && Objects.equals(returnType, other.returnType);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("Return type: [");
+    int parameterCounter = 0;
+
+    sb.append(returnType.toString());
+    sb.append ("], ");
+
+    sb.append("Parameters: " + parameters.size() + ", ");
+
+    if (!parameters.isEmpty()) {
+      for (Type currType : parameters) {
+        parameterCounter++;
+        sb.append("Parameter " + parameterCounter + " type: [" + currType + "], ");
+      }
+    }
+
+    sb.append("VarArgs: " + takesVarArgs);
+
+    return sb.toString();
   }
 
 }

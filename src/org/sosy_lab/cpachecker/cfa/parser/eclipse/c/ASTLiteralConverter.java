@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,34 +41,34 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Function;
+
 /** This Class contains functions,
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
 class ASTLiteralConverter {
 
-  private final ASTTypeConverter typeConverter;
   private final MachineModel machine;
 
-  ASTLiteralConverter(ASTTypeConverter pTypeConverter, MachineModel pMachineModel) {
-    typeConverter = pTypeConverter;
+  private final Function<String, String> niceFileNameFunction;
+
+  ASTLiteralConverter(MachineModel pMachineModel, Function<String, String> pNiceFileNameFunction) {
     machine = pMachineModel;
+    niceFileNameFunction = pNiceFileNameFunction;
   }
 
-  private static void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
-    if (!assertion) { throw new CFAGenerationRuntimeException(msg, astNode); }
+  private void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
+    if (!assertion) { throw new CFAGenerationRuntimeException(msg, astNode, niceFileNameFunction); }
   }
 
   /** This function converts literals like chars or numbers. */
-  CLiteralExpression convert(final IASTLiteralExpression e) {
-    final FileLocation fileLoc = ASTConverter.getLocation(e);
-    final CType type = typeConverter.convert(e.getExpressionType());
-
+  CLiteralExpression convert(final IASTLiteralExpression e, final CType type, final FileLocation fileLoc) {
     if (!(type instanceof CSimpleType)
         && (e.getKind() != IASTLiteralExpression.lk_string_literal)) {
-      throw new CFAGenerationRuntimeException("Invalid type " + type + " for literal expression", e);
+      throw new CFAGenerationRuntimeException("Invalid type " + type + " for literal expression", e, niceFileNameFunction);
     }
 
     String valueStr = String.valueOf(e.getValue());
-    if(valueStr.endsWith("i") || valueStr.endsWith("j")) {
+    if (valueStr.endsWith("i") || valueStr.endsWith("j")) {
       return handleImaginaryNumber(fileLoc, (CSimpleType)type, e, valueStr);
     }
 
@@ -97,7 +97,7 @@ class ASTLiteralConverter {
           // TODO handle hex floating point literals that are too large for Double
           value = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
-          throw new CFAGenerationRuntimeException("illegal floating point literal", e);
+          throw new CFAGenerationRuntimeException("illegal floating point literal", e, niceFileNameFunction);
         }
       }
 
@@ -107,12 +107,12 @@ class ASTLiteralConverter {
       return new CStringLiteralExpression(fileLoc, type, valueStr);
 
     default:
-      throw new CFAGenerationRuntimeException("Unknown literal", e);
+      throw new CFAGenerationRuntimeException("Unknown literal", e, niceFileNameFunction);
     }
   }
 
   private CImaginaryLiteralExpression handleImaginaryNumber(FileLocation fileLoc, CSimpleType type, IASTLiteralExpression exp, String valueStr) {
-    String value = valueStr.substring(0, valueStr.length()-1);
+    valueStr = valueStr.substring(0, valueStr.length()-1);
     String imaginary = valueStr.charAt(valueStr.length()-1) + "";
     type = new CSimpleType(type.isConst(), type.isVolatile(), type.getType(), type.isLong(),
         type.isShort(), type.isSigned(), type.isUnsigned(), type.isComplex(), true, type.isLongLong());
@@ -120,14 +120,14 @@ class ASTLiteralConverter {
     case IASTLiteralExpression.lk_char_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(value, exp)),
+                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)),
                                              imaginary) ;
 
 
     case IASTLiteralExpression.lk_integer_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
-                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(value, exp)),
+                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, exp)),
                                              imaginary) ;
 
     case IASTLiteralExpression.lk_float_constant:
@@ -140,15 +140,15 @@ class ASTLiteralConverter {
           valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
         }
 
-        val = new BigDecimal(value);
+        val = new BigDecimal(valueStr);
       } catch (NumberFormatException nfe1) {
         try {
           // this might be a hex floating point literal
           // BigDecimal doesn't support this, but Double does
           // TODO handle hex floating point literals that are too large for Double
-          val = BigDecimal.valueOf(Double.parseDouble(value));
+          val = BigDecimal.valueOf(Double.parseDouble(valueStr));
         } catch (NumberFormatException nfe2) {
-          throw new CFAGenerationRuntimeException("illegal floating point literal", exp);
+          throw new CFAGenerationRuntimeException("illegal floating point literal", exp, niceFileNameFunction);
         }
       }
 
@@ -158,11 +158,11 @@ class ASTLiteralConverter {
                                              imaginary);
 
     default:
-      throw new CFAGenerationRuntimeException("Unknown imaginary literal", exp);
+      throw new CFAGenerationRuntimeException("Unknown imaginary literal", exp, niceFileNameFunction);
     }
   }
 
-  static char parseCharacterLiteral(String s, final IASTNode e) {
+  char parseCharacterLiteral(String s, final IASTNode e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
     check(s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
         "character literal without quotation marks", e);
@@ -188,7 +188,7 @@ class ASTLiteralConverter {
           result = (char) Integer.parseInt(s, 16);
           check(result <= 0xFF, "hex escape sequence out of range", e);
         } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e);
+          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e, niceFileNameFunction);
         }
 
       } else if (isDigit(c)) {
@@ -198,7 +198,7 @@ class ASTLiteralConverter {
           result = (char) Integer.parseInt(s, 8);
           check(result <= 0xFF, "octal escape sequence out of range", e);
         } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e);
+          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e, niceFileNameFunction);
         }
 
       } else {
@@ -236,7 +236,7 @@ class ASTLiteralConverter {
           result = '\\';
           break;
         default:
-          throw new CFAGenerationRuntimeException("unknown character literal", e);
+          throw new CFAGenerationRuntimeException("unknown character literal", e, niceFileNameFunction);
         }
       }
     }
@@ -244,15 +244,15 @@ class ASTLiteralConverter {
   }
 
   BigInteger parseIntegerLiteral(String s, final IASTNode e) {
-    return parseIntegerLiteral(s, e, machine);
-  }
-
-  static BigInteger parseIntegerLiteral(String s, final IASTNode e, MachineModel machine) {
     // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
     int last = s.length() - 1;
     int bytes = machine.getSizeofInt();
     boolean signed = true;
 
+    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      last--;
+      signed = false;
+    }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
       // one 'L' is a long int
@@ -264,6 +264,9 @@ class ASTLiteralConverter {
       bytes = machine.getSizeofLongLongInt();
     }
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
+      if (!signed) {
+        throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", e, niceFileNameFunction);
+      }
       last--;
       signed = false;
     }
@@ -284,7 +287,7 @@ class ASTLiteralConverter {
         result = new BigInteger(s, 10);
       }
     } catch (NumberFormatException _) {
-      throw new CFAGenerationRuntimeException("invalid number", e);
+      throw new CFAGenerationRuntimeException("invalid number", e, niceFileNameFunction);
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 

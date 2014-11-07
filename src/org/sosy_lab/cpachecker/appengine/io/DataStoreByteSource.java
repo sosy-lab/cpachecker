@@ -27,16 +27,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
+import org.sosy_lab.cpachecker.appengine.entity.TaskFile;
 
 import com.google.common.io.ByteSource;
 
 
 public class DataStoreByteSource extends ByteSource {
 
-  private JobFile file;
+  private TaskFile file;
 
-  public DataStoreByteSource(JobFile file) {
+  public DataStoreByteSource(TaskFile file) {
     this.file = file;
   }
 

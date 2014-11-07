@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-class Mathsat5Formula implements Formula {
+abstract class Mathsat5Formula implements Formula {
 
   private final long msatTerm;
 
@@ -63,11 +65,24 @@ class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormu
   }
 }
 
+class Mathsat5FloatingPointFormula extends Mathsat5Formula implements FloatingPointFormula {
+  public Mathsat5FloatingPointFormula(long pTerm) {
+    super(pTerm);
+  }
+}
+
+class Mathsat5IntegerFormula extends Mathsat5Formula implements IntegerFormula {
+  public Mathsat5IntegerFormula(long pTerm) {
+    super(pTerm);
+  }
+}
+
 class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula {
   public Mathsat5RationalFormula(long pTerm) {
     super(pTerm);
   }
 }
+
 class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
   public Mathsat5BooleanFormula(long pTerm) {
     super(pTerm);

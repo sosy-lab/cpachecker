@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface AbstractDomain {
@@ -35,13 +36,18 @@ public interface AbstractDomain {
    * merge-sep, it does not have to provide an implementation of this method.
    * This method should then throw an {@link UnsupportedOperationException}.
    *
+   * If {@link MergeJoinOperator} is used,
+   * please also follow the note in the documentation of
+   * {@link MergeOperator#merge(AbstractState, AbstractState, Precision)}.
+   *
    * @param state1 an abstract state
    * @param state2 an abstract state
    * @return the join of state1 and state2
    * @throws CPAException If any error occurred.
    * @throws UnsupportedOperationException If this domain does not provide a join method.
+   * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException;
+  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
 
   /**
    * Returns true if state1 is less or equal than state2 with respect to

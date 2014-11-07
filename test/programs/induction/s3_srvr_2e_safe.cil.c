@@ -1,3 +1,5 @@
+extern void __assert_fail();
+
 int main(void) {
 
   int s__state = 1;

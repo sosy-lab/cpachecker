@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -50,6 +51,7 @@ public abstract class PredicateRefiner implements Refiner {
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
     PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
+    MachineModel machineModel = predicateCpa.getMachineModel();
 
     InterpolationManager manager = new InterpolationManager(
         fmgr,
@@ -60,7 +62,7 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getShutdownNotifier(),
         logger);
 
-    PathChecker pathChecker = new PathChecker(logger, pfmgr, solver);
+    PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
 
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
         config,

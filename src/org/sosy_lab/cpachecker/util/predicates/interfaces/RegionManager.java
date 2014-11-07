@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
@@ -45,7 +46,7 @@ public interface RegionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws InterruptedException;
+  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException;
 
   /**
    * @return a representation of logical truth
@@ -151,6 +152,11 @@ public interface RegionManager {
    * Prints some information about the RegionManager.
    */
   public void printStatistics(PrintStream out);
+
+  /**
+   * Returns a short string with package name and version number.
+   */
+  public String getVersion();
 
   /**
    * Return a new {@link RegionBuilder} instance.

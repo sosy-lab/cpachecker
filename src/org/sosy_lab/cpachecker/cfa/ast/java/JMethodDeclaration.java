@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,7 +68,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   private final String simpleName;
 
   private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(new FileLocation(0, "", 0, 0, 0),
+      new JMethodDeclaration(FileLocation.DUMMY,
           JMethodType.createUnresolvableType(), "__Unresolved__",
           "__Unresolved__",
           new ArrayList<JParameterDeclaration>(),
@@ -240,14 +240,15 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
     List<JType> parameterTypes = pMethodType.getParameters();
     List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
 
-    FileLocation externFileLoc = new FileLocation(0, "", 0, 0, 0);
+    FileLocation externFileLoc = FileLocation.DUMMY;
 
     int i = 0;
 
     for (JType parameterType : parameterTypes) {
+      final String parameterName = "parameter" + String.valueOf(i);
       parameters.add(
-          new JParameterDeclaration(externFileLoc, parameterType, "parameter" +
-              String.valueOf(i), false));
+          new JParameterDeclaration(externFileLoc, parameterType, parameterName,
+              pName + "::" + parameterName, false));
       i++;
     }
 

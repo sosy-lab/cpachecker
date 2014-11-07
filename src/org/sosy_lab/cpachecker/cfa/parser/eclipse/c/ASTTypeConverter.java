@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,8 +53,10 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.IValue;
 import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -84,11 +87,14 @@ class ASTTypeConverter {
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
+  private final Function<String, String> niceFileNameFunction;
 
-  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix) {
+  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix,
+      Function<String, String> pNiceFileNameFunction) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
+    niceFileNameFunction = pNiceFileNameFunction;
     if (!typeConversions.containsKey(filePrefix)) {
       typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
     }
@@ -99,27 +105,15 @@ class ASTTypeConverter {
   private final static Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
 
   /**
-   * This can be used to create (fake) mappings from IType to CType.
-   * Use only if you are absolutely sure that your CType corresponds to the
-   * given IType, and you cannot use the regular type conversion methods
-   * of this class.
-   * @see ASTConverter#convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference) for an example
-   */
-  void registerType(IType cdtType, CType ourType) {
-    CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
-    assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()): "Overwriting type conversion";
-  }
-
-  /**
    * This can be used to rename a CType in case of Types with equal names but
    * different fields, from different files.
    */
-  void overwriteType(IType cdtType, CType ourType) {
+  static void overwriteType(IType cdtType, CType ourType, String filePrefix) {
     typeConversions.get(filePrefix).put(cdtType, ourType);
   }
 
-  IType getTypeFromTypeConversion(CType ourCType) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+  static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
@@ -168,18 +162,11 @@ class ASTTypeConverter {
       String qualifiedName = kind.toASTString() + " " + name;
 
       CComplexType oldType = scope.lookupType(qualifiedName);
-      int counter = 0;
-      while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-        oldType = scope.lookupType(qualifiedName + "__" + counter);
-        counter++;
-      }
 
       // We have seen this type already.
       // Replace it with a CElaboratedType.
-      if (oldType != null && counter == 0) {
-        return new CElaboratedType(false, false, kind, name, oldType);
-      } else if (oldType != null) {
-        return new CElaboratedType(false, false, kind, name + "__" + counter, oldType);
+      if (oldType != null) {
+        return new CElaboratedType(false, false, kind, oldType.getName(), oldType);
       }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
@@ -242,7 +229,7 @@ class ASTTypeConverter {
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
         return new CProblemType(problem.getASTNode().getRawSignature());
       }
-      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode());
+      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode(), niceFileNameFunction);
 
     } else {
       throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
@@ -314,17 +301,10 @@ class ASTTypeConverter {
     final String name = t.getName();
 
     CType oldType = scope.lookupTypedef(name);
-    int counter = 0;
-    while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
-      oldType = scope.lookupType(name + "__" + counter);
-      counter++;
-    }
 
     // We have seen this type already.
-    if (oldType != null && counter == 0) {
+    if (oldType != null) {
       return new CTypedefType(false, false, t.getName(), oldType);
-    } else if (oldType != null) {
-      return new CTypedefType(false, false, name + "__" + counter, oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(false, false, t.getName(), convert(t.getType()));
     }
@@ -333,8 +313,8 @@ class ASTTypeConverter {
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
-    for (int i = 0; i < pFields.length; i++) {
-      list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    for (IField pField : pFields) {
+      list.add(new CCompositeTypeMemberDeclaration(convert(pField.getType()), pField.getName()));
     }
     return list;
   }
@@ -343,12 +323,12 @@ class ASTTypeConverter {
     CExpression length = null;
     IValue v = t.getSize();
     if (v != null && v.numericalValue() != null) {
-      length = new CIntegerLiteralExpression(null, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
+      length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
         if (length != null) {
-          length = converter.simplifyAndEvaluateExpression(length).getFirst();
+          length = converter.simplifyExpressionRecursively(length);
         }
       } catch (DOMException e) {
         throw new CFAGenerationRuntimeException(e);
@@ -398,7 +378,11 @@ class ASTTypeConverter {
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
     CComplexType realType = scope.lookupType("enum " + e.getName());
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, e.getName(), realType);
+    String name = e.getName();
+    if (realType != null) {
+      name = realType.getName();
+    }
+    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -442,27 +426,39 @@ class ASTTypeConverter {
       return ctype;
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
-          + dd.getClass().getSimpleName(), dd);
+          + dd.getClass().getSimpleName(), dd, niceFileNameFunction);
     }
 
     if ((dd.isShort() && dd.isLong())
         || (dd.isShort() && dd.isLongLong())
         || (dd.isLong() && dd.isLongLong())
         || (dd.isSigned() && dd.isUnsigned())) { throw new CFAGenerationRuntimeException(
-        "Illegal combination of type identifiers", dd); }
+        "Illegal combination of type identifiers", dd, niceFileNameFunction); }
 
     return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), dd.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
-  CTypedefType convert(final IASTNamedTypeSpecifier d) {
-    org.eclipse.cdt.core.dom.ast.IASTName name = d.getName();
-    org.eclipse.cdt.core.dom.ast.IBinding binding = name.resolveBinding();
+  CType convert(final IASTNamedTypeSpecifier d) {
+    org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
+    String name = ASTConverter.convert(astName);
+    org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
     if (!(binding instanceof IType)) {
-      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d);
+      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d, niceFileNameFunction);
     }
-    return new CTypedefType(d.isConst(), d.isVolatile(), ASTConverter.convert(name), convert((IType)binding));
+    CType type = null;
+    if (binding instanceof IProblemBinding) {
+      type = scope.lookupTypedef(name);
+      if (type == null) {
+        type = scope.lookupType(name);
+      }
+    }
+    if (type == null) {
+      type = convert((IType) binding);
+    }
+
+    return new CTypedefType(d.isConst(), d.isVolatile(), name, type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
@@ -482,7 +478,7 @@ class ASTTypeConverter {
       return CStorageClass.TYPEDEF;
 
     default:
-      throw new CFAGenerationRuntimeException("Unsupported storage class", d);
+      throw new CFAGenerationRuntimeException("Unsupported storage class", d, niceFileNameFunction);
     }
   }
 
@@ -499,19 +495,13 @@ class ASTTypeConverter {
       type = ComplexTypeKind.UNION;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d, niceFileNameFunction);
     }
 
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
-
-    int counter = -1;
-    while (realType == null && counter < (typeConversions.size() - 1) && typeConversions.size() > 1) {
-      counter++;
-      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
-    }
-    if (counter >= 0) {
-      name = name + "__" + counter;
+    if (realType != null) {
+      name = realType.getName();
     }
 
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
@@ -524,7 +514,7 @@ class ASTTypeConverter {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
+      throw new CFAGenerationRuntimeException("Unknown pointer operator", po, niceFileNameFunction);
     }
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,12 +30,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
@@ -60,7 +60,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
-  @Option(description="maximum number of condition adjustments (-1 for infinite)")
+  @Option(secure=true, description="maximum number of condition adjustments (-1 for infinite)")
   @IntegerOption(min=-1)
   private int adjustmentLimit = -1;
 

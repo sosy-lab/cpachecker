@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
  * This class represents an expression unique to the java cfa.
- * It evauates to true, if the run time type of the expression is the same
+ * It evaluates to true, if the run time type of the expression is the same
  * as the type Definition. Otherwise, it evaluates to false.
  *
  */
@@ -74,7 +74,7 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
     StringBuilder astString = new StringBuilder("(");
     astString.append(getRunTimeTypeExpression().toASTString());
     astString.append("_equals(");
-    astString.append(getTypeDef().getName());
+    astString.append(getTypeDef().getName()); // FIXME _class missing? I.e. var_getClass()_equals(typeDef_class)?
     astString.append("))");
     return astString.toString();
   }

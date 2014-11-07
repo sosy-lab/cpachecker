@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -55,31 +55,32 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithABM, PostProcessor, ProofChecker
-{
+
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, PostProcessor, ProofChecker {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
-    @Option(toUppercase=true, values={"PLAIN", "AGREE"},
+    @Option(secure=true, toUppercase=true, values={"PLAIN", "AGREE"},
         description="which composite merge operator to use (plain or agree)\n"
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"COMPOSITE", "COMPONENT"},
+    @Option(secure=true, toUppercase=true, values={"COMPOSITE", "COMPONENT"},
     description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
       + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
       + "and only delegates to each component's precision adjustment operator individually, "
       + "the COMPONENT strategy operates with knowledge about all components.")
     private String precAdjust = "COMPOSITE";
 
-    @Option(
+    @Option(secure=true,
     description="inform Composite CPA if it is run in a predicated analysis because then it must"
       + "behave differntly during merge.")
     private boolean inPredicatedAnalysis = false;
@@ -111,7 +112,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       PredicateAbstractionManager abmgr = null;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if(sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA){
+        if (sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA) {
           abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
         }
 
@@ -158,19 +159,18 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
+      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), options.inPredicatedAnalysis);
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
+        compositePrecisionAdjustment = new ComponentAwarePrecisionAdjustment(
             precisionAdjustments.build(),
             getConfiguration(),
             cfa
             );
-      }
 
-      else {
+      } else {
         if (simplePrec) {
           compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
         } else {
@@ -236,8 +236,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     List<Reducer> wrappedReducers = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
-      if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
-        wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());
+      if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
+        wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
       } else {
         wrappedReducers.clear();
         break;

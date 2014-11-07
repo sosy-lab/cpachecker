@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,12 +30,10 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -76,8 +74,6 @@ public class CBinaryExpressionBuilderTest {
   }
 
 
-  private Configuration config;
-  private StringBuildingLogHandler stringLogHandler;
   private LogManager logger;
 
   private CBinaryExpressionBuilder c32;
@@ -85,10 +81,8 @@ public class CBinaryExpressionBuilderTest {
 
 
   @Before
-  public void init() throws InvalidConfigurationException {
-    config = Configuration.builder().build();
-    stringLogHandler = new StringBuildingLogHandler();
-    logger = new BasicLogManager(config, stringLogHandler);
+  public void init() {
+    logger = TestLogManager.getInstance();
 
     c32 = new CBinaryExpressionBuilder(MachineModel.LINUX32, logger);
     c64 = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
@@ -214,13 +208,13 @@ public class CBinaryExpressionBuilderTest {
 
 
   private void checkCalculation(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op));
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op));
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
+    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
   }
 
 
   private void checkResult(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op));
-    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op));
+    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
+    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
   }
 }

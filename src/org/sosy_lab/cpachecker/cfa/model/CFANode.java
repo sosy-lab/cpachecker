@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,18 +24,19 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.Iterables.getLast;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.primitives.Ints;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 public class CFANode implements Comparable<CFANode> {
 
-  private static int nextNodeNumber = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final int nodeNumber;
-  private final int lineNumber;
 
   private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
   private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
@@ -53,16 +54,11 @@ public class CFANode implements Comparable<CFANode> {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  public CFANode(int pLineNumber, String pFunctionName) {
+  public CFANode(String pFunctionName) {
     assert !pFunctionName.isEmpty();
 
-    lineNumber = pLineNumber;
     functionName = pFunctionName;
-    nodeNumber = nextNodeNumber++;
-  }
-
-  public int getLineNumber() {
-    return lineNumber;
+    nodeNumber = idGenerator.getFreshId();
   }
 
   public int getNodeNumber() {
@@ -124,7 +120,7 @@ public class CFANode implements Comparable<CFANode> {
       }
     }
 
-    throw new IllegalArgumentException();
+    throw new IllegalArgumentException("there is no edge from " + this + " to " + pOther);
   }
 
   public boolean hasEdgeTo(CFANode pOther) {
@@ -189,7 +185,66 @@ public class CFANode implements Comparable<CFANode> {
   }
 
   @Override
-  public int compareTo(CFANode pOther) {
-    return Ints.compare(this.nodeNumber, pOther.nodeNumber);
+  public final int compareTo(CFANode pOther) {
+    return Integer.compare(this.nodeNumber, pOther.nodeNumber);
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    // Object.equals() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because nodeNumber is a unique identifier.
+    return super.hashCode();
+  }
+
+  /**
+   * Return a human-readable string describing to which point in the program
+   * this state belongs to.
+   * Returns the empty string if no suitable description can be found.
+   *
+   * Normally CFANodes do not belong to a file location,
+   * so this should be used only as a best-effort guess to give a user
+   * at least something to hold on.
+   * Whenever possible, use the file locations of edges instead.
+   */
+  public String describeFileLocation() {
+    if (this instanceof FunctionEntryNode) {
+      return "entry of function " + getFunctionName()
+          + " in " + ((FunctionEntryNode)this).getFileLocation();
+    }
+
+    if (this instanceof FunctionExitNode) {
+      // these nodes do not belong to a location
+      return "exit of function " + getFunctionName()
+          + " in " + ((FunctionExitNode)this).getEntryNode().getFileLocation();
+    }
+
+    if (getNumLeavingEdges() > 0) {
+      CFAEdge edge = getLeavingEdge(0);
+      if (edge instanceof MultiEdge) {
+        edge = ((MultiEdge)edge).getEdges().get(0);
+      }
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+        return "before " + edge.getFileLocation();
+      }
+    }
+
+    if (getNumEnteringEdges() > 0) {
+      CFAEdge edge = getEnteringEdge(0);
+      if (edge instanceof MultiEdge) {
+        edge = getLast(((MultiEdge)edge).getEdges());
+      }
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+        return "after " + edge.getFileLocation();
+      }
+    }
+
+    return "";
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
@@ -37,6 +38,25 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, CompoundInterval> implements FormulaEvaluationVisitor<CompoundInterval> {
 
   private static final FormulaCompoundStateEvaluationVisitor EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
+
+  private static CompoundInterval abstractionOf(CompoundInterval pValue) {
+    if (pValue.isBottom() || pValue.isTop()) {
+      return pValue;
+    }
+    CompoundInterval result = pValue.signum();
+    boolean extendToNeg = false;
+    if (!pValue.lessThan(result).isDefinitelyFalse()) {
+      extendToNeg = true;
+    }
+    if (!pValue.greaterThan(result).isDefinitelyFalse()) {
+      result = result.extendToPositiveInfinity();
+    }
+    if (extendToNeg) {
+      result = result.extendToNegativeInfinity();
+    }
+    assert result.unionWith(pValue).equals(result);
+    return result;
+  }
 
   /**
    * Compute a compound state representing possible results of adding the
@@ -58,25 +78,6 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
       return pA;
     }
     return abstractionOf(pA.add(pB));
-  }
-
-  private static CompoundInterval abstractionOf(CompoundInterval pValue) {
-    if (pValue.isBottom() || pValue.isTop()) {
-      return pValue;
-    }
-    CompoundInterval result = pValue.signum();
-    boolean extendToNeg = false;
-    if (!pValue.lessThan(result).isDefinitelyFalse()) {
-      extendToNeg = true;
-    }
-    if (!pValue.greaterThan(result).isDefinitelyFalse()) {
-      result = result.extendToPositiveInfinity();
-    }
-    if (extendToNeg) {
-      result = result.extendToNegativeInfinity();
-    }
-    assert result.unionWith(pValue).equals(result);
-    return result;
   }
 
   /**
@@ -103,6 +104,12 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
     }
     if (b.isSingleton() && b.contains(1)) {
       return a;
+    }
+    if (a.isSingleton() && a.contains(BigInteger.ONE.negate())) {
+      return b.negate();
+    }
+    if (b.isSingleton() && b.contains(BigInteger.ONE.negate())) {
+      return a.negate();
     }
     return abstractionOf(a.multiply(b));
   }

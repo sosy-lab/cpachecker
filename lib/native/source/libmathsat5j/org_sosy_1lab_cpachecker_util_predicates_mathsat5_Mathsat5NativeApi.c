@@ -74,6 +74,11 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
     goto out##num; \
   }
 
+#define MPZ_ARG(num) \
+  mpz_t m_arg##num; \
+  mpz_init(m_arg##num); \
+  mpz_set_si(m_arg##num, arg##num);
+
 #define STRUCT_ARRAY_ARG(mtype, num) \
   mtype * m_arg##num; \
   { \
@@ -125,6 +130,9 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
 #define FREE_STRING_ARG(num) \
   (*jenv)->ReleaseStringUTFChars(jenv, arg##num, m_arg##num); \
   out##num:
+
+#define FREE_MPZ_ARG(num) \
+  mpz_clear(m_arg##num);
 
 #define FREE_STRUCT_ARRAY_ARG(num) \
   out##num##b: \
@@ -292,6 +300,12 @@ typedef jobject jjnamedtermswrapper;
   STRUCT_ARG(marg1, 1) \
   CALL1(mreturn, func) \
   INT_RETURN
+
+#define make_term_constant(func, func_escaped) \
+  DEFINE_FUNC(jterm, 1make_##func_escaped) WITH_ONE_ARG(jenv) \
+  ENV_ARG(1) \
+  CALL1(msat_term, make_##func) \
+  TERM_RETURN
 
 // Now really define the functions.
 
@@ -553,6 +567,34 @@ NULL_ARG(size_t, 4)
 CALL4(int, is_fp_type)
 BOOLEAN_RETURN
 
+DEFINE_FUNC(int, 1get_1fp_1type_1exp_1width) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+size_t r_arg3;
+size_t *m_arg3 = &r_arg3;
+NULL_ARG(size_t, 4)
+CALL4(int, is_fp_type)
+  if (retval != 1) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get exponent width of non-fp term"); \
+    return -1;
+  } \
+  return (jint)r_arg3; \
+}
+
+DEFINE_FUNC(int, 1get_1fp_1type_1mant_1width) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+NULL_ARG(size_t, 3)
+size_t r_arg4;
+size_t *m_arg4 = &r_arg4;
+CALL4(int, is_fp_type)
+  if (retval != 1) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get mantissa width of non-fp term"); \
+    return -1;
+  } \
+  return (jint)r_arg4; \
+}
+
 DEFINE_FUNC(jboolean, 1is_1fp_1roundingmode_1type) WITH_TWO_ARGS(jenv, jtype)
 ENV_ARG(1)
 TYPE_ARG(2)
@@ -582,16 +624,8 @@ FREE_STRING_ARG(2)
 DECL_RETURN
 
 
-
-DEFINE_FUNC(jterm, 1make_1true) WITH_ONE_ARG(jenv)
-ENV_ARG(1)
-CALL1(msat_term, make_true)
-STRUCT_RETURN_WITH_ENV
-
-DEFINE_FUNC(jterm, 1make_1false) WITH_ONE_ARG(jenv)
-ENV_ARG(1)
-CALL1(msat_term, make_false)
-STRUCT_RETURN_WITH_ENV
+make_term_constant(true, 1true)
+make_term_constant(false, 1false)
 
 DEFINE_FUNC(jterm, 1make_1not) WITH_TWO_ARGS(jenv, jterm)
 ENV_ARG(1)
@@ -615,6 +649,15 @@ make_term_binary(equal)
 make_term_binary(leq)
 make_term_binary(plus)
 make_term_binary(times)
+
+DEFINE_FUNC(jterm, 1make_1int_1modular_1congruence) WITH_FOUR_ARGS(jenv, long, jterm, jterm)
+ENV_ARG(1)
+MPZ_ARG(2)
+TERM_ARG(3)
+TERM_ARG(4)
+CALL4(msat_term, make_int_modular_congruence)
+FREE_MPZ_ARG(2)
+TERM_RETURN
 
 DEFINE_FUNC(jterm, 1make_1floor) WITH_TWO_ARGS(jenv, jterm)
 ENV_ARG(1)
@@ -757,6 +800,116 @@ TERM_ARG(3)
 CALL3(msat_term, make_bv_zext)
 TERM_RETURN
 
+
+#define make_term_fp_unary(name) \
+  DEFINE_FUNC(jterm, 1make_1fp_1##name) WITH_TWO_ARGS(jenv, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  CALL2(msat_term, make_fp_##name) \
+  TERM_RETURN
+
+#define make_term_fp_binary(name) \
+  DEFINE_FUNC(jterm, 1make_1fp_1##name) WITH_THREE_ARGS(jenv, jterm, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  TERM_ARG(3) \
+  CALL3(msat_term, make_fp_##name) \
+  TERM_RETURN
+
+#define make_term_fp_rounding_binary(name) \
+  DEFINE_FUNC(jterm, 1make_1fp_1##name) WITH_FOUR_ARGS(jenv, jterm, jterm, jterm) \
+  ENV_ARG(1) \
+  TERM_ARG(2) \
+  TERM_ARG(3) \
+  TERM_ARG(4) \
+  CALL4(msat_term, make_fp_##name) \
+  TERM_RETURN
+
+#define make_term_fp_rounding_cast(name, name_escaped) \
+  DEFINE_FUNC(jterm, 1make_1fp_##name_escaped) WITH_FIVE_ARGS(jenv, int, int, jterm, jterm) \
+  ENV_ARG(1) \
+  SIMPLE_ARG(size_t, 2) \
+  SIMPLE_ARG(size_t, 3) \
+  TERM_ARG(4) \
+  TERM_ARG(5) \
+  CALL5(msat_term, make_fp_##name) \
+  TERM_RETURN
+
+make_term_fp_unary(neg)
+make_term_fp_unary(isnan)
+make_term_fp_unary(isinf)
+make_term_fp_unary(iszero)
+make_term_fp_unary(issubnormal)
+make_term_fp_binary(equal)
+make_term_fp_binary(lt)
+make_term_fp_binary(leq)
+make_term_fp_rounding_binary(plus)
+make_term_fp_rounding_binary(minus)
+make_term_fp_rounding_binary(times)
+make_term_fp_rounding_binary(div)
+make_term_fp_rounding_cast(cast, 1cast)
+make_term_fp_rounding_cast(from_sbv, 1from_1sbv)
+make_term_fp_rounding_cast(from_ubv, 1from_1ubv)
+
+DEFINE_FUNC(jterm, 1make_1fp_1to_1bv) WITH_FOUR_ARGS(jenv, int, jterm, jterm)
+ENV_ARG(1)
+SIMPLE_ARG(size_t, 2)
+TERM_ARG(3)
+TERM_ARG(4)
+CALL4(msat_term, make_fp_to_bv)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1fp_1as_1ieeebv) WITH_TWO_ARGS(jenv, jterm)
+ENV_ARG(1)
+TERM_ARG(2)
+CALL2(msat_term, make_fp_as_ieeebv)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1fp_1from_1ieeebv) WITH_FOUR_ARGS(jenv, int, int, jterm)
+ENV_ARG(1)
+SIMPLE_ARG(size_t, 2)
+SIMPLE_ARG(size_t, 3)
+TERM_ARG(4)
+CALL4(msat_term, make_fp_from_ieeebv)
+TERM_RETURN
+
+#define make_term_fp_constant(name, name_escaped) \
+  DEFINE_FUNC(jterm, 1make_1fp_##name_escaped) WITH_THREE_ARGS(jenv, int, int) \
+  ENV_ARG(1) \
+  SIMPLE_ARG(size_t, 2) \
+  SIMPLE_ARG(size_t, 3) \
+  CALL3(msat_term, make_fp_##name) \
+  TERM_RETURN
+
+make_term_fp_constant(plus_inf, 1plus_1inf)
+make_term_fp_constant(minus_inf, 1minus_1inf)
+make_term_fp_constant(nan, 1nan)
+
+DEFINE_FUNC(jterm, 1make_1fp_1rat_1number) WITH_FIVE_ARGS(jenv, string, int, int, jterm)
+ENV_ARG(1)
+STRING_ARG(2)
+SIMPLE_ARG(size_t, 3)
+SIMPLE_ARG(size_t, 4)
+TERM_ARG(5)
+CALL5(msat_term, make_fp_rat_number)
+FREE_STRING_ARG(2)
+TERM_RETURN
+
+DEFINE_FUNC(jterm, 1make_1fp_1bits_1number) WITH_FOUR_ARGS(jenv, string, int, int)
+ENV_ARG(1)
+STRING_ARG(2)
+SIMPLE_ARG(size_t, 3)
+SIMPLE_ARG(size_t, 4)
+CALL4(msat_term, make_fp_bits_number)
+FREE_STRING_ARG(2)
+TERM_RETURN
+
+make_term_constant(fp_roundingmode_nearest_even, 1fp_1roundingmode_1nearest_1even)
+make_term_constant(fp_roundingmode_zero, 1fp_1roundingmode_1zero)
+make_term_constant(fp_roundingmode_plus_inf, 1fp_1roundingmode_1plus_1inf)
+make_term_constant(fp_roundingmode_minus_inf, 1fp_1roundingmode_1minus_1inf)
+
+
 DEFINE_FUNC(jterm, 1make_1term) WITH_THREE_ARGS(jenv, jdecl, jtermArray)
 ENV_ARG(1)
 DECL_ARG(2)
@@ -884,6 +1037,39 @@ CALL3(int, term_is_bv_ror)
 BOOLEAN_RETURN
 
 func_term_is_bv(comp)
+
+
+#define func_term_is_fp(name) \
+	DEFINE_FUNC(jboolean, 1term_1is_1fp_1##name) WITH_TWO_ARGS(jenv, jterm) \
+	ENV_ARG(1) \
+	TERM_ARG(2) \
+	CALL2(int, term_is_fp_##name) \
+	BOOLEAN_RETURN
+
+func_term_is_fp(equal)
+func_term_is_fp(lt)
+func_term_is_fp(leq)
+func_term_is_fp(neg)
+func_term_is_fp(plus)
+func_term_is_fp(minus)
+func_term_is_fp(times)
+func_term_is_fp(div)
+func_term_is_fp(cast)
+func_term_is_fp(to_bv)
+func_term_is_fp(isnan)
+func_term_is_fp(isinf)
+func_term_is_fp(iszero)
+func_term_is_fp(issubnormal)
+
+func2_term_is(fp_roundingmode_nearest_even, 1fp_1roundingmode_1nearest_1even)
+func2_term_is(fp_roundingmode_zero, 1fp_1roundingmode_1zero)
+func2_term_is(fp_roundingmode_plus_inf, 1fp_1roundingmode_1plus_1inf)
+func2_term_is(fp_roundingmode_minus_inf, 1fp_1roundingmode_1minus_1inf)
+func2_term_is(fp_from_sbv, 1fp_1from_1sbv)
+func2_term_is(fp_from_ubv, 1fp_1from_1ubv)
+func2_term_is(fp_as_ieeebv, 1fp_1as_1ieeebv)
+func2_term_is(fp_from_ieeebv, 1fp_1from_1ieeebv)
+
 
 DEFINE_FUNC(jdecl, 1find_1decl) WITH_TWO_ARGS(jenv, string)
 ENV_ARG(1)

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 
@@ -54,15 +55,20 @@ public interface ProverEnvironment extends AutoCloseable {
 
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
    */
-  boolean isUnsat() throws InterruptedException;
+  boolean isUnsat() throws SolverException, InterruptedException;
 
   /**
    * Get a satisfying assignment.
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
    */
   Model getModel() throws SolverException;
+
+  /**
+   * Get an unsat core.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
+   */
+  List<BooleanFormula> getUnsatCore();
 
   /**
    * Get all satisfying assignments of the current environment with regards
@@ -78,6 +84,7 @@ public interface ProverEnvironment extends AutoCloseable {
    */
   AllSatResult allSat(Collection<BooleanFormula> important,
                       RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException;
+
 
   @Override
   void close();
@@ -95,4 +102,5 @@ public interface ProverEnvironment extends AutoCloseable {
      */
     public int getCount();
   }
+
 }

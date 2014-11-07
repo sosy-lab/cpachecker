@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -32,17 +33,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class CFunctionEntryNode extends FunctionEntryNode {
 
-  public CFunctionEntryNode(final int pLineNumber,
+  public CFunctionEntryNode(final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionDefinition.getName(), pExitNode, pFunctionDefinition, pParameterNames);
+    super(pFileLocation, pFunctionDefinition.getName(), pExitNode, pFunctionDefinition, pParameterNames);
   }
 
   @Override
   public CFunctionDeclaration getFunctionDefinition() {
-    return  (CFunctionDeclaration)functionDefinition;
+    return  (CFunctionDeclaration)super.getFunctionDefinition();
   }
 
 

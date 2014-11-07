@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -36,10 +37,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -48,7 +53,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 
 /**
@@ -97,8 +101,7 @@ public final class CInitializers {
       return ImmutableList.of();
     }
 
-    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
-        decl.getName(), decl);
+    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl);
 
     if (init instanceof CInitializerExpression) {
       CExpression initExp = ((CInitializerExpression)init).getExpression();
@@ -161,8 +164,10 @@ public final class CInitializers {
       } else if (currentType instanceof CArrayType) {
         successful = handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
+      } else if (currentType instanceof CElaboratedType) {
+        throw new UnrecognizedCCodeException("Unexpected initializer for " + currentType + " that is not fully defined", edge, initializerList);
       } else {
-        throw new UnrecognizedCCodeException("Unexpected initializer list for type " + currentType, edge, initializerList);
+        throw new UnrecognizedCCodeException("Unexpected initializer list for " + currentObject + " with type " + currentType, edge, initializerList);
       }
 
       if (!successful) {
@@ -248,8 +253,8 @@ public final class CInitializers {
    * Prior to that, both stacks are reset.
    * @param designators A list of designators (e.g. ".f[2][1-4].t")
    * @param currentObject the "current object" with which this whole chain of initializers is associated
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static void findDesignatedSubobject(final List<CDesignator> designators,
       final CExpression currentObject,
@@ -297,6 +302,32 @@ public final class CInitializers {
         successful = handleInitializerForArray(currentSubobject, index.longValue(), arrayType,
             currentSubobjects, nextSubobjects, loc, edge, designator);
 
+      } else if (designator instanceof CArrayRangeDesignator) {
+        if (!(currentType instanceof CArrayType)) {
+          throw new UnrecognizedCCodeException("Designated array initializer for non-array type", edge, designator);
+        }
+
+        CArrayType arrayType = (CArrayType)currentType;
+        CExpression floorExp = ((CArrayRangeDesignator)designator).getFloorExpression();
+        CExpression ceilExp = ((CArrayRangeDesignator)designator).getCeilExpression();
+
+        if (!(floorExp instanceof CIntegerLiteralExpression) || !(ceilExp instanceof CIntegerLiteralExpression)) {
+          throw new UnrecognizedCCodeException("Cannot evaluate expression as array range designator", edge, designator);
+        }
+
+        BigInteger indexBottom = ((CIntegerLiteralExpression)floorExp).getValue();
+        BigInteger indexTop = ((CIntegerLiteralExpression)ceilExp).getValue();
+        if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
+            || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
+          throw new UnrecognizedCCodeException("Array range designator is too large to initialize explicitly", edge, designator);
+        }
+
+        successful = true;
+        for (long index = indexBottom.longValue(); index < indexTop.longValue() && successful; index++) {
+          successful = handleInitializerForArray(currentSubobject, index, arrayType,
+              currentSubobjects, nextSubobjects, loc, edge, designator);
+        }
+
       } else {
         throw new UnrecognizedCCodeException("Unrecognized initializer designator", edge, designator);
       }
@@ -325,8 +356,8 @@ public final class CInitializers {
    * This method only pushes objects on the two stacks until their position is correct.
    *
    * @param targetType The type to search.
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    * @param loc
    * @param edge
    * @throws UnrecognizedCCodeException
@@ -341,6 +372,17 @@ public final class CInitializers {
 
       if (targetType.equals(currentType)) {
         break;
+      }
+
+      // String literals may be used to initialize char arrays.
+      // They have a type of (const char)*.
+      if (targetType.equals(CPointerType.POINTER_TO_CONST_CHAR)
+          && currentType instanceof CArrayType) {
+        CType currentElementType = ((CArrayType)currentType).getType();
+        if (currentElementType instanceof CSimpleType
+            && ((CSimpleType) currentElementType).getType() == CBasicType.CHAR) {
+          break;
+        }
       }
       boolean successful;
 
@@ -375,8 +417,8 @@ public final class CInitializers {
    * @param currentSubobject The struct/union to be initialized
    * @param startingFieldName The optional field name to look for
    * @param structType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static boolean handleInitializerForCompositeType(final CExpression currentSubobject,
       final Optional<String> startingFieldName, final CCompositeType structType,
@@ -427,7 +469,7 @@ public final class CInitializers {
       break;
     case UNION:
       // unions only have their first field initialized, ignore the rest
-      nextSubobjects.push(Iterators.<CExpression>emptyIterator());
+      nextSubobjects.push(Collections.<CExpression>emptyIterator());
       break;
     default:
       throw new AssertionError();
@@ -445,8 +487,8 @@ public final class CInitializers {
    * @param currentSubobject The struct/union to be initialized
    * @param startIndex The index of the first element to be initialized
    * @param arrayType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    */
   private static boolean handleInitializerForArray(final CExpression currentSubobject,
       final long startIndex, final CArrayType arrayType,

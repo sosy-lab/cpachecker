@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -42,8 +42,8 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    ExplicitState explicitState =
-      AbstractStates.extractStateByType(pState, ExplicitState.class);
+    ValueAnalysisState explicitState =
+      AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (explicitState != null) ? -explicitState.getSize() : 0;

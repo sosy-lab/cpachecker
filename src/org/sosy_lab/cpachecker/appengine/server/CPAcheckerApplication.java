@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,19 @@
  */
 package org.sosy_lab.cpachecker.appengine.server;
 
-import java.io.IOException;
-
 import org.restlet.Restlet;
 import org.restlet.ext.wadl.WadlApplication;
 import org.restlet.routing.Router;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
-import org.sosy_lab.cpachecker.appengine.entity.JobFile;
-import org.sosy_lab.cpachecker.appengine.entity.JobStatistic;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobFileServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobRunnerServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobStatisticServerResource;
-import org.sosy_lab.cpachecker.appengine.server.resource.JobsServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.RootServerResource;
 import org.sosy_lab.cpachecker.appengine.server.resource.SettingsServerResource;
-
-import com.google.common.base.Charsets;
-import com.googlecode.objectify.ObjectifyService;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskExecutorServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskFileServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TaskStatisticServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetServerResource;
+import org.sosy_lab.cpachecker.appengine.server.resource.TasksetTasksServerResource;
+import org.sosy_lab.cpachecker.appengine.util.ObjectifyRegistry;
 
 import freemarker.log.Logger;
 
@@ -49,6 +43,7 @@ public class CPAcheckerApplication extends WadlApplication {
 
   @Override
   public Restlet createInboundRoot() {
+
     getEncoderService().setEnabled(true);
 
     try {
@@ -60,12 +55,18 @@ public class CPAcheckerApplication extends WadlApplication {
     Router router = new Router(getContext());
 
     router.attach("/", RootServerResource.class);
-    router.attach("/tasks", JobsServerResource.class);
-    router.attach("/tasks/{jobKey}", JobServerResource.class);
-    router.attach("/tasks/{jobKey}/statistics", JobStatisticServerResource.class);
-    router.attach("/tasks/{jobKey}/files/{fileKey}", JobFileServerResource.class);
-    router.attach("/workers/run-job", JobRunnerServerResource.class);
     router.attach("/settings", SettingsServerResource.class);
+
+    router.attach("/tasks", TasksServerResource.class);
+    router.attach("/tasks/{taskKey}", TaskServerResource.class);
+    router.attach("/tasks/{taskKey}/statistics", TaskStatisticServerResource.class);
+    router.attach("/tasks/{taskKey}/files/{fileKey}", TaskFileServerResource.class);
+
+    router.attach("/tasksets", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}", TasksetServerResource.class);
+    router.attach("/tasksets/{tasksetKey}/tasks", TasksetTasksServerResource.class);
+
+    router.attach("/workers/execute-task", TaskExecutorServerResource.class);
 
     CapabilitiesFilter capabilitiesFilter = new CapabilitiesFilter(getContext());
     capabilitiesFilter.setNext(router);
@@ -73,22 +74,7 @@ public class CPAcheckerApplication extends WadlApplication {
     return capabilitiesFilter;
   }
 
-  /**
-   * Returns the version of CPAchecker on Google App Engine
-   *
-   * @return The version string
-   */
-  public static String getVersion() {
-    try {
-      return Paths.get("WEB-INF/VERSION.txt").asCharSource(Charsets.UTF_8).read();
-    } catch (IOException e) {
-      return "(unknown version)";
-    }
-  }
-
   static {
-    ObjectifyService.register(Job.class);
-    ObjectifyService.register(JobFile.class);
-    ObjectifyService.register(JobStatistic.class);
+    ObjectifyRegistry.register();
   }
 }

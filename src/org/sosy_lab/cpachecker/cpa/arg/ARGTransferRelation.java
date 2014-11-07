@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,7 @@ public class ARGTransferRelation implements TransferRelation {
 
   @Override
   public Collection<ARGState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AbstractState pElement, Precision pPrecision)
       throws CPATransferException, InterruptedException {
     ARGState element = (ARGState)pElement;
 
@@ -65,7 +65,7 @@ public class ARGTransferRelation implements TransferRelation {
     element.markExpanded();
 
     AbstractState wrappedState = element.getWrappedState();
-    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision, pCfaEdge);
+    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
@@ -77,6 +77,15 @@ public class ARGTransferRelation implements TransferRelation {
     }
 
     return wrappedSuccessors;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+
+    throw new UnsupportedOperationException(
+        "ARGCPA needs to be used as the outer-most CPA,"
+        + " thus it does not support returning successors for a single edge.");
   }
 
   @Override

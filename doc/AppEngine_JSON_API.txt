@@ -1,7 +1,7 @@
 CPAchecker JSON API
 ===================
 CPAchecker running on Google App Engine exposes a RESTful JSON API to create,
-retrieve and delete jobs and other resources.
+retrieve and delete tasks and other resources.
 
 RESTful
 -------
@@ -10,7 +10,7 @@ and standard HTTP status codes are used to convey success/error states.
 
 JSON format
 ----------
-The JSON format (http://json.org/) is used for sending and retrieveing data.
+The JSON format (http://json.org/) is used for sending and retrieving data.
 Therefore any requests must set the following HTTP headers to successfully use
 the JSON API:
 Content-Type: application/json
@@ -20,7 +20,7 @@ Accept: application/json
 General server errors
 =====================
 Sometimes the server cannot process a request and therefore returns a default
-response according to the occured error.
+response according to the occurred error.
 
 Over Quota
 ----------
@@ -93,11 +93,19 @@ Response
 
 # GET /tasks
 ===========
-Returns a list of all jobs that are stored in the datastore.
+Returns a list of all tasks that are available.
+
+Optionally available query parameters:
+- limit:
+  limits the number of returned tasks.
+  If zero or negative all tasks will be returned. This is the default.
+- offset:
+  skips the first X tasks, where X == offset
 
 Response
 --------
 [ {
+  "processed" : false,
   "creationDate" : "2014-02-01T14:57:25.746",
   "executionDate" : "2014-02-01T14:57:27.283",
   "terminationDate" : null,
@@ -110,18 +118,15 @@ Response
 
 # POST /tasks
 ============
-Creates a new job.
+Creates a new task.
 
 Request
 -------
-201 Created
-Location: [URI of the created job resource]
-
 Optional:
   - options
-  - sourceFileName
 Required:
   - Either specification or configuration
+  - sourceFileName
   - programText
 
 {
@@ -141,6 +146,11 @@ Required:
   }
 }
 
+Response
+--------
+201 Created
+Location: [URI of the created task resource]
+
 Errors
 ------
 400 Bad Request
@@ -149,31 +159,33 @@ Errors
   "error.jsonNotWellFormed",
   "error.jsonNotMapped",
   "error.requestBodyNotRead",
-  "error.specOrConfigMissing",
-  "error.specificationNotFound",
-  "error.configurationNotFound",
-  "error.noProgram",
-  "error.invalidLogLevel",
-  "error.programTooLarge",
-  "error.couldNotUpload",
-  "error.invalidInstanceType"
+  "error.invalidConfiguration",
+  "task.specOrConf.IsBlank",
+  "task.spec.DoesNotExist",
+  "task.conf.DoesNotExist",
+  "task.program.IsBlank",
+  "task.program.NameIsBlank",
+  "task.program.TooLarge",
+  "task.program.CouldNotUpload"
 ]
 
 
 # DELETE /tasks
 ==============
-Deletes all jobs and their associated files and statistic.
+Deletes all tasks and their associated files and statistic.
+This endpoint must be called multiple times to ensure everything will be deleted
+due to the underlying implementation.
 
 
-# GET /tasks/{jobKey}
+# GET /tasks/{taskKey}
 ====================
-Returns the job with the key {jobKey}.
+Returns the task with the key {taskKey}.
 
 Units:
 - creationDate: UTC datetime
 - executionDate: UTC datetime
 - terminationDate: UTC datetime
-- statistic: see GET /job/{jobKey}/statistics
+- statistic: see GET /task/{taskKey}/statistics
 
 Response
 --------
@@ -186,7 +198,6 @@ Response
   "specification" : "sv-comp.spc",
   "configuration" : "explicitAnalysis.properties",
   "sourceFileName" : "example.c",
-  "instanceType" : "FRONTEND",
   "retries" : 0,
   "result" : "TRUE",
   "resultMessage" : "TRUE. No property violation found by chosen configuration.",
@@ -215,14 +226,14 @@ Response
 
 
 
-# DELETE /tasks/{jobKey}
+# DELETE /tasks/{taskKey}
 =======================
-Deletes the job with the key {jobKey} and all associated files and statistic.
+Deletes the task with the key {taskKey} and all associated files and statistic.
 
 
-# GET /tasks/{jobKey}/statistics
+# GET /tasks/{taskKey}/statistics
 ==========================
-Returns statistics about the job with the key {jobKey}.
+Returns statistics about the task with the key {taskKey}.
 
 Units:
 - cost: US Dollar
@@ -235,9 +246,6 @@ Units:
 Response
 --------
 {
-  "job" : {
-    "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
-  },
   "cost" : 0.0,
   "host" : "",
   "latency" : 2630000,
@@ -250,16 +258,13 @@ Response
 
 
 
-# GET /tasks/{jobKey}/files/{fileKey}
+# GET /tasks/{taskKey}/files/{fileKey}
 ====================================
-Returns the file with the key {fileKey} belonging to the job with the key {jobKey}.
+Returns the file with the key {fileKey} belonging to the task with the key {taskKey}.
 
 Response
 --------
 {
-  "job" : {
-    "key" : "agZiYS1sYWJyCQsSA0pvYhgDDA"
-  },
   "name" : "CPALog.txt",
   "content" : "...",
   "key" : "agZiYS1sYWJyHQsSA0pvYhgDDAsSB0pvYkZpbGUYgICAgICAwAgM"
@@ -268,11 +273,118 @@ Response
 
 
 
-# GET /tasks/{jobKey}/files/{fileName}
+# GET /tasks/{taskKey}/files/{fileName}
 ======================================
-Returns the content of the file with the name {fileName} belonging to the job
-with the key {jobKey}.
+Returns the content of the file with the name {fileName} belonging to the task
+with the key {taskKey}.
 
 Response
 --------
 Content-Type: text/plain
+
+
+
+# POST /tasksets
+===============
+Creates a new taskset.
+A taskset is a collection of tasks that are bundled together e.g. by a benchmark or
+a large verification run. It associates every task with a boolean marker that
+indicates whether the task has been marked as processed or not. This can be used
+by a client e.g. to track the retrieval of the outcome of a task. 
+
+Response
+-------
+201 Created
+Location: [URI of the created taskset resource]
+
+
+
+# DELETE /tasksets/{tasksetKey}
+===============
+Deletes the taskset with the key {tasksetKey}.
+Does not delete any associated tasks. 
+
+Response
+-------
+200 OK
+
+Error
+-----
+400 Not Found
+
+
+
+# POST /tasksets/{tasksetKey}/tasks
+==================================
+Creates tasks and puts them into the taskset with the key {tasksetKey}.
+For the exact JSON format of a task see "POST /tasks".
+Every task takes an additional field with the name "identifier".
+This field will be passed into the response together with the key of the created task.
+This identifier can be used to associate the created task with an object on the client.
+For example:
+Request: { "programText" : "abc", "identifier" : "foo", ...}
+Response: { "taskKey" : "foo" }
+
+Request
+-------
+[ {...}, {...}, {...}, ...]
+
+Response
+--------
+201 Created
+[
+  { "agZ234432Y324WJyCQsSA0pvYsdfsDA" : "123" },
+  { "340sdagZiYSdskjfs" : "709" },
+  { "öwefsdfäüwdsdf" : "dww" }
+]
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# PUT /tasksets/{tasksetKey}/tasks
+==================================
+Marks the tasks with the requested keys as processed in the taskset with the key {tasksetKey}.
+
+Request
+-------
+[
+  "Z234432Y324WJyCQsSA0pvYsd",
+  "340sdagZiYSdskjfs",
+  "A0pvYhgDDAsSB0pvYk"
+]
+
+Response
+--------
+204 No Content
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error
+
+
+
+# GET /tasksets/{tasksetKey}/tasks
+==================================
+Returns the tasks that are in the taskset with the key {tasksetKey}.
+The URI accepts a query parameter that allows to filter the returned tasks to
+ones that are finished/unfinished. If omitted all tasks are returned. 
+
+Query Parameter:
+  - finished:
+  	true, if only tasks with status DONE, ERROR, TIMEOUT should be returned
+  	false, if only tasks with status PENDING or RUNNING should be returned
+
+Response
+--------
+200 OK
+For the response format of a task see "GET /tasks/{taskKey}"
+
+Error
+-----
+400 Bad Request
+500 Internal Server Error

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -85,61 +89,60 @@ public class NamedRegionManager implements RegionManager {
   /**
    * Returns a String representation of a region.
    */
-  public String dumpRegion(Region r) {
-    Map<Region, String> cache = new HashMap<>(); // map for same regions
-    return dumpRegion(r, cache);
+  public Appender dumpRegion(final Region r) {
+    return new AbstractAppender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        dumpRegion(r, pAppendable);
+      }
+    };
   }
 
-  private String dumpRegion(Region r, Map<Region, String> cache) {
-    if (cache.containsKey(r)) { return cache.get(r); } // use same region again
-
-    String result;
+  private void dumpRegion(Region r, Appendable out) throws IOException {
     if (regionMap.containsValue(r)) {
-      result = regionMap.inverse().get(r);
+      out.append(regionMap.inverse().get(r));
 
     } else if (r.isFalse()) {
-      result = "FALSE";
+      out.append("FALSE");
 
     } else if (r.isTrue()) {
-      result = "TRUE";
+      out.append("TRUE");
 
     } else {
       Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
       String predName = regionMap.inverse().get(triple.getFirst());
 
       Region trueBranch = triple.getSecond();
-      String ifTrue = "";
-      if (trueBranch.isFalse()) {
-        // omit
-      } else if (trueBranch.isTrue()) {
-        ifTrue = predName;
-      } else {
-        ifTrue = predName + " & " + dumpRegion(trueBranch, cache);
-      }
-
       Region falseBranch = triple.getThird();
-      String ifFalse = "";
-      if (falseBranch.isFalse()) {
-        // omit
-      } else if (falseBranch.isTrue()) {
-        ifFalse = "!" + predName;
-      } else {
-        ifFalse = "!" + predName + " & " + dumpRegion(falseBranch, cache);
-      }
 
-      if (!ifTrue.isEmpty() && !ifFalse.isEmpty()) {
-        result = "((" + ifTrue + ") | (" + ifFalse + "))";
-      } else if (ifTrue.isEmpty()) {
-        result = ifFalse;
-      } else if (ifFalse.isEmpty()) {
-        result = ifTrue;
+      if (trueBranch.isFalse()) {
+        assert !falseBranch.isFalse();
+        // only falseBranch is present
+        out.append("!")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(falseBranch, out);
+
+      } else if (falseBranch.isFalse()) {
+        // only trueBranch is present
+        out.append(predName)
+           .append(" & ");
+        dumpRegion(trueBranch, out);
 
       } else {
-        throw new AssertionError("Both BDD Branches are empty!?");
+        // both branches present
+        out.append("((")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(trueBranch, out);
+        out.append(") | (")
+           .append("!")
+           .append(predName)
+           .append(" & ");
+        dumpRegion(falseBranch, out);
+        out.append("))");
       }
     }
-    cache.put(r, result);
-    return result;
   }
 
   /** Returns a representation of a region in dot-format (graphviz). */
@@ -193,7 +196,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 
@@ -261,6 +264,11 @@ public class NamedRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);
+  }
+
+  @Override
+  public String getVersion() {
+    return delegate.getVersion();
   }
 
   public Set<String> getPredicates() {

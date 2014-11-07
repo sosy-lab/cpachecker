@@ -6,10 +6,10 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
 @SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE", "DM_DEFAULT_ENCODING", "SA_FIELD_SELF_ASSIGNMENT"})
 %%
 
 %cup
@@ -114,7 +115,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
         "#include" {InputCharacter}+ 
         { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(new InputStreamReader(file.asByteSource().openStream()));
+            yypushStream(file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream());
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
@@ -131,6 +132,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "STATE"             { return symbol("STATE", AutomatonSym.STATE); }
 <YYINITIAL> "ERROR"             { return symbol("ERROR", AutomatonSym.ERROR); }
 <YYINITIAL> "STOP"              { return symbol("STOP", AutomatonSym.STOP); }
+<YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
@@ -198,8 +200,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   [^\n\r\}\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
   \\n                            { string.append('\n'); }
-
+  \n                             { string.append('\n'); }
   \\r                            { string.append('\r'); }
+  \r                             { string.append('\r'); }
   \\\}                           { string.append('}'); }
   \\\\                           { string.append('\\'); }
 }

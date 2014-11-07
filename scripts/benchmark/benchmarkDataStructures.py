@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,42 +34,42 @@ import sys
 from datetime import date
 
 from . import result
-from . import runexecutor
 from . import util as Util
 
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
+MEMLIMIT = "memlimit"
+TIMELIMIT = "timelimit"
+CORELIMIT = "cpuCores"
 
 SOFTTIMELIMIT = 'softtimelimit'
 HARDTIMELIMIT = 'hardtimelimit'
 
 PROPERTY_TAG = "propertyfile"
 
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 def substituteVars(oldList, runSet, sourcefile=None):
     """
     This method replaces special substrings from a list of string
     and return a new list.
     """
-
     benchmark = runSet.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}',     benchmark.name),
                     ('${benchmark_date}',     benchmark.date),
-                    ('${benchmark_path}',     benchmark.baseDir),
+                    ('${benchmark_instance}', benchmark.instance),
+                    ('${benchmark_path}',     benchmark.baseDir or '.'),
                     ('${benchmark_path_abs}', os.path.abspath(benchmark.baseDir)),
                     ('${benchmark_file}',     os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${logfile_path}',       os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path}',       os.path.dirname(runSet.logFolder) or '.'),
                     ('${logfile_path_abs}',   os.path.abspath(runSet.logFolder)),
                     ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
                     ('${test_name}',          runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
-        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
+        keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile) or '.'))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
 
     # do not use keys twice
@@ -116,6 +116,15 @@ class Benchmark:
         currentTime = time.localtime()
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
+        self.instance = self.date
+        if not config.benchmarkInstanceIdent is None:
+            self.instance = config.benchmarkInstanceIdent
+
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.instance
+        self.logFolder = self.outputBase + ".logfiles" + os.path.sep
+        if not config.reprocessResults and os.path.exists(self.logFolder):
+            # we refuse to overwrite existing results
+            sys.exit('Output directory {0} already exists, will not overwrite existing results.'.format(self.logFolder))
 
         # parse XML
         rootTag = ET.ElementTree().parse(benchmarkFile)
@@ -135,7 +144,7 @@ class Benchmark:
         self.toolName = self.tool.getName()
         self.toolVersion = ''
         self.executable = ''
-        if not config.appengine:
+        if not (config.appengine or (config.cloud and config.cloudMaster and "http" in config.cloudMaster)):
             self.executable = self.tool.getExecutable()
             self.toolVersion = self.tool.getVersion(self.executable)
 
@@ -182,11 +191,7 @@ class Benchmark:
             sys.exit()
 
         # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
-        self.logFolder = self.outputBase + ".logfiles/"
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
+        os.makedirs(self.logFolder)
 
         # get global options and propertyFiles
         self.options = Util.getListFromXML(rootTag)
@@ -228,6 +233,14 @@ class Benchmark:
                 logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
             else:
                 logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
+
+        if not any(runSet.shouldBeExecuted() for runSet in self.runSets):
+            logging.warning("No runSet selected, nothing will be executed.")
+            if config.selectedRunDefinitions:
+                logging.warning("The selection {0} does not match any runSet of {1}".format(
+                    str(config.selectedRunDefinitions),
+                    str([runSet.realName for runSet in self.runSets])
+                    ))
 
 
     def requiredFiles(self):
@@ -297,8 +310,17 @@ class RunSet:
         self.options = benchmark.options + Util.getListFromXML(rundefinitionTag)
         self.propertyFiles = benchmark.propertyFiles + Util.getListFromXML(rundefinitionTag, tag=PROPERTY_TAG, attributes=[])
 
+        # get run-set specific required files
+        requiredFiles = set()
+        for requiredFilesTag in rundefinitionTag.findall('requiredfiles'):
+            thisRequiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, benchmark.baseDir)
+            if not thisRequiredFiles:
+                logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
+            requiredFiles = requiredFiles.union(thisRequiredFiles)
+
         # get all runs, a run contains one sourcefile with options
-        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
+        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"),
+                                              requiredFiles)
         self.runs = [run for block in self.blocks for run in block.runs]
 
         names = [self.realName]
@@ -317,7 +339,7 @@ class RunSet:
         if self.shouldBeExecuted():
             sourcefilesSet = set()
             for run in self.runs:
-                base = os.path.basename(run.sourcefile)
+                base = os.path.basename(run.identifier)
                 if base in sourcefilesSet:
                     logging.warning("sourcefile with basename '" + base + 
                     "' appears twice in runset. This could cause problems with equal logfile-names.")
@@ -331,7 +353,7 @@ class RunSet:
             or self.realName in self.benchmark.config.selectedRunDefinitions
 
 
-    def extractRunsFromXML(self, sourcefilesTagList):
+    def extractRunsFromXML(self, sourcefilesTagList, globalRequiredFiles):
         '''
         This function builds a list of SourcefileSets (containing filename with options).
         The files and their options are taken from the list of sourcefilesTags.
@@ -346,7 +368,14 @@ class RunSet:
                 and matchName not in self.benchmark.config.selectedSourcefileSets:
                     continue
 
-            # get list of filenames
+            requiredFiles = set()
+            for requiredFilesTag in sourcefilesTag.findall('requiredfiles'):
+                thisRequiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, self.benchmark.baseDir)
+                if not thisRequiredFiles:
+                    logging.warning('Pattern {0} in requiredfiles tag did not match any file.'.format(requiredFilesTag.text))
+                requiredFiles = requiredFiles.union(thisRequiredFiles)
+
+            # get lists of filenames
             sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, self.benchmark.baseDir)
 
             # get file-specific options for filenames
@@ -355,7 +384,8 @@ class RunSet:
 
             currentRuns = []
             for sourcefile in sourcefiles:
-                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles))
+                currentRuns.append(Run(sourcefile, fileOptions, self, propertyFiles,
+                                       list(globalRequiredFiles.union(requiredFiles))))
 
             blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
         return blocks
@@ -415,10 +445,25 @@ class RunSet:
 
                 fileWithList.close()
 
-        return sourcefiles
+        # add runs for cases without source files
+        for run in sourcefilesTag.findall("withoutfile"):
+            sourcefiles.append(run.text)
+
+        # some runs need more than one sourcefile, 
+        # the first sourcefile is a normal 'include'-file, we use its name as identifier for logfile and result-category
+        # all other files are 'append'ed.
+        sourcefilesLists = []
+        appendFileTags = sourcefilesTag.findall("append")
+        for sourcefile in sourcefiles:
+            files = [sourcefile]
+            for appendFile in appendFileTags:
+                files.extend(self.expandFileNamePattern(appendFile.text, baseDir, sourcefile=sourcefile))
+            sourcefilesLists.append(files)
+        
+        return sourcefilesLists
 
 
-    def expandFileNamePattern(self, pattern, baseDir):
+    def expandFileNamePattern(self, pattern, baseDir, sourcefile=None):
         """
         The function expandFileNamePattern expands a filename pattern to a sorted list
         of filenames. The pattern can contain variables and wildcards.
@@ -430,7 +475,7 @@ class RunSet:
 
         # replace vars like ${benchmark_path},
         # with converting to list and back, we can use the function 'substituteVars()'
-        expandedPattern = substituteVars([pattern], self)
+        expandedPattern = substituteVars([pattern], self, sourcefile)
         assert len(expandedPattern) == 1
         expandedPattern = expandedPattern[0]
 
@@ -460,20 +505,27 @@ class SourcefileSet():
         self.runs = runs
 
 
+loggedMissingPropertyFiles = set()
+
+
 class Run():
     """
-    A Run contains one sourcefile and options.
+    A Run contains some sourcefile, some options, propertyfiles and some other stuff, that is needed for the Run.
     """
 
-    def __init__(self, sourcefile, fileOptions, runSet, propertyFiles=[]):
-        self.sourcefile = sourcefile
+    def __init__(self, sourcefiles, fileOptions, runSet, propertyFiles=[], requiredFiles=[]):
+        assert sourcefiles
+        self.identifier = sourcefiles[0] # used for name of logfile, substitution, result-category
+        self.sourcefiles = Util.getFiles(sourcefiles) # expand directories to get their sub-files
+        logging.debug("Creating Run with identifier '{0}' and files {1}".format(self.identifier, self.sourcefiles))
         self.runSet = runSet
         self.specificOptions = fileOptions # options that are specific for this run
-        self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
+        self.logFile = runSet.logFolder + os.path.basename(self.identifier) + ".log"
+        self.requiredFiles = requiredFiles
 
         # lets reduce memory-consumption: if 2 lists are equal, do not use the second one
         self.options = runSet.options + fileOptions if fileOptions else runSet.options # all options to be used when executing this run
-        substitutedOptions = substituteVars(self.options, runSet, sourcefile)
+        substitutedOptions = substituteVars(self.options, runSet, self.identifier)
         if substitutedOptions != self.options: self.options = substitutedOptions # for less memory again
 
         # get propertyfile for Run: if available, use the last one
@@ -485,12 +537,15 @@ class Run():
             self.propertyfile = None
 
         # replace run-specific stuff in the propertyfile and add it to the set of required files
-        if self.propertyfile is not None:
-            
+        if self.propertyfile is None:
+            if not self.propertyfile in loggedMissingPropertyFiles:
+                loggedMissingPropertyFiles.add(self.propertyfile)
+                logging.warning('No propertyfile specified. Results for C programs will be handled as UNKNOWN.')
+        else:
             # we check two cases: direct filename or user-defined substitution, one of them must be a 'file'
             # TODO: do we need the second case? it is equal to previous used option "-spec ${sourcefile_path}/ALL.prp"
             expandedPropertyFiles = Util.expandFileNamePattern(self.propertyfile, self.runSet.benchmark.baseDir)
-            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, sourcefile)
+            substitutedPropertyfiles = substituteVars([self.propertyfile], runSet, self.identifier)
             assert len(substitutedPropertyfiles) == 1
             
             if expandedPropertyFiles:
@@ -498,43 +553,61 @@ class Run():
             elif substitutedPropertyfiles and os.path.isfile(substitutedPropertyfiles[0]):
                 self.propertyfile = substitutedPropertyfiles[0]
             else:
-                logging.warning('Pattern {0} in propertyfile tag did not match any file. It will be ignored.'.format(self.propertyfile))
+                if not self.propertyfile in loggedMissingPropertyFiles:
+                    loggedMissingPropertyFiles.add(self.propertyfile)
+                    logging.warning('Pattern {0} for sourcefile {1} in propertyfile tag did not match any file. It will be ignored.'
+                        .format(self.propertyfile, self.identifier))
                 self.propertyfile = None
-            
+
             self.runSet.benchmark.addRequiredFile(self.propertyfile)
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.runSet.benchmark.columns]
 
+        # here we store the optional result values, e.g. memory usage, energy, host name
+        # keys need to be strings, if first character is "@" the value is marked as hidden (e.g., debug info)
+        self.values = {}
+
         # dummy values, for output in case of interrupt
         self.status = ""
-        self.cpuTime = 0
-        self.wallTime = 0
-        self.memUsage = None
-        self.host = None
+        self.cpuTime = None
+        self.wallTime = None
         self.category = result.CATEGORY_UNKNOWN
 
 
     def getCmdline(self):
-        args = self.runSet.benchmark.tool.getCmdline(self.runSet.benchmark.executable, self.options, self.sourcefile, self.propertyfile)
+        args = self.runSet.benchmark.tool.getCmdline(
+            self.runSet.benchmark.executable, self.options, self.sourcefiles, 
+            self.propertyfile, self.runSet.benchmark.rlimits)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         return args;
 
 
-    def afterExecution(self, returnvalue, output, forceTimeout=False):
+    def afterExecution(self, returnvalue, forceTimeout=False):
 
         rlimits = self.runSet.benchmark.rlimits
         isTimeout = forceTimeout or self._isTimeout()
 
-        # calculation: returnvalue == (returncode * 256) + returnsignal
-        # highest bit of returnsignal shows only whether a core file was produced, we clear it
-        returnsignal = returnvalue & 0x7F
-        returncode = returnvalue >> 8
-        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-        self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
-        self.category = result.getResultCategory(self.sourcefile, self.status, self.propertyfile)
+        # read output
+        try:
+            with open(self.logFile, 'rt') as outputFile:
+                output = outputFile.readlines()
+                # first 6 lines are for logging, rest is output of subprocess, see runexecutor.py for details
+                output = output[6:]
+        except IOError as e:
+            logging.warning("Cannot read log file: " + e.strerror)
+            output = []
+
+        if returnvalue is not None:
+            # calculation: returnvalue == (returncode * 256) + returnsignal
+            # highest bit of returnsignal shows only whether a core file was produced, we clear it
+            returnsignal = returnvalue & 0x7F
+            returncode = returnvalue >> 8
+            logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
+            self.status = self.runSet.benchmark.tool.getStatus(returncode, returnsignal, output, isTimeout)
+        self.category = result.getResultCategory(self.identifier, self.status, self.propertyfile)
         self.runSet.benchmark.tool.addColumnValues(output, self.columns)
 
         
@@ -543,13 +616,15 @@ class Run():
         # here. if this is the case.
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like TRUE.
-        if self.status in result.STR_LIST and isTimeout:
+        if self.status in result.STATUS_LIST and isTimeout:
             self.status = "TIMEOUT"
             self.category = result.CATEGORY_ERROR
-        if returnsignal == 9 \
+        if returnvalue is not None \
+                and returnsignal == 9 \
                 and MEMLIMIT in rlimits \
-                and self.memUsage \
-                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024 * 0.999):
+                and 'memUsage' in self.values \
+                and not self.values['memUsage'] is None \
+                and int(self.values['memUsage']) >= (rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR * 0.99):
             self.status = 'OUT OF MEMORY'
             self.category = result.CATEGORY_ERROR
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -56,18 +57,18 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import com.google.common.base.Throwables;
 
 @Options(prefix="cpa.monitor")
-public class MonitorTransferRelation implements TransferRelation {
+public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
+  @Option(secure=true, name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
+  @Option(secure=true, name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
       defaultUserUnit=TimeUnit.MILLISECONDS,
       min=0)
@@ -92,7 +93,7 @@ public class MonitorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<MonitorState> getAbstractSuccessors(
+  public Collection<MonitorState> getAbstractSuccessorsForEdge(
       AbstractState pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
@@ -108,7 +109,7 @@ public class MonitorTransferRelation implements TransferRelation {
       @Override
       public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
         assert !(element.getWrappedState() instanceof MonitorState) : element;
-        return transferRelation.getAbstractSuccessors(element.getWrappedState(), pPrecision, pCfaEdge);
+        return transferRelation.getAbstractSuccessorsForEdge(element.getWrappedState(), pPrecision, pCfaEdge);
       }
     };
 

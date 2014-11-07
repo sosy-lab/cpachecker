@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -88,6 +86,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -137,7 +136,7 @@ public class BlockFormulaSlicer {
   }
 
   public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     // first find all ARGStates for each block,
     // a block is a set of states with one start- and one end-state,
@@ -233,7 +232,7 @@ public class BlockFormulaSlicer {
       Set<ARGState> block, Collection<String> importantVars) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
-    final Map<ARGState, Collection<String>> s2v = new HashMap<>(block.size());
+    final Map<ARGState, Collection<String>> s2v = Maps.newHashMapWithExpectedSize(block.size());
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
@@ -555,12 +554,12 @@ public class BlockFormulaSlicer {
    * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
   private boolean handleReturnStatement(CReturnStatementEdge edge,
       Collection<String> importantVars) {
-    CExpression rhs = edge.getExpression();
 
-    if (rhs == null) {
+    if (!edge.getExpression().isPresent()) {
       return false;
 
     } else {
+      CExpression rhs = edge.getExpression().get();
 
       String functionName = edge.getPredecessor().getFunctionName();
       if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {
@@ -727,11 +726,6 @@ public class BlockFormulaSlicer {
     }
 
     @Override
-    public Void visit(CTypeIdInitializerExpression exp) {
-      return null;
-    }
-
-    @Override
     public Void visit(CUnaryExpression exp) {
       exp.getOperand().accept(this);
       return null;
@@ -746,12 +740,13 @@ public class BlockFormulaSlicer {
 
 
   /** This function returns a PathFormula for the whole block from start to end.
-   * The SSA-indices of the new formula are based on the old formula. */
+   * The SSA-indices of the new formula are based on the old formula.
+   */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException {
+      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
-    final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
+    final Map<ARGState, PathFormula> s2f = Maps.newHashMapWithExpectedSize(block.size());
 
     // bfs for parents, visit each state once
     // we use a list for the next states,
@@ -804,7 +799,7 @@ public class BlockFormulaSlicer {
 
 
   private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
 
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
 
@@ -824,7 +819,7 @@ public class BlockFormulaSlicer {
   }
 
   private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
       return oldFormula;
     } else {

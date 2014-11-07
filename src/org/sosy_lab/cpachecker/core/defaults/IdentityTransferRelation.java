@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,14 @@ public enum IdentityTransferRelation implements TransferRelation {
   INSTANCE;
 
   @Override
-  public Collection<AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+  public Collection<AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision) {
+    return Collections.singleton(pState);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
     return Collections.singleton(pState);
   }
 

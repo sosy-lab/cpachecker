@@ -1,7 +1,7 @@
 //ABE  invariant not feasible to implement
 int f(int var1, int var2)
 {
- y = var1+var2;
+ int y = var1+var2;
  y = y+2;
  return y;
 }

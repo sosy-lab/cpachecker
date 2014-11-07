@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.management.JMException;
 
 import org.sosy_lab.common.concurrency.Threads;
@@ -40,6 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 
@@ -112,12 +114,12 @@ public final class ResourceLimitChecker {
     config.inject(options);
 
     ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
-    if (options.walltime >= 0) {
-      limits.add(WalltimeLimit.fromNowOn(options.walltime, TimeUnit.NANOSECONDS));
+    if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
+      limits.add(WalltimeLimit.fromNowOn(options.walltime));
     }
-    if (options.cpuTime >= 0) {
+    if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
       try {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime, TimeUnit.NANOSECONDS));
+        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
       } catch (JMException e) {
         logger.logDebugException(e, "Querying cpu time failed");
         logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
@@ -130,7 +132,7 @@ public final class ResourceLimitChecker {
           Joiner.on(", ").join(Lists.transform(limitsList,
               new Function<ResourceLimit, String>() {
                 @Override
-                public String apply(ResourceLimit pInput) {
+                public String apply(@Nonnull ResourceLimit pInput) {
                   return pInput.getName();
                 }
               })));
@@ -141,19 +143,19 @@ public final class ResourceLimitChecker {
   @Options(prefix="limits")
   private static class ResourceLimitOptions {
 
-    @Option(name="time.wall",
+    @Option(secure=true, name="time.wall",
         description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
         defaultUserUnit=TimeUnit.SECONDS,
         min=-1)
-    private long walltime = -1;
+    private TimeSpan walltime = TimeSpan.ofNanos(-1);
 
-    @Option(name="time.cpu",
+    @Option(secure=true, name="time.cpu",
         description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
         defaultUserUnit=TimeUnit.SECONDS,
         min=-1)
-    private long cpuTime = -1;
+    private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
   }
 

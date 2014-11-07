@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-
+/**
+ * A basic Java type. This includes mostly primitive types, but also types like <code>null</code>
+ * or even a special unspecified type.
+ */
 public enum JBasicType {
 
 
@@ -42,11 +45,29 @@ public enum JBasicType {
 
   private final String code;
 
-
   private JBasicType(String pCode) {
      code = pCode;
   }
 
+  public boolean isFloatingPointType() {
+    return this == FLOAT
+        || this == DOUBLE;
+  }
+
+  public boolean isIntegerType() {
+    return this == BYTE
+        || this == CHAR
+        || this == SHORT
+        || this == INT
+        || this == LONG;
+  }
+
+  /**
+   * Returns an unambiguous String representation of this type.
+   * from all other <code>JBasicType</code> enum constants.
+   *
+   * @return a unique String representation of this type
+   */
   public String toASTString() {
     return code;
   }

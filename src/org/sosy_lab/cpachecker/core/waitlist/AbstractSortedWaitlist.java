@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,8 +113,9 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   @Override
-  public AbstractState pop() {
-    Entry<K, Waitlist> highestEntry = waitlist.lastEntry();
+  public final AbstractState pop() {
+    Entry<K, Waitlist> highestEntry = null;
+    highestEntry = waitlist.lastEntry();
     Waitlist localWaitlist = highestEntry.getValue();
     assert !localWaitlist.isEmpty();
     AbstractState result = localWaitlist.pop();

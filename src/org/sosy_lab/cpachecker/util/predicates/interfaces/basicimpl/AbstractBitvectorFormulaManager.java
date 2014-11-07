@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,38 +28,19 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
-  implements
-    BitvectorFormulaManager {
-
+public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
+  implements BitvectorFormulaManager {
 
   protected AbstractBitvectorFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator
-      ) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
-
   }
 
-
-  @Override
-  public FormulaType<BitvectorFormula> getFormulaType(int pLength) {
-      return FormulaType.BitvectorType.getBitvectorType(pLength);
-  }
-
-  protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo(pNumber);
-  }
-
-  protected BitvectorFormula wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BitvectorFormula.class, pTerm);
-  }
-
-  protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, pTerm);
+  private BitvectorFormula wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulateBitvector(pTerm);
   }
 
   @Override
@@ -68,10 +49,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     return wrap(negate(param1));
   }
 
-
   protected abstract TFormulaInfo negate(TFormulaInfo pParam1);
-
-
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
@@ -128,6 +106,17 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   }
 
   protected abstract TFormulaInfo modulo(TFormulaInfo pParam1, TFormulaInfo pParam2, boolean signed);
+
+
+  @Override
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumber2, long pModulo) {
+    TFormulaInfo param1 = extractInfo(pNumber1);
+    TFormulaInfo param2 = extractInfo(pNumber2);
+
+    return wrapBool(modularCongruence(param1, param2, pModulo));
+  }
+
+  protected abstract TFormulaInfo modularCongruence(TFormulaInfo pNumber1, TFormulaInfo pNumber2, long pModulo);
 
 
   @Override
@@ -212,53 +201,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
 
   protected abstract TFormulaInfo lessOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2, boolean signed);
 
-  @Override
-  public boolean isNegate(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isNegate(param);
-  }
-  protected abstract boolean isNegate(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isAdd(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isAdd(param);
-  }
-  protected abstract boolean isAdd(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isSubtract(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isSubtract(param);
-  }
-
-  protected abstract boolean isSubtract(TFormulaInfo pParam);
-
-
-  @Override
-  public boolean isDivide(BitvectorFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isDivide(param, signed);
-  }
-  protected abstract boolean isDivide(TFormulaInfo pParam, boolean signed) ;
-
-
-  @Override
-  public boolean isModulo(BitvectorFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isModulo(param, signed);
-  }
-
-  protected abstract boolean isModulo(TFormulaInfo pParam, boolean signed) ;
-
-
-  @Override
-  public boolean isMultiply(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isMultiply(param);
-  }
-  protected abstract boolean isMultiply(TFormulaInfo pParam) ;
 
   @Override
   public boolean isEqual(BooleanFormula pNumber) {
@@ -266,34 +208,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     return isEqual(param);
   }
   protected abstract boolean isEqual(TFormulaInfo pParam) ;
-
-  @Override
-  public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterThan(param, signed);
-  }
-  protected abstract boolean isGreaterThan(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterOrEquals(param, signed);
-  }
-  protected abstract boolean isGreaterOrEquals(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessThan(param, signed);
-  }
-  protected abstract boolean isLessThan(TFormulaInfo pParam, boolean signed) ;
-
-  @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return isLessOrEquals(param, signed);
-  }
-  protected abstract boolean isLessOrEquals(TFormulaInfo pParam, boolean signed) ;
 
 
   @Override
@@ -337,35 +251,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   }
 
   protected abstract TFormulaInfo xor(TFormulaInfo pParam1, TFormulaInfo pParam2);
-
-  @Override
-  public boolean isNot(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isNot(param);
-  }
-
-  protected abstract boolean isNot(TFormulaInfo pParam) ;
-
-
-  @Override
-  public boolean isAnd(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isAnd(param);
-  }
-  protected abstract boolean isAnd(TFormulaInfo pParam) ;
-  @Override
-  public boolean isOr(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isOr(param);
-  }
-  protected abstract boolean isOr(TFormulaInfo pParam) ;
-  @Override
-  public boolean isXor(BitvectorFormula pBits) {
-    TFormulaInfo param = extractInfo(pBits);
-    return isXor(param);
-  }
-  protected abstract boolean isXor(TFormulaInfo pParam) ;
-
 
 
   @Override
@@ -445,14 +330,9 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   }
   protected abstract TFormulaInfo extend(TFormulaInfo pNumber, int pExtensionBits, boolean pSigned) ;
 
-
   @Override
   public int getLength(BitvectorFormula pNumber) {
-    TFormulaInfo param = extractInfo(pNumber);
-    return getLength(param);
+    FormulaType<BitvectorFormula> type = getFormulaCreator().getFormulaType(pNumber);
+    return ((FormulaType.BitvectorType)type).getSize();
   }
-
-  protected abstract int getLength(TFormulaInfo pParam) ;
-
-
 }

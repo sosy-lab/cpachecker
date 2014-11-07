@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -39,12 +41,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class represents the vertices/abstract states used by the
  * {@link ImpactAlgorithm}.
  * This class is basically similar to {@link AbstractState},
  * but allows only one parent and additionally stores a modifiable state formula.
  */
+@SuppressFBWarnings("SE_BAD_FIELD")
 class Vertex extends AbstractSingleWrapperState {
   /* Boilerplate code to avoid serializing this class */
   private static final long serialVersionUID = 0xDEADBEEF;
@@ -73,7 +78,7 @@ class Vertex extends AbstractSingleWrapperState {
     stateFormula = pStateFormula;
   }
 
-  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, AbstractState pElement) {
+  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, @Nullable AbstractState pElement) {
     super(pElement);
     this.bfmgr = bfmgr;
     parent = checkNotNull(pParent);

@@ -19,6 +19,9 @@
     <!-- Files can be "included" and "excluded". -->
     <include>../../test/programs/benchmarks/locks/*_1*_*.c</include>
     <exclude>../../test/programs/benchmarks/locks/*_13_*.c</exclude>
+
+    <!-- Multiple sourcefiles can be used as input for the tool, just append some files. All matching files will be appended. -->
+    <append>../../${sourcefile_path}/${sourcefile_name}__second_file.c.does_not_exist</append>
   </sourcefiles>
 
   <sourcefiles name="DeviceDrivers64">
@@ -28,7 +31,8 @@
   </sourcefiles>
 
   <!-- Global options for all run definitions. -->
-  <!-- Set the Java heap size to some value lower than the memlimit. -->
+  <!-- Set the Java heap size to some value lower than the memlimit.
+       Note that Java does not use SI units, but IEC units (factor 1024). -->
   <option name="-heap">7000M</option>
 
   <!-- Set the time limit equal to the above value. -->

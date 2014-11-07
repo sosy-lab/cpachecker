@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,20 +23,28 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import javax.annotation.Nullable;
 
-public class PathFormula implements Serializable {
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+
+public final class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578619L;
   private final transient BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
+  private final PointerTargetSet pts;
 
-  public PathFormula(BooleanFormula pf, SSAMap ssa, int pLength) {
-    this.formula = pf;
-    this.ssa = ssa;
+  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
+      int pLength) {
+    this.formula = checkNotNull(pf);
+    this.ssa = checkNotNull(ssa);
+    this.pts = checkNotNull(pts);
     this.length = pLength;
   }
 
@@ -46,6 +54,10 @@ public class PathFormula implements Serializable {
 
   public SSAMap getSsa() {
     return ssa;
+  }
+
+  public PointerTargetSet getPointerTargetSet() {
+    return pts;
   }
 
   public int getLength() {
@@ -58,7 +70,7 @@ public class PathFormula implements Serializable {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -70,11 +82,18 @@ public class PathFormula implements Serializable {
     return (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
+        && pts.equals(other.pts)
         ;
   }
 
   @Override
   public int hashCode() {
-    return (formula.hashCode() * 17 + ssa.hashCode()) * 31 + length;
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + formula.hashCode();
+    result = prime * result + length;
+    result = prime * result + pts.hashCode();
+    result = prime * result + ssa.hashCode();
+    return result;
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,9 +27,10 @@ import java.io.IOException;
 
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
-import org.sosy_lab.cpachecker.appengine.common.FreemarkerUtil;
-import org.sosy_lab.cpachecker.appengine.entity.DefaultOptions;
 import org.sosy_lab.cpachecker.appengine.server.common.RootResource;
+import org.sosy_lab.cpachecker.appengine.util.DefaultOptions;
+import org.sosy_lab.cpachecker.appengine.util.FreemarkerUtil;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 
 
 public class RootServerResource extends WadlServerResource implements RootResource {
@@ -42,6 +43,7 @@ public class RootServerResource extends WadlServerResource implements RootResour
         .addData("defaultOptions", DefaultOptions.getImmutableOptions())
         .addData("specifications", DefaultOptions.getSpecifications())
         .addData("configurations", DefaultOptions.getConfigurations())
+        .addData("cpacheckerVersion", CPAchecker.getCPAcheckerVersion())
         .templateName("root.ftl")
         .build();
   }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,25 +31,29 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 public class CLangSMGTest {
-  static private final CFunctionType functionType = AnonymousTypes.createSimpleFunctionType(AnonymousTypes.dummyInt);
-  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG);
+  static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf;
 
-  static private final LogManager logger = mock(LogManager.class);
-  static private final CIdExpression id_expression = new CIdExpression(null, null, "label", null);
+  static private final LogManager logger = TestLogManager.getInstance();
+  static private final CIdExpression id_expression = new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
     return new CLangSMG(MachineModel.LINUX64);
@@ -77,10 +81,10 @@ public class CLangSMGTest {
     Integer val2 = Integer.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyInt, 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG, 0, obj2, val2.intValue());
 
-    smg.addValue(val1.intValue());
-    smg.addValue(val2.intValue());
+    smg.addValue(val1);
+    smg.addValue(val2);
     smg.addHeapObject(obj1);
     smg.addGlobalObject(obj2);
     smg.addPointsToEdge(pt);
@@ -99,7 +103,7 @@ public class CLangSMGTest {
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
-    Assert.assertEquals(hv, smg_copy.getHVEdges(filter).iterator().next());
+    Assert.assertEquals(hv, Iterables.getOnlyElement(smg_copy.getHVEdges(filter)));
   }
 
   @Test
@@ -310,7 +314,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationDisjunctnessTest() {
+  public void consistencyViolationDisjunctnessTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(8, "label");
 
@@ -338,7 +342,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationUnionTest() {
+  public void consistencyViolationUnionTest() {
     CLangSMG smg = getNewCLangSMG64();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     SMGRegion stack_obj = new SMGRegion(8, "stack_variable");
@@ -359,7 +363,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationNullTest() {
+  public void consistencyViolationNullTest() {
 
     CLangSMG smg = getNewCLangSMG64();
 
@@ -377,7 +381,7 @@ public class CLangSMGTest {
    * Identical object in different frames is inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest1() {
+  public void consistencyViolationStackNamespaceTest1() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
 
@@ -393,7 +397,7 @@ public class CLangSMGTest {
    * Two objects with same label (variable name) in different frames are not inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest2() {
+  public void consistencyViolationStackNamespaceTest2() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
     SMGRegion obj2 = new SMGRegion(16, "label");
@@ -409,7 +413,7 @@ public class CLangSMGTest {
    * Two objects with same label (variable name) on stack and global namespace are not inconsistent
    */
   @Test
-  public void ConsistencyViolationStackNamespaceTest3() {
+  public void consistencyViolationStackNamespaceTest3() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(8, "label");
     SMGRegion obj2 = new SMGRegion(16, "label");

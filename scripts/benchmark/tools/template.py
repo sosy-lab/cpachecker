@@ -31,13 +31,23 @@ class BaseTool(object):
         return 'UNKOWN'
 
 
-    def getCmdline(self, executable, options, sourcefile, propertyfile=None):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile=None, rlimits={}):
         """
         Compose the command line to execute from the name of the executable,
         the user-specified options, and the sourcefile to analyze.
         This method can get overridden, if, for example, some options should
+        be enabled or if the order of arguments must be changed.
+
+        @param executable: the path to the executable of the tool, the result of getExecutable()
+        @param options: a list of options, in the same order as given in the XML-file.
+        @param sourcefiles: a list of sourcefiles, that should be analysed with the tool in one run.
+                            In most cases we we have only _one_ sourcefile.
+        @param propertyfile: contains a specification for the verifier.
+        @param rlimits: This dictionary contains resource-limits for a run,
+                        for example: time-limit, soft-time-limit, hard-time-limit, memory-limit, cpu-core-limit.
+                        All entries in rlimits are optional, so check for existence before usage!
         """
-        return [executable] + options + [sourcefile]
+        return [executable] + options + sourcefiles
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,10 +29,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -41,7 +43,8 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class ReachingDefState implements AbstractState, Serializable {
+public class ReachingDefState implements AbstractState, Serializable,
+    LatticeAbstractState<ReachingDefState> {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -122,11 +125,13 @@ public class ReachingDefState implements AbstractState, Serializable {
     return this == topElement ? null : globalReachDefs;
   }
 
-  public boolean isSubsetOf(ReachingDefState superset) {
+  @Override
+  public boolean isLessOrEqual(ReachingDefState superset) {
     if (superset == this || superset == topElement) {
       return true;
     }
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset)) {
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall
+        && !compareStackStates(stateOnLastFunctionCall, superset.stateOnLastFunctionCall)) {
       return false;
     }
     boolean isLocalSubset;
@@ -137,7 +142,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
     boolean result;
     do {
-      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
+      if (sub == null || sup == null) {
         return false;
       }
       result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
@@ -150,12 +155,12 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset || superset == topElement) {
+    if (subset == superset) {
       return true;
     }
-    for (String var : subset.keySet()) {
-      setSub = subset.get(var);
-      setSuper = superset.get(var);
+    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+      setSub = entry.getValue();
+      setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }
@@ -166,10 +171,11 @@ public class ReachingDefState implements AbstractState, Serializable {
     return true;
   }
 
-  public ReachingDefState union(ReachingDefState toJoin) {
+  @Override
+  public ReachingDefState join(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     boolean changed = false;
-    ReachingDefState lastFunctionCall = stateOnLastFunctionCall;
+    ReachingDefState lastFunctionCall;
     if (toJoin == this) {
       return this;
     }
@@ -183,8 +189,13 @@ public class ReachingDefState implements AbstractState, Serializable {
       }
       if (lastFunctionCall != stateOnLastFunctionCall) {
         changed = true;
+      } else {
+        lastFunctionCall = toJoin.stateOnLastFunctionCall;
       }
+    } else {
+      lastFunctionCall = toJoin.stateOnLastFunctionCall;
     }
+
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
     if (resultOfMapUnion == localReachDefs) {
@@ -227,12 +238,22 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
-      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs;
-      newLocal = resultOfMapUnion;
+      if (resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs) {
+        changed = true;
+        newLocal = resultOfMapUnion;
+      } else {
+        newLocal = statesToMerge.get(i).localReachDefs;
+      }
 
       resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
-      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
-
+      if (resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs) {
+        changed = true;
+      } else {
+        resultOfMapUnion = statesToMerge.get(i).globalReachDefs;
+      }
+      if (!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)) {
+        isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion);
+      }
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
     }
 
@@ -250,13 +271,14 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
-    for (String var : map1.keySet()) {
+    for (Entry<String, Set<DefinitionPoint>> entry : map1.entrySet()) {
+      String var = entry.getKey();
       // decrease merge time, avoid building union if unnecessary
-      if (map1.get(var)== map2.get(var)) {
+      if (entry.getValue() == map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
-      unionResult = unionSets(map1.get(var), map2.get(var));
+      unionResult = unionSets(entry.getValue(), map2.get(var));
       if (unionResult.size() != map2.get(var).size()) {
         changed = true;
       }
@@ -281,7 +303,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   private Object writeReplace() throws ObjectStreamException {
     if (this==topElement) {
       return proxy;
-    }else{
+    } else {
       return this;
 
     }

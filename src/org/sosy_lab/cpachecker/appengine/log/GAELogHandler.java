@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,8 +36,8 @@ import java.util.logging.StreamHandler;
 /**
  * A log handler implementation that uses a {@link Writer} to save log records.
  * This handler is very similar to {@link StreamHandler} but circumvents calls
- * to a {@link SecurityManager} to avoid problems with setting log level, setting formatter, closing
- * and flushing.
+ * to a {@link SecurityManager} to avoid problems with setting log level,
+ * setting formatter, closing and flushing.
  */
 public class GAELogHandler extends Handler {
 
@@ -79,7 +79,7 @@ public class GAELogHandler extends Handler {
    * Flushes and closes the writer.
    * Use this method to actually write the log.
    */
-  public void flushAndClose() {
+  public synchronized void flushAndClose() {
     if (writer != null) {
       try {
         if (!headIsWritten) {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,11 +25,16 @@ package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
 
-public class SMGObject {
+public abstract class SMGObject {
   final private int size;
   final private String label;
 
-  static final SMGObject nullObject = new SMGObject(0, "NULL");
+  static private final SMGObject nullObject = new SMGObject(0, "NULL") {
+    @Override
+    public String toString() {
+      return "NULL";
+    }
+  };
 
   static public final SMGObject getNullObject() {
     return nullObject;
@@ -74,5 +79,9 @@ public class SMGObject {
       throw new IllegalArgumentException("isMoreGeneral called on incompatible pair of objects");
     }
     return false;
+  }
+
+  public SMGObject join(SMGObject pOther) {
+    throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
   }
 }

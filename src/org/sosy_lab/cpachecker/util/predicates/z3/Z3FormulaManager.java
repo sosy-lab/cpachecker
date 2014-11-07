@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,55 +25,51 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathCounterTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
-import com.google.common.base.Preconditions;
-
 @Options(prefix = "cpa.predicate.solver.z3")
-public class Z3FormulaManager extends AbstractFormulaManager<Long> {
+public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
-  @Option(description = "simplify formulas when they are asserted in a solver.")
+  @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
 
-  private final long z3context;
-  private final Z3FormulaCreator creator;
   private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
-      AbstractUnsafeFormulaManager<Long> pUnsafeManager,
-      AbstractFunctionFormulaManager<Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractRationalFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      Z3FormulaCreator pFormulaCreator,
+      Z3UnsafeFormulaManager pUnsafeManager,
+      Z3FunctionFormulaManager pFunctionManager,
+      Z3BooleanFormulaManager pBooleanManager,
+      Z3IntegerFormulaManager pIntegerManager,
+      Z3RationalFormulaManager pRationalManager,
+      Z3BitvectorFormulaManager pBitpreciseManager,
+      Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
-
-    super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
-
+    super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
+        pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager);
     config.inject(this);
-
-    this.creator = (Z3FormulaCreator) getFormulaCreator();
-    assert creator != null;
-    this.z3context = creator.getEnv();
     this.z3smtLogger = smtLogger;
   }
 
-  public static synchronized Z3FormulaManager create(LogManager logger, Configuration config, boolean useIntegers)
+  public static synchronized Z3FormulaManager create(LogManager logger,
+      Configuration config, @Nullable PathCounterTemplate solverLogfile)
       throws InvalidConfigurationException {
+
+    NativeLibraries.loadLibrary("z3j");
 
     /*
     Following method is part of the file "api_interp.cpp" from Z3.
@@ -81,8 +77,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     We set the same params in a default context,
     so that interpolation is possible.
 
-    Z3_context Z3_mk_interpolation_context(Z3_config cfg){
-      if(!cfg) cfg = Z3_mk_config();
+    Z3_context Z3_mk_interpolation_context(Z3_config cfg) {
+      if (!cfg) cfg = Z3_mk_config();
       Z3_set_param_value(cfg, "PROOF", "true");
       Z3_set_param_value(cfg, "MODEL", "true");
       Z3_context ctx = Z3_mk_context(cfg);
@@ -110,18 +106,15 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     long boolSort = mk_bool_sort(context);
     inc_ref(context, sort_to_ast(context, boolSort));
 
-    long numeralSort;
-    if (useIntegers) {
-      numeralSort = mk_int_sort(context);
-    } else {
-      numeralSort = mk_real_sort(context);
-    }
-    inc_ref(context, sort_to_ast(context, numeralSort));
+    long integerSort = mk_int_sort(context);
+    inc_ref(context, sort_to_ast(context, integerSort));
+    long realSort = mk_real_sort(context);
+    inc_ref(context, sort_to_ast(context, realSort));
 
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
     // they will not contain variable-declaration!
-    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config);
+    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config, solverLogfile);
 
     // this options should match the option set above!
     smtLogger.logOption("model", "true");
@@ -133,18 +126,22 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 //    smtLogger.logBracket("set-logic QF_UFLRA");
 
 
-    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, smtLogger);
+    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
     Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
+    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory);
     Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
+    Z3QuantifiedFormulaManager quantifierManager = new Z3QuantifiedFormulaManager(creator);
 
     Z3FormulaManager instance = new Z3FormulaManager(
+        creator,
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, smtLogger, config);
+        integerTheory, rationalTheory, bitvectorTheory, quantifierManager,
+        smtLogger, config);
     return instance;
   }
 
@@ -159,9 +156,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     long[] decl_symbols = new long[0];
     long[] decls = new long[0];
 
-    long e = parse_smtlib2_string(z3context, str, sort_symbols, sorts, decl_symbols, decls);
+    long e = parse_smtlib2_string(getEnvironment(), str, sort_symbols, sorts, decl_symbols, decls);
 
-    return encapsulate(BooleanFormula.class, e);
+    return encapsulateBooleanFormula(e);
   }
 
 
@@ -189,28 +186,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
           @Override
           public String toString() {
-            return ast_to_string(z3context, expr);
+            return ast_to_string(getEnvironment(), expr);
           }
         });
   }
 
-  public long getContext() {
-    Preconditions.checkState(z3context != 0);
-    return z3context;
-  }
-
-  private <T extends Formula> T encapsulateExpr(Class<T> pClazz, long t) {
-    return creator.encapsulate(pClazz, t);
-  }
-
-  protected <T extends Formula> T encapsulate(Class<T> pClazz, long t) {
-    return encapsulateExpr(pClazz, t);
-  }
-
-  @Override
-  protected Long getTerm(Formula pF) {
-    // for visibility
-    return super.getTerm(pF);
+  protected BooleanFormula encapsulateBooleanFormula(long t) {
+    return getFormulaCreator().encapsulateBoolean(t);
   }
 
   //  @Override
@@ -219,8 +201,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   //  }
 
   /** returns a new logger with a new logfile. */
-  public Z3SmtLogger getSmtLogger() {
-    return new Z3SmtLogger(z3smtLogger);
+  Z3SmtLogger getSmtLogger() {
+    return z3smtLogger.cloneWithNewLogfile();
   }
-
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,12 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.ImmutableMap;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
 
@@ -44,6 +46,9 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
 
   private volatile Boolean result = null;
   private boolean unwindingAssertionFailed = false;
+
+  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+      justification = "Written only by one thread")
   private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, List<String> args) throws IOException {

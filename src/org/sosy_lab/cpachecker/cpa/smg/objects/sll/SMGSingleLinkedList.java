@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +39,12 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     super(pPrototype.getSize(), "SLL");
     bindingOffset = pOffset;
     length = pLength;
+  }
+
+  public SMGSingleLinkedList(SMGSingleLinkedList pOriginal) {
+    super(pOriginal);
+    bindingOffset = pOriginal.bindingOffset;
+    length = pOriginal.length;
   }
 
   //TODO: Abstract interface???
@@ -84,9 +90,27 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     if (! pOther.isAbstract()) {
       return true;
     }
-    if (! matchGenericShape(this)) {
+    if (! matchSpecificShape((SMGAbstractObject)pOther)) {
       throw new IllegalArgumentException("isMoreGeneral called on incompatible abstract objects");
     }
     return length < ((SMGSingleLinkedList)pOther).length;
+  }
+
+  @Override
+  public SMGObject join(SMGObject pOther) {
+    if (! pOther.isAbstract()) {
+      return new SMGSingleLinkedList(this);
+    }
+
+    if (matchSpecificShape((SMGAbstractObject)pOther)) {
+      SMGSingleLinkedList otherSll = (SMGSingleLinkedList)pOther;
+      if (getLength() < otherSll.getLength()) {
+        return new SMGSingleLinkedList(this);
+      } else {
+        return new SMGSingleLinkedList(otherSll);
+      }
+    }
+
+    throw new UnsupportedOperationException("join() called on incompatible abstract objects");
   }
 }

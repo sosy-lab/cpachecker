@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,15 +28,17 @@ import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
  *
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
  */
-class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
+abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
 
   private static final long serialVersionUID = 7662624283533815801L;
 
@@ -80,6 +82,16 @@ class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> i
 }
 
 /**
+ * Simple FloatingPointFormula implementation.
+ */
+@SuppressWarnings("serial")
+class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
+  public FloatingPointFormulaImpl(TFormulaInfo info) {
+    super(info);
+  }
+}
+
+/**
  * Simple BooleanFormula implementation.
  */
 @SuppressWarnings("serial")
@@ -90,7 +102,17 @@ class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> imp
 }
 
 /**
- * Simple NumericFormula implementation.
+ * Simple IntegerFormula implementation.
+ */
+@SuppressWarnings("serial")
+class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
+  public IntegerFormulaImpl(TFormulaInfo pTerm) {
+    super(pTerm);
+  }
+}
+
+/**
+ * Simple RationalFormula implementation.
  */
 @SuppressWarnings("serial")
 class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
@@ -98,6 +120,4 @@ class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> im
     super(pTerm);
   }
 }
-
-
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 
 import com.google.common.collect.Sets;
@@ -76,8 +75,14 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   private final Set<String> printedWarnings = Sets.newHashSet();
 
+  private boolean foundUndefinedIdentifiers = false;
+
   CheckBindingVisitor(LogManager pLogger) {
     logger = pLogger;
+  }
+
+  public boolean foundUndefinedIdentifiers() {
+    return foundUndefinedIdentifiers;
   }
 
   @Override
@@ -116,7 +121,8 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   public Void visit(CIdExpression e) {
     if (e.getDeclaration() == null) {
       if (printedWarnings.add(e.getName())) {
-        logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in line", e.getFileLocation().getStartingLineNumber());
+        logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in", e.getFileLocation());
+        foundUndefinedIdentifiers = true;
       }
     }
     return null;
@@ -154,12 +160,6 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   }
 
   @Override
-  public Void visit(CTypeIdInitializerExpression e) {
-    e.getInitializer().accept(this);
-    return null;
-  }
-
-  @Override
   public Void visit(CUnaryExpression e) {
     e.getOperand().accept(this);
     return null;
@@ -178,7 +178,7 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
       if (f.getDeclaration() == null) {
         if (!f.getName().startsWith("__builtin_") // GCC builtin functions
             && printedWarnings.add(f.getName())) {
-          logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in line", e.getFileLocation().getStartingLineNumber());
+          logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in", e.getFileLocation());
         }
       }
 

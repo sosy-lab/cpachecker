@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -61,9 +62,9 @@ public class StopIgnoringCallstack implements StopOperator{
     if (subset == superset) {
       return true;
     }
-    for (String var : subset.keySet()) {
-      setSub = subset.get(var);
-      setSuper = superset.get(var);
+    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+      setSub = entry.getValue();
+      setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }

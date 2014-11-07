@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.util.assumptions;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -55,7 +56,7 @@ public enum PreventingHeuristic {
    * threshold value which was exceeded.
    */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
-    RationalFormulaManager nfmgr = fmgr.getRationalFormulaManager();
+    NumeralFormulaManager<NumeralFormula, RationalFormula> nfmgr = fmgr.getRationalFormulaManager();
     final RationalFormula number = nfmgr.makeNumber(thresholdValue);
     final RationalFormula var = nfmgr.makeVariable(predicateString);
     // TODO better idea?

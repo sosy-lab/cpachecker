@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -60,8 +62,8 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
 
   private final AbstractState wrappedState;
 
-  public AbstractSingleWrapperState(AbstractState pWrappedState) {
-    // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here
+  public AbstractSingleWrapperState(@Nullable AbstractState pWrappedState) {
+    // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedState);
     wrappedState = pWrappedState;
   }
@@ -80,9 +82,9 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
+  public String getViolatedPropertyDescription() throws IllegalStateException {
     checkState(isTarget());
-    return ((Targetable)wrappedState).getViolatedProperty();
+    return ((Targetable)wrappedState).getViolatedPropertyDescription();
   }
 
   @Override

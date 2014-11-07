@@ -1,7 +1,11 @@
 // testcase for simple_setuid.txt
+extern int someUserFunction();
+extern void setuid(int);
+extern int system(int);
+
 main() {
   // some user input so CPAchecker must check all if branches
-  i = someUserFunction();
+  int i = someUserFunction();
   if (i == 0) {
     // this should be ok
     // setting the userid

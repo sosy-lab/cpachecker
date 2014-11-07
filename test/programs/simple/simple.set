@@ -1,9 +1,9 @@
 bitvectors/*_false-unreach-label.i
-bitvectors/*_safe.i
+bitvectors/*_true-unreach-label.i
 pointer_aliasing/*_false-unreach-label.i
-pointer_aliasing/*_safe.i
+pointer_aliasing/*_true-unreach-label.i
 arrays/*_false-unreach-label.i
-arrays/*_safe.i
+arrays/*_true-unreach-label.i
 *_false-unreach-label.c
-*_safe.c
+*_true-unreach-label.c
 

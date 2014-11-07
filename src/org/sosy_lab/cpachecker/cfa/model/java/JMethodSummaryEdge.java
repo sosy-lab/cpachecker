@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -30,10 +31,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public class JMethodSummaryEdge extends FunctionSummaryEdge {
 
 
-  public JMethodSummaryEdge(String pRawStatement, int pLineNumber,
+  public JMethodSummaryEdge(String pRawStatement, FileLocation pFileLocation,
       CFANode pPredecessor, CFANode pSuccessor, JMethodOrConstructorInvocation pExpression) {
 
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression);
   }
 
   @Override

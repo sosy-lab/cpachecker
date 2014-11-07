@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.cpa.conditions.global;
 
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -50,15 +49,15 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(AbstractState pElement, Precision pPrecision,
+  public PrecisionAdjustmentResult prec(AbstractState pElement, Precision pPrecision,
       UnmodifiableReachedSet pElements) throws CPAException {
 
     if (checkReachedSetSize(pElements)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");
-      return Triple.of(pElement, pPrecision, Action.BREAK);
+      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
     }
 
-    return Triple.of(pElement, pPrecision, delegate.prec(pElement, pPrecision));
+    return PrecisionAdjustmentResult.create(pElement, pPrecision, delegate.prec(pElement, pPrecision));
   }
 
 

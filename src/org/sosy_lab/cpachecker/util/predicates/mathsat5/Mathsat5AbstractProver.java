@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 /**
  * Common base class for {@link Mathsat5TheoremProver}
@@ -50,9 +51,19 @@ abstract class Mathsat5AbstractProver {
     terminationTest = mgr.addTerminationTest(curEnv);
   }
 
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws InterruptedException, SolverException {
     Preconditions.checkState(curEnv != 0);
-    return !msat_check_sat(curEnv);
+    try {
+      return !msat_check_sat(curEnv);
+    } catch (IllegalStateException e) {
+      String msg = Strings.nullToEmpty(e.getMessage());
+      if (msg.contains("too many iterations")
+          || msg.contains("impossible to build a suitable congruence graph!")) {
+        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
+        throw new SolverException(e.getMessage(), e);
+      }
+      throw e;
+    }
   }
 
   public Model getModel() throws SolverException {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -41,7 +41,7 @@ public final class TestHelpers {
       if (value == null) {
         hv = new SMGEdgeHasValue(pSize, 0, node, 0);
       } else {
-        hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, pOffset, node, value);
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, value);
       }
       value = SMGValueFactory.getNewValue();
       SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
@@ -56,7 +56,7 @@ public final class TestHelpers {
   static public final SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
     Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(8, pVariable);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, globalVar, value);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, value);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
 

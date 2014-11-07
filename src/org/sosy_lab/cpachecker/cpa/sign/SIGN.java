@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
+import java.io.Serializable;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 
-public enum SIGN {
+public enum SIGN implements Serializable{
   // ALL = 111, PLUS = 100, MINUS = 010, ...
   EMPTY(0), PLUS(1), MINUS(2), ZERO(4), PLUSMINUS(3), PLUS0(5), MINUS0(6), ALL(7);
 
@@ -38,7 +40,7 @@ public enum SIGN {
 
   static {
     Builder<Integer, SIGN> builder = ImmutableMap.builder();
-    for(SIGN s : SIGN.values()) {
+    for (SIGN s : SIGN.values()) {
       builder.put(s.numVal, s);
     }
     VALUE_MAP = builder.build();
@@ -71,14 +73,14 @@ public enum SIGN {
   }
 
   public static SIGN min(SIGN sign0, SIGN sign1) {
-    if(sign0.isSubsetOf(sign1)) {
+    if (sign0.isSubsetOf(sign1)) {
       return sign0;
     }
     return sign1;
   }
 
   public boolean isSubsetOf(SIGN sign) {
-    if(sign.isAll()) {
+    if (sign.isAll()) {
       return true;
     }
     // Check if this is a subset using atomic signs
@@ -87,8 +89,8 @@ public enum SIGN {
 
   public ImmutableSet<SIGN> split() { // TODO performance
     ImmutableSet.Builder<SIGN> builder = ImmutableSet.builder();
-    for(SIGN s : ImmutableList.of(PLUS,MINUS,ZERO)) {
-      if((s.numVal & numVal) > 0) {
+    for (SIGN s : ImmutableList.of(PLUS,MINUS,ZERO)) {
+      if ((s.numVal & numVal) > 0) {
         builder.add(s);
       }
     }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(DefUseCPA.class);
   }
 
-  @Option(name="merge", values={"sep", "join"},
+  @Option(secure=true, name="merge", values={"sep", "join"},
       description="which merge operator to use for DefUseCPA")
   private String mergeType = "sep";
 

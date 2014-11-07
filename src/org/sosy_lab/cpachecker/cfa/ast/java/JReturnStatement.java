@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
+import com.google.common.base.Optional;
+
 /**
  *  This class represents the return statement AST node type.
  *
@@ -35,14 +37,15 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  */
 public class JReturnStatement extends AReturnStatement implements JAstNode {
 
-  public JReturnStatement(FileLocation pFileLocation, JExpression pExpression) {
+  public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     super(pFileLocation, pExpression);
 
   }
 
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public JExpression getReturnValue() {
-    return (JExpression) super.getReturnValue();
+  public Optional<JExpression> getReturnValue() {
+    return (Optional<JExpression>) super.getReturnValue();
   }
 
   @Override

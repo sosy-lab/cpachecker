@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import java.util.Objects;
 public final class CPointerType implements CType {
 
   public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CNumericTypes.VOID);
+  public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 
   private final CType type;
   private boolean   isConst;

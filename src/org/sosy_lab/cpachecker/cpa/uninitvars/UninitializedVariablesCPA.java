@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.uninitvars;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -57,16 +57,14 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(description="print warnings during analysis when uninitialized variables are used")
+  @Option(secure=true, description="print warnings during analysis when uninitialized variables are used")
   private String printWarnings = "true";
-  @Option(name="merge", values={"sep", "join"},
+  @Option(secure=true, name="merge", values={"sep", "join"},
       description="which merge operator to use for UninitializedVariablesCPA?")
   private String mergeType = "sep";
-  @Option(name="stop", values={"sep", "join"},
+  @Option(secure=true, name="stop", values={"sep", "join"},
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
-  @Option (description="if enabled checks if states are target states (there exist warning for uninitilized use of variables")
-  private boolean checkTarget = false;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -95,11 +93,6 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     } else if (stopType.equals("join")) {
       stopOp = new StopJoinOperator(domain);
     }
-
-    if(checkTarget){
-      printWarnings = "true";
-    }
-    UninitializedVariablesState.init(checkTarget);
 
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;

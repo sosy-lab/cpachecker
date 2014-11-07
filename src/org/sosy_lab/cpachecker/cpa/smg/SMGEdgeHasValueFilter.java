@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,8 +81,7 @@ public class SMGEdgeHasValueFilter {
     if (value != null) {
       if (valueComplement && pEdge.getValue() == value) {
         return false;
-      }
-      else if ( (!valueComplement) && pEdge.getValue() != value) {
+      } else if ( (!valueComplement) && pEdge.getValue() != value) {
         return false;
       }
     }
@@ -106,5 +105,21 @@ public class SMGEdgeHasValueFilter {
       }
     }
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  public boolean edgeContainedIn(Set<SMGEdgeHasValue> pEdges) {
+
+    assert value != null;
+    assert object != null;
+    assert offset != null;
+    assert type != null;
+
+    for (SMGEdgeHasValue edge : pEdges) {
+      if (holdsFor(edge)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

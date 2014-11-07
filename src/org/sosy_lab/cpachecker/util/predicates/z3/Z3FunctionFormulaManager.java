@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -35,19 +34,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 
 import com.google.common.primitives.Longs;
 
-public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
+class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
 
-  private final Z3FormulaCreator creator;
   private final Z3UnsafeFormulaManager unsafeManager;
   private final long z3context;
   private final Z3SmtLogger smtLogger;
 
-  public Z3FunctionFormulaManager(
+  Z3FunctionFormulaManager(
       Z3FormulaCreator creator,
       Z3UnsafeFormulaManager unsafeManager,
       Z3SmtLogger smtLogger) {
     super(creator, unsafeManager);
-    this.creator = creator;
     this.z3context = creator.getEnv();
     this.unsafeManager = unsafeManager;
     this.smtLogger = smtLogger;
@@ -63,61 +60,23 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
-  public long toZ3Type(FormulaType<?> formulaType) {
-    long t;
-    if (formulaType.isBooleanType()) {
-      t = creator.getBoolType();
-    } else if (formulaType.isRationalType()) {
-      t = creator.getNumberType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = creator.getBittype(bitPreciseType.getSize());
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
-  }
-
   @Override
-  public <T extends Formula> Z3FunctionType<T> createFunction(
+  public <T extends Formula> Z3FunctionType<T> declareUninterpretedFunction(
         String pName,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgs) {
-    FunctionFormulaType<T> formulaType
-      = super.createFunction(pName, pReturnType, pArgs);
 
     long symbol = mk_string_symbol(z3context, pName);
     long[] sorts = new long[pArgs.size()];
     for (int i = 0; i < pArgs.size(); i++) {
-      sorts[i] = toZ3Type(pArgs.get(i));
+      sorts[i] = toSolverType(pArgs.get(i));
     }
-    long returnType = toZ3Type(pReturnType);
+    long returnType = toSolverType(pReturnType);
     long func = mk_func_decl(z3context, symbol, sorts, returnType);
     inc_ref(z3context, func);
 
     smtLogger.logFunctionDeclaration(symbol, sorts, returnType);
 
-    return new Z3FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), func);
+    return new Z3FunctionType<>(pReturnType, pArgs, func);
   }
-
-  @Override
-  public <T extends Formula> Z3FunctionType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
-  }
-
-  @Override
-  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long f) {
-    boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) {
-      return false;
-    }
-
-    // TODO check if exactly the given func
-    return isUf;
-  }
-
 }

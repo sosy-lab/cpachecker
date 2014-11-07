@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.rtt;
 
-import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
@@ -31,17 +30,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 
 
-public class RTTState extends AbstractAppender implements AbstractState {
+public class RTTState extends AbstractAppender implements
+    LatticeAbstractState<RTTState> {
 
 
   public static final String KEYWORD_THIS = "this";
@@ -215,18 +217,19 @@ public class RTTState extends AbstractAppender implements AbstractState {
    * @param other the other element to join with this element
    * @return a new state representing the join of this element and the other element
    */
-  RTTState join(RTTState other) {
+  @Override
+  public RTTState join(RTTState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
-    Map<String, String> newConstantsMap = new HashMap<>(size);
-    Map<String, String> newIdentificationMap = new HashMap<>(size);
-    Map<String, String> newClassTypeMap = new HashMap<>(size);
+    Map<String, String> newConstantsMap = Maps.newHashMapWithExpectedSize(size);
+    Map<String, String> newIdentificationMap = new HashMap<>(0);
+    Map<String, String> newClassTypeMap = new HashMap<>(0);
 
 
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), constantsMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }
@@ -234,7 +237,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     for (Map.Entry<String, String> otherEntry : other.identificationMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), identificationMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), identificationMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }
@@ -242,7 +245,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     for (Map.Entry<String, String> otherEntry : other.classTypeMap.entrySet()) {
       String key = otherEntry.getKey();
 
-      if (equal(otherEntry.getValue(), classTypeMap.get(key))) {
+      if (Objects.equals(otherEntry.getValue(), classTypeMap.get(key))) {
         newConstantsMap.put(key, otherEntry.getValue());
       }
     }
@@ -258,7 +261,8 @@ public class RTTState extends AbstractAppender implements AbstractState {
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  boolean isLessOrEqual(RTTState other) {
+  @Override
+  public boolean isLessOrEqual(RTTState other) {
 
     // this element is not less or equal than the other element, if it contains less elements
     if (constantsMap.size() < other.constantsMap.size()) {

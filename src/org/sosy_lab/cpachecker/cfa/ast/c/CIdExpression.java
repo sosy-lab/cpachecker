@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.base.Objects;
 
 public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
@@ -38,7 +38,9 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     super(pFileLocation, pType, pName, pDeclaration);
   }
 
-
+  public CIdExpression(final FileLocation pFileLocation, final CSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pDeclaration);
+  }
 
   @Override
   public CType getExpressionType() {
@@ -70,11 +72,16 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
   }
 
   @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
     if (getDeclaration() != null) {
-      result = prime * result + Objects.hashCode(getDeclaration().getQualifiedName());
+      result = prime * result + Objects.hash(getDeclaration().getQualifiedName());
     }
     return prime * result;
   }
@@ -99,7 +106,7 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     if (getDeclaration() == null) {
       return other.getDeclaration() == null;
     } else {
-      return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+      return Objects.equals(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
     }
   }
 }

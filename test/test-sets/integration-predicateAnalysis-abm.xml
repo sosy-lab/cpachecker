@@ -2,17 +2,18 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <!-- try to make it more deterministic -->
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-timelimit">1min</option>
 
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
     <sourcefiles>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.10_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -22,20 +23,16 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-label.c</exclude>
-      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-label.cil.out.i.pp.cil.c</exclude>
-      <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-label_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
-    <option name="-predicateAnalysis-abm"/>
+    <option name="-predicateAnalysis-bam"/>
   </rundefinition>
-
-  <columns>
-    <column title="total">time for CPAchecker</column>
-    <column title="cpa time">time for CPA algorithm</column>
-  </columns>
 </benchmark>

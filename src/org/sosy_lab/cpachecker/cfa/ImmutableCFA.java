@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,22 +24,19 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SetMultimap;
 
@@ -50,26 +47,24 @@ import com.google.common.collect.SetMultimap;
 class ImmutableCFA implements CFA {
 
   private final MachineModel machineModel;
-  private final ImmutableMap<String, FunctionEntryNode> functions;
+  private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
-  private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
+  private final Optional<LoopStructure> loopStructure;
   private final Optional<VariableClassification> varClassification;
   private final Language language;
-
-  private ImmutableSet<CFANode> loopHeads = null;
 
   ImmutableCFA(
       MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
-      Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
+      Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Language pLanguage) {
 
     machineModel = pMachineModel;
-    functions = ImmutableMap.copyOf(pFunctions);
+    functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
@@ -81,7 +76,7 @@ class ImmutableCFA implements CFA {
 
   private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
     machineModel = pMachineModel;
-    functions = ImmutableMap.of();
+    functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
@@ -109,7 +104,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableSet<String> getAllFunctionNames() {
+  public ImmutableSortedSet<String> getAllFunctionNames() {
     return functions.keySet();
   }
 
@@ -124,7 +119,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public ImmutableMap<String, FunctionEntryNode> getAllFunctions() {
+  public ImmutableSortedMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
   }
 
@@ -139,23 +134,14 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
+  public Optional<LoopStructure> getLoopStructure() {
     return loopStructure;
   }
 
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      if (loopHeads == null) {
-        loopHeads = from(loopStructure.get().values())
-            .transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-              @Override
-              public Iterable<CFANode> apply(Loop loop) {
-                return loop.getLoopHeads();
-              }
-            }).toSet();
-      }
-      return Optional.of(loopHeads);
+      return Optional.of(loopStructure.get().getAllLoopHeads());
     }
     return Optional.absent();
   }

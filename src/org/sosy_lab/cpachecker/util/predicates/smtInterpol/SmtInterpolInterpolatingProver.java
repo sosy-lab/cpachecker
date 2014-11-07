@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -50,7 +51,7 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   private final List<String> assertedFormulas; // Collection of termNames
   private final Map<String, Term> annotatedTerms; // Collection of termNames
   private static final String prefix = "term_"; // for termnames
-  private static int counter = 0; // for different termnames // TODO static?
+  private static final UniqueIdGenerator termIdGenerator = new UniqueIdGenerator(); // for different termnames // TODO static?
 
   SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
     mgr = pMgr;
@@ -63,10 +64,10 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   public String push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
 
-    Term t = mgr.getTerm(f);
+    Term t = mgr.extractInfo(f);
     //Term t = ((SmtInterpolFormula)f).getTerm();
 
-    String termName = prefix + counter++;
+    String termName = prefix + termIdGenerator.getFreshId();
     Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
     pushAndAssert(annotatedTerm);
     assertedFormulas.add(termName);
@@ -112,6 +113,25 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     return getInterpolant(termA, termB);
   }
 
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<String>> partitionedTermNames) {
+    Preconditions.checkNotNull(env);
+
+    final Term[] formulas = new Term[partitionedTermNames.size()];
+    for (int i = 0; i < formulas.length; i++) {
+      formulas[i] = buildConjunctionOfNamedTerms(partitionedTermNames.get(i));
+    }
+
+    // get interpolants of groups
+    final Term[] itps = env.getInterpolants(formulas);
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (Term itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+    return result;
+  }
+
   protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
@@ -138,10 +158,12 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
   @Override
   public void close() {
     Preconditions.checkNotNull(env);
-    env.pop(assertedFormulas.size());
-    assertedFormulas.clear();
-    annotatedTerms.clear();
     assert assertedFormulas.size() == annotatedTerms.size();
+    if (!assertedFormulas.isEmpty()) {
+      env.pop(assertedFormulas.size());
+      assertedFormulas.clear();
+      annotatedTerms.clear();
+    }
     env = null;
   }
 
@@ -150,6 +172,6 @@ class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<S
     Preconditions.checkNotNull(env);
     assert assertedFormulas.size() == annotatedTerms.size();
 
-    return SmtInterpolModel.createSmtInterpolModel(mgr, annotatedTerms.values());
+    return SmtInterpolModel.createSmtInterpolModel(env, annotatedTerms.values());
   }
 }

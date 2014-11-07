@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.core.interfaces;
+
+import com.google.common.base.Predicate;
 
 public interface WrapperPrecision extends Precision {
 
@@ -44,6 +46,12 @@ public interface WrapperPrecision extends Precision {
    * @param replaceType Type of precisions that should be replaced by newPrecision.
    * @return A new precision object containing the argument in some place or null.
    */
-  public Precision replaceWrappedPrecision(Precision newPrecision, Class<? extends Precision> replaceType);
+  public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType);
+
+  /**
+   * Retrieve all wrapped precisions contained directly in this object.
+   * @return A non-empty list of precisions.
+   */
+  public Iterable<Precision> getWrappedPrecisions();
 
 }

@@ -13,5 +13,5 @@ int main() {
 	int tmp;
 	tmp = featureModelValid();
 	if (! tmp)
-		error: fail();
+		ERROR: return 1;
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.Map;
 
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -63,7 +64,7 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment() {
-    return factory.newProverEnvironment(false);
+    return factory.newProverEnvironment(false, false);
   }
 
   /**
@@ -75,13 +76,25 @@ public class Solver {
    * The solver is told to enable model generation.
    */
   public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return factory.newProverEnvironment(true);
+    return factory.newProverEnvironment(true, false);
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for more complicated queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   *
+   * The solver is told to enable unsat-core generation.
+   */
+  public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
+    return factory.newProverEnvironment(false, true);
   }
 
   /**
    * Checks whether a formula is unsat.
    */
-  public boolean isUnsat(BooleanFormula f) throws InterruptedException {
+  public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
     satChecks++;
 
     if (bfmgr.isTrue(f)) {
@@ -110,7 +123,7 @@ public class Solver {
     }
   }
 
-  private boolean isUnsatUncached(BooleanFormula f) throws InterruptedException {
+  private boolean isUnsatUncached(BooleanFormula f) throws SolverException, InterruptedException {
     try (ProverEnvironment prover = newProverEnvironment()) {
       prover.push(f);
       return prover.isUnsat();
@@ -121,7 +134,7 @@ public class Solver {
    * Checks whether a => b.
    * The result is cached.
    */
-  public boolean implies(BooleanFormula a, BooleanFormula b) throws InterruptedException {
+  public boolean implies(BooleanFormula a, BooleanFormula b) throws SolverException, InterruptedException {
     if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
@@ -148,7 +161,9 @@ public class Solver {
       return;
     }
     try {
-      assert isUnsatUncached(unsat);
+      assert isUnsatUncached(unsat) : "formula is sat: " + unsat;
+    } catch (SolverException e) {
+      throw new AssertionError(e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }

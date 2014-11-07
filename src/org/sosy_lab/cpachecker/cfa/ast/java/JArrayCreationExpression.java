@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  *  Array creation expression AST node type.
@@ -58,7 +61,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
 
   public JArrayCreationExpression(FileLocation pFileLocation, JArrayType pType, JArrayInitializer pInitializer, List<JExpression> pLength) {
     super(pFileLocation, pType);
-    length = pLength;
+    length = ImmutableList.copyOf(pLength);
     initializer = pInitializer;
 
   }
@@ -87,9 +90,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
         astString.append("]");
       }
 
-
-
-      return   astString.toString();
+      return  astString.toString();
     }
   }
 

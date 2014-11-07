@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.collect.MapMaker;
 
@@ -96,6 +97,7 @@ public final class ShutdownNotifier {
   // and calling requestStop() at the same time.
   // This variable is not volatile and always needs to accessed from within
   // a synchronized (listeners) { } block!
+  @GuardedBy("listeners")
   private boolean listenersNotified = false;
 
   // Do not remove this field, otherwise the listener will be garbage collected

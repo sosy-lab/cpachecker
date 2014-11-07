@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,15 +27,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -44,10 +46,10 @@ import com.google.common.base.Strings;
 public final class SMGExplicitPlotter {
   private final HashMap <Location, String> locationIndex = new HashMap<>();
   private int offset = 0;
-  private final ExplicitState explicitState;
+  private final ValueAnalysisState explicitState;
   private final SMGState smgState;
 
-  public SMGExplicitPlotter(ExplicitState pExplicitState, SMGState pSmgState) {
+  public SMGExplicitPlotter(ValueAnalysisState pExplicitState, SMGState pSmgState) {
     explicitState = pExplicitState;
     smgState = pSmgState;
   }
@@ -90,9 +92,9 @@ public final class SMGExplicitPlotter {
 
     Set<MemoryLocation> notCoveredBySMG = new HashSet<>();
 
-    for(MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
+    for (MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
       // We don't consider values from the old Nomenclature in explicit cpa
-      if(!coveredMemloc.contains(memloc) && !memloc.getAsSimpleString().contains("->")) {
+      if (!coveredMemloc.contains(memloc) && !memloc.getAsSimpleString().contains("->")) {
         sb.append(newLineWithOffset(explicitValueAsDot(memloc)));
         notCoveredBySMG.add(memloc);
       }
@@ -120,8 +122,8 @@ public final class SMGExplicitPlotter {
   }
 
   private String explicitValueAsDot(MemoryLocation pMemloc) {
-    long value = explicitState.getValueFor(pMemloc);
-    return "expValue_" + value + "[label=\"" + value + "\"];";
+    Value value = explicitState.getValueFor(pMemloc);
+    return "expValue_" + value.toString() + "[label=\"" + value.toString() + "\"];";
   }
 
   private void addStackSubgraph(CLangSMG pSmg, StringBuilder pSb) {
@@ -161,8 +163,9 @@ public final class SMGExplicitPlotter {
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
-    for (String key : pNamespace.keySet()) {
-      SMGObject obj = pNamespace.get(key);
+    for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
+      String key = entry.getKey();
+      SMGObject obj = entry.getValue();
 
       if (key.equals("node")) {
         // escape Node1
@@ -176,7 +179,7 @@ public final class SMGExplicitPlotter {
 
     Set<MemoryLocation> memoryLocations;
 
-    if(pFunctionName == null) {
+    if (pFunctionName == null) {
       memoryLocations = explicitState.getGlobalMemoryLocations();
     } else {
       memoryLocations = explicitState.getMemoryLocationsOnStack(pFunctionName);

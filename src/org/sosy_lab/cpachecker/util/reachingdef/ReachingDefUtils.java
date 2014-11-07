@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.reachingdef;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -49,14 +50,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 
 public class ReachingDefUtils {
 
-  private static CFANode[] cfaNodes;
+  private static List<CFANode> cfaNodes;
 
-  public static CFANode[] getAllNodesFromCFA() {
+  public static List<CFANode> getAllNodesFromCFA() {
     return cfaNodes;
   }
 
@@ -135,8 +137,7 @@ public class ReachingDefUtils {
 
       result.put(currentFunction, ImmutableSet.copyOf(localVariables));
     }
-    cfaNodes = new CFANode[nodes.size()];
-    nodes.toArray(cfaNodes);
+    cfaNodes = ImmutableList.copyOf(nodes);
     return Pair.of((Set<String>) ImmutableSet.copyOf(globalVariables), result);
   }
 

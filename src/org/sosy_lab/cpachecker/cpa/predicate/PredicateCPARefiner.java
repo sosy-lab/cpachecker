@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,20 +35,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -61,13 +61,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -77,6 +78,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -91,18 +94,16 @@ import com.google.common.base.Predicates;
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateCPARefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
-  @Option(description="slice block formulas, experimental feature!")
+  @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(
+  @Option(secure=true,
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpCounterexampleFile = Paths.get("ErrorPath.%d.smt2");
+  private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
-  // needed for refinement in predicated analysis due to relink of elements during merge
-  private boolean recomputePathFormulae;
 
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -143,10 +144,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final PathFormulaManager pfmgr;
-  private FormulaManagerView fmgr;
+  protected final PathFormulaManager pfmgr;
+  protected FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
@@ -170,12 +171,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     pfmgr = pPathFormulaManager;
     fmgr = pFormulaManager;
     strategy = pStrategy;
-    String value = config.getProperty("analysis.algorithm.predicatedAnalysis");
-    if (value != null) {
-      recomputePathFormulae = Boolean.parseBoolean(value);
-    } else {
-      recomputePathFormulae = false;
-    }
+
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
@@ -183,9 +179,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLast().getFirst());
-
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
+    assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
+    assert elementsOnPath.size() >= allStatesTrace.size();
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == allStatesTrace.size()) {
@@ -205,17 +201,19 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     // create list of formulas on path
     final List<BooleanFormula> formulas;
-    if (recomputePathFormulae) {
-      formulas = recomputeFormulasForPath(allStatesTrace, abstractionStatesTrace.size());
-    } else {
-      formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirst().getFirst());
-    }
-    assert abstractionStatesTrace.size() == formulas.size();
+    formulas = getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
+    assert abstractionStatesTrace.size() == formulas.size();
+    // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
+    // however we do not have the very first state in the trace,
+    // because the rootState has always abstraction "True".
+
+    logger.log(Level.ALL, "Error path formulas: ", formulas);
 
     // build the counterexample
     buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, strategy.needsInterpolants());
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
+            formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
     buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine
@@ -255,7 +253,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
       } else {
         targetPath = allStatesTrace;
-        preciseCounterexample = pathChecker.checkPath(targetPath.asEdgesList());
+        preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
       }
       preciseCouterexampleTime.stop();
 
@@ -268,25 +266,23 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-
   static List<ARGState> transformPath(ARGPath pPath) {
-    List<ARGState> result = from(pPath)
+    List<ARGState> result = from(pPath.asStatesList())
       .skip(1)
-      .transform(Pair.<ARGState>getProjectionToFirst())
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                                  toState(PredicateAbstractState.class)))
       .toList();
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override
-      public boolean apply(@Nullable ARGState pInput) {
+      public boolean apply(ARGState pInput) {
         boolean correct = pInput.getParents().size() <= 1;
         assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
         return correct;
       }
     });
 
-    assert pPath.getLast().getFirst() == result.get(result.size()-1);
+    assert pPath.getLastState() == result.get(result.size()-1);
     return result;
   }
 
@@ -304,10 +300,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @param path A list of all abstraction elements
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
-   * @throws CPATransferException
    */
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     getFormulasForPathTime.start();
     try {
       if (sliceBlockFormulas) {
@@ -324,27 +319,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  protected List<BooleanFormula> recomputeFormulasForPath(ARGPath pAllStatesTrace, int initialSize)
-      throws CPATransferException {
-    ArrayList<BooleanFormula> list = new ArrayList<>(initialSize);
-    PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
-    pathFormula = pfmgr.makeAnd(pathFormula, pAllStatesTrace.getFirst().getSecond());
-    ARGState last = pAllStatesTrace.get(pAllStatesTrace.size()-2).getFirst();
-    for (Pair<ARGState, CFAEdge> pair : pAllStatesTrace.subList(1, pAllStatesTrace.size()-1)) {
-      if (PredicateAbstractState.getPredicateState(pair.getFirst()).isAbstractionState()) {
-        list.add(pathFormula.getFormula());
-        pathFormula = pfmgr.makeEmptyPathFormula(pathFormula);
-      }
-      if (pair.getFirst() != last) {
-        pathFormula = pfmgr.makeAnd(pathFormula, pair.getSecond());
-      } else {
-        pathFormula = pfmgr.makeAnd(pathFormula, last.getErrorCondition(fmgr));
-      }
-    }
-    list.add(pathFormula.getFormula());
-    return list;
-  }
-
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
@@ -357,8 +331,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // find correct path
       ARGPath targetPath;
       try {
-        ARGState root = pPath.getFirst().getFirst();
-        ARGState target = pPath.getLast().getFirst();
+        ARGState root = pPath.getFirstState();
+        ARGState target = pPath.getLastState();
         Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
@@ -372,9 +346,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // try to create a better satisfying assignment by replaying this single path
       CounterexampleTraceInfo info2;
       try {
-        info2 = pathChecker.checkPath(targetPath.asEdgesList());
+        info2 = pathChecker.checkPath(targetPath.getInnerEdges());
 
-      } catch (CPATransferException e) {
+      } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path");
         return null;
@@ -390,6 +364,26 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } finally {
       errorPathProcessing.stop();
     }
+  }
+
+  private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
+      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
+
+    List<CFAEdge> edges = targetPath.getInnerEdges();
+
+    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
+
+    Model model = counterexample.getModel();
+
+    Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
+        pathChecker.extractVariableAssignment(edges, ssamaps, model);
+
+    CFAPathWithAssignments pathWithAssignments = pathAndTerms.getFirst();
+    Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
+
+    model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
+
+    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
   }
 
   @Override

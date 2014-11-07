@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,12 +29,12 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
@@ -52,7 +52,7 @@ import com.google.common.collect.ListMultimap;
 @Options(prefix="staticRefiner")
 abstract public class StaticRefiner {
 
-  @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
+  @Option(secure=true, description="collect at most this number of assumes along a path, backwards from each target (= error) location")
   private int maxBackscanPathAssumes = 1;
 
   protected final LogManager logger;

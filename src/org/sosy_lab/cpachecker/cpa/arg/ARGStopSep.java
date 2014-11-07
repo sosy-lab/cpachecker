@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,11 +27,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="cpa.arg")
 public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
-  @Option(description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
+  @Option(secure=true, description="whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
-  @Option(
+  @Option(secure=true,
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;

@@ -1,12 +1,14 @@
+extern int __VERIFIER_nondet_int();
+
 int main(){
   
   int a;
   int b;
   int c;
  
-  a = __BLAST_NONDET;
-  b = __BLAST_NONDET;
-  c = __BLAST_NONDET;  
+  a = __VERIFIER_nondet_int();
+  b = __VERIFIER_nondet_int();
+  c = __VERIFIER_nondet_int();
  
   if(a == 1){
     a++;

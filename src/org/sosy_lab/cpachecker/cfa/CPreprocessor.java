@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,18 +28,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Options(prefix="parser")
 public class CPreprocessor {
@@ -49,7 +51,7 @@ public class CPreprocessor {
                       "The source file name will be appended to this string. " +
                       "The preprocessor needs to print the output to stdout.")
 
-  private String preprocessor = "cpp -P"; // -P  Inhibit generation of linemarkers (this make problems when running a tokenizer)
+  private String preprocessor = "cpp";
 
   private final LogManager logger;
 
@@ -95,6 +97,8 @@ public class CPreprocessor {
     private static final int MAX_ERROR_OUTPUT_SHOWN = 10;
     private static final Map<String, String> ENV_VARS = ImmutableMap.of("LANG", "C");
 
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+        justification = "Written only by one thread")
     private volatile int errorOutputCount = 0;
     private volatile StringBuffer buffer;
 

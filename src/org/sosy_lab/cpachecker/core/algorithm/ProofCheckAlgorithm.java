@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,14 +27,15 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
 @Options
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -61,7 +63,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
       out.println();
       out.println("Total time for proof check algorithm:     " + totalTimer);
-      out.println("  Time for reading in proof:              " + readTimer);
+      out.println("  Time for reading in proof (not complete time in interleaved modes):  " + readTimer);
     }
   }
 
@@ -69,7 +71,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
 
 
-  @Option(
+  @Option(secure=true,
       name = "pcc.strategy",
       description = "Qualified name for class which implements proof checking strategy to be used.")
   private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
@@ -99,13 +101,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       stats.totalTimer.stop();
     }
     logger.log(Level.INFO, "Finished reading proof.");
-
-    System.gc();
   }
 
   protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig,
       LogManager logger, ShutdownNotifier pShutdownNotifier, ReachedSet pReachedSet)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     pConfig.inject(this);
 
     checkingStrategy = PCCStrategyBuilder.buildStrategy(pccStrategy, pConfig, logger, pShutdownNotifier, cpa);
@@ -130,6 +130,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     stats.totalTimer.stop();
     logger.log(Level.INFO, "Proof check algorithm finished.");
+
+    if (!result) {
+      reachedSet.add(new DummyErrorState(reachedSet.getFirstState()), SingletonPrecision.getInstance());
+    }
 
     return result;
   }

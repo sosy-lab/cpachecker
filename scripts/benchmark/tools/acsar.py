@@ -16,7 +16,10 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'Acsar'
 
 
-    def getCmdline(self, executable, options, sourcefile):
+    def getCmdline(self, executable, options, sourcefiles, propertyfile, rlimits):
+        assert len(sourcefiles) == 1, "only one sourcefile supported"
+        sourcefile = sourcefiles[0]
+
         # create tmp-files for acsar, acsar needs special error-labels
         self.prepSourcefile = self._prepareSourcefile(sourcefile)
 
@@ -35,6 +38,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if "syntax error" in output:
             status = "SYNTAX ERROR"
 
@@ -60,13 +64,13 @@ class Tool(benchmark.tools.template.BaseTool):
             status = "KILLED"
 
         elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
-            status = result.STR_TRUE
+            status = result.STATUS_TRUE_PROP
 
         elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-            status = result.STR_FALSE_LABEL
+            status = result.STATUS_FALSE_REACH
 
         else:
-            status = result.STR_UNKNOWN
+            status = result.STATUS_UNKNOWN
 
         # delete tmp-files
         os.remove(self.prepSourcefile)

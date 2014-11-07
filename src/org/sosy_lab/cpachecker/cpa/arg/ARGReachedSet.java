@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -116,7 +117,7 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
+  public void removeSubtree(ARGState e, Precision p, Predicate<? super Precision> pPrecisionType) {
     for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
@@ -133,7 +134,7 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, List<Precision> precisions, List<Class<? extends Precision>> precisionTypes) {
+  public void removeSubtree(ARGState e, List<Precision> precisions, List<Predicate<? super Precision>> precisionTypes) {
 
     Preconditions.checkArgument(precisions.size() == precisionTypes.size());
 
@@ -170,11 +171,38 @@ public class ARGReachedSet {
   }
 
   /**
+   * This method cuts of the subtree in the ARG, starting with the given state.
+   *
+   * Other than {@link #removeSubtree(ARGState)} and its variants, this method
+   * does not care about keeping the coverage-relation consistent, so using this
+   * method might, and very likely will, introduce unsoundness that has to be
+   * handled appropriately by other means (e.g., a later full re-exploration).
+   *
+   * @param argState the state to be removed including its subtree
+   */
+  public void cutOffSubtree(ARGState argState) {
+    mReached.removeAll(argState.getSubgraph());
+  }
+
+  /**
+   * This method (re)adds the given state to the waitlist and changes the
+   * precision of the state to the supplied precision.
+   *
+   * @param state the state to (re)add to the waitlist
+   * @param the new precision to apply at this state
+   * @param pPrecisionType the type of the precision
+   */
+  public void readdToWaitlist(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
+    mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
+    mReached.reAddToWaitlist(state);
+  }
+
+  /**
    * Set a new precision for each single state in the reached set.
    * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
    */
   public void updatePrecisionGlobally(Precision pNewPrecision,
-      Class<? extends Precision> pPrecisionType) {
+      Predicate<? super Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
     for (AbstractState s : mReached) {
@@ -200,7 +228,7 @@ public class ARGReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
-      Class<? extends Precision> pPrecisionType) {
+      Predicate<? super Precision> pPrecisionType) {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
@@ -386,6 +414,28 @@ public class ARGReachedSet {
     return false;
   }
 
+  /**
+   * Try covering an ARG state by other states in the reached set. This method
+   * deliberately allows for unsoundness, by not caring about keeping the
+   * coverage relation in the ARG consistent. When asked to be sound, this
+   * method delegates to {@link ARGReachedSet#tryToCover(ARGState)}
+   *
+   * @param v the state which should be covered if possible
+   * @param beUnsound whether or not the be unsound
+   * @return whether the covering was successful
+   * @throws CPAException
+   */
+  public boolean tryToCover(ARGState v, boolean beUnsound) throws CPAException, InterruptedException {
+    assert v.mayCover();
+
+    if (beUnsound) {
+      cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+      return v.isCovered();
+    }
+
+    return tryToCover(v);
+  }
+
   public static class ForwardingARGReachedSet extends ARGReachedSet {
 
     protected final ARGReachedSet delegate;
@@ -407,7 +457,7 @@ public class ARGReachedSet {
 
     @Override
     public void removeSubtree(ARGState pE, Precision pP,
-        Class<? extends Precision> pPrecisionType) {
+        Predicate<? super Precision> pPrecisionType) {
       delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }

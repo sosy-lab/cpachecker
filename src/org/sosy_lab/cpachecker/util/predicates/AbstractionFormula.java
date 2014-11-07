@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -65,8 +66,8 @@ public class AbstractionFormula implements Serializable {
    */
   private final PathFormula blockFormula;
 
-  private static int nextId = 0;
-  private final int id = nextId++;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int id = idGenerator.getFreshId();
   private final BooleanFormulaManager mgr;
   private final ImmutableSet<Integer> idsOfStoredAbstractionReused;
 

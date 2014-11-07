@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,10 @@ interface AutomatonExpression {
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
+      // replace $location
+      str = str.replaceAll("\\$[Ll]ocation", pArgs.getCfaEdge().getFileLocation().toString());
+      // replace $file
+      str = str.replaceAll("\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName());
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {

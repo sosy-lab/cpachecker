@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,9 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
  */
-public class AssumptionStorageTransferRelation implements TransferRelation {
+public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CtoFormulaConverter converter;
   private final FormulaManagerView formulaManager;
@@ -62,7 +62,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
     AssumptionStorageState element = (AssumptionStorageState)pElement;
 
@@ -75,7 +75,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws CPATransferException, InterruptedException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     assert bfmgr.isTrue(asmptStorageElem.getAssumption());
@@ -88,7 +88,7 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
     // process stop flag
     boolean stop = false;
 
-    for (AbstractState element : AbstractStates.asIterable(others)) {
+    for (AbstractState element : AbstractStates.asFlatIterable(others)) {
       if (element instanceof AssumptionReportingState) {
         List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
         for (CExpression inv : assumptions) {

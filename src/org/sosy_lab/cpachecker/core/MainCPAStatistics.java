@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,6 @@ import java.util.logging.Level;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -50,71 +49,80 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.coverage.CoveragePrinter;
-import org.sosy_lab.cpachecker.coverage.CoveragePrinterGcov;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.CoverageInformation;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 
 @Options
-class MainCPAStatistics implements Statistics {
+class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
-  @Option(name="reachedSet.export",
+  @Option(secure=true, name="reachedSet.export",
       description="print reached set to text file")
-  private boolean exportReachedSet = true;
+  private boolean exportReachedSet = false;
 
-  @Option(name="reachedSet.file",
+  @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Paths.get("reached.txt");
 
-  @Option(name="coverage.export",
+  @Option(secure=true, name="reachedSet.dot",
+      description="print reached set to graph file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
+
+  @Option(secure=true, name="coverage.export",
       description="print coverage info to file")
   private boolean exportCoverage = true;
 
-  @Option(name="coverage.file",
+  @Option(secure=true, name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputCoverageFile = Paths.get("coverage.info");
 
-  @Option(name="statistics.memory",
+  @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final String programNames;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
   private Thread memStatsThread;
+
+  private Collection<IterationStatistics> iterationStats;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -127,10 +135,9 @@ class MainCPAStatistics implements Statistics {
   private Statistics cfaCreatorStatistics;
   private CFA cfa;
 
-  public MainCPAStatistics(Configuration config, LogManager pLogger, String pProgramNames) throws InvalidConfigurationException {
+  public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
-    programNames = pProgramNames;
 
     subStats = new ArrayList<>();
 
@@ -243,8 +250,8 @@ class MainCPAStatistics implements Statistics {
 
       printSubStatistics(out, result, reached);
 
-      if (exportCoverage && outputCoverageFile != null) {
-        printCoverageInfo(reached);
+      if (exportCoverage && outputCoverageFile != null && cfa != null) {
+        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger);
       }
     }
 
@@ -271,112 +278,27 @@ class MainCPAStatistics implements Statistics {
     printMemoryStatistics(out);
   }
 
-  private void printCoverageInfo(ReachedSet reached) {
-    if (cfa == null) {
-      return;
-    }
-
-    Set<CFANode> locations = getAllLocationsFromReached(reached);
-
-    CoveragePrinter printer = new CoveragePrinterGcov();
-
-    //Add information about visited locations and functions
-    for (CFANode node : locations) {
-      printer.addVisitedLine(node.getLineNumber());
-      printer.addVisitedFunction(node.getFunctionName());
-    }
-
-    for (CFANode node : cfa.getAllNodes()) {
-      if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0) instanceof CDeclarationEdge) {
-        //We don't mark all global definitions
-        CDeclarationEdge declEdge = (CDeclarationEdge) node.getLeavingEdge(0);
-        if (declEdge.getDeclaration().isGlobal()) {
-          continue;
-        }
-      }
-
-      //We don't mark last line - "}"
-      if (node instanceof FunctionExitNode) {
-        continue;
-      }
-
-      printer.addExistingLine(node.getLineNumber());
-
-      //This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge pEdge : CFAUtils.leavingEdges(node)) {
-        if (pEdge instanceof CDeclarationEdge) {
-          continue;
-        }
-        int line = pEdge.getLineNumber();
-        CFANode predessor = pEdge.getPredecessor();
-        CFANode successor = pEdge.getSuccessor();
-
-        if (pEdge instanceof AStatementEdge) {
-          FileLocation location = ((AStatementEdge)pEdge).getStatement().getFileLocation();
-          if (location.getStartingLineNumber() != location.getEndingLineNumber()) {
-            for (int j = location.getStartingLineNumber(); j <= location.getEndingLineNumber(); j++) {
-              printer.addExistingLine(j);
-              if (locations.contains(predessor) && locations.contains(successor)) {
-                printer.addVisitedLine(j);
-              }
-            }
-          }
-        }
-
-        printer.addExistingLine(line);
-
-        if (locations.contains(predessor) && locations.contains(successor)) {
-          printer.addVisitedLine(line);
-        }
-        if (pEdge instanceof MultiEdge) {
-          for (CFAEdge singleEdge : ((MultiEdge)pEdge).getEdges()) {
-            if (singleEdge instanceof CDeclarationEdge) {
-              continue;
-            }
-            line = singleEdge.getLineNumber();
-            printer.addExistingLine(line);
-            if (locations.contains(predessor) && locations.contains(successor)) {
-              printer.addVisitedLine(line);
-            }
-          }
-        }
-      }
-    }
-
-    //Now collect information about all functions
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      printer.addExistingFunction(entryNode.getFunctionName(), entryNode.getLineNumber()
-          , entryNode.getExitNode().getLineNumber());
-    }
-
-    try (Writer out = Files.openOutputFile(outputCoverageFile)) {
-      printer.print(out, programNames);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
-    }
-  }
-
-  private Set<CFANode> getAllLocationsFromReached(ReachedSet reached) {
-    if (reached instanceof ForwardingReachedSet) {
-      reached = ((ForwardingReachedSet)reached).getDelegate();
-    }
-    if (reached instanceof LocationMappedReachedSet) {
-      return ((LocationMappedReachedSet)reached).getLocations();
-
-    } else {
-      return from(reached)
-                  .transform(EXTRACT_LOCATION)
-                  .filter(notNull())
-                  .toSet();
-    }
-  }
 
   private void dumpReachedSet(ReachedSet reached) {
+    dumpReachedSet(reached, reachedSetFile, false);
+    dumpReachedSet(reached, reachedSetGraphDumpPath, true);
+  }
+
+  private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
-    if (exportReachedSet && outputFile != null) {
-      try (Writer w = Files.openOutputFile(outputFile)) {
-        Joiner.on('\n').appendTo(w, reached);
+    if (exportReachedSet && pOutputFile != null) {
+      try (Writer w = Files.openOutputFile(pOutputFile)) {
+
+        if (writeDotFormat) {
+
+          // Location-map specific dump.
+          dumpLocationMappedReachedSet(reached, cfa, w);
+        } else {
+
+          // Default dump.
+          Joiner.on('\n').appendTo(w, reached);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
       } catch (OutOfMemoryError e) {
@@ -384,6 +306,29 @@ class MainCPAStatistics implements Statistics {
             "Could not write reached set to file due to memory problems");
       }
     }
+  }
+
+  private void dumpLocationMappedReachedSet(
+      final ReachedSet pReachedSet,
+      CFA cfa,
+      Appendable sb) throws IOException {
+    final ListMultimap<CFANode, AbstractState> locationIndex
+        =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
+
+    Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
+      @Override
+      public String apply(CFANode node) {
+        StringBuilder buf = new StringBuilder();
+        buf.append(node.getNodeNumber()).append("\n");
+        for (AbstractState state : locationIndex.get(node)) {
+          if (state instanceof Graphable) {
+            buf.append(((Graphable)state).toDOTLabel());
+          }
+        }
+        return buf.toString();
+      }
+    };
+    DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
   }
 
   private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -457,6 +402,10 @@ class MainCPAStatistics implements Statistics {
         if (size > mostFrequentLocationCount) {
           mostFrequentLocationCount = size;
           mostFrequentLocation = location.getElement();
+
+        } else if (size == mostFrequentLocationCount) {
+          // use node with smallest number to have deterministic output
+          mostFrequentLocation = Ordering.natural().min(mostFrequentLocation, location.getElement());
         }
       }
     }
@@ -494,7 +443,7 @@ class MainCPAStatistics implements Statistics {
       out.println("Number of functions:             " + cfa.getNumberOfFunctions());
 
       if (cfa.getLoopStructure().isPresent()) {
-        int loops = cfa.getLoopStructure().get().values().size();
+        int loops = cfa.getLoopStructure().get().getCount();
         out.println("Number of loops:                 " + loops);
       }
     }
@@ -538,5 +487,21 @@ class MainCPAStatistics implements Statistics {
   public void setCFA(CFA pCfa) {
     Preconditions.checkState(cfa == null);
     cfa = pCfa;
+  }
+
+  @Override
+  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
+    if (iterationStats == null) {
+      iterationStats = Lists.newArrayList();
+      for (Statistics s: subStats) {
+        if (s instanceof IterationStatistics) {
+          iterationStats.add((IterationStatistics)s);
+        }
+      }
+    }
+
+    for(IterationStatistics s: iterationStats) {
+      s.printIterationStatistics(System.out, pReached);
+    }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,7 +48,7 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   private transient CFANode callerNode;
   private final int depth;
 
-  CallstackState(CallstackState previousElement, String function, CFANode callerNode) {
+  CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
     this.previousState = previousElement;
     this.currentFunction = checkNotNull(function);
     this.callerNode = checkNotNull(callerNode);
@@ -70,6 +75,17 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     return depth;
   }
 
+  /** for logging and debugging */
+  private List<String> getStack() {
+    final List<String> stack = new ArrayList<>();
+    CallstackState state = this;
+    while (state != null) {
+      stack.add(state.getCurrentFunction());
+      state = state.getPreviousState();
+    }
+    return Lists.reverse(stack);
+  }
+
   @Override
   public Object getPartitionKey() {
     return this;
@@ -80,7 +96,8 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
     return "Function " + getCurrentFunction()
         + " called from node " + getCallNode()
         + ", stack depth " + getDepth()
-        + " [" + Integer.toHexString(super.hashCode()) + "]";
+        + " [" + Integer.toHexString(super.hashCode())
+        + "], stack " + getStack();
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {

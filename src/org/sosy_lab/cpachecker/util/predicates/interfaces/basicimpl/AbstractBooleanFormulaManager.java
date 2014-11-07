@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,17 +30,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 
-public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
-  extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
+  extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements
     BooleanFormulaManager {
 
   protected AbstractBooleanFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator) {
     super(pCreator);
   }
 
@@ -51,11 +50,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
 
 
   private BooleanFormula wrap(TFormulaInfo formulaInfo) {
-    return getFormulaCreator().encapsulate(BooleanFormula.class, formulaInfo);
-  }
-
-  private TFormulaInfo extractInfo(Formula pBits) {
-    return getFormulaCreator().extractInfo(pBits);
+    return getFormulaCreator().encapsulateBoolean(formulaInfo);
   }
 
   @Override
@@ -99,13 +94,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
     if (pBits.size() == 1) {
       return pBits.get(0);
     }
-    TFormulaInfo result = andImpl(Lists.transform(pBits,
-        new Function<BooleanFormula, TFormulaInfo>() {
-          @Override
-          public TFormulaInfo apply(BooleanFormula pInput) {
-            return extractInfo(pInput);
-          }
-        }));
+    TFormulaInfo result = andImpl(Lists.transform(pBits, extractor));
     return wrap(result);
   }
 
@@ -132,6 +121,26 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
     TFormulaInfo param2 = extractInfo(pBits2);
 
     return wrap(xor(param1, param2));
+  }
+
+  @Override
+  public BooleanFormula or(List<BooleanFormula> pBits) {
+    if (pBits.isEmpty()) {
+      return makeBoolean(false);
+    }
+    if (pBits.size() == 1) {
+      return pBits.get(0);
+    }
+    TFormulaInfo result = orImpl(Lists.transform(pBits, extractor));
+    return wrap(result);
+  }
+
+  protected TFormulaInfo orImpl(List<TFormulaInfo> pParams) {
+    TFormulaInfo result = makeBooleanImpl(false);
+    for (TFormulaInfo formula : pParams) {
+      result = or(result, formula);
+    }
+    return result;
   }
 
   protected abstract TFormulaInfo xor(TFormulaInfo pParam1, TFormulaInfo pParam2);
@@ -192,11 +201,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
   }
   protected abstract boolean isFalse(TFormulaInfo bits);
 
-  @Override
-  public FormulaType<BooleanFormula> getFormulaType() {
-    return FormulaType.BooleanType;
-  }
-
 
   /**
    * Creates a formula representing "IF cond THEN f1 ELSE f2"
@@ -207,13 +211,15 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
    */
   @Override
   public final <T extends Formula> T ifThenElse(BooleanFormula pBits, T f1, T f2) {
-    if (AbstractFormulaManager.getInterfaceHelper(f1) != AbstractFormulaManager.getInterfaceHelper(f2)) {
-      throw new IllegalArgumentException("f1 and f2 can't be from differen interface types!");
+    FormulaType<T> t1 = getFormulaCreator().getFormulaType(f1);
+    FormulaType<T> t2 = getFormulaCreator().getFormulaType(f2);
+    if (!t1.equals(t2)) {
+      throw new IllegalArgumentException("Cannot create if-then-else formula with branches of different types: "
+          + f1 + " is of type " + t1 + "; "
+          + f2 + " is of type " + t2);
     }
-    FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
-    Class<T> clazz = AbstractFormulaManager.getInterfaceHelper(f1);
     TFormulaInfo result = ifThenElse(extractInfo(pBits), extractInfo(f1), extractInfo(f2));
-    return creator.encapsulate(clazz, result);
+    return getFormulaCreator().encapsulate(t1, result);
   }
   protected abstract TFormulaInfo ifThenElse(TFormulaInfo cond, TFormulaInfo f1, TFormulaInfo f2);
 

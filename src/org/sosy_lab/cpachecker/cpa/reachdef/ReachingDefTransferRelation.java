@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
@@ -63,9 +65,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private CFANode main;
 
   private LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public ReachingDefTransferRelation(LogManager pLogger) {
+  public ReachingDefTransferRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public void provideLocalVariablesOfFunctions(Map<FunctionEntryNode, Set<String>> localVars) {
@@ -77,12 +81,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
-    if (pCfaEdge != null) {
-      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
-    }
-    CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    List<CFANode> nodes = ReachingDefUtils.getAllNodesFromCFA();
     if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
     }
@@ -91,6 +92,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     CFAEdge cfaedge;
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
+
         cfaedge = node.getLeavingEdge(i);
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
           if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
@@ -105,6 +108,14 @@ public class ReachingDefTransferRelation implements TransferRelation {
       successors.addAll(getAbstractSuccessors0(pState, pPrecision, edge));
     }
     return successors;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
+      Preconditions.checkNotNull(pCfaEdge);
+      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
@@ -215,7 +226,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pState.getGlobalReachingDefinitions().containsKey(var)) {
       return pState.addGlobalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
     } else {
-      assert(pState.getLocalReachingDefinitions().containsKey(var));
+      assert (pState.getLocalReachingDefinitions().containsKey(var));
       return pState.addLocalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
     }
   }
@@ -276,6 +287,5 @@ public class ReachingDefTransferRelation implements TransferRelation {
     // TODO consider information from alias analysis
     return null;
   }
-
 
 }

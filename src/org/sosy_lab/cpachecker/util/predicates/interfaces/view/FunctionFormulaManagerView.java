@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Arrays;
@@ -36,68 +37,94 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import com.google.common.base.Function;
 
 
-public class FunctionFormulaManagerView extends AbstractBaseManagerView implements FunctionFormulaManager {
+public class FunctionFormulaManagerView extends BaseManagerView implements FunctionFormulaManager {
 
-  private FunctionFormulaManager manager;
+  private final FunctionFormulaManager manager;
 
-  public FunctionFormulaManagerView(FunctionFormulaManager pManager) {
+  public FunctionFormulaManagerView(FormulaManagerView pViewManager,
+      FunctionFormulaManager pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 
-  @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(
-      String pName,
-      FormulaType<T> pReturnType,
-      List<FormulaType<?>> pArgs) {
-    return manager.createFunction(pName, pReturnType, pArgs);
+  private static class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
+
+    private final FunctionFormulaType<?> wrapped;
+
+    ReplaceFunctionFormulaType(
+        FunctionFormulaType<?> wrapped,
+        FormulaType<T> pReturnType,
+        List<FormulaType<?>> pArgumentTypes) {
+      super(pReturnType, pArgumentTypes);
+      this.wrapped = checkNotNull(wrapped);
+    }
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      FormulaType<?>... pArgs) {
-    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+
+    List<FormulaType<?>> newArgs = unwrapType(pArgs);
+    FormulaType<?> ret = unwrapType(pReturnType);
+    FunctionFormulaType<?> funcType = manager.declareUninterpretedFunction(pName, ret, newArgs);
+
+    return new ReplaceFunctionFormulaType<>(funcType, pReturnType, pArgs);
   }
 
-  public <T extends Formula> T createFuncAndCall(
+  @Override
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
       String pName, int idx, FormulaType<T> pReturnType, List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, idx);
-    return createFuncAndCall(name, pReturnType, pArgs);
+    return declareAndCallUninterpretedFunction(name, pReturnType, pArgs);
   }
-  public <T extends Formula> T createFuncAndCall(String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
-    final FormulaManagerView viewManager = getViewManager();
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String pName, int pIdx, FormulaType<T> pReturnType, Formula... pArgs) {
+    return declareAndCallUninterpretedFunction(pName, pIdx, pReturnType, Arrays.asList(pArgs));
+  }
+
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
 
     List<FormulaType<?>> argTypes = from(pArgs).
       transform(
           new Function<Formula, FormulaType<?>>() {
             @Override
             public FormulaType<?> apply(Formula pArg0) {
-              return viewManager.getFormulaType(pArg0);
+              return getFormulaType(pArg0);
             }}).toList();
 
 
-    FunctionFormulaType<T> funcType = createFunction(name, pReturnType, argTypes);
-    return createUninterpretedFunctionCall(funcType, pArgs);
+    FunctionFormulaType<T> funcType = declareUninterpretedFunction(name, pReturnType, argTypes);
+    return callUninterpretedFunction(funcType, pArgs);
   }
+
+  public <T extends Formula> T declareAndCallUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, Formula... pArgs) {
+    return declareAndCallUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
 
   @Override
-  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
-    final FormulaManagerView viewManager = getViewManager();
-    List<Formula> args =
-        from(pArgs)
-        .transform(
-            new Function<Formula, Formula>() {
-              @Override
-              public Formula apply(Formula pArg0) {
-                return viewManager.extractFromView(pArg0);
-              }}).toList();
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
 
-    return viewManager.wrapInView(manager.createUninterpretedFunctionCall(pFuncType, args));
+    ReplaceFunctionFormulaType<T> rep = (ReplaceFunctionFormulaType<T>)pFuncType;
+
+    Formula f = manager.callUninterpretedFunction(rep.wrapped, unwrap(pArgs));
+
+    return wrap(pFuncType.getReturnType(), f);
   }
 
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-    FormulaManagerView viewManager = getViewManager();
-    return manager.isUninterpretedFunctionCall(pFuncType, viewManager.extractFromView(pF));
+  public <T extends Formula> T callUninterpretedFunction(
+      FunctionFormulaType<T> pFuncType, Formula... pArgs) {
+    return callUninterpretedFunction(pFuncType, Arrays.asList(pArgs));
   }
-
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -45,6 +44,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
 import com.google.common.io.Closer;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CPAMain {
 
@@ -84,6 +86,7 @@ public class CPAMain {
       System.exit(1);
       return;
     }
+    cpaConfig.enableLogging(logManager);
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
@@ -124,6 +127,11 @@ public class CPAMain {
     // run analysis
     CPAcheckerResult result = cpachecker.run(options.programs);
 
+    // generated proof (if enabled)
+    if (proofGenerator != null) {
+      proofGenerator.generateProof(result);
+    }
+
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
     shutdownHook.disable();
@@ -131,11 +139,6 @@ public class CPAMain {
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
     Thread.interrupted(); // clear interrupted flag
-
-    // generated proof (if enabled)
-    if (proofGenerator != null) {
-      proofGenerator.generateProof(result);
-    }
 
     try {
       printResultAndStatistics(result, outputDirectory, options, logManager);
@@ -150,12 +153,12 @@ public class CPAMain {
 
   @Options
   private static class BootstrapOptions {
-    @Option(name="memorysafety.check",
+    @Option(secure=true, name="memorysafety.check",
         description="Whether to check for memory safety properties "
             + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
     private boolean checkMemsafety = false;
 
-    @Option(name="memorysafety.config",
+    @Option(secure=true, name="memorysafety.config",
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -164,28 +167,28 @@ public class CPAMain {
 
   @Options
   private static class MainOptions {
-    @Option(name="analysis.programNames",
+    @Option(secure=true, name="analysis.programNames",
         //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
     private String programs;
 
-    @Option(name="configuration.dumpFile",
+    @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
-    @Option(name="statistics.export", description="write some statistics to disk")
+    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(name="statistics.file",
+    @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
-    @Option(name="statistics.print", description="print statistics to console")
+    @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 
@@ -209,6 +212,11 @@ public class CPAMain {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
+    boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
+    if (secureMode) {
+      Configuration.enableSecureModeGlobally();
+    }
+
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
@@ -222,7 +230,7 @@ public class CPAMain {
     Configuration config = configBuilder.build();
 
     // Get output directory and setup paths.
-    Pair<Configuration, String> p = setupPaths(config);
+    Pair<Configuration, String> p = setupPaths(config, secureMode);
     config = p.getFirst();
     String outputDirectory = p.getSecond();
 
@@ -247,13 +255,16 @@ public class CPAMain {
     return Pair.of(config, outputDirectory);
   }
 
-  private static Pair<Configuration, String> setupPaths(Configuration pConfig) throws InvalidConfigurationException {
+  private static Pair<Configuration, String> setupPaths(Configuration pConfig,
+      boolean pSecureMode) throws InvalidConfigurationException {
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
     // add it to our Configuration object and to the the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
-    FileTypeConverter fileTypeConverter = new FileTypeConverter(pConfig);
+    FileTypeConverter fileTypeConverter = pSecureMode
+        ? FileTypeConverter.createWithSafePathsOnly(pConfig)
+        : FileTypeConverter.create(pConfig);
     String outputDirectory = fileTypeConverter.getOutputDirectory();
 
     Configuration config = Configuration.builder()
@@ -311,10 +322,14 @@ public class CPAMain {
     }
   }
 
+  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
+      justification="Default encoding is the correct one for stdout.")
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
       return (PrintStream)stream;
     } else {
+      // Default encoding is actually desired here because we output to the terminal,
+      // so the default PrintStream constructor is ok.
       return new PrintStream(stream);
     }
   }

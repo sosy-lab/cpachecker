@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,25 +38,32 @@ import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -66,6 +73,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+        justification = "only one thread writes, others read")
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
@@ -136,23 +145,23 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(name="refiner", required = true,
+  @Option(secure=true, name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
+  @Option(secure=true, description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
   private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
 
-  @Option(description = "maximum count of attempted refinements")
+  @Option(secure=true, description = "maximum count of attempted refinements")
   private int stopRefiningCount = -1;
 
-  @Option(description="do not refine after a reset of the CEGAR algorithm")
+  @Option(secure=true, description="do not refine after a reset of the CEGAR algorithm")
   private boolean noRefinementInFirstRun = false;
   
-  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
   private long startTime = 0;
   private int refinementCount = 0;
@@ -237,7 +246,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete        = true;
     int initialReachedSetSize = reached.size();
-
+    boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     if (startTime == 0) {
       startTime = System.currentTimeMillis();
@@ -258,6 +267,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
               !(resets == 0 && noRefinementInFirstRun)) {
             refinementCount++;
             refinementSuccessful = refine(reached);
+            refinedInPreviousIteration = true;
           } else {
             stats.timedOut = true;
           }
@@ -267,6 +277,21 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
+        }
+
+        // restart exploration for unsound refiners, as due to unsound refinement
+        // a sound over-approximation has to be found for proving safety
+        else if(mRefiner instanceof UnsoundRefiner) {
+          if (!refinedInPreviousIteration) {
+            break;
+          }
+
+          ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
+          new ARGReachedSet(reached).removeSubtree(firstChild,
+              ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
+              VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+          refinementSuccessful        = true;
+          refinedInPreviousIteration  = false;
         }
 
       } while (refinementSuccessful);

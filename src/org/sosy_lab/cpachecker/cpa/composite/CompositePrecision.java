@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 public class CompositePrecision implements WrapperPrecision {
@@ -86,17 +87,16 @@ public class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision newPrecision, Class<? extends Precision> replaceType) {
-    assert replaceType.isAssignableFrom(newPrecision.getClass());
+  public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType) {
 
-    if (replaceType.equals(CompositePrecision.class)) {
+    if (replaceType.apply(this)) {
       return newPrecision;
     }
 
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
     boolean changed = false;
     for (Precision precision : precisions) {
-      if (replaceType.isAssignableFrom(precision.getClass())) {
+      if (replaceType.apply(precision)) {
         newPrecisions.add(newPrecision);
         changed = true;
 
@@ -114,5 +114,10 @@ public class CompositePrecision implements WrapperPrecision {
       }
     }
     return changed ? new CompositePrecision(newPrecisions.build()) : null;
+  }
+
+  @Override
+  public Iterable<Precision> getWrappedPrecisions() {
+    return precisions;
   }
 }

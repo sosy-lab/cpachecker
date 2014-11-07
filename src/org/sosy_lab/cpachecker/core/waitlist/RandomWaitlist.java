@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,9 +28,13 @@ import java.util.Random;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Waitlist implementation that considers states in a random order for pop().
  */
+@SuppressFBWarnings(value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
+justification = "warnings is only because of casts introduced by generics")
 public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private final Random rand = new Random();

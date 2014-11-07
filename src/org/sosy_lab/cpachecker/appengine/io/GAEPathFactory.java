@@ -26,61 +26,58 @@ package org.sosy_lab.cpachecker.appengine.io;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.io.AbstractPathFactory;
 import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.appengine.entity.Job;
+import org.sosy_lab.cpachecker.appengine.entity.Task;
 
 /**
  * This class is {@link AbstractPathFactory} that is specifically tailored to
  * work on Google App Engine. The {@link Path} instances it creates depend on a
- * {@link Job} instance.
+ * {@link Task} instance.
  */
 public class GAEPathFactory implements AbstractPathFactory {
 
-  private Job job;
-  private Map<Thread, Job> threadJobMap;
+  /**
+   * This {@link ThreadLocal} stores the mapping from a {@link Thread}
+   * to their corresponding {@link Task} instance.
+   * It is an {@link InheritableThreadLocal} so that each "child" {@link Thread}
+   * automatically inherits the {@link Task} from its "parent".
+   */
+  private static final ThreadLocal<Task> threadTaskMap = new InheritableThreadLocal<>();
 
   /**
-   * Creates an instance that depends on the given {@link Job} when it creates
-   * {@link Path} instances.
-   *
-   * @param job The job to use when creating Path instances
+   * Creates an instance that uses the registered {@link Task}
+   * instances when a {@link Path} instance is created.
    */
-  public GAEPathFactory(Job job) {
-    this.job = checkNotNull(job);
+  public GAEPathFactory() {
   }
 
   /**
-   * Creates an instance that uses the given map to retrieve a {@link Job}
-   * instance when a {@link Path} instance is created.
+   * Registers a {@link Task} with the current {@link Thread}.
    *
-   * @param map A map to retrieve the dependent Job from.
+   * @param task The {@link Task} to map to the {@link Thread}
    */
-  public GAEPathFactory(Map<Thread, Job> map) {
-    threadJobMap = checkNotNull(map);
+  public static void registerTaskWithCurrentThread(Task task) {
+    threadTaskMap.set(task);
   }
 
   /**
-   * Usually returns a {@link GAEPath} that depends on a {@link Job} set via one of
-   * the constructors. If no Job can be resolved a {@link FileSystemPath} instance
-   * is returned instead.
+   * Usually returns a {@link GAEPath} that depends on a {@link Task} set via one of
+   * the constructors. If no {@link Task} can be resolved a
+   * {@link FileSystemPath} instance will be returned instead.
    */
   @Override
   public Path getPath(@Nullable String path, @Nullable String... more) {
-    Job jobForPath = job;
-    if (jobForPath == null) {
-      jobForPath = threadJobMap.get(Thread.currentThread()); //JobMappingThreadFactory.getJob(Thread.currentThread());
-    }
+    Task taskForPath = threadTaskMap.get();
 
-    if (jobForPath == null) {
+    if (taskForPath == null) {
       return new FileSystemPath(path, more);
     } else {
-      return new GAEPath(path, jobForPath, more);
+      return new GAEPath(path, taskForPath, more);
     }
   }
 

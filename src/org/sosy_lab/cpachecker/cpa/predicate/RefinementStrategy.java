@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -198,19 +199,17 @@ public abstract class RefinementStrategy {
         changedElements.add(w);
       }
     }
+
+    numberOfAffectedStates.setNextValue(changedElements.size());
     if (infeasiblePartOfART == lastElement) {
       pathLengthToInfeasibility++;
-    }
-    numberOfAffectedStates.setNextValue(changedElements.size());
 
-    if (changedElements.isEmpty() && pRepeatedCounterexample) {
-      // TODO One cause for this exception is that the CPAAlgorithm sometimes
-      // re-adds the parent of the error element to the waitlist, and thus the
-      // error element would get re-discovered immediately again.
-      // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target state, which should rarely happen.
-      // We still need a better handling for this situation.
-      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+      if (changedElements.isEmpty()) {
+        // The only reason why this might appear is that the very last block is
+        // infeasible in itself, however, we check for such cases during strengthen,
+        // so they shouldn't appear here.
+        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
+      }
     }
 
     // Hook
@@ -238,7 +237,7 @@ public abstract class RefinementStrategy {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
-  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException;
+  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException, SolverException;
 
   /**
    * Do any necessary work after one path has been refined.

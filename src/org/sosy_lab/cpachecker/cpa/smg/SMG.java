@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,10 +35,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import com.google.common.collect.ImmutableList;
 
 public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
@@ -256,8 +258,8 @@ public class SMG {
    *
    * @param pValue  Value to add.
    */
-  final public void addValue(int pValue) {
-    values.add(Integer.valueOf(pValue));
+  final public void addValue(Integer pValue) {
+    values.add(pValue);
   }
 
   /**
@@ -452,8 +454,7 @@ public class SMG {
 
     if (pt_edges.containsKey(pValue)) {
       return pt_edges.get(pValue).getObject();
-    }
-    else {
+    } else {
       return null;
     }
   }
@@ -872,6 +873,11 @@ final class NeqRelation {
   private final Map<Integer, List<Integer>> smgValues = new HashMap<>();
 
   public void add_relation(Integer pOne, Integer pTwo) {
+
+    if(pOne == pTwo) {
+      return;
+    }
+
     if (! smgValues.containsKey(pOne)) {
       smgValues.put(pOne, new ArrayList<Integer>());
     }
@@ -928,11 +934,15 @@ final class NeqRelation {
       smgValues.put(pTwo, new ArrayList<Integer>());
     }
 
-    List<Integer> values = smgValues.get(pTwo);
+    List<Integer> values = ImmutableList.copyOf(smgValues.get(pTwo));
     removeValue(pTwo);
 
     List<Integer> my = smgValues.get(pOne);
     for (Integer value : values) {
+      if(!smgValues.containsKey(value)) {
+        continue;
+      }
+
       List<Integer> other = smgValues.get(value);
       if ((! value.equals(pOne)) && (! other.contains(pOne))) {
         other.add(pOne);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -33,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 
 public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
@@ -41,16 +42,10 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
 
   private final VariableSelectionJoiner variableSelectionJoiner = new VariableSelectionJoiner();
 
-  private final Set<String> specifiedVariables = new HashSet<>();
+  private final ImmutableSet<String> specifiedVariables;
 
-  public AcceptSpecifiedVariableSelection(Set<? extends String> pSpecifiedVariables) {
-    this.specifiedVariables.addAll(pSpecifiedVariables);
-  }
-
-  public AcceptSpecifiedVariableSelection(String... pSpecifiedVariables) {
-    for (String specifiedVariable : pSpecifiedVariables) {
-      this.specifiedVariables.add(specifiedVariable);
-    }
+  public AcceptSpecifiedVariableSelection(Iterable<? extends String> pIterable) {
+    this.specifiedVariables = ImmutableSet.copyOf((pIterable));
   }
 
   @Override
@@ -90,9 +85,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
          * to not only not record assignments to variables not selected, but also
          * actively delete information about previously selected variables.
          */
-        AcceptSpecifiedVariableSelection<ConstantType> result = new AcceptSpecifiedVariableSelection<>(this.specifiedVariables);
-        result.specifiedVariables.addAll(involvedVariables);
-        return result;
+        return join(involvedVariables);
       }
     }
     return null;
@@ -105,9 +98,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
        * Extend the set of specified variables transitively.
        * See acceptAssumptions for thoughts about this.
        */
-      AcceptSpecifiedVariableSelection<ConstantType> result = new AcceptSpecifiedVariableSelection<>(this.specifiedVariables);
-      result.specifiedVariables.addAll(pAssumption.accept(this.collectVarsVisitor));
-      return result;
+      return join(pAssumption.accept(this.collectVarsVisitor));
     }
     return null;
   }
@@ -141,14 +132,18 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
           || AcceptSpecifiedVariableSelection.this.specifiedVariables.containsAll(pAcceptSpecifiedVariableSelection.specifiedVariables)) {
         return AcceptSpecifiedVariableSelection.this;
       }
-      if (pAcceptSpecifiedVariableSelection.specifiedVariables.containsAll(AcceptSpecifiedVariableSelection.this.specifiedVariables)) {
-        return pAcceptSpecifiedVariableSelection;
-      }
-      AcceptSpecifiedVariableSelection<ConstantType> result = new AcceptSpecifiedVariableSelection<>(AcceptSpecifiedVariableSelection.this.specifiedVariables);
-      result.specifiedVariables.addAll(pAcceptSpecifiedVariableSelection.specifiedVariables);
-      return result;
+      return pAcceptSpecifiedVariableSelection.join(specifiedVariables);
     }
 
+  }
+
+  private VariableSelection<ConstantType> join(Set<String> pSpecifiedVariables) {
+    if (this.specifiedVariables == pSpecifiedVariables || this.specifiedVariables.containsAll(pSpecifiedVariables)) {
+      return this;
+    }
+    AcceptSpecifiedVariableSelection<ConstantType> result = new AcceptSpecifiedVariableSelection<>(
+        Iterables.concat(AcceptSpecifiedVariableSelection.this.specifiedVariables, pSpecifiedVariables));
+    return result;
   }
 
 }

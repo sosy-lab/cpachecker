@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -79,9 +77,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.FunctionPointerTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
@@ -90,30 +88,29 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.functionpointer")
-class FunctionPointerTransferRelation implements TransferRelation {
+class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
 
-  @Option(description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
+  @Option(secure=true, description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
-  @Option(description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
+  @Option(secure=true, description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
   private boolean ignoreInvalidFunctionPointerCalls = false;
 
-  @Option(description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
+  @Option(secure=true, description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
   private boolean ignoreUnknownFunctionPointerCalls = false;
 
-  private final LogManager logger;
-
-  private final Set<List<String>> loggedMessages = new HashSet<>();
+  private final LogManagerWithoutDuplicates logger;
 
   FunctionPointerTransferRelation(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
 
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
                                    ? InvalidTarget.getInstance()
@@ -127,16 +124,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void log(Level level, String... msg) {
-    if (logger.wouldBeLogged(level)) {
-      if (loggedMessages.add(Arrays.asList(msg))) {
-        logger.log(level, (Object[])msg);
-      }
-    }
-  }
-
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
@@ -155,15 +144,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
       FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
       if (target instanceof NamedFunctionTarget) {
         String functionName = ((NamedFunctionTarget)target).getFunctionName();
-        log(Level.WARNING, "Function pointer", functionCallVariable,
-            "points to", functionName + ",",
-            "but no corresponding call edge was created during preprocessing.",
-            "Ignoring function pointer call in line", pCfaEdge.getLineNumber() +":",
-            pCfaEdge.getDescription());
+        logger.logfOnce(Level.WARNING, "%s: Function pointer %s points to %s,"
+            + " but no corresponding call edge was created during preprocessing."
+            + " Ignoring function pointer call: %s",
+            pCfaEdge.getFileLocation(), functionCallVariable, functionName, pCfaEdge.getDescription());
       } else {
-        log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
-            "for which no suitable target was found in line", pCfaEdge.getLineNumber() +":",
-            pCfaEdge.getDescription());
+        logger.logfOnce(Level.WARNING, "%s: Ignoring call via function pointer %s"
+            + " for which no suitable target was found in line: %s",
+            pCfaEdge.getFileLocation(), functionCallVariable, pCfaEdge.getDescription());
       }
     }
 
@@ -192,10 +180,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
               && v2 instanceof NamedFunctionTarget) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
-              logger.log(Level.FINE, "Should not go by the edge " + a);
+              logger.log(Level.FINE, "Should not go by the edge", a);
               return false;//should not go by this edge
             } else {
-              logger.log(Level.FINE, "Should go by the edge " + a);
+              logger.log(Level.FINE, "Should go by the edge", a);
               return true;
             }
           }
@@ -213,29 +201,29 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
             if (ignoreInvalidFunctionPointerCalls) {
               if (v1 instanceof InvalidTarget && v2 instanceof NamedFunctionTarget) {
-                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
-                    "with invalid target does not point to", v2,
-                    "in line", cfaEdge.getLineNumber() + ".");
+                logger.logfOnce(Level.WARNING, "%s: Assuming function pointer %s"
+                    + " with invalid target does not point to %s.",
+                    cfaEdge.getFileLocation(), e.getOperand1(), v2);
                 return false;
               }
               if (v2 instanceof InvalidTarget && v1 instanceof NamedFunctionTarget) {
-                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
-                    "with invalid target does not point to", v1,
-                    "in line", cfaEdge.getLineNumber() + ".");
+                logger.logfOnce(Level.WARNING, "%s: Assuming function pointer %s"
+                    + " with invalid target does not point to %s.",
+                    cfaEdge.getFileLocation(), e.getOperand2(), v1);
                 return false;
               }
             }
             if (ignoreUnknownFunctionPointerCalls) {
               if (v1 instanceof UnknownTarget && v2 instanceof NamedFunctionTarget) {
-                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
-                    "with unknown target does not point to", v2,
-                    "in line", cfaEdge.getLineNumber() + ".");
+                logger.logfOnce(Level.WARNING, "%s: Assuming function pointer %s"
+                    + " with unknown target does not point to %s.",
+                    cfaEdge.getFileLocation(), e.getOperand1(), v2);
                 return false;
               }
               if (v2 instanceof UnknownTarget && v1 instanceof NamedFunctionTarget) {
-                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
-                    "with unknown target does not point to", v1,
-                    "in line", cfaEdge.getLineNumber() + ".");
+                logger.logfOnce(Level.WARNING, "%s: Assuming function pointer %s"
+                    + " with unknown target does not point to %s.",
+                    cfaEdge.getFileLocation(), e.getOperand2(), v1);
                 return false;
               }
             }
@@ -442,12 +430,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleReturnStatement(FunctionPointerState.Builder pNewState, CExpression returnValue,
+  private void handleReturnStatement(FunctionPointerState.Builder pNewState,
+      Optional<CExpression> returnValue,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
-    if (returnValue != null) {
+    if (returnValue.isPresent()) {
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
-      FunctionPointerTarget target = getValue(returnValue, pNewState, functionName);
+      FunctionPointerTarget target = getValue(returnValue.get(), pNewState, functionName);
 
       pNewState.setTarget(FUNCTION_RETURN_VARIABLE, target);
     }

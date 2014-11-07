@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,8 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
@@ -36,6 +38,10 @@ public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExp
 
   public JVariableRunTimeType(FileLocation pFileLocation, JIdExpression pReferencedVariable) {
     super(pFileLocation, pReferencedVariable.getExpressionType());
+
+    assert pReferencedVariable.getExpressionType() instanceof JClassOrInterfaceType
+        || pReferencedVariable.getExpressionType() instanceof JArrayType;
+
     referencedVariable = pReferencedVariable;
     assert getReferencedVariable() != null;
   }

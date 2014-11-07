@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,67 +23,71 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 /**
  * This class simplifies the implementation of the FunctionFormulaManager by converting the types to the solver specific type.
  * It depends on UnsafeFormulaManager to make clear that the UnsafeFormulaManager should not depend on FunktionFormulaManager.
  * @param <TFormulaInfo> The solver specific type.
+ * @param <TType> The solver specific type of formula-types.
  */
-public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
-    extends AbstractBaseFormulaManager<TFormulaInfo>
+public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
+    extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
     implements FunctionFormulaManager {
 
-  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
   protected AbstractFunctionFormulaManager(
-      FormulaCreator<TFormulaInfo> pCreator,
-      AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager) {
+      FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
+      AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager) {
     super(pCreator);
     this.unsafeManager = unsafeManager;
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      List<FormulaType<?>> pArgs) {
-    return new FunctionFormulaTypeImpl<>(pReturnType, pArgs);
+  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
+
+    return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   protected abstract <TFormula extends Formula> TFormulaInfo
     createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType, List<TFormulaInfo> pArgs);
 
   @Override
-  public final <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
+  public final <T extends Formula> T callUninterpretedFunction(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();
-    List<TFormulaInfo> list = Lists.transform(pArgs,
-        new Function<Formula, TFormulaInfo>() {
-          @SuppressWarnings("unchecked")
-          @Override
-          public TFormulaInfo apply(Formula pArg0) {
-            return
-                getFormulaCreator().extractInfo(pArg0);
-          }
-        });
+    List<TFormulaInfo> list = Lists.transform(pArgs, extractor);
 
     TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFuncType, list);
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
-  protected abstract boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, TFormulaInfo pF);
-
-  @Override
-  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
-    return isUninterpretedFunctionCall(pFuncType, getFormulaCreator().extractInfo(pF));
+  public TType toSolverType(FormulaType<?> formulaType) {
+    TType t;
+    if (formulaType.isBooleanType()) {
+      t = getFormulaCreator().getBoolType();
+    } else if (formulaType.isIntegerType()) {
+      t = getFormulaCreator().getIntegerType();
+    } else if (formulaType.isRationalType()) {
+      t = getFormulaCreator().getRationalType();
+    } else if (formulaType.isBitvectorType()) {
+      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
+      t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
+    } else if (formulaType.isFloatingPointType()) {
+      FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType)formulaType;
+      t = getFormulaCreator().getFloatingPointType(fpType);
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+    return t;
   }
-
-
 }

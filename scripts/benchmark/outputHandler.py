@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2013  Dirk Beyer
+Copyright (C) 2007-2014  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,22 +31,25 @@ import sys
 import os
 import xml.etree.ElementTree as ET
 
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
 from . import filewriter
 from . import result
-from . import runexecutor
 from . import util as Util
 
 # colors for column status in terminal
 USE_COLORS = True
-COLOR_GREEN = "\033[32;1m{0}\033[m"
-COLOR_RED = "\033[31;1m{0}\033[m"
-COLOR_ORANGE = "\033[33;1m{0}\033[m"
+COLOR_GREEN   = "\033[32;1m{0}\033[m"
+COLOR_RED     = "\033[31;1m{0}\033[m"
+COLOR_ORANGE  = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
+UNDERLINE     = "\033[4m{0}\033[0m"
+
 COLOR_DIC = {result.CATEGORY_CORRECT: COLOR_GREEN,
              result.CATEGORY_WRONG:   COLOR_RED,
-             result.CATEGORY_UNKNOWN:   COLOR_ORANGE,
-             result.CATEGORY_ERROR:     COLOR_MAGENTA,
+             result.CATEGORY_UNKNOWN: COLOR_ORANGE,
+             result.CATEGORY_ERROR:   COLOR_MAGENTA,
+             result.CATEGORY_MISSING: COLOR_DEFAULT,
              None: COLOR_DEFAULT}
 
 LEN_OF_STATUS = 22
@@ -58,13 +61,8 @@ if _term.startswith(('xterm', 'rxvt')):
 elif _term.startswith('screen'):
     TERMINAL_TITLE = "\033kBenchmark {0}\033\\"
 
-# the number of digits after the decimal separator of the time column,
-# for the other columns it can be configured in the xml-file
+# the number of digits after the decimal separator for text output of time columns with times
 TIME_PRECISION = 2
-
-MEMLIMIT = runexecutor.MEMLIMIT
-TIMELIMIT = runexecutor.TIMELIMIT
-CORELIMIT = runexecutor.CORELIMIT
 
 
 class OutputHandler:
@@ -82,9 +80,13 @@ class OutputHandler:
         self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
+        self.runSet = None
 
         # get information about computer
-        (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
+        sysinfo = None
+        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
+            from .systeminfo import SystemInfo
+            sysinfo = SystemInfo()
         version = self.benchmark.toolVersion
 
         memlimit = None
@@ -92,15 +94,15 @@ class OutputHandler:
         corelimit = None
         if MEMLIMIT in self.benchmark.rlimits:
             memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
-        if TIMELIMIT in self.benchmark.rlimits:
+        if SOFTTIMELIMIT in self.benchmark.rlimits:
+            timelimit = str(self.benchmark.rlimits[SOFTTIMELIMIT]) + " s"
+        elif TIMELIMIT in self.benchmark.rlimits:
             timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
         if CORELIMIT in self.benchmark.rlimits:
             corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
-        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory, hostname)
-        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
-                              numberOfCores, maxFrequency, memory, hostname)
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, sysinfo)
+        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, sysinfo)
 
         self.XMLFileNames = []
 
@@ -117,8 +119,17 @@ class OutputHandler:
         self.XMLHeader.append(systemInfo)
 
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
+    def setError(self, msg):
+        """
+        Mark the benchmark as erroneous, e.g., because the benchmarking tool crashed.
+        The message is intended as explanation for the user.
+        """
+        self.XMLHeader.set('error', msg if msg else 'unknown error')
+        if self.runSet:
+            self.runSet.xml.set('error', msg if msg else 'unknown error')
+
+
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, sysinfo):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
@@ -129,11 +140,13 @@ class OutputHandler:
         self.XMLHeader.set(TIMELIMIT, timelimit if timelimit else '-')
         self.XMLHeader.set(CORELIMIT, corelimit if corelimit else '-')
 
-        if not self.benchmark.config.cloud and not self.benchmark.config.appengine:
+        if sysinfo:
             # store systemInfo in XML
-            self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
+            self.storeSystemInfo(sysinfo.os, sysinfo.cpuModel,
+                                 sysinfo.numberOfCores, sysinfo.maxFrequency,
+                                 sysinfo.memory, sysinfo.hostname)
 
-        # store columnTitles in XML
+        # store columnTitles in XML, this are the default columns, that are shown in a default html-table from table-generator
         columntitlesElem = ET.Element("columns")
         columntitlesElem.append(ET.Element("column", {"title": "status"}))
         columntitlesElem.append(ET.Element("column", {"title": "cputime"}))
@@ -153,8 +166,7 @@ class OutputHandler:
                         {"title": column.title, "value": ""}))
 
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, opSystem,
-                         cpuModel, numberOfCores, maxFrequency, memory, hostname):
+    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, sysinfo):
         """
         This method writes information about benchmark and system into TXTFile.
         """
@@ -176,16 +188,17 @@ class OutputHandler:
             header += "CPU cores used:".ljust(columnWidth) + corelimit + "\n"
         header += simpleLine
 
-        systemInfo = "   SYSTEM INFORMATION\n"\
-                + "host:".ljust(columnWidth) + hostname + "\n"\
-                + "os:".ljust(columnWidth) + opSystem + "\n"\
-                + "cpu:".ljust(columnWidth) + cpuModel + "\n"\
-                + "- cores:".ljust(columnWidth) + numberOfCores + "\n"\
-                + "- max frequency:".ljust(columnWidth) + maxFrequency + "\n"\
-                + "ram:".ljust(columnWidth) + memory + "\n"\
-                + simpleLine
+        if sysinfo:
+            header += "   SYSTEM INFORMATION\n"\
+                    + "host:".ljust(columnWidth) + sysinfo.hostname + "\n"\
+                    + "os:".ljust(columnWidth) + sysinfo.os + "\n"\
+                    + "cpu:".ljust(columnWidth) + sysinfo.cpuModel + "\n"\
+                    + "- cores:".ljust(columnWidth) + sysinfo.numberOfCores + "\n"\
+                    + "- max frequency:".ljust(columnWidth) + sysinfo.maxFrequency + "\n"\
+                    + "ram:".ljust(columnWidth) + sysinfo.memory + "\n"\
+                    + simpleLine
 
-        self.description = header + systemInfo
+        self.description = header
 
         runSetName = None
         runSets = [runSet for runSet in self.benchmark.runSets if runSet.shouldBeExecuted()]
@@ -199,61 +212,6 @@ class OutputHandler:
         self.allCreatedFiles.append(TXTFileName)
 
 
-    def getSystemInfo(self):
-        """
-        This function returns some information about the computer.
-        """
-
-        # get info about OS
-        (sysname, name, kernel, version, machine) = os.uname()
-        opSystem = sysname + " " + kernel + " " + machine
-
-        # get info about CPU
-        cpuInfo = dict()
-        maxFrequency = 'unknown'
-        cpuInfoFilename = '/proc/cpuinfo'
-        numberOfCores = 'unknown'
-        if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
-            cpuInfoFile = open(cpuInfoFilename, 'rt')
-            cpuInfoLines = [tuple(line.split(':')) for line in
-                            cpuInfoFile.read()
-                                       .replace('\n\n', '\n').replace('\t', '')
-                                       .strip('\n').split('\n')]
-            cpuInfo = dict(cpuInfoLines)
-            cpuInfoFile.close()
-            numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
-        cpuModel = cpuInfo.get('model name', 'unknown') \
-                          .strip() \
-                          .replace("(R)", "") \
-                          .replace("(TM)", "") \
-                          .replace("(tm)", "")
-        if 'cpu MHz' in cpuInfo:
-            maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
-
-        # modern cpus may not work with full speed the whole day
-        # read the number from cpufreq and overwrite maxFrequency from above
-        freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
-        if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
-            frequencyInfoFile = open(freqInfoFilename, 'rt')
-            maxFrequency = frequencyInfoFile.read().strip('\n')
-            frequencyInfoFile.close()
-            maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
-
-        # get info about memory
-        memInfo = dict()
-        memInfoFilename = '/proc/meminfo'
-        if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
-            memInfoFile = open(memInfoFilename, 'rt')
-            memInfo = dict(tuple(str.split(': ')) for str in
-                            memInfoFile.read()
-                            .replace('\t', '')
-                            .strip('\n').split('\n'))
-            memInfoFile.close()
-        memTotal = memInfo.get('MemTotal', 'unknown').strip()
-
-        return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
-
-
     def outputBeforeRunSet(self, runSet):
         """
         The method outputBeforeRunSet() calculates the length of the
@@ -264,11 +222,10 @@ class OutputHandler:
 
         self.runSet = runSet
 
-        sourcefiles = [run.sourcefile for run in runSet.runs]
+        sourcefiles = [run.identifier for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = os.path.commonprefix(sourcefiles) # maybe with parts of filename
-        self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
+        self.commonPrefix = Util.commonBaseDir(sourcefiles) + os.path.sep
 
         # length of the first column in terminal
         self.maxLengthOfFileName = max(len(file) for file in sourcefiles) if sourcefiles else 20
@@ -288,10 +245,11 @@ class OutputHandler:
 
         # prepare information for text output
         for run in runSet.runs:
-            run.resultline = self.formatSourceFileName(run.sourcefile)
+            run.resultline = self.formatSourceFileName(run.identifier)
 
         # prepare XML structure for each run and runSet
-            run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
+            run.xml = ET.Element("sourcefile", 
+                                 {"name": run.identifier, "files": "[" + ", ".join(run.sourcefiles) + "]"})
             if run.specificOptions:
                 run.xml.set("options", " ".join(run.specificOptions))
             run.xml.extend(self.XMLDummyElems)
@@ -338,12 +296,13 @@ class OutputHandler:
         runSetInfo = "\n\n"
         if runSet.name:
             runSetInfo += runSet.name + "\n"
-        runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
+        runSetInfo += "Run set {0} of {1} with options '{2}' and propertyfile '{3}'\n\n".format(
                 runSet.index, len(self.benchmark.runSets),
-                " ".join(runSet.options))
+                " ".join(runSet.options),
+                " ".join(runSet.propertyFiles))
 
         titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
-                            "wall time", self.benchmark.columns, True)
+                            "wall time", "host", ["energy_" + t for t in Util.ENERGY_TYPES], self.benchmark.columns, True)
 
         runSet.simpleLine = "-" * (len(titleLine))
 
@@ -367,9 +326,9 @@ class OutputHandler:
             progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
             terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
             if self.benchmark.numOfThreads == 1:
-                Util.printOut(terminalTitle + timeStr + self.formatSourceFileName(run.sourcefile), '')
+                Util.printOut(terminalTitle + timeStr + self.formatSourceFileName(run.identifier), '')
             else:
-                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.identifier))
         finally:
             OutputHandler.printLock.release()
 
@@ -402,9 +361,11 @@ class OutputHandler:
                     pass
 
         # store information in run
-        run.resultline = self.createOutputLine(run.sourcefile, run.status,
-                cpuTimeStr, wallTimeStr, run.columns)
-        self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
+        run.resultline = self.createOutputLine(run.identifier, run.status,
+                cpuTimeStr, wallTimeStr, run.values.get('host'), 
+                [run.values.get('energy', {}).get(t, '-') for t in Util.ENERGY_TYPES],
+                run.columns)
+        self.addValuesToRunXML(run)
 
         # output in terminal/console
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
@@ -420,7 +381,7 @@ class OutputHandler:
                 Util.printOut(valueStr)
             else:
                 timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
+                Util.printOut(timeStr + self.formatSourceFileName(run.identifier) + valueStr)
 
             # write result in TXTFile and XML
             self.TXTFile.append(self.runSetToTXT(run.runSet), False)
@@ -437,11 +398,13 @@ class OutputHandler:
             OutputHandler.printLock.release()
 
 
-    def outputAfterRunSet(self, runSet, cpuTime, wallTime):
+    def outputAfterRunSet(self, runSet, cpuTime=None, wallTime=None, energy={}):
         """
         The method outputAfterRunSet() stores the times of a run set in XML.
         @params cpuTime, wallTime: accumulated times of the run set
         """
+        
+        self.addValuesToRunSetXML(runSet, cpuTime, wallTime, energy)
 
         # write results to files
         self.XMLFile.replace(Util.XMLtoString(runSet.xml))
@@ -455,10 +418,10 @@ class OutputHandler:
                 )
                 self.allCreatedFiles.append(blockFileName)
 
-        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime))
+        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime, energy))
 
 
-    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0):
+    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0, energy={}):
         lines = []
 
         # store values of each run
@@ -471,17 +434,10 @@ class OutputHandler:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
-            if(cpuTime == None):
-                cpuTimeStr = str(cpuTime)
-            else:
-                cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
-            if(wallTime == None):
-                wallTimeStr = str(wallTime)
-            else:
-                wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
-
+            cpuTimeStr  = "None" if cpuTime  is None else Util.formatNumber(cpuTime, TIME_PRECISION)
+            wallTimeStr = "None" if wallTime is None else Util.formatNumber(wallTime, TIME_PRECISION)
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
-                             wallTimeStr, []))
+                             wallTimeStr, "-", [energy.get(t, '-') for t in Util.ENERGY_TYPES], []))
 
         return "\n".join(lines) + "\n"
 
@@ -492,6 +448,7 @@ class OutputHandler:
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
         runsElem.set("options", " ".join(runSet.options))
+        runsElem.set("propertyfiles", " ".join(runSet.propertyFiles))
         if blockname is not None:
             runsElem.set("block", blockname)
             runsElem.set("name", ((runSet.realName + ".") if runSet.realName else "") + blockname)
@@ -504,28 +461,62 @@ class OutputHandler:
         return runsElem
 
 
-    def addValuesToRunXML(self, run, cpuTimeStr, wallTimeStr):
+    def addValuesToRunXML(self, run):
         """
         This function adds the result values to the XML representation of a run.
         """
         runElem = run.xml
         for elem in list(runElem):
             runElem.remove(elem)
-        runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-        runElem.append(ET.Element("column", {"title": "category", "value": run.category}))
-        runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
-        runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
-        if run.memUsage is not None:
-            runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
-        if run.host:
-            runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
+        self.addColumnToXML(runElem, 'status',    run.status)
+        if run.cpuTime is not None:
+            self.addColumnToXML(runElem, 'cputime',   str(run.cpuTime) + 's')
+        if run.wallTime is not None:
+            self.addColumnToXML(runElem, 'walltime',  str(run.wallTime) + 's')
+        self.addColumnToXML(runElem, '@category', run.category) # hidden
+        self.addColumnToXML(runElem, '',          run.values)
 
         for column in run.columns:
-            runElem.append(ET.Element("column",
-                        {"title": column.title, "value": column.value}))
+            self.addColumnToXML(runElem, column.title, column.value)
 
 
-    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
+    def addValuesToRunSetXML(self, runSet, cpuTime, wallTime, energy):
+        """
+        This function adds the result values to the XML representation of a runSet.
+        """
+        self.addColumnToXML(runSet.xml, 'cputime', cpuTime)
+        self.addColumnToXML(runSet.xml, 'walltime', wallTime)
+        self.addColumnToXML(runSet.xml, 'energy', energy)
+
+
+    def addColumnToXML(self, xml, title, value, prefix=""):
+        if value is None:
+            return
+
+        if isinstance(value, dict):
+            for key, value in value.items():
+                if prefix:
+                    commonPrefix = prefix + '_' + title
+                else:
+                    commonPrefix = title
+                self.addColumnToXML(xml, key, value, prefix=commonPrefix)
+            return
+
+        # default case: add columns
+        if prefix:
+            if prefix.startswith('@'):
+                attributes = {"title": prefix[1:] + '_' + title, "value": str(value), "hidden": "true"}
+            else:
+                attributes = {"title": prefix + '_' + title, "value": str(value)}
+        else:
+            if title.startswith('@'):
+                attributes = {"title": title[1:], "value": str(value), "hidden": "true"}
+            else:
+                attributes = {"title": title, "value": str(value)}
+        xml.append(ET.Element("column", attributes))
+
+
+    def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, host, energies, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
         @param status: status of programm
@@ -536,13 +527,18 @@ class OutputHandler:
         @return: a line for the outputFile
         """
 
-        lengthOfTime = 11
+        lengthOfTime = 12
+        lengthOfEnergy = 18
         minLengthOfColumns = 8
 
         outputLine = self.formatSourceFileName(sourcefile) + \
                      status.ljust(LEN_OF_STATUS) + \
                      cpuTimeDelta.rjust(lengthOfTime) + \
-                     wallTimeDelta.rjust(lengthOfTime)
+                     wallTimeDelta.rjust(lengthOfTime) + \
+                     str(host).rjust(lengthOfTime)
+
+        for energy in energies:
+            outputLine += str(energy).rjust(lengthOfEnergy)
 
         for column in columns:
             columnLength = max(minLengthOfColumns, len(column.title)) + 2
@@ -596,14 +592,14 @@ class Statistics:
 
     def __init__(self):
         self.dic = dict((category,0) for category in COLOR_DIC)
-        self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)] = 0
+        self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)] = 0
         self.counter = 0
 
     def addResult(self, category, status):
         self.counter += 1
         assert category in self.dic
-        if category == result.CATEGORY_WRONG and status == result.STR_TRUE:
-            self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)] += 1
+        if category == result.CATEGORY_WRONG and status == result.STATUS_TRUE_PROP:
+            self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)] += 1
         self.dic[category] += 1
 
 
@@ -611,8 +607,8 @@ class Statistics:
         Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
                  '    correct:        ' + str(self.dic[result.CATEGORY_CORRECT]).rjust(4),
                  '    unknown:        ' + str(self.dic[result.CATEGORY_UNKNOWN] + self.dic[result.CATEGORY_ERROR]).rjust(4),
-                 '    false positives:' + str(self.dic[result.CATEGORY_WRONG] - self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)]).rjust(4) + \
+                 '    false positives:' + str(self.dic[result.CATEGORY_WRONG] - self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)]).rjust(4) + \
                  '        (result is false, file is true or has a different false-property)',
-                 '    false negatives:' + str(self.dic[(result.CATEGORY_WRONG, result.STR_TRUE)]).rjust(4) + \
+                 '    false negatives:' + str(self.dic[(result.CATEGORY_WRONG, result.STATUS_TRUE_PROP)]).rjust(4) + \
                  '        (result is true, file is false)',
                  '']))

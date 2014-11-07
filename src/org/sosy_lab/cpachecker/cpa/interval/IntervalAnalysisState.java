@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,55 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.Map;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis {
+public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
+    AbstractQueryableState {
 
-  private static IntervalTargetChecker targetChecker;
-  private static boolean ignoreRefInMerge;
-
-  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
-    targetChecker = new IntervalTargetChecker(config);
-    ignoreRefInMerge = pIgnoreRefCount;
-  }
+  private static final long serialVersionUID = -2030700797958100666L;
 
   /**
    * the intervals of the element
    */
-  private Map<String, Interval> intervals;
+  private PersistentMap<String, Interval> intervals;
 
   /**
    * the reference counts of the element
    */
-  private Map<String, Integer> referenceCounts;
-
-  /**
-   * the element from the previous context, used solely for return edges
-   */
-  private final IntervalAnalysisState previousState;
+  private PersistentMap<String, Integer> referenceCounts;
 
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
    */
   public IntervalAnalysisState() {
-    this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), null);
-  }
-
-  /**
-   * This method acts as constructor, which initializes the intervals and reference counts to empty maps and the previous element to the respective object.
-   *
-   * @param previousState from the previous context
-   */
-  public IntervalAnalysisState(IntervalAnalysisState previousElement) {
-    this(new HashMap<String, Interval>(), new HashMap<String, Integer>(), previousElement);
+    intervals = PathCopyingPersistentTreeMap.of();
+    referenceCounts = PathCopyingPersistentTreeMap.of();
   }
 
   /**
@@ -81,12 +63,10 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param referencesMap the reference counts
    * @param previousState from the previous context
    */
-  public IntervalAnalysisState(Map<String, Interval> intervals, Map<String, Integer> referencesMap, IntervalAnalysisState previousElement) {
+  public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals        = intervals;
 
     this.referenceCounts  = referencesMap;
-
-    this.previousState  = previousElement;
   }
 
   /**
@@ -97,7 +77,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::getValueFor
   public Interval getInterval(String variableName) {
-    return intervals.get(variableName);
+    return intervals.containsKey(variableName)?intervals.get(variableName):Interval.createUnboundInterval();
   }
 
   /**
@@ -125,15 +105,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   /**
-   * This method returns the previous element
-   *
-   * @return the previous element
-   */
-  public IntervalAnalysisState getPreviousState() {
-    return previousState;
-  }
-
-  /**
    * This method determines if this element contains an interval for a variable.
    *
    * @param variableName the name of the variable
@@ -153,14 +124,18 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::assignConstant
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
+    if (interval.isUnbound()) {
+      removeInterval(variableName);
+      return this;
+    }
     // only add the interval if it is not already present
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
-        referenceCounts.put(variableName, referenceCount + 1);
+        referenceCounts = referenceCounts.putAndCopy(variableName, referenceCount + 1);
 
-        intervals.put(variableName, interval);
+        intervals = intervals.putAndCopy(variableName, interval);
       } else {
         removeInterval(variableName);
       }
@@ -178,10 +153,18 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
-      intervals.remove(variableName);
+      intervals = intervals.removeAndCopy(variableName);
     }
 
     return this;
+  }
+
+  public void dropFrame(String pCalledFunctionName) {
+    for (String variableName : intervals.keySet()) {
+      if (variableName.startsWith(pCalledFunctionName+"::")) {
+        removeInterval(variableName);
+      }
+    }
   }
 
   /**
@@ -190,13 +173,12 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state to join this element with
    * @return a new state representing the join of this element and the reached state
    */
+  @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    Map<String, Interval> newIntervals = new HashMap<>(intervals);
-    Map<String, Integer> newReferences = new HashMap<>();
-
-    newReferences.putAll(referenceCounts);
-
     boolean changed = false;
+    PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Integer> newReferences = referenceCounts;
+
     int newRefCount;
     Interval mergedInterval;
 
@@ -207,22 +189,29 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
         if (mergedInterval != reachedState.getInterval(variableName)) {
           changed = true;
         }
-        newIntervals.put(variableName,mergedInterval);
+
+        if (!mergedInterval.isUnbound()) {
+          newIntervals = newIntervals.putAndCopy(variableName, mergedInterval);
+        }
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
-         changed = true;
+        if (mergedInterval != reachedState.getInterval(variableName)
+            && newRefCount > reachedState.getReferenceCount(variableName)) {
+          changed = true;
+          newReferences = newReferences.putAndCopy(variableName, newRefCount);
+        } else {
+          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         }
-        newReferences.put(variableName, newRefCount);
+
       } else {
-        newReferences.put(variableName, reachedState.getReferenceCount(variableName));
+        newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         changed = true;
       }
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences, previousState);
+      return new IntervalAnalysisState(newIntervals, newReferences);
     } else {
       return reachedState;
     }
@@ -234,7 +223,9 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
+  @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
+    if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals
     if (intervals.size() < reachedState.intervals.size()) {
       return false;
@@ -253,18 +244,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(old.previousState);
-
-    // clone the intervals ...
-    for (String variableName : old.intervals.keySet()) {
-      newElement.intervals.put(variableName, old.getInterval(variableName));
-    }
-
-    // ... and clone the reference count
-    for (String variableName : old.referenceCounts.keySet()) {
-      newElement.referenceCounts.put(variableName, old.getReferenceCount(variableName));
-    }
-
+    IntervalAnalysisState newElement = new IntervalAnalysisState(old.intervals,old.referenceCounts);
     return newElement;
   }
 
@@ -284,10 +264,6 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
     IntervalAnalysisState otherElement = (IntervalAnalysisState)other;
 
     if (intervals.size() != otherElement.intervals.size()) {
-      return false;
-    }
-
-    if (previousState != otherElement.previousState) {
       return false;
     }
 
@@ -331,20 +307,57 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   @Override
-  public boolean isTarget() {
-   return targetChecker == null? false: targetChecker.isTarget(this);
+  public String getCPAName() {
+    return "IntervalAnalysis";
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    if(isTarget()){
-      return ViolatedProperty.OTHER;
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    String[] parts = pProperty.split("<=");
+
+    if (parts.length == 2) {
+
+      // pProperty = value <= varName
+      if (CheckTypesOfStringsUtil.isLong(parts[0])) {
+        long value = Long.parseLong(parts[0].trim());
+        Interval iv = getInterval(parts[1].trim());
+        return (value <= iv.getLow());
+      }
+
+      // pProperty = varName <= value
+      else if (CheckTypesOfStringsUtil.isLong(parts[1])){
+        long value = Long.parseLong(parts[1].trim());
+        Interval iv = getInterval(parts[0].trim());
+        return (iv.getHigh() <= value);
+      }
+
+      // pProperty = varName1 <= varName2
+      else {
+        Interval iv1 = getInterval(parts[0].trim());
+        Interval iv2 = getInterval(parts[1].trim());
+        return (iv1.contains(iv2));
+      }
+
+    // pProperty = value1 <= varName <= value2
+    } else if (parts.length == 3){
+      if ( CheckTypesOfStringsUtil.isLong(parts[0]) && CheckTypesOfStringsUtil.isLong(parts[2]) ) {
+        long value1 = Long.parseLong(parts[0].trim());
+        long value2 = Long.parseLong(parts[2].trim());
+        Interval iv = getInterval(parts[1].trim());
+        return (value1 <= iv.getLow() && iv.getHigh() <= value2);
+      }
     }
-    return null;
+
+    return false;
   }
 
   @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return Boolean.valueOf(checkProperty(pProperty));
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
   }
 }

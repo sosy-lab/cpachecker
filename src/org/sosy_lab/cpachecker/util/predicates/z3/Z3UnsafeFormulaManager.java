@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,33 +31,25 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 
-public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
+class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Long> {
 
-  private Set<Long> uifs = new HashSet<>();
-  private long z3context;
-  private Z3FormulaCreator creator;
+  private final Set<Long> uifs = new HashSet<>(); // contains used declarations of UIFs
+  private final long z3context;
 
-  public Z3UnsafeFormulaManager(
+  Z3UnsafeFormulaManager(
       Z3FormulaCreator pCreator) {
     super(pCreator);
-    this.creator = pCreator;
     this.z3context = pCreator.getEnv();
   }
 
   private final static Collection<Integer> nonAtomicOpTypes =
       Sets.newHashSet(Z3_OP_AND, Z3_OP_OR, Z3_OP_IMPLIES, Z3_OP_ITE, Z3_OP_NOT);
-
-  @Override
-  public Formula encapsulateUnsafe(Long pL) {
-    return creator.encapsulateUnsafe(pL);
-  }
 
   @Override
   public boolean isAtom(Long t) {
@@ -84,7 +76,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   @Override
   public boolean isUF(Long t) {
-    return uifs.contains(t);
+    return is_app(z3context, t) && uifs.contains(get_app_decl(z3context, t));
   }
 
   @Override
@@ -114,9 +106,9 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
   public Long replaceName(Long t, String pNewName) {
     if (isVariable(t)) {
       long sort = get_sort(z3context, t);
-      return creator.makeVariable(sort, pNewName);
+      return getFormulaCreator().makeVariable(sort, pNewName);
 
-    } else if (uifs.contains(t)) {
+    } else if (isUF(t)) {
       int n = get_app_num_args(z3context, t);
       long[] args = new long[n];
       long[] sorts = new long[n];
@@ -142,18 +134,37 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
       return uif;
 
     } else {
-      throw new IllegalArgumentException("The Term " + t + " has no name!");
+      throw new IllegalArgumentException("Cannot replace name '" + pNewName
+              + "' in term '" + ast_to_string(z3context, t) + "'.");
     }
   }
 
   public long createUIFCallImpl(long pNewFunc, long[] args) {
     long ufc = mk_app(z3context, pNewFunc, args);
-    uifs.add(ufc);
+    uifs.add(pNewFunc);
     return ufc;
   }
 
   @Override
   public boolean isNumber(Long t) {
     return is_numeral_ast(z3context, t);
+  }
+
+  @Override
+  protected Long substitute(Long t, List<Long> changeFrom, List<Long> changeTo) {
+    int size = changeFrom.size();
+    Preconditions.checkState(size == changeTo.size());
+    return Z3NativeApi.substitute(
+        z3context,
+        t,
+        size,
+        Longs.toArray(changeFrom),
+        Longs.toArray(changeTo)
+    );
+  }
+
+  @Override
+  protected Long simplify(Long pF) {
+    return Z3NativeApi.simplify(z3context, pF);
   }
 }

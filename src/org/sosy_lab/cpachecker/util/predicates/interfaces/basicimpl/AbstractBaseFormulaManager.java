@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,21 +23,42 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
+import com.google.common.base.Function;
+
 
 /**
  * A BaseFormulaManager because all Abstract*FormulaManager-Classes wrap a FormulaCreator-instance.
  * @param <TFormulaInfo> the solver specific type.
  */
-abstract class AbstractBaseFormulaManager<TFormulaInfo> {
+abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
 
-  private final FormulaCreator<TFormulaInfo> formulaCreator;
+  private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
+
+  final Function<Formula, TFormulaInfo> extractor =
+      new Function<Formula, TFormulaInfo>() {
+        @Override
+        public TFormulaInfo apply(Formula pInput) {
+          return extractInfo(pInput);
+        }
+      };
 
   AbstractBaseFormulaManager(
-      FormulaCreator<TFormulaInfo> formulaCreator) {
-    this.formulaCreator = formulaCreator;
+          FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator) {
+    this.formulaCreator = pFormulaCreator;
   }
 
-  final FormulaCreator<TFormulaInfo> getFormulaCreator() {
+  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
+  }
+
+  final TFormulaInfo extractInfo(Formula pBits) {
+    return getFormulaCreator().extractInfo(pBits);
+  }
+
+  final BooleanFormula wrapBool(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 }
