@@ -73,7 +73,6 @@ public class PartialReachedSetDirectedGraph {
     this.adjacencyList = ImmutableList.copyOf(newList);
   }
 
-  // TODO offer bidirectional graph instead?
   public Set<Integer> getPredecessorsOf(int node) {
     Set<Integer> ret = new HashSet<>();
     for(int i = 0; i < getNumNodes(); i++) {
