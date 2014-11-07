@@ -62,7 +62,5 @@ public class ValidVarsState implements AbstractState, AbstractQueryableState, Se
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("Cannot modify values of valid vars state (" + this.getClass().getCanonicalName()
         + ").");
-
   }
-
 }
