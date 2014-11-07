@@ -94,12 +94,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
-  @SuppressWarnings("unused")
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final List<CAssumeEdge> fakeEdgesFromLastRun = new ArrayList<>();
-  @SuppressWarnings("unused")
   private AbstractState initialWrappedState = null;
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
@@ -141,20 +139,8 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     }
     fakeEdgesFromLastRun.clear();
 
-    // first build initial precision for current run
-    logger.log(Level.FINEST, "Construct precision for current run");
-    Precision precision;/* =
-        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
-    oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
-
-    // clear reached set for current run
-    pReachedSet.clear();
-
-    // initialize reached set
-    if (initialWrappedState == null) {
-      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
-    }
-    pReachedSet.add(new ARGState(initialWrappedState, null), precision);*/
+    // activate if cannot use lazy refinement, possibly needed later if further extended TODO use config option
+    // restartFromScratchAfterRefinement(pReachedSet);
 
     // run algorithm
     logger.log(Level.FINEST, "Start analysis.");
@@ -165,7 +151,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       if(e.getFailureCause()==null){
         throw new CPAException("Error state not known to predicated analysis algorithm. Cannot continue analysis.");
       }
-      precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
+      Precision precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
       if (e.getFailureCause() != null && !pReachedSet.contains(e.getFailureCause())
           && ((ARGState) e.getFailureCause()).getParents().size() != 0) {
         // add element
@@ -229,11 +215,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         }
       }
 
-      // check if it is the same failure (CFA path) as last time
-      // TODO delete, if keep lazy refinement, remove other parts
-      ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
+      // check if it is the same failure (CFA path) as last time if started from scratch after refinement TODO enable if restract from scratch
+      /* ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
       repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
-      pathToFailure = currentFailurePath;
+      pathToFailure = currentFailurePath;*/
 
       // create fake edges
       /*try {
@@ -339,6 +324,23 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   }
 
   @SuppressWarnings("unused")
+  private void restartFromScratchAfterRefinement(final ReachedSet pReachedSet) throws RefinementFailedException, InterruptedException {
+    // first build initial precision for current run
+    logger.log(Level.FINEST, "Construct precision for current run");
+    Precision precision =
+        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction()));
+    oldPrecision = Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+
+    // clear reached set for current run
+    pReachedSet.clear();
+
+    // initialize reached set
+    if (initialWrappedState == null) {
+      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction())).getWrappedState();
+    }
+    pReachedSet.add(new ARGState(initialWrappedState, null), precision);
+  }
+
   private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
       throws InterruptedException, RefinementFailedException {
     if (precisions.size()==0) {
@@ -453,6 +455,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
     return lessPrecise == null && morePrecise != null;
   }
 
+  @SuppressWarnings("unused")
   private boolean isSamePathInCFA(ARGPath path1, ARGPath path2) {
     if (path1.size() != path2.size()) {
       return false;

@@ -87,6 +87,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   description="inform ARG CPA if it is run in a predicated analysis because then it must"
     + "behave differntly during merge.")
   private boolean inPredicatedAnalysis = false;
+  
+  @Option(secure=true,
+      description="inform merge operator in predicated analysis that it should delete the subgraph of the merged node"
+        + "which is required to get at most one successor per CFA edge.")
+      private boolean deleteInPredicatedAnalysis = false;
 
   @Option(secure=true,
       description = "disable post processor for runtime verification ARG simplification, " +
@@ -155,7 +160,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       if (inPredicatedAnalysis) {
-        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge);
+        mergeOperator = new ARGMergeJoinPredicatedAnalysis(wrappedMerge, deleteInPredicatedAnalysis);
       } else {
         mergeOperator = new ARGMergeJoin(wrappedMerge);
       }
