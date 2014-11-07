@@ -463,6 +463,11 @@ cpa.apron.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 
+# inform merge operator in predicated analysis that it should delete the
+# subgraph of the merged nodewhich is required to get at most one successor
+# per CFA edge.
+cpa.arg.deleteInPredicatedAnalysis = false
+
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
