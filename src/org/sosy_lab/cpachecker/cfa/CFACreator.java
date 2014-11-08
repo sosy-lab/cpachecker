@@ -455,12 +455,8 @@ public class CFACreator {
       }
 
       final List<FileToParse> programFragments = new ArrayList<>();
-      int counter = 0;
-      String staticVarPrefix;
       for (final String fileName : sourceFiles) {
-        final String[] tmp = fileName.split("/");
-        staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-        programFragments.add(new FileToParse(fileName, staticVarPrefix));
+        programFragments.add(new FileToParse(fileName));
       }
 
       parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
