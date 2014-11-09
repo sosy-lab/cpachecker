@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.reachdef;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,15 +37,17 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class ReachingDefState implements AbstractState, Serializable,
-    LatticeAbstractState<ReachingDefState> {
+    LatticeAbstractState<ReachingDefState>, Graphable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -452,6 +455,37 @@ public class ReachingDefState implements AbstractState, Serializable,
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);
     }
 
+  }
+
+  @Override
+  public String toDOTLabel() {
+
+    //this part may be seperated into an util class
+    Map<String, String> map = new HashMap<>();
+
+    // to merge localReachDefs & globalReachDefs to one String
+    // create a new HashMap with varName as key and [localReachDefs][globalReachDefs] as value
+    for (Entry<String, Set<DefinitionPoint>> entry : localReachDefs.entrySet()) {
+      StringBuilder string = new StringBuilder();
+      string.append(Arrays.toString(entry.getValue().toArray()));
+      string.append(" "); // just to improve readability
+      string.append(Arrays.toString(globalReachDefs.get(entry.getKey()).toArray()));
+      // toArray() seperates the elements by "," but we want ";"
+      map.put(entry.getKey(), string.toString().replace(",", ";"));
+    }
+
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    Joiner.on(", ").withKeyValueSeparator(":").appendTo(sb, map);
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
 }
