@@ -32,8 +32,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -116,7 +114,8 @@ class SmtInterpolUtil {
         return value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational)value;
-        return ExtendedRational.ofBigIntegers(rat.numerator(), rat.denominator());
+        return org.sosy_lab.cpachecker.util.rationals.Rational.ofBigIntegers(
+            rat.numerator(), rat.denominator());
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -137,8 +136,8 @@ class SmtInterpolUtil {
           return -((Double)value).doubleValue();
         } else if (value instanceof Float) {
           return -((Float)value).floatValue();
-        } else if (value instanceof ExtendedRational) {
-          return ((ExtendedRational)value).negate();
+        } else if (value instanceof org.sosy_lab.cpachecker.util.rationals.Rational) {
+          return ((org.sosy_lab.cpachecker.util.rationals.Rational)value).negate();
         }
       }
     }

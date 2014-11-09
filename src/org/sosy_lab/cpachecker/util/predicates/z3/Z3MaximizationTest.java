@@ -55,11 +55,7 @@ public class Z3MaximizationTest {
 
   @Before
   public void loadZ3() throws Exception {
-    try {
-      NativeLibraries.loadLibrary("z3j");
-    } catch (UnsatisfiedLinkError t) {
-      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
-    }
+    NativeLibraries.loadLibrary("z3j");
     config = Configuration.defaultConfiguration();
     logger = TestLogManager.getInstance();
     mgr = Z3FormulaManager.create(logger, config, null);

@@ -2,26 +2,21 @@ package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 public class PolicyTemplateBound {
   final CFAEdge edge;
 
   // NOTE: might make more sense to use normal Rational, because we are no longer
   // storing infinities or negative infinities.
-  final ExtendedRational bound;
+  final Rational bound;
 
-  private PolicyTemplateBound(CFAEdge edge, ExtendedRational bound) {
-    Preconditions.checkState(
-        bound.getType() == ExtendedRational.NumberType.RATIONAL);
-
+  private PolicyTemplateBound(CFAEdge edge, Rational bound) {
     this.edge = edge;
     this.bound = bound;
   }
 
-  public static PolicyTemplateBound of(CFAEdge edge, ExtendedRational bound) {
+  public static PolicyTemplateBound of(CFAEdge edge, Rational bound) {
     return new PolicyTemplateBound(edge, bound);
   }
 

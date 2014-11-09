@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 public class SolverTest {
 
-  private boolean isLibFociAvailable = Paths.get("lib/native/x86_64-linux/libfoci.so").exists();
-
   private LogManager logger = TestLogManager.getInstance();
   private static int index = 0; // to get different names
 
@@ -84,9 +82,7 @@ public class SolverTest {
 
   @Test
   public void singleStackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
       singleStackTest("Z3");
-    }
   }
 
   @Test
@@ -204,11 +200,7 @@ public class SolverTest {
 
   @Test(expected = Exception.class)
   public void stackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      stackTest("Z3");
-    } else {
-      throw new RuntimeException("dummy exception for junit");
-    }
+    stackTest("Z3");
   }
 
   @Test(expected = Exception.class)
@@ -234,11 +226,7 @@ public class SolverTest {
 
   @Test(expected = Exception.class)
   public void stackTest2Z3() throws Exception {
-    if (isLibFociAvailable) {
-      stackTest2("Z3");
-    } else {
-      throw new RuntimeException("dummy exception for junit");
-    }
+    stackTest2("Z3");
   }
 
   @Test(expected = Exception.class)
@@ -264,9 +252,7 @@ public class SolverTest {
 
   @Test
   public void dualStackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      dualStackTest("Z3");
-    }
+    dualStackTest("Z3");
   }
 
 //  @Test
@@ -310,9 +296,7 @@ public class SolverTest {
 
   @Test
   public void dualStackTest2Z3() throws Exception {
-    if (isLibFociAvailable) {
-      dualStackTest2("Z3");
-    }
+    dualStackTest2("Z3");
   }
 
 //  @Test
@@ -357,11 +341,9 @@ public class SolverTest {
 
   @Test
   public void numTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      intTest1("Z3");
-      intTest2("Z3");
-      realTest("Z3");
-    }
+    intTest1("Z3");
+    intTest2("Z3");
+    realTest("Z3");
   }
 
   @Test

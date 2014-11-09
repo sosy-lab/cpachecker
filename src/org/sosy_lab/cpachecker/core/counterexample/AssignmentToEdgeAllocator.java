@@ -101,7 +101,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
@@ -1239,8 +1239,8 @@ public class AssignmentToEdgeAllocator {
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
-      if (pValue instanceof ExtendedRational) {
-        double val = ((ExtendedRational) pValue).toDouble();
+      if (pValue instanceof Rational) {
+        double val = ((Rational) pValue).toDouble();
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
