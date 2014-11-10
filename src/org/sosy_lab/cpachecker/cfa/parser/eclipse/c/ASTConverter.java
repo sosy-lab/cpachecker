@@ -163,9 +163,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -710,16 +710,16 @@ class ASTConverter {
     }
   }
 
-  private static class ContainsProblemTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visitDefault(CType pT) throws RuntimeException {
+      return Boolean.FALSE;
+    }
 
     @Override
     public Boolean visit(final CArrayType t) {
       return t.getType().accept(this);
-    }
-
-    @Override
-    public Boolean visit(final CCompositeType t) {
-      return false;
     }
 
     @Override
@@ -730,11 +730,6 @@ class ASTConverter {
       } else {
         return false;
       }
-    }
-
-    @Override
-    public Boolean visit(final CEnumType t) {
-      return false;
     }
 
     @Override
@@ -755,11 +750,6 @@ class ASTConverter {
     @Override
     public Boolean visit(final CProblemType t) {
       return true;
-    }
-
-    @Override
-    public Boolean visit(final CSimpleType t) {
-      return false;
     }
 
     @Override
