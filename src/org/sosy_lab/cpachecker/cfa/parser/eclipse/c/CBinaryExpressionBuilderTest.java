@@ -40,11 +40,11 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
 public class CBinaryExpressionBuilderTest {
@@ -61,39 +61,28 @@ public class CBinaryExpressionBuilderTest {
   @Parameter(0)
   public MachineModel machineModel;
 
-  //type constants
-  private final static CSimpleType S_CHAR =
-      new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  private final static CSimpleType U_CHAR =
-      new CSimpleType(false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
+  //type constants, need to be canonical
+  private final static CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
+  private final static CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
 
-  private final static CSimpleType S_SHORT_INT = makeInt(true, true, false, false);
-  private final static CSimpleType U_SHORT_INT = makeInt(false, true, false, false);
-  private final static CSimpleType S_INT = makeInt(true, false, false, false);
-  private final static CSimpleType U_INT = makeInt(false, false, false, false);
-  private final static CSimpleType S_LONG_INT = makeInt(true, false, true, false);
-  private final static CSimpleType U_LONG_INT = makeInt(false, false, true, false);
-  private final static CSimpleType S_LONG_LONG_INT = makeInt(true, false, false, true);
-  private final static CSimpleType U_LONG_LONG_INT = makeInt(false, false, false, true);
+  private final static CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT.getCanonicalType();
+  private final static CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
+  private final static CSimpleType S_INT = CNumericTypes.INT.getCanonicalType();
+  private final static CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
+  private final static CSimpleType S_LONG_INT = CNumericTypes.LONG_INT.getCanonicalType();
+  private final static CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
+  private final static CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT.getCanonicalType();
+  private final static CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
 
-  private final static List<CSimpleType> smallTypes = Lists.newArrayList(
+  private final static List<CSimpleType> smallTypes = ImmutableList.of(
       S_CHAR, U_CHAR, S_SHORT_INT, U_SHORT_INT, S_INT);
-  private final static List<CSimpleType> bigTypes = Lists.newArrayList(
+  private final static List<CSimpleType> bigTypes = ImmutableList.of(
       U_INT, S_LONG_INT, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT);
 
 
-  private static CSimpleType makeInt(
-      boolean pIsSigned, boolean pIsShort, boolean pIsLong, boolean pIsLongLong) {
-    return new CSimpleType(false, false, CBasicType.INT,
-        pIsLong, pIsShort, pIsSigned, !pIsSigned, false, false, pIsLongLong);
-  }
-
-
   private LogManager logger;
-
   private CBinaryExpressionBuilder c;
-
 
   @Before
   public void init() {
@@ -101,7 +90,6 @@ public class CBinaryExpressionBuilderTest {
 
     c = new CBinaryExpressionBuilder(machineModel, logger);
   }
-
 
   @Test
   public void checkTypeForBinaryOperation() {

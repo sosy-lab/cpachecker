@@ -41,7 +41,6 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -69,51 +68,33 @@ public class ExpressionValueVisitorTest {
   @Parameter(1)
   public boolean symbolicValues;
 
-
-  // we need some dummy-values.
-  private static final String functionName = "dummy_function";
-  private static final FileLocation loc = FileLocation.DUMMY;
-
-
   // constants for C
   private static final int MAX_CHAR = 256;
   private static final int MAX_SHORT = 65536;
   private static final long MAX_INT = 4294967296L;
 
-
   // type constants
-  private final static CSimpleType S_CHAR =
-      new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  private final static CSimpleType U_CHAR =
-      new CSimpleType(false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
+  private final static CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
+  private final static CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
 
-  private final static CSimpleType S_SHORT_INT = makeInt(true, true, false, false);
-  private final static CSimpleType U_SHORT_INT = makeInt(false, true, false, false);
-  private final static CSimpleType S_INT = makeInt(true, false, false, false);
-  private final static CSimpleType U_INT = makeInt(false, false, false, false);
-  private final static CSimpleType S_LONG_INT = makeInt(true, false, true, false);
-  private final static CSimpleType U_LONG_INT = makeInt(false, false, true, false);
-  private final static CSimpleType S_LONG_LONG_INT = makeInt(true, false, false, true);
-  private final static CSimpleType U_LONG_LONG_INT = makeInt(false, false, false, true);
-
-
-  private static CSimpleType makeInt(
-      boolean pIsSigned, boolean pIsShort, boolean pIsLong, boolean pIsLongLong) {
-    return new CSimpleType(false, false, CBasicType.INT,
-        pIsLong, pIsShort, pIsSigned, !pIsSigned, false, false, pIsLongLong);
-  }
-
+  private final static CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT;
+  private final static CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
+  private final static CSimpleType S_INT = CNumericTypes.INT;
+  private final static CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
+  private final static CSimpleType S_LONG_INT = CNumericTypes.LONG_INT;
+  private final static CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
+  private final static CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT;
+  private final static CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
   private LogManagerWithoutDuplicates logger;
   private ExpressionValueVisitor evv;
-
 
   @Before
   public void init() {
     logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
     evv = new ExpressionValueVisitor(
-        new ValueAnalysisState(), functionName, machineModel, logger, symbolicValues);
+        new ValueAnalysisState(), "dummy_function", machineModel, logger, symbolicValues);
   }
 
   @Test
@@ -308,7 +289,7 @@ public class ExpressionValueVisitorTest {
       throws UnrecognizedCCodeException {
 
     final Value value = evv.evaluate(
-        new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(in)),
+        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(in)),
         outType);
 
     // TODO explicitfloat: add floats to the test
