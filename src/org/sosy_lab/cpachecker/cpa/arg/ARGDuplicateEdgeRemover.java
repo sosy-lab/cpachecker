@@ -33,6 +33,8 @@ import java.util.Queue;
 import org.sosy_lab.cpachecker.core.interfaces.PostProcessor;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import com.google.common.base.Preconditions;
+
 
 public class ARGDuplicateEdgeRemover implements PostProcessor {
 
@@ -58,11 +60,12 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
             continue;
           }
           if (currentVisit.getEdgeToChild(child).equals(currentVisit.getEdgeToChild(otherChild))) {
-            assert (child.isCovered() || otherChild.isCovered());
+            Preconditions.checkState(child.isCovered() || otherChild.isCovered(),
+                    "Has at least two childs for some edge and none of it is covered. Preparation for ARG translation to C file failed. Retry using CallstackPCC instead of Callstack CPA or enable option cpa.arg.deleteInPredicatedAnalysis.");
 
             if (child.isCovered() &&
-                  (child.getCoveringState() == otherChild
-                  || (otherChild.isCovered() && child.isOlderThan(otherChild)))) {
+                (child.getCoveringState() == otherChild
+                || (otherChild.isCovered() && child.isOlderThan(otherChild)))) {
               removeChildren.add(child);
               mayVisit = false;
               continue nextChild;
