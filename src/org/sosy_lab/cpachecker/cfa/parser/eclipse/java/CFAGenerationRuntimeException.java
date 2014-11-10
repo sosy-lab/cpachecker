@@ -34,7 +34,7 @@ import com.google.common.base.Strings;
 /**
  * Handles problems during CFA generation for Java program inputs
  */
-public class CFAGenerationRuntimeException extends RuntimeException {
+class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final long serialVersionUID = 6850281425209171013L;
 
@@ -124,7 +124,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
 
       fullLine = fullLine.getParent();
     }
-    
+
     if (fullLine != null && fullLine != node) {
       String lineRawSignature = fullLine.toString();
 

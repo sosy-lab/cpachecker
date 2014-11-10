@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -30,7 +30,7 @@ import org.eclipse.jdt.core.dom.IVariableBinding;
 import com.google.common.base.Joiner;
 
 
-public final class NameConverter {
+final class NameConverter {
 
   private NameConverter() {
 

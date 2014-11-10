@@ -78,7 +78,7 @@ import com.google.common.collect.Lists;
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
  */
-public class EclipseCParser implements CParser {
+class EclipseCParser implements CParser {
 
   protected final ILanguage language;
 

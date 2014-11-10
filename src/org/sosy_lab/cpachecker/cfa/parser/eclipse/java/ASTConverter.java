@@ -130,7 +130,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -146,7 +145,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ASTConverter {
+class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
@@ -1081,7 +1080,7 @@ public class ASTConverter {
       if (subClassTypes.isEmpty()) {
         return new JBooleanLiteralExpression(fileloc, false);
       }
-      
+
     } else if (type instanceof JClassType) {
       firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
           (JClassOrInterfaceType) type);

@@ -66,7 +66,7 @@ import com.google.common.base.Splitter;
  *
  */
 @Options
-public class EclipseJavaParser implements Parser {
+class EclipseJavaParser implements Parser {
 
   @Option(secure=true, name ="java.encoding",
       description="use the following encoding for java files")
