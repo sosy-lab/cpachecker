@@ -166,6 +166,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -557,8 +558,21 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
+    CType type = typeConverter.convert(e.getExpressionType());
+    if (type.getCanonicalType() instanceof CVoidType) {
+      if (e instanceof IASTFunctionCallExpression) {
+        // Void method called and return value used.
+        // Possibly this is an undeclared function.
+        // Default return type in C for these cases is INT.
+        type = CNumericTypes.INT;
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Cannot create temporary variable for expression with type void",
+            e, niceFileNameFunction);
+      }
+    }
     return createInitializedTemporaryVariable(
-        getLocation(e), typeConverter.convert(e.getExpressionType()), (CInitializer)null);
+        getLocation(e), type, (CInitializer)null);
   }
 
   private CIdExpression createInitializedTemporaryVariable(

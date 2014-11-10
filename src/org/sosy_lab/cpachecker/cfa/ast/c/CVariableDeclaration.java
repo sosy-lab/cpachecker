@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This class represents variable declarations.
@@ -55,6 +56,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
         "CStorageClass is %s", cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
+    checkArgument(!(pType.getCanonicalType() instanceof CVoidType),
+        "Cannot declare variable of type void: " + this);
   }
 
   @Override
