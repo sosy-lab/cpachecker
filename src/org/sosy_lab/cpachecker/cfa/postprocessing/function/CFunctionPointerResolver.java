@@ -328,7 +328,8 @@ public class CFunctionPointerResolver {
           func.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
 
       final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-      CBinaryExpression condition = binExprBuilder.buildBinaryExpression(nameExp, amper, BinaryOperator.EQUALS);
+      CBinaryExpression condition = binExprBuilder.buildBinaryExpressionUnchecked(
+          nameExp, amper, BinaryOperator.EQUALS);
 
       addConditionEdges(condition, rootNode, thenNode, elseNode, fileLocation);
 

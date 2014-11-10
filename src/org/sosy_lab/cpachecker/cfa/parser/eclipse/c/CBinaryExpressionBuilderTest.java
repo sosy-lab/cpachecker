@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -92,7 +93,7 @@ public class CBinaryExpressionBuilderTest {
   }
 
   @Test
-  public void checkTypeForBinaryOperation() {
+  public void checkTypeForBinaryOperation() throws UnrecognizedCCodeException {
     checkArithmeticTypes(PLUS);
     checkArithmeticTypes(MINUS);
     checkArithmeticTypes(MULTIPLY);
@@ -107,7 +108,7 @@ public class CBinaryExpressionBuilderTest {
 
   }
 
-  private void checkArithmeticTypes(BinaryOperator op) {
+  private void checkArithmeticTypes(BinaryOperator op) throws UnrecognizedCCodeException {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
@@ -125,7 +126,7 @@ public class CBinaryExpressionBuilderTest {
   }
 
 
-  private void checkRelationalTypes(BinaryOperator op) {
+  private void checkRelationalTypes(BinaryOperator op) throws UnrecognizedCCodeException {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
@@ -146,7 +147,7 @@ public class CBinaryExpressionBuilderTest {
   }
 
 
-  private void checkArithmeticCalculationTypes(BinaryOperator op) {
+  private void checkArithmeticCalculationTypes(BinaryOperator op) throws UnrecognizedCCodeException {
     checkCalculation(op, U_INT, U_INT, U_INT);
     if (machineModel == MachineModel.LINUX32) {
       checkCalculation(op, U_INT, S_LONG_INT, U_LONG_INT); // !!!!
@@ -176,14 +177,14 @@ public class CBinaryExpressionBuilderTest {
     checkCalculation(op, U_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
   }
 
-  private void checkCalculation(BinaryOperator op, CType t1, CType t2, CType target) {
+  private void checkCalculation(BinaryOperator op, CType t1, CType t2, CType target) throws UnrecognizedCCodeException {
     assertThat(c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
               .isEqualTo(target);
     assertThat(c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
               .isEqualTo(target);
   }
 
-  private void checkResult(BinaryOperator op, CType t1, CType t2, CType target) {
+  private void checkResult(BinaryOperator op, CType t1, CType t2, CType target) throws UnrecognizedCCodeException {
     assertThat(c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
               .isEqualTo(target);
     assertThat(c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))

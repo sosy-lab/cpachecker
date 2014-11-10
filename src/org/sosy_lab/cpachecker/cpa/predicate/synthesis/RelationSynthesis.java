@@ -89,7 +89,8 @@ public class RelationSynthesis {
           continue;
         }
 
-        CBinaryExpression bin = binExprBuilder.buildBinaryExpression(lhsInlined, rhsInlined, relation.binaryOperator);
+        CBinaryExpression bin = binExprBuilder.buildBinaryExpressionUnchecked(
+            lhsInlined, rhsInlined, relation.binaryOperator);
 
         result.add(uninstanciate(bin));
       }

@@ -206,7 +206,10 @@ public class NullPointerChecks {
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
     }
 
-    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpression(exp, new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)), BinaryOperator.EQUALS);
+    CBinaryExpression assumeExpression = binBuilder.buildBinaryExpressionUnchecked(
+        exp,
+        new CIntegerLiteralExpression(exp.getFileLocation(), CNumericTypes.INT,BigInteger.valueOf(0)),
+        BinaryOperator.EQUALS);
     AssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                          edge.getFileLocation(),
                                          predecessor, targetNode.get(),

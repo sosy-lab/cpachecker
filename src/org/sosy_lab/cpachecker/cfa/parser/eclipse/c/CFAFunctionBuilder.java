@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -972,6 +973,18 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
   }
 
+  /**
+   * @category helper
+   */
+  private CBinaryExpression buildBinaryExpression(
+      CExpression operand1, CExpression operand2, BinaryOperator op) {
+    try {
+      return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
+    } catch (UnrecognizedCCodeException e) {
+      throw new CFAGenerationRuntimeException(e);
+    }
+  }
+
 
   /////////////////////////////////////////////////////////////////////////////
   // Conditions
@@ -1125,7 +1138,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
         // build new boolean expression: a==0 and switch branches
-        CExpression conv = binExprBuilder.buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+        CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
             loc);
@@ -1511,7 +1524,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, left part "a", right part "2" --> "a==2"
     final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(right);
-    final CBinaryExpression binExp = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression binExp = buildBinaryExpression(
               switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
@@ -1556,9 +1569,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     // 2 ... 4  -->  2<=x && x<=4
     final CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand1());
     final CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(range.getOperand2());
-    final CBinaryExpression firstPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression firstPart = buildBinaryExpression(
               smallEnd, switchExpr, CBinaryExpression.BinaryOperator.LESS_EQUAL);
-    final CBinaryExpression secondPart = binExprBuilder.buildBinaryExpression(
+    final CBinaryExpression secondPart = buildBinaryExpression(
               switchExpr, bigEnd, CBinaryExpression.BinaryOperator.LESS_EQUAL);
 
     final CExpression firstExp = astCreator.simplifyExpressionOneStep(firstPart);

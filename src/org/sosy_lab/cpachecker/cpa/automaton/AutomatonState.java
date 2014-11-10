@@ -238,7 +238,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
           CExpression expression = (CExpression) assignment.getRightHandSide();
           CBinaryExpression assumeExp =
-              expressionBuilder.buildBinaryExpression(
+              expressionBuilder.buildBinaryExpressionUnchecked(
                   assignment.getLeftHandSide(),
                   expression,
                   CBinaryExpression.BinaryOperator.EQUALS);

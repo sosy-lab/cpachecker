@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
@@ -98,7 +99,7 @@ public class RelationSynthesisTest {
     makeTestData();
   }
 
-  private void makeTestData() {
+  private void makeTestData() throws UnrecognizedCCodeException {
     CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
 
     a = makeVariable("a", CNumericTypes.INT);

@@ -144,7 +144,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-        newExpr = binExprBuilder.buildBinaryExpression(
+        newExpr = binExprBuilder.buildBinaryExpressionUnchecked(
             op1, op2, binaryOperator);
       }
       return newExpr;

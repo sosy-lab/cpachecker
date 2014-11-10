@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -145,7 +146,7 @@ public class PathFormulaManagerImplTest {
   }
 
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, TestLogManager.getInstance()

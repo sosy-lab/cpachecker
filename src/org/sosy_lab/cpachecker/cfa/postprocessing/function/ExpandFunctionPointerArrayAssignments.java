@@ -147,7 +147,8 @@ public class ExpandFunctionPointerArrayAssignments {
       CExpression index = new CIntegerLiteralExpression(subscript.getFileLocation(),
                                                         CNumericTypes.INT,
                                                         BigInteger.valueOf(i));
-      CExpression assumeExp = builder.buildBinaryExpression(subscript, index, BinaryOperator.EQUALS);
+      CExpression assumeExp = builder.buildBinaryExpressionUnchecked(
+          subscript, index, BinaryOperator.EQUALS);
       CAssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
                                              edge.getFileLocation(),
                                              predecessor,
