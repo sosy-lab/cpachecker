@@ -566,9 +566,10 @@ class ASTConverter {
         // Default return type in C for these cases is INT.
         type = CNumericTypes.INT;
       } else {
-        throw new CFAGenerationRuntimeException(
-            "Cannot create temporary variable for expression with type void",
-            e, niceFileNameFunction);
+        // TODO enable if we do not have unnecessary temporary variables of type void anymore
+//        throw new CFAGenerationRuntimeException(
+//            "Cannot create temporary variable for expression with type void",
+//            e, niceFileNameFunction);
       }
     }
     return createInitializedTemporaryVariable(
