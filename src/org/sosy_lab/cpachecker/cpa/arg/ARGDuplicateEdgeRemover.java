@@ -60,10 +60,12 @@ public class ARGDuplicateEdgeRemover implements PostProcessor {
           if (currentVisit.getEdgeToChild(child).equals(currentVisit.getEdgeToChild(otherChild))) {
             assert (child.isCovered() || otherChild.isCovered());
 
-            if (child.isCovered() && !otherChild.isCovered()) {
+            if (child.isCovered() &&
+                  (child.getCoveringState() == otherChild
+                  || (otherChild.isCovered() && child.isOlderThan(otherChild)))) {
               removeChildren.add(child);
+              mayVisit = false;
             }
-            mayVisit = false;
           }
         }
 
