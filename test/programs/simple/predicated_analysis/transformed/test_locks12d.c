@@ -1,6 +1,6 @@
 extern int __VERIFIER_nondet_int();
 int main();
-int __return_4831;
+int __return_3517;
 int main()
 {
 int lk1;
@@ -19,30 +19,51 @@ int cond;
 int p;
 int flag = 1;
 label_3467:; 
+label_3469:; 
 cond = __VERIFIER_nondet_int();
+label_3471:; 
 p = __VERIFIER_nondet_int();
+label_3473:; 
 if (cond == 0)
 {
- __return_4831 = 0;
+label_3476:; 
+ __return_3517 = 0;
 return 1;
 }
 else 
 {
+label_3477:; 
+label_3479:; 
 lk1 = 0;
+label_3481:; 
 lk2 = 0;
+label_3483:; 
 lk3 = 0;
+label_3485:; 
 lk4 = 0;
+label_3487:; 
 lk5 = 0;
+label_3489:; 
 lk6 = 0;
+label_3491:; 
 lk7 = 0;
+label_3493:; 
 lk8 = 0;
+label_3495:; 
 lk9 = 0;
+label_3497:; 
 lk10 = 0;
+label_3499:; 
 lk11 = 0;
+label_3501:; 
 lk12 = 0;
+label_3503:; 
 if (p > 0)
 {
+label_3506:; 
 lk1 = 1;
+label_3511:; 
+label_146:; 
 if (p > 1)
 {
 lk2 = 1;
@@ -124,11 +145,11 @@ if (p > 11)
 {
 flag = lk12;
 lk12 = 0;
-goto label_4821;
+goto label_3272;
 }
 else 
 {
-goto label_4821;
+goto label_3272;
 }
 }
 else 
@@ -230,7 +251,7 @@ flag = lk10;
 lk10 = 0;
 flag = lk11;
 lk11 = 0;
-goto label_4799;
+goto label_3261;
 }
 else 
 {
@@ -330,7 +351,7 @@ flag = lk9;
 lk9 = 0;
 flag = lk10;
 lk10 = 0;
-goto label_4771;
+goto label_3253;
 }
 else 
 {
@@ -429,7 +450,7 @@ flag = lk8;
 lk8 = 0;
 flag = lk9;
 lk9 = 0;
-goto label_4734;
+goto label_3247;
 }
 else 
 {
@@ -527,7 +548,7 @@ flag = lk7;
 lk7 = 0;
 flag = lk8;
 lk8 = 0;
-goto label_4688;
+goto label_3241;
 }
 else 
 {
@@ -624,7 +645,7 @@ flag = lk6;
 lk6 = 0;
 flag = lk7;
 lk7 = 0;
-goto label_4633;
+goto label_3235;
 }
 else 
 {
@@ -720,7 +741,7 @@ flag = lk5;
 lk5 = 0;
 flag = lk6;
 lk6 = 0;
-goto label_4569;
+goto label_3229;
 }
 else 
 {
@@ -815,7 +836,7 @@ flag = lk4;
 lk4 = 0;
 flag = lk5;
 lk5 = 0;
-goto label_4496;
+goto label_3223;
 }
 else 
 {
@@ -909,7 +930,7 @@ flag = lk3;
 lk3 = 0;
 flag = lk4;
 lk4 = 0;
-goto label_4414;
+goto label_3217;
 }
 else 
 {
@@ -1002,7 +1023,7 @@ flag = lk2;
 lk2 = 0;
 flag = lk3;
 lk3 = 0;
-goto label_4323;
+goto label_3211;
 }
 else 
 {
@@ -1094,7 +1115,7 @@ flag = lk1;
 lk1 = 0;
 flag = lk2;
 lk2 = 0;
-goto label_4223;
+goto label_3205;
 }
 else 
 {
@@ -1120,6 +1141,16 @@ return 1;
 }
 else 
 {
+flag = lk1;
+lk1 = 0;
+goto label_3199;
+}
+}
+}
+else 
+{
+label_3507:; 
+label_144:; 
 if (p > 3)
 {
 lk4 = 1;
@@ -1183,36 +1214,28 @@ return 1;
 }
 else 
 {
-flag = lk1;
-lk1 = 0;
-goto label_4114;
-}
-}
-}
-}
-}
-}
-}
-}
-}
-}
-}
-}
-else 
-{
-label_4114:; 
-label_4223:; 
-label_4323:; 
-label_4414:; 
-label_4496:; 
-label_4569:; 
-label_4633:; 
-label_4688:; 
-label_4734:; 
-label_4771:; 
-label_4799:; 
-label_4821:; 
+label_3199:; 
+label_3205:; 
+label_3211:; 
+label_3217:; 
+label_3223:; 
+label_3229:; 
+label_3235:; 
+label_3241:; 
+label_3247:; 
+label_3253:; 
+label_3261:; 
+label_3272:; 
 goto label_3467;
+}
+}
+}
+}
+}
+}
+}
+}
+}
 }
 }
 }

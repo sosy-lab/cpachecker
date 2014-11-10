@@ -1,15 +1,15 @@
 (set-info :source |printed by MathSAT|)
 (declare-fun |main::x| () Real)
-(define-fun .def_57 () Bool (<= (to_real 1) |main::x|))
+(define-fun .def_54 () Bool (<= (to_real 1) |main::x|))
 (declare-fun |main::i| () Real)
-(define-fun .def_92 () Bool (= |main::i| (to_real 1)))
+(define-fun .def_89 () Bool (= |main::i| (to_real 1)))
 
 main N6:
-(assert .def_57)
-(assert .def_92)
+(assert .def_54)
+(assert .def_89)
 
 main N9:
-(assert .def_92)
+(assert .def_89)
 
 main N14:
 (assert false)

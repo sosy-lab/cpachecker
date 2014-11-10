@@ -4,23 +4,24 @@ void main()
 int y;
 if (y < 0)
 {
-label_34:; 
+label_35:; 
 y = 0;
-goto label_35;
+label_38:; 
+goto label_36;
 }
 else 
 {
-label_35:; 
+label_36:; 
 int x=y;
 x = x + 1;
 int i=0;
 x = x - 1;
 i = 1;
-label_60:; 
+label_61:; 
 x = x + 1;
 i = 0;
 x = x - 1;
 i = 1;
-goto label_60;
+goto label_61;
 }
 }

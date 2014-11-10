@@ -6,10 +6,10 @@ x = x + 1;
 int i=0;
 x = x - 1;
 i = 1;
-label_52:; 
+label_55:; 
 x = x + 1;
 i = 0;
 x = x - 1;
 i = 1;
-goto label_52;
+goto label_55;
 }

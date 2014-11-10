@@ -1,40 +1,40 @@
 (set-info :source |printed by MathSAT|)
 (declare-fun |get_tag::t| () (_ BitVec 32))
-(define-fun .def_236 () Bool (= |get_tag::t| (_ bv0 32)))
-(define-fun .def_608 () Bool (= |get_tag::t| (_ bv1 32)))
-(define-fun .def_610 () Bool (= |get_tag::t| (_ bv2 32)))
+(define-fun .def_187 () Bool (= |get_tag::t| (_ bv0 32)))
+(define-fun .def_456 () Bool (= |get_tag::t| (_ bv1 32)))
+(define-fun .def_458 () Bool (= |get_tag::t| (_ bv2 32)))
 (declare-fun |get_tag::tagbuf_len| () (_ BitVec 32))
-(define-fun .def_1170 () Bool (= |get_tag::tagbuf_len| (_ bv4 32)))
-(define-fun .def_1172 () Bool (= |get_tag::tagbuf_len| (_ bv3 32)))
+(define-fun .def_1006 () Bool (= |get_tag::tagbuf_len| (_ bv4 32)))
+(define-fun .def_1008 () Bool (= |get_tag::tagbuf_len| (_ bv3 32)))
 
 get_tag N1:
-(assert .def_1170)
+(assert .def_1006)
 
 get_tag N34:
-(assert .def_236)
-(assert .def_608)
-(assert .def_610)
-(assert .def_1172)
+(assert .def_187)
+(assert .def_456)
+(assert .def_458)
+(assert .def_1008)
 
-get_tag N52:
+get_tag N47:
 (assert false)
 
 get_tag N62:
-(assert .def_608)
-(assert .def_610)
-(assert .def_1172)
+(assert .def_456)
+(assert .def_458)
+(assert .def_1008)
 
 get_tag N70:
-(assert .def_608)
-(assert .def_610)
-(assert .def_1172)
+(assert .def_456)
+(assert .def_458)
+(assert .def_1008)
 
 get_tag N81:
-(assert .def_608)
+(assert .def_456)
 
 get_tag N86:
 (assert false)
-(assert .def_608)
+(assert .def_456)
 
 get_tag N102:
 (assert false)

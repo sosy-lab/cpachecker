@@ -9,53 +9,40 @@ int x=0;
 if (a < 0)
 {
 x = -a;
-y = b * a;
-if (y > x)
-{
-i = 0;
-label_219:; 
-if (b > 0)
-{
-x = x + y;
-x = x + y;
-label_267:; 
-x = x + y;
-goto label_267;
-}
-else 
-{
-label_238:; 
-return 1;
-}
-}
-else 
-{
-i = 1;
-label_222:; 
-if (b > 0)
-{
-label_265:; 
-goto label_265;
-}
-else 
-{
-goto label_238;
-}
-}
+goto label_17;
 }
 else 
 {
 x = a;
+label_17:; 
 y = b * a;
 if (y > x)
 {
 i = 0;
-goto label_219;
+label_47:; 
+if (b > 0)
+{
+x = x + y;
+goto label_47;
+}
+else 
+{
+goto label_56;
+}
 }
 else 
 {
 i = 1;
-goto label_222;
+label_45:; 
+if (b > 0)
+{
+goto label_45;
+}
+else 
+{
+label_56:; 
+return 1;
+}
 }
 }
 }

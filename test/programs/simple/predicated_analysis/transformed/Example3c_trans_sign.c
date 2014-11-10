@@ -7,21 +7,24 @@ int x = 0;
 if (y < 0)
 {
 y = 0;
-label_40:; 
 x = y;
 x = x + 1;
 x = x - 1;
 i = 1;
-label_61:; 
-x = x + 1;
-i = 0;
-x = x - 1;
-i = 1;
-goto label_61;
+goto label_74;
 }
 else 
 {
 y = 5;
-goto label_40;
+x = y;
+x = x + 1;
+x = x - 1;
+i = 1;
+label_74:; 
+x = x + 1;
+i = 0;
+x = x - 1;
+i = 1;
+goto label_74;
 }
 }

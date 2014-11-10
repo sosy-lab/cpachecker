@@ -8,13 +8,13 @@ if (f > 0)
 {
 x = 1;
 y = 1;
-label_28:; 
-return 1;
+goto label_28;
 }
 else 
 {
 x = 2;
 y = 3;
-goto label_28;
+label_28:; 
+return 1;
 }
 }

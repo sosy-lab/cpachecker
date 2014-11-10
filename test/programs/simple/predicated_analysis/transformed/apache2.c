@@ -2,7 +2,7 @@ extern int __VERIFIER_nondet_int() ;
 int flag  =    0;
 void escape_absolute_uri(char *uri , int scheme );
 int main(void);
-int __return_2057;
+int __return_1174;
 int main()
 {
 char uri[11] ;
@@ -35,7 +35,7 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_1959;
+goto label_1164;
 }
 else 
 {
@@ -48,13 +48,13 @@ c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
 *(uri + cp) = 0;
-goto label_1938;
+goto label_1078;
 }
 else 
 {
-label_1938:; 
+label_1078:; 
 cp = cp + 1;
-goto label_1950;
+goto label_1090;
 }
 }
 }
@@ -69,13 +69,13 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_1959;
+goto label_1164;
 }
 else 
 {
 c = 0;
 token[0] = uri;
-label_1950:; 
+label_1090:; 
 flag = cp;
 if (((int)(*(uri + cp))) == 63)
 {
@@ -83,13 +83,13 @@ c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
 *(uri + cp) = 0;
-goto label_2013;
+goto label_1107;
 }
 else 
 {
-label_2013:; 
+label_1107:; 
 cp = cp + 1;
-goto label_2019;
+goto label_1120;
 }
 }
 }
@@ -104,13 +104,13 @@ scheme = cp;
 cond = __VERIFIER_nondet_int();
 if (cond == 0)
 {
-goto label_1959;
+goto label_1164;
 }
 else 
 {
 c = 0;
 token[0] = uri;
-label_2019:; 
+label_1120:; 
 if (c < 2)
 {
 flag = cp;
@@ -120,19 +120,19 @@ c = c + 1;
 token[c] = (uri + cp) + 1;
 flag = cp;
 *(uri + cp) = 0;
-goto label_2045;
+goto label_1142;
 }
 else 
 {
-label_2045:; 
+label_1142:; 
 cp = cp + 1;
-goto label_2053;
+goto label_1150;
 }
 }
 else 
 {
-label_2053:; 
-goto label_1978;
+label_1150:; 
+goto label_1117;
 }
 }
 }
@@ -142,12 +142,12 @@ cp = cp + 1;
 flag = cp;
 if (((int)(*(uri + cp))) != 47)
 {
-goto label_1978;
+goto label_1117;
 }
 else 
 {
 cp = cp + 1;
-goto label_1978;
+goto label_1117;
 }
 }
 }
@@ -155,15 +155,15 @@ goto label_1978;
 }
 else 
 {
-label_1959:; 
-goto label_1978;
+label_1164:; 
+goto label_1117;
 }
 }
 else 
 {
-label_1978:; 
+label_1117:; 
 }
- __return_2057 = 0;
+ __return_1174 = 0;
 return 1;
 }
 }

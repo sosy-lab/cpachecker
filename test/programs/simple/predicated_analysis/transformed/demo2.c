@@ -11,21 +11,24 @@ x = -1;
 if (i < n)
 {
 x = x - 1;
-label_116:; 
+label_110:; 
 i = i + 1;
+label_112:; 
+label_101:; 
 if (i < n)
 {
 x = x - 1;
-goto label_116;
+goto label_110;
 }
 else 
 {
-goto label_90;
+goto label_92;
 }
 }
 else 
 {
-goto label_90;
+label_92:; 
+return 1;
 }
 }
 else 
@@ -36,6 +39,8 @@ if (i < n)
 x = x + 1;
 label_97:; 
 i = i + 1;
+label_99:; 
+label_87:; 
 if (i < n)
 {
 x = x + 1;
@@ -43,13 +48,12 @@ goto label_97;
 }
 else 
 {
-goto label_90;
+goto label_92;
 }
 }
 else 
 {
-label_90:; 
-return 1;
+goto label_92;
 }
 }
 }

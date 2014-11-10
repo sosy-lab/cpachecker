@@ -43,27 +43,28 @@ int stop_simulation(void);
 void start_simulation(void);
 void init_model(void);
 int main(void);
-int __return_588631;
-int __return_588658;
-int __return_588699;
-int __return_588750;
-int __return_589072;
-int __return_589144;
-int __return_590135;
-int __return_589636;
-int __return_589663;
-int __return_589689;
-int __return_590185;
-char __return_590075;
-int __return_590233;
-int __return_590109;
-int __return_589118;
-int __return_589197;
-char __return_589884;
-char __return_589032;
-int __return_589275;
-int __return_589170;
-int __return_589247;
+int __return_162042;
+int __return_162071;
+int __return_162112;
+int __return_172084;
+int __return_173385;
+int __return_172924;
+int __return_175133;
+int __return_175162;
+int __return_175188;
+int __return_176399;
+char __return_176203;
+int __return_176328;
+int __return_176269;
+int __return_173735;
+int __return_172785;
+int __return_173676;
+int __return_173617;
+char __return_176123;
+char __return_172733;
+int __return_173546;
+int __return_173279;
+int __return_172397;
 int main()
 {
 int count ;
@@ -104,24 +105,18 @@ int tmp___1 ;
 {
 int __retres1 ;
 __retres1 = 0;
- __return_588631 = __retres1;
+ __return_162042 = __retres1;
 }
-tmp = __return_588631;
-if (tmp == 0)
-{
-label_588637:; 
+tmp = __return_162042;
 {
 int __retres1 ;
 __retres1 = 0;
- __return_588658 = __retres1;
+ __return_162071 = __retres1;
 }
-tmp___0 = __return_588658;
-if (tmp___0 == 0)
-{
-label_588666:; 
+tmp___0 = __return_162071;
 {
 int __retres1 ;
-if (((int)C_1_pc) == 2)
+if (((int)C_1_pc) == 1)
 {
 __retres1 = 1;
 return 1;
@@ -129,9 +124,9 @@ return 1;
 else 
 {
 __retres1 = 0;
- __return_588699 = __retres1;
+ __return_162112 = __retres1;
 }
-tmp___1 = __return_588699;
+tmp___1 = __return_162112;
 }
 {
 }
@@ -146,57 +141,63 @@ int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_588750 = __retres1;
+ __return_172084 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_588750;
+tmp___2 = __return_172084;
 tmp = 0;
 tmp___0 = __VERIFIER_nondet_int();
 if (tmp___0 == 0)
 {
+if (((int)C_1_st) == 0)
+{
 tmp___1 = __VERIFIER_nondet_int();
 if (tmp___1 == 0)
 {
-label_588864:; 
+label_172355:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589072 = __retres1;
+ __return_173385 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_589072;
+tmp___2 = __return_173385;
 if (tmp___2 == 0)
 {
 }
 else 
 {
+if (((int)P_1_st) == 0)
+{
 tmp = 0;
+if (((int)P_2_st) == 0)
+{
 tmp___0 = __VERIFIER_nondet_int();
 if (tmp___0 == 0)
 {
@@ -205,7 +206,7 @@ if (((int)C_1_st) == 0)
 tmp___1 = __VERIFIER_nondet_int();
 if (tmp___1 == 0)
 {
-goto label_588864;
+goto label_172355;
 }
 else 
 {
@@ -225,13 +226,13 @@ else
 {
 return 1;
 }
-goto label_588913;
+goto label_172341;
 }
 else 
 {
 C_1_st = 2;
 }
-goto label_588907;
+goto label_172339;
 }
 }
 }
@@ -261,9 +262,19 @@ else
 {
 P_2_st = 2;
 }
-goto label_589439;
-goto label_589432;
+goto label_176048;
+goto label_173302;
 }
+}
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+return 1;
 }
 }
 return 1;
@@ -287,29 +298,29 @@ else
 {
 return 1;
 }
-label_588913:; 
-label_588934:; 
+label_172341:; 
+label_172363:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589144 = __retres1;
+ __return_172924 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_589144;
+tmp___2 = __return_172924;
 if (tmp___2 == 0)
 {
 }
@@ -330,7 +341,7 @@ return 1;
 }
 else 
 {
-goto label_588934;
+goto label_172363;
 }
 }
 else 
@@ -347,13 +358,6 @@ char c = __tmp_4;
 data_0 = c;
 }
 num = num + 1;
-if (timer == 0)
-{
-P_2_pc = 1;
-P_2_st = 2;
-}
-else 
-{
 timer = 0;
 e = 1;
 {
@@ -364,51 +368,35 @@ int tmp___1 ;
 {
 int __retres1 ;
 __retres1 = 0;
- __return_589636 = __retres1;
+ __return_175133 = __retres1;
 }
-tmp = __return_589636;
-if (tmp == 0)
-{
-label_589642:; 
+tmp = __return_175133;
 {
 int __retres1 ;
 __retres1 = 0;
- __return_589663 = __retres1;
+ __return_175162 = __retres1;
 }
-tmp___0 = __return_589663;
-if (tmp___0 == 0)
-{
-label_589671:; 
+tmp___0 = __return_175162;
 {
 int __retres1 ;
 if (((int)e) == 1)
 {
 __retres1 = 1;
- __return_589689 = __retres1;
+ __return_175188 = __retres1;
 }
 else 
 {
 return 1;
 }
-tmp___1 = __return_589689;
+tmp___1 = __return_175188;
 C_1_st = 0;
 }
-}
-else 
-{
-P_2_st = 0;
-goto label_589671;
 }
 e = 2;
 P_2_pc = 1;
 P_2_st = 2;
 }
-else 
-{
-P_1_st = 0;
-goto label_589642;
-}
-label_589786:; 
+label_176054:; 
 if (((int)C_1_st) == 0)
 {
 tmp___1 = __VERIFIER_nondet_int();
@@ -419,22 +407,22 @@ int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_590185 = __retres1;
+ __return_176399 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_590185;
+tmp___2 = __return_176399;
 if (tmp___2 == 0)
 {
 }
@@ -450,7 +438,7 @@ return 1;
 }
 else 
 {
-goto label_589786;
+goto label_176054;
 }
 }
 else 
@@ -468,40 +456,6 @@ C_1_st = 1;
 char c ;
 if (((int)C_1_pc) == 0)
 {
-if (num == 0)
-{
-timer = 1;
-i = i + 1;
-C_1_pc = 1;
-C_1_st = 2;
-return 1;
-}
-else 
-{
-goto label_590031;
-}
-}
-else 
-{
-if (((int)C_1_pc) == 1)
-{
-label_590031:; 
-num = num - 1;
-{
-int __tmp_5 = num;
-int i___0 = __tmp_5;
-char c ;
-char __retres3 ;
-__retres3 = data_0;
- __return_590075 = __retres3;
-}
-c = __return_590075;
-i = i + 1;
-C_1_pc = 2;
-C_1_st = 2;
-}
-else 
-{
 if (i < max_loop)
 {
 if (num == 0)
@@ -514,37 +468,66 @@ return 1;
 }
 else 
 {
-goto label_590031;
+goto label_176153;
 }
 }
 else 
 {
 C_1_st = 2;
-return 1;
 }
+goto label_172232;
 }
-label_590157:; 
+else 
+{
+if (((int)C_1_pc) == 1)
+{
+label_176153:; 
+num = num - 1;
+{
+int __tmp_5 = num;
+int i___0 = __tmp_5;
+char c ;
+char __retres3 ;
+__retres3 = data_0;
+ __return_176203 = __retres3;
+}
+c = __return_176203;
+i = i + 1;
+C_1_pc = 2;
+C_1_st = 2;
+}
+else 
+{
+if (i < max_loop)
+{
+goto label_176153;
+}
+else 
+{
+C_1_st = 2;
+}
+label_176239:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_590233 = __retres1;
+ __return_176328 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_590233;
+tmp___2 = __return_176328;
 if (tmp___2 == 0)
 {
 }
@@ -567,7 +550,7 @@ return 1;
 }
 else 
 {
-goto label_590157;
+goto label_176239;
 }
 }
 }
@@ -579,21 +562,10 @@ return 1;
 return 1;
 }
 }
+goto label_172749;
 }
 }
 }
-else 
-{
-return 1;
-}
-}
-}
-}
-label_589784:; 
-if (((int)C_1_st) == 0)
-{
-tmp___1 = __VERIFIER_nondet_int();
-return 1;
 }
 else 
 {
@@ -602,22 +574,22 @@ int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_590135 = __retres1;
+ __return_176269 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_590135;
+tmp___2 = __return_176269;
 if (tmp___2 == 0)
 {
 }
@@ -633,7 +605,7 @@ return 1;
 }
 else 
 {
-goto label_589784;
+goto label_176054;
 }
 }
 else 
@@ -649,7 +621,7 @@ else
 {
 P_2_st = 2;
 }
-label_589782:; 
+label_173107:; 
 if (((int)C_1_st) == 0)
 {
 tmp___1 = __VERIFIER_nondet_int();
@@ -662,22 +634,22 @@ int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_590109 = __retres1;
+ __return_173735 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_590109;
+tmp___2 = __return_173735;
 if (tmp___2 == 0)
 {
 }
@@ -693,7 +665,7 @@ return 1;
 }
 else 
 {
-goto label_589782;
+goto label_173107;
 }
 }
 else 
@@ -724,29 +696,29 @@ else
 {
 C_1_st = 2;
 }
-label_588907:; 
-label_588932:; 
+label_172339:; 
+label_172361:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589118 = __retres1;
+ __return_172785 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_589118;
+tmp___2 = __return_172785;
 if (tmp___2 == 0)
 {
 }
@@ -755,8 +727,6 @@ else
 if (((int)P_1_st) == 0)
 {
 tmp = 0;
-if (((int)P_2_st) == 0)
-{
 tmp___0 = __VERIFIER_nondet_int();
 if (tmp___0 == 0)
 {
@@ -767,31 +737,7 @@ return 1;
 }
 else 
 {
-goto label_588932;
-}
-}
-else 
-{
-P_2_st = 1;
-{
-P_2_st = 2;
-}
-goto label_589530;
-}
-}
-else 
-{
-return 1;
-}
-}
-else 
-{
-return 1;
-}
-}
-return 1;
-}
-}
+goto label_172361;
 }
 }
 else 
@@ -815,33 +761,35 @@ else
 {
 P_2_st = 2;
 }
+label_172870:; 
 if (((int)C_1_st) == 0)
 {
 tmp___1 = __VERIFIER_nondet_int();
-if (tmp___1 == 0)
+return 1;
+}
+else 
 {
-label_588928:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589197 = __retres1;
+ __return_173676 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_589197;
+tmp___2 = __return_173676;
 if (tmp___2 == 0)
 {
 }
@@ -857,44 +805,137 @@ return 1;
 }
 else 
 {
-label_589439:; 
-if (((int)C_1_st) == 0)
-{
-tmp___1 = __VERIFIER_nondet_int();
-if (tmp___1 == 0)
-{
-goto label_588928;
+goto label_172870;
+}
 }
 else 
 {
-C_1_st = 1;
-{
-char c ;
-if (num == 0)
-{
-timer = 1;
-i = i + 1;
-C_1_pc = 1;
-C_1_st = 2;
 return 1;
 }
+}
+return 1;
+}
+}
+goto label_172420;
+}
+}
+}
 else 
 {
-num = num - 1;
+return 1;
+}
+}
+return 1;
+}
+}
+}
+}
+else 
+{
+return 1;
+}
+}
+else 
+{
+P_2_st = 1;
+{
+if (i < max_loop)
+{
 {
 int __tmp_8 = num;
+char __tmp_9 = 'B';
 int i___0 = __tmp_8;
+char c = __tmp_9;
+data_0 = c;
+}
+num = num + 1;
+P_2_pc = 1;
+P_2_st = 2;
+}
+else 
+{
+P_2_st = 2;
+}
+if (((int)C_1_st) == 0)
+{
+tmp___1 = __VERIFIER_nondet_int();
+if (tmp___1 == 0)
+{
+label_172753:; 
+{
+int __retres1 ;
+if (((int)P_1_st) == 0)
+{
+__retres1 = 1;
+ __return_173617 = __retres1;
+}
+else 
+{
+if (((int)P_2_st) == 0)
+{
+__retres1 = 1;
+return 1;
+}
+else 
+{
+__retres1 = 1;
+return 1;
+}
+}
+tmp___2 = __return_173617;
+if (tmp___2 == 0)
+{
+}
+else 
+{
+if (((int)P_1_st) == 0)
+{
+tmp = 0;
+if (((int)P_2_st) == 0)
+{
+tmp___0 = __VERIFIER_nondet_int();
+return 1;
+}
+else 
+{
+label_176048:; 
+if (((int)C_1_st) == 0)
+{
+tmp___1 = __VERIFIER_nondet_int();
+if (tmp___1 == 0)
+{
+goto label_172753;
+}
+else 
+{
+C_1_st = 1;
+{
+char c ;
+if (num == 0)
+{
+timer = 1;
+i = i + 1;
+C_1_pc = 1;
+C_1_st = 2;
+return 1;
+}
+else 
+{
+num = num - 1;
+{
+int __tmp_10 = num;
+int i___0 = __tmp_10;
 char c ;
 char __retres3 ;
 __retres3 = data_0;
- __return_589884 = __retres3;
+ __return_176123 = __retres3;
 }
-c = __return_589884;
+c = __return_176123;
 i = i + 1;
 C_1_pc = 2;
 C_1_st = 2;
 }
-goto label_589044;
+goto label_172749;
 }
 }
 }
@@ -929,41 +970,41 @@ else
 {
 num = num - 1;
 {
-int __tmp_9 = num;
-int i___0 = __tmp_9;
+int __tmp_11 = num;
+int i___0 = __tmp_11;
 char c ;
 char __retres3 ;
 __retres3 = data_0;
- __return_589032 = __retres3;
+ __return_172733 = __retres3;
 }
-c = __return_589032;
+c = __return_172733;
 i = i + 1;
 C_1_pc = 2;
 C_1_st = 2;
 }
-label_589044:; 
-label_589091:; 
+label_172749:; 
+label_172755:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589275 = __retres1;
+ __return_173546 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
+__retres1 = 1;
 return 1;
 }
 }
-tmp___2 = __return_589275;
+tmp___2 = __return_173546;
 if (tmp___2 == 0)
 {
 }
@@ -986,7 +1027,7 @@ return 1;
 }
 else 
 {
-goto label_589091;
+goto label_172755;
 }
 }
 }
@@ -1004,108 +1045,31 @@ else
 {
 return 1;
 }
-if (((int)C_1_st) == 0)
-{
 tmp___1 = __VERIFIER_nondet_int();
 if (tmp___1 == 0)
 {
-label_588925:; 
+label_172351:; 
 {
 int __retres1 ;
 if (((int)P_1_st) == 0)
 {
 __retres1 = 1;
- __return_589170 = __retres1;
+ __return_173279 = __retres1;
 }
 else 
 {
-if (((int)C_1_st) == 0)
+if (((int)P_2_st) == 0)
 {
 __retres1 = 1;
 return 1;
 }
 else 
 {
-__retres1 = 0;
-return 1;
-}
-}
-tmp___2 = __return_589170;
-if (tmp___2 == 0)
-{
-}
-else 
-{
-if (((int)P_1_st) == 0)
-{
-tmp = 0;
-label_589432:; 
-tmp___1 = __VERIFIER_nondet_int();
-if (tmp___1 == 0)
-{
-goto label_588925;
-}
-else 
-{
-C_1_st = 1;
-{
-char c ;
-if (i < max_loop)
-{
-return 1;
-}
-else 
-{
-C_1_st = 2;
-}
-goto label_588970;
-}
-}
-}
-else 
-{
-return 1;
-}
-}
-return 1;
-}
-}
-else 
-{
-C_1_st = 1;
-{
-char c ;
-if (i < max_loop)
-{
-return 1;
-}
-else 
-{
-C_1_st = 2;
-}
-label_588970:; 
-label_589088:; 
-{
-int __retres1 ;
-if (((int)P_1_st) == 0)
-{
-__retres1 = 1;
- __return_589247 = __retres1;
-}
-else 
-{
-if (((int)C_1_st) == 0)
-{
 __retres1 = 1;
 return 1;
 }
-else 
-{
-__retres1 = 0;
-return 1;
 }
-}
-tmp___2 = __return_589247;
+tmp___2 = __return_173279;
 if (tmp___2 == 0)
 {
 }
@@ -1121,8 +1085,28 @@ return 1;
 }
 else 
 {
-label_589530:; 
-goto label_589088;
+label_173302:; 
+tmp___1 = __VERIFIER_nondet_int();
+if (tmp___1 == 0)
+{
+goto label_172351;
+}
+else 
+{
+C_1_st = 1;
+{
+char c ;
+if (i < max_loop)
+{
+return 1;
+}
+else 
+{
+C_1_st = 2;
+}
+goto label_172232;
+}
+}
 }
 }
 else 
@@ -1133,10 +1117,51 @@ return 1;
 return 1;
 }
 }
-}
+else 
+{
+C_1_st = 1;
+{
+char c ;
+if (i < max_loop)
+{
+return 1;
 }
 else 
 {
+C_1_st = 2;
+}
+label_172232:; 
+label_172357:; 
+{
+int __retres1 ;
+if (((int)P_1_st) == 0)
+{
+__retres1 = 1;
+ __return_172397 = __retres1;
+}
+else 
+{
+if (((int)P_2_st) == 0)
+{
+__retres1 = 1;
+return 1;
+}
+else 
+{
+__retres1 = 1;
+return 1;
+}
+}
+tmp___2 = __return_172397;
+if (tmp___2 == 0)
+{
+}
+else 
+{
+tmp = 0;
+label_172420:; 
+goto label_172357;
+}
 return 1;
 }
 }
@@ -1144,16 +1169,6 @@ return 1;
 }
 }
 }
-else 
-{
-P_2_st = 0;
-goto label_588666;
-}
-}
-else 
-{
-P_1_st = 0;
-goto label_588637;
 }
 }
 }
