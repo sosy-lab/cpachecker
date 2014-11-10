@@ -93,7 +93,7 @@ int x = __tmp_8;
 int y = __tmp_9;
 if (x != 0)
 {
- __return_124 = 1;
+ __return_125 = 1;
 goto label_125;
 }
 else 
