@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -63,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreePredicatedAnalys
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -102,6 +105,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
   private PredicatePrecision oldPrecision = null;
+  private Constructor<?extends AbstractState> locConstructor = null;
 
 
   public PredicatedAnalysisAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
@@ -117,6 +121,10 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         || CPAs.retrieveCPA(cpa, PredicateCPA.class) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
         "Predicated Analysis requires ARG as top CPA and Composite CPA as child. "
             + "Furthermore, it needs Location CPA and Predicate CPA to work.");
+    }
+
+    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null) {
+      throw new InvalidConfigurationException("Currently only support forward analyses.");
     }
     if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof CompositeMergeAgreePredicatedAnalysisOperator)) { throw new InvalidConfigurationException(
         "Composite CPA must be informed about predicated analysis. "
@@ -247,8 +255,16 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
       }
 
-      // create fake states, one per fake edge, note that location state will be incorrect
-      // TODO somewhere problem if property not fulfilled but probably also somewhere else
+      // create fake states, one per fake edge, note that states are the same except for predicate state and location state
+      if (locConstructor == null) {
+        try {
+          locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class);
+          locConstructor.setAccessible(true);
+        } catch (NoSuchMethodException | SecurityException e1) {
+          throw new CPAException("Cannot prepare for refinement because cannot get constructor for location states.", e1);
+        }
+      }
+
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
@@ -266,8 +282,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         pf = pfm.makeAnd(pf, assumeEdge);
 
         // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
-        if (i == fakeEdgesFromLastRun.size())
-        {
+        if (i == fakeEdgesFromLastRun.size()) {
           AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
           pf = pfm.makeEmptyPathFormula(pf);
 
@@ -287,7 +302,16 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
         ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
         for (AbstractState state : comp.getWrappedStates()) {
           if (state != errorPred) {
-            wrappedStates.add(state);
+            if (state instanceof LocationState) {
+              try {
+                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor()));
+              } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+                  | InvocationTargetException e1) {
+                throw new CPAException("Cannot prepare for refinement, cannot build necessary fake states.", e1);
+              }
+            } else {
+              wrappedStates.add(state);
+            }
           } else {
             wrappedStates.add(fakePred);
           }
