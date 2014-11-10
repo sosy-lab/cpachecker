@@ -124,7 +124,7 @@ public final class CTypes {
       return type;
     }
 
-    if (type.isConst()) {
+    if (type.isVolatile()) {
       return type;
     }
     @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
