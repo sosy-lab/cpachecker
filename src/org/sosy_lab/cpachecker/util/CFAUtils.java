@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -331,7 +330,7 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new CFAGenerationRuntimeException("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }

@@ -89,7 +89,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -517,7 +516,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
           break;
         default:
-          throw new CFAGenerationRuntimeException("unhandled case in switch statement: " + binExp.getOperator());
+          throw new UnrecognizedCCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -568,7 +567,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       result = (pLeftVal + pRightVal) != 0;
       break;
     default:
-      throw new CFAGenerationRuntimeException("unhandled switch case: " + pBinaryOperator);
+      throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if ((truthAssumption && result)
         || (!truthAssumption && !result)) {

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -93,7 +92,7 @@ public class ExpandFunctionPointerArrayAssignments {
         case 2:
           break;
         default:
-          throw new CFAGenerationRuntimeException("Too much leaving Edges on CFANode");
+          throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
