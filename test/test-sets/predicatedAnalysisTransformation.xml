@@ -7,7 +7,6 @@
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=false</option>
   <option name="-setprop">analysis.postProcessing=false</option>
-  <option name="-setprop">analysis.traversal.useReversePostorder=false</option>
   <option name="-setprop">cpa.arg.deleteInPredicatedAnalysis=false</option>
 
   <rundefinition name="predicatedAnalysis">
@@ -15,12 +14,14 @@
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/demo.c</include>
     	<include>../programs/simple/predicated_analysis/demo2.c</include>  
     </sourcefiles>
     <sourcefiles>
    		<option name="-predicatedAnalysis-Sign"/>
-    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>  	
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>  	
     	<include>../programs/simple/predicated_analysis/Example2.c</include>  
     	<include>../programs/simple/predicated_analysis/Example3.c</include>  
     	<include>../programs/simple/predicated_analysis/Example3b.c</include>  
@@ -31,6 +32,7 @@
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/list_statistics.cil.c</include> 
     	<include>../programs/simple/predicated_analysis/harmonicMean.cil.c</include>
     	<include>../programs/simple/predicated_analysis/fraction.cil.c</include> 
@@ -39,43 +41,59 @@
     <sourcefiles>
        	<option name="-predicatedAnalysis-Interval"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/Example3b.c</include>  
     	<include>../programs/simple/predicated_analysis/Example3c.c</include>  
     	<include>../programs/simple/predicated_analysis/Example4b.c</include>  
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
-       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache.spc</option> 
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option> 
     	<include>../programs/simple/predicated_analysis/apache.cil.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
-       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache2.spc</option> 
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache2.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option> 
     	<include>../programs/simple/predicated_analysis/apache2.cil.c</include>    
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_encode.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
     	<include>../programs/simple/predicated_analysis/encode_ie_nosprintf.cil.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
-       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option> 
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option> 
     	<include>../programs/simple/predicated_analysis/gdImageStringFTExSimple.cil.c</include>   
     </sourcefiles>
  <!-- value CPA -->
+ 	<sourcefiles>
+       	<option name="-predicatedAnalysis-Value"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>	
+    	<include>../programs/simple/predicated_analysis/test_locks_5.c</include>    
+    </sourcefiles>
      <sourcefiles>
        	<option name="-predicatedAnalysis-Value"/>
-    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>	
-    	<include>../programs/simple/predicated_analysis/test_locks_5.c</include>  
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>	  
     	<include>../programs/simple/predicated_analysis/test_locks_5d.c</include>  
     	<!--<include>../programs/simple/predicated_analysis/test_locks_12.c</include>-->
     	<include>../programs/simple/predicated_analysis/test_locks_12d.c</include>    
     </sourcefiles>
  <!-- uninitvar CPA -->
+ 	<sourcefiles>
+       	<option name="-predicatedAnalysis-Uninit"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
+    	<include>../programs/simple/predicated_analysis/kundu_uninit_a.cil.c</include>    
+    </sourcefiles>
      <sourcefiles>
        	<option name="-predicatedAnalysis-Uninit"/>
-    	<include>../programs/simple/predicated_analysis/kundu_uninit_a.cil.c</include>  
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/kundu_uninit_b.cil.c</include>   
     </sourcefiles>
   </rundefinition>
@@ -85,12 +103,14 @@
     <sourcefiles>
     	<option name="-signWithProperty"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/demo_trans_sign.c</include>
     	<include>../programs/simple/predicated_analysis/transformed/demo2.c</include>  
     </sourcefiles>
     <sourcefiles>
    		<option name="-signWithProperty"/>
-    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option> 	
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option> 	
     	<include>../programs/simple/predicated_analysis/transformed/Example2_trans_sign.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/Example3_trans_sign.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/Example3b_trans_sign.c</include>  
@@ -101,6 +121,7 @@
     <sourcefiles>
     	<option name="-signWithProperty"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/list_statistics.c</include> 
     	<include>../programs/simple/predicated_analysis/transformed/harmonicMean.c</include> 
     	<include>../programs/simple/predicated_analysis/transformed/fraction.c</include> 
@@ -109,6 +130,7 @@
     <sourcefiles>
        	<option name="-intervalWithProperty"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/Example3b_trans_interval.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/Example3c_trans_interval.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/Example4b_trans_interval.c</include>  
@@ -116,35 +138,46 @@
     <sourcefiles>
        	<option name="-intervalWithProperty"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/apache.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-intervalWithProperty"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache2.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/apache2.c</include>    
     </sourcefiles>
     <sourcefiles>
        	<option name="-intervalWithProperty"/>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_encode.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/encode_ie_nosprintf.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-intervalWithProperty"/>
-       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option>  
+       	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>  
     	<include>../programs/simple/predicated_analysis/transformed/gdImageStringFTExSimple.c</include>   
     </sourcefiles>
 <!-- value CPA -->
     <sourcefiles>
        	<option name="-valueWithProperty"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/test_locks5.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/test_locks5d.c</include>  
     	<!--<include>../programs/simple/predicated_analysis/transformed/test_locks12.c</include>-->  
+    </sourcefiles>
+    <sourcefiles>
+       	<option name="-valueWithProperty"/>
+    	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>  
     	<include>../programs/simple/predicated_analysis/transformed/test_locks12d.c</include> 
     </sourcefiles>
  <!-- uninitvar CPA -->
       <sourcefiles>
        	<option name="-uninitWithProperty"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<include>../programs/simple/predicated_analysis/transformed/kundu_uninit_a.c</include>  
     	<include>../programs/simple/predicated_analysis/transformed/kundu_uninit_b.c</include>   
     </sourcefiles>
@@ -155,24 +188,28 @@
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
         <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_demo_sign.txt</option>	    	  	
     	<include>../programs/simple/predicated_analysis/demo.c</include> 
     </sourcefiles>
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_demo.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
         <option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_demo2.txt</option>	    	  	
     	<include>../programs/simple/predicated_analysis/demo2.c</include> 
     </sourcefiles>
     <sourcefiles>
    		<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
      	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example2_sign.txt</option>	    	  	   	
     	<include>../programs/simple/predicated_analysis/Example2.c</include>       
     </sourcefiles>
      <sourcefiles>
    		<option name="-predicatedAnalysis-Sign"/>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
+     	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
      	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example3_sign.txt</option>	    	  	   	 
     	<include>../programs/simple/predicated_analysis/Example3.c</include>      
     </sourcefiles>
@@ -184,6 +221,7 @@
     </sourcefiles>
     <sourcefiles>
    		<option name="-predicatedAnalysis-Sign"/>
+   		<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
      	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example3c_sign.txt</option>	    	  	   	 
     	<include>../programs/simple/predicated_analysis/Example3c.c</include>       
@@ -196,24 +234,28 @@
     </sourcefiles>
     <sourcefiles>
    		<option name="-predicatedAnalysis-Sign"/>
+   		<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_Example2_3_3b_3c_4_4b.spc</option>
      	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example4b_sign.txt</option>	    	  	   	
     	<include>../programs/simple/predicated_analysis/Example4b.c</include>      
     </sourcefiles>   
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_list_statistics.txt</option>	    	  	   	
     	<include>../programs/simple/predicated_analysis/list_statistics.cil.c</include> 
     </sourcefiles>
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_harmonicMean.txt</option>	    	  	   	
     	<include>../programs/simple/predicated_analysis/harmonicMean.cil.c</include> 
     </sourcefiles>
     <sourcefiles>
     	<option name="-predicatedAnalysis-Sign"/>
+    	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedSign_list_harmonic_fraction.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_fraction.txt</option>	    	  	   	
     	<include>../programs/simple/predicated_analysis/fraction.cil.c</include> 
@@ -221,12 +263,14 @@
 <!-- interval CPA -->
     <sourcefiles>
        	<option name="-predicatedAnalysis-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example3b_interval.txt</option>	    	
     	<include>../programs/simple/predicated_analysis/Example3b.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_Example3b_3c_4b.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_Example3c_interval.txt</option>	   	  
     	<include>../programs/simple/predicated_analysis/Example3c.c</include>   
@@ -239,24 +283,28 @@
     </sourcefiles>        
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_apache.txt</option> 
     	<include>../programs/simple/predicated_analysis/apache.cil.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_apache2.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_apache2.txt</option> 
     	<include>../programs/simple/predicated_analysis/apache2.cil.c</include>    
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_encode.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_encode_ie_nosprintf.txt</option>
     	<include>../programs/simple/predicated_analysis/encode_ie_nosprintf.cil.c</include>   
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-bitprecise-Interval"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedInterval_gdImage.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_gdImageStringFTExSimple.txt</option> 
     	<include>../programs/simple/predicated_analysis/gdImageStringFTExSimple.cil.c</include>   
@@ -264,12 +312,14 @@
 <!-- value CPA -->
 	<sourcefiles>
        	<option name="-predicatedAnalysis-Value"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option>
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_test_locks5.txt</option>	
     	<include>../programs/simple/predicated_analysis/test_locks_5.c</include>     
     </sourcefiles>
     <sourcefiles>
        	<option name="-predicatedAnalysis-Value"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option> 
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_test_locks5d.txt</option>	
     	<include>../programs/simple/predicated_analysis/test_locks_5d.c</include>     
@@ -282,6 +332,7 @@
     </sourcefiles>-->
     <sourcefiles>
        	<option name="-predicatedAnalysis-Value"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
     	<option name="-setprop">specification=test/programs/simple/predicated_analysis/specification/PredicatedValue_locks.spc</option> 
     	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_test_locks12d.txt</option>	
     	<include>../programs/simple/predicated_analysis/test_locks_12d.c</include>     
@@ -289,11 +340,13 @@
  <!-- uninitvar CPA -->
       <sourcefiles>
        	<option name="-predicatedAnalysis-Uninit"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=false</option>
        	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_kundu_uninit_a.txt</option>	
     	<include>../programs/simple/predicated_analysis/kundu_uninit_a.cil.c</include>     
     </sourcefiles>
      <sourcefiles>
        	<option name="-predicatedAnalysis-Uninit"/>
+       	<option name="-setprop">analysis.traversal.useReversePostorder=true</option>
        	<option name="-setprop">cpa.predicate.abstraction.initialPredicates=test/programs/simple/predicated_analysis/predicateMap/predmap_kundu_uninit_b.txt</option>	
     	<include>../programs/simple/predicated_analysis/kundu_uninit_b.cil.c</include>     
     </sourcefiles>
