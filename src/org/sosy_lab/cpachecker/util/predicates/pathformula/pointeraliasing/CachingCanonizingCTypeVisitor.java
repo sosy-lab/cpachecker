@@ -195,8 +195,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
     }
 
     @Override
-    public CType visit(CVoidType pVoidType) throws RuntimeException {
-      return pVoidType;
+    public CType visit(CVoidType t) throws RuntimeException {
+      return CVoidType.create(!ignoreConst && t.isConst(),
+                              !ignoreVolatile && t.isVolatile());
     }
 
     private final boolean ignoreConst;
