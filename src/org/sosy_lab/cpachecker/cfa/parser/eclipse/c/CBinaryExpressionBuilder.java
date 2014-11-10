@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -320,6 +321,11 @@ public class CBinaryExpressionBuilder {
       return CPointerType.POINTER_TO_VOID;
     }
 
+    if (pType1 instanceof CCompositeType || pType1 instanceof CElaboratedType
+        || pType2 instanceof CCompositeType || pType2 instanceof CElaboratedType) {
+      throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with composite-type operand",
+          getDummyBinExprForLogging(pBinOperator, op1, op2));
+    }
 
     // TODO check if there are other types, that can be used in binaryExp
     throw new AssertionError(String.format(

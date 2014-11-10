@@ -130,7 +130,7 @@ public class UnrecognizedCodeException extends CPATransferException {
         sb.append(": ");
         sb.append(code);
 
-        String rawCode = edge.getRawStatement();
+        String rawCode = edge != null ? edge.getRawStatement() : "";
 
         // remove all whitespaces and trailing semicolons for comparison
         String codeWithoutWhitespace    = CharMatcher.WHITESPACE.removeFrom(code);
@@ -139,7 +139,8 @@ public class UnrecognizedCodeException extends CPATransferException {
         codeWithoutWhitespace    = SEMICOLON.trimFrom(codeWithoutWhitespace);
         rawCodeWithoutWhitespace = SEMICOLON.trimFrom(rawCodeWithoutWhitespace);
 
-        if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)) {
+        if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)
+            && !rawCodeWithoutWhitespace.isEmpty()) {
           sb.append(" (line was originally ");
           sb.append(rawCode);
           sb.append(")");
