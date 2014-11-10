@@ -102,7 +102,7 @@ public class CompositeState implements AbstractWrapperState,
           builder.append(element.getClass().getSimpleName());
           builder.append(": ");
           builder.append(label);
-          builder.append("\n ");
+          builder.append("\\n ");
         }
       }
     }

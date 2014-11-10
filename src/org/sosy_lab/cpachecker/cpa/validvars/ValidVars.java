@@ -215,10 +215,10 @@ public class ValidVars implements Serializable {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("(");
-    sb.append("global:\n");
+    sb.append("global:\\n");
     sb.append(globalValidVars.toString());
-    sb.append("\n");
-    Joiner.on("\n").withKeyValueSeparator(":\n").appendTo(sb, localValidVars);
+    sb.append("\\n");
+    Joiner.on("\\n").withKeyValueSeparator(":\\n").appendTo(sb, localValidVars);
     sb.append(")");
     return sb.toString();
   }
