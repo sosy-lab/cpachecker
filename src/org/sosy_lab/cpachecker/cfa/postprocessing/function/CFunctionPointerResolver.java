@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -109,11 +110,12 @@ public class CFunctionPointerResolver {
     EQ_PARAM_COUNT, //all functions with matching number of parameters considered
     EQ_PARAM_SIZES, //all functions with parameters with matching sizes
     EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
+    RETURN_VALUE,   //void functions are not considered for assignments
   }
 
   @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
@@ -201,6 +203,14 @@ public class CFunctionPointerResolver {
           @Override
           public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
             return checkReturnAndParamTypes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
+          }
+        });
+        break;
+      case RETURN_VALUE:
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
+          @Override
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnValue(pInput.getFirst(), pInput.getSecond());
           }
         });
         break;
@@ -505,6 +515,19 @@ public class CFunctionPointerResolver {
       }
     }
 
+    return true;
+  }
+
+  /**
+   * Exclude void functions if the return value of the function is used in an assignment.
+   */
+  private boolean checkReturnValue(CFunctionCall call, CFunctionType functionType) {
+    if (call instanceof CFunctionCallAssignmentStatement) {
+      CType returnType = functionType.getReturnType().getCanonicalType();
+      if (returnType instanceof CVoidType) {
+        return false;
+      }
+    }
     return true;
   }
 
