@@ -117,7 +117,7 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final Predicate<Pair<CFunctionCallExpression, CFunctionType>> matchingFunctionCall;
+  private final Predicate<Pair<CFunctionCall, CFunctionType>> matchingFunctionCall;
 
   private final MutableCFA cfa;
   private final LogManager logger;
@@ -160,7 +160,7 @@ public class CFunctionPointerResolver {
 
   }
 
-  private Predicate<Pair<CFunctionCallExpression, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
+  private Predicate<Pair<CFunctionCall, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
     // note that this set is sorted according to the declaration order of the enum
     EnumSet<FunctionSet> functionSets = EnumSet.copyOf(pFunctionSets);
 
@@ -169,17 +169,17 @@ public class CFunctionPointerResolver {
       functionSets.add(FunctionSet.EQ_PARAM_COUNT); // TYPES and SIZES need COUNT checked first
     }
 
-    List<Predicate<Pair<CFunctionCallExpression, CFunctionType>>> predicates = new ArrayList<>();
+    List<Predicate<Pair<CFunctionCall, CFunctionType>>> predicates = new ArrayList<>();
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
       case ALL:
         // do nothing
         break;
       case EQ_PARAM_COUNT:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            boolean result = checkParamSizes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            boolean result = checkParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
             if (!result) {
               logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
                   "does not match function", pInput.getSecond(), "because of number of parameters.");
@@ -189,18 +189,18 @@ public class CFunctionPointerResolver {
         });
         break;
       case EQ_PARAM_SIZES:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            return checkReturnAndParamSizes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnAndParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
           }
         });
         break;
       case EQ_PARAM_TYPES:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            return checkReturnAndParamTypes(pInput.getFirst(), pInput.getSecond());
+          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
+            return checkReturnAndParamTypes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
           }
         });
         break;
@@ -281,7 +281,7 @@ public class CFunctionPointerResolver {
     logger.log(Level.FINEST, "Function pointer call", fExp);
 
     CExpression nameExp = fExp.getFunctionNameExpression();
-    Collection<CFunctionEntryNode> funcs = getFunctionSet(fExp);
+    Collection<CFunctionEntryNode> funcs = getFunctionSet(functionCall);
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
@@ -431,13 +431,13 @@ public class CFunctionPointerResolver {
     CFACreationUtils.addEdgeToCFA(falseEdge, logger);
   }
 
-  private List<CFunctionEntryNode> getFunctionSet(final CFunctionCallExpression call) {
+  private List<CFunctionEntryNode> getFunctionSet(final CFunctionCall call) {
     return from(candidateFunctions)
             .filter(CFunctionEntryNode.class)
             .filter(Predicates.compose(matchingFunctionCall,
-                      new Function<CFunctionEntryNode, Pair<CFunctionCallExpression, CFunctionType>>() {
+                      new Function<CFunctionEntryNode, Pair<CFunctionCall, CFunctionType>>() {
                         @Override
-                        public Pair<CFunctionCallExpression, CFunctionType> apply(CFunctionEntryNode f) {
+                        public Pair<CFunctionCall, CFunctionType> apply(CFunctionEntryNode f) {
                           return Pair.of(call, f.getFunctionDefinition().getType());
                         }
                       }))
