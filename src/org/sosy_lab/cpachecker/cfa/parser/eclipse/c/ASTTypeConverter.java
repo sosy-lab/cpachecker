@@ -64,9 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -342,42 +340,16 @@ class ASTTypeConverter {
 
   private CType conv(final IQualifierType t) {
     CType i = convert(t.getType());
-    boolean isConst = t.isConst();
-    boolean isVolatile = t.isVolatile();
-
-    if (isConst == i.isConst() && isVolatile == i.isVolatile()) {
-      return i;
-    }
+    final boolean isConst = t.isConst();
+    final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    if (i instanceof CArrayType) {
-      return new CArrayType(isConst, isVolatile, ((CArrayType) i).getType(), ((CArrayType) i).getLength());
-    } else if (i instanceof CCompositeType) {
-      CCompositeType c = (CCompositeType) i;
-      return new CCompositeType(isConst, isVolatile, c.getKind(), c.getMembers(), c.getName());
-    } else if (i instanceof CElaboratedType) {
-      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName(), ((CElaboratedType) i).getRealType());
-    } else if (i instanceof CEnumType) {
-      return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
-    } else if (i instanceof CFunctionType) {
-      CFunctionType p = (CFunctionType) i;
-      return new CFunctionType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
-    } else if (i instanceof CFunctionTypeWithNames) {
-      // TODO what does it mean that a function is qualified with const or volatile?
-      CFunctionTypeWithNames f = (CFunctionTypeWithNames) i;
-      return new CFunctionTypeWithNames(isConst, isVolatile, f.getReturnType(), f.getParameterDeclarations(), f.takesVarArgs());
-    } else if (i instanceof CPointerType) {
-      return new CPointerType(isConst, isVolatile, ((CPointerType) i).getType());
-    } else if (i instanceof CSimpleType) {
-      CSimpleType s = (CSimpleType)i;
-      return new CSimpleType(isConst, isVolatile, s.getType(), s.isLong(), s.isShort(), s.isSigned(), s.isUnsigned(), s.isComplex(), s.isImaginary(), s.isLongLong());
-    } else if (i instanceof CTypedefType) {
-      return new CTypedefType(isConst, isVolatile, ((CTypedefType) i).getName(), ((CTypedefType) i).getRealType());
-    } else if (i instanceof CVoidType) {
-      return CVoidType.create(isConst, isVolatile);
-    } else {
-      throw new AssertionError();
-    }
+    i = isConst ? CTypes.withConst(i) : CTypes.withoutConst(i);
+    i = isVolatile ? CTypes.withVolatile(i) : CTypes.withoutVolatile(i);
+
+    assert i instanceof CProblemType
+        || (isConst == i.isConst() && isVolatile == i.isVolatile());
+    return i;
   }
 
   private CType conv(final IEnumeration e) {
