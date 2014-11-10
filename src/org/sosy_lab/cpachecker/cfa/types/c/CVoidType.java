@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 /**
@@ -70,17 +74,24 @@ public final class CVoidType implements CType {
 
   @Override
   public String toString() {
-    return "void";
+    return toASTString("");
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    pDeclarator = Strings.nullToEmpty(pDeclarator);
-    if (pDeclarator.isEmpty()) {
-      return toString();
-    } else {
-      return "void " + pDeclarator;
+    List<String> parts = new ArrayList<>();
+
+    if (isConst()) {
+      parts.add("const");
     }
+    if (isVolatile()) {
+      parts.add("volatile");
+    }
+
+    parts.add("void");
+    parts.add(Strings.emptyToNull(pDeclarator));
+
+    return Joiner.on(' ').skipNulls().join(parts);
   }
 
   @Override
