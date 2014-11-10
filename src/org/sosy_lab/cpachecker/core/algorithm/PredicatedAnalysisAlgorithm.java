@@ -248,6 +248,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       }
 
       // create fake states, one per fake edge, note that location state will be incorrect
+      // TODO somewhere problem if property not fulfilled but probably also somewhere else
       PathFormulaManager pfm = predCPA.getPathFormulaManager();
       PredicateAbstractionManager pam = predCPA.getPredicateManager();
       FormulaManagerView fm = predCPA.getFormulaManager();
