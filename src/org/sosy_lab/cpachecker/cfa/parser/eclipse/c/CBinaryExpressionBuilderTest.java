@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -41,9 +46,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.Lists;
 
-
+@RunWith(Parameterized.class)
 public class CBinaryExpressionBuilderTest {
 
+  @Parameters(name="{0}")
+  public static List<Object[]> getMachineModels() {
+    List<Object[]> result = new ArrayList<>();
+    for (MachineModel model : MachineModel.values()) {
+      result.add(new Object[] { model });
+    }
+    return result;
+  }
+
+  @Parameter(0)
+  public MachineModel machineModel;
 
   //type constants
   private final static CSimpleType S_CHAR =
@@ -76,145 +92,113 @@ public class CBinaryExpressionBuilderTest {
 
   private LogManager logger;
 
-  private CBinaryExpressionBuilder c32;
-  private CBinaryExpressionBuilder c64;
+  private CBinaryExpressionBuilder c;
 
 
   @Before
   public void init() {
     logger = TestLogManager.getInstance();
 
-    c32 = new CBinaryExpressionBuilder(MachineModel.LINUX32, logger);
-    c64 = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
+    c = new CBinaryExpressionBuilder(machineModel, logger);
   }
 
 
   @Test
-  public void checkTypeForBinaryOperation32() {
-    checkArithmetic(c32, PLUS);
-    checkArithmetic(c32, MINUS);
-    checkArithmetic(c32, MULTIPLY);
+  public void checkTypeForBinaryOperation() {
+    checkArithmeticTypes(PLUS);
+    checkArithmeticTypes(MINUS);
+    checkArithmeticTypes(MULTIPLY);
 
-    checkArithmetic32(PLUS);
-    checkArithmetic32(MINUS);
-    checkArithmetic32(MULTIPLY);
+    checkArithmeticCalculationTypes(PLUS);
+    checkArithmeticCalculationTypes(MINUS);
+    checkArithmeticCalculationTypes(MULTIPLY);
 
-    checkRelational(c32, EQUALS);
-    checkRelational(c32, LESS_THAN);
-    checkRelational(c32, GREATER_EQUAL);
+    checkRelationalTypes(EQUALS);
+    checkRelationalTypes(LESS_THAN);
+    checkRelationalTypes(GREATER_EQUAL);
 
   }
 
-
-  @Test
-  public void checkTypeForBinaryOperation64() {
-    checkArithmetic(c64, PLUS);
-    checkArithmetic(c64, MINUS);
-    checkArithmetic(c64, MULTIPLY);
-
-    checkArithmetic64(PLUS);
-    checkArithmetic64(MINUS);
-    checkArithmetic64(MULTIPLY);
-
-    checkRelational(c64, EQUALS);
-    checkRelational(c64, LESS_THAN);
-    checkRelational(c64, GREATER_EQUAL);
-  }
-
-
-  private void checkArithmetic(CBinaryExpressionBuilder c, BinaryOperator op) {
+  private void checkArithmeticTypes(BinaryOperator op) {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
-        checkResult(c, op, small1, small2, S_INT);
-        checkCalculation(c, op, small1, small2, S_INT);
+        checkResult(op, small1, small2, S_INT);
+        checkCalculation(op, small1, small2, S_INT);
       }
     }
 
     for (CSimpleType big : bigTypes) {
       for (CSimpleType small : smallTypes) {
-        checkResult(c, op, big, small, big);
-        checkCalculation(c, op, big, small, big);
+        checkResult(op, big, small, big);
+        checkCalculation(op, big, small, big);
       }
     }
   }
 
 
-  private void checkRelational(CBinaryExpressionBuilder c, BinaryOperator op) {
+  private void checkRelationalTypes(BinaryOperator op) {
 
     for (CSimpleType small1 : smallTypes) {
       for (CSimpleType small2 : smallTypes) {
-        checkResult(c, op, small1, small2, S_INT);
-        checkCalculation(c, op, small1, small2, S_INT);
+        checkResult(op, small1, small2, S_INT);
+        checkCalculation(op, small1, small2, S_INT);
       }
     }
 
     for (CSimpleType big : bigTypes) {
       for (CSimpleType small : smallTypes) {
-        checkResult(c, op, big, small, S_INT);
-        checkCalculation(c, op, big, small, big);
+        checkResult(op, big, small, S_INT);
+        checkCalculation(op, big, small, big);
       }
       for (CSimpleType big2 : bigTypes) {
-        checkResult(c, op, big, big2, S_INT);
+        checkResult(op, big, big2, S_INT);
       }
     }
   }
 
 
-  private void checkArithmetic32(BinaryOperator op) {
-    checkCalculation(c32, op, U_INT, U_INT, U_INT);
-    checkCalculation(c32, op, U_INT, S_LONG_INT, U_LONG_INT); // !!!!
-    checkCalculation(c32, op, U_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c32, op, U_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c32, op, U_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+  private void checkArithmeticCalculationTypes(BinaryOperator op) {
+    checkCalculation(op, U_INT, U_INT, U_INT);
+    if (machineModel == MachineModel.LINUX32) {
+      checkCalculation(op, U_INT, S_LONG_INT, U_LONG_INT); // !!!!
+    } else {
+      checkCalculation(op, U_INT, S_LONG_INT, S_LONG_INT);
+    }
+    checkCalculation(op, U_INT, U_LONG_INT, U_LONG_INT);
+    checkCalculation(op, U_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
+    checkCalculation(op, U_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
-    checkCalculation(c32, op, S_LONG_INT, S_LONG_INT, S_LONG_INT);
-    checkCalculation(c32, op, S_LONG_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c32, op, S_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c32, op, S_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+    checkCalculation(op, S_LONG_INT, S_LONG_INT, S_LONG_INT);
+    checkCalculation(op, S_LONG_INT, U_LONG_INT, U_LONG_INT);
+    checkCalculation(op, S_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
+    checkCalculation(op, S_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
-    checkCalculation(c32, op, U_LONG_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c32, op, U_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c32, op, U_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+    checkCalculation(op, U_LONG_INT, U_LONG_INT, U_LONG_INT);
+    if (machineModel == MachineModel.LINUX64) {
+      checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT); // !!!!
+    } else {
+      checkCalculation(op, U_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
+    }
+    checkCalculation(op, U_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
-    checkCalculation(c32, op, S_LONG_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c32, op, S_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+    checkCalculation(op, S_LONG_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
+    checkCalculation(op, S_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
 
-    checkCalculation(c32, op, U_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+    checkCalculation(op, U_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
   }
 
-
-  private void checkArithmetic64(BinaryOperator op) {
-    checkCalculation(c64, op, U_INT, U_INT, U_INT);
-    checkCalculation(c64, op, U_INT, S_LONG_INT, S_LONG_INT);
-    checkCalculation(c64, op, U_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c64, op, U_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c64, op, U_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
-
-    checkCalculation(c64, op, S_LONG_INT, S_LONG_INT, S_LONG_INT);
-    checkCalculation(c64, op, S_LONG_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c64, op, S_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c64, op, S_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
-
-    checkCalculation(c64, op, U_LONG_INT, U_LONG_INT, U_LONG_INT);
-    checkCalculation(c64, op, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT); // !!!!
-    checkCalculation(c64, op, U_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
-
-    checkCalculation(c64, op, S_LONG_LONG_INT, S_LONG_LONG_INT, S_LONG_LONG_INT);
-    checkCalculation(c64, op, S_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
-
-    checkCalculation(c64, op, U_LONG_LONG_INT, U_LONG_LONG_INT, U_LONG_LONG_INT);
+  private void checkCalculation(BinaryOperator op, CType t1, CType t2, CType target) {
+    assertThat(c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+              .isEqualTo(target);
+    assertThat(c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+              .isEqualTo(target);
   }
 
-
-  private void checkCalculation(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
-    assertEquals(target, c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
-  }
-
-
-  private void checkResult(CBinaryExpressionBuilder c, BinaryOperator op, CType t1, CType t2, CType target) {
-    assertEquals(target, c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
-    assertEquals(target, c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO));
+  private void checkResult(BinaryOperator op, CType t1, CType t2, CType target) {
+    assertThat(c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+              .isEqualTo(target);
+    assertThat(c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+              .isEqualTo(target);
   }
 }
