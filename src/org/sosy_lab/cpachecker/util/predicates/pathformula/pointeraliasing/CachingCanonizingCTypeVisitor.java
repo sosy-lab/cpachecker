@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 
 class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
@@ -191,6 +192,11 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                               t.isComplex(),
                               t.isImaginary(),
                               t.isLongLong());
+    }
+
+    @Override
+    public CType visit(CVoidType pVoidType) throws RuntimeException {
+      return pVoidType;
     }
 
     private final boolean ignoreConst;

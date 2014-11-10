@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -929,7 +930,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
 
     CType returnType = functionType.getReturnType().getCanonicalType();
     if (isHandleAbleType(returnType)
-        && !(returnType instanceof CSimpleType && ((CSimpleType)returnType).getType() == CBasicType.VOID)) {
+        && !(returnType instanceof CVoidType)) {
       state = state.declareVariable(MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0),
                             getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }

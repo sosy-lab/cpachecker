@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 public enum CBasicType {
 
   UNSPECIFIED(""),
-  VOID("void"),
   BOOL("_Bool"),
   CHAR("char"),
   INT("int"),

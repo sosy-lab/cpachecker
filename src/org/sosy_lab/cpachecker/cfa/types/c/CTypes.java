@@ -188,6 +188,11 @@ public final class CTypes {
     public CTypedefType visit(CTypedefType t) {
       return new CTypedefType(constValue, t.isVolatile(), t.getName(), t.getRealType());
     }
+
+    @Override
+    public CType visit(CVoidType t) {
+      return CVoidType.create(constValue, t.isVolatile());
+    }
   }
 
   private static enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
@@ -245,6 +250,11 @@ public final class CTypes {
     @Override
     public CTypedefType visit(CTypedefType t) {
       return new CTypedefType(t.isConst(), constValue, t.getName(), t.getRealType());
+    }
+
+    @Override
+    public CType visit(CVoidType t) {
+      return CVoidType.create(t.isConst(), constValue);
     }
   }
 }

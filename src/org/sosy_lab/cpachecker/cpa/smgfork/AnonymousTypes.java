@@ -39,8 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public class AnonymousTypes {
   static final public CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   static final public CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-  static final public CSimpleType dummyVoid = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-  static final public CPointerType dummyPointer = new CPointerType(false, false, dummyVoid);
+  static final public CPointerType dummyPointer = CPointerType.POINTER_TO_VOID;
 
   public static CFunctionType createSimpleFunctionType(CType pReturnType) {
     return new CFunctionType(false, false, pReturnType, new ArrayList<CType>(), false);
