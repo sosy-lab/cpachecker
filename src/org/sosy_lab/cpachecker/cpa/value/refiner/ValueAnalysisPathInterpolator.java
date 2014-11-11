@@ -26,20 +26,13 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,7 +41,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -56,13 +48,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -157,7 +147,7 @@ public class ValueAnalysisPathInterpolator implements Statistics {
         interpolationOffset = i + 1;
       }
 
-      sizeOfInterpolant.setNextValue(interpolant.isTrivial() ? 0 : interpolant.assignment.size());
+      sizeOfInterpolant.setNextValue(interpolant.getSize());
 
       pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
 
@@ -281,218 +271,5 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
   public int getInterpolationOffset() {
     return interpolationOffset;
-  }
-
-  /**
-   * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
-   * from memory locations to values, representing a variable assignment.
-   */
-  public static class ValueAnalysisInterpolant {
-    /**
-     * the variable assignment of the interpolant
-     */
-    private @Nullable final Map<MemoryLocation, Value> assignment;
-    private @Nullable final Map<MemoryLocation, Type> assignmentTypes;
-
-    /**
-     * the interpolant representing "true"
-     */
-    public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
-
-    /**
-     * the interpolant representing "false"
-     */
-    public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null,(Map<MemoryLocation, Type>)null);
-
-    /**
-     * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
-     */
-    private ValueAnalysisInterpolant() {
-      assignment = new HashMap<>();
-      assignmentTypes = new HashMap<>();
-    }
-
-    /**
-     * Constructor for a new interpolant representing the given variable assignment
-     *
-     * @param pAssignment the variable assignment to be represented by the interpolant
-     */
-    public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment, Map<MemoryLocation, Type> pAssignmentToType) {
-      assignment = pAssignment;
-      assignmentTypes = pAssignmentToType;
-    }
-
-    /**
-     * This method serves as factory method for an initial, i.e. an interpolant representing "true"
-     *
-     * @return
-     */
-    public static ValueAnalysisInterpolant createInitial() {
-      return new ValueAnalysisInterpolant();
-    }
-
-    public Set<MemoryLocation> getMemoryLocations() {
-      return isFalse()
-          ? Collections.<MemoryLocation>emptySet()
-          : Collections.unmodifiableSet(assignment.keySet());
-    }
-
-    /**
-     * This method joins to value-analysis interpolants. If the underlying map contains different values for a key
-     * contained in both maps, the behaviour is undefined.
-     *
-     * @param other the value-analysis interpolant to join with this one
-     * @return a new value-analysis interpolant containing the joined mapping of this and the other value-analysis
-     * interpolant
-     */
-    public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
-
-      if (assignment == null || other.assignment == null) {
-        return ValueAnalysisInterpolant.FALSE;
-      }
-
-      Map<MemoryLocation, Value> newAssignment = new HashMap<>(assignment);
-
-      // add other itp mapping - one by one for now, to check for correctness
-      // newAssignment.putAll(other.assignment);
-      for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
-        if (newAssignment.containsKey(entry.getKey())) {
-          assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
-        }
-
-        newAssignment.put(entry.getKey(), entry.getValue());
-      }
-
-      Map<MemoryLocation, Type> newAssignmentTypes = new HashMap<>();
-      for (MemoryLocation loc : newAssignment.keySet()) {
-        if (assignmentTypes.containsKey(loc)) {
-          newAssignmentTypes.put(loc, assignmentTypes.get(loc));
-        } else {
-          newAssignmentTypes.put(loc, other.assignmentTypes.get(loc));
-        }
-      }
-
-
-      return new ValueAnalysisInterpolant(newAssignment, newAssignmentTypes);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(assignment) + Objects.hashCode(assignmentTypes);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (obj == null) {
-        return false;
-      }
-
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-
-      ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-      return Objects.equals(assignment, other.assignment) && Objects.equals(assignmentTypes, other.assignmentTypes);
-    }
-
-    /**
-     * The method checks for trueness of the interpolant.
-     *
-     * @return true, if the interpolant represents "true", else false
-     */
-    public boolean isTrue() {
-      return !isFalse() && assignment.isEmpty();
-    }
-
-    /**
-     * The method checks for falseness of the interpolant.
-     *
-     * @return true, if the interpolant represents "false", else true
-     */
-    public boolean isFalse() {
-      return assignment == null;
-    }
-
-    /**
-     * The method checks if the interpolant is a trivial one, i.e. if it represents either true or false
-     *
-     * @return true, if the interpolant is trivial, else false
-     */
-    public boolean isTrivial() {
-      return isFalse() || isTrue();
-    }
-
-    /**
-     * This method serves as factory method to create a value-analysis state from the interpolant
-     *
-     * @return a value-analysis state that represents the same variable assignment as the interpolant
-     */
-    public ValueAnalysisState createValueAnalysisState() {
-      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
-    }
-
-    @Override
-    public String toString() {
-      if (isFalse()) {
-        return "FALSE";
-      }
-
-      if (isTrue()) {
-        return "TRUE";
-      }
-
-      return assignment.toString();
-    }
-
-    public boolean strengthen(ValueAnalysisState valueState, ARGState argState) {
-      if (isTrivial()) {
-        return false;
-      }
-
-      boolean strengthened = false;
-
-      for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
-        if (!valueState.contains(itp.getKey())) {
-          valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
-          strengthened = true;
-
-        } else if(valueState.contains(itp.getKey()) && valueState.getValueFor(itp.getKey()).asNumericValue().longValue() != itp.getValue().asNumericValue().longValue()) {
-          assert false : "state and interpolant do not match in value for variable " + itp.getKey() + "[state = " + valueState.getValueFor(itp.getKey()).asNumericValue().longValue() + " != " + itp.getValue() + " = itp] for state " + argState.getStateId();
-        }
-      }
-
-      return strengthened;
-    }
-
-    /**
-     * This method weakens the interpolant to the given set of memory location identifiers.
-     *
-     * As the information on what to retain is derived in a static syntactical analysis, the set to retain is a
-     * collection of memory location identifiers, instead of {@link MemoryLocation}s, as offsets cannot be provided.
-     *
-     * @param toRetain the set of memory location identifiers to retain in the interpolant.
-     * @return the weakened interpolant
-     */
-    public ValueAnalysisInterpolant weaken(Set<String> toRetain) {
-      if (isTrivial()) {
-        return this;
-      }
-
-      ValueAnalysisInterpolant weakenedItp = new ValueAnalysisInterpolant(new HashMap<>(assignment), new HashMap<>(assignmentTypes));
-
-      for (Iterator<MemoryLocation> it = weakenedItp.assignment.keySet().iterator(); it.hasNext(); ) {
-        MemoryLocation current = it.next();
-
-        if (!toRetain.contains(current.getAsSimpleString())) {
-          it.remove();
-        }
-      }
-
-      return weakenedItp;
-    }
   }
 }

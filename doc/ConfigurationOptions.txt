@@ -1572,7 +1572,6 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
-cpa.value.refiner.doLazyAbstraction = no default value
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
@@ -1581,14 +1580,6 @@ cpa.value.refiner.performInitialStaticRefinement = false
 # which prefix of an actual counterexample trace should be used for
 # interpolation
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
-             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
-cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
-             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
-cpa.value.refiner.prefixPreference = no default value
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
              DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
              DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
