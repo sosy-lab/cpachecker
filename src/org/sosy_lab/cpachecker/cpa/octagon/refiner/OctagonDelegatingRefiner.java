@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -79,7 +79,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -144,7 +144,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     logger                = pOctagonCPA.getLogger();
     shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override

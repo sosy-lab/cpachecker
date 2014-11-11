@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -99,7 +99,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
-  ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  ValueAnalysisPathInterpolator interpolatingRefiner;
   ValueAnalysisFeasibilityChecker checker;
 
   private final LogManager logger;
@@ -135,7 +135,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     pConfig.inject(this);
 
     logger                = pLogger;
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
   }
 

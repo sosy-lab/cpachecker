@@ -84,7 +84,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.value.refiner")
@@ -105,7 +105,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
@@ -240,7 +240,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     config = pConfig;
     shutDownNotifier = pShutdownNotifier;
 
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = pValueAnalysisStaticRefiner;
     cfa                   = pCfa;

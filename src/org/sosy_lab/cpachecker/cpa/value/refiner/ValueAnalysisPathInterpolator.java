@@ -77,7 +77,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.refiner")
-public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
+public class ValueAnalysisPathInterpolator implements Statistics {
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
    * for the re-exploration of the ARG will be the node closest to the root
@@ -112,7 +112,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
   private final ValueAnalysisEdgeInterpolator interpolator;
 
-  public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
+  public ValueAnalysisPathInterpolator(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa)
       throws InvalidConfigurationException {

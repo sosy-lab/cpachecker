@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -61,14 +61,14 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisInterpolationBasedRefiner}.
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}.
  */
 public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
 
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private final ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
   private final CFA cfa;
 
@@ -120,7 +120,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     config                = pConfig;
     cfa                   = pCfa;
     logger                = pLogger;
