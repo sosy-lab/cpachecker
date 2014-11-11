@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ErrorPathClassifier.ErrorPathPrefixPreference;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -110,7 +110,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  private final ValueAnalysisInterpolator interpolator;
+  private final ValueAnalysisEdgeInterpolator interpolator;
 
   public ValueAnalysisInterpolationBasedRefiner(Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
@@ -122,7 +122,7 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     logger           = pLogger;
     cfa              = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    interpolator     = new ValueAnalysisInterpolator(pConfig, logger, shutdownNotifier, cfa);
+    interpolator     = new ValueAnalysisEdgeInterpolator(pConfig, logger, shutdownNotifier, cfa);
   }
 
   protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(MutableARGPath errorPath,

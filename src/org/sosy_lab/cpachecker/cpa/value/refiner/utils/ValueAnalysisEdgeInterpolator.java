@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.Iterables;
 
-public class ValueAnalysisInterpolator {
+public class ValueAnalysisEdgeInterpolator {
   /**
    * the shutdownNotifier in use
    */
@@ -87,7 +87,7 @@ public class ValueAnalysisInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ValueAnalysisInterpolator(final Configuration pConfig,final LogManager pLogger,
+  public ValueAnalysisEdgeInterpolator(final Configuration pConfig,final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
