@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -144,11 +144,10 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     totalTime.start();
     totalRefinements++;
 
-    List<ARGState> targets  = getErrorStates(pReached);
-    totalTargetsFound       = totalTargetsFound + targets.size();
+    Collection<ARGState> targets = getTargetStates(pReached);
 
     // stop once any feasible counterexample is found
-    if (isAnyPathFeasible(new ARGReachedSet(pReached), getErrorPaths(targets))) {
+    if (isAnyPathFeasible(new ARGReachedSet(pReached), getTargetPaths(targets))) {
       totalTime.stop();
       return false;
     }
@@ -237,11 +236,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return (VariableTrackingPrecision) Precisions.asIterable(pReached.getPrecision(state)).filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
   }
 
-  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<MutableARGPath> errorPaths)
+  private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
       throws CPAException, InterruptedException {
 
-    MutableARGPath feasiblePath = null;
-    for (MutableARGPath currentPath : errorPaths) {
+    ARGPath feasiblePath = null;
+    for (ARGPath currentPath : errorPaths) {
       if (isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
       }
@@ -249,9 +248,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     // remove all other target states, so that only one is left (for CEX-checker)
     if (feasiblePath != null) {
-      for (MutableARGPath others : errorPaths) {
+      for (ARGPath others : errorPaths) {
         if (others != feasiblePath) {
-          pReached.removeSubtree(others.getLast().getFirst());
+          pReached.removeSubtree(others.getLastState());
         }
       }
       return true;
@@ -260,9 +259,9 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return false;
   }
 
-  private boolean isErrorPathFeasible(final MutableARGPath errorPath)
+  private boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
-    if (checker.isFeasible(errorPath)) {
+    if (checker.isFeasible(errorPath.mutableCopy())) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
 
       return true;
@@ -271,35 +270,49 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return false;
   }
 
-  private Collection<MutableARGPath> getErrorPaths(final Collection<ARGState> targetStates) {
-    Set<MutableARGPath> errorPaths = new TreeSet<>(new Comparator<MutableARGPath>() {
-      @Override
-      public int compare(MutableARGPath path1, MutableARGPath path2) {
-        if (path1.size() == path2.size()) {
-          return 1;
-
-        } else {
-          return (path1.size() < path2.size()) ? -1 : 1;
-        }
-      }
-    });
+  /**
+   * This method returns the list of paths to the target states, sorted by the
+   * length of the paths, in ascending order.
+   *
+   * @param targetStates the target states for which to get the target paths
+   * @return the list of paths to the target states
+   */
+  private List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
+    List<ARGPath> errorPaths = new ArrayList<>(targetStates.size());
 
     for (ARGState target : targetStates) {
-      MutableARGPath p = ARGUtils.getOneMutablePathTo(target);
-      errorPaths.add(p);
+      errorPaths.add(ARGUtils.getOnePathTo(target));
     }
+
+    // sort the list, as shorter paths are cheaper during interpolation
+    // TODO: does this matter? Any other cost-measures, i.e., quality of
+    // interpolants, etc. worth trying?
+    Collections.sort(errorPaths, new Comparator<ARGPath>(){
+      @Override
+      public int compare(ARGPath path1, ARGPath path2) {
+        return path1.size() - path2.size();
+      }
+    });
 
     return errorPaths;
   }
 
-  private List<ARGState> getErrorStates(final ReachedSet pReached) {
-    List<ARGState> targets = from(pReached)
+  /**
+   * This method returns an unsorted, non-empty collection of target states
+   * found during the analysis.
+   *
+   * @param pReached the set of reached states
+   * @return the target states
+   */
+  private Collection<ARGState> getTargetStates(final ReachedSet pReached) {
+    Set<ARGState> targets = from(pReached)
         .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .toList();
+        .filter(AbstractStates.IS_TARGET_STATE).toSet();
 
     assert !targets.isEmpty();
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
+
+    totalTargetsFound = totalTargetsFound + targets.size();
 
     return targets;
   }
