@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,18 +46,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -85,7 +74,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value.refiner")
@@ -97,9 +85,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
    */
   @Option(secure=true, description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
-
-  @Option(secure=true, description="whether or not to avoid restarting at assume edges after a refinement")
-  private boolean avoidAssumes = false;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
   private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
@@ -235,25 +220,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      // try to find a more suitable cut-off point when we deal with a repeated refinement or
-      // cut-off is an assume edge, and this should be avoided
-      if (isRepeatedRefinement || (avoidAssumes && cutOffIsAssumeEdge(errorPath))) {
-        List<Pair<ARGState, CFAEdge>> trace = errorPath.subList(0, interpolationOffset - 1);
-
-        // check in reverse order only when avoiding assumes
-        if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
-          trace = Lists.reverse(trace);
-        }
-
-        // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
-        Collection<String> releventVariables = convertToIdentifiers(increment.values());
-        for (Pair<ARGState, CFAEdge> currentElement : trace) {
-          if (edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
-            return errorPath.get(errorPath.indexOf(currentElement) + 1);
-          }
-        }
-      }
-
       return errorPath.get(interpolationOffset);
     }
 
@@ -297,93 +263,6 @@ public class ValueAnalysisInterpolationBasedRefiner implements Statistics {
     }
 
     return errorPath;
-  }
-
-  /**
-   * This method translates a collection of memory locations to a collection of variable identifiers.
-   *
-   * @param memoryLocations the collection of memory locations
-   * @return the set of variable identifiers
-   */
-  private Collection<String> convertToIdentifiers(Collection<MemoryLocation> memoryLocations) {
-    Set<String> identifiers = new HashSet<>();
-
-    for (MemoryLocation memoryLocation : memoryLocations) {
-      identifiers.add(memoryLocation.getAsSimpleString());
-    }
-
-    return identifiers;
-  }
-
-  /**
-   * This method checks whether or not the current cut-off point is at an assume edge.
-   *
-   * @param errorPath the error path
-   * @return true, if the current cut-off point is at an assume edge, else false
-   */
-  private boolean cutOffIsAssumeEdge(MutableARGPath errorPath) {
-    return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
-  }
-
-  /**
-   * This method determines whether or not the current edge is assigning any of the given variables.
-   *
-   * @param currentEdge the current edge to inspect
-   * @param variableNames the collection of variables to check for
-   * @return true, if any of the given variables is assigned in the given edge
-   */
-  private boolean edgeAssignsVariable(CFAEdge currentEdge, Collection<String> variableNames) {
-    switch (currentEdge.getEdgeType()) {
-      case StatementEdge:
-      case DeclarationEdge:
-        return isAssigningEdge(currentEdge, variableNames);
-
-      case MultiEdge:
-        for (CFAEdge singleEdge : ((MultiEdge)currentEdge)) {
-          if (isAssigningEdge(singleEdge, variableNames)) {
-            return true;
-          }
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    return false;
-  }
-
-  /**
-   * This method determines whether or not the current edge is assigning any of the given variables.
-   *
-   * @param currentEdge the current edge to inspect
-   * @param variableNames the collection of variables to check for
-   * @return true, if any of the given variables is assigned in the given edge
-   */
-  private boolean isAssigningEdge(CFAEdge currentEdge, Collection<String> variableNames) {
-    if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      IAStatement statement = ((AStatementEdge)currentEdge).getStatement();
-
-      if (statement instanceof IAssignment) {
-        IAExpression assignedVariable = ((IAssignment)statement).getLeftHandSide();
-
-        if (assignedVariable instanceof AIdExpression) {
-          IASimpleDeclaration declaration = ((AIdExpression)assignedVariable).getDeclaration();
-
-          if (declaration instanceof CVariableDeclaration) {
-            return variableNames.contains(((CVariableDeclaration)declaration).getQualifiedName());
-          }
-        }
-      }
-
-    } else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
-      if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
-        return variableNames.contains(((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName());
-      }
-    }
-
-    return false;
   }
 
   @Override

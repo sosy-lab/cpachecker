@@ -1566,9 +1566,6 @@ cpa.value.refinement.useGlobalPrecision = false
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
 
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.value.refiner.avoidAssumes = false
-
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
 cpa.value.refiner.checkForRepeatedRefinements = true
