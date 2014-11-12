@@ -284,16 +284,11 @@ class AutomatonASTComparator {
 
     @Override
     public ASTMatcher visit(CImaginaryLiteralExpression exp) throws InvalidAutomatonException {
-      return new ExpressionWithTwoFieldsMatcher<CImaginaryLiteralExpression, CLiteralExpression, String>(CImaginaryLiteralExpression.class, exp) {
+      return new ExpressionWithFieldMatcher<CImaginaryLiteralExpression, CLiteralExpression>(CImaginaryLiteralExpression.class, exp) {
 
         @Override
-        protected CLiteralExpression getFieldValue1From(CImaginaryLiteralExpression pSource) {
+        protected CLiteralExpression getFieldValueFrom(CImaginaryLiteralExpression pSource) {
           return pSource.getValue();
-        }
-
-        @Override
-        protected String getFieldValue2From(CImaginaryLiteralExpression pSource) {
-          return pSource.getImaginaryString();
         }
       };
     }
