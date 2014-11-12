@@ -1552,9 +1552,6 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
-# forceRestart
-cpa.value.refinement.forceRestart = 0
-
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
