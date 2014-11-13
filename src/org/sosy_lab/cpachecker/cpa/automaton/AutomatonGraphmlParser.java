@@ -59,9 +59,16 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
@@ -77,9 +84,11 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -332,7 +341,11 @@ public class AutomatonGraphmlParser {
             scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
           }
           for (String assumeCode : transAssumes) {
-            assumptions.addAll(AutomatonASTComparator.generateSourceASTOfBlock(tryFixArrayInitializers(assumeCode), cparser, scope));
+            assumptions.addAll(adjustCharAssignments(
+                AutomatonASTComparator.generateSourceASTOfBlock(
+                    tryFixArrayInitializers(assumeCode),
+                    cparser,
+                    scope)));
           }
         }
 
@@ -565,6 +578,39 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
+  }
+
+  /**
+   * Be nice to tools that assume that default char (when it is neither
+   * specified as signed nor as unsigned) may be unsigned.
+   *
+   * @param pStatements the assignment statements.
+   *
+   * @return the adjusted statements.
+   */
+  private static Collection<? extends CStatement> adjustCharAssignments(List<CStatement> pStatements) {
+    return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
+
+      @Override
+      public CStatement apply(CStatement pStatement) {
+        if (pStatement instanceof CExpressionAssignmentStatement) {
+          CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
+          CLeftHandSide leftHandSide = statement.getLeftHandSide();
+          CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
+          if (canonicalType instanceof CSimpleType) {
+            CSimpleType simpleType = (CSimpleType) canonicalType;
+            CBasicType basicType = simpleType.getType();
+            if (basicType.equals(CBasicType.CHAR) && !simpleType.isSigned() && !simpleType.isUnsigned()) {
+              CExpression rightHandSide = statement.getRightHandSide();
+              CExpression castedRightHandSide = new CCastExpression(rightHandSide.getFileLocation(), canonicalType, rightHandSide);
+              return new CExpressionAssignmentStatement(statement.getFileLocation(), leftHandSide, castedRightHandSide);
+            }
+          }
+        }
+        return pStatement;
+      }
+
+    }).toList();
   }
 
   /**
