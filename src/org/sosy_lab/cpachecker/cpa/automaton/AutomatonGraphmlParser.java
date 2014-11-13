@@ -374,33 +374,38 @@ public class AutomatonGraphmlParser {
                 Preconditions.checkArgument(targetOriginFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge!");
 
                 Set<String> targetOriginLineTags = GraphMlDocumentData.getDataOnNode(targetTransitionEdge, KeyDef.ORIGINLINE);
-                Preconditions.checkArgument(targetOriginLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
 
-                Optional<String> matchTargetOriginFileName = targetOriginFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(targetOriginFileTags.iterator().next());
-                int matchTargetOriginLineNumber = Integer.parseInt(targetOriginLineTags.iterator().next());
+                if (!targetOriginLineTags.isEmpty()) {
+                  Preconditions.checkArgument(targetOriginLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
 
-                OriginDescriptor targetOriginDescriptor = new OriginDescriptor(matchTargetOriginFileName, matchTargetOriginLineNumber);
+                  Optional<String> matchTargetOriginFileName = targetOriginFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(targetOriginFileTags.iterator().next());
+                  int matchTargetOriginLineNumber = Integer.parseInt(targetOriginLineTags.iterator().next());
 
-                AutomatonBoolExpr matchEdgeTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
-                    new AutomatonBoolExpr.MatchEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
+                  OriginDescriptor targetOriginDescriptor = new OriginDescriptor(matchTargetOriginFileName, matchTargetOriginLineNumber);
 
-                AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, emptyAssertions, assumptions, actions, targetStateId);
-                transitions.add(0, tr);
+                  AutomatonBoolExpr matchEdgeTriggers = new AutomatonBoolExpr.And(conjunctedTriggers,
+                      new AutomatonBoolExpr.MatchEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
 
-                AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(matchEdgeTriggers),
-                    new AutomatonBoolExpr.ExistsMatchingEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
+                  AutomatonTransition tr = new AutomatonTransition(matchEdgeTriggers, emptyAssertions, assumptions, actions, targetStateId);
+                  transitions.add(0, tr);
 
-                AutomatonTransition trSink = new AutomatonTransition(
-                    existsMatchEdgeTriggers,
-                    emptyAssertions,
-                    Collections.<AutomatonAction>emptyList(),
-                    AutomatonInternalState.BOTTOM);
-                transitions.add(trSink);
+                  AutomatonBoolExpr existsMatchEdgeTriggers = new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.Negation(matchEdgeTriggers),
+                      new AutomatonBoolExpr.ExistsMatchingEdgeLinesInOrigin(originDescriptor, targetOriginDescriptor, true));
 
-                conjunctedTriggers = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(existsMatchEdgeTriggers),
-                    startingLineMatchingExpr);
+                  AutomatonTransition trSink = new AutomatonTransition(
+                      existsMatchEdgeTriggers,
+                      emptyAssertions,
+                      Collections.<AutomatonAction>emptyList(),
+                      AutomatonInternalState.BOTTOM);
+                  transitions.add(trSink);
+
+                  conjunctedTriggers = new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.Negation(existsMatchEdgeTriggers),
+                      startingLineMatchingExpr);
+                } else {
+                  conjunctedTriggers = startingLineMatchingExpr;
+                }
               } else {
                 conjunctedTriggers = startingLineMatchingExpr;
               }
