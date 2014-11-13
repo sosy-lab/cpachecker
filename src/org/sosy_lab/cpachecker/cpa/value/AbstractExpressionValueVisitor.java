@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -728,15 +730,13 @@ public abstract class AbstractExpressionValueVisitor
       assert lValType instanceof JSimpleType && rValType instanceof JSimpleType;
       assert expressionType instanceof JSimpleType;
 
-      JBasicType basicExpressionType = ((JSimpleType) expressionType).getType();
-
       if (isFloatType(lValType) || isFloatType(rValType)) {
         return calculateFloatOperation((NumericValue) lValue, (NumericValue) rValue,
-            binaryOperator, basicExpressionType);
+            binaryOperator, ((JSimpleType) lValType).getType(), ((JSimpleType) rValType).getType());
 
       } else {
         return calculateIntegerOperation((NumericValue) lValue, (NumericValue) rValue,
-            binaryOperator, basicExpressionType);
+            binaryOperator, ((JSimpleType) lValType).getType(), ((JSimpleType) rValType).getType());
       }
 
     // calculate the result for enum constant and null values
@@ -759,9 +759,9 @@ public abstract class AbstractExpressionValueVisitor
 
       return calculateBooleanOperation(lVal, rVal, binaryOperator);
 
-    } else {
-      return UnknownValue.getInstance();
     }
+
+    return UnknownValue.getInstance();
   }
 
   /*
@@ -769,9 +769,11 @@ public abstract class AbstractExpressionValueVisitor
    * The given values have to be of a Java integer type, that is long, int, short, or byte.
    */
   private Value calculateIntegerOperation(NumericValue pLeftValue, NumericValue pRightValue,
-      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pCalculationType) {
+      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pLeftType,
+      JBasicType pRightType) {
 
-    assert isOfIntegerType(pCalculationType) || pCalculationType.equals(JBasicType.BOOLEAN);
+    checkNotNull(pLeftType);
+    checkNotNull(pRightType);
 
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
@@ -831,7 +833,7 @@ public abstract class AbstractExpressionValueVisitor
       // shift operations' behaviour is determined by whether the left hand side value is of type
       // int or long, so we have to cast if the actual type is int.
       case SHIFT_LEFT:
-        if (pCalculationType.equals(JBasicType.INT)) {
+        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
           numResult = ((int) lVal) << rVal;
         } else {
           numResult = lVal << rVal;
@@ -839,7 +841,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       case SHIFT_RIGHT_SIGNED:
-        if (pCalculationType.equals(JBasicType.INT)) {
+        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
           numResult = ((int) lVal) >> rVal;
         } else {
           numResult = lVal >> rVal;
@@ -847,7 +849,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       case SHIFT_RIGHT_UNSIGNED:
-        if (pCalculationType.equals(JBasicType.INT)) {
+        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
           numResult = ((int) lVal) >>> rVal;
         } else {
           numResult = lVal >>> rVal;
@@ -858,21 +860,8 @@ public abstract class AbstractExpressionValueVisitor
         throw new AssertionError("Unhandled operator " + pBinaryOperator);
       }
 
-      switch (pCalculationType) {
-      case INT:
+      if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
         numResult = (int) numResult;
-        break;
-      case SHORT:
-        numResult = (short) numResult;
-        break;
-      case BYTE:
-        numResult = (byte) numResult;
-        break;
-      case LONG:
-        // do nothing, value is already a long
-        break;
-      default:
-        throw new AssertionError("No integer type: " + pCalculationType);
       }
 
       return new NumericValue(numResult);
@@ -918,29 +907,24 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  // used for assertion only
-  private boolean isOfIntegerType(JBasicType pValueType) {
-    switch (pValueType) {
-    case LONG:
-    case INT:
-    case SHORT:
-    case BYTE:
-      return true;
-
-    default:
-      return false;
-    }
-  }
-
   /*
    * Calculates the result of the given operation for the given floating point values.
    * The given values have to be of Java types float or double.
    */
   private Value calculateFloatOperation(NumericValue pLeftValue, NumericValue pRightValue,
-      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pCalculationType) {
+      JBinaryExpression.BinaryOperator pBinaryOperator,
+      JBasicType pLeftOperand, JBasicType pRightOperand) {
 
-    final double lVal = pLeftValue.doubleValue();
-    final double rVal = pRightValue.doubleValue();
+    final double lVal;
+    final double rVal;
+
+    if (pLeftOperand != JBasicType.DOUBLE && pRightOperand != JBasicType.DOUBLE) {
+      lVal = pLeftValue.floatValue();
+      rVal = pRightValue.floatValue();
+    } else {
+      lVal = pLeftValue.doubleValue();
+      rVal = pRightValue.doubleValue();
+    }
 
     switch (pBinaryOperator) {
     case PLUS:
@@ -1003,7 +987,8 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString() + " on double values");
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString()
+            + " on floating point values");
       }
 
       // return 1 if expression holds, 0 otherwise
@@ -1129,7 +1114,7 @@ public abstract class AbstractExpressionValueVisitor
       return false;
     }
 
-    return ((JSimpleType)type).getType().isFloatingPointType();
+    return ((JSimpleType) type).getType().isFloatingPointType();
   }
 
   @Override
