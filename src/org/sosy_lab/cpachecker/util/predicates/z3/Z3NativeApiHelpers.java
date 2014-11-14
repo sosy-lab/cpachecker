@@ -51,17 +51,19 @@ public class Z3NativeApiHelpers {
 
         // CNF!
         int goalResultItemCount = goal_size(z3context, resultSubGoal);
-        long[] goalResultItems = new long[goalResultItemCount];
-        for(int i=0; i<goalResultItemCount; i++) {
-          long subGoalFormula = goal_formula(z3context, resultSubGoal, i);
-          inc_ref(z3context, subGoalFormula);
+        long[] goalResultItems = new long[Math.max(1, goalResultItemCount)];
+        if (goalResultItemCount == 0) {
+          goalResultItems[0] = mk_true(z3context); // TODO: This is just a hack. Z3 provides the results for TRUE/FALSE in a different structure...
+        } else {
+          for(int i=0; i<goalResultItemCount; i++) {
+            long subGoalFormula = goal_formula(z3context, resultSubGoal, i);
+            inc_ref(z3context, subGoalFormula);
 
-          goalResultItems[i] = subGoalFormula;
+            goalResultItems[i] = subGoalFormula;
+          }
         }
 
         goal_dec_ref(z3context, resultSubGoal);
-
-        assert goalResultItemCount > 0;
 
         long result;
         if (goalResultItemCount > 1) {
