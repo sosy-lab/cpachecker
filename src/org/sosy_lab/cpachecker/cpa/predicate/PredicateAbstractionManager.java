@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,14 +64,12 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -81,7 +78,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
@@ -516,56 +512,18 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private List<Formula> getDeadVariables(BooleanFormula pFormula, CFANode pLocation, SSAMap pSsa) {
-    Set<Triple<Formula, String, Integer>> formulaVariables = fmgr.extractVariables(pFormula);
-    List<Formula> result = Lists.newArrayList();
-
-    for (Triple<Formula, String, Integer> var: formulaVariables) {
-
-      Formula varFormula = var.getFirst();
-      String varName = var.getSecond();
-      Integer varSsaIndex = var.getThird();
-
-      if (varSsaIndex == null) {
-        if (pSsa.containsVariable(varName)) {
-          result.add(varFormula);
-        }
-      } else {
-        if (varSsaIndex != pSsa.getIndex(varName)) {
-
-          result.add(varFormula);
-        }
-      }
-    }
-
-    return result;
-  }
-
   private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException {
+      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException, SolverException {
 
-    BooleanFormula eliminationResult = fmgr.simplify(pF); // TODO: Benchmark the effect!
+    BooleanFormula eliminationResult = fmgr.uninstantiate(
+        PredicateVariableElimination.eliminateDeadVariables(fmgr, pF, pSsa));
 
-    List<Formula> irrelevantVariables = getDeadVariables(eliminationResult, pLocation, pSsa);
-
-    if (!irrelevantVariables.isEmpty()) {
-      try {
-        QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
-        BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
-        eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
-
-      } catch (SolverException e) {
-        logger.log(Level.WARNING, "Eliminating variaiables failed!", e.getMessage());
-        throw new RuntimeException(e);
-      }
-    }
-
-    eliminationResult = fmgr.uninstantiate(eliminationResult);
     Collection<BooleanFormula> atoms = fmgr.extractAtoms(eliminationResult, false, false);
     for (BooleanFormula atom: atoms) {
       amgr.makePredicate(atom);
       extractPredicates(atom);
     }
+
     return amgr.buildRegionFromFormula(eliminationResult);
 
   }
@@ -910,9 +868,11 @@ public class PredicateAbstractionManager {
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)
       throws SolverException, InterruptedException {
+
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     return solver.isUnsat(f);
