@@ -113,7 +113,7 @@ public class ParallelPartitionChecker implements Runnable, PartitioningCheckingH
       }
       checker.checkPartition(nextPartitionId);
 
-      mutex.lock();
+      mutex.lock(); // TODO ggfs. lokal und nur einmal am Ende übergeben
       try {
         checker.addCertificatePartsToCertificate(certificate);
         checker.addPartitionElements(partitionElems);
