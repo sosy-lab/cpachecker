@@ -96,7 +96,7 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     AtomicInteger availableForChecking =new AtomicInteger(0);
     Semaphore partitionsRead = new Semaphore(0);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getSavedReachedSetSize());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
