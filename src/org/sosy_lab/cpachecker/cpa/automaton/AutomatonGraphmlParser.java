@@ -69,9 +69,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
@@ -136,93 +133,6 @@ public class AutomatonGraphmlParser {
     this.machine = pMachine;
     this.logger = pLogger;
     this.config = pConfig;
-  }
-
-  private static abstract class CollectorOnExprLeaf<R extends Comparable<?>> {
-
-    protected abstract Set<R> collectFromLeafExpr(AutomatonBoolExpr expr, boolean excludeNegations);
-
-    public Set<R> collectFromExpr(AutomatonBoolExpr expr, boolean excludeNegations) {
-      if (expr instanceof And) {
-        Set<R> result = Sets.newTreeSet();
-        And andExpr = (And) expr;
-        result.addAll(collectFromExpr(andExpr.getA(), excludeNegations));
-        result.addAll(collectFromExpr(andExpr.getB(), excludeNegations));
-        return result;
-      } else if (expr instanceof Or) {
-        Set<R> result = Sets.newTreeSet();
-        Or orExpr = (Or) expr;
-        result.addAll(collectFromExpr(orExpr.getA(), excludeNegations));
-        result.addAll(collectFromExpr(orExpr.getB(), excludeNegations));
-        return result;
-      } else if (expr instanceof Negation) {
-        if (!excludeNegations) {
-          Negation negExpr = (Negation) expr;
-          return collectFromExpr(negExpr.getA(), excludeNegations);
-        }
-     } else {
-       return collectFromLeafExpr(expr, excludeNegations);
-     }
-
-     return Collections.emptySet();
-    }
-
-  }
-
-  private static class TokenCollector extends CollectorOnExprLeaf<Comparable<Integer>> {
-
-    @Override
-    protected Set<Comparable<Integer>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
-      if (pExpr instanceof AutomatonBoolExpr.MatchEdgeTokens) {
-        return ((AutomatonBoolExpr.MatchEdgeTokens) pExpr).getMatchTokens();
-      }
-
-      return Collections.emptySet();
-    }
-
-  }
-
-  private static class OriginLineCollector extends CollectorOnExprLeaf<Comparable<OriginDescriptor>> {
-
-    @Override
-    protected Set<Comparable<OriginDescriptor>> collectFromLeafExpr(AutomatonBoolExpr pExpr, boolean pExcludeNegations) {
-      if (pExpr instanceof AutomatonBoolExpr.MatchStartingLineInOrigin) {
-        Comparable<OriginDescriptor> od = ((AutomatonBoolExpr.MatchStartingLineInOrigin) pExpr).getMatchOriginDescriptor();
-        return Collections.singleton(od);
-      }
-
-      return Collections.emptySet();
-    }
-
-  }
-
-  private boolean leafSetsDisjoint(CollectorOnExprLeaf<? extends Comparable<?>> collector, List<AutomatonTransition> transitions) {
-    Set<Comparable<?>> allItems = Sets.newTreeSet();
-    for (AutomatonTransition t : transitions) {
-      Set<? extends Comparable<?>> exprItems = collector.collectFromExpr(t.getTrigger(), true);
-      if (exprItems.isEmpty()) {
-        continue;
-      }
-
-      int differentTokensWithout = allItems.size();
-      allItems.addAll(exprItems);
-      int differentTokensWith = allItems.size();
-
-      if (differentTokensWith - differentTokensWithout != exprItems.size()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private boolean tokenSetsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<Integer>> collector = new TokenCollector();
-    return leafSetsDisjoint(collector, transitions);
-  }
-
-  private boolean originDescriptorsDisjoint(List<AutomatonTransition> transitions) {
-    CollectorOnExprLeaf<Comparable<OriginDescriptor>> collector = new OriginLineCollector();
-    return leafSetsDisjoint(collector, transitions);
   }
 
   /**
@@ -491,13 +401,13 @@ public class AutomatonGraphmlParser {
         if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
           Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided!");
-          final AutomatonBoolExpr exactEdgeMatch;
+          final String sourceCode;
           if (sourceCodeDataTags.isEmpty()) {
-            exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact("");
+            sourceCode = "";
           } else {
-            final String sourceCode = sourceCodeDataTags.iterator().next();
-            exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
+            sourceCode = sourceCodeDataTags.iterator().next();
           }
+          final AutomatonBoolExpr exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
           conjunctedTriggers = new AutomatonBoolExpr.And(conjunctedTriggers, exactEdgeMatch);
 
           if (targetStateId.equalsIgnoreCase(SINK_NODE_ID) || targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
@@ -549,9 +459,8 @@ public class AutomatonGraphmlParser {
         }
 
         // Determine if "matchAll" should be enabled
-        boolean matchAll = !tokenSetsDisjoint(transitions) || !originDescriptorsDisjoint(transitions);
+        boolean matchAll = true;
 
-        // ...
         AutomatonInternalState state = new AutomatonInternalState(stateId, transitions, false, matchAll);
         automatonStates.add(state);
       }
