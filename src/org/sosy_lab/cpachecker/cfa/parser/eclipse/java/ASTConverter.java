@@ -1875,10 +1875,10 @@ class ASTConverter {
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
     assert leftHandSide != null;
 
-    BinaryOperator op = convert(e.getOperator(), leftHandSide.getExpressionType());
-
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
     assert rightHandSide != null;
+
+    BinaryOperator op = convert(e.getOperator(), type);
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
@@ -1900,46 +1900,20 @@ class ASTConverter {
   // pType is the type of the operands of the operation
   private BinaryOperator convert(InfixExpression.Operator op, JType pType) {
     final String invalidTypeMsg = "Invalid type '" + pType + "' for operation '" + op + "'";
-    JBasicType basicType;
+    JBasicType basicType = null;
 
     if (pType instanceof JSimpleType) {
       basicType = ((JSimpleType) pType).getType();
-    } else {
-      basicType = null;
     }
 
-    if (basicType != null && basicType.equals(JBasicType.VOID)) {
-      throw new CFAGenerationRuntimeException(invalidTypeMsg);
-
-    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-      return BinaryOperator.EQUALS;
-
-    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-      return BinaryOperator.NOT_EQUALS;
-
-    } else if (basicType != null) {
-
-      switch (basicType) {
-      case BOOLEAN:
-        return convertBooleanOperator(op);
-
-      case BYTE:
-      case SHORT:
-      case INT:
-      case LONG:
-      case FLOAT:
-      case DOUBLE:
-        return convertNumberOperator(op);
-
-      default:
-        throw new CFAGenerationRuntimeException(invalidTypeMsg);
-      }
-    } else {
+    if (basicType == null || basicType == JBasicType.VOID) {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
+
+    return convertOperator(op);
   }
 
-  private BinaryOperator convertNumberOperator(InfixExpression.Operator op) {
+  private BinaryOperator convertOperator(InfixExpression.Operator op) {
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1971,18 +1945,7 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
 
-    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-     return BinaryOperator.NOT_EQUALS;
-    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-      return BinaryOperator.EQUALS;
-    } else {
-      throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator: " + op.toString());
-    }
-  }
-
-  private BinaryOperator convertBooleanOperator(InfixExpression.Operator op) {
-    if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
       return BinaryOperator.CONDITIONAL_AND;
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
       return BinaryOperator.CONDITIONAL_OR;
