@@ -1619,7 +1619,7 @@ public abstract class AbstractExpressionValueVisitor
    * Exception for illegal operations that cannot be reflected by the analysis methods return values
    * (For example division by zero)
    */
-  protected class IllegalOperationException extends CPAException {
+  protected static class IllegalOperationException extends CPAException {
 
     private static final long serialVersionUID = 5420891133452817345L;
 
