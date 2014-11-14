@@ -744,17 +744,9 @@ public abstract class AbstractExpressionValueVisitor
       Value pLValue, JType pLType, Value pRValue, JType pRType, JType pExpType)
       throws IllegalOperationException {
 
-    if (pOperator == JBinaryExpression.BinaryOperator.EQUALS || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
-      if (pLValue.isUnknown()) {
-        return UnknownValue.getInstance();
+    assert !pLValue.isUnknown() && !pRValue.isUnknown();
 
-      } else {
-        // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
-        // otherwise. This is equivalent to an XNOR.
-        return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
-            ^ pLValue.equals(pRValue));
-      }
-    } else if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
+    if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
       // TODO: Add code that creates SymbolicFormula objects based on the expression
     } else if (pLValue instanceof NumericValue) {
 
@@ -778,6 +770,13 @@ public abstract class AbstractExpressionValueVisitor
       boolean rVal = ((BooleanValue) pRValue).isTrue();
 
       return calculateBooleanOperation(lVal, rVal, pOperator);
+
+    } else if (pOperator == JBinaryExpression.BinaryOperator.EQUALS
+        || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
+      // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
+      // otherwise. This is equivalent to an XNOR.
+      return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
+          ^ pLValue.equals(pRValue));
     }
 
     return UnknownValue.getInstance();
