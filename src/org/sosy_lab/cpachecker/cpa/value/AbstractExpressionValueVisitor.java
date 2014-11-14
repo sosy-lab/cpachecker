@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.primitives.UnsignedLongs;
@@ -730,13 +731,17 @@ public abstract class AbstractExpressionValueVisitor
       assert lValType instanceof JSimpleType && rValType instanceof JSimpleType;
       assert expressionType instanceof JSimpleType;
 
-      if (isFloatType(lValType) || isFloatType(rValType)) {
-        return calculateFloatOperation((NumericValue) lValue, (NumericValue) rValue,
-            binaryOperator, ((JSimpleType) lValType).getType(), ((JSimpleType) rValType).getType());
+      try {
+        if (isFloatType(lValType) || isFloatType(rValType)) {
+          return calculateFloatOperation((NumericValue)lValue, (NumericValue)rValue,
+              binaryOperator, ((JSimpleType)lValType).getType(), ((JSimpleType)rValType).getType());
 
-      } else {
-        return calculateIntegerOperation((NumericValue) lValue, (NumericValue) rValue,
-            binaryOperator, ((JSimpleType) lValType).getType(), ((JSimpleType) rValType).getType());
+        } else {
+          return calculateIntegerOperation((NumericValue)lValue, (NumericValue)rValue,
+              binaryOperator, ((JSimpleType)lValType).getType(), ((JSimpleType)rValType).getType());
+        }
+      } catch (IllegalOperationException e) {
+        logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
       }
 
     // calculate the result for enum constant and null values
@@ -770,7 +775,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   private Value calculateIntegerOperation(NumericValue pLeftValue, NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pLeftType,
-      JBasicType pRightType) {
+      JBasicType pRightType) throws IllegalOperationException {
 
     checkNotNull(pLeftType);
     checkNotNull(pRightType);
@@ -803,8 +808,7 @@ public abstract class AbstractExpressionValueVisitor
 
       case DIVIDE:
         if (rVal == 0) {
-          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
-          return UnknownValue.getInstance();
+          throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
         }
 
         numResult = lVal / rVal;
@@ -913,7 +917,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   private Value calculateFloatOperation(NumericValue pLeftValue, NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftOperand, JBasicType pRightOperand) {
+      JBasicType pLeftOperand, JBasicType pRightOperand) throws IllegalOperationException {
 
     final double lVal;
     final double rVal;
@@ -942,8 +946,7 @@ public abstract class AbstractExpressionValueVisitor
 
       case DIVIDE:
         if (rVal == 0) {
-          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", lVal, rVal);
-          return UnknownValue.getInstance();
+          throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
         }
         return new NumericValue(lVal / rVal);
 
@@ -1609,6 +1612,23 @@ public abstract class AbstractExpressionValueVisitor
       return (CSimpleType) type;
     } else {
       return null;
+    }
+  }
+
+  /**
+   * Exception for illegal operations that cannot be reflected by the analysis methods return values
+   * (For example division by zero)
+   */
+  protected class IllegalOperationException extends CPAException {
+
+    private static final long serialVersionUID = 5420891133452817345L;
+
+    public IllegalOperationException(String msg) {
+      super(msg);
+    }
+
+    public IllegalOperationException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 }
