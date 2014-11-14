@@ -356,9 +356,12 @@ public class AutomatonGraphmlParser {
           Set<String> originLineTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
           Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge!");
 
+          int matchOriginLineNumber = -1;
           if (originLineTags.size() > 0) {
+            matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
+          }
+          if (matchOriginLineNumber > 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.<String>absent() : Optional.of(originFileTags.iterator().next());
-            int matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
             OriginDescriptor originDescriptor = new OriginDescriptor(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.And(conjunctedTriggers,
@@ -425,55 +428,56 @@ public class AutomatonGraphmlParser {
               AutomatonBoolExpr relevantLineMatchTrigger = new AutomatonBoolExpr.And(
                   AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE, conjunctedTriggers);
 
-              AutomatonTransition relevantLineMatchTransition = new AutomatonTransition(relevantLineMatchTrigger, emptyAssertions, assumptions, actions, targetStateId);
+              AutomatonTransition relevantLineMatchTransition =
+                  new AutomatonTransition(
+                      relevantLineMatchTrigger,
+                      emptyAssertions,
+                      assumptions,
+                      actions,
+                      targetStateId);
               transitions.add(0, relevantLineMatchTransition);
 
-              // If the line trigger does not apply,
-              // loop back to the state
-              AutomatonBoolExpr triggerIrrelevantEdge = new AutomatonBoolExpr.Negation(startingLineMatchingExpr);
-
-              AutomatonTransition trRepetition = new AutomatonTransition(
-                  triggerIrrelevantEdge,
-                  emptyAssertions,
-                  Collections.<AutomatonAction>emptyList(),
-                  sourceStateId);
-              transitions.add(trRepetition);
-
-              if (!matchSourcecodeData) {
-                AutomatonBoolExpr auxiliaryEdgeTrigger = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(triggerIrrelevantEdge),
-                    new AutomatonBoolExpr.And(
-                        new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
-                        new AutomatonBoolExpr.And(
-                            conjunctedTriggers,
-                            new AutomatonBoolExpr.And(
-                                new AutomatonBoolExpr.Negation(
-                                    new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(
-                                        conjunctedTriggers
-                                        )
-                                    ),
-                                AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE
-                                )
-                            )
-                        )
+              /*
+               * If there are non-path-relevant edges in the automaton, they
+               * can be accepted if no assumptions are attached.
+               */
+              AutomatonBoolExpr irrelevantLineMatchTrigger = AutomatonBoolExpr.FALSE;
+              if (!matchSourcecodeData && assumptions.isEmpty()) {
+                irrelevantLineMatchTrigger = new AutomatonBoolExpr.And(
+                      new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchPathRelevantEdgesBoolExpr.INSTANCE),
+                      conjunctedTriggers
                     );
-                AutomatonTransition triggerAuxiliaryEdge = new AutomatonTransition(auxiliaryEdgeTrigger, emptyAssertions, assumptions, actions, targetStateId);
-                transitions.add(0, triggerAuxiliaryEdge);
+                AutomatonTransition irrelevantLineMatchTransition =
+                    new AutomatonTransition(
+                        irrelevantLineMatchTrigger,
+                        emptyAssertions,
+                        assumptions,
+                        actions,
+                        targetStateId);
+                transitions.add(irrelevantLineMatchTransition);
               }
 
+              AutomatonBoolExpr elseTrigger = new AutomatonBoolExpr.And(
+                  new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
+                  new AutomatonBoolExpr.Negation(irrelevantLineMatchTrigger)
+                  );
+              final AutomatonTransition elseTransition;
               if (strictLineMatching) {
                 // If both do not apply, go to the sink
-                AutomatonBoolExpr triggerSink = new AutomatonBoolExpr.And(
-                    new AutomatonBoolExpr.Negation(relevantLineMatchTrigger),
-                    new AutomatonBoolExpr.Negation(triggerIrrelevantEdge)
-                    );
-                AutomatonTransition trSink = new AutomatonTransition(
-                    triggerSink,
+                elseTransition = new AutomatonTransition(
+                    elseTrigger,
                     emptyAssertions,
                     Collections.<AutomatonAction>emptyList(),
                     AutomatonInternalState.BOTTOM);
-                transitions.add(trSink);
+              } else {
+                // If both do not apply, loop back to the source state
+                elseTransition = new AutomatonTransition(
+                    elseTrigger,
+                    emptyAssertions,
+                    Collections.<AutomatonAction>emptyList(),
+                    sourceStateId);
               }
+              transitions.add(elseTransition);
             }
           } else {
             AutomatonTransition tr = new AutomatonTransition(
@@ -588,7 +592,7 @@ public class AutomatonGraphmlParser {
    *
    * @return the adjusted statements.
    */
-  private static Collection<? extends CStatement> adjustCharAssignments(List<CStatement> pStatements) {
+  private static Collection<CStatement> adjustCharAssignments(Iterable<? extends CStatement> pStatements) {
     return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
 
       @Override
