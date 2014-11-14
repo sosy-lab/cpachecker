@@ -47,6 +47,15 @@ public class SymbolicFormula implements SymbolicValue {
 
   private AbstractFormula<Value> formula;
 
+  public SymbolicFormula(AbstractFormula<Value> pFormula) {
+    formula = pFormula;
+  }
+
+  @Override
+  public int hashCode() {
+    return formula != null ? formula.hashCode() : 0;
+  }
+
   @Override
   public boolean equals(Object other) {
     return other instanceof SymbolicFormula && ((SymbolicFormula) other).formula.equals(formula);
