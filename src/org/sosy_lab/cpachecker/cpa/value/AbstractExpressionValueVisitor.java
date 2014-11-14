@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -711,7 +712,6 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBinaryExpression pE) {
-
     JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
     JExpression lVarInBinaryExp = pE.getOperand1();
     JExpression rVarInBinaryExp = pE.getOperand2();
@@ -730,46 +730,54 @@ public abstract class AbstractExpressionValueVisitor
       return UnknownValue.getInstance();
     }
 
-    // Calculate the result of the expression
-    if (lValue instanceof NumericValue) {
+    try {
+      return calculateBinaryOperation(binaryOperator, lValue, lValType, rValue, rValType,
+          expressionType);
 
-      assert rValue instanceof NumericValue;
-      assert lValType instanceof JSimpleType && rValType instanceof JSimpleType;
-      assert expressionType instanceof JSimpleType;
+    } catch (IllegalOperationException e) {
+      logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
+      return UnknownValue.getInstance();
+    }
+  }
 
-      try {
-        if (isFloatType(lValType) || isFloatType(rValType)) {
-          return calculateFloatOperation((NumericValue)lValue, (NumericValue)rValue,
-              binaryOperator, ((JSimpleType)lValType).getType(), ((JSimpleType)rValType).getType());
+  private Value calculateBinaryOperation(JBinaryExpression.BinaryOperator pOperator,
+      Value pLValue, JType pLType, Value pRValue, JType pRType, JType pExpType)
+      throws IllegalOperationException {
 
-        } else {
-          return calculateIntegerOperation((NumericValue)lValue, (NumericValue)rValue,
-              binaryOperator, ((JSimpleType)lValType).getType(), ((JSimpleType)rValType).getType());
-        }
-      } catch (IllegalOperationException e) {
-        logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
+    if (pOperator == JBinaryExpression.BinaryOperator.EQUALS || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
+      if (pLValue.isUnknown()) {
+        return UnknownValue.getInstance();
+
+      } else {
+        // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
+        // otherwise. This is equivalent to an XNOR.
+        return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
+            ^ pLValue.equals(pRValue));
+      }
+    } else if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
+      // TODO: Add code that creates SymbolicFormula objects based on the expression
+    } else if (pLValue instanceof NumericValue) {
+
+      assert pRValue instanceof NumericValue;
+      assert pLType instanceof JSimpleType && pRType instanceof JSimpleType;
+      assert pExpType instanceof JSimpleType;
+
+      if (isFloatType(pLType) || isFloatType(pRType)) {
+        return calculateFloatOperation((NumericValue) pLValue, (NumericValue) pRValue,
+            pOperator, ((JSimpleType) pLType).getType(), ((JSimpleType) pRType).getType());
+
+      } else {
+        return calculateIntegerOperation((NumericValue) pLValue, (NumericValue )pRValue,
+            pOperator, ((JSimpleType) pLType).getType(), ((JSimpleType) pRType).getType());
       }
 
-    // calculate the result for enum constant and null values
-    } else if (isValidEnumType(lValue)) {
+    } else if (pLValue instanceof BooleanValue) {
+      assert pRValue instanceof BooleanValue;
 
-      assert lValue instanceof NullValue || isValidEnumType(rValue);
-      assert binaryOperator == JBinaryExpression.BinaryOperator.EQUALS
-        || binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS;
+      boolean lVal = ((BooleanValue) pLValue).isTrue();
+      boolean rVal = ((BooleanValue) pRValue).isTrue();
 
-      // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
-      // otherwise. This is equivalent to an XNOR.
-      return BooleanValue.valueOf(binaryOperator != JBinaryExpression.BinaryOperator.EQUALS
-          ^ lValue.equals(rValue));
-
-    } else if (lValue instanceof BooleanValue) {
-      assert rValue instanceof BooleanValue;
-
-      boolean lVal = ((BooleanValue) lValue).isTrue();
-      boolean rVal = ((BooleanValue) rValue).isTrue();
-
-      return calculateBooleanOperation(lVal, rVal, binaryOperator);
-
+      return calculateBooleanOperation(lVal, rVal, pOperator);
     }
 
     return UnknownValue.getInstance();
@@ -1036,10 +1044,6 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private boolean isValidEnumType(Value value) {
-    return value instanceof NullValue || value instanceof EnumConstantValue;
-  }
-
   @Override
   public Value visit(JIdExpression idExp) {
 
@@ -1160,7 +1164,8 @@ public abstract class AbstractExpressionValueVisitor
     JExpression operand = pJCastExpression.getOperand();
     JType castType = pJCastExpression.getCastType();
 
-    return castJValue(operand.accept(this), operand.getExpressionType(), castType, logger, pJCastExpression.getFileLocation());
+    return castJValue(operand.accept(this), operand.getExpressionType(), castType, logger,
+        pJCastExpression.getFileLocation());
   }
 
   @Override
