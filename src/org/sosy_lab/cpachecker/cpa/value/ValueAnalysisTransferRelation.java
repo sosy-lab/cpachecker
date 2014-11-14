@@ -665,7 +665,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
-        } else if(func.equals("free")) {
+        } else if (func.equals("free")) {
           // Needed for erasing values
           missingInformationList.add(new MissingInformation(((CFunctionCall)expression).getFunctionCallExpression()));
         }
@@ -1260,7 +1260,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if(ae instanceof SMGState) {
+      } else if (ae instanceof SMGState) {
         result.clear();
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
@@ -1273,7 +1273,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if(ae instanceof AutomatonState) {
+      } else if (ae instanceof AutomatonState) {
         result.clear();
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
@@ -1373,7 +1373,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           // We have to forget Nonrelevant Information to not contradict SMGState.
           newElement = forgetMemLoc(newElement, missingInformation, smgState);
         }
-      } else if(missingInformation.isFreeInvocation()) {
+      } else if (missingInformation.isFreeInvocation()) {
         newElement = resolveFree(newElement, smgState, missingInformation);
       }
     }

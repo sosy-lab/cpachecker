@@ -132,8 +132,14 @@ public abstract class AbstractExpressionValueVisitor
     JRightHandSideVisitor<Value, RuntimeException>,
     JExpressionVisitor<Value, RuntimeException> {
 
-  /** length of type LONG in Java. */
+  /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
+
+  /** Length of type FLOAT in Java (in bit). */
+  private static final int SIZE_OF_JAVA_FLOAT = 32;
+
+  /** Length of type DOUBLE in Java (in bit). */
+  private static final int SIZE_OF_JAVA_DOUBLE = 64;
 
   //private final ValueAnalysisState state;
   private final String functionName;
@@ -154,9 +160,9 @@ public abstract class AbstractExpressionValueVisitor
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
 
     //this.state = pState;
-    this.functionName = pFunctionName;
-    this.machineModel = pMachineModel;
-    this.logger = pLogger;
+    functionName = pFunctionName;
+    machineModel = pMachineModel;
+    logger = pLogger;
   }
 
   public boolean hasMissingFieldAccessInformation() {
@@ -748,13 +754,13 @@ public abstract class AbstractExpressionValueVisitor
     } else if (isValidEnumType(lValue)) {
 
       assert lValue instanceof NullValue || isValidEnumType(rValue);
-      assert binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
-        || binaryOperator.equals(JBinaryExpression.BinaryOperator.NOT_EQUALS);
+      assert binaryOperator == JBinaryExpression.BinaryOperator.EQUALS
+        || binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS;
 
       // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
       // otherwise. This is equivalent to an XNOR.
-      return BooleanValue.valueOf(!(binaryOperator.equals(JBinaryExpression.BinaryOperator.EQUALS)
-          ^ lValue.equals(rValue)));
+      return BooleanValue.valueOf(binaryOperator != JBinaryExpression.BinaryOperator.EQUALS
+          ^ lValue.equals(rValue));
 
     } else if (lValue instanceof BooleanValue) {
       assert rValue instanceof BooleanValue;
@@ -1083,7 +1089,8 @@ public abstract class AbstractExpressionValueVisitor
           return UnknownValue.getInstance();
       }
 
-    } else if (valueObject instanceof BooleanValue && unaryOperator.equals(JUnaryExpression.UnaryOperator.NOT)) {
+    } else if (valueObject instanceof BooleanValue
+        && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
       return ((BooleanValue) valueObject).negate();
 
     } else {
@@ -1105,19 +1112,12 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static boolean isIntegerType(JType type) {
-    if (!(type instanceof JSimpleType)) {
-      return false;
-    }
+    return type instanceof JSimpleType && ((JSimpleType) type).getType().isIntegerType();
 
-    return ((JSimpleType)type).getType().isIntegerType();
   }
 
   private static boolean isFloatType(JType type) {
-    if (!(type instanceof JSimpleType)) {
-      return false;
-    }
-
-    return ((JSimpleType) type).getType().isFloatingPointType();
+    return type instanceof JSimpleType && ((JSimpleType) type).getType().isFloatingPointType();
   }
 
   @Override
@@ -1435,16 +1435,16 @@ public abstract class AbstractExpressionValueVisitor
 
         // casting to FLOAT, if value is INT or DOUBLE. This is sound, if we would also do this cast in C.
         float floatValue = numericValue.floatValue();
-        Value result = null;
+        Value result;
 
         final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
-        if (size == 32) {
+        if (size == SIZE_OF_JAVA_FLOAT) {
           // 32 bit means Java float
           result = new NumericValue(floatValue);
-        } else if (size == 64) {
+        } else if (size == SIZE_OF_JAVA_DOUBLE) {
           // 64 bit means Java double
           result = new NumericValue(floatValue);
         } else {
@@ -1459,16 +1459,16 @@ public abstract class AbstractExpressionValueVisitor
 
         // casting to DOUBLE, if value is INT or FLOAT. This is sound, if we would also do this cast in C.
         double doubleValue = numericValue.doubleValue();
-        Value result = null;
+        Value result;
 
         final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
-        if (size == 32) {
+        if (size == SIZE_OF_JAVA_FLOAT) {
           // 32 bit means Java float
           result = new NumericValue((float) doubleValue);
-        } else if (size == 64) {
+        } else if (size == SIZE_OF_JAVA_DOUBLE) {
           // 64 bit means Java double
           result = new NumericValue(doubleValue);
         } else {

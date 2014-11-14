@@ -79,8 +79,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, boolean pSymbolicValues) {
     super(pFunctionName, pMachineModel, pLogger);
-    this.state = pState;
-    this.symbolicValues = pSymbolicValues;
+    state = pState;
+    symbolicValues = pSymbolicValues;
   }
 
   /* additional methods */
@@ -101,7 +101,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-    if (this.symbolicValues) {
+    if (symbolicValues) {
       // Only generate a symbolic value if we haven't already generated many symbolic
       // values for this location.
       FileLocation key = pIastFunctionCallExpression.getFileLocation();
@@ -112,9 +112,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (generatedSymbols < MAX_NUMBER_OF_SYMBOLS_GENERATED) {
         numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
-        SymbolicValueFormula formula = new SymbolicValueFormula(
-            new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
-        return formula;
+       return new SymbolicValueFormula(
+           new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
       }
     }
 
