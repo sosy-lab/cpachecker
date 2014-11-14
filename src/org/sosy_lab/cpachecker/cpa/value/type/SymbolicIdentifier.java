@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -52,9 +53,11 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   // this objects unique id for identifying it
   private final long id;
+  private final Type type;
 
-  protected SymbolicIdentifier(long pId) {
+  protected SymbolicIdentifier(long pId, Type pType) {
     id = pId;
+    type = pType;
   }
 
   /**
@@ -64,8 +67,8 @@ public class SymbolicIdentifier implements SymbolicValue {
    *
    * @return a new instance of a <code>SymbolicIdentifier</code>
    */
-  public static SymbolicIdentifier getInstance() {
-    return new SymbolicIdentifier(nextId++);
+  public static SymbolicIdentifier getInstance(Type pType) {
+    return new SymbolicIdentifier(nextId++, pType);
   }
 
   @Override

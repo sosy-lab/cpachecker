@@ -540,6 +540,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
     AVariableDeclaration decl = (AVariableDeclaration) declaration;
+    Type declarationType = decl.getType();
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -567,15 +568,15 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (addressedVariables.contains(decl.getQualifiedName())
-        && decl.getType() instanceof CType
-        && ((CType)decl.getType()).getCanonicalType() instanceof CPointerType) {
+        && declarationType instanceof CType
+        && ((CType) declarationType).getCanonicalType() instanceof CPointerType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
     }
 
     if (init instanceof AInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
       IAExpression exp = ((AInitializerExpression) init).getExpression();
-      initialValue = getExpressionValue(exp, decl.getType(), evv);
+      initialValue = getExpressionValue(exp, declarationType, evv);
 
       if (isMissingCExpressionInformation(evv, exp)) {
         addMissingInformation(memoryLocation, exp);
@@ -583,14 +584,14 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown()) {
-      initialValue = SymbolicIdentifier.getInstance();
+      initialValue = SymbolicIdentifier.getInstance(declarationType);
     }
 
     if (isTrackedField(decl, initialValue)) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
       } else if (missingInformationRightJExpression == null) {
-        newElement.assignConstant(memoryLocation, initialValue, decl.getType());
+        newElement.assignConstant(memoryLocation, initialValue, declarationType);
       } else {
         missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
       }
@@ -855,17 +856,17 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 //      newElement.forgetAllWithPrefix(assignedVar + ".");
 //      newElement.forgetAllWithPrefix(assignedVar + "->");
 
-      if (value.isUnknown()) {
-        // Don't erase it when there if it has yet to be evaluated
-        if (missingInformationRightJExpression == null) {
-          // TODO HasToBeErased Later
-         newElement.forget(assignedVar);
-        }
-      } else {
-        newElement.assignConstant(assignedVar, value, lType);
+      // if there is no information left to evaluate but the value is unknown, we assign a symbolic
+      // identifier to keep track of the variable.
+      if (value.isUnknown() && missingInformationRightJExpression == null) {
+        value = SymbolicIdentifier.getInstance(lType);
       }
 
+      if (!value.isUnknown()) {
+        newElement.assignConstant(assignedVar, value, lType);
+      }
     }
+
     return newElement;
   }
 
