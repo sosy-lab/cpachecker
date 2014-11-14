@@ -341,11 +341,11 @@ public class AutomatonGraphmlParser {
             scope = ((CProgramScope) scope).createFunctionScope(newStack.peek());
           }
           for (String assumeCode : transAssumes) {
-            assumptions.addAll(adjustCharAssignments(
+            assumptions.addAll(removeDuplicates(adjustCharAssignments(
                 AutomatonASTComparator.generateSourceASTOfBlock(
                     tryFixArrayInitializers(assumeCode),
                     cparser,
-                    scope)));
+                    scope))));
           }
         }
 
@@ -582,6 +582,30 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
     }
+  }
+
+  /**
+   * Some tools put assumptions for multiple statements on the same edge, which
+   * may lead to contradictions between the assumptions.
+   *
+   * This is clearly a tool error, but for the competition we want to help them
+   * out and only use the last assumption.
+   *
+   * @param pStatements the assumptions.
+   *
+   * @return the duplicate-free assumptions.
+   */
+  private static Collection<CStatement> removeDuplicates(Iterable<? extends CStatement> pStatements) {
+    Map<Object, CStatement> result = new HashMap<>();
+    for (CStatement statement : pStatements) {
+      if (statement instanceof CExpressionAssignmentStatement) {
+        CExpressionAssignmentStatement assignmentStatement = (CExpressionAssignmentStatement) statement;
+        result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
+      } else {
+        result.put(statement, statement);
+      }
+    }
+    return result.values();
   }
 
   /**
