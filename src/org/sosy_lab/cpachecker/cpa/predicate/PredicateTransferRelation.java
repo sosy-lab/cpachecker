@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
-import org.sosy_lab.cpachecker.cpa.predicate.synthesis.RelationStore;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -104,7 +103,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final BlockOperator blk;
 
-  private final RelationStore relstore;
   private final PredicateAssumeStore assumeStore;
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
@@ -115,7 +113,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisDirection direction;
 
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config, RelationStore pRelStore, AnalysisDirection pDirection) throws InvalidConfigurationException {
+      Configuration config, AnalysisDirection pDirection) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -126,7 +124,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     assumeStore = pCpa.getAssumesStore();
     blk = pBlk;
     direction = pDirection;
-    relstore = pRelStore;
   }
 
   @Override
@@ -159,9 +156,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           pathFormula = pathFormulaManager.makeAnd(pathFormula, locAssume);
         }
       }
-
-      // After updating the SSAs... add the operation to the relation store...
-      relstore.addFact(edge, element.getPathFormula().getSsa());
 
       // check whether to do abstraction
       boolean doAbstraction = blk.isBlockEnd(loc, predloc, edge, pathFormula);
