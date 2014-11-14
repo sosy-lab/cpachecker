@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import java.util.List;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
