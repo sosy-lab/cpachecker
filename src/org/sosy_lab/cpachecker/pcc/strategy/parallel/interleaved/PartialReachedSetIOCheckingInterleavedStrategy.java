@@ -103,19 +103,23 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
    logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads-1);
     try {
-      executor.execute(new PartitionReader(checkResult, partitionsRead, partitionChecked));
-      for (int i = 0; i < numThreads; i++) {
+      for (int i = 0; i < numThreads-1; i++) {
         executor.execute(new ParallelPartitionChecker(availableForChecking, nextId, checkResult, partitionsRead,
             partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
                 .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }
-/* TODO PartitionReader in diesem Thread ausführen? anschließend einen ParallelPartitionChecker
- * ThreadPool nur Größe numThreads-1
- * auf Executor Service verzichten und eigene Threads verwenden, weniger Overhead?
- * weniger Synchronisation, ist das irgendwie möglich?
- */
+
+      // read partitions
+      new PartitionReader(checkResult, partitionsRead, partitionChecked).run();
+
+      if (!checkResult.get()) { return false; }
+
+      // help checking remaining partitions
+      new ParallelPartitionChecker(availableForChecking, nextId, checkResult, partitionsRead,
+          partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
+              .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger).run();
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 
