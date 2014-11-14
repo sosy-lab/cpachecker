@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
@@ -59,10 +60,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -78,8 +83,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -96,6 +103,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
+
+  @Option(secure=true, description="Conjunct the formulas that were computed as preconditions to get (infeasible) interpolation problems!")
+  private boolean conjunctPreconditionFormulas = false;
 
   @Option(secure=true,
       description="where to dump the counterexample formula in case the error location is reached")
@@ -151,6 +161,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final InterpolationManager formulaManager;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
+  private final Solver solver;
+  private final PredicateAssumeStore assumesStore;
 
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
@@ -158,13 +170,17 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final PathChecker pPathChecker,
       final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
-      final RefinementStrategy pStrategy)
+      final RefinementStrategy pStrategy,
+      final Solver pSolver,
+      final PredicateAssumeStore pAssumesStore)
           throws CPAException, InvalidConfigurationException {
 
     super(pCpa);
 
     config.inject(this, PredicateCPARefiner.class);
 
+    assumesStore = pAssumesStore;
+    solver = pSolver;
     logger = pLogger;
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
@@ -300,14 +316,53 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @param path A list of all abstraction elements
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
+   * @throws SolverException
    */
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException, SolverException {
     getFormulasForPathTime.start();
     try {
-      if (sliceBlockFormulas) {
+      if (conjunctPreconditionFormulas) {
+        ImmutableList<ARGState> predicateStates = from(path).toList();
+
+        List<BooleanFormula> result = Lists.newArrayList();
+        UnmodifiableIterator<ARGState> abstractionIt = predicateStates.iterator();
+
+        BooleanFormula traceFormula = fmgr.getBooleanFormulaManager().makeBoolean(true);
+
+        // each abstraction location has a corresponding block formula
+
+        while (abstractionIt.hasNext()) {
+          final ARGState argState = abstractionIt.next();
+
+          final LocationState locState = AbstractStates.extractStateByType(argState, LocationState.class);
+          final CFANode loc = locState.getLocationNode();
+
+          final PredicateAbstractState predState = AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
+          assert predState.isAbstractionState();
+
+          final BooleanFormula blockFormula = predState.getAbstractionFormula().getBlockFormula().getFormula();
+          final SSAMap blockSsaMap = predState.getAbstractionFormula().getBlockFormula().getSsa();
+
+          traceFormula = fmgr.getBooleanFormulaManager().and(traceFormula, blockFormula);
+
+          if (!BlockOperator.isFirstLocationInFunctionBody(loc) || solver.isUnsat(traceFormula)) { // Add the precondition only if the trace formula is SAT!!
+            result.add(blockFormula);
+
+          } else {
+            final BooleanFormula eliminationResult = PredicateVariableElimination.eliminateDeadVariables(fmgr, traceFormula, blockSsaMap);
+            final BooleanFormula blockPrecondition = assumesStore.conjunctAssumeToLocation(loc, fmgr.makeNot(eliminationResult));
+
+            result.add(fmgr.makeAnd(blockFormula, blockPrecondition));
+          }
+
+        }
+        return result;
+
+      } else if (sliceBlockFormulas) {
         BlockFormulaSlicer bfs = new BlockFormulaSlicer(pfmgr);
         return bfs.sliceFormulasForPath(path, initialState);
+
       } else {
         return from(path)
             .transform(toState(PredicateAbstractState.class))

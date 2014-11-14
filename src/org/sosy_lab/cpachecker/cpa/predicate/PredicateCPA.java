@@ -142,6 +142,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
+  private final PredicateAssumeStore assumesStore;
 
   private final AbstractPrecisionSynthesis precisionSynthesis;
 
@@ -199,6 +200,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
+    assumesStore = new PredicateAssumeStore(formulaManager);
+
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk, config, relstore, direction);
 
@@ -252,7 +255,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator, precisionSynthesis);
     stop = new PredicateStopOperator(domain);
+  }
 
+  public PredicateAssumeStore getAssumesStore() {
+    return assumesStore;
   }
 
   @Override

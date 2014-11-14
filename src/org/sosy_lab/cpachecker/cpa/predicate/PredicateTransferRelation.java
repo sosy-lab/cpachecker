@@ -61,10 +61,13 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+
+import com.google.common.base.Optional;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -102,6 +105,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final BlockOperator blk;
 
   private final RelationStore relstore;
+  private final PredicateAssumeStore assumeStore;
 
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
@@ -119,6 +123,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     pathFormulaManager = pCpa.getPathFormulaManager();
     fmgr = pCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    assumeStore = pCpa.getAssumesStore();
     blk = pBlk;
     direction = pDirection;
     relstore = pRelStore;
@@ -143,6 +148,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // calculate strongest post
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
+
+      // there might be runtime-assumes that we should add to the path formula
+      //  (used to make the program safe in case of missing preconditions in order to get valid loop invariants)
+      // TODO: Move this to a "better" place
+      Optional<BooleanFormula> optLocAssume = assumeStore.getAssumeOnLocation(loc);
+      if (optLocAssume.isPresent()) {
+        BooleanFormula locAssume = optLocAssume.get();
+        if (!bfmgr.isTrue(locAssume)) {
+          pathFormula = pathFormulaManager.makeAnd(pathFormula, locAssume);
+        }
+      }
 
       // After updating the SSAs... add the operation to the relation store...
       relstore.addFact(edge, element.getPathFormula().getSsa());

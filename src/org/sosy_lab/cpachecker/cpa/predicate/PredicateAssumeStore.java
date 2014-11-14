@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
@@ -48,19 +49,21 @@ public class PredicateAssumeStore implements Statistics {
     this.fmv = pFmv;
   }
 
-  public synchronized BooleanFormula getAssumeOnLocation(final CFANode pLocation) {
+  public synchronized Optional<BooleanFormula> getAssumeOnLocation(final CFANode pLocation) {
     BooleanFormula result = locationAssumes.get(pLocation);
 
     if (result == null) {
-      result = fmv.getBooleanFormulaManager().makeBoolean(true);
-      locationAssumes.put(pLocation, result);
+      return Optional.absent();
     }
 
-    return result;
+    return Optional.of(result);
   }
 
   public synchronized BooleanFormula conjunctAssumeToLocation(final CFANode pLocation, BooleanFormula pAssume) {
-    BooleanFormula result = getAssumeOnLocation(pLocation);
+    BooleanFormula result = locationAssumes.get(pLocation);
+    if (result == null) {
+      result = fmv.getBooleanFormulaManager().makeBoolean(true);
+    }
 
     result = fmv.simplify(fmv.makeAnd(result, pAssume));
     locationAssumes.put(pLocation, result);
@@ -70,8 +73,6 @@ public class PredicateAssumeStore implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    // TODO Auto-generated method stub
-
   }
 
   @Override
