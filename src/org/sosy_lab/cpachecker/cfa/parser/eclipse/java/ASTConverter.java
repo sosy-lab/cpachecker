@@ -1910,10 +1910,10 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
 
-    return convertOperator(op);
+    return convertOperator(op, basicType);
   }
 
-  private BinaryOperator convertOperator(InfixExpression.Operator op) {
+  private BinaryOperator convertOperator(InfixExpression.Operator op, JBasicType pType) {
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1924,12 +1924,6 @@ class ASTConverter {
       return BinaryOperator.MULTIPLY;
     } else if (op.equals(InfixExpression.Operator.REMAINDER)) {
       return BinaryOperator.MODULO;
-    } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.BINARY_AND;
-    } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.BINARY_OR;
-    } else if (op.equals(InfixExpression.Operator.XOR)) {
-      return BinaryOperator.BINARY_XOR;
     } else if (op.equals(InfixExpression.Operator.GREATER)) {
       return BinaryOperator.GREATER_THAN;
     } else if (op.equals(InfixExpression.Operator.LESS)) {
@@ -1944,22 +1938,34 @@ class ASTConverter {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
-
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
       return BinaryOperator.CONDITIONAL_AND;
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
       return BinaryOperator.CONDITIONAL_OR;
-    } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.LOGICAL_AND;
-    } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.LOGICAL_OR;
-    } else if (op.equals(InfixExpression.Operator.XOR)) {
-      return BinaryOperator.LOGICAL_XOR;
 
     } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
       return BinaryOperator.NOT_EQUALS;
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
+
+    } else if (op.equals(InfixExpression.Operator.AND)) {
+      if (pType == JBasicType.BOOLEAN) {
+        return BinaryOperator.LOGICAL_AND;
+      } else {
+        return BinaryOperator.BINARY_AND;
+      }
+    } else if (op.equals(InfixExpression.Operator.OR)) {
+      if (pType == JBasicType.BOOLEAN) {
+        return BinaryOperator.LOGICAL_OR;
+      } else {
+        return BinaryOperator.BINARY_OR;
+      }
+    } else if (op.equals(InfixExpression.Operator.XOR)) {
+      if (pType == JBasicType.BOOLEAN) {
+        return BinaryOperator.LOGICAL_XOR;
+      } else {
+        return BinaryOperator.BINARY_XOR;
+      }
     } else {
       throw new CFAGenerationRuntimeException(
         "Could not proccess Operator: " + op.toString());
