@@ -747,7 +747,8 @@ public abstract class AbstractExpressionValueVisitor
     assert !pLValue.isUnknown() && !pRValue.isUnknown();
 
     if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
-      // TODO: Add code that creates SymbolicFormula objects based on the expression
+      return calculateSymbolicOperation(pLValue, pLType, pRValue, pRType, pOperator);
+
     } else if (pLValue instanceof NumericValue) {
 
       assert pRValue instanceof NumericValue;
@@ -775,8 +776,19 @@ public abstract class AbstractExpressionValueVisitor
         || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
       // true if EQUALS & (lValue == rValue) or if NOT_EQUALS & (lValue != rValue). False
       // otherwise. This is equivalent to an XNOR.
-      return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
-          ^ pLValue.equals(pRValue));
+      return calculateComparison(pLValue, pRValue, pOperator);
+    }
+
+    return UnknownValue.getInstance();
+  }
+
+  private Value calculateSymbolicOperation(Value pLeftValue, JType pLeftType, Value pRightValue,
+      JType pRightType, JBinaryExpression.BinaryOperator pOperator) {
+    assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
+
+    if (pOperator == JBinaryExpression.BinaryOperator.EQUALS
+        || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
+      return calculateComparison(pLeftValue, pRightValue, pOperator);
     }
 
     return UnknownValue.getInstance();
@@ -1041,6 +1053,15 @@ public abstract class AbstractExpressionValueVisitor
     default:
       throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
     }
+  }
+
+  private Value calculateComparison(Value pLeftValue, Value pRightValue,
+      JBinaryExpression.BinaryOperator pOperator) {
+    assert pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS
+        || pOperator == JBinaryExpression.BinaryOperator.EQUALS;
+
+    return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
+        ^ pLeftValue.equals(pRightValue));
   }
 
   @Override
