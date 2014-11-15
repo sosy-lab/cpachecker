@@ -1878,7 +1878,9 @@ class ASTConverter {
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
     assert rightHandSide != null;
 
-    BinaryOperator op = convert(e.getOperator(), type);
+    final JType leftHandType = leftHandSide.getExpressionType();
+    final JType rightHandType = rightHandSide.getExpressionType();
+    BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
@@ -1897,23 +1899,52 @@ class ASTConverter {
     return binaryExpression;
   }
 
-  // pType is the type of the operands of the operation
-  private BinaryOperator convert(InfixExpression.Operator op, JType pType) {
-    final String invalidTypeMsg = "Invalid type '" + pType + "' for operation '" + op + "'";
-    JBasicType basicType = null;
-
-    if (pType instanceof JSimpleType) {
-      basicType = ((JSimpleType) pType).getType();
-    }
-
-    if (basicType == null || basicType == JBasicType.VOID) {
-      throw new CFAGenerationRuntimeException(invalidTypeMsg);
-    }
-
-    return convertOperator(op, basicType);
+  private boolean isUnspecified(JType pType) {
+    return pType instanceof JSimpleType && ((JSimpleType) pType).getType() == JBasicType.UNSPECIFIED;
   }
 
-  private BinaryOperator convertOperator(InfixExpression.Operator op, JBasicType pType) {
+  // pType is the type of the operands of the operation
+  private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
+    final String invalidTypeMsg = "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";
+    JBasicType basicTypeOp1 = null;
+    JBasicType basicTypeOp2 = null;
+
+    if (pOp1Type instanceof JSimpleType) {
+      basicTypeOp1 = ((JSimpleType) pOp1Type).getType();
+    }
+
+    if (pOp2Type instanceof JSimpleType) {
+      basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
+    }
+
+    if (basicTypeOp1 == null || basicTypeOp2 == null) {
+      if (op.equals(InfixExpression.Operator.EQUALS)) {
+        return BinaryOperator.EQUALS;
+      } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+        return BinaryOperator.NOT_EQUALS;
+      } else {
+        throw new CFAGenerationRuntimeException(invalidTypeMsg);
+      }
+    } else if (isNumericCompatible(basicTypeOp1) && isNumericCompatible(basicTypeOp2)) {
+      return convertNumericOperator(op);
+    } else if (isBooleanCompatible(basicTypeOp1) && isBooleanCompatible(basicTypeOp2)) {
+      return convertBooleanOperator(op);
+    } else {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
+    }
+  }
+
+  private boolean isNumericCompatible(JBasicType pType) {
+    return pType != null
+        && (pType.isIntegerType() || pType.isFloatingPointType() || pType == JBasicType.UNSPECIFIED);
+  }
+
+  private boolean isBooleanCompatible(JBasicType pType) {
+    return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
+
+  }
+
+  private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1938,39 +1969,43 @@ class ASTConverter {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
-    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
-      return BinaryOperator.CONDITIONAL_AND;
-    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
-      return BinaryOperator.CONDITIONAL_OR;
-
     } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
       return BinaryOperator.NOT_EQUALS;
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
-
     } else if (op.equals(InfixExpression.Operator.AND)) {
-      if (pType == JBasicType.BOOLEAN) {
-        return BinaryOperator.LOGICAL_AND;
-      } else {
         return BinaryOperator.BINARY_AND;
-      }
     } else if (op.equals(InfixExpression.Operator.OR)) {
-      if (pType == JBasicType.BOOLEAN) {
-        return BinaryOperator.LOGICAL_OR;
-      } else {
         return BinaryOperator.BINARY_OR;
-      }
     } else if (op.equals(InfixExpression.Operator.XOR)) {
-      if (pType == JBasicType.BOOLEAN) {
-        return BinaryOperator.LOGICAL_XOR;
-      } else {
         return BinaryOperator.BINARY_XOR;
-      }
     } else {
       throw new CFAGenerationRuntimeException(
         "Could not proccess Operator: " + op.toString());
     }
   }
+
+  private BinaryOperator convertBooleanOperator(InfixExpression.Operator op) {
+    if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
+      return BinaryOperator.CONDITIONAL_AND;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
+      return BinaryOperator.CONDITIONAL_OR;
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+      return BinaryOperator.NOT_EQUALS;
+    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
+      return BinaryOperator.EQUALS;
+    } else if (op.equals(InfixExpression.Operator.AND)) {
+      return BinaryOperator.LOGICAL_AND;
+    } else if (op.equals(InfixExpression.Operator.OR)) {
+      return BinaryOperator.LOGICAL_OR;
+    } else if (op.equals(InfixExpression.Operator.XOR)) {
+      return BinaryOperator.LOGICAL_XOR;
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Could not proccess Operator: " + op.toString());
+    }
+  }
+
 
   private JExpression convert(NumberLiteral e) {
     FileLocation fileLoc = getFileLocation(e);
@@ -2134,7 +2169,7 @@ class ASTConverter {
 
     JSimpleDeclaration param =
         scope.lookupVariable(NameConverter.convertName(
-                              formalParameter.resolveBinding()));
+            formalParameter.resolveBinding()));
 
     if (param == null) {
       throw new CFAGenerationRuntimeException(
