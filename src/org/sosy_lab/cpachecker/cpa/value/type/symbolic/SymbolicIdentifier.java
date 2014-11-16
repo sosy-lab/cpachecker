@@ -21,10 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 
 /**
  * Identifier for basic symbolic values.
@@ -67,7 +69,7 @@ public class SymbolicIdentifier implements SymbolicValue {
    *
    * @return a new instance of a <code>SymbolicIdentifier</code>
    */
-  public static SymbolicIdentifier getInstance(Type pType) {
+  static SymbolicIdentifier getInstance(Type pType) {
     return new SymbolicIdentifier(nextId++, pType);
   }
 

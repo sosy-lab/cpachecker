@@ -103,9 +103,10 @@ import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -241,7 +242,7 @@ public abstract class AbstractExpressionValueVisitor
     case SHIFT_LEFT:
     case SHIFT_RIGHT:
     case BINARY_AND:
-    case BINARY_OR:
+    case BINARY_OR:inv
     case BINARY_XOR: {
       result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
       result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
@@ -789,9 +790,65 @@ public abstract class AbstractExpressionValueVisitor
     if (pOperator == JBinaryExpression.BinaryOperator.EQUALS
         || pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
       return calculateComparison(pLeftValue, pRightValue, pOperator);
-    }
 
-    return UnknownValue.getInstance();
+    } else {
+      return createSymbolicFormula(pLeftValue, pLeftType, pRightValue, pRightType, pOperator);
+    }
+  }
+
+  private SymbolicValue createSymbolicFormula(Value pLeftValue, JType pLeftType, Value pRightValue,
+      JType pRightType, JBinaryExpression.BinaryOperator pOperator) {
+
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    switch (pOperator) {
+      case PLUS:
+        return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType);
+      case MINUS:
+        throw new AssertionError(); // TODO!
+      case MULTIPLY:
+        return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType);
+      case DIVIDE:
+        return factory.createDivision(pLeftValue, pLeftType, pRightValue, pRightType);
+      case MODULO:
+        return factory.createModulo(pLeftValue, pLeftType, pRightValue, pRightType);
+      case SHIFT_LEFT:
+        return factory.createShiftLeft(pLeftValue, pLeftType, pRightValue, pRightType);
+      case SHIFT_RIGHT_SIGNED:
+        return factory.createShiftRight(pLeftValue, pLeftType, pRightValue, pRightType);
+      case SHIFT_RIGHT_UNSIGNED:
+        throw new AssertionError(); // TODO!
+      case BINARY_AND:
+      case LOGICAL_AND:
+        return factory.createBinaryAnd(pLeftValue, pLeftType, pRightValue, pRightType);
+      case BINARY_OR:
+      case LOGICAL_OR:
+        return factory.createBinaryOr(pLeftValue, pLeftType, pRightValue, pRightType);
+      case BINARY_XOR:
+      case LOGICAL_XOR:
+        return factory.createBinaryXor(pLeftValue, pLeftType, pRightValue, pRightType);
+      case EQUALS:
+        return factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
+      case NOT_EQUALS:
+        SymbolicValue equalsFormula =
+            factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
+
+        return factory.createLogicalNot(equalsFormula, new JSimpleType(JBasicType.BOOLEAN));
+      case LESS_THAN:
+        return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType);
+      case LESS_EQUAL:
+        return factory.createLessThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType);
+      case GREATER_THAN:
+        return factory.createGreaterThan(pLeftValue, pLeftType, pRightValue, pRightType);
+      case GREATER_EQUAL:
+        return factory.createGreaterThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType);
+      case CONDITIONAL_AND:
+        return factory.createConditionalAnd(pLeftValue, pLeftType, pRightValue, pRightType);
+      case CONDITIONAL_OR:
+        return factory.createConditionalOr(pLeftValue, pLeftType, pRightValue, pRightType);
+      default:
+        throw new AssertionError("Unhandled binary operation " + pOperator);
+    }
   }
 
   /*

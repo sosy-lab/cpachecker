@@ -21,10 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.AbstractFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Description of a variable's symbolic value in form of a formula. This is needed for more
@@ -45,10 +48,14 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.AbstractFormula;
  */
 public class SymbolicFormula implements SymbolicValue {
 
-  private AbstractFormula<Value> formula;
+  private InvariantsFormula<Value> formula;
 
-  public SymbolicFormula(AbstractFormula<Value> pFormula) {
+  protected SymbolicFormula(InvariantsFormula<Value> pFormula) {
     formula = pFormula;
+  }
+
+  protected InvariantsFormula<Value> getFormula() {
+    return formula;
   }
 
   @Override

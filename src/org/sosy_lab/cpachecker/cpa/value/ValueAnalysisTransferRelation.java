@@ -120,11 +120,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -584,7 +584,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown()) {
-      initialValue = SymbolicIdentifier.getInstance(declarationType);
+      getSymbolicIdentifier(declarationType);
     }
 
     if (isTrackedField(decl, initialValue)) {
@@ -658,6 +658,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private boolean isComplexJavaType(Type pType) {
     return pType instanceof JClassOrInterfaceType
         || pType instanceof JArrayType;
+  }
+
+  private Value getSymbolicIdentifier(Type pType) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    return factory.createIdentifier(pType);
   }
 
   @Override
@@ -859,7 +864,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null) {
-        value = SymbolicIdentifier.getInstance(lType);
+        value = getSymbolicIdentifier(lType);
       }
 
       if (!value.isUnknown()) {
