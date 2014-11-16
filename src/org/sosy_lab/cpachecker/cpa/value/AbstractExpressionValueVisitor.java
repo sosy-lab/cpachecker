@@ -242,7 +242,7 @@ public abstract class AbstractExpressionValueVisitor
     case SHIFT_LEFT:
     case SHIFT_RIGHT:
     case BINARY_AND:
-    case BINARY_OR:inv
+    case BINARY_OR:
     case BINARY_XOR: {
       result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
       result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
