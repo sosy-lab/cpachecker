@@ -207,7 +207,7 @@ public class BAMTransferRelation implements TransferRelation {
       // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
       // (except we have a full cache-hit).
 
-    if (currentBlock != null && currentBlock.isReturnNode(node) && !alreadyReturnedFromFunction(pState)) {
+    if (currentBlock != null && currentBlock.isReturnNode(node) && !alreadyReturnedFromSameBlock(pState, currentBlock)) {
       // we are leaving the block, do not perform analysis beyond the current block.
       // special case: returning from a recursive function is only allowed once per state.
       return Collections.emptySet();
@@ -700,10 +700,10 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   /** checks, if the current state is at a node, where several block-exits are available and
-   * one of them was a function-return in a function-block. */
-  boolean alreadyReturnedFromFunction(AbstractState state) {
+   * one of them was already left. */
+  private boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
     while (expandedToReducedCache.containsKey(state)) {
-      if (expandedToBlockCache.containsKey(state) && isFunctionBlock(expandedToBlockCache.get(state))) {
+      if (expandedToBlockCache.containsKey(state) && block == expandedToBlockCache.get(state)) {
         return true;
       }
       state = expandedToReducedCache.get(state);
