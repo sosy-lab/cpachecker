@@ -583,8 +583,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if (initialValue.isUnknown()) {
-      getSymbolicIdentifier(declarationType);
+    if (initialValue.isUnknown() && declarationType instanceof JType) {
+      initialValue = getSymbolicIdentifier(declarationType);
     }
 
     if (isTrackedField(decl, initialValue)) {
@@ -863,7 +863,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
-      if (value.isUnknown() && missingInformationRightJExpression == null) {
+      if (value.isUnknown() && lType instanceof JType && missingInformationRightJExpression == null) {
         value = getSymbolicIdentifier(lType);
       }
 
