@@ -876,8 +876,12 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
-      if (value.isUnknown() && lType instanceof JType && missingInformationRightJExpression == null) {
-        value = getSymbolicIdentifier(lType);
+      if (value.isUnknown() && missingInformationRightJExpression == null) {
+        if (lType instanceof JType) {
+          value = getSymbolicIdentifier(lType);
+        } else {
+          newElement.forget(assignedVar);
+        }
       }
 
       if (!value.isUnknown()) {
