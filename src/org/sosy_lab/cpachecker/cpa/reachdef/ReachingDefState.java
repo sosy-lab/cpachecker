@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.reachdef;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -460,24 +459,37 @@ public class ReachingDefState implements AbstractState, Serializable,
   @Override
   public String toDOTLabel() {
 
-    //this part may be seperated into an util class
-    Map<String, String> map = new HashMap<>();
-
-    // to merge localReachDefs & globalReachDefs to one String
-    // create a new HashMap with varName as key and [localReachDefs][globalReachDefs] as value
-    for (Entry<String, Set<DefinitionPoint>> entry : localReachDefs.entrySet()) {
-      StringBuilder string = new StringBuilder();
-      string.append(Arrays.toString(entry.getValue().toArray()));
-      string.append(" "); // just to improve readability
-      string.append(Arrays.toString(globalReachDefs.get(entry.getKey()).toArray()));
-      // toArray() seperates the elements by "," but we want ";"
-      map.put(entry.getKey(), string.toString().replace(",", ";"));
-    }
-
     StringBuilder sb = new StringBuilder();
 
     sb.append("{");
-    Joiner.on(", ").withKeyValueSeparator(":").appendTo(sb, map);
+
+    sb.append(System.identityHashCode(this));
+    sb.append("\\n");
+
+    sb.append("global: [");
+    //this part may be seperated into an util class
+    Map<String, String> map = new HashMap<>();
+    // to merge varName & list of globalReachDefs to one String
+    // create a new HashMap with varName as key and [Interval] (refCount) as value
+    for (Entry<String, Set<DefinitionPoint>> entry : globalReachDefs.entrySet()) {
+      map.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
+    }
+    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, map);
+    sb.append("]\\n");
+
+    sb.append("local: [");
+    //this part may be seperated into an util class
+    Map<String, String> m = new HashMap<>();
+    // to merge varName & list of globalReachDefs to one String
+    // create a new HashMap with varName as key and [Interval] (refCount) as value
+    for (Entry<String, Set<DefinitionPoint>> entry : localReachDefs.entrySet()) {
+      m.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
+    }
+    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, localReachDefs);
+    sb.append("]\\n");
+
+    sb.append(stateOnLastFunctionCall);
+
     sb.append("}");
 
     return sb.toString();
