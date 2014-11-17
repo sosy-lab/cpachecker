@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.livevar;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -43,43 +46,48 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
   }
 
   public LiveVariablesState(final ImmutableSet<String> pLiveVariables) {
+    checkNotNull(pLiveVariables);
     liveVars = pLiveVariables;
   }
 
   public LiveVariablesState union(LiveVariablesState pState2) {
-    if (isSubsetOf(pState2)) { return pState2; }
+    if (isSubsetOf(pState2)) {
+      return pState2;
+    }
+
     Builder<String> builder = ImmutableSet.builder();
-    return new LiveVariablesState(builder.addAll(liveVars).addAll(pState2.liveVars).build());
+    builder.addAll(liveVars);
+    builder.addAll(pState2.liveVars);
+
+    return new LiveVariablesState(builder.build());
   }
 
   public boolean isSubsetOf(LiveVariablesState pState2) {
     return pState2.liveVars.containsAll(liveVars);
   }
 
-  public LiveVariablesState addLiveVariable(String pLiveVariable) {
-    if (pLiveVariable == null || liveVars.contains(pLiveVariable)) { return this; }
-    return new LiveVariablesState(ImmutableSet.<String> builder().addAll(liveVars).add(pLiveVariable).build());
-  }
+  public LiveVariablesState addLiveVariables(Collection<String> pLiveVariables) {
+    checkNotNull(pLiveVariables);
 
-  public LiveVariablesState addLiveVariables(Collection<? extends String> pLiveVariables) {
-    if (pLiveVariables == null || pLiveVariables.size() == 0 || liveVars.containsAll(pLiveVariables)) { return this; }
-    return new LiveVariablesState(ImmutableSet.<String> builder().addAll(liveVars).addAll(pLiveVariables).build());
-  }
-
-  public LiveVariablesState removeLiveVariable(String pNonLiveVariable) {
-    if (pNonLiveVariable == null || !liveVars.contains(pNonLiveVariable)) { return this; }
-    Builder<String> builder = ImmutableSet.builder();
-    for (String liveVar : liveVars) {
-      if (!liveVar.equals(pNonLiveVariable)) {
-        builder.add(liveVar);
-      }
+    if (pLiveVariables.isEmpty()
+        || liveVars.containsAll(pLiveVariables)) {
+      return this;
     }
+
+    Builder<String> builder = ImmutableSet.builder();
+    builder.addAll(liveVars);
+    builder.addAll(pLiveVariables);
 
     return new LiveVariablesState(builder.build());
   }
 
-  public LiveVariablesState removeLiveVariables(Collection<? extends String> pNonLiveVariables) {
-    if (pNonLiveVariables == null || pNonLiveVariables.size() == 0) { return this; }
+  public LiveVariablesState removeLiveVariables(Collection<String> pNonLiveVariables) {
+    checkNotNull(pNonLiveVariables);
+
+    if (pNonLiveVariables.isEmpty()) {
+      return this;
+    }
+
     Builder<String> builder = ImmutableSet.builder();
     for (String liveVar : liveVars) {
       if (!pNonLiveVariables.contains(liveVar)) {
@@ -90,60 +98,19 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     return new LiveVariablesState(builder.build());
   }
 
-  public LiveVariablesState removeAndAddLiveVariables(String pNonLiveVariable, String pLiveVariable) {
-    if (pNonLiveVariable == null || pNonLiveVariable.equals(pLiveVariable)) { return addLiveVariable(pLiveVariable); }
-    if (pLiveVariable == null) { return removeLiveVariable(pNonLiveVariable); }
+  public LiveVariablesState removeAndAddLiveVariables(Collection<String> pNonLiveVariables,
+                                                      Collection<String> pLiveVariables) {
+    checkNotNull(pLiveVariables);
+    checkNotNull(pNonLiveVariables);
 
-    Builder<String> builder = ImmutableSet.builder();
-    for (String liveVar : liveVars) {
-      if (!pNonLiveVariable.equals(liveVar) || liveVar.equals(pLiveVariable)) {
-        builder.add(liveVar);
-      }
+    if (pLiveVariables.isEmpty()) {
+      return removeLiveVariables(pNonLiveVariables);
     }
 
-    builder.add(pLiveVariable);
-
-    return new LiveVariablesState(builder.build());
-  }
-
-  public LiveVariablesState removeAndAddLiveVariables(String pNonLiveVariable,
-      Collection<? extends String> pLiveVariables) {
-    if (pLiveVariables == null || pLiveVariables.size() == 0) { return removeLiveVariable(pNonLiveVariable); }
-    if (pNonLiveVariable == null || pLiveVariables.contains(pNonLiveVariable)) { return addLiveVariables(pLiveVariables); }
-
-    Builder<String> builder = ImmutableSet.builder();
-    for (String liveVar : liveVars) {
-      if (!pNonLiveVariable.equals(liveVar) || pLiveVariables.contains(liveVar)) {
-        builder.add(liveVar);
-      }
+    if (pNonLiveVariables.isEmpty()
+        || pLiveVariables.containsAll(pNonLiveVariables)) {
+      return addLiveVariables(pLiveVariables);
     }
-
-    builder.addAll(pLiveVariables);
-
-    return new LiveVariablesState(builder.build());
-  }
-
-  public LiveVariablesState removeAndAddLiveVariables(Collection<? extends String> pNonLiveVariables,
-      String pLiveVariable) {
-    if (pLiveVariable == null) { return removeLiveVariables(pNonLiveVariables); }
-    if (pNonLiveVariables == null || pNonLiveVariables.size() == 0) { return addLiveVariable(pLiveVariable); }
-
-    Builder<String> builder = ImmutableSet.builder();
-    for (String liveVar : liveVars) {
-      if (!pNonLiveVariables.contains(liveVar) || pLiveVariable.equals(liveVar)) {
-        builder.add(liveVar);
-      }
-    }
-
-    builder.add(pLiveVariable);
-
-    return new LiveVariablesState(builder.build());
-  }
-
-  public LiveVariablesState removeAndAddLiveVariables(Collection<? extends String> pNonLiveVariables,
-      Collection<? extends String> pLiveVariables) {
-    if (pLiveVariables == null || pLiveVariables.size() == 0) { return removeLiveVariables(pNonLiveVariables); }
-    if (pNonLiveVariables == null || pNonLiveVariables.size() == 0 || pLiveVariables.containsAll(pNonLiveVariables)) { return addLiveVariables(pLiveVariables); }
 
     Builder<String> builder = ImmutableSet.builder();
     for (String liveVar : liveVars) {
@@ -166,7 +133,7 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((liveVars == null) ? 0 : liveVars.hashCode());
+    result = prime * result + Objects.hashCode(liveVars);
     return result;
   }
 
@@ -175,21 +142,14 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
+
+    if (!(obj instanceof LiveVariablesState)) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
+
     LiveVariablesState other = (LiveVariablesState) obj;
-    if (liveVars == null) {
-      if (other.liveVars != null) {
-        return false;
-      }
-    } else if (!liveVars.equals(other.liveVars)) {
-      return false;
-    }
-    return true;
+
+    return Objects.equals(liveVars, other.liveVars);
   }
 
   @Override

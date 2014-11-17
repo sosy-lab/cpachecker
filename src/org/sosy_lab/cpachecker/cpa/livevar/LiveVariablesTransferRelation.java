@@ -105,7 +105,7 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
   /**
    * Returns a collection of all variable names which occur in expression
    */
-  private Collection<? extends String> handleExpression(CExpression expression, String inFunction) {
+  private Collection<String> handleExpression(CExpression expression, String inFunction) {
     Set<CIdExpression> result = expression.accept(new CIdExpressionCollectingVisitor());
     Collection<String> liveVars = new ArrayList<>(result.size());
     for (CIdExpression exp : result) {
@@ -149,11 +149,11 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
       LiveVariablesState state) {
     logger.logf(Level.FINER, "Handle assignment. Assigned variable (left hand side %s) is no longer live. All variables occurring in assignment expression (right hand side %s) become live.", statement.getLeftHandSide(), statement.getRightHandSide());
     logger.logf(Level.FINEST, "If an array entry, a struct entry or a dereferenced pointer is assigned. Variable on left hand side is kept alive.");
-    return state.removeAndAddLiveVariables(getAssignedVar(statement.getLeftHandSide(), inFunction),
-        handleExpression(statement.getRightHandSide(), inFunction));
+    return state.removeAndAddLiveVariables(Collections.singleton(getAssignedVar(statement.getLeftHandSide(), inFunction)),
+                                           handleExpression(statement.getRightHandSide(), inFunction));
   }
 
-  private Collection<? extends String> getVariablesUsedForInitialization(CInitializer init, String inFunction) {
+  private Collection<String> getVariablesUsedForInitialization(CInitializer init, String inFunction) {
     if (init instanceof CDesignatedInitializer) {
       // e.g. .x=b or .p.x.=1  as part of struct initialization
       return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide(), inFunction);
@@ -183,11 +183,12 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
     CInitializer init = decl.getInitializer();
     if (init != null) {
       logger.logf(Level.FINER, "Declared variable is initialized. All variables used in initialization expression %s become alive.", init);
-      Collection<? extends String> result = getVariablesUsedForInitialization(init, inFunction);
+      Collection<String> result = getVariablesUsedForInitialization(init, inFunction);
       if (result == null) { throw new UnsupportedCCodeException("Unknown initializer used in declaration", cfaEdge); }
-      return state.removeAndAddLiveVariables(buildVarName(inFunction, decl), result);
+      return state.removeAndAddLiveVariables(Collections.singleton(buildVarName(inFunction, decl)),
+                                             result);
     }
-    return state.removeLiveVariable(buildVarName(inFunction, decl));
+    return state.removeLiveVariables(Collections.singleton(buildVarName(inFunction, decl)));
   }
 
   private LiveVariablesState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl, String inFunction,
@@ -235,8 +236,12 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
     logger.logf(Level.FINER, "Handles the change from calle to caller.");
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
       logger.logf(Level.FINER,"Function result is assigned to variable %s which is no longer alive.", ((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
-      return state.removeLiveVariable(
-        getAssignedVar(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide(), callerFunctionName)); }
+
+      return state.removeLiveVariables(Collections.singleton(
+                                             getAssignedVar(((CFunctionCallAssignmentStatement) summaryExpr)
+                                                 .getLeftHandSide(), callerFunctionName)));
+    }
+
     return state;
   }
 
@@ -267,7 +272,7 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
     for (CExpression exp : cfaEdge.getExpression().getFunctionCallExpression().getParameterExpressions()) {
       variablesInArguments.addAll(handleExpression(exp, callerFunction));
     }
-    return state.removeAndAddLiveVariables(assignedVar, variablesInArguments);
+    return state.removeAndAddLiveVariables(Collections.singleton(assignedVar), variablesInArguments);
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;"
@@ -290,8 +295,8 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
           .getParameterExpressions()) {
         newLiveVars.addAll(handleExpression(expression, inFunction));
       }
-      return state.removeAndAddLiveVariables(
-          getAssignedVar(((CFunctionCallAssignmentStatement) statement).getLeftHandSide(), inFunction), newLiveVars);
+      return state.removeAndAddLiveVariables(Collections.singleton(
+          getAssignedVar(((CFunctionCallAssignmentStatement) statement).getLeftHandSide(), inFunction)), newLiveVars);
     }
     if (statement instanceof CFunctionCallStatement) {
       logger.logf(Level.FINER, "Handle external function call. Return result if available is not used. Parameters become live.");
