@@ -101,7 +101,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private TransferRelation transferRelation;
+  private ValueAnalysisTransferRelation transferRelation;
   private VariableTrackingPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
@@ -128,7 +128,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     staticRefiner       = initializeStaticRefiner(cfa);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    // when there is information about the liveness of variables available we want
+    // to use it
+    if (cfa.getLiveVariables().isPresent()) {
+      precisionAdjustment = new ValueAnalysisPrecisionAdjustment(transferRelation, cfa.getLiveVariables().get());
+    } else {
+      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
   }
