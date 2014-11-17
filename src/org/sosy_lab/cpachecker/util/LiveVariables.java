@@ -73,12 +73,6 @@ public class LiveVariables {
     } else if (variableClassification.getIrrelevantVariables().contains(varName)) {
       return false;
     }
-    boolean isContained = liveVariables.containsEntry(location, varName);
-    if (!isContained) {
-      System.out.println("Query for "+ varName + " at location " + location);
-      System.out.println(liveVariables.get(location));
-      System.out.println("-------------------------------------------");
-    }
     return liveVariables.containsEntry(location, varName);
   }
 
@@ -137,7 +131,7 @@ public class LiveVariables {
         } while (analysisParts.reachedSet.hasWaitingState());
 
       } catch (CPAException | InterruptedException e) {
-        logger.log(Level.WARNING, "Could not compute live variables.\n" + e.getMessage());
+        logger.logUserException(Level.WARNING, e, "Could not compute live variables.");
         return;
       }
 
@@ -162,6 +156,8 @@ public class LiveVariables {
       } catch (InvalidConfigurationException | CPAException e) {
         // this should never happen, but if it does we continue the
         // analysis without having the live variable analysis
+        logger.logUserException(Level.WARNING, e, "An error occured during the creation"
+            + " of the necessary CPA parts for the live variables analysis.");
         return Optional.absent();
       }
     }
