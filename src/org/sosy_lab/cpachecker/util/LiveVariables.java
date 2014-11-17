@@ -37,12 +37,14 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -147,12 +149,19 @@ public class LiveVariables {
         final ShutdownNotifier shutdownNotifier) {
 
       try {
-        CoreComponentsFactory factory =
-            new CoreComponentsFactory(getLiveVariablesConfiguration(), logger, shutdownNotifier);
-        ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, null, false);
-        Algorithm algorithm = factory.createAlgorithm(cpa, null, cfa, null);
-        ReachedSet reached = factory.createReachedSet();
+        ReachedSetFactory reachedFactory = new ReachedSetFactory(getLiveVariablesReachedConfiguration(),
+                                                                 logger);
+        ConfigurableProgramAnalysis cpa = new CPABuilder(getLiveVariablesCPAConfiguration(),
+                                                         logger,
+                                                         shutdownNotifier,
+                                                         reachedFactory).buildCPAs(cfa);
+        Algorithm algorithm = CPAAlgorithm.create(cpa,
+                                                  logger,
+                                                  Configuration.defaultConfiguration(),
+                                                  shutdownNotifier);
+        ReachedSet reached = reachedFactory.create();
         return Optional.of(new AnalysisParts(cpa, algorithm, reached));
+
       } catch (InvalidConfigurationException | CPAException e) {
         // this should never happen, but if it does we continue the
         // analysis without having the live variable analysis
@@ -162,16 +171,20 @@ public class LiveVariables {
       }
     }
 
-    private static Configuration getLiveVariablesConfiguration() throws InvalidConfigurationException {
+    private static Configuration getLiveVariablesReachedConfiguration() throws InvalidConfigurationException {
       ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.setOption("analysis.traversal.order", "BFS");
       configBuilder.setOption("analysis.traversal.usePostorder", "true");
+      return configBuilder.build();
+    }
+
+    private static Configuration getLiveVariablesCPAConfiguration() throws InvalidConfigurationException {
+      ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
       configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
       configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
           + " cpa.callstack.CallstackCPABackwards,"
           + " cpa.livevar.LiveVariablesCPA");
-      configBuilder.setOption("output.disable", "true");
       return configBuilder.build();
     }
 
