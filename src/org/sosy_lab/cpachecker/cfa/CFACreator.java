@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LiveVariables.LiveVariablesBuilder;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -204,6 +205,12 @@ public class CFACreator {
   @Option(secure=true, name="cfa.useFunctionCallUnwinding",
       description="unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
+
+  @Option(secure=true, name="cfa.findLiveVariables",
+          description="By enabling this option the variables that are live are"
+              + " computed for each edge of the cfa. Live means that their value"
+              + " is read later on.")
+  private boolean findLiveVariables = false;
 
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
@@ -368,6 +375,15 @@ public class CFACreator {
       Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
       cfa.setLoopStructure(loopStructure);
 
+      // get live-variables information, first and second part, the last
+      // part is added after the creation of the variable classification
+      LiveVariablesBuilder liveVariablesBuilder = new LiveVariablesBuilder();
+      if (findLiveVariables) {
+        liveVariablesBuilder.addLiveVariablesFromCFA(cfa, logger, shutdownNotifier);
+        liveVariablesBuilder.addLiveVariablesFromGlobalScope(c.getGlobalDeclarations());
+      }
+
+
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -408,6 +424,14 @@ public class CFACreator {
           = (language == Language.C)
           ? Optional.of(new VariableClassification(cfa, config, logger))
           : Optional.<VariableClassification>absent();
+
+      //third (last) part of live variables if the variable classification is
+      // present we store this information in the builder and create the live
+      // variables  object
+      if (findLiveVariables && varClassification.isPresent()) {
+        liveVariablesBuilder.addLiveVariablesByVariableClassification(varClassification.get());
+        cfa.setLiveVariables(liveVariablesBuilder.build());
+      }
 
       stats.processingTime.stop();
 

@@ -218,4 +218,8 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     return false;
   }
 
+  public Iterable<? extends String> getLiveVariables() {
+    return liveVars;
+  }
+
 }

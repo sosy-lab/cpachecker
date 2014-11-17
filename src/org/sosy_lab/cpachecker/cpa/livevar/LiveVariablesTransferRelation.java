@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -79,8 +80,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 // TODO testing
 /*
@@ -92,6 +96,7 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
   private static final String UNSUPPORT = "Only C code is supported.";
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Multimap<CFANode, String> liveVariables = HashMultimap.<CFANode, String>create();
 
   public LiveVariablesTransferRelation(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
@@ -427,6 +432,7 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      liveVariables.putAll(cfaEdge.getPredecessor(), successor.getLiveVariables());
       return Collections.singleton(successor);
     }
   }
@@ -464,5 +470,9 @@ public class LiveVariablesTransferRelation extends SingleEdgeTransferRelation {
 
   private String buildVarName(String pInFunction, CVariableDeclaration pDecl) {
     return pDecl.isGlobal() ? buildGlobalVarName(pDecl.getName()) : buildFunctionVarName(pInFunction, pDecl.getName());
+  }
+
+  public Multimap<CFANode, String> getLiveVariables() {
+    return liveVariables;
   }
 }

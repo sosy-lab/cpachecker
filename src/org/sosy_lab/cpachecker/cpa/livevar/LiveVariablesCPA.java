@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import com.google.common.collect.Multimap;
+
 @Options
 public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
 
@@ -60,7 +62,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   private String stopType = "SEP";
 
   private final AbstractDomain domain;
-  private final TransferRelation transfer;
+  private final LiveVariablesTransferRelation transfer;
   private final MergeOperator merge;
   private final StopOperator stop;
 
@@ -120,6 +122,10 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     return SingletonPrecision.getInstance();
+  }
+
+  public Multimap<CFANode, String> getLiveVariables() {
+    return transfer.getLiveVariables();
   }
 
 
