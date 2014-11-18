@@ -66,6 +66,10 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     return pState2.liveVars.containsAll(liveVars);
   }
 
+  public boolean contains(String variableName) {
+    return liveVars.contains(variableName);
+  }
+
   public LiveVariablesState addLiveVariables(Collection<String> pLiveVariables) {
     checkNotNull(pLiveVariables);
 
