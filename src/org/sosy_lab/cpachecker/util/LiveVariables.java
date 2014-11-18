@@ -69,12 +69,20 @@ public class LiveVariables {
   }
 
   public boolean isVariableLive(String varName, CFANode location) {
+    // all global, pseudo global (variables from other functions) and addressed
+    // variables are always considered being live
     if (globalVariables.contains(varName)
-        || variableClassification.getAddressedVariables().contains(varName)) {
+        || variableClassification.getAddressedVariables().contains(varName)
+        || !varName.startsWith(location.getFunctionName())) {
       return true;
+
+      // irrelevant variables from variable classification can be considered
+      // as not being live
     } else if (variableClassification.getIrrelevantVariables().contains(varName)) {
       return false;
     }
+
+    // check if a variable is live at a given point
     return liveVariables.containsEntry(location, varName);
   }
 
