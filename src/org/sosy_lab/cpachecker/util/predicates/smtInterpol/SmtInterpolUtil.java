@@ -114,7 +114,7 @@ class SmtInterpolUtil {
         return value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational)value;
-        return org.sosy_lab.cpachecker.util.rationals.Rational.ofBigIntegers(
+        return org.sosy_lab.cpachecker.util.rationals.Rational.of(
             rat.numerator(), rat.denominator());
       }
 
