@@ -25,29 +25,37 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 
 public class QuantifiedFormulaManagerView
-  extends BaseManagerView<BooleanFormula, BooleanFormula>
+  extends BaseManagerView
   implements QuantifiedFormulaManager {
 
   private final QuantifiedFormulaManager manager;
 
-  public QuantifiedFormulaManagerView(QuantifiedFormulaManager pManager) {
+  public QuantifiedFormulaManagerView(FormulaManagerView pViewManager,
+      QuantifiedFormulaManager pManager) {
+    super(pViewManager);
     this.manager = pManager;
   }
 
   @Override
   public BooleanFormula exists(List<Formula> pVariables, BooleanFormula pBody) {
-    return wrapInView(manager.exists(pVariables, extractFromView(pBody)));
+    return manager.exists(unwrap(pVariables), pBody);
   }
 
   @Override
   public BooleanFormula forall(List<Formula> pVariables, BooleanFormula pBody) {
-    return wrapInView(manager.forall(pVariables, extractFromView(pBody)));
+    return manager.forall(unwrap(pVariables), pBody);
+  }
+
+  @Override
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
+    return manager.eliminateQuantifiers(pF);
   }
 
 }

@@ -38,6 +38,7 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -48,11 +49,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -226,7 +227,7 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CNumericTypes.VOID, length);
+        newType = new CArrayType(false, false, CVoidType.VOID, length);
       } else {
         newType = null;
       }
@@ -238,7 +239,7 @@ class DynamicMemoryHandler {
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName, CNumericTypes.VOID);
+      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID);
       pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                          size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                       parameter.getExpressionType(),
@@ -432,7 +433,7 @@ class DynamicMemoryHandler {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
                                          false,
-                                         CNumericTypes.VOID,
+                                         CVoidType.VOID,
                                          size),
                           baseVariable);
     }

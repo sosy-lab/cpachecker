@@ -35,6 +35,7 @@ import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -50,6 +51,7 @@ public class MutableCFA implements CFA {
   private final FunctionEntryNode mainFunction;
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.absent();
+  private Optional<LiveVariables> liveVariables = Optional.absent();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -157,12 +159,21 @@ public class MutableCFA implements CFA {
   public ImmutableCFA makeImmutableCFA(
       Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        loopStructure, pVarClassification, language);
+        loopStructure, pVarClassification, liveVariables, language);
   }
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
     return Optional.absent();
+  }
+
+  @Override
+  public Optional<LiveVariables> getLiveVariables() {
+    return liveVariables;
+  }
+
+  public void setLiveVariables(Optional<LiveVariables> pLiveVariables) {
+    liveVariables = pLiveVariables;
   }
 
   @Override

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
 public class TestResults {
@@ -35,27 +37,20 @@ public class TestResults {
     checkerResult = pCheckerResult;
   }
 
-  @SuppressWarnings("unused")
   public String getLog() {
     return log;
   }
 
-  @SuppressWarnings("unused")
   public CPAcheckerResult getCheckerResult() {
     return checkerResult;
   }
 
-  @SuppressWarnings("unused")
-  public boolean logContains(String pattern) {
-    return log.contains(pattern);
+  public void assertIsSafe() {
+    assertThat(checkerResult.getResult()).named("verification result").isEqualTo(CPAcheckerResult.Result.TRUE);
   }
 
-  public boolean isSafe() {
-    return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
-  }
-
-  public boolean isUnsafe() {
-    return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
+  public void assertIsUnsafe() {
+    assertThat(checkerResult.getResult()).named("verification result").isEqualTo(CPAcheckerResult.Result.FALSE);
   }
 
   @Override

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
+import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -97,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -126,7 +129,6 @@ import com.google.common.collect.ImmutableSet.Builder;
 @SuppressWarnings("rawtypes")
 public class OctagonTransferRelation extends ForwardingTransferRelation<Set<OctagonState>, OctagonState, VariableTrackingPrecision> {
 
-  private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
   private static final String TEMP_VAR_PREFIX = "___cpa_temp_var_";
 
   /**
@@ -928,8 +930,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
 
     CType returnType = functionType.getReturnType().getCanonicalType();
     if (isHandleAbleType(returnType)
-        && !(returnType instanceof CSimpleType && ((CSimpleType)returnType).getType() == CBasicType.VOID)) {
-      state = state.declareVariable(MemoryLocation.valueOf(calledFunctionName, FUNCTION_RETURN_VAR, 0),
+        && !(returnType instanceof CVoidType)) {
+      state = state.declareVariable(MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0),
                             getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }
 
@@ -997,7 +999,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      int returnVarIndex = state.getVariableIndexFor(MemoryLocation .valueOf(calledFunctionName, FUNCTION_RETURN_VAR, 0));
+      int returnVarIndex = state.getVariableIndexFor(MemoryLocation .valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);
@@ -1186,7 +1188,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), FUNCTION_RETURN_VAR, 0);
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), createFunctionReturnVariable(functionName), 0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

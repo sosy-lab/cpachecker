@@ -28,9 +28,9 @@ package org.sosy_lab.cpachecker.util.rationals;
  */
 public class LinearConstraint {
   final LinearExpression expression;
-  final ExtendedRational bound;
+  final Rational bound;
 
-  public LinearConstraint(LinearExpression pExpression, ExtendedRational pBound) {
+  public LinearConstraint(LinearExpression pExpression, Rational pBound) {
     expression = pExpression;
     bound = pBound;
   }
@@ -39,7 +39,7 @@ public class LinearConstraint {
     return expression;
   }
 
-  public ExtendedRational getBound() {
+  public Rational getBound() {
     return bound;
   }
 }

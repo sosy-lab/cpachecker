@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -87,7 +89,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -126,8 +127,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, VariableTrackingPrecision> {
-
-  private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
   /**
    * This is used for making smaller and greater constraint with octagons
@@ -517,7 +516,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
           break;
         default:
-          throw new CFAGenerationRuntimeException("unhandled case in switch statement: " + binExp.getOperator());
+          throw new UnrecognizedCCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -568,7 +567,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       result = (pLeftVal + pRightVal) != 0;
       break;
     default:
-      throw new CFAGenerationRuntimeException("unhandled switch case: " + pBinaryOperator);
+      throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if ((truthAssumption && result)
         || (!truthAssumption && !result)) {
@@ -654,7 +653,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, FUNCTION_RETURN_VAR, 0),
+    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0),
                                                       getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
 
     // declare all parameters as variables
@@ -715,7 +714,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, FUNCTION_RETURN_VAR, 0);
+      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0);
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -903,7 +902,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), FUNCTION_RETURN_VAR, 0);
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), createFunctionReturnVariable(functionName), 0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

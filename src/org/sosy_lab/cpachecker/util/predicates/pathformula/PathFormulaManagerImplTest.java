@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -145,7 +146,7 @@ public class PathFormulaManagerImplTest {
   }
 
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, TestLogManager.getInstance()
@@ -177,7 +178,7 @@ public class PathFormulaManagerImplTest {
         "x",
         new CInitializerExpression(
             FileLocation.DUMMY,
-            CNumericTypes.ZERO
+            CIntegerLiteralExpression.ZERO
         )
     );
 
@@ -197,7 +198,7 @@ public class PathFormulaManagerImplTest {
             "x",
             xDeclaration
         ),
-        CNumericTypes.ONE, // expression B.
+        CIntegerLiteralExpression.ONE, // expression B.
         CBinaryExpression.BinaryOperator.PLUS
     );
 

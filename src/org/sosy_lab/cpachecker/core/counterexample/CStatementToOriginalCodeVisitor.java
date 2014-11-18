@@ -233,7 +233,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
 
     @Override
     public String visit(CImaginaryLiteralExpression pIastLiteralExpression) throws RuntimeException {
-      return pIastLiteralExpression.getValue().toString() + pIastLiteralExpression.getImaginaryString();
+      return pIastLiteralExpression.getValue().toString() + "i";
     }
 
   }

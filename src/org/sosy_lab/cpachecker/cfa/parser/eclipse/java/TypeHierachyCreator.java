@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
  * Through bindings of the parser, every super type is converted and inserted
  * as well.
  */
-public class TypeHierachyCreator extends ASTVisitor {
+class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
 

@@ -692,7 +692,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -1928,9 +1928,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       isRequiered = false;
       missingExplicitInformation= false;
     }
-
-
-
   }
 
   @Override
@@ -1942,6 +1939,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
         retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
+        if (retVal.size() == 0) {
+          break;
+        }
       }
     }
 

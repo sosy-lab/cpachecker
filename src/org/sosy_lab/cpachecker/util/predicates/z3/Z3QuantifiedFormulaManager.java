@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractQuantifiedFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -62,6 +63,16 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
         0,
         Longs.toArray(Collections.<Long>emptyList()),
         pBody);
+  }
+
+  @Override
+  protected Long eliminateQuantifiers(Long pExtractInfo) throws SolverException, InterruptedException {
+    // It is recommended (personal communication with Nikolaj Bjorner) to run "qe-light" before "qe".
+    //  "qe" does not perform a "qe-light" as a preprocessing on its own!
+
+    // You might want to run the tactic "ctx-solver-simplify" on the result...
+
+    return Z3NativeApiHelpers.applyTactics(z3context, pExtractInfo, "qe-light", "qe");
   }
 
 }

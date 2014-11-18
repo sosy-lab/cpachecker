@@ -111,7 +111,7 @@ analysis.functionPointerCalls = true
 analysis.functionPointerEdgesForUnknownPointer = true
 
 # potential targets for call edges created for function pointer calls
-analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES}
+analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE}
 
 # What CFA nodes should be the starting point of the analysis?
 analysis.initialStatesFor = ENTRY
@@ -335,6 +335,10 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# By enabling this option the variables that are live are computed for each
+# edge of the cfa. Live means that their value is read later on.
+cfa.findLiveVariables = false
+
 # how often can a function appear in the callstack as a clone of the original
 # function?
 cfa.functionCalls.recursionDepth = 5
@@ -462,6 +466,11 @@ cpa.apron.refiner.checkForRepeatedRefinements = true
 # Timelimit for the backup feasibility check with the apron analysis.(use
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
+
+# inform merge operator in predicated analysis that it should delete the
+# subgraph of the merged nodewhich is required to get at most one successor
+# per CFA edge.
+cpa.arg.deleteInPredicatedAnalysis = false
 
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
@@ -762,15 +771,6 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
-# Highest allowed value of the variable
-cpa.interval.allowedHigh = Long.MAX_VALUE
-
-# Lowest allowed value of the variable
-cpa.interval.allowedLow = Long.MIN_VALUE
-
-# do not consider number of references to variables during merge in analysis
-cpa.interval.ignoreReferenceCounts = false
-
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -782,10 +782,6 @@ cpa.interval.splitIntervals = false
 # at most that many intervals will be tracked per variable, -1 if number not
 # restricted
 cpa.interval.threshold = -1
-
-# Variable name of the variable for which should be checked that its value is
-# globally in a certain bound 
-cpa.interval.varName = ""
 
 # controls whether to use abstract evaluation always, never, or depending on
 # entering edges.
@@ -1140,6 +1136,10 @@ cpa.predicate.refinement.atomicPredicates = true
 cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG]
 
+# Conjunct the formulas that were computed as preconditions to get
+# (infeasible) interpolation problems!
+cpa.predicate.refinement.conjunctPreconditionFormulas = false
+
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
@@ -1287,10 +1287,6 @@ cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
 
-# Dynamically synthesize additional precision elements during precision
-# adjustment.
-cpa.predicate.synthesizePrecisionOnAbstraction = false
-
 # check satisfiability when a target state has been found (should be true)
 cpa.predicate.targetStateSatCheck = true
 
@@ -1344,11 +1340,6 @@ cpa.seplogic.partingstar.logicsfile = no default value
 # path to partingstar command
 cpa.seplogic.partingstar.pspath = no default value
 
-# Abstract value describing all values which are allowed for the variable
-# which is checked
-cpa.sign.allowedAbstractValue = ALL
-  enum:     [EMPTY, PLUS, MINUS, ZERO, PLUSMINUS, PLUS0, MINUS0, ALL]
-
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -1356,10 +1347,6 @@ cpa.sign.merge = "JOIN"
 # which stop operator to use for SignCPA
 cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
-
-# Variable name of the variable for which should be checked that its value is
-# globally in a certain bound 
-cpa.sign.varName = ""
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
@@ -1516,10 +1503,6 @@ cpa.stator.policy.runAcceleratedValueDetermination = true
 # Use only relevant nodes for value determination
 cpa.stator.policy.useCompactedValueDetermination = true
 
-# if enabled checks if states are target states (there exist warning for
-# uninitilized use of variables
-cpa.uninitvars.checkTarget = false
-
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -1535,11 +1518,8 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Value which is allowed for the variable which is checked
-cpa.value.allowedValue = 0
-
 # Process the Automaton ASSUMEs as if they were statements, not as if they
-# were assumtions.
+# were assumptions.
 cpa.value.automatonAssumesAsStatements = false
 
 # restrict abstractions to assume edges
@@ -1553,13 +1533,6 @@ cpa.value.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
 cpa.value.blk.alwaysAtLoops = false
-
-# enables target checking for value-analysis, needed for predicate-analysis
-cpa.value.doTargetCheck = false
-
-# enable if will be used in predicated analysis but all variables should be
-# tracked, no refinement
-cpa.value.inPredicatedAnalysis = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -1587,9 +1560,6 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
-# forceRestart
-cpa.value.refinement.forceRestart = 0
-
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
@@ -1600,9 +1570,6 @@ cpa.value.refinement.useGlobalPrecision = false
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
-
-# whether or not to avoid restarting at assume edges after a refinement
-cpa.value.refiner.avoidAssumes = false
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
@@ -1629,9 +1596,10 @@ cpa.value.stop = "SEP"
 # enables generation of symbolic values
 cpa.value.symbolicValues = false
 
-# Variable name of the variable for which should be checked that its value is
-# globally a certain value 
-cpa.value.varName = ""
+# Track Java array values in explicit value analysis. This may be costly if
+# the verified program uses big or lots of arrays. Arrays in C programs will
+# always be tracked, even if this value is false.
+cpa.value.trackJavaArrayValues = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -1687,6 +1655,10 @@ memorysafety.check = false
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
+
+# which merge operator to use for LiveVariablesCPA
+merge = "JOIN"
+  allowed values: [SEP, JOIN]
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -1797,8 +1769,13 @@ precision.trackIntAddVariables = true
 # tracked.
 precision.trackIntEqualVariables = true
 
-# blacklist regex for variables that won't be tracked by ValueAnalysisCPA
+# blacklist regex for variables that won't be tracked by the CPA using this
+# precision
 precision.variableBlacklist = ""
+
+# whitelist regex for variables that will always be tracked by the CPA using
+# this precision
+precision.variableWhitelist = ""
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
@@ -1828,6 +1805,12 @@ spec.matchOriginLine = true
 
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
+
+# If a witness represents a single path in Automaton match both starting and
+# ending lines of the CFA edge (ending line = starting line of the next
+# edge). If matching CFA edge exists, go to the sink for the other edges,
+# otherwise match starting lines as usual.
+spec.singlePathMatching = false
 
 # Do not try to "catch up" with witness lines: If they do not match, go to
 # the sink.
@@ -1867,6 +1850,10 @@ statistics.memory = true
 
 # print statistics to console
 statistics.print = false
+
+# which stop operator to use for LiveVariablesCPA
+stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # Where to write the ARGS to.
 testgen.argExportPaths = "args/arg%d.dot"

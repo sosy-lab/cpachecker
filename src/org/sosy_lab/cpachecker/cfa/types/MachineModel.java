@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -243,7 +244,6 @@ public enum MachineModel {
 
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
-    case VOID:        return getSizeofVoid();
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
     case FLOAT:       return getSizeofFloat();
@@ -398,6 +398,11 @@ public enum MachineModel {
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
     }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return model.getSizeofVoid();
+    }
   }
 
   public int getSizeof(CType type) {
@@ -477,6 +482,11 @@ public enum MachineModel {
     @Override
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return model.getSizeofVoid();
     }
   }
 

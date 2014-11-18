@@ -80,10 +80,11 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.value.refiner")
@@ -104,7 +105,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
@@ -203,7 +204,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             pathChecker,
             formulaManager,
             pathFormulaManager,
-            backupRefinementStrategy);
+            backupRefinementStrategy,
+            solver,
+            predicateCpa.getAssumesStore());
       }
   }
 
@@ -239,7 +242,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     config = pConfig;
     shutDownNotifier = pShutdownNotifier;
 
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = pValueAnalysisStaticRefiner;
     cfa                   = pCfa;
@@ -296,8 +299,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
     Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
-    BDDPrecision bddPrecision                     = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
+    FluentIterable<Precision> precisions = Precisions.asIterable(precision);
+    VariableTrackingPrecision valueAnalysisPrecision = (VariableTrackingPrecision) precisions.filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
+    BDDPrecision bddPrecision = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Predicate<? super Precision>> newPrecisionTypes = new ArrayList<>(2);

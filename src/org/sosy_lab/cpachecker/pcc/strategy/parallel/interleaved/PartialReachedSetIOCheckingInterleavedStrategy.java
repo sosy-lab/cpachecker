@@ -96,21 +96,30 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
     AtomicInteger availableForChecking =new AtomicInteger(0);
     Semaphore partitionsRead = new Semaphore(0);
     Semaphore partitionChecked = new Semaphore(0);
-    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getSavedReachedSetSize());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
    logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads-1);
     try {
-      executor.execute(new PartitionReader(checkResult, partitionsRead, partitionChecked));
-      for (int i = 0; i < numThreads; i++) {
+      for (int i = 0; i < numThreads-1; i++) {
         executor.execute(new ParallelPartitionChecker(availableForChecking, nextId, checkResult, partitionsRead,
             partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
                 .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
       }
+
+      // read partitions
+      new PartitionReader(checkResult, partitionsRead, partitionChecked).run();
+
+      if (!checkResult.get()) { return false; }
+
+      // help checking remaining partitions
+      new ParallelPartitionChecker(availableForChecking, nextId, checkResult, partitionsRead,
+          partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
+              .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger).run();
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 

@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
-
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 /**
  * Converting linear constraints to formulas.
@@ -73,25 +72,10 @@ public class LinearConstraintManager {
   BooleanFormula linearConstraintToFormula(
       LinearConstraint constraint, SSAMap pSSAMap) {
 
-    Preconditions.checkState(
-        constraint.getBound().getType() != ExtendedRational.NumberType.NaN,
-        "Constraints can not contain the number NaN"
-    );
-
-    switch (constraint.getBound().getType()) {
-       case NEG_INFTY:
-        return bfmgr.makeBoolean(false);
-      case INFTY:
-        return bfmgr.makeBoolean(true);
-      case RATIONAL:
-        return rfmgr.lessOrEquals(
-            linearExpressionToFormula(constraint.getExpression(), pSSAMap),
-            rfmgr.makeNumber(constraint.getBound().toString())
-        );
-      default:
-        throw new RuntimeException(
-            "Internal Error, unexpected formula");
-    }
+      return rfmgr.lessOrEquals(
+          linearExpressionToFormula(constraint.getExpression(), pSSAMap),
+          rfmgr.makeNumber(constraint.getBound().toString())
+      );
   }
 
   /**
@@ -122,8 +106,8 @@ public class LinearConstraintManager {
   ) {
 
     NumeralFormula sum = null;
-    for (Map.Entry<String, ExtendedRational> entry : expr) {
-      ExtendedRational coeff = entry.getValue();
+    for (Map.Entry<String, Rational> entry : expr) {
+      Rational coeff = entry.getValue();
       String origVarName = entry.getKey();
 
       // SSA index shouldn't be zero.
@@ -131,14 +115,11 @@ public class LinearConstraintManager {
 
       NumeralFormula item = rfmgr.makeVariable(customPrefix + origVarName, idx);
 
-      if (coeff.getType() != ExtendedRational.NumberType.RATIONAL) {
-        throw new UnsupportedOperationException(
-            "Can not convert the expression " + expr);
-      } else if (coeff.equals(ExtendedRational.ZERO)) {
+      if (coeff.equals(Rational.ZERO)) {
         continue;
-      } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
+      } else if (coeff.equals(Rational.NEG_ONE)) {
         item = rfmgr.negate(item);
-      } else if (!coeff.equals(ExtendedRational.ONE)){
+      } else if (!coeff.equals(Rational.ONE)){
         item = rfmgr.multiply(
             item, rfmgr.makeNumber(entry.getValue().toString()));
       }
@@ -278,41 +259,8 @@ public class LinearConstraintManager {
   }
 
   /**
-   * Provide a subset of original constraints which will give the same result
-   * after maximization as the original set.
-   */
-  @SuppressWarnings("unused")
-  public List<BooleanFormula> optCore(
-      List<BooleanFormula> origConstraints,
-      NumeralFormula objective,
-      ExtendedRational maxValue,
-      boolean isInteger
-      ) {
-    try (ProverEnvironment prover = factory.newProverEnvironment(true, true)) {
-      for (BooleanFormula constraint : origConstraints) {
-        prover.push(constraint);
-      }
-
-      if (isInteger) {
-
-        // Should be more numerically stable.
-        prover.push(rfmgr.greaterOrEquals(
-            objective, rfmgr.makeNumber(
-            maxValue.plus(ExtendedRational.ONE).toString())
-        ));
-      } else {
-        prover.push(rfmgr.greaterThan(
-            objective, rfmgr.makeNumber(maxValue.toString())
-        ));
-      }
-
-      return prover.getUnsatCore();
-    }
-  }
-
-  /**
-   * @return Subset of {@code origConstraints} containing only the formula
-   * related to (possibly indirectly) {@code relatedTo}.
+   * @return Subset of {@param origConstraints} containing only the formula
+   * related to (possibly indirectly) {@param relatedTo}.
    */
   @SuppressWarnings("unused")
   List<BooleanFormula> getRelated(

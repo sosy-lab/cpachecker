@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import java.util.List;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -55,11 +54,7 @@ public class Z3MaximizationTest {
 
   @Before
   public void loadZ3() throws Exception {
-    try {
-      NativeLibraries.loadLibrary("z3j");
-    } catch (UnsatisfiedLinkError t) {
-      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
-    }
+    NativeLibraries.loadLibrary("z3j");
     config = Configuration.defaultConfiguration();
     logger = TestLogManager.getInstance();
     mgr = Z3FormulaManager.create(logger, config, null);

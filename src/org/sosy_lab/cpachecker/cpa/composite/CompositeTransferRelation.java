@@ -38,9 +38,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -54,10 +56,13 @@ public class CompositeTransferRelation implements TransferRelation {
   private final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
+  private final boolean isErrorStateDetectableInStrengthening;
 
-  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations) {
+  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations, boolean pErrorDetctableInStrengthen) {
     this.transferRelations = transferRelations;
     size = transferRelations.size();
+
+    isErrorStateDetectableInStrengthening = pErrorDetctableInStrengthen;
 
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
@@ -137,6 +142,8 @@ public class CompositeTransferRelation implements TransferRelation {
     Collection<List<AbstractState>> allResultingElements
         = createCartesianProduct(allComponentsSuccessors, resultCount);
 
+    AbstractState foundInStrengthen = null;
+
     // second, call strengthen for each result of the cartesian product
     for (List<AbstractState> lReachedState : allResultingElements) {
 
@@ -162,6 +169,17 @@ public class CompositeTransferRelation implements TransferRelation {
             break;
           }
 
+          if (isErrorStateDetectableInStrengthening && foundInStrengthen == null) {
+            if (lCurrentElement instanceof AutomatonState) {
+              for (AbstractState strengthenState : lResultsList) {
+                if (((Targetable) strengthenState).isTarget()) {
+                  foundInStrengthen = strengthenState;
+                  break;
+                }
+              }
+            }
+          }
+
           lStrengthenResults.add(lResultsList);
         }
       }
@@ -174,6 +192,18 @@ public class CompositeTransferRelation implements TransferRelation {
         TransferRelation predTransfer = transferRelations.get(predicatesIndex);
 
         Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+        resultCount *= predResult.size();
+
+        lStrengthenResults.set(predicatesIndex, predResult);
+      }
+
+      // special case handling error state found during strengthening if we have predicate
+      if (predicatesIndex >= 0 && foundInStrengthen!=null && resultCount > 0) {
+        AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+        Precision predPrecision = compositePrecision.get(predicatesIndex);
+        TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+
+        Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(foundInStrengthen), cfaEdge, predPrecision);
         resultCount *= predResult.size();
 
         lStrengthenResults.set(predicatesIndex, predResult);

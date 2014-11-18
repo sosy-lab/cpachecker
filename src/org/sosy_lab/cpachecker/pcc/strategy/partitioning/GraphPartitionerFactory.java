@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 
 public class GraphPartitionerFactory {
 
+  private GraphPartitionerFactory() { }
+
   public static enum PartitioningHeuristics {
     RANDOM,
     DFS,

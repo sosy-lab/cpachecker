@@ -57,16 +57,8 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
     super(pCreator);
   }
 
-  protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo(pNumber);
-  }
-
   protected FloatingPointFormula wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateFloatingPoint(pTerm);
-  }
-
-  protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override

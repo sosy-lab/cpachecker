@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -258,8 +259,10 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
         Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
             "Value determination should not be unsatisfiable");
-        if (newValue != ExtendedRational.INFTY) {
-          builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+        if (newValue.isRational()) {
+          builder.put(
+              template,
+              PolicyTemplateBound.of(policyEdge, newValue.getRational()));
         } else {
           unbounded.add(template);
         }
@@ -315,8 +318,10 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         assert (template != null && templateBound != null);
         CFAEdge policyEdge = templateBound.edge;
 
-        if (newValue != ExtendedRational.INFTY) {
-          builder.put(template, PolicyTemplateBound.of(policyEdge, newValue));
+        if (newValue.isRational()) {
+          builder.put(
+              template,
+              PolicyTemplateBound.of(policyEdge, newValue.getRational()));
         } else {
           unbounded.add(template);
         }
@@ -356,17 +361,17 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     boolean greater_or_equal = true;
 
     for (Entry<LinearExpression, PolicyTemplateBound> e : newState) {
-      ExtendedRational prevBound, newBound;
-      newBound = e.getValue().bound;
+      Rational newBound = e.getValue().bound;
+
       PolicyTemplateBound prevValue = prevState.getPolicyTemplateBound(
           e.getKey()).orNull();
-      if (prevValue == null) {
-        prevBound = ExtendedRational.INFTY;
-      } else {
-        prevBound = prevValue.bound;
-      }
 
-      int cmp = newBound.compareTo(prevBound);
+      int cmp;
+      if (prevValue == null) {
+        cmp = -1;
+      } else {
+        cmp = newBound.compareTo(prevValue.bound);
+      }
 
       if (cmp > 0) {
         less_or_equal = false;

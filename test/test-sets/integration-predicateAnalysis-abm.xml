@@ -22,13 +22,6 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/eca/Problem11_10_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem11_30_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem11_50_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem12_60_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem13_60_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem14_50_true-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem15_00_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>

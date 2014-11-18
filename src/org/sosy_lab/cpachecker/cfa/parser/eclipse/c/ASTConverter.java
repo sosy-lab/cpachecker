@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -163,9 +164,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -307,7 +310,7 @@ class ASTConverter {
       final CLeftHandSide exp, final FileLocation fileLoc,
       final CType type, final BinaryOperator op) {
     final CIdExpression tmp = createInitializedTemporaryVariable(fileLoc, exp.getExpressionType(), exp);
-    final CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(exp, CNumericTypes.ONE, op);
+    final CBinaryExpression postExp = buildBinaryExpression(exp, CIntegerLiteralExpression.ONE, op);
     sideAssignmentStack.addPreSideAssignment(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
     return tmp;
   }
@@ -555,8 +558,22 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
+    CType type = typeConverter.convert(e.getExpressionType());
+    if (type.getCanonicalType() instanceof CVoidType) {
+      if (e instanceof IASTFunctionCallExpression) {
+        // Void method called and return value used.
+        // Possibly this is an undeclared function.
+        // Default return type in C for these cases is INT.
+        type = CNumericTypes.INT;
+      } else {
+        // TODO enable if we do not have unnecessary temporary variables of type void anymore
+//        throw new CFAGenerationRuntimeException(
+//            "Cannot create temporary variable for expression with type void",
+//            e, niceFileNameFunction);
+      }
+    }
     return createInitializedTemporaryVariable(
-        getLocation(e), typeConverter.convert(e.getExpressionType()), (CInitializer)null);
+        getLocation(e), type, (CInitializer)null);
   }
 
   private CIdExpression createInitializedTemporaryVariable(
@@ -644,7 +661,7 @@ class ASTConverter {
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
         // first create expression "a + b"
-        CBinaryExpression exp = binExprBuilder.buildBinaryExpression(leftHandSide, rightHandSide, op);
+        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
 
         // and now the assignment
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
@@ -652,7 +669,16 @@ class ASTConverter {
 
     } else {
       CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
-      return binExprBuilder.buildBinaryExpression(leftHandSide, rightHandSide, op);
+      return buildBinaryExpression(leftHandSide, rightHandSide, op);
+    }
+  }
+
+  private CBinaryExpression buildBinaryExpression(
+      CExpression operand1, CExpression operand2, BinaryOperator op) {
+    try {
+      return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
+    } catch (UnrecognizedCCodeException e) {
+      throw new CFAGenerationRuntimeException(e);
     }
   }
 
@@ -710,16 +736,16 @@ class ASTConverter {
     }
   }
 
-  private static class ContainsProblemTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visitDefault(CType pT) throws RuntimeException {
+      return Boolean.FALSE;
+    }
 
     @Override
     public Boolean visit(final CArrayType t) {
       return t.getType().accept(this);
-    }
-
-    @Override
-    public Boolean visit(final CCompositeType t) {
-      return false;
     }
 
     @Override
@@ -730,11 +756,6 @@ class ASTConverter {
       } else {
         return false;
       }
-    }
-
-    @Override
-    public Boolean visit(final CEnumType t) {
-      return false;
     }
 
     @Override
@@ -755,11 +776,6 @@ class ASTConverter {
     @Override
     public Boolean visit(final CProblemType t) {
       return true;
-    }
-
-    @Override
-    public Boolean visit(final CSimpleType t) {
-      return false;
     }
 
     @Override
@@ -941,9 +957,9 @@ class ASTConverter {
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
           if (areCompatibleTypes(params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
-            return CNumericTypes.ONE;
+            return CIntegerLiteralExpression.ONE;
           } else {
-            return CNumericTypes.ZERO;
+            return CIntegerLiteralExpression.ZERO;
           }
         }
       }
@@ -963,9 +979,9 @@ class ASTConverter {
           && params.size() == 1
           && scope.lookupFunction("__builtin_constant_p") == null) {
         if (params.get(0) instanceof CLiteralExpression) {
-          return CNumericTypes.ONE;
+          return CIntegerLiteralExpression.ONE;
         } else {
-          return CNumericTypes.ZERO;
+          return CIntegerLiteralExpression.ZERO;
         }
       }
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
@@ -982,7 +998,7 @@ class ASTConverter {
         // that behaves like (exp == c).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
 
-        return binExprBuilder.buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
+        return buildBinaryExpression(params.get(0), params.get(1), BinaryOperator.EQUALS);
       }
     }
 
@@ -1156,7 +1172,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      CBinaryExpression preExp = binExprBuilder.buildBinaryExpression(operand, CNumericTypes.ONE, preOp);
+      CBinaryExpression preExp = buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
       CLeftHandSide lhsPre = (CLeftHandSide) operand;
 
       return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
@@ -1176,7 +1192,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      CBinaryExpression postExp = binExprBuilder.buildBinaryExpression(operand, CNumericTypes.ONE, postOp);
+      CBinaryExpression postExp = buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, postOp);
       CLeftHandSide lhsPost = (CLeftHandSide) operand;
       CExpressionAssignmentStatement result = new CExpressionAssignmentStatement(fileLoc, lhsPost, postExp);
 
@@ -1224,14 +1240,14 @@ class ASTConverter {
       final CBinaryExpression binExpr = (CBinaryExpression)expr;
       if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
         BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
-        return binExprBuilder.buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
+        return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
     }
 
     // at this point, we have an expression, that is not directly boolean (!a, !(a+b), !123), so we compare it with Zero.
     // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
     // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
-    return binExprBuilder.buildBinaryExpression(CNumericTypes.ZERO, expr, BinaryOperator.EQUALS);
+    return buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
   }
 
   /** returns a CPointerExpression, that may be simplified. */

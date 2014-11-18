@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -208,5 +209,28 @@ public class ValidVars implements Serializable {
       builder.put(pFunctionName, (byte) 1);
     }
     return builder.build();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("(");
+    sb.append("global:\n");
+    sb.append(globalValidVars.toString());
+    sb.append("\n");
+    Joiner.on("\n").withKeyValueSeparator(":\n").appendTo(sb, localValidVars);
+    sb.append(")");
+    return sb.toString();
+  }
+
+  public String toStringInDOTFormat(){
+    StringBuilder sb = new StringBuilder();
+    sb.append("(\\n");
+    sb.append("global:\\n");
+    sb.append(globalValidVars.toString());
+    sb.append("\\n");
+    Joiner.on("\\n").withKeyValueSeparator(":\\n").appendTo(sb, localValidVars);
+    sb.append(")");
+    return sb.toString();
   }
 }

@@ -317,13 +317,6 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
         return false;
       }
-      if (edge.getSuccessor().getNumLeavingEdges() == 1) {
-        CFAEdge nextEdge = edge.getSuccessor().getLeavingEdge(0);
-        if (nextEdge.getFileLocation().getStartingLineNumber() > edge.getFileLocation().getStartingLineNumber()
-            || nextEdge.getFileLocation().getEndingLineNumber() < edge.getFileLocation().getEndingLineNumber()) {
-          return false;
-        }
-      }
       return true;
     }
     return false;

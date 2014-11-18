@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+
 
 /**
  * This interface represents the a theory with quantifiers.
@@ -35,5 +37,13 @@ public interface QuantifiedFormulaManager {
   public BooleanFormula exists (List<Formula> pVariables, BooleanFormula pBody);
 
   public BooleanFormula forall (List<Formula> pVariables, BooleanFormula pBody);
+
+  /**
+   * Eliminate the quantifiers for a given formula.
+   *
+   * @param   Formula with quantifiers.
+   * @return  New formula without quantifiers.
+   */
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException;
 
 }

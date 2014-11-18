@@ -38,7 +38,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Sets;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -77,9 +76,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -157,7 +157,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
                                           pathChecker,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          strategy);
+                                          strategy,
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getAssumesStore());
   }
 
   @Override
@@ -181,10 +183,12 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         final PathChecker pPathChecker,
         final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy pStrategy)
+        final RefinementStrategy pStrategy,
+        final Solver pSolver,
+        final PredicateAssumeStore pAssumesStore)
             throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy);
+      super(config, logger, pCpa, pInterpolationManager, pPathChecker, pFormulaManager, pPathFormulaManager, pStrategy, pSolver, pAssumesStore);
 
     }
 
