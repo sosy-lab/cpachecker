@@ -130,15 +130,12 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
 
   @Override
   public String toString() {
-    return liveVars == null ? "" : liveVars.toString();
+    return liveVars.toString();
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Objects.hashCode(liveVars);
-    return result;
+    return Objects.hashCode(liveVars);
   }
 
   @Override
