@@ -586,6 +586,10 @@ class DynamicMemoryHandler {
     }
     // Now iterate over the variable used in the LHS
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
+      // Don't consider deferred allocation pointers that were already handled in the RHS
+      if (rhsUsedDeferredAllocationPointers.containsKey(usedPointer.getKey())) {
+        continue;
+      }
       if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // *((int *)__tmp) = 5;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
