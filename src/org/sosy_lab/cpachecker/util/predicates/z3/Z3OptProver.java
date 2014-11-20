@@ -31,20 +31,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
-public class Z3OptProver implements OptEnvironment{
+public class Z3OptProver implements OptEnvironment {
 
   private final Z3FormulaManager mgr;
+  private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
+
+  private Optional<Integer> objectiveHandle;
+  private Optional<Boolean> isMaximization;
 
   public Z3OptProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
+
+    objectiveHandle = Optional.absent();
+    isMaximization = Optional.absent();
   }
 
   @Override
@@ -54,23 +63,73 @@ public class Z3OptProver implements OptEnvironment{
   }
 
   @Override
-  public void setObjective(Formula objective) {
+  public void maximize(Formula objective) {
+    Preconditions.checkState(!objectiveHandle.isPresent());
     Z3Formula z3Objective = (Z3Formula) objective;
-    Preconditions.checkArgument(mgr.getUnsafeFormulaManager().isVariable(z3Objective),
-        "Can only maximize for a single variable.");
-    optimize_maximize(z3context, z3optContext, z3Objective.getExpr());
+    int handle = optimize_maximize(
+        z3context, z3optContext, z3Objective.getExpr());
+    objectiveHandle = Optional.of(handle);
+    isMaximization = Optional.of(true);
   }
 
   @Override
-  public OptResult maximize() throws InterruptedException {
+  public void minimize(Formula objective) {
+    Preconditions.checkState(!objectiveHandle.isPresent());
+    Z3Formula z3Objective = (Z3Formula) objective;
+    int handle = optimize_minimize(
+        z3context, z3optContext, z3Objective.getExpr());
+    objectiveHandle = Optional.of(handle);
+    isMaximization = Optional.of(false);
+  }
+
+  @Override
+  public OptStatus check()
+      throws InterruptedException, SolverException {
+
+    Preconditions.checkState(objectiveHandle.isPresent());
+
     int status = optimize_check(z3context, z3optContext);
     if (status == Z3_LBOOL.Z3_L_FALSE.status) {
-      return OptResult.UNSAT;
+      return OptStatus.UNSAT;
     } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
-      return OptResult.UNDEF;
+      return OptStatus.UNDEF;
     } else {
-      return OptResult.OPT;
+
+      long out = optimize_get_upper(z3context, z3optContext,
+          objectiveHandle.get());
+      String outS = ast_to_string(z3context, out);
+
+      // We use contains because we'll get negative infinity for minimization.
+      if (outS.contains(Z3_INFINITY_REPRESENTATION)) {
+        return OptStatus.UNBOUNDED;
+      }
+      return OptStatus.OPT;
     }
+  }
+
+  @Override
+  public Rational upper() {
+    Preconditions.checkState(objectiveHandle.isPresent());
+    int idx = objectiveHandle.get();
+    return rationalFromZ3AST(
+        optimize_get_upper(z3context, z3optContext, idx));
+  }
+
+  @Override
+  public Rational lower() {
+    Preconditions.checkState(objectiveHandle.isPresent());
+    int idx = objectiveHandle.get();
+    return rationalFromZ3AST(
+        optimize_get_lower(z3context, z3optContext, idx));
+  }
+
+  @Override
+  public Rational value() {
+    Preconditions.checkState(isMaximization.isPresent());
+    if(isMaximization.get()) {
+      return upper();
+    }
+    return lower();
   }
 
   @Override
@@ -84,5 +143,9 @@ public class Z3OptProver implements OptEnvironment{
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
     z3optContext = 0;
+  }
+
+  private Rational rationalFromZ3AST(long ast) {
+    return Rational.ofString(get_numeral_string(z3context, ast));
   }
 }

@@ -64,7 +64,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     FreshVariableManager freshVariableManager = new FreshVariableManager(
         formulaManager.getRationalFormulaManager(),
         formulaManager.getBooleanFormulaManager());
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, formulaManagerFactory, logger, freshVariableManager);
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger, freshVariableManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             pathFormulaManager, formulaManager, config, logger,

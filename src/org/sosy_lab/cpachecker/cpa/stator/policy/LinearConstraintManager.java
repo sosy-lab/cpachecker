@@ -11,13 +11,10 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -35,30 +32,25 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
  */
 public class LinearConstraintManager {
 
-  private final BooleanFormulaManagerView bfmgr;
   private final NumeralFormulaManagerView<
         NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
   private final LogManager logger;
   private final FormulaManagerView fmgr;
-  private final FormulaManagerFactory factory;
 
   /**
    * Something which is bigger then MAX_INT/MAX_FLOW (or whatever domain we
    * are working with).
    */
-  private final ExtendedRational BAZILLION = ExtendedRational.ofString(
+  private final Rational BAZILLION = Rational.ofString(
       "100000000");
   private final FreshVariableManager freshVariableManager;
 
   LinearConstraintManager(
       FormulaManagerView pFmgr,
-      FormulaManagerFactory factory,
       LogManager logger,
       FreshVariableManager pFreshVariableManager
       ) {
     fmgr = pFmgr;
-    this.factory = factory;
-    bfmgr = pFmgr.getBooleanFormulaManager();
     rfmgr = pFmgr.getRationalFormulaManager();
     this.logger = logger;
     freshVariableManager = pFreshVariableManager;
@@ -168,8 +160,8 @@ public class LinearConstraintManager {
     NumeralFormula sum = rfmgr.sum(objectives);
     NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
     prover.addConstraint(rfmgr.equal(sum, target));
-    prover.setObjective(target);
-    OptEnvironment.OptResult status = prover.maximize();
+    prover.maximize(target);
+    OptEnvironment.OptStatus status = prover.check();
 
     switch (status) {
       case OPT:
@@ -179,7 +171,14 @@ public class LinearConstraintManager {
         for (Map.Entry<String, NumeralFormula> e : input.entrySet()) {
           String varName = e.getKey();
           NumeralFormula formula = e.getValue();
-          out.put(formula, rationalFromModel(model, varName));
+          Rational r = rationalFromModel(model, varName);
+          ExtendedRational eOut;
+          if (r.equals(BAZILLION)) {
+            eOut = ExtendedRational.INFTY;
+          } else {
+            eOut = new ExtendedRational(r);
+          }
+          out.put(formula, eOut);
         }
         return out;
       default:
@@ -225,16 +224,16 @@ public class LinearConstraintManager {
     );
 
     prover.addConstraint(rfmgr.equal(target, objective));
-    prover.setObjective(target);
+    prover.maximize(target);
 
-    OptEnvironment.OptResult result = prover.maximize();
+    OptEnvironment.OptStatus result = prover.check();
 
     switch (result) {
       case OPT:
         Model model = prover.getModel();
         logger.log(Level.FINEST, "OPT");
         logger.log(Level.FINEST, "Model = ", model);
-        return rationalFromModel(model, target.toString());
+        return new ExtendedRational(rationalFromModel(model, target.toString()));
       case UNSAT:
         logger.log(Level.FINEST, "UNSAT");
         return ExtendedRational.NEG_INFTY;
@@ -250,12 +249,10 @@ public class LinearConstraintManager {
     }
   }
 
-  private ExtendedRational rationalFromModel(Model model, String varName) {
-    ExtendedRational returned = (ExtendedRational) model.get(
+  public Rational rationalFromModel(Model model, String varName) {
+    return (Rational) model.get(
         new Model.Constant(varName, Model.TermType.Real)
     );
-    if (returned.equals(BAZILLION)) return ExtendedRational.INFTY;
-    return returned;
   }
 
   /**
