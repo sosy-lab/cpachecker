@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -139,14 +140,13 @@ public class CtoFormulaConverter {
                         "fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
-  public static final String RETURN_VARIABLE_NAME = "__retval__";
+  @Deprecated
+  public static final String RETURN_VARIABLE_NAME = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
   public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
       );
-
-  private static final String SCOPE_SEPARATOR = "::";
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -247,22 +247,28 @@ public class CtoFormulaConverter {
     return typeHandler.getFormulaTypeFromCType(type);
   }
 
-  /** prefixes function to variable name
-  * Call only if you are sure you have a local variable!
-  */
-  public static String scoped(String var, String function) {
-    return (function + SCOPE_SEPARATOR + var).intern();
-  }
-
   /**
-   * This method eleminates all spaces from an expression's ASTString and returns
-   * the new String.
+   * This method produces a String representation of an arbitrary expression
+   * that can be used as a variable name in a formula.
+   * The name is not globally unique.
    *
    * @param e the expression which should be named
    * @return the name of the expression
    */
-  public static String exprToVarName(AAstNode e) {
+  static String exprToVarNameUnscoped(AAstNode e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
+  }
+
+  /**
+   * This method produces a String representation of an arbitrary expression
+   * that can be used as a variable name in a formula.
+   * The name is local to the given function.
+   *
+   * @param e the expression which should be named
+   * @return the name of the expression
+   */
+  static String exprToVarName(AAstNode e, String function) {
+    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
   /**
@@ -1287,7 +1293,7 @@ public class CtoFormulaConverter {
     logger.logfOnce(Level.FINEST, "%s: Unhandled expression treated as free variable: %s",
         exp.getFileLocation(), exp.toASTString());
 
-    String var = scoped(exprToVarName(exp), function);
+    String var = exprToVarName(exp, function);
     if (makeFresh) {
       return makeFreshVariable(var, exp.getExpressionType(), ssa);
     } else {

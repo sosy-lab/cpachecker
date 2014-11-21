@@ -382,7 +382,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
         // we can omit the warning (no pointers involved),
         // and we don't need to scope the variable reference
-        return conv.makeVariable(CtoFormulaConverter.exprToVarName(fExp), fExp.getExpressionType(), ssa);
+        return conv.makeVariable(CtoFormulaConverter.exprToVarNameUnscoped(fExp), fExp.getExpressionType(), ssa);
       }
     }
 
@@ -644,7 +644,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
     } else {
       conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
-      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      String escapedName = CtoFormulaConverter.exprToVarName(functionNameExpression, function);
       functionName = ("<func>{" + escapedName + "}").intern();
     }
 

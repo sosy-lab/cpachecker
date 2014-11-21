@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Function;
@@ -152,7 +151,7 @@ public class MemoryToFormulaManager {
     AVariableDeclaration decl = adr.getDeclaration();
     String functionName = decl.getQualifiedName().split("::")[0];
     String varName = decl.toASTString().split(" ")[1].replaceAll(";", "");
-    return CtoFormulaConverter.scoped(varName, functionName);
+    return functionName + "::" + varName;
   }
 
   private String varAddressToVarName(MemorySegment adr) {
