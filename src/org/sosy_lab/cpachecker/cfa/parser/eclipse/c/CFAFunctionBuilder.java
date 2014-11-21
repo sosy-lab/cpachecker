@@ -426,7 +426,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames);
+        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 

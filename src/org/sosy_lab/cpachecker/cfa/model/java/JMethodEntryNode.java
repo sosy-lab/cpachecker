@@ -28,8 +28,11 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+
+import com.google.common.base.Optional;
 
 public class JMethodEntryNode extends FunctionEntryNode {
 
@@ -38,7 +41,9 @@ public class JMethodEntryNode extends FunctionEntryNode {
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pFileLocation, pMethodDefinition.getName(), pExitNode, pMethodDefinition, pParameterNames);
+    super(pFileLocation, pMethodDefinition.getName(), pExitNode, pMethodDefinition,
+        // TODO we need the correct declaration of the return variable here
+        pParameterNames, Optional.<JVariableDeclaration>absent());
   }
 
   @Override
@@ -49,5 +54,11 @@ public class JMethodEntryNode extends FunctionEntryNode {
   @Override
   public List<JParameterDeclaration> getFunctionParameters() {
     return getFunctionDefinition().getParameters();
+  }
+
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<? extends JVariableDeclaration> getReturnVariable() {
+    return (Optional<? extends JVariableDeclaration>) super.getReturnVariable();
   }
 }

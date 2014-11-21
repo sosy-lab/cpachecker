@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+
 import com.google.common.base.Optional;
 
 /**
@@ -42,6 +44,8 @@ public interface IAReturnStatement extends IAstNode {
    * this method creates a representation of this statement in form of an assignment
    * of the return value to a special variable
    * (i.e., something like "__retval__ = exp;").
+   * This special variable is the same as the one returned by
+   * {@link FunctionEntryNode#getReturnVariable()}.
    */
   public Optional<? extends IAssignment> asAssignment();
 }

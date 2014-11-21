@@ -327,8 +327,12 @@ class FunctionCloner implements CFAVisitor {
       final boolean isExitNodeReachable = exitNode.getNumEnteringEdges() > 0;
 
       final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
+      Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
+      if (returnVariable.isPresent()) {
+        returnVariable = Optional.of(cloneAst(returnVariable.get()));
+      }
       final CFunctionEntryNode entryNode = new CFunctionEntryNode(n.getFileLocation(), cloneAst(n.getFunctionDefinition()),
-              newExitNode, n.getFunctionParameterNames());
+              newExitNode, n.getFunctionParameterNames(), returnVariable);
       newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
       newNode = entryNode;
 
