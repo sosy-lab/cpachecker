@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -350,20 +349,6 @@ public class VariableClassification {
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable classification statistics to file");
     }
-  }
-
-  public static Set<String> getVariablesOfExpression(CExpression expr) {
-    Set<String> result = new HashSet<>();
-    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-
-    expr.accept(collector);
-
-    for (CIdExpression id : collector.getReferencedIdExpressions()) {
-      String assignToVar = id.getDeclaration().getQualifiedName();
-      result.add(assignToVar);
-    }
-
-    return result;
   }
 
   public void dumpVariableTypeMapping(Path target) {

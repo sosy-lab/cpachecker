@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -342,7 +343,7 @@ public final class LoopStructure {
       for (CFAEdge e : l.getOutgoingEdges()) {
         if (e instanceof CAssumeEdge) {
           CExpression expr = ((CAssumeEdge) e).getExpression();
-          result.addAll(VariableClassification.getVariablesOfExpression(expr));
+          result.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(expr));
         }
       }
     }
