@@ -38,6 +38,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
@@ -913,6 +914,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getHVEdges(pFilter);
   }
 
+  Set<SMGEdgeHasValue> getHVEdges() {
+    return heap.getHVEdges();
+  }
+
   @Nullable
   public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
     SMGObject object = pValue.getObject();
@@ -1031,6 +1036,19 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     explicitValues.remove(pKey);
   }
 
+  boolean isExplicit(int value) {
+    SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
+
+    return explicitValues.containsKey(key);
+  }
+
+  SMGKnownExpValue getExplicit(int value) {
+    SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
+
+    assert explicitValues.containsKey(key);
+    return explicitValues.get(key);
+  }
+
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
     if (explicitValues.containsKey(pKey)) {
       return explicitValues.get(pKey);
@@ -1052,5 +1070,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     } else {
       return heap.haveNeqRelation(pValue1.getAsInt(), pValue2.getAsInt());
     }
+  }
+
+  IDExpression createIDExpression(SMGObject pObject) {
+    return heap.createIDExpression(pObject);
   }
 }

@@ -21,18 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.refiner;
+package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -58,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
@@ -71,46 +68,37 @@ import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
-
-public class ValueAnalysisConcreteErrorPathAllocator {
+public class SMGConcreteErrorPathAllocator {
 
   @SuppressWarnings("unused")
   private final LogManager logger;
-  @SuppressWarnings("unused")
-  private final ShutdownNotifier shutdownNotifier;
 
   private MemoryName memoryName = new MemoryName() {
 
     @Override
     public String getMemoryName(CRightHandSide pExp, Address pAddress) {
-      return "Value_Analysis_Heap";
+      return "SMG_Analysis_Heap";
     }
   };
 
-  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public SMGConcreteErrorPathAllocator(LogManager pLogger) {
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<ValueAnalysisState, CFAEdge>> path = new ArrayList<>(pPath.size());
+    List<Pair<SMGState, CFAEdge>> path = new ArrayList<>(pPath.size());
 
     PathIterator it = pPath.pathIterator();
 
     while (it.hasNext()) {
       it.advance();
-      ValueAnalysisState state = AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
+      SMGState state = AbstractStates.extractStateByType(it.getAbstractState(), SMGState.class);
       CFAEdge edge = it.getIncomingEdge();
 
       if (state == null) {
@@ -123,7 +111,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)
+  public Model allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel)
       throws InterruptedException {
 
     pPath.remove(pPath.size() - 1);
@@ -138,28 +126,26 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return model.withAssignmentInformation(pathWithAssignments);
   }
 
-  private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
 
     List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
 
-    /*"We generate addresses for our memory locations.
-     * This avoids needing to get the CDeclaration
-     * representing each memory location, which would be necessary if we
-     * wanted to exactly map each memory location to a LeftHandSide.*/
-    Map<LeftHandSide, Address> variableAddresses = generateVariableAddresses(pPath);
+    // Until SMGObjects are comparable for persistant maps, this object is mutable
+    // and depends on side effects
+    SMGObjectAddressMap variableAddresses = new SMGObjectAddressMap();
 
-    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<SMGState, CFAEdge> edgeStatePair : pPath) {
 
-      ValueAnalysisState valueState = edgeStatePair.getFirst();
+      SMGState pSMGState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
       ConcerteStatePathNode node;
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
-        node = createMultiEdge(valueState, (MultiEdge) edge, variableAddresses);
+        node = createMultiEdge(pSMGState, (MultiEdge) edge, variableAddresses);
       } else {
-        ConcreteState concreteState = createConcreteState(valueState, variableAddresses);
+        ConcreteState concreteState = createConcreteState(pSMGState, variableAddresses);
         node = ConcreteStatePath.valueOfPathNode(concreteState, edge);
       }
 
@@ -170,8 +156,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private ConcerteStatePathNode createMultiEdge(ValueAnalysisState pValueState, MultiEdge multiEdge,
-      Map<LeftHandSide, Address> pVariableAddresses) {
+  private ConcerteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
+      SMGObjectAddressMap pVariableAddresses) {
 
     int size = multiEdge.getEdges().size();
 
@@ -189,7 +175,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
       // We know only values for LeftHandSides that have not yet been assigned.
       if (allValuesForLeftHandSideKnown(cfaEdge, alreadyAssigned)) {
-        state = createConcreteState(pValueState, pVariableAddresses);
+        state = createConcreteState(pSMGState, pVariableAddresses);
       } else {
         state = ConcreteState.empty();
       }
@@ -315,97 +301,23 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return false;
   }
 
-  private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
-
-    // Get all base IdExpressions for memory locations, ignoring the offset
-    Multimap<IDExpression, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
-
-    // Generate consistent Addresses, with non overlapping fields.
-    return generateVariableAddresses(memoryLocationsInPath);
-  }
-
-  private Map<LeftHandSide, Address> generateVariableAddresses(Multimap<IDExpression, MemoryLocation> pMemoryLocationsInPath) {
-
-    Map<LeftHandSide, Address> result = Maps.newHashMapWithExpectedSize(pMemoryLocationsInPath.size());
-
-    // Start with Address 0
-    Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
-
-    for (IDExpression variable : pMemoryLocationsInPath.keySet()) {
-      result.put(variable, nextAddressToBeAssigned);
-
-      // leave enough space for values between addresses
-      nextAddressToBeAssigned =
-          generateNextAddresses(pMemoryLocationsInPath.get(variable), nextAddressToBeAssigned);
-
-    }
-
-    return result;
-  }
-
-  private Address generateNextAddresses(Collection<MemoryLocation> pCollection, Address pNextAddressToBeAssigned) {
-
-    long biggestStoredOffsetInPath = 0;
-
-    for (MemoryLocation loc : pCollection) {
-      if (loc.getOffset() > biggestStoredOffsetInPath) {
-        biggestStoredOffsetInPath = loc.getOffset();
-      }
-    }
-
-    // Leave enough space for a long Value
-    // TODO find good value
-    long spaceForLastValue = 64;
-    BigInteger offset = BigInteger.valueOf(biggestStoredOffsetInPath + spaceForLastValue);
-
-    return pNextAddressToBeAssigned.addOffset(offset);
-  }
-
-  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
-
-    Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
-
-    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
-
-      ValueAnalysisState valueState = edgeStatePair.getFirst();
-
-      for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
-        IDExpression idExp = createBaseIdExpresssion(loc);
-
-        if (!result.containsEntry(idExp, loc)) {
-          result.put(idExp, loc);
-        }
-      }
-    }
-    return result;
-  }
-
-  private IDExpression createBaseIdExpresssion(MemoryLocation pLoc) {
-
-    if (!pLoc.isOnFunctionStack()) {
-      return new IDExpression(pLoc.getIdentifier());
-    } else {
-      return new IDExpression(pLoc.getIdentifier(), pLoc.getFunctionName());
-    }
-  }
-
-  //TODO move to util? (without param generated addresses)
-  private ConcreteState createConcreteState(ValueAnalysisState pValueState,
-      Map<LeftHandSide, Address> pVariableAddressMap) {
+  //TODO move to util?
+  private ConcreteState createConcreteState(SMGState pSMGState,
+      SMGObjectAddressMap pAdresses) {
 
 
     Map<LeftHandSide, Object> variables = ImmutableMap.of();
-    Map<String, Memory> allocatedMemory = allocateAddresses(pValueState, pVariableAddressMap);
+    Map<String, Memory> allocatedMemory = allocateAddresses(pSMGState, pAdresses);
     // We assign every variable to the heap, thats why the variable map is empty.
-    return new ConcreteState(variables, allocatedMemory, pVariableAddressMap, memoryName);
+    return new ConcreteState(variables, allocatedMemory, pAdresses.getAddressMap(), memoryName);
   }
 
-  private Map<String, Memory> allocateAddresses(ValueAnalysisState pValueState,
-      Map<LeftHandSide, Address> pVariableAddressMap) {
+  private Map<String, Memory> allocateAddresses(SMGState pSMGState,
+      SMGObjectAddressMap pAdresses) {
 
-    Map<Address, Object> values = createHeapValues(pValueState, pVariableAddressMap);
+    Map<Address, Object> values = createHeapValues(pSMGState, pAdresses);
 
-    // memory name of value analysis does not need to know expression or address
+    // memory name of smg analysis does not need to know expression or address
     Memory heap = new Memory(memoryName.getMemoryName(null, null), values);
 
     Map<String, Memory> result = new HashMap<>();
@@ -415,31 +327,68 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return result;
   }
 
-  private Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,
-      Map<LeftHandSide, Address> pVariableAddressMap) {
+  private Map<Address, Object> createHeapValues(SMGState pSMGState,
+      SMGObjectAddressMap pAdresses) {
 
-    Map<MemoryLocation, Value> valueView = pValueState.getConstantsMapView();
+    Set<SMGEdgeHasValue> symbolicValues = pSMGState.getHVEdges();
 
     Map<Address, Object> result = new HashMap<>();
 
-    for (Entry<MemoryLocation, Value> entry : valueView.entrySet()) {
-      MemoryLocation heapLoc = entry.getKey();
-      Value valueAsValue = entry.getValue();
+    for (SMGEdgeHasValue hvEdge : symbolicValues) {
 
-      if (!valueAsValue.isNumericValue()) {
-        // Skip non numerical values for now
-        // TODO Should they also be integrated?
+      int symbolicValue = hvEdge.getValue();
+      BigDecimal value = null;
+
+      if(symbolicValue == 0) {
+        value = BigDecimal.ZERO;
+      } else if (pSMGState.isPointer(symbolicValue)) {
+        SMGEdgePointsTo pointer;
+        try {
+          pointer = pSMGState.getPointerFromValue(symbolicValue);
+        } catch (SMGInconsistentException e) {
+          throw new AssertionError();
+        }
+
+
+        //TODO ugly, use common representation
+        value = (BigDecimal) pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAsNumber();
+      } else if (pSMGState.isExplicit(symbolicValue)) {
+        value = BigDecimal.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
+      } else {
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().getNumber();
-      LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
-      assert pVariableAddressMap.containsKey(lhs);
-      Address baseAddress = pVariableAddressMap.get(lhs);
-      Address address = baseAddress.addOffset( BigInteger.valueOf(heapLoc.getOffset()));
+      Address address = pAdresses.calculateAddress(hvEdge.getObject(), hvEdge.getOffset(), pSMGState);
       result.put(address, value);
     }
 
     return result;
+  }
+
+  private static class SMGObjectAddressMap {
+
+    private Map<SMGObject, Address> objectAddressMap = new HashMap<>();
+    private Address nextAlloc = Address.valueOf(BigDecimal.valueOf(100));
+    private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
+
+    public Address calculateAddress(SMGObject pObject, int pOffset, SMGState pSMGState) {
+
+      // Create a new base address for the object if necessary
+      if (!objectAddressMap.containsKey(pObject)) {
+        objectAddressMap.put(pObject, nextAlloc);
+        IDExpression lhs = pSMGState.createIDExpression(pObject);
+        if (lhs != null) {
+          variableAddressMap.put(lhs, nextAlloc);
+        }
+        nextAlloc =
+            nextAlloc.addOffset(BigDecimal.valueOf(nextAlloc.getAsNumber().longValue() + pObject.getSize() + 1));
+      }
+
+      return Address.valueOf(BigDecimal.valueOf(objectAddressMap.get(pObject).getAsNumber().longValue() + pOffset));
+    }
+
+    public Map<LeftHandSide, Address> getAddressMap() {
+      return ImmutableMap.copyOf(variableAddressMap);
+    }
   }
 }
