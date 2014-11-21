@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Transfer relation for Symbolic Execution Analysis.
  */
+@Options(prefix="cpa.value")
 public class SymbolicExecutionTransferRelation extends ValueAnalysisTransferRelation {
 
   public SymbolicExecutionTransferRelation(Configuration pConfig, LogManager pLogger, CFA pCfa)
