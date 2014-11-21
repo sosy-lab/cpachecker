@@ -27,8 +27,6 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -42,8 +40,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -251,7 +247,7 @@ public class VariableClassification {
    private final Map<String, Partition> varToPartition;
    private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
 
-   private Partition(Map<String, Partition> varToPartition,
+   Partition(Map<String, Partition> varToPartition,
        Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition) {
      this.varToPartition = varToPartition;
      this.edgeToPartition = edgeToPartition;
@@ -270,12 +266,12 @@ public class VariableClassification {
    }
 
    /** adds the var to the partition and also to the global set of all vars. */
-   private void add(String var) {
+   void add(String var) {
      vars.add(var);
      varToPartition.put(var, this);
    }
 
-   private void addValues(Set<BigInteger> newValues) {
+   void addValues(Set<BigInteger> newValues) {
      values.addAll(newValues);
    }
 
@@ -285,7 +281,7 @@ public class VariableClassification {
    }
 
    /** copies all data from other to current partition */
-   private void merge(Partition other) {
+   void merge(Partition other) {
      assert this.varToPartition == other.varToPartition;
 
      this.vars.addAll(other.vars);
@@ -323,153 +319,4 @@ public class VariableClassification {
      return vars.toString() + " --> " + Arrays.toString(values.toArray());
    }
  }
-
-  /** This class stores dependencies between variables.
-   * It sorts vars into partitions.
-   * Dependent vars are in the same partition. Partitions are independent. */
-  static class Dependencies {
-
-    /** partitions, each of them contains vars */
-    private final List<Partition> partitions = Lists.newArrayList();
-
-    /** map to get partition of a var */
-    private final Map<String, Partition> varToPartition = Maps.newHashMap();
-
-    /** table to get a partition for a edge. */
-    private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
-
-    public List<Partition> getPartitions() {
-      return partitions;
-    }
-
-    public Partition getPartitionForVar(String var) {
-      return varToPartition.get(var);
-    }
-
-    public Partition getPartitionForEdge(CFAEdge edge, int index) {
-      return edgeToPartition.get(Pair.of(edge, index));
-    }
-
-    Map<Pair<CFAEdge, Integer>, Partition> getEdgeToPartitionMap() {
-      return edgeToPartition;
-    }
-
-    /** This function creates a dependency between function1::var1 and function2::var2. */
-    public void add(String var1, String var2) {
-
-      // if both vars exists in some dependencies,
-      // either ignore them or merge their partitions
-      Partition partition1 = varToPartition.get(var1);
-      Partition partition2 = varToPartition.get(var2);
-      if (partition1 != null && partition2 != null) {
-
-        // swap partitions, we create partitions in the order they are used
-        if (partitions.lastIndexOf(partition1) > partitions.lastIndexOf(partition2)) {
-          Partition tmp = partition2;
-          partition2 = partition1;
-          partition1 = tmp;
-        }
-
-        if (!partition1.equals(partition2)) {
-          partition1.merge(partition2);
-          partitions.remove(partition2);
-        }
-
-        // if only left side of dependency exists, add right side into same partition
-      } else if (partition1 != null) {
-        partition1.add(var2);
-
-        // if only right side of dependency exists, add left side into same partition
-      } else if (partition2 != null) {
-        partition2.add(var1);
-
-        // if none side is in any existing partition, create new partition
-      } else {
-        Partition partition = new Partition(varToPartition, edgeToPartition);
-        partition.add(var1);
-        partition.add(var2);
-        partitions.add(partition);
-      }
-    }
-
-    /** This function adds a group of vars to exactly one partition.
-     * The values are stored in the partition.
-     * The partition is "connected" with the expression.
-     *
-     * @param vars group of variables tobe added
-     * @param values numbers, with are used in an expression together with the variables
-     * @param edge where is the expression
-     * @param index if an edge has several expressions, this index is the position ofthe expression
-     *  */
-    public void addAll(Collection<String> vars, Set<BigInteger> values,
-        CFAEdge edge, int index) {
-      if (vars == null || vars.isEmpty()) { return; }
-
-      Iterator<String> iter = vars.iterator();
-
-      // we use same varName for all other vars --> dependency
-      String var = iter.next();
-
-      // first add one single var
-      addVar(var);
-
-      // then add all other vars, they are dependent from the first var
-      while (iter.hasNext()) {
-        add(var, iter.next());
-      }
-
-      Partition partition = getPartitionForVar(var);
-      partition.addValues(values);
-      partition.addEdge(edge, index);
-    }
-
-    /** This function adds one single variable to the partitions.
-     * This is the only method to create a partition with only one element. */
-    public void addVar(String var) {
-
-      // if var exists, we can ignore it, otherwise create new partition for var
-      if (!varToPartition.containsKey(var)) {
-        Partition partition = new Partition(varToPartition, edgeToPartition);
-        partition.add(var);
-        partitions.add(partition);
-      }
-    }
-
-    /** This function adds all depending vars to the set, if necessary.
-     * If A depends on B and A is part of the set, B is added to the set, and vice versa.
-    * Example: If A is not boolean, B is not boolean. */
-    public void solve(final Collection<String> vars) {
-      for (Partition partition : partitions) {
-
-        // is at least one var from the partition part of vars
-        boolean isDependency = false;
-        for (String var : partition.getVars()) {
-          if (vars.contains(var)) {
-            isDependency = true;
-            break;
-          }
-        }
-
-        // add all dependend vars to vars
-        if (isDependency) {
-          vars.addAll(partition.getVars());
-        }
-      }
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder str = new StringBuilder("[");
-      for (Partition partition : partitions) {
-        str.append(partition.toString() + ",\n");
-      }
-      str.append("]\n\n");
-
-      //      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
-      //        str.append(edge.getFirst().getRawStatement() + " :: "
-      //            + edge.getSecond() + " --> " + edgeToPartition.get(edge) + "\n");
-      //      }
-      return str.toString();
-    }
-  }
 }
