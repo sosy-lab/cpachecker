@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables.LiveVariablesBuilder;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -422,7 +423,7 @@ public class CFACreator {
       // Get information about variables, needed for some analysis.
       final Optional<VariableClassification> varClassification
           = (language == Language.C)
-          ? Optional.of(new VariableClassification(cfa, config, logger))
+          ? Optional.of(new VariableClassificationBuilder(config, logger).build(cfa))
           : Optional.<VariableClassification>absent();
 
       //third (last) part of live variables if the variable classification is

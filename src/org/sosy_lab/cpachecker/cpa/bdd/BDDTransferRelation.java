@@ -649,8 +649,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
     out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
     out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
-    out.println(String.format("Number of all vars:               %d (of %d)",
-            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size(), varClass.getAllVars().size()));
+    out.println(String.format("Number of all vars:               %d",
+            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size()));
     out.println("Number of intBool partitions:     " + intBool.size());
     out.println("Number of intEq partitions:       " + intEq.size());
     out.println("Number of intAdd partitions:      " + intAdd.size());
