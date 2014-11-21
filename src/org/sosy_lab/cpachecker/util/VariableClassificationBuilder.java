@@ -188,7 +188,7 @@ public class VariableClassificationBuilder {
   /** This function does the whole work:
    * creating all maps, collecting vars, solving dependencies.
    * The function runs only once, after that it does nothing. */
-  public VariableClassification build(CFA cfa) {
+  public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
     buildTimer.start();
 
@@ -360,7 +360,7 @@ public class VariableClassificationBuilder {
 
   /** This function iterates over all edges of the cfa, collects all variables
    * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
-  private void collectVars(CFA cfa) {
+  private void collectVars(CFA cfa) throws UnrecognizedCCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
@@ -451,7 +451,7 @@ public class VariableClassificationBuilder {
   }
 
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
-  private void handleEdge(CFAEdge edge, CFA cfa) {
+  private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCCodeException {
     switch (edge.getEdgeType()) {
 
     case AssumeEdge: {
@@ -536,13 +536,13 @@ public class VariableClassificationBuilder {
       break;
 
     default:
-      throw new AssertionError("Unknoewn edgeType: " + edge.getEdgeType());
+      throw new UnrecognizedCCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 
   /** This function handles a declaration with an optional initializer.
    * Only simple types are handled. */
-  private void handleDeclarationEdge(final CDeclarationEdge edge) {
+  private void handleDeclarationEdge(final CDeclarationEdge edge) throws UnrecognizedCCodeException {
     CDeclaration declaration = edge.getDeclaration();
     if (!(declaration instanceof CVariableDeclaration)) { return; }
 
@@ -563,13 +563,7 @@ public class VariableClassificationBuilder {
     }
 
     final CInitializer initializer = vdecl.getInitializer();
-    List<CExpressionAssignmentStatement> l;
-
-    try {
-      l = CInitializers.convertToAssignments(vdecl, edge);
-    } catch (UnrecognizedCCodeException should_not_happen) {
-      throw new AssertionError(should_not_happen);
-    }
+    List<CExpressionAssignmentStatement> l = CInitializers.convertToAssignments(vdecl, edge);
 
     for (CExpressionAssignmentStatement init : l) {
       final CLeftHandSide lhsExpression = init.getLeftHandSide();
@@ -589,7 +583,7 @@ public class VariableClassificationBuilder {
 
   /** This function handles normal assignments of vars. */
   private void handleAssignment(final CFAEdge edge, final CAssignment assignment,
-      final CFA cfa) {
+      final CFA cfa) throws UnrecognizedCCodeException {
     CRightHandSide rhs = assignment.getRightHandSide();
     CExpression lhs = assignment.getLeftHandSide();
     String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
@@ -632,7 +626,7 @@ public class VariableClassificationBuilder {
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
     } else {
-      throw new AssertionError("unhandled assignment: " + edge.getRawStatement());
+      throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
     }
   }
 

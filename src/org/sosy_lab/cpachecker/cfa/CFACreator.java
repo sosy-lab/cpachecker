@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables.LiveVariablesBuilder;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -421,10 +422,16 @@ public class CFACreator {
       // the cfa should not be modified after this line.
 
       // Get information about variables, needed for some analysis.
-      final Optional<VariableClassification> varClassification
-          = (language == Language.C)
-          ? Optional.of(new VariableClassificationBuilder(config, logger).build(cfa))
-          : Optional.<VariableClassification>absent();
+      final Optional<VariableClassification> varClassification;
+      if (language == Language.C) {
+        try {
+          varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        } catch (UnrecognizedCCodeException e) {
+          throw new CParserException(e);
+        }
+      } else {
+        varClassification = Optional.<VariableClassification>absent();
+      }
 
       //third (last) part of live variables if the variable classification is
       // present we store this information in the builder and create the live
