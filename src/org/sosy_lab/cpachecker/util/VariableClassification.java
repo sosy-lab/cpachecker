@@ -359,7 +359,7 @@ public class VariableClassification {
     expr.accept(collector);
 
     for (CIdExpression id : collector.getReferencedIdExpressions()) {
-      String assignToVar = scopeVar(id);
+      String assignToVar = id.getDeclaration().getQualifiedName();
       result.add(assignToVar);
     }
 
@@ -995,11 +995,6 @@ public class VariableClassification {
     }
   }
 
-  /** Returns a scoped name for a given IdExpression. */
-  static String scopeVar(final CIdExpression exp) {
-    return exp.getDeclaration().getQualifiedName();
-  }
-
   private static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
@@ -1042,7 +1037,7 @@ public class VariableClassification {
   }
 
   /** returns true, if the expression contains a casted binaryExpression. */
-  private boolean isNestedBinaryExp(CExpression exp) {
+  private static boolean isNestedBinaryExp(CExpression exp) {
     if (exp instanceof CBinaryExpression) {
       return true;
 
@@ -1070,7 +1065,7 @@ public class VariableClassification {
    * a visit of IdExpression or CFieldReference returns a collection containing the varName,
    * other visits return the inner visit-results.
   * The Visitor also collects all numbers used in the expression. */
-  private class VariablesCollectingVisitor implements
+  private static class VariablesCollectingVisitor implements
       CExpressionVisitor<Set<String>, RuntimeException> {
 
     private CFANode predecessor;

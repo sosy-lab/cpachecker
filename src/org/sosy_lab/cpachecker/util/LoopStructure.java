@@ -401,7 +401,7 @@ public final class LoopStructure {
 
         if (assign.getLeftHandSide() instanceof CIdExpression) {
           CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-          String assignToVar = VariableClassification.scopeVar(assignementToId);
+          String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
           if (assign.getRightHandSide() instanceof CBinaryExpression) {
             CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
@@ -421,7 +421,7 @@ public final class LoopStructure {
                 }
 
                 if (operandId != null) {
-                  String operandVar = VariableClassification.scopeVar(operandId);
+                  String operandVar = operandId.getDeclaration().getQualifiedName();
                   if (assignToVar.equals(operandVar)) {
                     return assignToVar;
                   }
