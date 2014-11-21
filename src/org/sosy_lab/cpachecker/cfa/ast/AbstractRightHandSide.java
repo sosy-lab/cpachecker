@@ -23,33 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class AUnaryExpression extends AbstractExpression {
+/**
+ *
+ * Abstract Super class for all possible right-hand sides of an assignment.
+ * This class is only SuperClass of all abstract Classes and their Subclasses.
+ * The Interface {@link IARightHandSide} contains all language specific
+ * AST Nodes as well.
+ */
+public  abstract class AbstractRightHandSide extends AbstractAstNode implements IARightHandSide {
 
-  private final IAExpression operand;
-  private final AUnaryOperator  operator;
+  private final Type type;
 
-  public AUnaryExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand,
-      final AUnaryOperator pOperator) {
-    super(pFileLocation, pType);
-    operand = pOperand;
-    operator = pOperator;
-  }
-
-  public IAExpression getOperand() {
-    return operand;
-  }
-
-  public AUnaryOperator getOperator() {
-    return operator;
+  public AbstractRightHandSide(FileLocation pFileLocation, Type pType) {
+    super(pFileLocation);
+    type = pType;
   }
 
   @Override
-  public String toASTString() {
-    return operator.getOperator() + operand.toParenthesizedASTString();
+  public Type getExpressionType() {
+    return type;
   }
 
   /* (non-Javadoc)
@@ -59,8 +56,7 @@ public abstract class AUnaryExpression extends AbstractExpression {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hash(operand);
-    result = prime * result + Objects.hash(operator);
+    result = prime * result + Objects.hashCode(type);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -74,22 +70,15 @@ public abstract class AUnaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof AUnaryExpression)
+    if (!(obj instanceof AbstractRightHandSide)
         || !super.equals(obj)) {
       return false;
     }
 
-    AUnaryExpression other = (AUnaryExpression) obj;
+    AbstractRightHandSide other = (AbstractRightHandSide) obj;
 
-    return Objects.equals(other.operand, operand)
-            && Objects.equals(other.operator, operator);
+    return Objects.equals(other.type, type);
   }
 
-  public static  interface AUnaryOperator {
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
-    public String getOperator();
-  }
 
 }

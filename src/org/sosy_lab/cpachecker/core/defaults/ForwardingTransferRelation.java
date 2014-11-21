@@ -29,7 +29,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
@@ -503,8 +502,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     if (exp instanceof JIdExpression) {
       JSimpleDeclaration decl = ((JIdExpression) exp).getDeclaration();
 
-      if (decl instanceof ADeclaration) {
-        return ((ADeclaration) decl).isGlobal();
+      if (decl instanceof IADeclaration) {
+        return ((IADeclaration) decl).isGlobal();
       }
     }
 

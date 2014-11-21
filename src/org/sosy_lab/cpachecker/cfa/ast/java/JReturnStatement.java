@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.base.Optional;
@@ -35,7 +35,7 @@ import com.google.common.base.Optional;
  *   return [ Expression ] ;
  *
  */
-public class JReturnStatement extends AReturnStatement implements JAstNode {
+public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
 
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.

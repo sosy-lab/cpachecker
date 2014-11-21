@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
  * As part of a regular Expression, it denotes the Run Time Object. As Part of a
  * JRunTimeTypeEqualsType Expression, it denotes the Run Time Type.
  */
-public class JThisExpression extends AExpression implements JRunTimeTypeExpression {
+public class JThisExpression extends AbstractExpression implements JRunTimeTypeExpression {
 
   public JThisExpression(FileLocation pFileLocation, JClassOrInterfaceType pType) {
     super(pFileLocation, pType);

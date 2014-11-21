@@ -23,40 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
-import com.google.common.base.Optional;
+/**
+ * This interface represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
+ * This class is only SuperClass of all abstract Classes and their Subclasses.
+ * The Interface {@link IADeclarations} contains all language specific
+ * AST Nodes as well.
+ */
+public abstract class AbstractDeclaration extends AbstractSimpleDeclaration implements IADeclaration {
 
-public abstract class AReturnStatement extends AstNode implements IAReturnStatement {
+  private final boolean isGlobal;
 
-  private final Optional<? extends IAExpression> expression;
-  private final Optional<? extends IAssignment> assignment;
+  public AbstractDeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {
+    super(pFileLocation, pType, pName, pName);
+    isGlobal = pIsGlobal;
+  }
 
-  public AReturnStatement(final FileLocation pFileLocation,
-      final Optional<? extends IAExpression> pExpression,
-      final Optional<? extends IAssignment> pAssignment) {
-    super(pFileLocation);
-    expression = checkNotNull(pExpression);
-    assignment = checkNotNull(pAssignment);
+  public AbstractDeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName, String pOrigName) {
+    super(pFileLocation, pType, pName, pOrigName);
+    isGlobal = pIsGlobal;
   }
 
   @Override
-  public String toASTString() {
-    return "return"
-        + (expression.isPresent() ? " " + expression.get().toASTString() : "")
-        + ";";
-  }
-
-  @Override
-  public Optional<? extends IAExpression> getReturnValue() {
-    return expression;
-  }
-
-  @Override
-  public Optional<? extends IAssignment> asAssignment() {
-    return assignment;
+  public boolean isGlobal() {
+    return isGlobal;
   }
 
   /* (non-Javadoc)
@@ -66,7 +61,7 @@ public abstract class AReturnStatement extends AstNode implements IAReturnStatem
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(expression);
+    result = prime * result + (isGlobal ? 1231 : 1237);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -80,14 +75,14 @@ public abstract class AReturnStatement extends AstNode implements IAReturnStatem
       return true;
     }
 
-    if (!(obj instanceof AReturnStatement)
+    if (!(obj instanceof AbstractDeclaration)
         || !super.equals(obj)) {
       return false;
     }
 
-    AReturnStatement other = (AReturnStatement) obj;
+    AbstractDeclaration other = (AbstractDeclaration) obj;
 
-    return Objects.equals(other.expression, expression);
+    return other.isGlobal == isGlobal;
   }
 
 }

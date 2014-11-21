@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 /**
  * This is the abstract Class for all Expressions with two Operands and one Operator.
  */
-public abstract class ABinaryExpression extends AExpression {
+public abstract class ABinaryExpression extends AbstractExpression {
 
 
   private final IAExpression operand1;

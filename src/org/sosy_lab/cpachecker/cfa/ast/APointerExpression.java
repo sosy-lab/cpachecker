@@ -27,7 +27,7 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class APointerExpression extends ALeftHandSide {
+public abstract class APointerExpression extends AbstractLeftHandSide {
 
   private final IAExpression operand;
 

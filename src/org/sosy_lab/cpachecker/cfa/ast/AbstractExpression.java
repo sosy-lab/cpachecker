@@ -23,62 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- *
- * Abstract Super class for all possible right-hand sides of an assignment.
- * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link IARightHandSide} contains all language specific
- * AST Nodes as well.
- */
-public  abstract class ARightHandSide extends AstNode implements IARightHandSide {
+*
+* Abstract class for side-effect free expressions.
+* This class is only SuperClass of all abstract Classes and their Subclasses.
+* The Interface {@link IAExpression} contains all language specific
+* AST Nodes as well.
+*/
+public abstract class AbstractExpression extends AbstractRightHandSide implements IAExpression {
 
-  private final Type type;
-
-  public ARightHandSide(FileLocation pFileLocation, Type pType) {
-    super(pFileLocation);
-    type = pType;
+  public AbstractExpression(FileLocation pFileLocation, Type pType) {
+    super(pFileLocation, pType);
   }
 
-  @Override
-  public Type getExpressionType() {
-    return type;
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
-    final int prime = 31;
+    int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + super.hashCode();
-    return result;
+    return prime * result + super.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof ARightHandSide)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AbstractExpression)) {
       return false;
     }
 
-    ARightHandSide other = (ARightHandSide) obj;
-
-    return Objects.equals(other.type, type);
+    return super.equals(obj);
   }
-
-
 }

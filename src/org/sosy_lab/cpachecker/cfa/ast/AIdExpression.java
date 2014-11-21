@@ -29,7 +29,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AIdExpression extends ALeftHandSide {
+public abstract class AIdExpression extends AbstractLeftHandSide {
 
   private final String name;
   private final IASimpleDeclaration declaration;

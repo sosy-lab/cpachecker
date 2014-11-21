@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.base.Optional;
 
-public class CReturnStatement extends AReturnStatement implements CAstNode {
+public class CReturnStatement extends AbstractReturnStatement implements CAstNode {
 
   public CReturnStatement(final FileLocation pFileLocation,
       final Optional<CExpression> pExpression,

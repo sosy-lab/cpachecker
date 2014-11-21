@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 
 
-public abstract class AExpressionAssignmentStatement extends AStatement implements IAssignment {
+public abstract class AExpressionAssignmentStatement extends AbstractStatement implements IAssignment {
 
   private final IALeftHandSide leftHandSide;
   private final IAExpression rightHandSide;

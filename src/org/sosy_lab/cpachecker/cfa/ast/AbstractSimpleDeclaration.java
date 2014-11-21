@@ -37,20 +37,20 @@ import com.google.common.base.Strings;
  * The Interface {@link IASimpleDeclarations} contains all language specific
  * AST Nodes as well.
  */
-public abstract class ASimpleDeclarations extends AstNode implements IASimpleDeclaration {
+public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements IASimpleDeclaration {
 
   private  Type type;
   private final String name;
   private final String origName;
 
-  public ASimpleDeclarations(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
+  public AbstractSimpleDeclaration(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
     super(pFileLocation);
     type = pType;
     name = pName;
     origName = pOrigName;
   }
 
-  public ASimpleDeclarations(final FileLocation pFileLocation,
+  public AbstractSimpleDeclaration(final FileLocation pFileLocation,
       final Type pType, final String pName) {
     this(pFileLocation, pType, pName, pName);
   }
@@ -102,12 +102,12 @@ public abstract class ASimpleDeclarations extends AstNode implements IASimpleDec
       return true;
     }
 
-    if (!(obj instanceof ASimpleDeclarations)
+    if (!(obj instanceof AbstractSimpleDeclaration)
         || !super.equals(obj)) {
       return false;
     }
 
-    ASimpleDeclarations other = (ASimpleDeclarations) obj;
+    AbstractSimpleDeclaration other = (AbstractSimpleDeclaration) obj;
 
     return Objects.equals(other.type, type)
             && Objects.equals(other.name, name)

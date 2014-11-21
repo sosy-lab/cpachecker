@@ -34,7 +34,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public abstract class AFunctionCallExpression extends ARightHandSide {
+public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
   private final IAExpression functionName;
   private final List<? extends IAExpression> parameters;

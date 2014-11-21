@@ -27,11 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 
 
-public abstract class AstNode implements IAstNode {
+public abstract class AbstractAstNode implements IAstNode {
 
   private final FileLocation fileLocation;
 
-  public AstNode(final FileLocation pFileLocation) {
+  public AbstractAstNode(final FileLocation pFileLocation) {
     fileLocation = checkNotNull(pFileLocation);
   }
 
@@ -61,7 +61,7 @@ public abstract class AstNode implements IAstNode {
       return true;
     }
 
-    if (obj instanceof AstNode) {
+    if (obj instanceof AbstractAstNode) {
       return true;
     }
 

@@ -27,7 +27,7 @@ import java.util.Objects;
 
 
 
-public abstract class AExpressionStatement extends AStatement {
+public abstract class AExpressionStatement extends AbstractStatement {
 
   private final IAExpression expression;
 

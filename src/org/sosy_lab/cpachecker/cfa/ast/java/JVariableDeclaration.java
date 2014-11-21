@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
@@ -40,14 +40,14 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   private final boolean isFinal;
 
   protected JVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
-      String pOrigName, String pQualifiedName, AInitializer pInitializer, boolean pIsFinal) {
+      String pOrigName, String pQualifiedName, IAInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pQualifiedName, pInitializer);
 
     isFinal = pIsFinal;
   }
 
   public JVariableDeclaration(FileLocation pFileLocation,  JType pType, String pName,
-      String pOrigName, String pQualifiedName, AInitializer pInitializer, boolean pIsFinal) {
+      String pOrigName, String pQualifiedName, IAInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, IS_LOCAL, pType, pName, pOrigName, pQualifiedName, pInitializer);
 
     isFinal = pIsFinal;

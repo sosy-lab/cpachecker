@@ -28,7 +28,7 @@ import java.util.Objects;
 
 
 
-public abstract class AFunctionCallAssignmentStatement extends AStatement implements IAssignment, AFunctionCall {
+public abstract class AFunctionCallAssignmentStatement extends AbstractStatement implements IAssignment, AFunctionCall {
 
 
   private final IALeftHandSide leftHandSide;

@@ -31,7 +31,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AVariableDeclaration extends ADeclaration {
+public abstract class AVariableDeclaration extends AbstractDeclaration {
 
   private final String qualifiedName;
   private IAInitializer initializer;
