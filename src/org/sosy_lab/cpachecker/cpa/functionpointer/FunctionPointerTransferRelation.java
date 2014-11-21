@@ -459,7 +459,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     // clear all local variables of inner function
     String calledFunction = pFunctionReturnEdge.getPredecessor().getFunctionName();
-    pNewState.clearVariablesWithPrefix(calledFunction + "::");
+    pNewState.clearVariablesForFunction(calledFunction);
   }
 
   private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge) throws UnrecognizedCCodeException {
