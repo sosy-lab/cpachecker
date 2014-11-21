@@ -54,7 +54,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -170,7 +169,6 @@ public class VariableClassificationBuilder {
   // then all essential fields (by propagation)
   private final Multimap<CCompositeType, String> relevantFields = LinkedHashMultimap.create();
 
-  private final Timer buildTimer = new Timer();
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
 
   private final LogManager logger;
@@ -185,7 +183,6 @@ public class VariableClassificationBuilder {
    * The function runs only once, after that it does nothing. */
   public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
-    buildTimer.start();
 
     // fill maps
     collectVars(cfa);
@@ -250,8 +247,6 @@ public class VariableClassificationBuilder {
         intEqualPartitions,
         intAddPartitions,
         dependencies.edgeToPartition);
-
-    buildTimer.stop();
 
     if (printStatsOnStartup) {
       printStats(result);
@@ -378,7 +373,7 @@ public class VariableClassificationBuilder {
         "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
         "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
         "number of all partitions:      " + dependencies.partitions.size(),
-        "time for building classification: " + buildTimer });
+        });
     str.append("\n---------------------------------\n");
 
     logger.log(Level.INFO, str.toString());

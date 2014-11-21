@@ -231,6 +231,7 @@ public class CFACreator {
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer pruningTime = new Timer();
+    private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
 
     @Override
@@ -247,7 +248,10 @@ public class CFACreator {
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
       if (pruningTime.getNumberOfIntervals() > 0) {
-        out.println("    Time for CFA pruning:     " + pruningTime);
+        out.println("      Time for CFA pruning:   " + pruningTime);
+      }
+      if (variableClassificationTime.getNumberOfIntervals() > 0) {
+        out.println("      Time for var class.:    " + pruningTime);
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -425,9 +429,12 @@ public class CFACreator {
       final Optional<VariableClassification> varClassification;
       if (language == Language.C) {
         try {
+          stats.variableClassificationTime.start();
           varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
         } catch (UnrecognizedCCodeException e) {
           throw new CParserException(e);
+        } finally {
+          stats.variableClassificationTime.stop();
         }
       } else {
         varClassification = Optional.<VariableClassification>absent();
