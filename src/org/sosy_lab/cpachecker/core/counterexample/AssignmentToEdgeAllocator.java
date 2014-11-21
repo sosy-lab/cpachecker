@@ -1129,6 +1129,10 @@ public class AssignmentToEdgeAllocator {
 
       Address address = Address.valueOf(value);
 
+      if(address == null) {
+        return createUnknownValueLiterals();
+      }
+
       ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
@@ -1144,7 +1148,13 @@ public class AssignmentToEdgeAllocator {
     public ValueLiterals visit(CArrayType arrayType) throws RuntimeException {
       Address address = Address.valueOf(value);
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral;
+
+      if (address == null) {
+        return createUnknownValueLiterals();
+      }
+
+      valueLiteral = ExplicitValueLiteral.valueOf(address);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1204,6 +1214,10 @@ public class AssignmentToEdgeAllocator {
       }
 
       Address address = Address.valueOf(value);
+
+      if(address == null) {
+        return createUnknownValueLiterals();
+      }
 
       ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
 
@@ -1478,6 +1492,11 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = getValueLiteral(((CSimpleType) expectedType), fieldValue);
         } else {
           valueAddress = Address.valueOf(fieldValue);
+
+          if(valueAddress == null) {
+            return;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1554,6 +1573,11 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = getValueLiteral(((CSimpleType) pExpectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
+
+          if(valueAddress == null) {
+            return false;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1614,6 +1638,11 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = getValueLiteral(((CSimpleType) expectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
+
+          if(valueAddress == null) {
+            return null;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1732,6 +1761,11 @@ public class AssignmentToEdgeAllocator {
           valueLiteral = getValueLiteral(((CSimpleType) realType), pFieldValue);
         } else {
           valueAddress = Address.valueOf(pFieldValue);
+
+          if(valueAddress == null) {
+            return;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
