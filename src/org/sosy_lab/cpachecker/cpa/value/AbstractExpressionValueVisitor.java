@@ -36,8 +36,8 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -106,7 +106,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -222,7 +221,7 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
-    if (lVal instanceof SymbolicValueFormula || rVal instanceof SymbolicValueFormula) {
+    if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, logger);
     }
 
@@ -281,25 +280,67 @@ public abstract class AbstractExpressionValueVisitor
    * @param logger logging
    * @return the calculated Value
    */
-  public static Value calculateSymbolicBinaryExpression(Value lVal, Value rVal,
-      final CBinaryExpression binaryExpr, LogManagerWithoutDuplicates logger) {
+  public static Value calculateSymbolicBinaryExpression(Value pLValue, Value pRValue,
+      final CBinaryExpression pExpression, LogManagerWithoutDuplicates pLogger) {
 
-    // Convert the CBinaryOperator to an operator suitable for our symbolic value formulas
-    SymbolicValueFormula.BinaryExpression.BinaryOperator op =
-        SymbolicValueFormula.BinaryExpression.BinaryOperator.fromString(
-            binaryExpr.getOperator().getOperator());
+    final BinaryOperator operator = pExpression.getOperator();
 
-    // If there's no suitable operator, return UNKNOWN
-    if (op == null) {
-      return Value.UnknownValue.getInstance();
+    if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
+      boolean expressionIsTrue = operator == BinaryOperator.NOT_EQUALS ^ pLValue.equals(pRValue);
+
+      return expressionIsTrue ? new NumericValue(1) : new NumericValue(0);
+    } else {
+      final CType leftOperandType = pExpression.getOperand1().getExpressionType();
+      final CType rightOperandType = pExpression.getOperand2().getExpressionType();
+
+      return createSymbolicFormula(pLValue, leftOperandType, pRValue, rightOperandType, operator);
     }
+  }
 
-    SymbolicValueFormula.ExpressionBase leftHand =
-        SymbolicValueFormula.expressionFromExplicitValue(lVal);
-    SymbolicValueFormula.ExpressionBase rightHand =
-        SymbolicValueFormula.expressionFromExplicitValue(rVal);
+  private static SymbolicValue createSymbolicFormula(Value pLeftValue, CType pLeftType, Value pRightValue,
+      CType pRightType, CBinaryExpression.BinaryOperator pOperator) {
 
-    return new SymbolicValueFormula(new SymbolicValueFormula.BinaryExpression(leftHand, rightHand, op, binaryExpr.getExpressionType(), binaryExpr.getCalculationType())).simplify(logger);
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    switch (pOperator) {
+      case PLUS:
+        return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType);
+      case MINUS:
+        throw new AssertionError(); // TODO!
+      case MULTIPLY:
+        return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType);
+      case DIVIDE:
+        return factory.createDivision(pLeftValue, pLeftType, pRightValue, pRightType);
+      case MODULO:
+        return factory.createModulo(pLeftValue, pLeftType, pRightValue, pRightType);
+      case SHIFT_LEFT:
+        return factory.createShiftLeft(pLeftValue, pLeftType, pRightValue, pRightType);
+      case SHIFT_RIGHT:
+        return factory.createShiftRight(pLeftValue, pLeftType, pRightValue, pRightType);
+      case BINARY_AND:
+        return factory.createBinaryAnd(pLeftValue, pLeftType, pRightValue, pRightType);
+      case BINARY_OR:
+        return factory.createBinaryOr(pLeftValue, pLeftType, pRightValue, pRightType);
+      case BINARY_XOR:
+        return factory.createBinaryXor(pLeftValue, pLeftType, pRightValue, pRightType);
+      case EQUALS:
+        return factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
+      case NOT_EQUALS:
+        SymbolicValue equalsFormula =
+            factory.createEquals(pLeftValue, pLeftType, pRightValue, pRightType);
+
+        return factory.createLogicalNot(equalsFormula, new JSimpleType(JBasicType.BOOLEAN));
+      case LESS_THAN:
+        return factory.createLessThan(pLeftValue, pLeftType, pRightValue, pRightType);
+      case LESS_EQUAL:
+        return factory.createLessThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType);
+      case GREATER_THAN:
+        return factory.createGreaterThan(pLeftValue, pLeftType, pRightValue, pRightType);
+      case GREATER_EQUAL:
+        return factory.createGreaterThanOrEqual(pLeftValue, pLeftType, pRightValue, pRightType);
+      default:
+        throw new AssertionError("Unhandled binary operation " + pOperator);
+    }
   }
 
   /**

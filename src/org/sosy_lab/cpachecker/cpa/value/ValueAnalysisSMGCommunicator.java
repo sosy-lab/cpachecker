@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class ValueAnalysisSMGCommunicator {
 
-  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
-
   private final CFAEdge cfaEdge;
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
@@ -119,12 +117,12 @@ public class ValueAnalysisSMGCommunicator {
     private final SMGExplicitExpressionEvaluator smgEvaluator;
 
     public ExplicitExpressionValueVisitor() {
-      super(valueAnalysisState, functionName, machineModel, logger, symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = new SMGExplicitExpressionEvaluator(this);
     }
 
     public ExplicitExpressionValueVisitor(SMGExplicitExpressionEvaluator pSmgEvaluator) {
-      super(valueAnalysisState, functionName, machineModel, logger,symbolicValues);
+      super(valueAnalysisState, functionName, machineModel, logger);
       smgEvaluator = pSmgEvaluator;
     }
 

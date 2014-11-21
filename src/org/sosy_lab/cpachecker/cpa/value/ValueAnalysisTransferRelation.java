@@ -141,7 +141,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  private boolean symbolicValues = new SymbolicValuesOption().areSymbolicValuesEnabled();
+  @Option(secure=true, name="symbolicExecution",
+      description="Use symbolic execution. This allows tracking of non-deterministic values.")
+  private boolean useSymbolicValues = false;
 
   @Option(secure=true, description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -324,7 +326,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
           throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
+    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
 
     // clone state, because will be changed through removing all variables of current function's scope
     state = ValueAnalysisState.copyOf(state);
@@ -371,7 +373,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       if (op1 instanceof CLeftHandSide) {
         ExpressionValueVisitor v =
             new ExpressionValueVisitor(state, callerFunctionName,
-                machineModel, logger, symbolicValues);
+                machineModel, logger);
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
         boolean valueExists = state.contains(returnVarName);
@@ -595,7 +597,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       }
     }
 
-    if (initialValue.isUnknown() && declarationType instanceof JType) {
+    if (initialValue.isUnknown() && useSymbolicValues) {
       initialValue = getSymbolicIdentifier(declarationType);
     }
 
@@ -876,7 +878,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null) {
-        if (lType instanceof JType) {
+        if (useSymbolicValues) {
           value = getSymbolicIdentifier(lType);
         } else {
           newElement.forget(assignedVar);
@@ -972,7 +974,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue, Collection<String> booleanVariables) {
-      super(state, functionName, machineModel, logger, symbolicValues);
+      super(state, functionName, machineModel, logger);
       this.assignableState  = assignableState;
       this.booleans         = booleanVariables;
       this.truthValue       = truthValue;
@@ -1203,7 +1205,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
-      super(state, functionName, machineModel, logger, symbolicValues);
+      super(state, functionName, machineModel, logger);
       jortState = pJortState;
     }
 
@@ -1895,6 +1897,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger, symbolicValues);
+    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
   }
 }
