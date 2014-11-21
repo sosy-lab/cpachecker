@@ -153,7 +153,6 @@ public class VariableClassificationBuilder {
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
    *  not to break the classification of Int variables.*/
-  private final Set<String> assignedVariables = new HashSet<>(); // Variables used in the left hand side
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
   private final Set<String> relevantVariables = new HashSet<>();
@@ -164,7 +163,6 @@ public class VariableClassificationBuilder {
 
   /** Fields information doesn't take any aliasing information into account,
    *  fields are considered per type, not per composite instance */
-  private final Multimap<CCompositeType, String> assignedFields = LinkedHashMultimap.create(); // Fields used in the left hand side
   // Initially contains fields used in assumes and assigned to pointer dereferences,
   // then all essential fields (by propagation)
   private final Multimap<CCompositeType, String> relevantFields = LinkedHashMultimap.create();
@@ -350,14 +348,6 @@ public class VariableClassificationBuilder {
     }
     assert numOfIntAdds == vc.getIntAddVars().size();
 
-    // we define: irrelevantVars == assignedVars without relevantVars
-    final Set<String> irrelevantVariables = new HashSet<>(assignedVariables);
-    irrelevantVariables.removeAll(relevantVariables);
-
-    // assignedFields without relevantFields
-    final Multimap<CCompositeType, String> irrelevantFields = LinkedHashMultimap.create(assignedFields);
-    irrelevantFields.removeAll(relevantFields);
-
     final String prefix = "\nVC ";
     StringBuilder str = new StringBuilder("VariableClassification Statistics\n");
     Joiner.on(prefix).appendTo(str, new String[] {
@@ -366,9 +356,7 @@ public class VariableClassificationBuilder {
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
-        "number of irrel. vars:   " + irrelevantVariables.size(),
         "number of addr. vars:    " + addressedVariables.size(),
-        "number of irrel. fields: " + irrelevantFields.size(),
         "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
         "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
         "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
@@ -1412,7 +1400,6 @@ public class VariableClassificationBuilder {
     @Override
     public VariableOrField visit(final CFieldReference e) {
       final CCompositeType compositeType = getCanonicalFieldOwnerType(e);
-      assignedFields.put(compositeType, e.getFieldName());
       final VariableOrField result = VariableOrField.newField(compositeType, e.getFieldName());
       if (e.isPointerDereference()) {
         e.getFieldOwner().accept(new CollectingRHSVisitor(result));
@@ -1440,9 +1427,7 @@ public class VariableClassificationBuilder {
 
     @Override
     public VariableOrField visit(final CIdExpression e) {
-      final VariableOrField.Variable result = VariableOrField.newVariable(e.getDeclaration().getQualifiedName());
-      assignedVariables.add(result.getScopedName());
-      return result;
+      return VariableOrField.newVariable(e.getDeclaration().getQualifiedName());
     }
 
     @Override
