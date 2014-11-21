@@ -31,10 +31,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -53,8 +52,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
@@ -128,15 +127,15 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      Type type = eNode.getEntryNode().getFunctionDefinition().getType().getReturnType();
+      Optional<? extends AVariableDeclaration> returnVarName = eNode.getEntryNode().getReturnVariable();
 
       // p.e. a function void foo();
-      if (type instanceof CVoidType) {
+      if (!returnVarName.isPresent()) {
         return new LiveVariablesState();
 
       // all other function types
       } else {
-        String functionReturnVariable = VariableClassification.createFunctionReturnVariable(eNode.getFunctionName());
+        String functionReturnVariable = returnVarName.get().getQualifiedName();
         transfer.putInitialLiveVariables(pNode, Collections.singleton(functionReturnVariable));
         return new LiveVariablesState(ImmutableSet.of(functionReturnVariable));
       }

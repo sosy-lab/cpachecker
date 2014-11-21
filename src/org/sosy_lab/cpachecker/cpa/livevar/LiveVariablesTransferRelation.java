@@ -32,6 +32,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -198,43 +198,14 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   protected LiveVariablesState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
     if (statement instanceof CExpressionAssignmentStatement) {
-      CExpressionAssignmentStatement expStmt = (CExpressionAssignmentStatement) statement;
-      Collection<String> assignedVar = handleLeftHandSide(expStmt.getLeftHandSide());
-      Collection<String> rightHandSideVariables = handleExpression(expStmt.getRightHandSide());
-
-      // this maybe a field reference which is assigned, therefore we have to
-      // leave the variable live
-      if (assignedVar.isEmpty()) {
-        return state.addLiveVariables(rightHandSideVariables);
-
-      } else if (state.contains(assignedVar.iterator().next())) {
-        return state.removeAndAddLiveVariables(assignedVar, rightHandSideVariables);
-
-        // assigned variable is not live, so we do not need to make the
-        // rightHandSideVariables live
-      } else {
-        return state;
-      }
+      return handleAssignments((CAssignment) statement);
 
       // no changes as there is no assignment, thus we can return the last state
     } else if (statement instanceof CExpressionStatement) {
       return state;
 
     } else if (statement instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcStmt = (CFunctionCallAssignmentStatement) statement;
-      Collection<String> newLiveVars = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression()
-                                                                            .getParameterExpressions());
-
-      // put the return variable directly in the live variables map, by adding it to the
-      // state we would have to remove it again for the next state, which is not necessary this way
-      String returnVariable = VariableClassification.createFunctionReturnVariable(funcStmt
-                                                                                    .getFunctionCallExpression()
-                                                                                    .getFunctionNameExpression()
-                                                                                    .toASTString());
-      liveVariables.put(cfaEdge.getSuccessor(), returnVariable);
-
-      Collection<String> assignedVariable = handleLeftHandSide(funcStmt.getLeftHandSide());
-      return state.removeAndAddLiveVariables(assignedVariable, newLiveVars);
+      return handleAssignments((CAssignment) statement);
 
     } else if (statement instanceof CFunctionCallStatement) {
 
@@ -245,6 +216,39 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
+    }
+  }
+
+  private LiveVariablesState handleAssignments(CAssignment assignment) {
+    Collection<String> assignedVariable = handleLeftHandSide(assignment.getLeftHandSide());
+    Collection<String> rightHandSideVariables;
+
+    if (assignment instanceof CExpressionAssignmentStatement) {
+      rightHandSideVariables = handleExpression((CExpression) assignment.getRightHandSide());
+
+    } else if (assignment instanceof CFunctionCallAssignmentStatement){
+      CFunctionCallAssignmentStatement funcStmt = (CFunctionCallAssignmentStatement) assignment;
+      rightHandSideVariables = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
+
+    } else {
+      throw new AssertionError("Unhandled assignment type.");
+    }
+
+    // this maybe a field reference which is assigned, therefore we have to
+    // leave the variable live
+    if (assignedVariable.isEmpty()) {
+      return state.addLiveVariables(rightHandSideVariables);
+
+      // parameters of function calls always have to get live, because the
+      // function needs those for assigning their variables
+    } else if (state.contains(assignedVariable.iterator().next())
+               || assignment instanceof CFunctionCallAssignmentStatement) {
+      return state.removeAndAddLiveVariables(assignedVariable, rightHandSideVariables);
+
+      // assigned variable is not live, so we do not need to make the
+      // rightHandSideVariables live
+    } else {
+      return state;
     }
   }
 
@@ -263,18 +267,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   protected LiveVariablesState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
     // this is an empty return statement (return;)
-    if (!cfaEdge.getExpression().isPresent()) {
+    if (!cfaEdge.asAssignment().isPresent()) {
       return state;
     }
 
-    String returnVariable = VariableClassification.createFunctionReturnVariable(cfaEdge.getPredecessor().getFunctionName());
-
-    if (state.contains(returnVariable)) {
-      return state.removeAndAddLiveVariables(Collections.singleton(returnVariable),
-                                             handleExpression(cfaEdge.getExpression().get()));
-    } else {
-      return state;
-    }
+    return handleAssignments(cfaEdge.asAssignment().get());
   }
 
   @Override
@@ -314,18 +311,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // we can remove the assigned variable from the live variables
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-
-      // put the return variable directly in the live variables map
-      String returnVariable = VariableClassification.createFunctionReturnVariable(summaryExpr
-                                                                                    .getFunctionCallExpression()
-                                                                                    .getFunctionNameExpression()
-                                                                                    .toASTString());
-      liveVariables.put(cfaEdge.getSuccessor(), returnVariable);
-
-      Collection<String> deadVariables = handleExpression(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
-      Collection<String> liveVariables = Collections.singleton(returnVariable);
-
-      return state.removeAndAddLiveVariables(deadVariables, liveVariables);
+      return handleAssignments((CAssignment) summaryExpr);
 
     // no assigned variable -> nothing to change
     } else {
