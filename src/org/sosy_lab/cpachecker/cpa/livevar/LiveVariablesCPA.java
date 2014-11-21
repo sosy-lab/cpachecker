@@ -142,7 +142,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
       }
 
     } else {
-      logger.log(Level.WARNING, "No FunctionExitNode given, thus creating initial state without having the return variable.");
+      logger.log(Level.FINEST, "No FunctionExitNode given, thus creating initial state without having the return variable.");
       return new LiveVariablesState();
     }
   }
