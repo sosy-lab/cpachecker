@@ -78,7 +78,7 @@ public class LiveVariables {
 
       // irrelevant variables from variable classification can be considered
       // as not being live
-    } else if (variableClassification.getIrrelevantVariables().contains(varName)) {
+    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
       return false;
     }
 
