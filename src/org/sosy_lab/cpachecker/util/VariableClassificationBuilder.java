@@ -351,15 +351,8 @@ public class VariableClassificationBuilder {
     logger.log(Level.INFO, str.toString());
   }
 
-  private int countNumberOfRelevantVars(Collection<String> ofVars) {
-    int result = 0;
-    for (String var: ofVars) {
-      if (relevantVariables.contains(var)) {
-        result++;
-      }
-    }
-
-    return result;
+  private int countNumberOfRelevantVars(Set<String> ofVars) {
+    return Sets.intersection(ofVars, relevantVariables).size();
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -392,15 +385,15 @@ public class VariableClassificationBuilder {
 
         if (!nonIntBoolVars.contains(var)) {
           intBoolVars.add(var);
-          intBoolPartitions.add(getPartitionForVar(var));
+          intBoolPartitions.add(dependencies.getPartitionForVar(var));
 
         } else if (!nonIntEqVars.contains(var)) {
           intEqualVars.add(var);
-          intEqualPartitions.add(getPartitionForVar(var));
+          intEqualPartitions.add(dependencies.getPartitionForVar(var));
 
         } else if (!nonIntAddVars.contains(var)) {
           intAddVars.add(var);
-          intAddPartitions.add(getPartitionForVar(var));
+          intAddPartitions.add(dependencies.getPartitionForVar(var));
         }
     }
 
@@ -509,7 +502,7 @@ public class VariableClassificationBuilder {
     case FunctionReturnEdge: {
       String scopedVarName = createFunctionReturnVariable(edge.getPredecessor().getFunctionName());
       dependencies.addVar(scopedVarName);
-      Partition partition = getPartitionForVar(scopedVarName);
+      Partition partition = dependencies.getPartitionForVar(scopedVarName);
       partition.addEdge(edge, 0);
       break;
     }
@@ -621,7 +614,7 @@ public class VariableClassificationBuilder {
 
       } else {
         // external function
-        Partition partition = getPartitionForVar(varName);
+        Partition partition = dependencies.getPartitionForVar(varName);
         partition.addEdge(edge, -1); // negative value, because all positives are used for params
       }
 
@@ -653,7 +646,7 @@ public class VariableClassificationBuilder {
         final String varName = id.getDeclaration().getQualifiedName();
 
         dependencies.addVar(varName);
-        Partition partition = getPartitionForVar(varName);
+        Partition partition = dependencies.getPartitionForVar(varName);
         partition.addEdge(edge, i);
 
       } else {
@@ -778,12 +771,6 @@ public class VariableClassificationBuilder {
     if (possibleVars == null) {
       notPossibleVars.add(varName);
     }
-  }
-
-  /** This function returns a partition containing all vars,
-   * that are dependent with the given variable. */
-  private Partition getPartitionForVar(String var) {
-    return dependencies.getPartitionForVar(var);
   }
 
   private static String scopeVar(@Nullable final String function, final String var) {
@@ -1007,6 +994,8 @@ public class VariableClassificationBuilder {
     /** table to get a partition for a edge. */
     private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
 
+    /** This function returns a partition containing all vars,
+     * that are dependent with the given variable. */
     public Partition getPartitionForVar(String var) {
       return varToPartition.get(var);
     }
@@ -1095,20 +1084,12 @@ public class VariableClassificationBuilder {
     /** This function adds all depending vars to the set, if necessary.
      * If A depends on B and A is part of the set, B is added to the set, and vice versa.
     * Example: If A is not boolean, B is not boolean. */
-    public void solve(final Collection<String> vars) {
+    public void solve(final Set<String> vars) {
       for (Partition partition : partitions) {
 
         // is at least one var from the partition part of vars
-        boolean isDependency = false;
-        for (String var : partition.getVars()) {
-          if (vars.contains(var)) {
-            isDependency = true;
-            break;
-          }
-        }
-
-        // add all dependend vars to vars
-        if (isDependency) {
+        if (!Sets.intersection(partition.getVars(), vars).isEmpty()) {
+          // add all dependend vars to vars
           vars.addAll(partition.getVars());
         }
       }
@@ -1117,9 +1098,7 @@ public class VariableClassificationBuilder {
     @Override
     public String toString() {
       StringBuilder str = new StringBuilder("[");
-      for (Partition partition : partitions) {
-        str.append(partition.toString() + ",\n");
-      }
+      Joiner.on(",\n").appendTo(str, partitions);
       str.append("]\n\n");
 
       //      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
