@@ -51,7 +51,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -2365,7 +2365,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public MissingInformation(boolean pTruthAssumption,
-        IARightHandSide pMissingCExpressionInformation) {
+        ARightHandSide pMissingCExpressionInformation) {
 
       missingCExpressionInformation = (CExpression) pMissingCExpressionInformation;
       missingCLeftMemoryLocation = null;

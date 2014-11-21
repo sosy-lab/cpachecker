@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 
 
-public abstract class AbstractAstNode implements IAstNode {
+public abstract class AbstractAstNode implements AAstNode {
 
   private final FileLocation fileLocation;
 

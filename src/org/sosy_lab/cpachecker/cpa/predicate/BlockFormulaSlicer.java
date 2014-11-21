@@ -35,8 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -485,7 +485,7 @@ public class BlockFormulaSlicer {
    * @param pImportantVars */
   private boolean handleStatement(CStatementEdge edge,
       Collection<String> importantVars) {
-    final IAStatement statement = edge.getStatement();
+    final AStatement statement = edge.getStatement();
 
     // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
@@ -520,7 +520,7 @@ public class BlockFormulaSlicer {
       final String varName = ((CIdExpression) lhs).getName();
 
       if (importantVars.remove(buildVarName(scopedFunctionName, varName))) {
-        final IARightHandSide rhs = statement.getRightHandSide();
+        final ARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
         if (rhs instanceof CExpression) {

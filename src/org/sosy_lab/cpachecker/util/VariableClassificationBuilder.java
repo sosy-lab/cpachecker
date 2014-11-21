@@ -57,7 +57,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -139,7 +139,7 @@ public class VariableClassificationBuilder {
 
   /**
    * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link IAReturnStatement#asAssignment()} instead.
+   * {@link AReturnStatement#asAssignment()} instead.
    */
   @Deprecated
   public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
@@ -786,7 +786,7 @@ public class VariableClassificationBuilder {
 
   /**
    * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link IAReturnStatement#asAssignment()} instead.
+   * {@link AReturnStatement#asAssignment()} instead.
    */
   @Deprecated
   public static String createFunctionReturnVariable(final String function) {

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -81,7 +81,7 @@ public abstract class FunctionEntryNode extends CFANode {
   /**
    * Return a declaration for a pseudo variable that can be used to store
    * the return value of this function (if it has one).
-   * This variable is the same as the one used by {@link IAReturnStatement#asAssignment()}.
+   * This variable is the same as the one used by {@link AReturnStatement#asAssignment()}.
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
     return returnVariable;

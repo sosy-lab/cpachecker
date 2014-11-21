@@ -34,7 +34,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -254,7 +254,7 @@ public class VariableClassification {
 
   /**
    * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link IAReturnStatement#asAssignment()} instead.
+   * {@link AReturnStatement#asAssignment()} instead.
    */
   @Deprecated
   public static String createFunctionReturnVariable(final String function) {

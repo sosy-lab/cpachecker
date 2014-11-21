@@ -27,29 +27,29 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Contains the concrete values of assignments {@link IAssignment} for a
+ * Contains the concrete values of assignments {@link AAssignment} for a
  * given statement, which is represented as cfa edge {@link CFAEdge},
  * in the error path.
  */
 public class CFAEdgeWithAssignments {
 
   private final CFAEdge edge;
-  private final List<IAssignment> assignments;
+  private final List<AAssignment> assignments;
   private final String comment;
 
-  public CFAEdgeWithAssignments(CFAEdge pEdge, List<IAssignment> pAssignments, @Nullable String pComment) {
+  public CFAEdgeWithAssignments(CFAEdge pEdge, List<AAssignment> pAssignments, @Nullable String pComment) {
     assert pAssignments != null;
     edge = pEdge;
     assignments = pAssignments;
     comment = pComment;
   }
 
-  public List<IAssignment> getAssignments() {
+  public List<AAssignment> getAssignments() {
     return assignments;
   }
 
@@ -66,7 +66,7 @@ public class CFAEdgeWithAssignments {
 
     StringBuilder result = new StringBuilder();
 
-    for (IAssignment assignment : assignments) {
+    for (AAssignment assignment : assignments) {
       if (assignment instanceof CAssignment) {
         result.append(((CAssignment) assignment).accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
@@ -93,7 +93,7 @@ public class CFAEdgeWithAssignments {
 
     StringBuilder result = new StringBuilder();
 
-    for (IAssignment assignment : assignments) {
+    for (AAssignment assignment : assignments) {
       if (assignment instanceof CAssignment) {
         for (int c = 0; c < numberOfTabsPerLine; c++) {
           result.append("\t");

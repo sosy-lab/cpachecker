@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
@@ -131,7 +131,7 @@ public class CFASecondPassBuilder {
 
   /** returns True, iff the called function has a body (and a CFA). */
   private boolean shouldCreateCallEdges(final AFunctionCall call) {
-    final IADeclaration functionDecl = call.getFunctionCallExpression().getDeclaration();
+    final ADeclaration functionDecl = call.getFunctionCallExpression().getDeclaration();
 
     // If we have a function declaration, it is a normal call to this function,
     // and neither a call to an undefined function nor a function pointer call.
@@ -270,7 +270,7 @@ public class CFASecondPassBuilder {
   private boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {
     //get the parameter expression
-    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();

@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -117,11 +117,11 @@ public class LiveVariables {
       variableClassification = vc;
     }
 
-    public void addLiveVariablesFromGlobalScope(List<Pair<IADeclaration, String>> pList) {
-      globalVariables = FluentIterable.<Pair<IADeclaration, String>>from(pList)
-                                      .transform(new Function<Pair<IADeclaration, String>, String>() {
+    public void addLiveVariablesFromGlobalScope(List<Pair<ADeclaration, String>> pList) {
+      globalVariables = FluentIterable.<Pair<ADeclaration, String>>from(pList)
+                                      .transform(new Function<Pair<ADeclaration, String>, String>() {
                                                     @Override
-                                                    public String apply(Pair<IADeclaration, String> pInput) {
+                                                    public String apply(Pair<ADeclaration, String> pInput) {
                                                       return pInput.getFirst().getQualifiedName();
                                                     }}).filter(Predicates.notNull()).toSet();
     }

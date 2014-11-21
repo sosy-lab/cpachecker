@@ -37,7 +37,7 @@ import com.google.common.base.Strings;
  * The Interface {@link IASimpleDeclarations} contains all language specific
  * AST Nodes as well.
  */
-public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements IASimpleDeclaration {
+public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements ASimpleDeclaration {
 
   private  Type type;
   private final String name;

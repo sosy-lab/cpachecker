@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -120,7 +120,7 @@ class FunctionCloner implements CFAVisitor {
 
   // local caches
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
-  private final Map<IAstNode, IAstNode> astCache = new IdentityHashMap<>();
+  private final Map<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
   private final Map<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
@@ -355,7 +355,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends IAstNode> T cloneAst(final T ast) {
+  private <T extends AAstNode> T cloneAst(final T ast) {
 
     if (ast == null) {
       return null;
@@ -365,7 +365,7 @@ class FunctionCloner implements CFAVisitor {
       return (T) astCache.get(ast);
     }
 
-    final IAstNode newAst = cloneAstDirect(ast);
+    final AAstNode newAst = cloneAstDirect(ast);
 
     astCache.put(ast, newAst);
 
@@ -373,7 +373,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   /** returns a new list with cloned elements */
-  private <T extends IAstNode> List<T> cloneAstList(final List<T> astList) {
+  private <T extends AAstNode> List<T> cloneAstList(final List<T> astList) {
     final List<T> list = new ArrayList<>(astList.size());
     for (T ast : astList) {
       list.add(cloneAst(ast));
@@ -382,7 +382,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   /** returns a deep copy of the ast-node, and changes old functionname to new one, if needed. */
-  private IAstNode cloneAstDirect(IAstNode ast) {
+  private AAstNode cloneAstDirect(AAstNode ast) {
 
     final FileLocation loc = ast.getFileLocation();
 

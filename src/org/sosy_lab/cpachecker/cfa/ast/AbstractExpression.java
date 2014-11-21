@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 *
 * Abstract class for side-effect free expressions.
 * This class is only SuperClass of all abstract Classes and their Subclasses.
-* The Interface {@link IAExpression} contains all language specific
+* The Interface {@link AExpression} contains all language specific
 * AST Nodes as well.
 */
-public abstract class AbstractExpression extends AbstractRightHandSide implements IAExpression {
+public abstract class AbstractExpression extends AbstractRightHandSide implements AExpression {
 
   public AbstractExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);

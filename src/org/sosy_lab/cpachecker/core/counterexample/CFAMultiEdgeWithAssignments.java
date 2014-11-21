@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
@@ -41,7 +41,7 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   private final List<CFAEdgeWithAssignments> edgesWithAssignment;
 
-  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, List<IAssignment> pAssignments,
+  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, List<AAssignment> pAssignments,
       List<CFAEdgeWithAssignments> pEdges, String pComments) {
     super(pEdge, pAssignments, pComments);
     edgesWithAssignment = ImmutableList.copyOf(pEdges);
@@ -58,7 +58,7 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   public static final CFAMultiEdgeWithAssignments valueOf(MultiEdge pEdge, List<CFAEdgeWithAssignments> pEdges) {
 
-    List<IAssignment> assignments = new ArrayList<>();
+    List<AAssignment> assignments = new ArrayList<>();
 
     for (CFAEdgeWithAssignments edge : pEdges) {
       /*In MultiEdges, it is possible to write the same variable multiple times.

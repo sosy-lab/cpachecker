@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -248,7 +248,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // get initial value
-    IAInitializer init = decl.getInitializer();
+    AInitializer init = decl.getInitializer();
 
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();

@@ -29,9 +29,9 @@ import java.util.Objects;
 
 public abstract class AExpressionStatement extends AbstractStatement {
 
-  private final IAExpression expression;
+  private final AExpression expression;
 
-  public AExpressionStatement(FileLocation pFileLocation, final IAExpression pExpression) {
+  public AExpressionStatement(FileLocation pFileLocation, final AExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }
@@ -41,7 +41,7 @@ public abstract class AExpressionStatement extends AbstractStatement {
     return expression.toASTString() + ";";
   }
 
-  public IAExpression getExpression() {
+  public AExpression getExpression() {
     return expression;
   }
 

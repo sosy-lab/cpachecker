@@ -25,22 +25,26 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-/**
- * Interfaces for all possible right-hand sides of an assignment.
- *
- */
-public interface IARightHandSide extends IAstNode {
 
+/**
+ * This interface represents the core components that occur in each declaration:
+ * a type and an (optional) name.
+ *
+ * It is part of the declaration of types and variables (see {@link ADeclaration})
+ * and functions (see {@link AFunctionDeclaration}).
+ * It is also used stand-alone for the declaration of members of composite types
+ * (e.g. structs) and for the declaration of function parameters.
+ */
+public interface ASimpleDeclaration extends AAstNode {
+
+  public String getName();
+
+  public String getOrigName();
+
+  Type getType();
 
   /**
-   * This method returns the type of the expression.
-   * If the expression is evaluated, the result of the evaluation has this type.
-   * <p>
-   * In some cases the parser can not determine the correct type
-   * (because of missing information),
-   * then this method can return a ProblemType.
+   * Get globally unique name of this declaration, qualified with the function name.
    */
-  public Type getExpressionType();
-
-
+  public String getQualifiedName();
 }

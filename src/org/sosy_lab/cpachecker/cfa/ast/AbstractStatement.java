@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public abstract class AbstractStatement extends AbstractAstNode implements IAStatement {
+public abstract class AbstractStatement extends AbstractAstNode implements AStatement {
 
   public AbstractStatement(FileLocation pFileLocation) {
     super(pFileLocation);

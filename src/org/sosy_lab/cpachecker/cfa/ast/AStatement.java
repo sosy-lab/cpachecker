@@ -23,28 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-/**
- * This interface represents the core components that occur in each declaration:
- * a type and an (optional) name.
- *
- * It is part of the declaration of types and variables (see {@link IADeclaration})
- * and functions (see {@link AFunctionDeclaration}).
- * It is also used stand-alone for the declaration of members of composite types
- * (e.g. structs) and for the declaration of function parameters.
- */
-public interface IASimpleDeclaration extends IAstNode {
 
-  public String getName();
+public interface AStatement extends AAstNode {
 
-  public String getOrigName();
+  public abstract <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X;
 
-  Type getType();
 
-  /**
-   * Get globally unique name of this declaration, qualified with the function name.
-   */
-  public String getQualifiedName();
 }

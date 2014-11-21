@@ -29,14 +29,14 @@ import java.util.Objects;
 
 import com.google.common.base.Optional;
 
-public abstract class AbstractReturnStatement extends AbstractAstNode implements IAReturnStatement {
+public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {
 
-  private final Optional<? extends IAExpression> expression;
-  private final Optional<? extends IAssignment> assignment;
+  private final Optional<? extends AExpression> expression;
+  private final Optional<? extends AAssignment> assignment;
 
   public AbstractReturnStatement(final FileLocation pFileLocation,
-      final Optional<? extends IAExpression> pExpression,
-      final Optional<? extends IAssignment> pAssignment) {
+      final Optional<? extends AExpression> pExpression,
+      final Optional<? extends AAssignment> pAssignment) {
     super(pFileLocation);
     expression = checkNotNull(pExpression);
     assignment = checkNotNull(pAssignment);
@@ -50,12 +50,12 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public Optional<? extends IAExpression> getReturnValue() {
+  public Optional<? extends AExpression> getReturnValue() {
     return expression;
   }
 
   @Override
-  public Optional<? extends IAssignment> asAssignment() {
+  public Optional<? extends AAssignment> asAssignment() {
     return assignment;
   }
 

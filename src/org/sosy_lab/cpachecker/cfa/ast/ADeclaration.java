@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 /**
- * Abstract interface for side-effect free expressions.
+ * This interface represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
  */
-public interface IAExpression extends IARightHandSide {
+public interface ADeclaration extends ASimpleDeclaration {
 
 
+  public boolean isGlobal();
 }

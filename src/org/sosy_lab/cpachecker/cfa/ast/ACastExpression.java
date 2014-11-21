@@ -33,18 +33,18 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public abstract class ACastExpression extends AbstractLeftHandSide {
 
-  private final IAExpression operand;
+  private final AExpression operand;
   private final Type     castType;
 
 
-  public ACastExpression(FileLocation pFileLocation, Type castExpressionType, IAExpression pOperand) {
+  public ACastExpression(FileLocation pFileLocation, Type castExpressionType, AExpression pOperand) {
     super(pFileLocation, castExpressionType);
 
     operand = pOperand;
     castType = castExpressionType;
   }
 
-  public IAExpression getOperand() {
+  public AExpression getOperand() {
     return operand;
   }
 

@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -1125,7 +1125,7 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(JIdExpression idExp) {
 
 
-    IASimpleDeclaration decl = idExp.getDeclaration();
+    ASimpleDeclaration decl = idExp.getDeclaration();
 
     // Java IdExpression could not be resolved
     if (decl == null) { return UnknownValue.getInstance(); }

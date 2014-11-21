@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * The Interface {@link IADeclarations} contains all language specific
  * AST Nodes as well.
  */
-public abstract class AbstractDeclaration extends AbstractSimpleDeclaration implements IADeclaration {
+public abstract class AbstractDeclaration extends AbstractSimpleDeclaration implements ADeclaration {
 
   private final boolean isGlobal;
 

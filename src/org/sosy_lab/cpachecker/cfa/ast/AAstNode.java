@@ -23,15 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-/**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples function parameter declarations and struct members.
- * It includes local and global variables and types, as well as functions.
- */
-public interface IADeclaration extends IASimpleDeclaration {
+import com.google.common.base.Function;
 
 
-  public boolean isGlobal();
+public interface AAstNode {
+
+  public static final Function<AAstNode, String> TO_AST_STRING = new Function<AAstNode, String>() {
+
+    @Override
+    public String apply(AAstNode pInput) {
+      return pInput.toASTString();
+    }
+  };
+
+  public FileLocation getFileLocation();
+
+  public String toASTString();
+
+  public String toParenthesizedASTString() ;
+
 }

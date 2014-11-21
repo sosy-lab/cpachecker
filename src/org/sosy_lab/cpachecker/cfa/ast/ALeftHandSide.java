@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-
-
-public interface IAStatement extends IAstNode {
-
-  public abstract <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X;
-
+/**
+ * Abstract interface for side-effect free expressions.
+ */
+public interface ALeftHandSide extends AExpression {
 
 }

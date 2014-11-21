@@ -44,14 +44,14 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -234,7 +234,7 @@ public final class ErrorPathShrinker {
   private void handleFunctionReturnEdge(FunctionReturnEdge fnkReturnEdge, AFunctionCall expression) {
 
     if (expression instanceof AFunctionCallAssignmentStatement) {
-      IALeftHandSide lhs = ((AFunctionCallAssignmentStatement) expression).getLeftHandSide();
+      ALeftHandSide lhs = ((AFunctionCallAssignmentStatement) expression).getLeftHandSide();
       if (isImportant(lhs)) {
         remove(lhs);
         track(createFunctionReturnVariable(fnkReturnEdge.getPredecessor().getFunctionName()));
@@ -242,10 +242,10 @@ public final class ErrorPathShrinker {
     }
   }
 
-  private void handleFunctionCallEdge(List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
+  private void handleFunctionCallEdge(List<? extends AExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
     addCurrentCFAEdgeToShortPath(); // functioncalls are important
     for (int i = 0; i < functionParameters.size(); i++) {
-      IAExpression arg = arguments.get(i);
+      AExpression arg = arguments.get(i);
       final String paramName = functionParameters.get(i).getQualifiedName();
       if (isImportant(paramName)) {
         remove(paramName);
@@ -255,12 +255,12 @@ public final class ErrorPathShrinker {
   }
 
   /** This method handles statements. */
-  private void handleStatementEdge(IAStatement statementExp) {
+  private void handleStatementEdge(AStatement statementExp) {
 
     // expression is an assignment operation, e.g. a = b;
-    if (statementExp instanceof IAssignment) {
-      handleAssignmentToVariable(((IAssignment) statementExp).getLeftHandSide(),
-              ((IAssignment) statementExp).getRightHandSide());
+    if (statementExp instanceof AAssignment) {
+      handleAssignmentToVariable(((AAssignment) statementExp).getLeftHandSide(),
+              ((AAssignment) statementExp).getRightHandSide());
     }
 
     // ext(); external functioncall
@@ -273,7 +273,7 @@ public final class ErrorPathShrinker {
    *
    * @param lParam the local name of the variable to assign to
    * @param rightExp the assigning expression */
-  private void handleAssignmentToVariable(final IALeftHandSide lParam, final IARightHandSide rightExp) {
+  private void handleAssignmentToVariable(final ALeftHandSide lParam, final ARightHandSide rightExp) {
 
     // FIRST add edge to the Path, THEN remove lParam from Set
     if (isImportant(lParam)) {
@@ -288,7 +288,7 @@ public final class ErrorPathShrinker {
   }
 
   /** This method handles variable declarations ("int a;" or "int b=a+123;"). */
-  private void handleDeclarationEdge(IADeclaration declaration) {
+  private void handleDeclarationEdge(ADeclaration declaration) {
 
       /* If the declared variable is important, the edge is important. */
     if (declaration.getName() != null) {
@@ -296,9 +296,9 @@ public final class ErrorPathShrinker {
         addCurrentCFAEdgeToShortPath();
 
         if (declaration instanceof AVariableDeclaration) {
-          IAInitializer init = ((AVariableDeclaration) declaration).getInitializer();
+          AInitializer init = ((AVariableDeclaration) declaration).getInitializer();
           if (init != null) {
-            final Deque<IAInitializer> inits = new ArrayDeque<>();
+            final Deque<AInitializer> inits = new ArrayDeque<>();
             inits.add(init);
             while (!inits.isEmpty()) {
               init = inits.pop();
@@ -321,7 +321,7 @@ public final class ErrorPathShrinker {
    * Assumptions are not handled as important edges, if they are part of a
    * switchStatement. Otherwise this method only adds all variables in an
    * assumption (expression) to the important variables. */
-  private void handleAssumption(IAExpression assumeExp) {
+  private void handleAssumption(AExpression assumeExp) {
     if (!isSwitchStatement(assumeExp)) {
       addAllVarsInExpToSet(assumeExp);
       addCurrentCFAEdgeToShortPath();
@@ -335,7 +335,7 @@ public final class ErrorPathShrinker {
    *
    * @param assumeExp the current assumption
    * @return is the assumption part of a switchStatement? */
-  private boolean isSwitchStatement(final IAExpression assumeExp) {
+  private boolean isSwitchStatement(final AExpression assumeExp) {
 
     // Path can be empty at the end of a functionCall ("if (a) return b;")
     if (!shortPath.isEmpty()) {
@@ -345,13 +345,13 @@ public final class ErrorPathShrinker {
       if (assumeExp instanceof ABinaryExpression
               && lastEdge instanceof AssumeEdge) {
         final AssumeEdge lastAss = (AssumeEdge) lastEdge;
-        final IAExpression lastExp = lastAss.getExpression();
+        final AExpression lastExp = lastAss.getExpression();
 
         // check, if the last edge was like "a==b"
         if (lastExp instanceof ABinaryExpression) {
-          final IAExpression currentBinExpOp1 =
+          final AExpression currentBinExpOp1 =
                   ((ABinaryExpression) assumeExp).getOperand1();
-          final IAExpression lastBinExpOp1 =
+          final AExpression lastBinExpOp1 =
                   ((ABinaryExpression) lastExp).getOperand1();
 
           // only the first variable of the assignment is checked
@@ -391,7 +391,7 @@ public final class ErrorPathShrinker {
    * @param exp the expression to be divided and added
    * @param importantVars all currently important variables
    */
-  private void addAllVarsInExpToSet(final IARightHandSide exp) {
+  private void addAllVarsInExpToSet(final ARightHandSide exp) {
 
     // TODO replace with expression-visitor?
 
@@ -431,11 +431,11 @@ public final class ErrorPathShrinker {
     }
   }
 
-  private boolean isImportant(IAExpression exp) {
+  private boolean isImportant(AExpression exp) {
     return isImportant(str(exp));
   }
 
-  private boolean isImportant(IASimpleDeclaration exp) {
+  private boolean isImportant(ASimpleDeclaration exp) {
     return isImportant(exp.getQualifiedName());
   }
 
@@ -443,7 +443,7 @@ public final class ErrorPathShrinker {
     return importantVars.contains(var);
   }
 
-  private void track(IAExpression exp) {
+  private void track(AExpression exp) {
     track(str(exp));
   }
 
@@ -451,11 +451,11 @@ public final class ErrorPathShrinker {
     importantVars.add(var);
   }
 
-  private void remove(IAExpression exp) {
+  private void remove(AExpression exp) {
     remove(str(exp));
   }
 
-  private void remove(IASimpleDeclaration exp) {
+  private void remove(ASimpleDeclaration exp) {
     remove(exp.getQualifiedName());
   }
 
@@ -463,7 +463,7 @@ public final class ErrorPathShrinker {
     importantVars.remove(var);
   }
 
-  private String str(IAExpression exp) {
+  private String str(AExpression exp) {
     if (exp instanceof AIdExpression) {
       return ((AIdExpression) exp).getDeclaration().getQualifiedName();
     } else {

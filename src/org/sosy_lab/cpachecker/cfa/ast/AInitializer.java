@@ -24,14 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-/**
- * Interface for all statements that contain an assignment.
- * Only sub-classes of {@link IAStatement} may implement this interface.
- */
-public interface IAssignment extends IAstNode {
+public interface AInitializer extends AAstNode {
 
 
-  IALeftHandSide getLeftHandSide();
-
-  IARightHandSide getRightHandSide();
 }

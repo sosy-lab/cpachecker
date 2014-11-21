@@ -37,7 +37,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -261,7 +261,7 @@ public class CtoFormulaConverter {
    * @param e the expression which should be named
    * @return the name of the expression
    */
-  public static String exprToVarName(IAstNode e) {
+  public static String exprToVarName(AAstNode e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
   }
 

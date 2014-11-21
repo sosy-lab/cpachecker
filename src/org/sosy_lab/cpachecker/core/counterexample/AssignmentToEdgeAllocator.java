@@ -38,9 +38,9 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -134,7 +134,7 @@ public class AssignmentToEdgeAllocator {
 
   public CFAEdgeWithAssignments allocateAssignmentsToEdge() {
 
-    List<IAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
+    List<AAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
     String comment = createComment(cfaEdge);
 
     return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
@@ -204,7 +204,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<IAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
+  private List<AAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
@@ -269,7 +269,7 @@ public class AssignmentToEdgeAllocator {
 
     if (op instanceof CLeftHandSide) {
 
-      List<IAssignment> assignments = handleAssignment((CLeftHandSide) op);
+      List<AAssignment> assignments = handleAssignment((CLeftHandSide) op);
 
       if (assignments.size() == 0) {
         return null;
@@ -277,7 +277,7 @@ public class AssignmentToEdgeAllocator {
 
         List<String> result = new ArrayList<>(assignments.size());
 
-        for (IAssignment assignment : assignments) {
+        for (AAssignment assignment : assignments) {
           result.add(assignment.toASTString());
         }
 
@@ -302,7 +302,7 @@ public class AssignmentToEdgeAllocator {
     return v.evaluateNumericalValue(pOp1);
   }
 
-  private List<IAssignment> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
+  private List<AAssignment> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
 
     if (!(pFunctionCallEdge instanceof CFunctionCallEdge)) {
       return Collections.emptyList();
@@ -314,7 +314,7 @@ public class AssignmentToEdgeAllocator {
 
     List<CParameterDeclaration> dcls = functionEntryNode.getFunctionParameters();
 
-    List<IAssignment> assignments = new ArrayList<>();
+    List<AAssignment> assignments = new ArrayList<>();
 
     for (CParameterDeclaration dcl : dcls) {
       assignments.addAll(handleDeclaration(dcl, pFunctionCallEdge.getSuccessor().getFunctionName()));
@@ -324,7 +324,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<IAssignment> handleAssignment(CLeftHandSide leftHandSide) {
+  private List<AAssignment> handleAssignment(CLeftHandSide leftHandSide) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -378,7 +378,7 @@ public class AssignmentToEdgeAllocator {
     return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
   }
 
-  private List<IAssignment> handleAssignment(CAssignment assignment) {
+  private List<AAssignment> handleAssignment(CAssignment assignment) {
     CLeftHandSide leftHandSide = assignment.getLeftHandSide();
     return handleAssignment(leftHandSide);
   }
@@ -411,7 +411,7 @@ public class AssignmentToEdgeAllocator {
     return new ValueLiterals();
   }
 
-  private List<IAssignment> handleStatement(IAStatement pStatement) {
+  private List<AAssignment> handleStatement(AStatement pStatement) {
 
     if (pStatement instanceof CFunctionCallAssignmentStatement) {
       CAssignment assignmentStatement =
@@ -428,7 +428,7 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl, String pFunctionName) {
+  private List<AAssignment> handleDeclaration(ASimpleDeclaration dcl, String pFunctionName) {
 
     if (dcl instanceof CSimpleDeclaration) {
 
@@ -483,14 +483,14 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
+  private List<AAssignment> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
 
-    List<IAssignment> statements = new ArrayList<>(subValues.size() + 1);
+    List<AAssignment> statements = new ArrayList<>(subValues.size() + 1);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
-      IAssignment statement =
+      AAssignment statement =
           new CExpressionAssignmentStatement(pLValue.getFileLocation(),
               pLValue, pValueLiterals.getExpressionValueLiteralAsCExpression());
 
@@ -498,7 +498,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
-      IAssignment statement =
+      AAssignment statement =
           new CExpressionAssignmentStatement(pLValue.getFileLocation(),
               subValueLiteral.getSubExpression(),
               subValueLiteral.getValueLiteralAsCExpression());
