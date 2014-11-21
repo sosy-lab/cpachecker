@@ -29,11 +29,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -53,17 +51,17 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
@@ -255,16 +253,20 @@ public class ARGStatistics implements IterationStatistics {
 
   private Model createModelForPath(ARGPath pPath) {
 
-    List<ConfigurableProgramAnalysis> cpas = getAllCpasFromCpa(cpa);
+    FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
+        CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
 
     CFAPathWithAssignments result = null;
 
     // TODO Merge different paths
-    for (ConfigurableProgramAnalysis wrappedCpa : cpas) {
-      if (wrappedCpa instanceof ConfigurableProgramAnalysisWithConcreteCex) {
-        ConcreteStatePath path = ((ConfigurableProgramAnalysisWithConcreteCex) wrappedCpa).createConcreteStatePath(pPath);
-        result = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
-        break;
+    for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
+      ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
+      CFAPathWithAssignments cexPath = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
+
+      if (result != null) {
+        result = result.mergePaths(cexPath);
+      } else {
+        result = cexPath;
       }
     }
 
@@ -273,21 +275,6 @@ public class ARGStatistics implements IterationStatistics {
     } else {
       return Model.empty().withAssignmentInformation(result);
     }
-  }
-
-  private List<ConfigurableProgramAnalysis> getAllCpasFromCpa(WrapperCPA pCpa) {
-
-    List<ConfigurableProgramAnalysis> result = new ArrayList<>();
-
-    for (ConfigurableProgramAnalysis cpa : pCpa.getWrappedCPAs()) {
-      result.add(cpa);
-
-      if (cpa instanceof WrapperCPA) {
-        result.addAll(getAllCpasFromCpa((WrapperCPA) cpa));
-      }
-    }
-
-    return result;
   }
 
   @Override

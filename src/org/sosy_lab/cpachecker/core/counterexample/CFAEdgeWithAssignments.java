@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -30,6 +31,8 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 /**
  * Contains the concrete values of assignments {@link AAssignment} for a
@@ -47,6 +50,31 @@ public class CFAEdgeWithAssignments {
     edge = pEdge;
     assignments = pAssignments;
     comment = pComment;
+  }
+
+  private CFAEdgeWithAssignments(CFAEdgeWithAssignments pEdgeWA, CFAEdgeWithAssignments pEdgeWA2) {
+    assert pEdgeWA.edge.equals(pEdgeWA2.edge);
+
+    edge = pEdgeWA.edge;
+
+    List<AAssignment> assignments1 = pEdgeWA.getAssignments();
+    List<AAssignment> assignments2 = pEdgeWA2.getAssignments();
+
+    List<AAssignment> result = new ArrayList<>(pEdgeWA.assignments);
+
+    for (AAssignment assignment2 : assignments2) {
+      if (!assignments1.contains(assignment2)) {
+
+        //TODO ugly, ignoring addresses
+        if (!(assignment2.getLeftHandSide().getExpressionType() instanceof CPointerType)
+            && !(assignment2.getLeftHandSide().getExpressionType() instanceof CArrayType)) {
+          result.add(assignment2);
+        }
+      }
+    }
+
+    comment = pEdgeWA.comment;
+    assignments = result;
   }
 
   public List<AAssignment> getAssignments() {
@@ -137,5 +165,9 @@ public class CFAEdgeWithAssignments {
   @Nullable
   public String getComment() {
     return comment;
+  }
+
+  public CFAEdgeWithAssignments mergeEdge(CFAEdgeWithAssignments pEdge) {
+    return new CFAEdgeWithAssignments(this, pEdge);
   }
 }
