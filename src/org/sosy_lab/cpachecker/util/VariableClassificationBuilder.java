@@ -151,10 +151,6 @@ public class VariableClassificationBuilder {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private final Set<String> intBoolVars = new HashSet<>();
-  private final Set<String> intEqualVars = new HashSet<>();
-  private final Set<String> intAddVars = new HashSet<>();
-
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
    *  not to break the classification of Int variables.*/
@@ -173,10 +169,6 @@ public class VariableClassificationBuilder {
   // Initially contains fields used in assumes and assigned to pointer dereferences,
   // then all essential fields (by propagation)
   private final Multimap<CCompositeType, String> relevantFields = LinkedHashMultimap.create();
-
-  private final Set<Partition> intBoolPartitions = new HashSet<>();
-  private final Set<Partition> intEqualPartitions = new HashSet<>();
-  private final Set<Partition> intAddPartitions = new HashSet<>();
 
   private final Timer buildTimer = new Timer();
   private final CollectingLHSVisitor collectingLHSVisitor = new CollectingLHSVisitor();
@@ -198,8 +190,43 @@ public class VariableClassificationBuilder {
     // fill maps
     collectVars(cfa);
 
-    // we have collected the nonBooleanVars, lets build the needed booleanVars.
-    buildOpposites();
+    // if a value is not boolean, all dependent vars are not boolean and viceversa
+    dependencies.solve(nonIntBoolVars);
+    dependencies.solve(nonIntEqVars);
+    dependencies.solve(nonIntAddVars);
+
+    // Now build the opposites of each non-x-vars-collection.
+    // This is responsible for the hierarchy of the variables.
+    final Set<String> intBoolVars = new HashSet<>();
+    final Set<String> intEqualVars = new HashSet<>();
+    final Set<String> intAddVars = new HashSet<>();
+    final Set<Partition> intBoolPartitions = new HashSet<>();
+    final Set<Partition> intEqualPartitions = new HashSet<>();
+    final Set<Partition> intAddPartitions = new HashSet<>();
+    for (final String var : allVars) {
+      // we have this hierarchy of classes for variables:
+      //        IntBool < IntEqBool < IntAddEqBool < AllInt
+      // we define and build:
+      //        IntBool = IntBool
+      //        IntEq   = IntEqBool - IntBool
+      //        IntAdd  = IntAddEqBool - IntEqBool
+      //        Other   = IntAll - IntAddEqBool
+
+      if (!nonIntBoolVars.contains(var)) {
+        intBoolVars.add(var);
+        intBoolPartitions.add(dependencies.getPartitionForVar(var));
+
+      } else if (!nonIntEqVars.contains(var)) {
+        intEqualVars.add(var);
+        intEqualPartitions.add(dependencies.getPartitionForVar(var));
+
+      } else if (!nonIntAddVars.contains(var)) {
+        intAddVars.add(var);
+        intAddPartitions.add(dependencies.getPartitionForVar(var));
+      }
+    }
+
+    propagateRelevancy();
 
     // add last vars to dependencies,
     // this allows to get partitions for all vars,
@@ -227,7 +254,7 @@ public class VariableClassificationBuilder {
     buildTimer.stop();
 
     if (printStatsOnStartup) {
-      printStats();
+      printStats(result);
     }
 
     if (dumpfile != null) { // option -noout
@@ -246,27 +273,27 @@ public class VariableClassificationBuilder {
     }
 
     if (typeMapFile != null) {
-      dumpVariableTypeMapping(typeMapFile);
+      dumpVariableTypeMapping(typeMapFile, result);
     }
 
     if (domainTypeStatisticsFile != null) {
-      dumpDomainTypeStatistics(domainTypeStatisticsFile);
+      dumpDomainTypeStatistics(domainTypeStatisticsFile, result);
     }
 
     return result;
   }
 
-  private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile) {
+  private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile, VariableClassification vc) {
     try (Writer w = Files.openOutputFile(pDomainTypeStatisticsFile)) {
       try (PrintWriter p = new PrintWriter(w)) {
         Object[][] statMapping = {
-              {"intBoolVars",           intBoolVars.size()},
-              {"intEqualVars",          intEqualVars.size()},
-              {"intAddVars",            intAddVars.size()},
+              {"intBoolVars",           vc.getIntBoolVars().size()},
+              {"intEqualVars",          vc.getIntEqualVars().size()},
+              {"intAddVars",            vc.getIntAddVars().size()},
               {"allVars",               allVars.size()},
-              {"intBoolVarsRelevant",   countNumberOfRelevantVars(intBoolVars)},
-              {"intEqualVarsRelevant",  countNumberOfRelevantVars(intEqualVars)},
-              {"intAddVarsRelevant",    countNumberOfRelevantVars(intAddVars)},
+              {"intBoolVarsRelevant",   countNumberOfRelevantVars(vc.getIntBoolVars())},
+              {"intEqualVarsRelevant",  countNumberOfRelevantVars(vc.getIntEqualVars())},
+              {"intAddVarsRelevant",    countNumberOfRelevantVars(vc.getIntAddVars())},
               {"allVarsRelevant",       countNumberOfRelevantVars(allVars)}
         };
         // Write header
@@ -291,15 +318,15 @@ public class VariableClassificationBuilder {
     }
   }
 
-  private void dumpVariableTypeMapping(Path target) {
+  private void dumpVariableTypeMapping(Path target, VariableClassification vc) {
     try (Writer w = Files.openOutputFile(target)) {
         for (String var : allVars) {
           byte type = 0;
-          if (intBoolVars.contains(var)) {
+          if (vc.getIntBoolVars().contains(var)) {
             type += 1 + 2 + 4; // IntBool is subset of IntEqualBool and IntAddEqBool
-          } else if (intEqualVars.contains(var)) {
+          } else if (vc.getIntEqualVars().contains(var)) {
             type += 2 + 4; // IntEqual is subset of IntAddEqBool
-          } else if (intAddVars.contains(var)) {
+          } else if (vc.getIntAddVars().contains(var)) {
             type += 4;
           }
           w.append(String.format("%s\t%d%n", var, type));
@@ -309,18 +336,24 @@ public class VariableClassificationBuilder {
     }
   }
 
-  private void printStats() {
-    int numOfBooleans = intBoolVars.size();
+  private void printStats(VariableClassification vc) {
+    int numOfBooleans = 0;
+    for (Partition p : vc.getIntEqualPartitions()) {
+      numOfBooleans += p.getVars().size();
+    }
+    assert numOfBooleans == vc.getIntBoolVars().size();
 
     int numOfIntEquals = 0;
-    for (Partition p : intEqualPartitions) {
+    for (Partition p : vc.getIntEqualPartitions()) {
       numOfIntEquals += p.getVars().size();
     }
+    assert numOfIntEquals == vc.getIntEqualVars().size();
 
     int numOfIntAdds = 0;
-    for (Partition p : intAddPartitions) {
+    for (Partition p : vc.getIntAddPartitions()) {
       numOfIntAdds += p.getVars().size();
     }
+    assert numOfIntAdds == vc.getIntAddVars().size();
 
     // we define: irrelevantVars == assignedVars without relevantVars
     final Set<String> irrelevantVariables = new HashSet<>(assignedVariables);
@@ -341,9 +374,9 @@ public class VariableClassificationBuilder {
         "number of irrel. vars:   " + irrelevantVariables.size(),
         "number of addr. vars:    " + addressedVariables.size(),
         "number of irrel. fields: " + irrelevantFields.size(),
-        "number of intBool partitions:  " + intBoolPartitions.size(),
-        "number of intEq partitions:    " + intEqualPartitions.size(),
-        "number of intAdd partitions:   " + intAddPartitions.size(),
+        "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
+        "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
+        "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
         "number of all partitions:      " + dependencies.partitions.size(),
         "time for building classification: " + buildTimer });
     str.append("\n---------------------------------\n");
@@ -364,39 +397,9 @@ public class VariableClassificationBuilder {
         handleEdge(edge, cfa);
       }
     }
-
-    // if a value is not boolean, all dependent vars are not boolean and viceversa
-    dependencies.solve(nonIntBoolVars);
-    dependencies.solve(nonIntEqVars);
-    dependencies.solve(nonIntAddVars);
   }
 
-  /** This function builds the opposites of each non-x-vars-collection.
-   * This method is responsible for the hierarchy of the variables. */
-  private void buildOpposites() {
-    for (final String var : allVars) {
-        // we have this hierarchy of classes for variables:
-        //        IntBool < IntEqBool < IntAddEqBool < AllInt
-        // we define and build:
-        //        IntBool = IntBool
-        //        IntEq   = IntEqBool - IntBool
-        //        IntAdd  = IntAddEqBool - IntEqBool
-        //        Other   = IntAll - IntAddEqBool
-
-        if (!nonIntBoolVars.contains(var)) {
-          intBoolVars.add(var);
-          intBoolPartitions.add(dependencies.getPartitionForVar(var));
-
-        } else if (!nonIntEqVars.contains(var)) {
-          intEqualVars.add(var);
-          intEqualPartitions.add(dependencies.getPartitionForVar(var));
-
-        } else if (!nonIntAddVars.contains(var)) {
-          intAddVars.add(var);
-          intAddPartitions.add(dependencies.getPartitionForVar(var));
-        }
-    }
-
+  private void propagateRelevancy() {
     // Propagate relevant variables from assumes and assignments to pointer dereferences to
     // other variables up to a fix-point (actually as the direction of dependency doesn't matter
     // it's just a BFS)
