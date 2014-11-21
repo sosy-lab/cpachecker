@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -35,23 +34,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -70,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -221,12 +221,9 @@ public final class ErrorPathShrinker {
   }
 
   private void handleReturnStatementEdge(AReturnStatementEdge returnEdge) {
-    final String retVal = createFunctionReturnVariable(returnEdge.getPredecessor().getFunctionName());
-    if (isImportant(retVal)) {
-      remove(retVal);
-      if (returnEdge.getExpression().isPresent()) {
-        addAllVarsInExpToSet(returnEdge.getExpression().get());
-      }
+    if (returnEdge.asAssignment().isPresent()) {
+      AAssignment assignment = returnEdge.asAssignment().get();
+      handleAssignmentToVariable(assignment.getLeftHandSide(), assignment.getRightHandSide());
     }
   }
 
@@ -234,10 +231,10 @@ public final class ErrorPathShrinker {
   private void handleFunctionReturnEdge(FunctionReturnEdge fnkReturnEdge, AFunctionCall expression) {
 
     if (expression instanceof AFunctionCallAssignmentStatement) {
-      ALeftHandSide lhs = ((AFunctionCallAssignmentStatement) expression).getLeftHandSide();
-      if (isImportant(lhs)) {
-        remove(lhs);
-        track(createFunctionReturnVariable(fnkReturnEdge.getPredecessor().getFunctionName()));
+      Optional<? extends AVariableDeclaration> returnVar = fnkReturnEdge.getFunctionEntry().getReturnVariable();
+      if (returnVar.isPresent() && isImportant(returnVar.get())) {
+        remove(returnVar.get());
+        track(returnVar.get().getQualifiedName());
       }
     }
   }
