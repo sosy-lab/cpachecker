@@ -32,11 +32,14 @@ import com.google.common.base.Optional;
 public abstract class AReturnStatement extends AstNode implements IAReturnStatement {
 
   private final Optional<? extends IAExpression> expression;
+  private final Optional<? extends IAssignment> assignment;
 
   public AReturnStatement(final FileLocation pFileLocation,
-      final Optional<? extends IAExpression> pExpression) {
+      final Optional<? extends IAExpression> pExpression,
+      final Optional<? extends IAssignment> pAssignment) {
     super(pFileLocation);
     expression = checkNotNull(pExpression);
+    assignment = checkNotNull(pAssignment);
   }
 
   @Override
@@ -49,6 +52,11 @@ public abstract class AReturnStatement extends AstNode implements IAReturnStatem
   @Override
   public Optional<? extends IAExpression> getReturnValue() {
     return expression;
+  }
+
+  @Override
+  public Optional<? extends IAssignment> asAssignment() {
+    return assignment;
   }
 
   /* (non-Javadoc)

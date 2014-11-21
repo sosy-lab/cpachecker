@@ -25,10 +25,23 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.google.common.base.Optional;
 
-
+/**
+ * Representation of a "return" statement,
+ * potentially including a return value.
+ */
 public interface IAReturnStatement extends IAstNode {
 
-
+  /**
+   * The return value, if present
+   * (i.e., the "exp" in "return exp;").
+   */
   public Optional<? extends IAExpression> getReturnValue();
 
+  /**
+   * If this statement has a return value,
+   * this method creates a representation of this statement in form of an assignment
+   * of the return value to a special variable
+   * (i.e., something like "__retval__ = exp;").
+   */
+  public Optional<? extends IAssignment> asAssignment();
 }

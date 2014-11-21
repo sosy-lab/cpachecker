@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.model;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 
 import com.google.common.base.Optional;
 
@@ -48,6 +50,13 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
 
   public Optional<? extends IAExpression> getExpression() {
     return rawAST.getReturnValue();
+  }
+
+  /**
+   * @see IAReturnStatement#asAssignment()
+   */
+  public Optional<? extends IAssignment> asAssignment() {
+    return rawAST.asAssignment();
   }
 
   @Override

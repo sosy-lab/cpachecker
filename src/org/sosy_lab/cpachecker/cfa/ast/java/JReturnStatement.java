@@ -38,7 +38,8 @@ import com.google.common.base.Optional;
 public class JReturnStatement extends AReturnStatement implements JAstNode {
 
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
-    super(pFileLocation, pExpression);
+    // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.
+    super(pFileLocation, pExpression, Optional.<JAssignment>absent());
 
   }
 

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -472,7 +473,11 @@ class FunctionCloner implements CFAVisitor {
       if (returnExp.isPresent()) {
         returnExp = Optional.of(cloneAst(returnExp.get()));
       }
-      return new CReturnStatement(loc, returnExp);
+      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
+      if (returnAssignment.isPresent()) {
+        returnAssignment = Optional.of(cloneAst(returnAssignment.get()));
+      }
+      return new CReturnStatement(loc, returnExp, returnAssignment);
 
     } else if (ast instanceof CDesignator) {
 
