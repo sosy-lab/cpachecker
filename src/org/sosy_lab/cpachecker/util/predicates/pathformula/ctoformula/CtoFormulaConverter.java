@@ -37,7 +37,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -85,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -718,7 +716,7 @@ public class CtoFormulaConverter {
 
     case ReturnStatementEdge: {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function,
+      return makeReturn(returnEdge.asAssignment(), returnEdge, function,
           ssa, pts, constraints, errorConditions);
     }
 
@@ -897,8 +895,12 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-
-      final CIdExpression rhs = createReturnVariable(funcCallExp.getFileLocation(), funcCallExp.getDeclaration());
+      final Optional<CVariableDeclaration> returnVariableDeclaration = ce.getFunctionEntry().getReturnVariable();
+      if (!returnVariableDeclaration.isPresent()) {
+        throw new UnrecognizedCCodeException("Void function used in assignment", ce, retExp);
+      }
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+          returnVariableDeclaration.get());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -997,44 +999,19 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final Optional<CExpression> rightExp,
+  protected BooleanFormula makeReturn(final Optional<CAssignment> assignment,
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
-    if (!rightExp.isPresent()) {
+    if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
     } else {
 
-      // we have to save the information about the return value,
-      // so that we can use it later on, if it is assigned to
-      // a variable. We create a function::__retval__ variable
-      // that will hold the return value
-      final CFunctionDeclaration functionDeclaration =
-          ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
-      final CIdExpression lhs = createReturnVariable(rightExp.get().getFileLocation(), functionDeclaration);
-
-      return makeAssignment(lhs, rightExp.get(), edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
+          edge, function, ssa, pts, constraints, errorConditions);
     }
-  }
-
-  private static CIdExpression createReturnVariable(final FileLocation fileLocation,
-      final CFunctionDeclaration functionDeclaration) {
-    final CVariableDeclaration returnVariableDeclaration = createReturnVariableDeclaration(functionDeclaration);
-    final CIdExpression lhs = new CIdExpression(fileLocation,
-                       returnVariableDeclaration);
-    return lhs;
-  }
-
-  protected static final CVariableDeclaration createReturnVariableDeclaration(
-      final CFunctionDeclaration functionDeclaration) {
-    final String retVarName = RETURN_VARIABLE_NAME;
-    final CType returnType = functionDeclaration.getType().getReturnType();
-
-    return new CVariableDeclaration(functionDeclaration.getFileLocation(), false,
-        CStorageClass.AUTO, returnType,
-        retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
   }
 
   /**
