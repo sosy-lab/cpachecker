@@ -684,6 +684,7 @@ public class VariableClassification {
       VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
       Set<String> vars = exp.accept(dcv);
       if (vars != null) {
+        allVars.addAll(vars);
         dependencies.addAll(vars, dcv.getValues(), edge, 0);
       }
 
@@ -770,6 +771,7 @@ public class VariableClassification {
 
     CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getQualifiedName();
+    allVars.add(varName);
 
     // "connect" the edge with its partition
     Set<String> var = Sets.newHashSetWithExpectedSize(1);
@@ -836,7 +838,10 @@ public class VariableClassification {
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
         // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        dependencies.add(createFunctionReturnVariable(functionName), varName);
+        String returnVariable = createFunctionReturnVariable(functionName);
+        allVars.add(returnVariable);
+        allVars.add(varName);
+        dependencies.add(returnVariable, varName);
 
       } else {
         // external function
@@ -883,6 +888,7 @@ public class VariableClassification {
         VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
         Set<String> vars = param.accept(dcv);
         if (vars != null) {
+          allVars.addAll(vars);
           dependencies.addAll(vars, dcv.getValues(), edge, i);
         }
 
@@ -933,6 +939,8 @@ public class VariableClassification {
       CExpression lhs = call.getLeftHandSide();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
       String varName = scopeVar(function, lhs.toASTString());
+      allVars.add(scopedRetVal);
+      allVars.add(varName);
       dependencies.add(scopedRetVal, varName);
 
       final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
@@ -971,6 +979,7 @@ public class VariableClassification {
     }
 
     vars.add(varName);
+    allVars.addAll(vars);
     dependencies.addAll(vars, dcv.getValues(), edge, id);
 
     BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
@@ -1655,7 +1664,7 @@ public class VariableClassification {
 
    /** A Partition is a Wrapper for a Collection of vars, values and edges.
    * The Partitions are disjunct, so no variable and no edge is in 2 Partitions. */
-  public class Partition {
+  public static class Partition {
 
     private final Set<String> vars = new HashSet<>();
     private final Set<BigInteger> values = Sets.newTreeSet();
@@ -1664,7 +1673,7 @@ public class VariableClassification {
     private final Map<String, Partition> varToPartition;
     private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
 
-    public Partition(Map<String, Partition> varToPartition,
+    private Partition(Map<String, Partition> varToPartition,
         Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition) {
       this.varToPartition = varToPartition;
       this.edgeToPartition = edgeToPartition;
@@ -1683,23 +1692,22 @@ public class VariableClassification {
     }
 
     /** adds the var to the partition and also to the global set of all vars. */
-    public void add(String var) {
+    private void add(String var) {
       vars.add(var);
-      allVars.add(var);
       varToPartition.put(var, this);
     }
 
-    public void addValues(Set<BigInteger> newValues) {
+    private void addValues(Set<BigInteger> newValues) {
       values.addAll(newValues);
     }
 
-    public void addEdge(CFAEdge edge, int index) {
+    private void addEdge(CFAEdge edge, int index) {
       edges.put(edge, index);
       edgeToPartition.put(Pair.of(edge, index), this);
     }
 
     /** copies all data from other to current partition */
-    public void merge(Partition other) {
+    private void merge(Partition other) {
       assert this.varToPartition == other.varToPartition;
 
       this.vars.addAll(other.vars);
@@ -1741,7 +1749,7 @@ public class VariableClassification {
   /** This class stores dependencies between variables.
    * It sorts vars into partitions.
    * Dependent vars are in the same partition. Partitions are independent. */
-  private class Dependencies {
+  private static class Dependencies {
 
     /** partitions, each of them contains vars */
     private final List<Partition> partitions = Lists.newArrayList();
