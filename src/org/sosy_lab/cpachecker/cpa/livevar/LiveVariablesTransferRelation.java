@@ -71,6 +71,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * This transferrelation computes the live variables for each location.
@@ -235,9 +236,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     // this maybe a field reference which is assigned, therefore we have to
-    // leave the variable live
+    // leave the make the owner of the field reference life, as it is accessed
     if (assignedVariable.isEmpty()) {
-      return state.addLiveVariables(rightHandSideVariables);
+      Set<String> completeSet = Sets.newHashSet();
+      completeSet.addAll(rightHandSideVariables);
+      completeSet.addAll(handleExpression(assignment.getLeftHandSide()));
+      return state.addLiveVariables(completeSet);
 
       // parameters of function calls always have to get live, because the
       // function needs those for assigning their variables
