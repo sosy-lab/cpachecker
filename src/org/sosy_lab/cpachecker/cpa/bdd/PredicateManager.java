@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -96,7 +95,7 @@ public class PredicateManager {
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
   protected void initVars(CFA cfa) {
-    List<VariableClassification.Partition> partitions;
+    Collection<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();

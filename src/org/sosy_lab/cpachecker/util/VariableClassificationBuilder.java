@@ -209,16 +209,17 @@ public class VariableClassificationBuilder {
 
     VariableClassification result = new VariableClassification(
         hasRelevantNonIntAddVars,
-        dependencies,
         intBoolVars,
         intEqualVars,
         intAddVars,
         relevantVariables,
         addressedVariables,
         relevantFields,
+        dependencies.getPartitions(),
         intBoolPartitions,
         intEqualPartitions,
-        intAddPartitions);
+        intAddPartitions,
+        dependencies.getEdgeToPartitionMap());
 
     buildTimer.stop();
 

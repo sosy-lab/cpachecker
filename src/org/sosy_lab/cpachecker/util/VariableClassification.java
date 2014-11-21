@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -49,8 +50,6 @@ import com.google.common.collect.Sets;
 public class VariableClassification {
 
   private final boolean hasRelevantNonIntAddVars;
-
-  private final Dependencies dependencies;
 
   private final Set<String> intBoolVars;
   private final Set<String> intEqualVars;
@@ -70,38 +69,42 @@ public class VariableClassification {
   // then all essential fields (by propagation)
   private final Multimap<CCompositeType, String> relevantFields;
 
+  private final Set<Partition> partitions;
   private final Set<Partition> intBoolPartitions;
   private final Set<Partition> intEqualPartitions;
   private final Set<Partition> intAddPartitions;
 
+  private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
+
   VariableClassification(boolean pHasRelevantNonIntAddVars,
-      Dependencies pDependencies,
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
       Set<String> pIntAddVars,
       Set<String> pRelevantVariables,
       Set<String> pAddressedVariables,
       Multimap<CCompositeType, String> pRelevantFields,
+      Collection<Partition> pPartitions,
       Set<Partition> pIntBoolPartitions,
       Set<Partition> pIntEqualPartitions,
-      Set<Partition> pIntAddPartitions) {
+      Set<Partition> pIntAddPartitions,
+      Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
-    dependencies = pDependencies;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
     intAddVars = ImmutableSet.copyOf(pIntAddVars);
     relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
     addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
     relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
+    partitions = ImmutableSet.copyOf(pPartitions);
     intBoolPartitions = ImmutableSet.copyOf(pIntBoolPartitions);
     intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
     intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
+    edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
   }
 
   @VisibleForTesting
   public static VariableClassification empty() {
     return new VariableClassification(false,
-        new Dependencies(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
@@ -110,7 +113,9 @@ public class VariableClassification {
         ImmutableSetMultimap.<CCompositeType, String>of(),
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
-        ImmutableSet.<Partition>of()
+        ImmutableSet.<Partition>of(),
+        ImmutableSet.<Partition>of(),
+        ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of()
         );
   }
 
@@ -203,8 +208,8 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * A partition contains all vars, that are dependent from each other. */
-  public List<Partition> getPartitions() {
-    return dependencies.getPartitions();
+  public Set<Partition> getPartitions() {
+    return partitions;
   }
 
   /** This function returns a partition containing all vars,
@@ -219,7 +224,7 @@ public class VariableClassification {
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
   public Partition getPartitionForEdge(CFAEdge edge, int index) {
-    return dependencies.getPartitionForEdge(edge, index);
+    return edgeToPartitions.get(Pair.of(edge, index));
   }
 
   public static String createFunctionReturnVariable(final String function) {
@@ -343,6 +348,10 @@ public class VariableClassification {
 
     public Partition getPartitionForEdge(CFAEdge edge, int index) {
       return edgeToPartition.get(Pair.of(edge, index));
+    }
+
+    Map<Pair<CFAEdge, Integer>, Partition> getEdgeToPartitionMap() {
+      return edgeToPartition;
     }
 
     /** This function creates a dependency between function1::var1 and function2::var2. */
