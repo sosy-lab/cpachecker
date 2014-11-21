@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,9 +35,11 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -208,10 +212,33 @@ public class VariableClassification {
     return partitions;
   }
 
-  /** This function returns a partition containing all vars,
-   * that are dependent from a given CFAedge. */
+  /**
+   * This function returns a partition containing all vars,
+   * that are dependent from a given CFAEdge.
+   * This method cannot be used for {@link FunctionCallEdge}s,
+   * because these have multiple partitions.
+   */
   public Partition getPartitionForEdge(CFAEdge edge) {
+    checkArgument(!(edge instanceof FunctionCallEdge),
+        "For FunctionCallEdges, use the specific methods because they have multiple partitions");
     return getPartitionForEdge(edge, 0);
+  }
+
+  /**
+   * This method returns a partition containing all vars,
+   * that are dependent from a specific function parameter at a given edge.
+   */
+  public Partition getPartitionForParameterOfEdge(FunctionCallEdge edge, int param) {
+    Preconditions.checkElementIndex(param, edge.getArguments().size());
+    return getPartitionForEdge(edge, param);
+  }
+
+  /**
+   * This method returns a partition containing all vars,
+   * that are dependent from a specific function return value at a given edge.
+   */
+  public Partition getPartitionForReturnValueOfEdge(FunctionCallEdge edge) {
+    return getPartitionForEdge(edge, -1);
   }
 
   /** This function returns a partition containing all vars,
@@ -219,7 +246,7 @@ public class VariableClassification {
    * The index is 0 for all edges, except functionCalls,
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
-  public Partition getPartitionForEdge(CFAEdge edge, int index) {
+  private Partition getPartitionForEdge(CFAEdge edge, int index) {
     return edgeToPartitions.get(Pair.of(edge, index));
   }
 

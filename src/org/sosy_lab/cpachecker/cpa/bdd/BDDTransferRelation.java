@@ -316,7 +316,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // make variable (predicate) for param, this variable is not global
       final String varName = params.get(i).getQualifiedName();
       final CType targetType = params.get(i).getType();
-      final Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
+      final Partition partition = varClass.getPartitionForParameterOfEdge(cfaEdge, i);
       final Region[] var = predmgr.createPredicate(varName, getBitsize(partition, targetType), precision);
       final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType);
       newState = newState.addAssignment(var, arg);
