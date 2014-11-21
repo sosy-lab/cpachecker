@@ -371,10 +371,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula pf = pElement.getPathFormula();
 
-    // TODO how to get a pseudo variable for the current function with the correct type here?
-    // We would need to have access to the current function's declaration.
-    CIdExpression retVar = null;
-    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(retVar, pNode.getFunctionName())) {
+    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(pNode.getFunctionName())) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future

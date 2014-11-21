@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -199,7 +197,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.hashCode();
   }
 
-  public List<CStatementEdge> getAsStatementEdges(CIdExpression name_of_return_Var, String cFunctionName) {
+  public List<CStatementEdge> getAsStatementEdges(String cFunctionName) {
     if (assumptions.isEmpty()) { return ImmutableList.of(); }
 
     List<CStatementEdge> result = new ArrayList<>(assumptions.size());
@@ -222,7 +220,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(AIdExpression name_of_return_Var, String cFunctionName) {
+  public List<AssumeEdge> getAsAssumeEdges(String cFunctionName) {
     if (assumptions.isEmpty()) {
       return ImmutableList.of();
     }

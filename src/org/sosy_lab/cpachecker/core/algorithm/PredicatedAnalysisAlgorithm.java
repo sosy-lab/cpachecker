@@ -241,7 +241,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
-            for (AssumeEdge assume : s.getAsAssumeEdges(null, node.getFunctionName())) {
+            for (AssumeEdge assume : s.getAsAssumeEdges(node.getFunctionName())) {
               predNode = createFakeEdge(assume.getRawStatement(),  (CExpression) assume.getExpression(), predNode);
             }
           }

@@ -45,23 +45,22 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -121,11 +120,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -1337,7 +1336,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = pState;
 
@@ -1358,11 +1357,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
   }
 
-  private static final CIdExpression retVarName = new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "___cpa_temp_result_var_", null);
-
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(retVarName, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = pState;
 
