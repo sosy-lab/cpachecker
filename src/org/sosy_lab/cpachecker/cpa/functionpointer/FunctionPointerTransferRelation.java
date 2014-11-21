@@ -94,8 +94,6 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
-  private static final String FUNCTION_RETURN_VARIABLE = "__cpachecker_return_var";
-
   @Option(secure=true, description="whether function pointers with invalid targets (e.g., 0) should be tracked in order to find calls to such pointers")
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
@@ -307,7 +305,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
       case ReturnStatementEdge: {
         CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)pCfaEdge;
-        handleReturnStatement(newState, returnStatementEdge.getExpression(), pCfaEdge);
+        handleReturnStatement(newState, returnStatementEdge.asAssignment(), pCfaEdge);
         break;
       }
 
@@ -370,13 +368,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment)pStatement;
-      String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
-
-      if (varName != null) {
-        FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState);
-        pNewState.setTarget(varName, target);
-      }
+      handleAssignment(pNewState, (CAssignment)pStatement, pCfaEdge);
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       // external function call without return value
@@ -386,6 +378,16 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     } else {
       throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pStatement);
+    }
+  }
+
+  private void handleAssignment(FunctionPointerState.Builder pNewState, CAssignment assignment, CFAEdge pCfaEdge)
+      throws UnrecognizedCCodeException {
+    String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
+
+    if (varName != null) {
+      FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState);
+      pNewState.setTarget(varName, target);
     }
   }
 
@@ -424,13 +426,11 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private void handleReturnStatement(FunctionPointerState.Builder pNewState,
-      Optional<CExpression> returnValue,
+      Optional<CAssignment> returnStatement,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
 
-    if (returnValue.isPresent()) {
-      FunctionPointerTarget target = getValue(returnValue.get(), pNewState);
-
-      pNewState.setTarget(FUNCTION_RETURN_VARIABLE, target);
+    if (returnStatement.isPresent()) {
+      handleAssignment(pNewState, returnStatement.get(), pCfaEdge);
     }
   }
 
@@ -447,14 +447,15 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       String varName = getLeftHandSide(left, summaryEdge);
 
       if (varName != null) {
-
-        FunctionPointerTarget target = pNewState.getTarget(FUNCTION_RETURN_VARIABLE);
-        pNewState.setTarget(varName, target);
+        Optional<CVariableDeclaration> returnValue = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
+        if (returnValue.isPresent()) {
+          FunctionPointerTarget target = pNewState.getTarget(returnValue.get().getQualifiedName());
+          pNewState.setTarget(varName, target);
+        } else {
+          pNewState.setTarget(varName, UnknownTarget.getInstance());
+        }
       }
     }
-
-    // clear special variable
-    pNewState.setTarget(FUNCTION_RETURN_VARIABLE, UnknownTarget.getInstance());
 
     // clear all local variables of inner function
     String calledFunction = pFunctionReturnEdge.getPredecessor().getFunctionName();
