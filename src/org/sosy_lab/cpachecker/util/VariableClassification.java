@@ -34,8 +34,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -250,6 +252,11 @@ public class VariableClassification {
     return edgeToPartitions.get(Pair.of(edge, index));
   }
 
+  /**
+   * Use {@link FunctionEntryNode#getReturnVariable()} and
+   * {@link IAReturnStatement#asAssignment()} instead.
+   */
+  @Deprecated
   public static String createFunctionReturnVariable(final String function) {
     return VariableClassificationBuilder.createFunctionReturnVariable(function);
   }

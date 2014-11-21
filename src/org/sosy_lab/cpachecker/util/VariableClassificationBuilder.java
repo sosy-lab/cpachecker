@@ -56,6 +56,8 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -93,10 +95,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -108,6 +112,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -132,8 +137,13 @@ public class VariableClassificationBuilder {
   @Option(secure=true, description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
 
-  /** name for return-variables, it is used for function-returns. */
+  /**
+   * Use {@link FunctionEntryNode#getReturnVariable()} and
+   * {@link IAReturnStatement#asAssignment()} instead.
+   */
+  @Deprecated
   public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+
   private static final String SCOPE_SEPARATOR = "::";
 
   /** normally a boolean value would be 0 or 1,
@@ -486,10 +496,13 @@ public class VariableClassificationBuilder {
     }
 
     case FunctionReturnEdge: {
-      String scopedVarName = createFunctionReturnVariable(edge.getPredecessor().getFunctionName());
-      dependencies.addVar(scopedVarName);
-      Partition partition = dependencies.getPartitionForVar(scopedVarName);
-      partition.addEdge(edge, 0);
+      Optional<CVariableDeclaration> returnVar = ((CFunctionReturnEdge)edge).getFunctionEntry().getReturnVariable();
+      if (returnVar.isPresent()) {
+        String scopedVarName = returnVar.get().getQualifiedName();
+        dependencies.addVar(scopedVarName);
+        Partition partition = dependencies.getPartitionForVar(scopedVarName);
+        partition.addEdge(edge, 0);
+      }
       break;
     }
 
@@ -497,12 +510,8 @@ public class VariableClassificationBuilder {
       // this is the 'x' from 'return (x);
       // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
       CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-      if (returnStatement.getExpression().isPresent()) {
-        String function = edge.getPredecessor().getFunctionName();
-        handleExpression(edge,
-                         returnStatement.getExpression().get(),
-                         scopeVar(function, FUNCTION_RETURN_VARIABLE),
-                         VariableOrField.newVariable(createFunctionReturnVariable(function)));
+      if (returnStatement.asAssignment().isPresent()) {
+        handleAssignment(edge, returnStatement.asAssignment().get(), cfa);
       }
       break;
     }
@@ -592,11 +601,14 @@ public class VariableClassificationBuilder {
       String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
-        // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        String returnVariable = createFunctionReturnVariable(functionName);
-        allVars.add(returnVariable);
+        Optional<? extends AVariableDeclaration> returnVariable = cfa.getFunctionHead(functionName).getReturnVariable();
+        if (!returnVariable.isPresent()) {
+          throw new UnrecognizedCCodeException("Void function " + functionName + " used in assignment", edge, assignment);
+        }
+        String returnVar = returnVariable.get().getQualifiedName();
+        allVars.add(returnVar);
         allVars.add(varName);
-        dependencies.add(returnVariable, varName);
+        dependencies.add(returnVar, varName);
 
       } else {
         // external function
@@ -662,8 +674,6 @@ public class VariableClassificationBuilder {
     // get args from functioncall and make them equal with params from functionstart
     final List<CExpression> args = edge.getArguments();
     final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
-    final String innerFunctionName = edge.getSuccessor().getFunctionName();
-    final String scopedRetVal = createFunctionReturnVariable(innerFunctionName);
 
     // functions can have more args than params used in the call
     assert args.size() >= params.size();
@@ -687,25 +697,28 @@ public class VariableClassificationBuilder {
     // create dependency for functionreturn
     CFunctionSummaryEdge func = edge.getSummaryEdge();
     CFunctionCall statement = func.getExpression();
+    Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
+    if (returnVar.isPresent()) {
+      String scopedRetVal = returnVar.get().getQualifiedName();
+      if (statement instanceof CFunctionCallAssignmentStatement) {
+        // a=f();
+        CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
+        CExpression lhs = call.getLeftHandSide();
+        String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+        String varName = scopeVar(function, lhs.toASTString());
+        allVars.add(scopedRetVal);
+        allVars.add(varName);
+        dependencies.add(scopedRetVal, varName);
 
-    // a=f();
-    if (statement instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
-      CExpression lhs = call.getLeftHandSide();
-      String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
-      String varName = scopeVar(function, lhs.toASTString());
-      allVars.add(scopedRetVal);
-      allVars.add(varName);
-      dependencies.add(scopedRetVal, varName);
+        final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
 
-      final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
+        assignments.put(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
 
-      assignments.put(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
-
-      // f(); without assignment
-    } else if (statement instanceof CFunctionCallStatement) {
-      // next line is not necessary, but we do it for completeness, TODO correct?
-      dependencies.addVar(scopedRetVal);
+      } else if (statement instanceof CFunctionCallStatement) {
+        // f(); without assignment
+        // next line is not necessary, but we do it for completeness, TODO correct?
+        dependencies.addVar(scopedRetVal);
+      }
     }
   }
 
@@ -771,6 +784,11 @@ public class VariableClassificationBuilder {
     return false;
   }
 
+  /**
+   * Use {@link FunctionEntryNode#getReturnVariable()} and
+   * {@link IAReturnStatement#asAssignment()} instead.
+   */
+  @Deprecated
   public static String createFunctionReturnVariable(final String function) {
     return function + SCOPE_SEPARATOR + FUNCTION_RETURN_VARIABLE;
   }
