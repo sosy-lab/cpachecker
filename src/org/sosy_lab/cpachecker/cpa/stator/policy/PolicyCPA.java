@@ -68,10 +68,9 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             pathFormulaManager, formulaManager, config, logger,
-        cfa,
-        realFormulaManager,
-        lcmgr
-    );
+            cfa,
+            realFormulaManager,
+            lcmgr);
 
     statistics = new PolicyIterationStatistics(config);
     abstractDomain = new PolicyAbstractDomain(
@@ -95,7 +94,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return PolicyAbstractState.withEmptyState(node);
+    return PolicyAbstractState.empty(node);
   }
 
   @Override

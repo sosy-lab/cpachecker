@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
  * Converts a set of invariants to the pretty text representation.
  */
 public class PolicyDotWriter {
-  public String toDOTLabel(Map<LinearExpression, PolicyTemplateBound> data) {
+  public String toDOTLabel(Map<LinearExpression, PolicyBound> data) {
     StringBuilder b = new StringBuilder();
     b.append("\n");
 
@@ -19,7 +19,7 @@ public class PolicyDotWriter {
     // only for printing.
 
     // Convert to the readable format.
-    Map<LinearExpression, PolicyTemplateBound> toSort = new HashMap<>();
+    Map<LinearExpression, PolicyBound> toSort = new HashMap<>();
 
     // Pretty-printing is tricky.
     Map<LinearExpression, Rational> lessThan = new HashMap<>();
