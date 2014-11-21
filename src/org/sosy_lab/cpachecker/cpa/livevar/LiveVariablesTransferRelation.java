@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -117,6 +119,18 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       }}).toSet();
   }
 
+  /**
+   * Returns a collection of the variable name in the leftHandSide, or if
+   * it is a CFieldReference we return an empty set.
+   */
+  private Collection<String> handleLeftHandSide(CLeftHandSide exp) {
+    if (exp instanceof CFieldReference) {
+      return Collections.emptySet();
+    } else {
+      return handleExpression(exp);
+    }
+  }
+
   @Override
   protected  LiveVariablesState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
@@ -135,13 +149,18 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-    Collection<String> deadVar = Collections.singleton(varDecl.getQualifiedName());
+    String deadVarName = varDecl.getQualifiedName();
+    Collection<String> deadVar = Collections.singleton(deadVarName);
     CInitializer init = varDecl.getInitializer();
 
     // there is no initializer thus we only have to remove the initialized variable
     // from the live variables
     if (init == null) {
       return state.removeLiveVariables(deadVar);
+
+      // don't do anything if declarated variable is not live
+    } else if (!state.contains(deadVarName)) {
+      return state;
     }
 
     return state.removeAndAddLiveVariables(deadVar, getVariablesUsedForInitialization(init));
@@ -180,10 +199,15 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       throws CPATransferException {
     if (statement instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement expStmt = (CExpressionAssignmentStatement) statement;
-      Collection<String> assignedVar = handleExpression(expStmt.getLeftHandSide());
+      Collection<String> assignedVar = handleLeftHandSide(expStmt.getLeftHandSide());
+      Collection<String> rightHandSideVariables = handleExpression(expStmt.getRightHandSide());
 
-      if (state.contains(assignedVar.iterator().next())) {
-        Collection<String> rightHandSideVariables = handleExpression(expStmt.getRightHandSide());
+      // this maybe a field reference which is assigned, therefore we have to
+      // leave the variable live
+      if (assignedVar.isEmpty()) {
+        return state.addLiveVariables(rightHandSideVariables);
+
+      } else if (state.contains(assignedVar.iterator().next())) {
         return state.removeAndAddLiveVariables(assignedVar, rightHandSideVariables);
 
         // assigned variable is not live, so we do not need to make the
@@ -209,9 +233,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
                                                                                     .toASTString());
       liveVariables.put(cfaEdge.getSuccessor(), returnVariable);
 
-
-      return state.removeAndAddLiveVariables(handleExpression(funcStmt.getLeftHandSide()),
-                                                              newLiveVars);
+      Collection<String> assignedVariable = handleLeftHandSide(funcStmt.getLeftHandSide());
+      return state.removeAndAddLiveVariables(assignedVariable, newLiveVars);
 
     } else if (statement instanceof CFunctionCallStatement) {
 
