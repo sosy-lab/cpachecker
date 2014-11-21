@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.CpaWithConcreteCex;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -261,8 +261,8 @@ public class ARGStatistics implements IterationStatistics {
 
     // TODO Merge different paths
     for (ConfigurableProgramAnalysis wrappedCpa : cpas) {
-      if (wrappedCpa instanceof CpaWithConcreteCex) {
-        ConcreteStatePath path = ((CpaWithConcreteCex) wrappedCpa).createConcreteStatePath(pPath);
+      if (wrappedCpa instanceof ConfigurableProgramAnalysisWithConcreteCex) {
+        ConcreteStatePath path = ((ConfigurableProgramAnalysisWithConcreteCex) wrappedCpa).createConcreteStatePath(pPath);
         result = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
         break;
       }
