@@ -1405,7 +1405,9 @@ public class CFASingleLoopTransformation {
       return new CStatementEdge(rawStatement, statementEdge.getStatement(), fileLocation, pNewPredecessor, pNewSuccessor);
     case CallToReturnEdge:
       CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
-      return new CFunctionSummaryEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
+      return new CFunctionSummaryEdge(rawStatement, fileLocation,
+          pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression(),
+          (CFunctionEntryNode)getOrCreateNewFromOld(cFunctionSummaryEdge.getFunctionEntry(), pNewToOldMapping));
     default:
       throw new IllegalArgumentException("Unsupported edge type: " + pEdge.getEdgeType());
     }

@@ -23,21 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public  class FunctionSummaryEdge extends AbstractCFAEdge {
 
-  protected final AFunctionCall expression;
+  private final AFunctionCall expression;
+  private final FunctionEntryNode functionEntry;
 
-  protected FunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor, AFunctionCall pExpression) {
+  protected FunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
+      CFANode pPredecessor, CFANode pSuccessor,
+      AFunctionCall pExpression, FunctionEntryNode pFunctionEntry) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     expression = pExpression;
+    functionEntry = checkNotNull(pFunctionEntry);
   }
 
   public AFunctionCall getExpression() {
     return expression;
+  }
+
+  public FunctionEntryNode getFunctionEntry() {
+    return functionEntry;
   }
 
   @Override

@@ -212,7 +212,8 @@ public class CFASecondPassBuilder {
       }
 
       calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (CFunctionCall) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (CFunctionCall)functionCall, (CFunctionEntryNode)fDefNode);
 
       callEdge = new CFunctionCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
@@ -221,7 +222,8 @@ public class CFASecondPassBuilder {
 
     case JAVA:
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (JMethodOrConstructorInvocation)functionCall, (JMethodEntryNode)fDefNode);
 
       callEdge = new JMethodCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
