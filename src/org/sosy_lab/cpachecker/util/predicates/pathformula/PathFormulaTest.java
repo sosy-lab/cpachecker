@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMFreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
@@ -46,7 +47,7 @@ public class PathFormulaTest {
     Constructor<?> ptsConstructor = PointerTargetSet.class.getDeclaredConstructors()[0];
     ptsConstructor.setAccessible(true);
     PointerTargetSet dummyPTS = (PointerTargetSet)ptsConstructor.newInstance(
-        PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CNumericTypes.VOID),
+        PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
         null,
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
@@ -56,7 +57,7 @@ public class PathFormulaTest {
     return new ClassSanityTester()
         .setDistinctValues(SSAMap.class,
             SSAMap.emptySSAMap(),
-            SSAMap.emptySSAMap().builder().setIndex("a", CNumericTypes.VOID, 1).build())
+            SSAMap.emptySSAMap().builder().setIndex("a", CVoidType.VOID, 1).build())
         .setDistinctValues(PointerTargetSet.class,
             PointerTargetSet.emptyPointerTargetSet(),
             dummyPTS);

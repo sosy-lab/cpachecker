@@ -23,19 +23,31 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.truth.TruthJUnit.assume;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -46,22 +58,37 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
+@RunWith(Parameterized.class)
 public class SolverTest {
 
-  private boolean isLibFociAvailable = Paths.get("lib/native/x86_64-linux/libfoci.so").exists();
+  @Parameters(name="{0}")
+  public static List<Object[]> getSolvers() {
+    List<Object[]> result = new ArrayList<>();
+    for (Solvers solver : Solvers.values()) {
+      result.add(new Object[] { solver });
+    }
+    return result;
+  }
 
-  private LogManager logger = TestLogManager.getInstance();
+  @Parameter(0)
+  public Solvers solver;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
+
+  private final LogManager logger = TestLogManager.getInstance();
   private static int index = 0; // to get different names
 
-  FormulaManagerFactory factory;
-  FormulaManager mgr;
-  BooleanFormulaManager bmgr;
-  NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
-  NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+  private FormulaManagerFactory factory;
+  private FormulaManager mgr;
+  private BooleanFormulaManager bmgr;
+  private NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
+  private NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
 
-  private void init(String solver) throws Exception {
+  @Before
+  public void initSolver() throws Exception {
     ConfigurationBuilder builder = new Builder();
-    builder.setOption("cpa.predicate.solver", solver);
+    builder.setOption("cpa.predicate.solver", solver.toString());
 
     // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
     builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
@@ -72,44 +99,21 @@ public class SolverTest {
     mgr = factory.getFormulaManager();
     bmgr = mgr.getBooleanFormulaManager();
     imgr = mgr.getIntegerFormulaManager();
-    if (!"PRINCESS".equals(solver)) { // PRINCESS does not support Rational-theory
+    if (solver != Solvers.PRINCESS) { // PRINCESS does not support Rational-theory
       rmgr = mgr.getRationalFormulaManager();
     }
   }
 
-  @Test
-  public void singleStackTestMATHSAT() throws Exception {
-    singleStackTest("MATHSAT5");
-  }
-
-  @Test
-  public void singleStackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      singleStackTest("Z3");
+  @After
+  public void closeSolver() throws Exception {
+    if (mgr instanceof AutoCloseable) {
+      ((AutoCloseable)mgr).close();
     }
   }
 
   @Test
-  public void singleStackTestSMTINTERPOL() throws Exception {
-    singleStackTest("SMTINTERPOL");
-  }
-
-  @Test
-  public void singleStackTestPRINCESS() throws Exception {
-    singleStackTest("PRINCESS");
-  }
-
-  private void singleStackTest(String solver) throws Exception {
-    init(solver);
-    ProverEnvironment env = factory.newProverEnvironment(true, true);
-    simpleStackTestBool(bmgr, env);
-    simpleStackTestNum(imgr, env);
-    if (rmgr != null) {
-      simpleStackTestNum(rmgr, env);
-    }
-  }
-
-  private void simpleStackTestBool(BooleanFormulaManager bmgr, ProverEnvironment stack) throws SolverException, InterruptedException {
+  public void simpleStackTestBool() throws SolverException, InterruptedException {
+    ProverEnvironment stack = factory.newProverEnvironment(true, true);
 
     int i = index++;
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
@@ -153,8 +157,22 @@ public class SolverTest {
     stack.pop(); //L0 empty stack
   }
 
-  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws SolverException, InterruptedException {
+  @Test
+  public void singleStackTestInteger() throws Exception {
+    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    simpleStackTestNum(imgr, env);
+  }
 
+  @Test
+  public void singleStackTestRational() throws Exception {
+    assume().withFailureMessage("Solver does not support theory of rationals")
+            .that(rmgr).isNotNull();
+
+    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    simpleStackTestNum(rmgr, env);
+  }
+
+  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws Exception {
     int i = index++;
     X a = nmgr.makeVariable("num_a"+i);
     X b = nmgr.makeVariable("num_b"+i);
@@ -197,91 +215,24 @@ public class SolverTest {
     stack.pop(); //L0 empty stack
   }
 
-  @Test(expected = Exception.class)
-  public void stackTestMATHSAT() throws Exception {
-    stackTest("MATHSAT5");
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      stackTest("Z3");
-    } else {
-      throw new RuntimeException("dummy exception for junit");
-    }
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTestSMTINTERPOL() throws Exception {
-    stackTest("SMTINTERPOL");
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTestPRINCESS() throws Exception {
-    stackTest("PRINCESS");
-  }
-
-  private void stackTest(String solver) throws Exception {
-    init(solver);
+  @Test
+  public void stackTest() throws Exception {
     ProverEnvironment stack = factory.newProverEnvironment(true, true);
+    thrown.expect(RuntimeException.class);
     stack.pop();
   }
 
-  @Test(expected = Exception.class)
-  public void stackTest2MATHSAT() throws Exception {
-    stackTest2("MATHSAT5");
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTest2Z3() throws Exception {
-    if (isLibFociAvailable) {
-      stackTest2("Z3");
-    } else {
-      throw new RuntimeException("dummy exception for junit");
-    }
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTest2SMTINTERPOL() throws Exception {
-    stackTest2("SMTINTERPOL");
-  }
-
-  @Test(expected = Exception.class)
-  public void stackTest2PRINCESS() throws Exception {
-    stackTest2("PRINCESS");
-  }
-
-  private void stackTest2(String solver) throws Exception {
-    init(solver);
+  @Test
+  public void stackTestItp() throws Exception {
     InterpolatingProverEnvironment<?> stack = factory.newProverEnvironmentWithInterpolation(true);
+    thrown.expect(RuntimeException.class);
     stack.pop();
   }
 
   @Test
-  public void dualStackTestMATHSAT() throws Exception {
-    dualStackTest("MATHSAT5");
-  }
-
-  @Test
-  public void dualStackTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      dualStackTest("Z3");
-    }
-  }
-
-//  @Test
-//  public void dualStackTestSMTINTERPOL() throws Exception {
-//    dualStackTest("SMTINTERPOL");
-//  }
-
-  @Test
-  public void dualStackTestPRINCESS() throws Exception {
-    dualStackTest("PRINCESS");
-  }
-
-  private void dualStackTest(String solver) throws Exception {
-
-    init(solver);
+  public void dualStackTest() throws Exception {
+    assume().withFailureMessage("Solver does not support multiple stacks yet")
+            .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
 
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
@@ -304,30 +255,9 @@ public class SolverTest {
   }
 
   @Test
-  public void dualStackTest2MATHSAT() throws Exception {
-    dualStackTest2("MATHSAT5");
-  }
-
-  @Test
-  public void dualStackTest2Z3() throws Exception {
-    if (isLibFociAvailable) {
-      dualStackTest2("Z3");
-    }
-  }
-
-//  @Test
-//  public void dualStackTest2SMTINTERPOL() throws Exception {
-//    dualStackTest2("SMTINTERPOL");
-//  }
-
-  @Test
-  public void dualStackTest2PRINCESS() throws Exception {
-    dualStackTest2("PRINCESS");
-  }
-
-  private void dualStackTest2(String solver) throws Exception {
-
-    init(solver);
+  public void dualStackTest2() throws Exception {
+    assume().withFailureMessage("Solver does not support multiple stacks yet")
+            .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
 
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
@@ -349,39 +279,7 @@ public class SolverTest {
   }
 
   @Test
-  public void numTestMATHSAT() throws Exception {
-    intTest1("MATHSAT5");
-    intTest2("MATHSAT5");
-    realTest("MATHSAT5");
-  }
-
-  @Test
-  public void numTestZ3() throws Exception {
-    if (isLibFociAvailable) {
-      intTest1("Z3");
-      intTest2("Z3");
-      realTest("Z3");
-    }
-  }
-
-  @Test
-  public void numTestSMTINTERPOL() throws Exception {
-    intTest1("SMTINTERPOL");
-    intTest2("SMTINTERPOL");
-    realTest("SMTINTERPOL");
-  }
-
-  @Test
-  public void numTestPRINCESS() throws Exception {
-    intTest1("PRINCESS");
-    intTest2("PRINCESS");
-    // realTest("PRINCESS"); // PRINCESS does not support Rational-theory
-  }
-
-  private void intTest1(String solver) throws Exception {
-
-    init(solver);
-
+  public void intTest1() throws Exception {
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula num = imgr.makeNumber(2);
 
@@ -392,10 +290,8 @@ public class SolverTest {
     assertFalse(stack1.isUnsat());
   }
 
-  private void intTest2(String solver) throws Exception {
-
-    init(solver);
-
+  @Test
+  public void intTest2() throws Exception {
     IntegerFormula a = imgr.makeVariable("int_b");
     IntegerFormula num = imgr.makeNumber(1);
 
@@ -406,9 +302,10 @@ public class SolverTest {
     assertTrue(stack1.isUnsat());
   }
 
-  private void realTest(String solver) throws Exception {
-
-    init(solver);
+  @Test
+  public void realTest() throws Exception {
+    assume().withFailureMessage("Solver does not support theory of rationals")
+            .that(rmgr).isNotNull();
 
     RationalFormula a = rmgr.makeVariable("int_c");
     RationalFormula num = rmgr.makeNumber(1);

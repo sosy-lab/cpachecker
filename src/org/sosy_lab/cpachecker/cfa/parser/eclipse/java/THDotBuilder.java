@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import com.google.common.base.Joiner;
 
 
-public class THDotBuilder {
+class THDotBuilder {
 
   /**
    * Normal arrowhead style.

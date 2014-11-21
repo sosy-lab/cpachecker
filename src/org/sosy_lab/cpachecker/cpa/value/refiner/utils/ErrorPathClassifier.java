@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.collect.Iterables.skip;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -38,14 +40,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -63,6 +60,9 @@ public class ErrorPathClassifier {
   private static final int UNKNOWN_VAR   = 16;
 
   private static final int MAX_PREFIX_LENGTH = 1000;
+
+  private static final String PREFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in prefix";
+  private static final String SUFFIX_REPLACEMENT = ErrorPathClassifier.class.getSimpleName()  + " replaced this assume edge in suffix";
 
   private static int invocationCounter = 0;
 
@@ -163,45 +163,45 @@ public class ErrorPathClassifier {
 
     switch (preference) {
     case SHORTEST:
-      return obtainShortestPrefix(pPrefixes);
+      return obtainShortestPrefix(pPrefixes, errorPath);
 
     case LONGEST:
-      return obtainLongestPrefix(pPrefixes);
+      return obtainLongestPrefix(pPrefixes, errorPath);
 
     case DOMAIN_BEST_SHALLOW:
     case DOMAIN_BEST_BOUNDED:
     case DOMAIN_BEST_DEEP:
     case DOMAIN_WORST_SHALLOW:
     case DOMAIN_WORST_DEEP:
-      return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference);
+      return obtainDomainTypeHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
     case REFINE_SHALLOW:
     case REFINE_DEEP:
-      return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference);
+      return obtainRefinementRootHeuristicBasedPrefix(pPrefixes, preference, errorPath);
 
     case RANDOM:
-      return obtainRandomPrefix(pPrefixes);
+      return obtainRandomPrefix(pPrefixes, errorPath);
 
     case MEDIAN:
-      return obtainMedianPrefix(pPrefixes);
+      return obtainMedianPrefix(pPrefixes, errorPath);
 
     case MIDDLE:
-      return obtainMiddlePrefix(pPrefixes);
+      return obtainMiddlePrefix(pPrefixes, errorPath);
 
     default:
       return errorPath;
     }
   }
 
-  private MutableARGPath obtainShortestPrefix(List<MutableARGPath> pPrefixes) {
-    return buildPath(0, pPrefixes);
+  private MutableARGPath obtainShortestPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+    return buildPath(0, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes) {
-    return buildPath(pPrefixes.size() - 1, pPrefixes);
+  private MutableARGPath obtainLongestPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+    return buildPath(pPrefixes.size() - 1, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainDomainTypeHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+  private MutableARGPath obtainDomainTypeHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference, MutableARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -225,10 +225,10 @@ public class ErrorPathClassifier {
       }
     }
 
-    return buildPath(bestIndex, pPrefixes);
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
-  private MutableARGPath obtainRefinementRootHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference) {
+  private MutableARGPath obtainRefinementRootHeuristicBasedPrefix(List<MutableARGPath> pPrefixes, ErrorPathPrefixPreference preference, MutableARGPath originalErrorPath) {
     if (!classification.isPresent()) {
       return concatPrefixes(pPrefixes);
     }
@@ -253,21 +253,21 @@ public class ErrorPathClassifier {
       }
     }
 
-    return buildPath(bestIndex, pPrefixes);
+    return buildPath(bestIndex, pPrefixes, originalErrorPath);
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainRandomPrefix(List<MutableARGPath> pPrefixes) {
-    return buildPath(new Random().nextInt(pPrefixes.size()), pPrefixes);
+  private MutableARGPath obtainRandomPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+    return buildPath(new Random().nextInt(pPrefixes.size()), pPrefixes, originalErrorPath);
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes) {
-    return buildPath(pPrefixes.size() / 2, pPrefixes);
+  private MutableARGPath obtainMedianPrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
+    return buildPath(pPrefixes.size() / 2, pPrefixes, originalErrorPath);
   }
 
   // not really a sensible heuristic at all, just here for comparison reasons
-  private MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes) {
+  private MutableARGPath obtainMiddlePrefix(List<MutableARGPath> pPrefixes, MutableARGPath originalErrorPath) {
     int totalLength = 0;
     for (MutableARGPath p : pPrefixes) {
       totalLength += p.size();
@@ -283,7 +283,7 @@ public class ErrorPathClassifier {
       index++;
     }
 
-    return buildPath(index, pPrefixes);
+    return buildPath(index, pPrefixes, originalErrorPath);
   }
 
   private Set<String> obtainUseDefInformationOfErrorPath(MutableARGPath currentErrorPath) {
@@ -320,9 +320,10 @@ public class ErrorPathClassifier {
    *
    * @param bestIndex the index of the prefix with the best score
    * @param pPrefixes the list of prefixes
+   * @param originalErrorPath the original error path
    * @return a new path with the last assumption leading to a contradiction
    */
-  private MutableARGPath buildPath(int bestIndex, List<MutableARGPath> pPrefixes) {
+  private MutableARGPath buildPath(final int bestIndex, final List<MutableARGPath> pPrefixes, final MutableARGPath originalErrorPath) {
     MutableARGPath errorPath = new MutableARGPath();
     for (int j = 0; j <= bestIndex; j++) {
       errorPath.addAll(pPrefixes.get(j));
@@ -332,12 +333,22 @@ public class ErrorPathClassifier {
       }
     }
 
-    // add bogus transition to prefix - needed, because during interpolation,
-    // the last edge is never interpolated (assumed to be the error state),
-    // so we need to add an extra transition, e.g., duplicate the last edge,
-    // so that the assertion holds that the last transition is infeasible and
-    // yields an interpolant that represents FALSE / a contradiction
-    errorPath.add(BOGUS_TRANSITION);
+    // append the feasible suffix; nevertheless, replace assume edges, because they
+    // might contradict in other domains, e.g. for octagons, or predicate analysis
+    for(Pair<ARGState, CFAEdge> element : skip(originalErrorPath, errorPath.size())) {
+      if(element.getSecond().getEdgeType() == CFAEdgeType.AssumeEdge
+          && element != originalErrorPath.getLast()) {
+        errorPath.add(Pair.<ARGState, CFAEdge>of(element.getFirst(), new BlankEdge("",
+            FileLocation.DUMMY,
+            element.getSecond().getPredecessor(),
+            element.getSecond().getSuccessor(),
+            SUFFIX_REPLACEMENT)));
+      }
+
+      else {
+        errorPath.add(element);
+      }
+    }
 
     return errorPath;
   }
@@ -358,7 +369,7 @@ public class ErrorPathClassifier {
         FileLocation.DUMMY,
         assumeState.getSecond().getPredecessor(),
         assumeState.getSecond().getSuccessor(),
-        "replacement for assume edge")));
+        PREFIX_REPLACEMENT)));
   }
 
   private MutableARGPath concatPrefixes(List<MutableARGPath> pPrefixes) {
@@ -369,18 +380,6 @@ public class ErrorPathClassifier {
 
     return errorPath;
   }
-
-  private static final CFAEdge BOGUS_EDGE = new CDeclarationEdge("",
-      FileLocation.DUMMY,
-      new CFANode("bogus"),
-      new CFANode("bogus"),
-      new CVariableDeclaration(FileLocation.DUMMY, false, CStorageClass.AUTO, CNumericTypes.INT, "", "", "", null));
-
-  /**
-   * a bogus transition, containing the null-state, and a declaration edge, with basically no side effect (may not be a
-   * blank edge, due to implementation details)
-   */
-  private static final Pair<ARGState, CFAEdge> BOGUS_TRANSITION = Pair.<ARGState, CFAEdge>of(null, BOGUS_EDGE);
 
   /**
    * This method export the current error path, visualizing the individual prefixes.

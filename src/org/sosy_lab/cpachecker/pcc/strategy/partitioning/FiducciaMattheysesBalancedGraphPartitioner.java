@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-import com.google.common.base.Optional;
-
 @Options(prefix = "pcc.partitioning.fm")
 public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraphPartitioner {
 
@@ -45,14 +43,14 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final LogManager logger;
 
-  @Option(description = "Heuristic for computing an initial partitioning of proof")
+  @Option(secure=true, description = "Heuristic for computing an initial partitioning of proof")
   private InitPartitioningHeuristics initialPartitioningStrategy = InitPartitioningHeuristics.RANDOM;
 
   public enum InitPartitioningHeuristics {
     RANDOM
   }
 
-  @Option(description = "Balance criterion for pairwise optimization of partitions")
+  @Option(secure=true, description = "Balance criterion for pairwise optimization of partitions")
   private double balanceCriterion = 1.5d;
 
   private final BalancedGraphPartitioner partitioner;
@@ -84,8 +82,9 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
     long cutSizeAfter = 0;
     for(Set<Integer> v1 : partition) {
       for(Set<Integer> v2 : partition) {
-        if(v1 == v2)
+        if(v1 == v2) {
           break;
+        }
         shutdownNotifier.shutdownIfNecessary();
         FiducciaMattheysesAlgorithm fm = new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
         long gain;
@@ -93,7 +92,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
           shutdownNotifier.shutdownIfNecessary();
           gain = fm.improvePartitioning();
         } while(gain > 0);
-        cutSizeAfter += pGraph.getNumAdjacentNodesOutsideSet(v1, Optional.of(v2), true);
+        cutSizeAfter += pGraph.getNumEdgesBetween(v1, v2);
       }
     }
     logger.log(Level.FINE, String.format("[FM] Computed partitioning of cut size %d", cutSizeAfter));

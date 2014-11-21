@@ -322,6 +322,10 @@ def parseCloudRunResultFile(filePath):
                 cpuTime = parseTimeValue(value)
             elif key == 'walltime':
                 wallTime = parseTimeValue(value)
+            elif key == 'cpuTime':
+                cpuTime = float(value)
+            elif key == 'wallTime':
+                wallTime = float(value)
             elif key == 'memory':
                 values['memUsage'] = value
             elif key == 'exitcode':

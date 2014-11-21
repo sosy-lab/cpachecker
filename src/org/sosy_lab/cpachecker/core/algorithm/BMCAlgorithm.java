@@ -1410,7 +1410,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     EdgeExclusionPrecision oldPrecision = Precisions.extractPrecisionByType(pPrecision, EdgeExclusionPrecision.class);
     if (oldPrecision != null) {
       EdgeExclusionPrecision newPrecision = oldPrecision.excludeMoreEdges(pEdgesToIgnore);
-      return Precisions.replaceByType(pPrecision, newPrecision, EdgeExclusionPrecision.class);
+      return Precisions.replaceByType(pPrecision, newPrecision, Predicates.instanceOf(EdgeExclusionPrecision.class));
     }
     return pPrecision;
   }

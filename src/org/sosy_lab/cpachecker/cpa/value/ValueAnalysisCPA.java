@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -66,7 +68,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStaticRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -76,7 +80,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
+public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker, ConfigurableProgramAnalysisWithConcreteCex {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
@@ -85,13 +89,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
-
-  @Option(secure=true, description="enables target checking for value-analysis, needed for predicate-analysis")
-  private boolean doTargetCheck = false;
-
-  @Option(secure=true, name="inPredicatedAnalysis",
-      description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
-  private boolean useInPredicatedAnalysisWithoutRefinement = false;
 
   @Option(secure=true, name="refiner.performInitialStaticRefinement",
       description="use heuristic to extract a precision from the CFA statically on first refinement")
@@ -108,7 +105,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private TransferRelation transferRelation;
+  private ValueAnalysisTransferRelation transferRelation;
   private VariableTrackingPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisStaticRefiner staticRefiner;
@@ -135,13 +132,17 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
     staticRefiner       = initializeStaticRefiner(cfa);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    // when there is information about the liveness of variables available we want
+    // to use it
+    if (cfa.getLiveVariables().isPresent()) {
+      precisionAdjustment = new ValueAnalysisPrecisionAdjustment(transferRelation, cfa.getLiveVariables().get());
+    } else {
+      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
-
-    if (doTargetCheck) {
-      ValueAnalysisState.initChecker(config);
-    }
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -180,12 +181,12 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
+      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     } else {
       // create precision with empty, refinable component precision
       VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
-                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
+                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       // refine the refinable component precision with increment from file
       return precision.withIncrement(restoreMappingFromFile(cfa));
     }
@@ -347,5 +348,13 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
      return abstractDomain.isLessOrEqual(pState, pOtherState);
+  }
+
+  @Override
+  public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
+
+    ValueAnalysisConcreteErrorPathAllocator alloc =
+        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
+    return alloc.allocateAssignmentsToPath(pPath);
   }
 }

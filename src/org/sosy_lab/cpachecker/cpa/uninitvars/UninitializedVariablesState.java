@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -35,18 +33,9 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class UninitializedVariablesState implements AbstractQueryableState, TargetableWithPredicatedAnalysis {
-
-  private static boolean checkTarget;
-
-  public static void init(boolean check) {
-    checkTarget = check;
-  }
+public class UninitializedVariablesState implements AbstractQueryableState {
 
   private final Collection<String> globalVars;
   private final Deque<Pair<String, Collection<String>>> localVars;
@@ -225,24 +214,5 @@ public class UninitializedVariablesState implements AbstractQueryableState, Targ
   @Override
   public String getCPAName() {
     return "uninitVars";
-  }
-
-  @Override
-  public boolean isTarget() {
-    return checkTarget && getWarnings().size()!=0;
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    if (checkTarget) {
-      return pFmgr.getBooleanFormulaManager().makeBoolean(true);
-    }
-    return pFmgr.getBooleanFormulaManager().makeBoolean(false);
   }
 }

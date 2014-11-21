@@ -25,34 +25,60 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 public interface OptEnvironment extends AutoCloseable {
+
   /**
    * Add constraint to the context.
    */
   void addConstraint(BooleanFormula constraint);
 
-  void setObjective(Formula objective);
+  /**
+   * Add maximization {@param objective}.
+   *
+   * <b>Note: currently only one constraint is supported</b>
+   */
+  void maximize(Formula objective);
+
+  /**
+   * Add minimization {@param objective}.
+   *
+   * <b>Note: currently only one constraint is supported</b>
+   */
+  void minimize(Formula objective);
 
   /**
    * Optimize the objective function subject to the previously
    * imposed constraints.
-   * Value of the objective function can be obtained using the
-   * {@link #getModel()} call.
    *
    * @return Status of the optimization problem.
-   *
-   * @throws InterruptedException
-   * @throws UnsupportedOperationException If solver does not support optimization.
    */
-  OptResult maximize() throws InterruptedException;
+  OptStatus check() throws InterruptedException, SolverException;
+
+  /**
+   * @return Upper approximation of the optimized value.
+   */
+  Rational upper();
+
+  /**
+   * @return Lower approximation of the optimized value.
+   */
+  Rational lower();
+
+  /**
+   * @return Value of the approximation objective:
+   * equivalent to {@link #upper()} for the maximization problem
+   * and {@link #lower()} for the minimization problem.
+   */
+  Rational value();
 
   Model getModel() throws SolverException;
 
   /**
-   * Optimization result.
+   * Status of the optimization problem.
    */
-  enum OptResult {
+  public enum OptStatus {
     OPT, // All good, the solution was found.
     UNSAT,  // SMT problem is unsatisfiable.
     UNDEF, // The result is unknown.

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -140,16 +141,16 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
 
     @Override
     public void removeSubtree(ARGState element, Precision newPrecision,
-        Class<? extends Precision> pPrecisionType) {
+        Predicate<? super Precision> pPrecisionType) {
       ArrayList<Precision> listP = new ArrayList<>();
       listP.add(newPrecision);
-      ArrayList<Class<? extends Precision>> listPT = new ArrayList<>();
+      ArrayList<Predicate<? super Precision>> listPT = new ArrayList<>();
       listPT.add(pPrecisionType);
       removeSubtree(element, listP, listPT);
     }
 
     @Override
-    public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+    public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
       Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
       transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, pathStateToReachedState);
     }

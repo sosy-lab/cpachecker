@@ -69,12 +69,14 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3OptProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
-  private static enum Solvers {
+  @VisibleForTesting
+  static enum Solvers {
     MATHSAT5,
     SMTINTERPOL,
     Z3,

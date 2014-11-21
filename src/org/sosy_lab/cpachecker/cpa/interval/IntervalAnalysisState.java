@@ -23,34 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable,
-    LatticeAbstractState<IntervalAnalysisState>, AbstractQueryableState {
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+
+public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
+    AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2030700797958100666L;
-  private static IntervalTargetChecker targetChecker;
-  private static boolean ignoreRefInMerge;
 
-  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
-    targetChecker = new IntervalTargetChecker(config);
-    ignoreRefInMerge = pIgnoreRefCount;
-  }
+  private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
   /**
    * the intervals of the element
@@ -210,10 +205,12 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (!ignoreRefInMerge && mergedInterval != reachedState.getInterval(variableName)
+        if (mergedInterval != reachedState.getInterval(variableName)
             && newRefCount > reachedState.getReferenceCount(variableName)) {
           changed = true;
           newReferences = newReferences.putAndCopy(variableName, newRefCount);
+        } else {
+          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         }
 
       } else {
@@ -319,57 +316,88 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   @Override
-  public boolean isTarget() {
-   return targetChecker == null? false: targetChecker.isTarget(this);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
-  }
-
-  @Override
   public String getCPAName() {
     return "IntervalAnalysis";
   }
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    String[] parts = pProperty.split(";");
-    if (parts.length != 2) {
-      throw new InvalidQueryException("The Query \"" + pProperty
-            + "\" is invalid. Could not split the property string correctly.");
-    } else {
-      parts[1] = parts[1].trim();
-      Long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
-      Long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
+    List<String> parts = propertySplitter.splitToList(pProperty);
 
-      if (low == null || high == null) {
-        return false;
+    if (parts.size() == 2) {
+
+      // pProperty = value <= varName
+      if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
+        long value = Long.parseLong(parts.get(0));
+        Interval iv = getInterval(parts.get(1));
+        return (value <= iv.getLow());
+      }
+
+      // pProperty = varName <= value
+      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))){
+        long value = Long.parseLong(parts.get(1));
+        Interval iv = getInterval(parts.get(0));
+        return (iv.getHigh() <= value);
+      }
+
+      // pProperty = varName1 <= varName2
+      else {
+        Interval iv1 = getInterval(parts.get(0));
+        Interval iv2 = getInterval(parts.get(1));
+        return (iv1.contains(iv2));
+      }
+
+    // pProperty = value1 <= varName <= value2
+    } else if (parts.size() == 3){
+      if ( CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2)) ) {
+        long value1 = Long.parseLong(parts.get(0));
+        long value2 = Long.parseLong(parts.get(2));
+        Interval iv = getInterval(parts.get(1));
+        return (value1 <= iv.getLow() && iv.getHigh() <= value2);
       }
     }
-
-    long low = Long.parseLong(parts[0].substring(1, parts[0].length()));
-    long high = Long.parseLong(parts[1].substring(0, parts[1].length()-1));
 
     return false;
   }
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    return null;
+    return Boolean.valueOf(checkProperty(pProperty));
   }
 
   @Override
   public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("Unsupported Operation");
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+  }
+
+  @Override
+  public String toDOTLabel() {
+
+    //this part may be seperated into an util class
+    Map<String, String> map = new HashMap<>();
+
+    // to merge interval & refCount to one String
+    // create a new HashMap with varName as key and [Interval] (refCount) as value
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      StringBuilder string = new StringBuilder();
+      string.append(entry.getValue().toString());
+      string.append(" ("); // just to improve readability
+      string.append(referenceCounts.get(entry.getKey()).toString());
+      string.append(")");
+      map.put(entry.getKey(), string.toString());
+    }
+
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, map);
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }

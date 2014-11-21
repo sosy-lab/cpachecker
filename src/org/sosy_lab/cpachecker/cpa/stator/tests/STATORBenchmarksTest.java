@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.stator.tests;
 
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -19,7 +18,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/stateful.c"
     );
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   @Test public void checkComplexLoop() throws Exception {
@@ -27,7 +26,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/tests.c"
     );
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   @Test public void checkLoopBounds() throws Exception {
@@ -35,7 +34,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/loop_bounds.c"
     );
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   @Test public void checkPointerRead() throws Exception {
@@ -43,7 +42,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/pointer_read.c"
     );
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   @Test public void checkPointerWrite() throws Exception {
@@ -51,7 +50,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/pointer_write.c"
     );
-    Assert.assertEquals(false, results.isSafe());
+    results.assertIsUnsafe();
   }
 
   @Test public void checkPointerAssignment() throws Exception {
@@ -60,7 +59,7 @@ public class STATORBenchmarksTest {
         "test/programs/stator/pointer2.c"
     );
 
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   @Test public void checkLoopBounds2() throws Exception {
@@ -68,7 +67,7 @@ public class STATORBenchmarksTest {
         getProperties(),
         "test/programs/stator/loop2.c"
     );
-    Assert.assertEquals(true, results.isSafe());
+    results.assertIsSafe();
   }
 
   private Map<String, String> getProperties() {

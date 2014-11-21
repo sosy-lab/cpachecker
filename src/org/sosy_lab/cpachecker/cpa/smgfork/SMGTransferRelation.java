@@ -89,7 +89,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -525,7 +524,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -1484,7 +1483,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     SMGState newElement = new SMGState(pElement);
 

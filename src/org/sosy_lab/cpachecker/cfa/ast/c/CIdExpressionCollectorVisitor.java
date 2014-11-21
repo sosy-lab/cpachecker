@@ -29,6 +29,20 @@ import java.util.Set;
 
 public class CIdExpressionCollectorVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
+  public static Set<String> getVariablesOfExpression(CExpression expr) {
+    Set<String> result = new HashSet<>();
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+
+    expr.accept(collector);
+
+    for (CIdExpression id : collector.getReferencedIdExpressions()) {
+      String assignToVar = id.getDeclaration().getQualifiedName();
+      result.add(assignToVar);
+    }
+
+    return result;
+  }
+
   private final Set<CIdExpression> referencedVariables = new HashSet<>();
 
   public Set<CIdExpression> getReferencedIdExpressions() {

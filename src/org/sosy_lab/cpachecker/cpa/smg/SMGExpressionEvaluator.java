@@ -479,7 +479,8 @@ public class SMGExpressionEvaluator {
        */
       CExpression operand = pointerExpression.getOperand();
 
-      assert operand.getExpressionType().getCanonicalType() instanceof CPointerType;
+      assert operand.getExpressionType().getCanonicalType() instanceof CPointerType
+      || operand.getExpressionType().getCanonicalType() instanceof CArrayType;
 
       SMGAddressValueAndState addressValueAndState = evaluateAddress(
           getInitialSmgState(), getCfaEdge(), operand);
@@ -1073,18 +1074,10 @@ public class SMGExpressionEvaluator {
         SMGSymbolicValue leftSideVal = leftSideValAndState.getValue();
         SMGState newState = leftSideValAndState.getSmgState();
 
-        //if (leftSideVal.isUnknown()) {
-          //return SMGValueAndState.of(newState);
-        //}
-
         SMGValueAndState rightSideValAndState = evaluateExpressionValue(
             newState, cfaEdge, rightSideExpression);
         SMGSymbolicValue rightSideVal = rightSideValAndState.getValue();
         newState = rightSideValAndState.getSmgState();
-
-        //if (rightSideVal.isUnknown()) {
-          //return SMGValueAndState.of(newState);
-        //}
 
         SMGSymbolicValue result = evaluateBinaryAssumption(newState,
             binaryOperator, leftSideVal, rightSideVal);
@@ -1184,9 +1177,6 @@ public class SMGExpressionEvaluator {
             }
 
             impliesNeqWhenTrue = true;
-            if(!areNonEqual) {
-              impliesEqWhenFalse = true;
-            }
             break;
           default:
             throw new AssertionError("Impossible case thrown");
@@ -1469,8 +1459,7 @@ public class SMGExpressionEvaluator {
 
       boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
 
-      SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue
-          .getInstance();
+      SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
       return SMGValueAndState.of(getInitialSmgState(), val);
     }
 

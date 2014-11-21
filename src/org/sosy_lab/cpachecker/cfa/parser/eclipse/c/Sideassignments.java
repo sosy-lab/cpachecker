@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import com.google.common.base.Preconditions;
 
 
-public class Sideassignments {
+class Sideassignments {
 
   private final Deque<List<CAstNode>> preSideAssignments;
   private final Deque<List<CAstNode>> postSideAssignments;

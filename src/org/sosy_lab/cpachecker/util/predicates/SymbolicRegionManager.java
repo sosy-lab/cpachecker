@@ -113,17 +113,11 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     SymbolicRegion r1 = (SymbolicRegion)pF1;
     SymbolicRegion r2 = (SymbolicRegion)pF2;
 
-    try {
-      return solver.implies(r1.f, r2.f);
-    } catch (SolverException e) {
-      // Entailment checks are supposed to be easy and fast (as for BDDs),
-      // so we do not have the checked exception in the interface.
-      throw new RuntimeException(e);
-    }
+    return solver.implies(r1.f, r2.f);
   }
 
   @Override

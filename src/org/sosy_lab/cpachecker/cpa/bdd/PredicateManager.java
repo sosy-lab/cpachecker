@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,13 +67,12 @@ public class PredicateManager {
   private final NamedRegionManager rmgr;
 
   public PredicateManager(final Configuration config, final NamedRegionManager pRmgr,
-                          final BDDPrecision pPrecision, final CFA pCfa
-                          ) throws InvalidConfigurationException {
+                          final CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
     this.rmgr = pRmgr;
 
     if (initPartitions) {
-      initVars(pPrecision, pCfa);
+      initVars(pCfa);
     }
   }
 
@@ -96,8 +94,8 @@ public class PredicateManager {
    *  (later vars are deeper in the BDD).
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
-  protected void initVars(BDDPrecision precision, CFA cfa) {
-    List<VariableClassification.Partition> partitions;
+  protected void initVars(CFA cfa) {
+    Collection<VariableClassification.Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();
@@ -109,8 +107,7 @@ public class PredicateManager {
     MachineModel machineModel = cfa.getMachineModel();
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), precision,
-              machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
+      createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
     }
   }
 
@@ -118,7 +115,7 @@ public class PredicateManager {
    *
    * The value 'bitsize' chooses how much bits are used for each var.
    * The varname is build as "varname@pos". */
-  public void createPredicates(final Collection<String> vars, final BDDPrecision precision, final int bitsize) {
+  public void createPredicates(final Collection<String> vars, final int bitsize) {
 
     assert bitsize >= 1 : "you need at least one bit for a variable.";
 

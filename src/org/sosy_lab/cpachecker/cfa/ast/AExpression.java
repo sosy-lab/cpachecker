@@ -23,38 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-
 /**
-*
-* Abstract class for side-effect free expressions.
-* This class is only SuperClass of all abstract Classes and their Subclasses.
-* The Interface {@link IAExpression} contains all language specific
-* AST Nodes as well.
-*/
-public abstract class AExpression extends ARightHandSide implements IAExpression {
+ * Abstract interface for side-effect free expressions.
+ */
+public interface AExpression extends ARightHandSide {
 
-  public AExpression(FileLocation pFileLocation, Type pType) {
-    super(pFileLocation, pType);
-  }
 
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!(obj instanceof AExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
-  }
 }

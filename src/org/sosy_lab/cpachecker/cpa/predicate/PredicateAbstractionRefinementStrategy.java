@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -268,7 +269,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       }
 
       shutdownNotifier.shutdownIfNecessary();
-      pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
+      pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
@@ -453,12 +454,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision, PredicatePrecision.class);
+    pReached.removeSubtree(refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
     assert (refinementCount > 0) || reached.size() == 1;
 
     if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision, PredicatePrecision.class);
+      pReached.updatePrecisionGlobally(newPrecision, Predicates.instanceOf(PredicatePrecision.class));
     }
 
     argUpdate.stop();

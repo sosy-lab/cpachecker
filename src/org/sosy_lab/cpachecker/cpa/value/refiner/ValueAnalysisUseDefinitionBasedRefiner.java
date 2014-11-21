@@ -181,11 +181,11 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
     Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision valueAnalysisPrecision = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
+    VariableTrackingPrecision valueAnalysisPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
 
     reached.removeSubtree(errorPath.get(1).getFirst(),
        valueAnalysisPrecision.withIncrement(increment),
-        VariableTrackingPrecision.class);
+       VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
 
     numberOfSuccessfulRefinements++;
     return true;

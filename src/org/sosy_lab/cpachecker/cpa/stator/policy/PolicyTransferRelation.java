@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.stator.policy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -136,11 +138,11 @@ public class PolicyTransferRelation  extends
         Collections.singletonList(edge));
 
     /** Propagating templates */
-    PolicyAbstractState.Templates toTemplates = templateManager.updateTemplatesForEdge(
+    Templates toTemplates = templateManager.updateTemplatesForEdge(
         prevState.getTemplates(), edge);
 
     /** Propagate the invariants */
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> newStateData;
+    ImmutableMap.Builder<LinearExpression, PolicyBound> newStateData;
     newStateData = ImmutableMap.builder();
 
     SSAMap outputSSA;
@@ -165,9 +167,9 @@ public class PolicyTransferRelation  extends
     logger.log(Level.FINE, "# Got SSA map: ", outputSSA);
 
     // Constraints from the previous state.
-    for (Map.Entry<LinearExpression, PolicyTemplateBound> item : prevState) {
+    for (Map.Entry<LinearExpression, PolicyBound> item : prevState) {
       LinearExpression expr = item.getKey();
-      ExtendedRational bound = item.getValue().bound;
+      Rational bound = item.getValue().bound;
 
       LinearConstraint constraint = new LinearConstraint(expr, bound);
       constraints.add(lcmgr.linearConstraintToFormula(constraint, inputSSA));
@@ -187,8 +189,9 @@ public class PolicyTransferRelation  extends
         if (value == ExtendedRational.NEG_INFTY) {
           logger.log(Level.FINE, "# Stopping, unfeasible branch.");
           return Collections.emptyList();
-        } else if (value != ExtendedRational.INFTY) {
-          PolicyTemplateBound constraint = PolicyTemplateBound.of(edge, value);
+        } else if (value.isRational()) {
+          PolicyBound constraint = PolicyBound.of(
+              edge, value.getRational());
           logger.log(Level.FINE, "# Updating constraint on node", toNode,
               " template ", template, " to ", constraint);
           newStateData.put(template, constraint);
@@ -198,8 +201,9 @@ public class PolicyTransferRelation  extends
       }
     }
 
-    PolicyAbstractState newState = PolicyAbstractState.withState(
-        newStateData.build(), toTemplates, toNode);
+    PolicyAbstractState newState = PolicyAbstractState.ofAbstraction(
+        newStateData.build(), toTemplates, toNode,
+        new HashSet<CFAEdge>(), new ArrayList<AbstractState>());
 
     logger.log(Level.FINE, "# New state = ", newState);
     return Collections.singleton(newState);

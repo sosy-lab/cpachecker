@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -97,6 +98,8 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
   // variable name for temporary storage of information
   private static final String TEMP_VAR_NAME = "___cpa_temp_result_var_";
+  private static final String JAVA_ENUM_OBJECT_NAME = "java.lang.Enum";
+
   private final Set<String> staticFieldVariables = new HashSet<>();
   private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
@@ -245,7 +248,7 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // get initial value
-    IAInitializer init = decl.getInitializer();
+    AInitializer init = decl.getInitializer();
 
     if (init instanceof JInitializerExpression) {
       JExpression exp = ((JInitializerExpression) init).getExpression();
@@ -692,14 +695,54 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+      final JExpression leftOperand = binaryExpression.getOperand1();
+      final JExpression rightOperand = binaryExpression.getOperand2();
 
-      // The only binary Expressions on Class Types is String + which is not yet supported and EnumConstant Assignment
-      if ((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(binaryExpression.getOperand1(), binaryExpression.getOperand2(), binaryExpression.getOperator());
+      // The only binary Expressions on Class Types is String + which is not yet supported and
+      // object comparison.
+
+      /*
+       * For enums, we only have to compare the type of the variable. For 'casual' objects, we
+       * have to compare the concrete references.
+       */
+      if (isObjectComparison(binaryExpression)) {
+        if (isEnum((JClassType) leftOperand.getExpressionType())
+            || isEnum((JClassType) rightOperand.getExpressionType())) {
+
+          return handleEnumComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+
+        } else {
+          return handleObjectComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+        }
       }
 
       return null;
     }
+
+    private boolean isObjectComparison(JBinaryExpression pExpression) {
+      final BinaryOperator operator = pExpression.getOperator();
+      boolean isComparison = operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS;
+
+      final JExpression leftOperand = pExpression.getOperand1();
+      final JExpression rightOperand = pExpression.getOperand2();
+      boolean isObject = leftOperand.getExpressionType() instanceof JClassType
+          && rightOperand.getExpressionType() instanceof JClassType;
+
+      return isComparison && isObject;
+    }
+
+    private boolean isEnum(JClassType pClassType) {
+      List<JClassOrInterfaceType> superTypes = pClassType.getAllSuperTypesOfType();
+
+      for (JClassOrInterfaceType currentType : superTypes) {
+        if (currentType.getName().equals(JAVA_ENUM_OBJECT_NAME)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
 
     private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator)
         throws UnrecognizedCCodeException {
@@ -731,6 +774,16 @@ public class RTTTransferRelation extends SingleEdgeTransferRelation {
         throw new UnrecognizedCCodeException("unexpected enum comparison", edge);
       }
 
+      return Boolean.toString(result);
+    }
+
+    private String handleObjectComparison(final JExpression pLeftOperand,
+        final JExpression pRightOperand, final BinaryOperator pOperator)
+        throws UnrecognizedCCodeException {
+      String value1 = pLeftOperand.accept(this);
+      String value2 = pRightOperand.accept(this);
+
+      boolean result = pOperator == BinaryOperator.NOT_EQUALS ^ value1.equals(value2);
       return Boolean.toString(result);
     }
 

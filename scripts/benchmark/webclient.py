@@ -56,7 +56,7 @@ from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
 from . import filewriter as filewriter
 from . import util as Util
 
-RESULT_KEYS = ["cpuTime", "wallTime", "energy" ]
+RESULT_KEYS = ["cputime", "walltime", "energy" ]
 
 MAX_SUBMISSION_THREADS = 5
 
@@ -420,10 +420,10 @@ def _parseCloudResultFile(filePath):
     
     values = _parseFile(filePath)   
 
-    returnValue = int(values["@vcloud-exitCode"])
-    wallTime = float(values["wallTime"].strip('s'))
-    cpuTime = float(values["cpuTime"].strip('s'))
-    values["memUsage"] = int(values["@vcloud-usedMemory"].strip('B'))     
+    returnValue = int(values["@vcloud-exitcode"])
+    wallTime = float(values["walltime"].strip('s'))
+    cpuTime = float(values["cputime"].strip('s'))
+    values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
     return (wallTime, cpuTime, returnValue, values)
 

@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -538,7 +538,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
-      IAExpression expression = assumeEdge.getExpression();
+      AExpression expression = assumeEdge.getExpression();
       return getInvolvedVariables(expression, pCfaEdge);
     }
     case MultiEdge: {
@@ -551,7 +551,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
     case DeclarationEdge: {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
-      IADeclaration declaration = declarationEdge.getDeclaration();
+      ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
         String declaredVariable = variableDeclaration.getQualifiedName();
@@ -573,10 +573,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
       Map<String, CType> result = new HashMap<>();
-      for (IAExpression argument : functionCallEdge.getArguments()) {
+      for (AExpression argument : functionCallEdge.getArguments()) {
         result.putAll(getInvolvedVariables(argument, pCfaEdge));
       }
-      for (IAExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
+      for (AExpression parameter : functionCallEdge.getSummaryEdge().getExpression().getFunctionCallExpression().getParameterExpressions()) {
         result.putAll(getInvolvedVariables(parameter, pCfaEdge));
       }
       return result;
@@ -584,7 +584,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
       if (returnStatementEdge.getExpression().isPresent()) {
-        IAExpression returnExpression = returnStatementEdge.getExpression().get();
+        AExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<String, CType> result = new HashMap<>();
         result.put(VariableNameExtractor.scope(RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
             (CType) returnExpression.getExpressionType());
@@ -595,7 +595,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
     case StatementEdge: {
       AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
-      IAStatement statement = statementEdge.getStatement();
+      AStatement statement = statementEdge.getStatement();
       if (statement instanceof AExpressionAssignmentStatement) {
         AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
         Map<String, CType> result = new HashMap<>();
@@ -609,14 +609,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         Map<String, CType> result = new HashMap<>();
         result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
         AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
-        for (IAExpression expression : functionCallExpression.getParameterExpressions()) {
+        for (AExpression expression : functionCallExpression.getParameterExpressions()) {
           result.putAll(getInvolvedVariables(expression, pCfaEdge));
         }
         return result;
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
         Map<String, CType> result = new HashMap<>();
-        for (IAExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+        for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           result.putAll(getInvolvedVariables(expression, pCfaEdge));
         }
         return result;
@@ -678,81 +678,81 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariables(IAExpression pExpression, CFAEdge pCfaEdge) {
+  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, CFAEdge pCfaEdge) {
     if (pExpression == null) {
       return Collections.emptyMap();
     } if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();
 
-      for (IALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new CExpressionVisitor<Iterable<IALeftHandSide>, RuntimeException>() {
+      for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(new CExpressionVisitor<Iterable<ALeftHandSide>, RuntimeException>() {
 
         @Override
-        public Iterable<IALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-          return Collections.<IALeftHandSide>singleton(pIastArraySubscriptExpression);
+        public Iterable<ALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+          return Collections.<ALeftHandSide>singleton(pIastArraySubscriptExpression);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CFieldReference pIastFieldReference) {
-          return Collections.<IALeftHandSide>singleton(pIastFieldReference);
+        public Iterable<ALeftHandSide> visit(CFieldReference pIastFieldReference) {
+          return Collections.<ALeftHandSide>singleton(pIastFieldReference);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CIdExpression pIastIdExpression) {
-          return Collections.<IALeftHandSide>singleton(pIastIdExpression);
+        public Iterable<ALeftHandSide> visit(CIdExpression pIastIdExpression) {
+          return Collections.<ALeftHandSide>singleton(pIastIdExpression);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CPointerExpression pPointerExpression) {
-          return Collections.<IALeftHandSide>singleton(pPointerExpression);
+        public Iterable<ALeftHandSide> visit(CPointerExpression pPointerExpression) {
+          return Collections.<ALeftHandSide>singleton(pPointerExpression);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CComplexCastExpression pComplexCastExpression) {
+        public Iterable<ALeftHandSide> visit(CComplexCastExpression pComplexCastExpression) {
           return pComplexCastExpression.getOperand().accept(this);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CBinaryExpression pIastBinaryExpression) {
+        public Iterable<ALeftHandSide> visit(CBinaryExpression pIastBinaryExpression) {
           return Iterables.concat(pIastBinaryExpression.getOperand1().accept(this), pIastBinaryExpression.getOperand2().accept(this));
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CCastExpression pIastCastExpression) {
+        public Iterable<ALeftHandSide> visit(CCastExpression pIastCastExpression) {
           return pIastCastExpression.getOperand().accept(this);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CCharLiteralExpression pIastCharLiteralExpression) {
+        public Iterable<ALeftHandSide> visit(CCharLiteralExpression pIastCharLiteralExpression) {
           return Collections.emptySet();
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
+        public Iterable<ALeftHandSide> visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
           return Collections.emptySet();
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
+        public Iterable<ALeftHandSide> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
           return Collections.emptySet();
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CStringLiteralExpression pIastStringLiteralExpression) {
+        public Iterable<ALeftHandSide> visit(CStringLiteralExpression pIastStringLiteralExpression) {
           return Collections.emptySet();
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CTypeIdExpression pIastTypeIdExpression) {
+        public Iterable<ALeftHandSide> visit(CTypeIdExpression pIastTypeIdExpression) {
           return Collections.emptySet();
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
+        public Iterable<ALeftHandSide> visit(CUnaryExpression pIastUnaryExpression) {
           return pIastUnaryExpression.getOperand().accept(this);
         }
 
         @Override
-        public Iterable<IALeftHandSide> visit(CImaginaryLiteralExpression pIastLiteralExpression) {
+        public Iterable<ALeftHandSide> visit(CImaginaryLiteralExpression pIastLiteralExpression) {
           return Collections.emptySet();
         }
 

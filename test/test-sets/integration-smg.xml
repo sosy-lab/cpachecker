@@ -22,7 +22,7 @@
 
   <sourcefiles name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-    <option name="-sv-comp14"/>
+    <option name="-sv-comp15"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
   <rundefinition/>

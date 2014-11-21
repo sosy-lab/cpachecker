@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import java.util.List;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,38 +36,64 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
 
 
 /**
- * Tests for the opti-z3 branch.
+ * Tests for the maximization using the Z3 opt branch.
  */
 public class Z3MaximizationTest {
 
-  private Configuration config;
-  private LogManager logger;
   private Z3FormulaManager mgr;
   private Z3RationalFormulaManager rfmgr;
   private Z3BooleanFormulaManager bfmgr;
 
   @Before
   public void loadZ3() throws Exception {
-    try {
-      NativeLibraries.loadLibrary("z3j");
-    } catch (UnsatisfiedLinkError t) {
-      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
-    }
-    config = Configuration.defaultConfiguration();
-    logger = TestLogManager.getInstance();
+    NativeLibraries.loadLibrary("z3j");
+    Configuration config = Configuration.defaultConfiguration();
+    LogManager logger = TestLogManager.getInstance();
     mgr = Z3FormulaManager.create(logger, config, null);
     rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
   }
 
+  @Test public void testUnbounded() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, obj;
+      x = rfmgr.makeVariable("x");
+      obj = rfmgr.makeVariable("obj");
+      List<BooleanFormula> constraints = ImmutableList.of(
+        rfmgr.greaterOrEquals(x, rfmgr.makeNumber("10")),
+        rfmgr.equal(x, obj)
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      prover.maximize(obj);
+      OptEnvironment.OptStatus response = prover.check();
+      Assert.assertEquals(OptEnvironment.OptStatus.UNBOUNDED, response);
+    }
+  }
 
-  @Test public void testMaximizationBjornerApi() throws Exception {
+  @Test public void testUnfeasible() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, y;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessThan(x, y),
+          rfmgr.greaterThan(x, y)
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      prover.maximize(x);
+      OptEnvironment.OptStatus response = prover.check();
+      Assert.assertEquals(OptEnvironment.OptStatus.UNSAT,
+          response);
+    }
+  }
+
+  @Test public void testOptimal() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
 
       RationalFormula x, y, obj;
@@ -91,20 +116,18 @@ public class Z3MaximizationTest {
       );
 
       prover.addConstraint(bfmgr.and(constraints));
-      prover.setObjective(x);
+      prover.maximize(obj);
 
       // Maximize for x.
-      OptEnvironment.OptResult response = prover.maximize();
+      OptEnvironment.OptStatus response = prover.check();
 
-      Assert.assertEquals(OptEnvironment.OptResult.OPT, response);
+      Assert.assertEquals(OptEnvironment.OptStatus.OPT, response);
+
+      Model model = prover.getModel();
+      System.out.println("Model = " + model);
 
       // Check the value.
-      Model model = prover.getModel();
-
-      ExtendedRational value = (ExtendedRational)
-          model.get(new Model.Constant("obj", Model.TermType.Real));
-
-      Assert.assertEquals(ExtendedRational.ofString("19"), value);
+      Assert.assertEquals(Rational.ofString("19"), prover.value());
     }
 
   }

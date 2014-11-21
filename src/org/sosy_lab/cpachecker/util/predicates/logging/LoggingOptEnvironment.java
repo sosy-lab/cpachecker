@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 /**
  * Wrapper for an optimizing solver.
@@ -52,15 +53,37 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public void setObjective(Formula objective) {
-    logger.log(Level.FINE, "Setting objective: " + objective);
-    wrapped.setObjective(objective);
+  public void maximize(Formula objective) {
+    logger.log(Level.FINE, "Maximizing: " + objective);
+    wrapped.maximize(objective);
   }
 
   @Override
-  public OptResult maximize() throws InterruptedException {
-    logger.log(Level.FINE, "Performing maximization");
-    return wrapped.maximize();
+  public void minimize(Formula objective) {
+    logger.log(Level.FINE, "Minimizing: " + objective);
+    wrapped.minimize(objective);
+  }
+
+  @Override
+  public OptStatus check()
+      throws InterruptedException, SolverException {
+    logger.log(Level.FINE, "Performing optimization");
+    return wrapped.check();
+  }
+
+  @Override
+  public Rational upper() {
+    return wrapped.upper();
+  }
+
+  @Override
+  public Rational lower() {
+    return wrapped.lower();
+  }
+
+  @Override
+  public Rational value() {
+    return wrapped.value();
   }
 
   @Override

@@ -130,7 +130,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -146,13 +145,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ASTConverter {
+class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
   private static final int FIRST = 0;
-
-  private static final int SECOND = 1;
 
   private final LogManager logger;
 
@@ -1076,33 +1073,17 @@ public class ASTConverter {
     assert type instanceof JClassOrInterfaceType : "There are other types for this expression?";
 
     JIdExpression referenceVariable = (JIdExpression) leftOperand;
-    JClassOrInterfaceType instanceCompatible = (JClassOrInterfaceType) type;
     JRunTimeTypeEqualsType firstCond = null;
 
-
-
-    List<JClassType> subClassTypes;
-
-    if (instanceCompatible instanceof JInterfaceType) {
-
-      Set<JClassType> subClassTypeSet = ((JInterfaceType) instanceCompatible).getAllKnownImplementingClassesOfInterface();
-
-      subClassTypes =  transformSetToList(subClassTypeSet);
-
+    List<JClassType> subClassTypes = getSubClassTypes((JClassOrInterfaceType) type);
+    if (type instanceof JInterfaceType) {
       if (subClassTypes.isEmpty()) {
         return new JBooleanLiteralExpression(fileloc, false);
-      } else if (subClassTypes.size() == 1) {
-        return convertClassRunTimeCompileTimeAccord(fileloc,
-          referenceVariable, subClassTypes.get(FIRST)); }
+      }
 
-    } else if (instanceCompatible instanceof JClassType) {
-
-      Set<JClassType> subClassSet = ((JClassType) instanceCompatible).getAllSubTypesOfClass();
-
-      subClassTypes = transformSetToList(subClassSet);
-
-      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, instanceCompatible);
-      if (subClassTypes.isEmpty()) { return firstCond; }
+    } else if (type instanceof JClassType) {
+      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
+          (JClassOrInterfaceType) type);
 
     } else {
       // Through assertions above, instanceCompatible has to be a sub type of JClassOrInterfaceType
@@ -1112,38 +1093,57 @@ public class ASTConverter {
           " or interface type");
     }
 
-    JBinaryExpression firstOrConnection;
+    return createInstanceofExpression(referenceVariable, subClassTypes,
+        convert(e.resolveTypeBinding()), fileloc, firstCond);
+  }
 
+  private List<JClassType> getSubClassTypes(JClassOrInterfaceType pType) {
+    Set<JClassType> subClassTypeSet;
 
-    if (firstCond == null) {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), convertClassRunTimeCompileTimeAccord(fileloc,
-              referenceVariable, subClassTypes.get(FIRST)), convertClassRunTimeCompileTimeAccord(
-              fileloc, referenceVariable, subClassTypes.get(SECOND)),
-              JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(SECOND);
-      subClassTypes.remove(FIRST);
+    assert pType instanceof JInterfaceType || pType instanceof JClassType;
+    if (pType instanceof JInterfaceType) {
+      subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
     } else {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), firstCond,
-              convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
-                  subClassTypes.get(FIRST)), JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(FIRST);
+      subClassTypeSet = ((JClassType) pType).getAllSubTypesOfClass();
     }
 
-    JBinaryExpression nextConnection = firstOrConnection;
+    return transformSetToList(subClassTypeSet);
+  }
 
-    for (JClassType subType : subClassTypes) {
-      JRunTimeTypeEqualsType cond =
-          convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, subType);
-      nextConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), nextConnection, cond,
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation) {
+
+    final JRunTimeTypeEqualsType firstCond = convertClassRunTimeCompileTimeAccord(pLocation,
+        pLeftOperand, pClassTypes.remove(FIRST));
+
+    return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType,
+        pLocation, firstCond);
+  }
+
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation,
+      @Nullable JRunTimeTypeEqualsType pFirstCondition) {
+
+    if (pFirstCondition == null) {
+      return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType, pLocation);
+    }
+
+    JRunTimeTypeEqualsType newCondition;
+    JExpression currentCondition = pFirstCondition;
+
+    for (JClassType currentSubType : pClassTypes) {
+      newCondition = convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, currentSubType);
+      currentCondition =
+          new JBinaryExpression(pLocation, pExpressionType, currentCondition, newCondition,
               BinaryOperator.CONDITIONAL_OR);
     }
 
-    return nextConnection;
+    return currentCondition;
   }
-
 
   private List<JClassType> transformSetToList(Set<JClassType> pSubClassTypeSet) {
     List<JClassType> result = new ArrayList<>(pSubClassTypeSet.size());
@@ -1875,10 +1875,12 @@ public class ASTConverter {
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
     assert leftHandSide != null;
 
-    BinaryOperator op = convert(e.getOperator(), leftHandSide.getExpressionType());
-
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
     assert rightHandSide != null;
+
+    final JType leftHandType = leftHandSide.getExpressionType();
+    final JType rightHandType = rightHandSide.getExpressionType();
+    BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
@@ -1897,49 +1899,52 @@ public class ASTConverter {
     return binaryExpression;
   }
 
-  // pType is the type of the operands of the operation
-  private BinaryOperator convert(InfixExpression.Operator op, JType pType) {
-    final String invalidTypeMsg = "Invalid type '" + pType + "' for operation '" + op + "'";
-    JBasicType basicType;
+  private boolean isUnspecified(JType pType) {
+    return pType instanceof JSimpleType && ((JSimpleType) pType).getType() == JBasicType.UNSPECIFIED;
+  }
 
-    if (pType instanceof JSimpleType) {
-      basicType = ((JSimpleType) pType).getType();
-    } else {
-      basicType = null;
+  // pType is the type of the operands of the operation
+  private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
+    final String invalidTypeMsg = "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";
+    JBasicType basicTypeOp1 = null;
+    JBasicType basicTypeOp2 = null;
+
+    if (pOp1Type instanceof JSimpleType) {
+      basicTypeOp1 = ((JSimpleType) pOp1Type).getType();
     }
 
-    if (basicType != null && basicType.equals(JBasicType.VOID)) {
-      throw new CFAGenerationRuntimeException(invalidTypeMsg);
+    if (pOp2Type instanceof JSimpleType) {
+      basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
+    }
 
-    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-      return BinaryOperator.EQUALS;
-
-    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-      return BinaryOperator.NOT_EQUALS;
-
-    } else if (basicType != null) {
-
-      switch (basicType) {
-      case BOOLEAN:
-        return convertBooleanOperator(op);
-
-      case BYTE:
-      case SHORT:
-      case INT:
-      case LONG:
-      case FLOAT:
-      case DOUBLE:
-        return convertNumberOperator(op);
-
-      default:
+    if (basicTypeOp1 == null || basicTypeOp2 == null) {
+      if (op.equals(InfixExpression.Operator.EQUALS)) {
+        return BinaryOperator.EQUALS;
+      } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+        return BinaryOperator.NOT_EQUALS;
+      } else {
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
+    } else if (isNumericCompatible(basicTypeOp1) && isNumericCompatible(basicTypeOp2)) {
+      return convertNumericOperator(op);
+    } else if (isBooleanCompatible(basicTypeOp1) && isBooleanCompatible(basicTypeOp2)) {
+      return convertBooleanOperator(op);
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
   }
 
-  private BinaryOperator convertNumberOperator(InfixExpression.Operator op) {
+  private boolean isNumericCompatible(JBasicType pType) {
+    return pType != null
+        && (pType.isIntegerType() || pType.isFloatingPointType() || pType == JBasicType.UNSPECIFIED);
+  }
+
+  private boolean isBooleanCompatible(JBasicType pType) {
+    return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
+
+  }
+
+  private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1950,12 +1955,6 @@ public class ASTConverter {
       return BinaryOperator.MULTIPLY;
     } else if (op.equals(InfixExpression.Operator.REMAINDER)) {
       return BinaryOperator.MODULO;
-    } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.BINARY_AND;
-    } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.BINARY_OR;
-    } else if (op.equals(InfixExpression.Operator.XOR)) {
-      return BinaryOperator.BINARY_XOR;
     } else if (op.equals(InfixExpression.Operator.GREATER)) {
       return BinaryOperator.GREATER_THAN;
     } else if (op.equals(InfixExpression.Operator.LESS)) {
@@ -1970,14 +1969,19 @@ public class ASTConverter {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
-
     } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-     return BinaryOperator.NOT_EQUALS;
+      return BinaryOperator.NOT_EQUALS;
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
+    } else if (op.equals(InfixExpression.Operator.AND)) {
+        return BinaryOperator.BINARY_AND;
+    } else if (op.equals(InfixExpression.Operator.OR)) {
+        return BinaryOperator.BINARY_OR;
+    } else if (op.equals(InfixExpression.Operator.XOR)) {
+        return BinaryOperator.BINARY_XOR;
     } else {
       throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator: " + op.toString());
+        "Could not proccess Operator: " + op.toString());
     }
   }
 
@@ -1986,22 +1990,22 @@ public class ASTConverter {
       return BinaryOperator.CONDITIONAL_AND;
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
       return BinaryOperator.CONDITIONAL_OR;
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+      return BinaryOperator.NOT_EQUALS;
+    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
+      return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.AND)) {
       return BinaryOperator.LOGICAL_AND;
     } else if (op.equals(InfixExpression.Operator.OR)) {
       return BinaryOperator.LOGICAL_OR;
     } else if (op.equals(InfixExpression.Operator.XOR)) {
       return BinaryOperator.LOGICAL_XOR;
-
-    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-      return BinaryOperator.NOT_EQUALS;
-    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-      return BinaryOperator.EQUALS;
     } else {
       throw new CFAGenerationRuntimeException(
-        "Could not proccess Operator: " + op.toString());
+          "Could not proccess Operator: " + op.toString());
     }
   }
+
 
   private JExpression convert(NumberLiteral e) {
     FileLocation fileLoc = getFileLocation(e);
@@ -2165,7 +2169,7 @@ public class ASTConverter {
 
     JSimpleDeclaration param =
         scope.lookupVariable(NameConverter.convertName(
-                              formalParameter.resolveBinding()));
+            formalParameter.resolveBinding()));
 
     if (param == null) {
       throw new CFAGenerationRuntimeException(

@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 /**
  * Converts a set of invariants to the pretty text representation.
  */
 public class PolicyDotWriter {
-  public String toDOTLabel(Map<LinearExpression, PolicyTemplateBound> data) {
+  public String toDOTLabel(Map<LinearExpression, PolicyBound> data) {
     StringBuilder b = new StringBuilder();
     b.append("\n");
 
@@ -19,26 +19,26 @@ public class PolicyDotWriter {
     // only for printing.
 
     // Convert to the readable format.
-    Map<LinearExpression, PolicyTemplateBound> toSort = new HashMap<>();
+    Map<LinearExpression, PolicyBound> toSort = new HashMap<>();
 
     // Pretty-printing is tricky.
-    Map<LinearExpression, ExtendedRational> lessThan = new HashMap<>();
-    Map<LinearExpression, Pair<ExtendedRational, ExtendedRational>> bounded
+    Map<LinearExpression, Rational> lessThan = new HashMap<>();
+    Map<LinearExpression, Pair<Rational, Rational>> bounded
         = new HashMap<>();
-    Map<LinearExpression, ExtendedRational> equal = new HashMap<>();
+    Map<LinearExpression, Rational> equal = new HashMap<>();
 
     toSort.putAll(data);
     while (toSort.size() > 0) {
       LinearExpression template, negTemplate;
       template = toSort.keySet().iterator().next();
-      ExtendedRational upperBound = toSort.get(template).bound;
+      Rational upperBound = toSort.get(template).bound;
 
       negTemplate = template.negate();
 
       toSort.remove(template);
 
       if (toSort.containsKey(negTemplate)) {
-        ExtendedRational lowerBound = toSort.get(negTemplate).bound.negate();
+        Rational lowerBound = toSort.get(negTemplate).bound.negate();
         toSort.remove(negTemplate);
 
         // Rotate the pair if necessary.
@@ -68,7 +68,7 @@ public class PolicyDotWriter {
     }
 
     // Print equals.
-    for (Map.Entry<LinearExpression, ExtendedRational> entry : equal.entrySet()) {
+    for (Map.Entry<LinearExpression, Rational> entry : equal.entrySet()) {
       b.append(entry.getKey())
           .append("=")
           .append(entry.getValue())
@@ -76,7 +76,7 @@ public class PolicyDotWriter {
     }
 
     // Print bounded.
-    for (Map.Entry<LinearExpression, Pair<ExtendedRational, ExtendedRational>> entry
+    for (Map.Entry<LinearExpression, Pair<Rational, Rational>> entry
         : bounded.entrySet()) {
       b
           .append(entry.getValue().getFirst())
@@ -88,7 +88,7 @@ public class PolicyDotWriter {
     }
 
     // Print less-than.
-    for (Map.Entry<LinearExpression, ExtendedRational> entry : lessThan.entrySet()) {
+    for (Map.Entry<LinearExpression, Rational> entry : lessThan.entrySet()) {
       b.append(entry.getKey())
           .append("≤")
           .append(entry.getValue())

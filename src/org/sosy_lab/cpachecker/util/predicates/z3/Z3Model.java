@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -207,7 +207,7 @@ class Z3Model {
 
       case Real:
         String s = get_numeral_string(z3context, value);
-        lValue = ExtendedRational.ofString(s);
+        lValue = Rational.ofString(s);
         break;
 
       case Bitvector:

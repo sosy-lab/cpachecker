@@ -52,7 +52,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -91,9 +91,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LiveVariables.LiveVariablesBuilder;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -205,6 +208,12 @@ public class CFACreator {
       description="unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
 
+  @Option(secure=true, name="cfa.findLiveVariables",
+          description="By enabling this option the variables that are live are"
+              + " computed for each edge of the cfa. Live means that their value"
+              + " is read later on.")
+  private boolean findLiveVariables = false;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -222,6 +231,7 @@ public class CFACreator {
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
     private final Timer pruningTime = new Timer();
+    private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
 
     @Override
@@ -238,7 +248,10 @@ public class CFACreator {
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
       if (pruningTime.getNumberOfIntervals() > 0) {
-        out.println("    Time for CFA pruning:     " + pruningTime);
+        out.println("      Time for CFA pruning:   " + pruningTime);
+      }
+      if (variableClassificationTime.getNumberOfIntervals() > 0) {
+        out.println("      Time for var class.:    " + pruningTime);
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -368,6 +381,15 @@ public class CFACreator {
       Optional<LoopStructure> loopStructure = getLoopStructure(cfa);
       cfa.setLoopStructure(loopStructure);
 
+      // get live-variables information, first and second part, the last
+      // part is added after the creation of the variable classification
+      LiveVariablesBuilder liveVariablesBuilder = new LiveVariablesBuilder();
+      if (findLiveVariables) {
+        liveVariablesBuilder.addLiveVariablesFromCFA(cfa, logger, shutdownNotifier);
+        liveVariablesBuilder.addLiveVariablesFromGlobalScope(c.getGlobalDeclarations());
+      }
+
+
       // FOURTH, insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -404,10 +426,27 @@ public class CFACreator {
       // the cfa should not be modified after this line.
 
       // Get information about variables, needed for some analysis.
-      final Optional<VariableClassification> varClassification
-          = (language == Language.C)
-          ? Optional.of(new VariableClassification(cfa, config, logger))
-          : Optional.<VariableClassification>absent();
+      final Optional<VariableClassification> varClassification;
+      if (language == Language.C) {
+        try {
+          stats.variableClassificationTime.start();
+          varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        } catch (UnrecognizedCCodeException e) {
+          throw new CParserException(e);
+        } finally {
+          stats.variableClassificationTime.stop();
+        }
+      } else {
+        varClassification = Optional.<VariableClassification>absent();
+      }
+
+      //third (last) part of live variables if the variable classification is
+      // present we store this information in the builder and create the live
+      // variables  object
+      if (findLiveVariables && varClassification.isPresent()) {
+        liveVariablesBuilder.addLiveVariablesByVariableClassification(varClassification.get());
+        cfa.setLiveVariables(liveVariablesBuilder.build());
+      }
 
       stats.processingTime.stop();
 
@@ -455,12 +494,8 @@ public class CFACreator {
       }
 
       final List<FileToParse> programFragments = new ArrayList<>();
-      int counter = 0;
-      String staticVarPrefix;
       for (final String fileName : sourceFiles) {
-        final String[] tmp = fileName.split("/");
-        staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
-        programFragments.add(new FileToParse(fileName, staticVarPrefix));
+        programFragments.add(new FileToParse(fileName));
       }
 
       parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
@@ -485,7 +520,7 @@ public class CFACreator {
    *
    * @return either a modified old CFA or a complete new CFA
    */
-  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<IADeclaration, String>> globalDeclarations)
+  private MutableCFA postProcessingOnMutableCFAs(MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
           throws InvalidConfigurationException, CParserException {
 
     // remove all edges which don't have any effect on the program
@@ -673,7 +708,7 @@ public class CFACreator {
   /**
    * Insert nodes for global declarations after first node of the CFA of the main-function.
    */
-  private void insertGlobalDeclarations(final MutableCFA cfa, final List<Pair<IADeclaration, String>> globalVars) {
+  private void insertGlobalDeclarations(final MutableCFA cfa, final List<Pair<ADeclaration, String>> globalVars) {
     if (globalVars.isEmpty()) {
       return;
     }
@@ -703,8 +738,8 @@ public class CFACreator {
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (Pair<? extends IADeclaration, String> p : globalVars) {
-      IADeclaration d = p.getFirst();
+    for (Pair<? extends ADeclaration, String> p : globalVars) {
+      ADeclaration d = p.getFirst();
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
@@ -738,10 +773,10 @@ public class CFACreator {
    * an explicit initial value (global variables are initialized to zero by default in C).
    * @param globalVars a list with all global declarations
    */
-  private static void addDefaultInitializers(List<Pair<IADeclaration, String>> globalVars) {
+  private static void addDefaultInitializers(List<Pair<ADeclaration, String>> globalVars) {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
-    for (Pair<IADeclaration, String> p : globalVars) {
+    for (Pair<ADeclaration, String> p : globalVars) {
       if (p.getFirst() instanceof AVariableDeclaration) {
         AVariableDeclaration v = (AVariableDeclaration)p.getFirst();
         if (v.getInitializer() != null) {
@@ -755,9 +790,9 @@ public class CFACreator {
     // All subsequent declarations of a variable after the one with the initializer
     // will be removed.
     Set<String> previouslyInitializedVariables = new HashSet<>();
-    ListIterator<Pair<IADeclaration, String>> iterator = globalVars.listIterator();
+    ListIterator<Pair<ADeclaration, String>> iterator = globalVars.listIterator();
     while (iterator.hasNext()) {
-      final Pair<IADeclaration, String> p = iterator.next();
+      final Pair<ADeclaration, String> p = iterator.next();
 
       if (p.getFirst() instanceof AVariableDeclaration) {
         CVariableDeclaration v = (CVariableDeclaration)p.getFirst();
@@ -795,7 +830,7 @@ public class CFACreator {
                                          initializer);
 
             previouslyInitializedVariables.add(name);
-            iterator.set(Pair.<IADeclaration, String>of(v, p.getSecond())); // replace declaration
+            iterator.set(Pair.<ADeclaration, String>of(v, p.getSecond())); // replace declaration
           }
         }
       }

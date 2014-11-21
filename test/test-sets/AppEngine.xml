@@ -30,28 +30,6 @@
   <sourcefiles name="ControlFlowInteger">
   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  	<!-- program too large for App Engine -->
-  	<exclude>../programs/benchmarks/eca/Problem07_20_false-unreach-call.c</exclude>
-  	<exclude>../programs/benchmarks/eca/Problem07_30_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_40_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_10_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_50_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_10_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_20_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_60_false-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_10_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem07_50_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_20_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_30_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem08_40_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_00_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_30_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_40_true-unreach-call.c</exclude>
-	<exclude>../programs/benchmarks/eca/Problem09_50_true-unreach-call.c</exclude>
   </sourcefiles>
   
   <sourcefiles name="Loops">

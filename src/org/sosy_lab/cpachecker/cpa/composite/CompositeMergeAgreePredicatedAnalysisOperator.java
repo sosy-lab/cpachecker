@@ -142,6 +142,7 @@ public class CompositeMergeAgreePredicatedAnalysisOperator implements MergeOpera
     if (identicalStates) {
       return reachedState;
     } else {
+      // TODO check if merge results in target state?
       return new CompositeState(mergedStates.build());
     }
   }

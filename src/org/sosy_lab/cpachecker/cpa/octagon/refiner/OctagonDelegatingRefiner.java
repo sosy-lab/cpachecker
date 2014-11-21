@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -59,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -80,7 +79,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisInterpolationBasedRefiner interpolatingRefiner;
+  private ValueAnalysisPathInterpolator interpolatingRefiner;
 
   /**
    * the hash code of the previous error path
@@ -145,7 +144,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     logger                = pOctagonCPA.getLogger();
     shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ValueAnalysisInterpolationBasedRefiner(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
   }
 
   @Override
@@ -190,10 +189,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
     VariableTrackingPrecision refinedOctPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
@@ -213,19 +209,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     }
 
     refinedOctPrecision  = octPrecision.withIncrement(increment);
-    refinedPrecisions.add(refinedOctPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, octPrecision, refinedOctPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
-//      Set<String> strIncrement = Sets.difference(refinedOctPrecision.getRefinablePrecision()., octPrecision.getTrackedVars());
-//      if (strIncrement.isEmpty()) {
-//        logger.log(Level.INFO, "Refinement successful, additional variables were not found, but a new error path.");
-//      } else {
-//        logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + strIncrement);
-//      }
-
+      reached.removeSubtree(refinementRoot.getFirst(),
+                            refinedOctPrecision,
+                            VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
       return true;
     } else {
       return false;
@@ -235,20 +224,17 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private boolean performOctagonAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision octPrecision         = Precisions.extractPrecisionByType(precision, VariableTrackingPrecision.class);
+    VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
-    // no newly tracked variables, so the refinement was not successful
+    // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;
     }
 
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(1);
-    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(1);
-    refinedPrecisions.add(octPrecision.withIncrement(increment));
-    newPrecisionTypes.add(VariableTrackingPrecision.class);
-
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(), refinedPrecisions, newPrecisionTypes);
+    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
+                           octPrecision.withIncrement(increment),
+                          VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
     logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + increment);
 
     return true;

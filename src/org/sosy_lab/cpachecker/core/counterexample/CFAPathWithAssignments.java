@@ -64,6 +64,22 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
   }
 
+  private CFAPathWithAssignments(
+      CFAPathWithAssignments pPathWithAssignments, CFAPathWithAssignments pPathWithAssignments2) {
+
+    assert pPathWithAssignments.size() == pPathWithAssignments2.size();
+
+    List<CFAEdgeWithAssignments> result = new ArrayList<>(pPathWithAssignments.size());
+    Iterator<CFAEdgeWithAssignments> path2Iterator = pPathWithAssignments2.iterator();
+
+    for (CFAEdgeWithAssignments edge : pPathWithAssignments) {
+      CFAEdgeWithAssignments resultEdge = edge.mergeEdge(path2Iterator.next());
+      result.add(resultEdge);
+    }
+
+    pathWithAssignments = result;
+  }
+
   public CFAPathWithAssignments() {
     pathWithAssignments = ImmutableList.of();
   }
@@ -262,5 +278,14 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     }
 
     JSON.writeJSONString(path, sb);
+  }
+
+  public CFAPathWithAssignments mergePaths(CFAPathWithAssignments pOtherPath) {
+
+    if (pOtherPath.size() != this.size()) {
+      return this;
+    }
+
+    return new CFAPathWithAssignments(this, pOtherPath);
   }
 }

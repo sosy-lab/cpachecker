@@ -27,10 +27,11 @@ import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
-public class ValidVarsState implements AbstractState, AbstractQueryableState, Serializable {
+public class ValidVarsState implements AbstractState, AbstractQueryableState, Graphable, Serializable {
 
   private static final long serialVersionUID = 9159663474411886276L;
   private final ValidVars validVariables;
@@ -62,7 +63,15 @@ public class ValidVarsState implements AbstractState, AbstractQueryableState, Se
   public void modifyProperty(String pModification) throws InvalidQueryException {
     throw new InvalidQueryException("Cannot modify values of valid vars state (" + this.getClass().getCanonicalName()
         + ").");
-
   }
 
+  @Override
+  public String toDOTLabel() {
+    return validVariables.toStringInDOTFormat();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
 }

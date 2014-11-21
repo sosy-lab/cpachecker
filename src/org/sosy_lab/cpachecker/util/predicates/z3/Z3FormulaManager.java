@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
@@ -111,6 +113,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     long realSort = mk_real_sort(context);
     inc_ref(context, sort_to_ast(context, realSort));
 
+    // The string representations of Z3s formulas should be in SMTLib2!
+    set_ast_print_mode(context, Z3NativeApiConstants.Z3_PRINT_SMTLIB2_COMPLIANT);
+
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
     // they will not contain variable-declaration!
@@ -180,15 +185,29 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
   @Override
   public Appender dumpFormula(final Long expr) {
-    // Lazy invocation of ast_to_string wrapped in an Appender.
-    return Appenders.fromToStringMethod(
-        new Object() {
+    return new Appenders.AbstractAppender() {
 
-          @Override
-          public String toString() {
-            return ast_to_string(getEnvironment(), expr);
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        StringBuilder modified = new StringBuilder();
+        String txt = Z3NativeApi.benchmark_to_smtlib_string(getEnvironment(), "dumped-formula", "", "unknown", "", 0, new long[]{}, expr);
+        String[] lines = txt.split("\n");
+
+        for (String line: lines) {
+          if (!(line.startsWith("(set-info")
+              || line.startsWith(";")
+              || line.startsWith("(check"))) {
+            modified.append(line);
+            modified.append(" ");
           }
-        });
+        }
+
+        out.append(modified.toString()
+          .replace("(assert", "\n(assert")
+          .replace("(dec", "\n(dec")
+          .trim());
+      }
+    };
   }
 
   protected BooleanFormula encapsulateBooleanFormula(long t) {

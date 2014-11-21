@@ -37,17 +37,18 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -81,7 +81,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     logger = pLogger;
   }
 
-  public String getScopedVariableName(IAExpression pVariableName) {
+  public String getScopedVariableName(AExpression pVariableName) {
     return getScopedVariableName(pVariableName, functionName);
   }
 
@@ -95,13 +95,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
 
-    CExpression expression = pCfaEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression expression = pCfaEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
     String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
     return handleAssignmentToVariable(state, assignedVar, expression);
   }
 
   @Override
-  protected SignState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends IAExpression> pArguments,
+  protected SignState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
       List<? extends AParameterDeclaration> pParameters, String pCalledFunctionName) throws CPATransferException {
     if (!pCfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert (pParameters.size() == pArguments.size());
@@ -109,7 +109,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // Collect arguments
     ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
-      IAExpression exp = pArguments.get(i);
+      AExpression exp = pArguments.get(i);
       if (!(exp instanceof CRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
@@ -128,7 +128,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     // x = fun();
     if (pSummaryExpr instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement) pSummaryExpr;
-      IAExpression leftSide = assignStmt.getLeftHandSide();
+      AExpression leftSide = assignStmt.getLeftHandSide();
       if (!(leftSide instanceof AIdExpression)) { throw new UnrecognizedCodeException("Unsupported code found",
           pCfaEdge); }
       String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
@@ -309,7 +309,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, IADeclaration pDecl) throws CPATransferException {
+  protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl) throws CPATransferException {
     if (!(pDecl instanceof AVariableDeclaration)) {
       return state;
     }
@@ -320,7 +320,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     } else {
       scopedId = getScopedVariableNameForNonGlobalVariable(decl.getName(), functionName);
     }
-    IAInitializer init = decl.getInitializer();
+    AInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
     if (init instanceof AInitializerExpression) {
@@ -332,10 +332,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleStatementEdge(AStatementEdge pCfaEdge, IAStatement pStatement) throws CPATransferException {
+  protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) throws CPATransferException {
     // expression is a binary expression e.g. a = b.
-    if (pStatement instanceof IAssignment) {
-      return handleAssignment((IAssignment)pStatement);
+    if (pStatement instanceof AAssignment) {
+      return handleAssignment((AAssignment)pStatement);
     }
 
     // only expression expr; does not change state
@@ -350,9 +350,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       throw new UnrecognizedCodeException("only assignments are supported at this time", edge);
   }
 
-  private SignState handleAssignment(IAssignment pAssignExpr)
+  private SignState handleAssignment(AAssignment pAssignExpr)
       throws CPATransferException {
-    IAExpression left = pAssignExpr.getLeftHandSide();
+    AExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
     if (left instanceof AIdExpression) {// TODO also consider arrays, pointer, etc.?
       if (!((left.getExpressionType() instanceof CSimpleType)|| (left.getExpressionType() instanceof CTypedefType))) {
@@ -370,7 +370,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
 
-  private SignState handleAssignmentToVariable(SignState pState, String pVarIdent, IARightHandSide pRightExpr)
+  private SignState handleAssignmentToVariable(SignState pState, String pVarIdent, ARightHandSide pRightExpr)
       throws CPATransferException {
     if (pRightExpr instanceof CRightHandSide) {
       CRightHandSide right = (CRightHandSide)pRightExpr;
@@ -381,7 +381,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new UnrecognizedCodeException("unhandled righthandside expression", edge);
   }
 
-  private String getScopedVariableName(IAExpression pVariableName, String pCalledFunctionName) {
+  private String getScopedVariableName(AExpression pVariableName, String pCalledFunctionName) {
     if (isGlobal(pVariableName)) {
       return pVariableName.toASTString();
     }

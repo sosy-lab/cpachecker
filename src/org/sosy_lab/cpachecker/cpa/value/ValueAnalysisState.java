@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -37,20 +37,17 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationBasedRefiner.ValueAnalysisInterpolant;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -70,7 +67,7 @@ import com.google.common.primitives.Longs;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState, Serializable, Graphable,
-    TargetableWithPredicatedAnalysis, LatticeAbstractState<ValueAnalysisState> {
+    LatticeAbstractState<ValueAnalysisState> {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -78,12 +75,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
 
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
-  }
-
-  private static ValueAnalysisTargetChecker checker = null;
-
-  static void initChecker(Configuration pConfig) throws InvalidConfigurationException{
-    checker = new ValueAnalysisTargetChecker(pConfig);
   }
 
   /**
@@ -867,23 +858,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     }
   }
 
-  @Override
-  public boolean isTarget() {
-    return checker != null && checker.isTarget(constantsMap);
-  }
-
-  @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
-    checkState(isTarget());
-    return "";
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return checker==null? pFmgr.getBooleanFormulaManager().makeBoolean(false):checker.getErrorCondition(pFmgr);
-  }
-
-
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
    * This function rebuilds a new state with the correct values from the previous callState.
    * We delete the wrong values and insert new values, if necessary. */
@@ -910,7 +884,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar), this.getTypeForMemoryLocation(trackedVar));
 
-      } else if (VariableClassification.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
+      } else if (VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE.equals(trackedVar.getIdentifier())) {
         // lets assume, that RETURN_VAR is only tracked along one edge, which is the ReturnEdge.
         // so that we can ignore the functionname for this condition.
         assert (!rebuildState.contains(trackedVar)) :

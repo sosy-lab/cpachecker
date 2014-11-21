@@ -32,18 +32,20 @@ public class CFunctionSummaryEdge extends FunctionSummaryEdge {
 
 
   public CFunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression) {
+      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression,
+      CFunctionEntryNode pFunctionEntry) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression,
+        pFunctionEntry);
   }
 
   @Override
   public CFunctionCall getExpression() {
-    return (CFunctionCall) expression;
+    return (CFunctionCall)super.getExpression();
   }
 
   @Override
-  public String getCode() {
-    return expression.toASTString();
+  public CFunctionEntryNode getFunctionEntry() {
+    return (CFunctionEntryNode)super.getFunctionEntry();
   }
 }

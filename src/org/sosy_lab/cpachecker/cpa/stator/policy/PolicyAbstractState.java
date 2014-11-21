@@ -5,12 +5,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -20,68 +24,122 @@ import com.google.common.collect.ImmutableSet;
  *
  * Logic-less container class.
  */
-public class PolicyAbstractState implements AbstractState,
-    Iterable<Entry<LinearExpression, PolicyTemplateBound>>,
+public final class PolicyAbstractState implements AbstractState,
+    Iterable<Entry<LinearExpression, PolicyBound>>,
     Graphable {
 
-  public static class Templates implements Iterable<LinearExpression> {
-    private final ImmutableSet<LinearExpression> templates;
+  /**
+   * Other known states.
+   * TODO
+   */
+  private final ImmutableList<AbstractState> otherStates;
 
-    private Templates(ImmutableSet<LinearExpression> pTemplates) {
-      templates = pTemplates;
-    }
+  /** All we care about: they are not divided per template. */
+  private final ImmutableSet<CFAEdge> incomingEdges;
 
-    static Templates empty() {
-      return new Templates(ImmutableSet.<LinearExpression>of());
-    }
-
-    Templates withTemplates(Iterable<LinearExpression> newTemplates) {
-      return new Templates(
-          ImmutableSet.<LinearExpression>builder()
-              .addAll(templates)
-              .addAll(newTemplates)
-              .build()
-      );
-    }
-
-    Templates merge(Templates other) {
-      return new Templates(
-          ImmutableSet.<LinearExpression>builder()
-            .addAll(templates).addAll(other.templates).build());
-    }
-
-    @Override
-    public Iterator<LinearExpression> iterator() {
-      return templates.iterator();
-    }
-
-    @Override
-    public String toString() {
-      return templates.toString();
-    }
-  }
-
-  // NOTE: It should not be there, we are wasting memory.
-  // But hey, can't really find an easier way to do that.
   private final CFANode node;
 
   /**
    * Finite bounds for templates.
    */
-  private final ImmutableMap<LinearExpression, PolicyTemplateBound> data;
+  private final Optional<ImmutableMap<LinearExpression, PolicyBound>>
+      abstraction;
 
-  /**
-   * Templates tracked.
-   */
+  /** Templates tracked. NOTE: might be better to just resort back to a set. */
   private final Templates templates;
 
   /**
-   * @return {@link PolicyTemplateBound} for the given {@link LinearExpression}
-   * or an empty optional if it is unbounded.
+   * Constructor with the abstraction provided.
    */
-  public Optional<PolicyTemplateBound> getPolicyTemplateBound(
+  private PolicyAbstractState(
+      Iterable<AbstractState> pOtherStates,
+      Set<CFAEdge> pIncomingEdges,
+      CFANode pNode,
+      Map<LinearExpression, PolicyBound> pPAbstraction,
+      Templates pTemplates) {
+    otherStates = ImmutableList.copyOf(pOtherStates);
+    incomingEdges = ImmutableSet.copyOf(pIncomingEdges);
+    node = pNode;
+    abstraction = Optional.of(ImmutableMap.copyOf(pPAbstraction));
+    templates = pTemplates;
+  }
+
+  /**
+   * Constructor without the abstraction.
+   */
+  private PolicyAbstractState(
+      Iterable<AbstractState> pOtherStates,
+      Set<CFAEdge> pIncomingEdges,
+      CFANode pNode,
+      Templates pTemplates) {
+    otherStates = ImmutableList.copyOf(pOtherStates);
+    incomingEdges = ImmutableSet.copyOf(pIncomingEdges);
+    node = pNode;
+    abstraction = Optional.absent();
+    templates = pTemplates;
+  }
+
+  /**
+   * Factory methods.
+   */
+  public static PolicyAbstractState ofAbstraction(
+      Map<LinearExpression, PolicyBound> data,
+      Templates templates,
+      CFANode node,
+      Set<CFAEdge> pIncomingEdges,
+      Iterable<AbstractState> pOtherStates
+  ) {
+    return new PolicyAbstractState(
+        pOtherStates, pIncomingEdges, node, data, templates);
+  }
+
+  public static PolicyAbstractState ofIntermediate(
+      Iterable<AbstractState> pOtherStates,
+      Set<CFAEdge> pIncomingEdges,
+      CFANode node,
+      Templates pTemplates
+  ) {
+    return new PolicyAbstractState(
+        pOtherStates,
+        pIncomingEdges,
+        node,
+        pTemplates
+    );
+  }
+
+  public static PolicyAbstractState empty(CFANode node) {
+    return new PolicyAbstractState(
+        ImmutableList.<AbstractState>of(), // other states
+        ImmutableSet.<CFAEdge>of(), // incoming edges
+        node, // node
+        ImmutableMap.<LinearExpression, PolicyBound>of(),
+        Templates.empty() // templates
+    );
+  }
+
+  /** Getters */
+
+  public ImmutableSet<CFAEdge> getIncomingEdges() {
+    return incomingEdges;
+  }
+
+  public ImmutableList<AbstractState> getOtherStates() {
+    return otherStates;
+  }
+
+  public boolean isAbstract() {
+    return abstraction.isPresent();
+  }
+
+  /**
+   * @return {@link PolicyBound} for the given {@link LinearExpression}
+   * {@param e} or an empty optional if it is unbounded.
+   */
+  public Optional<PolicyBound> getBound(
       LinearExpression e) {
-    return Optional.fromNullable(data.get(e));
+    Preconditions.checkState(abstraction.isPresent(),
+        "Template bounds can be obtained only from abstracted states.");
+    return Optional.fromNullable(abstraction.get().get(e));
   }
 
   public Templates getTemplates() {
@@ -92,81 +150,21 @@ public class PolicyAbstractState implements AbstractState,
     return node;
   }
 
-  private PolicyAbstractState(
-      ImmutableMap<LinearExpression, PolicyTemplateBound> pData,
-      Templates pTemplates,
-      CFANode pNode) {
-    templates = pTemplates;
-    data = pData;
-    node = pNode;
-  }
-
-
-  public static PolicyAbstractState withState(
-      ImmutableMap<LinearExpression, PolicyTemplateBound> data,
-      Templates templates,
-      CFANode node
-  ) {
-    return new PolicyAbstractState(data, templates, node);
-  }
-
-  public static PolicyAbstractState withEmptyState(CFANode node) {
-    return new PolicyAbstractState(
-        ImmutableMap.<LinearExpression, PolicyTemplateBound>of(),
-        Templates.empty(),
-        node
-    );
-  }
-
-  @Override
-  public Iterator<Entry<LinearExpression, PolicyTemplateBound>> iterator() {
-    return data.entrySet().iterator();
-  }
-
-  @Override
-  public String toString() {
-    if (data == null) return "BOTTOM";
-    return String.format("%s: %s", node, data);
-  }
-
-  @Override
-  public String toDOTLabel() {
-    return (new PolicyDotWriter()).toDOTLabel(data);
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return false;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    PolicyAbstractState other = (PolicyAbstractState)o;
-    return (data.equals(other.data) && node.equals(other.node));
-  }
-
-  @Override
-  public int hashCode() {
-    int result = node.hashCode();
-    result = 31 * result + (data != null ? data.hashCode() : 0);
-    return result;
-  }
+  /** Update methods */
 
   public PolicyAbstractState withUpdates(
-      Map<LinearExpression, PolicyTemplateBound> updates,
+      Map<LinearExpression, PolicyBound> updates,
       Set<LinearExpression> unbounded,
       Templates newTemplates) {
+    Preconditions.checkState(abstraction.isPresent(),
+        "Updates can only be applied to the abstracted state");
+
+    ImmutableMap<LinearExpression, PolicyBound> map = abstraction.get();
 
     ImmutableSet<LinearExpression> allTemplates = ImmutableSet.<LinearExpression>
-        builder().addAll(updates.keySet()).addAll(data.keySet()).build();
+        builder().addAll(updates.keySet()).addAll(map.keySet()).build();
 
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder =
+    ImmutableMap.Builder<LinearExpression, PolicyBound> builder =
         ImmutableMap.builder();
 
     for (LinearExpression template : allTemplates) {
@@ -176,9 +174,53 @@ public class PolicyAbstractState implements AbstractState,
       if (updates.containsKey(template)) {
         builder.put(template, updates.get(template));
       } else {
-        builder.put(template, data.get(template));
+        builder.put(template, map.get(template));
       }
     }
-    return new PolicyAbstractState(builder.build(), newTemplates, node);
+    return new PolicyAbstractState(
+        otherStates, incomingEdges, getNode(), builder.build(),
+        newTemplates);
+  }
+
+  @Override
+  public String toDOTLabel() {
+    if (abstraction.isPresent()) {
+      return (new PolicyDotWriter()).toDOTLabel(abstraction.get());
+    } else {
+      // NOTE: not much else to visualize for non-abstracted states.
+      return "";
+    }
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%s: %s", node, abstraction);
+  }
+
+  @Override
+  public Iterator<Entry<LinearExpression, PolicyBound>> iterator() {
+    Preconditions.checkState(
+        abstraction.isPresent(),
+        "Can only iterate through the resolved state"
+    );
+    return abstraction.get().entrySet().iterator();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)  return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PolicyAbstractState other = (PolicyAbstractState)o;
+    return (abstraction.equals(other.abstraction) && node.equals(other.node));
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(node, abstraction);
   }
 }

@@ -1,10 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -18,7 +15,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 /**
@@ -155,52 +151,4 @@ public class PathFocusingManager {
     return policy;
   }
 
-  /**
-   * @return the subset of the policy related (over-approximation) to the given
-   * node and the set of updates.
-   */
-  Table<CFANode, LinearExpression, CFAEdge> findRelated(
-      Table<CFANode, LinearExpression, ? extends CFAEdge> policy,
-      final CFANode valueDeterminationNode,
-      Map<LinearExpression, PolicyTemplateBound> updated) throws InterruptedException {
-    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
-    Set<CFANode> visited = Sets.newHashSet();
-    LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
-    queue.add(valueDeterminationNode);
-
-    while (!queue.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-
-      Iterator<CFANode> it = queue.iterator();
-      CFANode node = it.next();
-      it.remove();
-
-      visited.add(node);
-
-      Map<LinearExpression, ? extends CFAEdge> row = policy.row(node);
-      for (Map.Entry<LinearExpression, ? extends CFAEdge> entry : row.entrySet()) {
-        LinearExpression template = entry.getKey();
-
-        CFAEdge edge;
-
-        // For the value determination node only track the updated edges.
-        if (node == valueDeterminationNode) {
-          PolicyTemplateBound bound = updated.get(template);
-          if (bound == null) continue;
-          edge = bound.edge;
-        } else {
-          edge = entry.getValue();
-        }
-
-        // Put things related to the node.
-        out.put(node, template, edge);
-
-        CFANode toVisit = edge.getPredecessor();
-        if (!visited.contains(toVisit)) {
-          queue.add(toVisit);
-        }
-      }
-    }
-    return out;
-  }
 }

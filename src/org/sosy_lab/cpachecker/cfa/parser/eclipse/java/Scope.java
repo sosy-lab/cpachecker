@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;

@@ -178,6 +178,7 @@ public abstract class RefinementStrategy {
           PredicateAbstractState s = getPredicateState(w);
           BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
           solver.addUnsatisfiableFormulaToCache(blockFormula);
+          // TODO: Move caching to InterpolationManager.buildCounterexampleTrace
         }
         break;
       }

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class ALiteralExpression extends AExpression {
+public abstract class ALiteralExpression extends AbstractExpression {
 
   public ALiteralExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);

@@ -32,18 +32,20 @@ public class JMethodSummaryEdge extends FunctionSummaryEdge {
 
 
   public JMethodSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor, JMethodOrConstructorInvocation pExpression) {
+      CFANode pPredecessor, CFANode pSuccessor,
+      JMethodOrConstructorInvocation pExpression, JMethodEntryNode pMethodEntry) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression,
+        pMethodEntry);
   }
 
   @Override
   public JMethodOrConstructorInvocation getExpression() {
-    return (JMethodOrConstructorInvocation) expression;
+    return (JMethodOrConstructorInvocation)super.getExpression();
   }
 
   @Override
-  public String getCode() {
-    return expression.toASTString();
+  public JMethodEntryNode getFunctionEntry() {
+    return (JMethodEntryNode)super.getFunctionEntry();
   }
 }

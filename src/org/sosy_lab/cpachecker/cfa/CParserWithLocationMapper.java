@@ -214,7 +214,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      programFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      programFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);
   }
@@ -229,7 +229,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
 
     return realParser.parseString(tokenizedFragments, sourceOriginMapping);

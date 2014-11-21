@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -183,20 +183,20 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
               AStatementEdge edge = (AStatementEdge) lastEdge;
               if (edge.getStatement() instanceof AExpressionStatement) {
                 AExpressionStatement expressionStatement = (AExpressionStatement) edge.getStatement();
-                IAExpression expression = expressionStatement.getExpression();
+                AExpression expression = expressionStatement.getExpression();
                 if (expression instanceof ALiteralExpression) {
                   continue;
                 }
-                if (expression instanceof IALeftHandSide) {
+                if (expression instanceof ALeftHandSide) {
                   continue;
                 }
               } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
                 AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) edge.getStatement();
-                IAExpression expression = expressionAssignmentStatement.getRightHandSide();
+                AExpression expression = expressionAssignmentStatement.getRightHandSide();
                 if (expression instanceof ALiteralExpression) {
                   continue;
                 }
-                if (expression instanceof IALeftHandSide) {
+                if (expression instanceof ALeftHandSide) {
                   continue;
                 }
               }
@@ -206,19 +206,19 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
             }
             if (lastEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
               ADeclarationEdge edge = (ADeclarationEdge) lastEdge;
-              IADeclaration declaration = edge.getDeclaration();
+              ADeclaration declaration = edge.getDeclaration();
               if (declaration instanceof AVariableDeclaration) {
                 AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-                IAInitializer initializer = variableDeclaration.getInitializer();
+                AInitializer initializer = variableDeclaration.getInitializer();
                 if (initializer == null) {
                   continue;
                 }
                 if (initializer instanceof AInitializerExpression) {
-                  IAExpression expression = ((AInitializerExpression) initializer).getExpression();
+                  AExpression expression = ((AInitializerExpression) initializer).getExpression();
                   if (expression instanceof ALiteralExpression) {
                     continue;
                   }
-                  if (expression instanceof IALeftHandSide) {
+                  if (expression instanceof ALeftHandSide) {
                     continue;
                   }
                 }
@@ -260,7 +260,7 @@ enum AbstractionStateFactories implements AbstractionStateFactory {
         private Set<InvariantsFormula<CompoundInterval>> determineWideningHints(CFAEdge pEdge) {
           if (pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
             AssumeEdge assumeEdge = (AssumeEdge) pEdge;
-            IAExpression expression = assumeEdge.getExpression();
+            AExpression expression = assumeEdge.getExpression();
             final InvariantsFormula<CompoundInterval> wideningHint;
             try {
               ExpressionToFormulaVisitor expressionToFormulaVisitor =

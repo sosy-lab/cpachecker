@@ -32,12 +32,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedSet;
 
+import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -331,7 +333,7 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new CFAGenerationRuntimeException("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }
@@ -353,5 +355,27 @@ public class CFAUtils {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(rootNode, visitor);
 
     return visitor.hasBackwardsEdges();
+  }
+
+  /**
+   * This method allows to select from a set of variables
+   * all local variables from a given function.
+   * This requires that the given set contains the qualified names of each variable
+   * as returned by {@link AbstractSimpleDeclaration#getQualifiedName()}.
+   *
+   * @param variables Set of qualified names of variables.
+   * @param function A function name.
+   * @return A subset of "variables".
+   */
+  public static SortedSet<String> filterVariablesOfFunction(SortedSet<String> variables, String function) {
+    // TODO: Currently the format of the qualified name is not defined.
+    // In theory, frontends could use different formats.
+    // The best would be to eliminate all uses of this method
+    // (code should not use Strings, but for example AIdExpressions).
+    // For now, we just assume all variables are named as
+    // {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.c.FunctionScope#createQualifiedName(String, String)}
+    // produces them.
+    String prefix = checkNotNull(function) + "::";
+    return Collections3.subSetWithPrefix(variables, prefix);
   }
 }

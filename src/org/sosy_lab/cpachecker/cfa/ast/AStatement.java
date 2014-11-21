@@ -25,29 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public abstract class AStatement extends AstNode implements IAStatement {
 
-  public AStatement(FileLocation pFileLocation) {
-    super(pFileLocation);
-  }
+public interface AStatement extends AAstNode {
 
-  @Override
-  public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
-  }
+  public abstract <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X;
 
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
 
-    if (!(obj instanceof AStatement)) {
-        return false;
-    }
-
-    return super.equals(obj);
-  }
 }

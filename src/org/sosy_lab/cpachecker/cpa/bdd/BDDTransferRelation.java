@@ -316,7 +316,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // make variable (predicate) for param, this variable is not global
       final String varName = params.get(i).getQualifiedName();
       final CType targetType = params.get(i).getType();
-      final Partition partition = varClass.getPartitionForEdge(cfaEdge, i);
+      final Partition partition = varClass.getPartitionForParameterOfEdge(cfaEdge, i);
       final Region[] var = predmgr.createPredicate(varName, getBitsize(partition, targetType), precision);
       final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType);
       newState = newState.addAssignment(var, arg);
@@ -649,8 +649,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
     out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
     out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
-    out.println(String.format("Number of all vars:               %d (of %d)",
-            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size(), varClass.getAllVars().size()));
+    out.println(String.format("Number of all vars:               %d",
+            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size()));
     out.println("Number of intBool partitions:     " + intBool.size());
     out.println("Number of intEq partitions:       " + intEq.size());
     out.println("Number of intAdd partitions:      " + intAdd.size());

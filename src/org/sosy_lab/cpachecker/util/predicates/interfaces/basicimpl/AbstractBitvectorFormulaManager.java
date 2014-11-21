@@ -28,7 +28,6 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
@@ -40,16 +39,8 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
     super(pCreator);
   }
 
-  protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo(pNumber);
-  }
-
-  protected BitvectorFormula wrap(TFormulaInfo pTerm) {
+  private BitvectorFormula wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulateBitvector(pTerm);
-  }
-
-  protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override

@@ -152,45 +152,6 @@ public class Z3TheoremProver implements ProverEnvironment {
     return constraints;
   }
 
-  private BooleanFormula applyTactic(BooleanFormula pF, String pTactic) throws InterruptedException, SolverException {
-    long tactic_qe = mk_tactic(z3context, pTactic);
-    tactic_inc_ref(z3context, tactic_qe);
-
-    long goal = mk_goal(z3context, true, true, false);
-    goal_inc_ref(z3context, goal);
-
-    try {
-      long e = Z3FormulaManager.getZ3Expr(pF);
-      goal_assert(z3context, goal, e);
-
-      long result = tactic_apply(z3context, tactic_qe, goal);
-      apply_result_inc_ref(z3context, result);
-
-      try {
-        long resultSubGoal = apply_result_get_subgoal(z3context, result, 0);
-        goal_inc_ref(z3context, resultSubGoal);
-
-        long subGoalFormula = goal_formula(z3context, resultSubGoal, 0);
-        inc_ref(z3context, subGoalFormula);
-
-        goal_dec_ref(z3context, resultSubGoal);
-
-        return mgr.encapsulateBooleanFormula(subGoalFormula);
-      } finally {
-        apply_result_dec_ref(z3context, result);
-      }
-
-    } finally {
-      goal_dec_ref(z3context, goal);
-      tactic_dec_ref(z3context, tactic_qe);
-    }
-  }
-
-  @Override
-  public BooleanFormula eliminateQuantifiers(BooleanFormula f) throws InterruptedException, SolverException {
-    return applyTactic(applyTactic(f, "qe"), "ctx-solver-simplify");
-  }
-
   @Override
   public void close() {
     Preconditions.checkArgument(z3context != 0);

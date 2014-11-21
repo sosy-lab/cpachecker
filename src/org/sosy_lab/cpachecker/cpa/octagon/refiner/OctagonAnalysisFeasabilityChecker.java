@@ -71,7 +71,8 @@ public class OctagonAnalysisFeasabilityChecker {
     checkedPath = path;
 
     foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
-                                                                                    cfa.getVarClassification()),
+                                                                                    cfa.getVarClassification(),
+                                                                                    OctagonCPA.class),
                                     new OctagonState(logger, cpa.getManager()));
   }
 

@@ -46,8 +46,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -393,9 +393,9 @@ public class ARGPathExport {
             if (cfaEdgeWithAssignments == null) {
               cfaEdgeWithAssignments = currentEdgeWithAssignments;
             } else {
-              List<IAssignment> delayedAssignments = cfaEdgeWithAssignments.getAssignments();
-              List<IAssignment> currentAssignments = currentEdgeWithAssignments.getAssignments();
-              List<IAssignment> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
+              List<AAssignment> delayedAssignments = cfaEdgeWithAssignments.getAssignments();
+              List<AAssignment> currentAssignments = currentEdgeWithAssignments.getAssignments();
+              List<AAssignment> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
               allAssignments.addAll(delayedAssignments);
               allAssignments.addAll(currentAssignments);
               cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, allAssignments, currentEdgeWithAssignments.getComment());
@@ -403,9 +403,9 @@ public class ARGPathExport {
           }
 
           if (cfaEdgeWithAssignments != null) {
-            List<IAssignment> assignments = cfaEdgeWithAssignments.getAssignments();
-            Predicate<IAssignment> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
-            List<IAssignment> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+            List<AAssignment> assignments = cfaEdgeWithAssignments.getAssignments();
+            Predicate<AAssignment> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
+            List<AAssignment> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
             if (functionValidAssignments.size() < assignments.size()) {
               cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
               FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(edge.getSuccessor());
@@ -413,7 +413,7 @@ public class ARGPathExport {
                 String keyFrom = to;
                 CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
                 ARGState keyState = Iterables.getOnlyElement(fromState.getChildren());
-                List<IAssignment> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
+                List<AAssignment> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
                 CFAEdgeWithAssignments valueCFAEdgeWithAssignments =
                     new CFAEdgeWithAssignments(keyEdge, valueAssignments, "");
                 delayedAssignments.put(
@@ -653,7 +653,7 @@ public class ARGPathExport {
 
   }
 
-  private static class AssignsParameterOfOtherFunction implements Predicate<IAssignment> {
+  private static class AssignsParameterOfOtherFunction implements Predicate<AAssignment> {
 
     private final CFAEdge edge;
 
@@ -666,8 +666,8 @@ public class ARGPathExport {
     }
 
     @Override
-    public boolean apply(IAssignment pArg0) {
-      IALeftHandSide leftHandSide = pArg0.getLeftHandSide();
+    public boolean apply(AAssignment pArg0) {
+      ALeftHandSide leftHandSide = pArg0.getLeftHandSide();
       if (!(leftHandSide instanceof CLeftHandSide)) {
         return false;
       }

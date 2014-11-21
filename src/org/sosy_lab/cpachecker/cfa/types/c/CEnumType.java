@@ -31,7 +31,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -113,7 +113,7 @@ public final class CEnumType implements CComplexType {
            "enum " + name;
   }
 
-  public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
+  public static final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
     private final @Nullable Long  value;
     private CEnumType             enumType;

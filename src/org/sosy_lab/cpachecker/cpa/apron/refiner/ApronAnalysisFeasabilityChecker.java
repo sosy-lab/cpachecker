@@ -75,7 +75,8 @@ public class ApronAnalysisFeasabilityChecker {
 
     // use a new configuration which only has a static precision
     foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
-                                                                                    cfa.getVarClassification()),
+                                                                                    cfa.getVarClassification(),
+                                                                                    ApronCPA.class),
                                     new ApronState(logger, cpa.getManager()));
   }
 

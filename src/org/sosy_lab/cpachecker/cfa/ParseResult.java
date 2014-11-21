@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.SortedMap;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -50,13 +50,13 @@ public class ParseResult {
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
-  private final List<Pair<IADeclaration, String>> globalDeclarations;
+  private final List<Pair<ADeclaration, String>> globalDeclarations;
 
   private final Language language;
 
   public ParseResult(SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<Pair<IADeclaration, String>> pGlobalDeclarations,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
       Language pLanguage) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
@@ -77,7 +77,7 @@ public class ParseResult {
     return cfaNodes;
   }
 
-  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 

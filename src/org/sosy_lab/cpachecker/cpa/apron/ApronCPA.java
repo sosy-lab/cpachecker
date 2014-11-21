@@ -96,11 +96,11 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config,
-          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification()));
+          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
 
       // static full precision is default
     } else {
-      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification());
+      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
     }
   }
 

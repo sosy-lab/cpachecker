@@ -38,24 +38,24 @@ import com.google.common.collect.Iterables;
  * of the form $\Sigma a_i  x_i$, where $x_i$ is a set of variables and $a_i$
  * is a set of constants.
  */
-public class LinearExpression implements Iterable<Entry<String, ExtendedRational>> {
-  private final ImmutableMap<String, ExtendedRational> data;
+public class LinearExpression implements Iterable<Entry<String, Rational>> {
+  private final ImmutableMap<String, Rational> data;
   private int hashCache = 0;
 
-  private LinearExpression(ImmutableMap<String, ExtendedRational> data) {
+  private LinearExpression(ImmutableMap<String, Rational> data) {
     this.data = data;
   }
 
   public static LinearExpression empty() {
-    return new LinearExpression(ImmutableMap.<String, ExtendedRational>of());
+    return new LinearExpression(ImmutableMap.<String, Rational>of());
   }
 
-  public static LinearExpression pair(String var, ExtendedRational coeff) {
+  public static LinearExpression pair(String var, Rational coeff) {
     return new LinearExpression(ImmutableMap.of(var, coeff));
   }
 
   public static LinearExpression ofVariable(String var) {
-    return LinearExpression.pair(var, ExtendedRational.ONE);
+    return LinearExpression.pair(var, Rational.ONE);
   }
 
   /**
@@ -65,11 +65,9 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         other.data,
-        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, Rational>() {
           @Override
-          public ExtendedRational apply(String var,
-                                        ExtendedRational a,
-                                        ExtendedRational b) {
+          public Rational apply(String var, Rational a, Rational b) {
             return a.plus(b);
           }
         }
@@ -83,11 +81,9 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         other.data,
-        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, Rational>() {
           @Override
-          public ExtendedRational apply(String var,
-                                        ExtendedRational a,
-                                        ExtendedRational b) {
+          public Rational apply(String var, Rational a, Rational b) {
             return a.minus(b);
           }
         }
@@ -97,25 +93,23 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   /**
    * Multiply the linear expression by {@code constant}.
    */
-  public LinearExpression multByConst(final ExtendedRational constant) {
+  public LinearExpression multByConst(final Rational constant) {
     return new LinearExpression(ImmutableMapMerger.merge(
         data,
         data,
-        new ImmutableMapMerger.MergeFunc<String, ExtendedRational>() {
+        new ImmutableMapMerger.MergeFunc<String, Rational>() {
           @Override
-          public ExtendedRational apply(String var,
-                                        ExtendedRational a,
-                                        ExtendedRational b) {
+          public Rational apply(String var, Rational a, Rational b) {
             return a.times(constant);
           }
         }
     ));
   }
 
-  public ExtendedRational getCoeff(String variable) {
-    ExtendedRational out = data.get(variable);
+  public Rational getCoeff(String variable) {
+    Rational out = data.get(variable);
     if (out == null) {
-      return ExtendedRational.ZERO;
+      return Rational.ZERO;
     }
     return out;
   }
@@ -124,7 +118,7 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
    * Negate the linear expression.
    */
   public LinearExpression negate() {
-    return multByConst(ExtendedRational.NEG_ONE);
+    return multByConst(Rational.NEG_ONE);
   }
 
   public int size() {
@@ -132,7 +126,7 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   }
 
   @Override
-  public Iterator<Entry<String, ExtendedRational>> iterator() {
+  public Iterator<Entry<String, Rational>> iterator() {
     return data.entrySet().iterator();
   }
 
@@ -144,14 +138,14 @@ public class LinearExpression implements Iterable<Entry<String, ExtendedRational
   public String toString() {
     Iterable<String> stream = Iterables.transform(
         this,
-        new Function<Entry<String, ExtendedRational>, String>() {
+        new Function<Entry<String, Rational>, String>() {
           @Override
-          public String apply(Entry<String, ExtendedRational> monomial) {
-            ExtendedRational coeff = monomial.getValue();
+          public String apply(Entry<String, Rational> monomial) {
+            Rational coeff = monomial.getValue();
             String var = monomial.getKey();
-            if (coeff.equals(ExtendedRational.ONE)) {
+            if (coeff.equals(Rational.ONE)) {
               return var;
-            } else if (coeff.equals(ExtendedRational.NEG_ONE)) {
+            } else if (coeff.equals(Rational.NEG_ONE)) {
               return String.format("-%s", var);
             }
             return String.format(

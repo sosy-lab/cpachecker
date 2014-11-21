@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -67,14 +66,6 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private final FunctionFormulaType<ResultFormulaType> divUfDecl;
   private final FunctionFormulaType<ResultFormulaType> modUfDecl;
 
-  private final Function<ParamFormulaType, TFormulaInfo> extractor =
-      new Function<ParamFormulaType, TFormulaInfo>() {
-        @Override
-        public TFormulaInfo apply(ParamFormulaType input) {
-          return extractInfo(input);
-        }
-      };
-
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
       AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> pFunctionManager) {
@@ -91,16 +82,8 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
-  protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo(pNumber);
-  }
-
   protected ResultFormulaType wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulate(getFormulaType(), pTerm);
-  }
-
-  protected BooleanFormula wrapBool(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
   @Override

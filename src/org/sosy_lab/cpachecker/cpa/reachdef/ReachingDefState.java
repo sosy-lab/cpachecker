@@ -36,15 +36,17 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class ReachingDefState implements AbstractState, Serializable,
-    LatticeAbstractState<ReachingDefState> {
+    LatticeAbstractState<ReachingDefState>, Graphable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
@@ -452,6 +454,50 @@ public class ReachingDefState implements AbstractState, Serializable,
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);
     }
 
+  }
+
+  @Override
+  public String toDOTLabel() {
+
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+
+    sb.append(System.identityHashCode(this));
+    sb.append("\\n");
+
+    sb.append("global: [");
+    //this part may be seperated into an util class
+    Map<String, String> map = new HashMap<>();
+    // to merge varName & list of globalReachDefs to one String
+    // create a new HashMap with varName as key and [Interval] (refCount) as value
+    for (Entry<String, Set<DefinitionPoint>> entry : globalReachDefs.entrySet()) {
+      map.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
+    }
+    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, map);
+    sb.append("]\\n");
+
+    sb.append("local: [");
+    //this part may be seperated into an util class
+    Map<String, String> m = new HashMap<>();
+    // to merge varName & list of globalReachDefs to one String
+    // create a new HashMap with varName as key and [Interval] (refCount) as value
+    for (Entry<String, Set<DefinitionPoint>> entry : localReachDefs.entrySet()) {
+      m.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
+    }
+    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, localReachDefs);
+    sb.append("]\\n");
+
+    sb.append(stateOnLastFunctionCall);
+
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
 }

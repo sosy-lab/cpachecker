@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,11 +45,11 @@ public class UnrecognizedCodeException extends CPATransferException {
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 
   protected UnrecognizedCodeException(String msg1, @Nullable String msg2,
-      @Nullable CFAEdge edge, @Nullable IAstNode astNode) {
+      @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     super(createMessage(msg1, msg2, edge, astNode));
   }
 
-  public UnrecognizedCodeException(String msg2, CFAEdge edge, IAstNode astNode) {
+  public UnrecognizedCodeException(String msg2, CFAEdge edge, AAstNode astNode) {
     super(createMessage(getPrimaryMessage(edge, astNode), msg2, edge, astNode));
   }
 
@@ -57,11 +57,11 @@ public class UnrecognizedCodeException extends CPATransferException {
     super(createMessage(getPrimaryMessage(edge, null), msg2, edge, null));
   }
 
-  public UnrecognizedCodeException(String msg2, IAstNode astNode) {
+  public UnrecognizedCodeException(String msg2, AAstNode astNode) {
     super(createMessage(getPrimaryMessage(null, astNode), msg2, null, astNode));
   }
 
-  private static String getPrimaryMessage(@Nullable CFAEdge edge, @Nullable IAstNode astNode) {
+  private static String getPrimaryMessage(@Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     Language lang = null;
 
     if (astNode != null) {
@@ -83,7 +83,7 @@ public class UnrecognizedCodeException extends CPATransferException {
     }
   }
 
-  private static Language getLanguage(IAstNode astNode) {
+  private static Language getLanguage(AAstNode astNode) {
     if (astNode instanceof CAstNode) {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
@@ -93,7 +93,7 @@ public class UnrecognizedCodeException extends CPATransferException {
   }
 
   static String createMessage(String msg1, @Nullable String msg2,
-      @Nullable CFAEdge edge, @Nullable IAstNode astNode) {
+      @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     checkNotNull(msg1);
     if (astNode == null && edge != null && edge.getRawAST().isPresent()) {
       astNode = edge.getRawAST().get();
@@ -130,7 +130,7 @@ public class UnrecognizedCodeException extends CPATransferException {
         sb.append(": ");
         sb.append(code);
 
-        String rawCode = edge.getRawStatement();
+        String rawCode = edge != null ? edge.getRawStatement() : "";
 
         // remove all whitespaces and trailing semicolons for comparison
         String codeWithoutWhitespace    = CharMatcher.WHITESPACE.removeFrom(code);
@@ -139,7 +139,8 @@ public class UnrecognizedCodeException extends CPATransferException {
         codeWithoutWhitespace    = SEMICOLON.trimFrom(codeWithoutWhitespace);
         rawCodeWithoutWhitespace = SEMICOLON.trimFrom(rawCodeWithoutWhitespace);
 
-        if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)) {
+        if (!codeWithoutWhitespace.equals(rawCodeWithoutWhitespace)
+            && !rawCodeWithoutWhitespace.isEmpty()) {
           sb.append(" (line was originally ");
           sb.append(rawCode);
           sb.append(")");
