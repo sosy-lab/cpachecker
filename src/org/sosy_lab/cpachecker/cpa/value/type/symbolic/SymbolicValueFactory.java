@@ -28,7 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
-import org.sosy_lab.cpachecker.cpa.value.type.*;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Factory for creating {@link SymbolicValue} objects containing different symbolic formulas
@@ -56,8 +57,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createAddition(Value pLeftOperand,
       Type pLeftType, Value pRightOperand, Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -78,8 +78,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createMultiplication(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -92,8 +91,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createDivision(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -106,8 +104,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createModulo(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -120,8 +117,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createShiftLeft(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -134,8 +130,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createShiftRight(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -148,8 +143,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createBinaryOr(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -162,8 +156,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createBinaryAnd(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -176,8 +169,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createBinaryXor(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -189,7 +181,7 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createBinaryNot(Value pOperand, Type pOperandType) {
-    assert pOperand instanceof SymbolicValue : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pOperand);
 
     final InvariantsFormula<Value> formula = InvariantsFormulaManager.INSTANCE.binaryNot(
         getFormulaOperand(pOperand));
@@ -199,8 +191,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createEquals(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -213,8 +204,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createGreaterThan(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -227,8 +217,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createGreaterThanOrEqual(Value pLeftOperand, Type pLeftType,
       Value pRightOperand, Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -241,8 +230,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createLessThan(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -255,8 +243,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createLessThanOrEqual(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -269,8 +256,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createConditionalAnd(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -283,8 +269,7 @@ public class SymbolicValueFactory {
 
   public SymbolicValue createConditionalOr(Value pLeftOperand, Type pLeftType, Value pRightOperand,
       Type pRightType) {
-    assert pLeftOperand instanceof SymbolicValue || pRightOperand instanceof SymbolicValue
-        : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pLeftOperand, pRightOperand);
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftOperand);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightOperand);
@@ -296,7 +281,7 @@ public class SymbolicValueFactory {
   }
 
   public SymbolicValue createLogicalNot(Value pOperand, Type pOperandType) {
-    assert pOperand instanceof SymbolicValue : NO_SYMBOLIC_VALUE_ERROR;
+    checkSymbolic(pOperand);
 
     final InvariantsFormula<Value> formula = InvariantsFormulaManager.INSTANCE.logicalNot(
         getFormulaOperand(pOperand));
@@ -307,5 +292,14 @@ public class SymbolicValueFactory {
   private InvariantsFormula<Value> getConstant(Value pValue) {
     checkNotNull(pValue);
     return InvariantsFormulaManager.INSTANCE.asConstant(pValue);
+  }
+
+  private void checkSymbolic(Value pVal1, Value pVal2) {
+    assert pVal1 instanceof SymbolicValue || pVal2 instanceof SymbolicValue
+        : NO_SYMBOLIC_VALUE_ERROR;
+  }
+
+  private void checkSymbolic(Value pVal) {
+    assert pVal instanceof SymbolicValue : NO_SYMBOLIC_VALUE_ERROR;
   }
 }
