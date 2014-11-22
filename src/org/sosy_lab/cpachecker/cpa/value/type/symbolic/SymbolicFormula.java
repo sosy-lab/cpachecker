@@ -69,6 +69,11 @@ public class SymbolicFormula implements SymbolicValue {
   }
 
   @Override
+  public String toString() {
+    return "SymbolicFormula [" + formula.toString() + "]";
+  }
+
+  @Override
   public boolean isNumericValue() {
     return false;
   }
