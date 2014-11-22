@@ -73,7 +73,7 @@ public class SymbolicValueFactory {
     checkSymbolic(pLeftValue, pRightValue);
     final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
 
-    final InvariantsFormula<Value> minusOperand = getFormulaOperand(new NumericValue(-1));
+    final InvariantsFormula<Value> minusOperand = getNegativeOperand();
 
     final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftValue);
     final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightValue);
@@ -83,6 +83,10 @@ public class SymbolicValueFactory {
     final InvariantsFormula<Value> formula = factory.add(leftFormulaOperand, rightOperandNegation);
 
     return new SymbolicFormula(formula);
+  }
+
+  private InvariantsFormula<Value> getNegativeOperand() {
+    return getFormulaOperand(new NumericValue(-1));
   }
 
   private InvariantsFormula<Value> getFormulaOperand(Value pValue) {
@@ -318,5 +322,13 @@ public class SymbolicValueFactory {
 
   private void checkSymbolic(Value pVal) {
     assert pVal instanceof SymbolicValue : NO_SYMBOLIC_VALUE_ERROR;
+  }
+
+  public Value createNegation(Value pOperand, Type pExpressionType) {
+    final InvariantsFormula<Value> operand = getFormulaOperand(pOperand);
+
+    final InvariantsFormula<Value> formula = InvariantsFormulaManager.INSTANCE.multiply(getNegativeOperand(), operand);
+
+    return new SymbolicFormula(formula);
   }
 }

@@ -713,7 +713,9 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    if (!value.isNumericValue()) {
+    if (value instanceof SymbolicValue) {
+      return createSymbolicFormula(value, unaryOperand.getExpressionType(), unaryOperator);
+    } else if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
       return Value.UnknownValue.getInstance();
     }
@@ -728,6 +730,19 @@ public abstract class AbstractExpressionValueVisitor
 
     default:
       throw new AssertionError("unknown operator: " + unaryOperator);
+    }
+  }
+
+  private Value createSymbolicFormula(Value pValue, CType pExpressionType, UnaryOperator pUnaryOperator) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    switch (pUnaryOperator) {
+      case MINUS:
+        return factory.createNegation(pValue, pExpressionType);
+      case TILDE:
+        return factory.createBinaryNot(pValue, pExpressionType);
+      default:
+        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     }
   }
 
@@ -1215,9 +1230,30 @@ public abstract class AbstractExpressionValueVisitor
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
       return ((BooleanValue) valueObject).negate();
 
+    } else if (valueObject instanceof SymbolicValue) {
+      return createSymbolicFormula(valueObject, unaryOperand.getExpressionType(), unaryOperator);
+
     } else {
       logger.logf(Level.FINE, errorMsg);
       return UnknownValue.getInstance();
+    }
+  }
+
+  private Value createSymbolicFormula(Value pValue, JType pExpressionType,
+      JUnaryExpression.UnaryOperator pUnaryOperator) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    switch (pUnaryOperator) {
+      case COMPLEMENT:
+        return factory.createBinaryNot(pValue, pExpressionType);
+      case NOT:
+        return factory.createLogicalNot(pValue, pExpressionType);
+      case MINUS:
+        return factory.createNegation(pValue, pExpressionType);
+      case PLUS:
+        return pValue;
+      default:
+        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     }
   }
 
