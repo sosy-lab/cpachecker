@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableMap;
  * <p>This state contains a mapping of tracked variables and their corresponding symbolic value.
  * </p>
  */
-public class SymbolicExecutionState extends ValueAnalysisState {
+public class ConstraintsState extends ValueAnalysisState {
 
   /**
    * Stores identifiers and their corresponding values
@@ -48,20 +48,20 @@ public class SymbolicExecutionState extends ValueAnalysisState {
   private PersistentMap<MemoryLocation, Value> values;
 
   /**
-   * Create a new <code>SymbolicExecutionState</code> object with the given values and their
+   * Create a new <code>ConstraintsState</code> object with the given values and their
    * corresponding types.
    *
    * @param pConstantsMap a map containing (identifier, value) pairs
    * @param pLocToTypeMap a map containing (identifier, type) pairs
    */
-  public SymbolicExecutionState(Map<MemoryLocation, Value> pConstantsMap, Map<MemoryLocation, Type> pLocToTypeMap) {
+  public ConstraintsState(Map<MemoryLocation, Value> pConstantsMap, Map<MemoryLocation, Type> pLocToTypeMap) {
     super(PathCopyingPersistentTreeMap.copyOf(pConstantsMap), PathCopyingPersistentTreeMap.copyOf(pLocToTypeMap));
   }
 
   /**
-   * Creates a new, initial  <code>SymbolicExecutionState</code> object.
+   * Creates a new, initial  <code>ConstraintsState</code> object.
    */
-  public SymbolicExecutionState() {
+  public ConstraintsState() {
     values = PathCopyingPersistentTreeMap.of();
   }
 
@@ -70,7 +70,7 @@ public class SymbolicExecutionState extends ValueAnalysisState {
   }
 
   @Override
-  public SymbolicExecutionState join(ValueAnalysisState pReached) {
+  public ConstraintsState join(ValueAnalysisState pReached) {
     throw new UnsupportedOperationException();
   }
 
@@ -80,7 +80,7 @@ public class SymbolicExecutionState extends ValueAnalysisState {
    * @param other the other state to check against
    * @return <code>true</code> if this state is less or equal than the given state, <code>false</code> otherwise
    */
-  public boolean isLessOrEqual(SymbolicExecutionState other) {
+  public boolean isLessOrEqual(ConstraintsState other) {
     boolean lessOrEqual = true;
 
     if (values.size() > other.values.size()) {

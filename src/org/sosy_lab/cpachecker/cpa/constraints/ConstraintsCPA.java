@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -85,7 +87,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     abstractDomain = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
-    transferRelation = new ConstraintsTransferRelation(config, logger, cfa);
+    transferRelation = new ConstraintsTransferRelation();
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -118,17 +120,17 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return null;
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return new SymbolicExecutionState();
+    return new ConstraintsState();
   }
 
   @Override
   public Precision getInitialPrecision(CFANode node) {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 
   @Override

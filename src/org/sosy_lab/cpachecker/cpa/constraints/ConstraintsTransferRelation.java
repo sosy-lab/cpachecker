@@ -26,27 +26,20 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
  */
 @Options(prefix="cpa.constraints")
-public class ConstraintsTransferRelation extends ValueAnalysisTransferRelation {
-
-  public ConstraintsTransferRelation(Configuration pConfig, LogManager pLogger, CFA pCfa)
-      throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCfa);
-  }
+public class ConstraintsTransferRelation
+    extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState state, List<AbstractState> otherStates,
