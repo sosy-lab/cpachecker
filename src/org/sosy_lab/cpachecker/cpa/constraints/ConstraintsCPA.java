@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Collection;
 
@@ -54,9 +54,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * Configurable Program Analysis using symbolic execution for analysis.
+ * Configurable Program Analysis that tracks constraints for analysis.
  */
-public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
+public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker {
 
   private final Configuration config;
   private final LogManager logger;
@@ -72,10 +72,10 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis, Statis
 
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SymbolicExecutionCPA.class);
+    return AutomaticCPAFactory.forType(ConstraintsCPA.class);
   }
 
-  private SymbolicExecutionCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+  private ConstraintsCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
@@ -85,7 +85,7 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis, Statis
     abstractDomain = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
-    transferRelation = new SymbolicExecutionTransferRelation(config, logger, cfa);
+    transferRelation = new ConstraintsTransferRelation(config, logger, cfa);
   }
 
   private MergeOperator initializeMergeOperator() {

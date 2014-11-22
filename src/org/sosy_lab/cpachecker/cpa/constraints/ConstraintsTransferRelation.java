@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,10 +40,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Transfer relation for Symbolic Execution Analysis.
  */
-@Options(prefix="cpa.value")
-public class SymbolicExecutionTransferRelation extends ValueAnalysisTransferRelation {
+@Options(prefix="cpa.constraints")
+public class ConstraintsTransferRelation extends ValueAnalysisTransferRelation {
 
-  public SymbolicExecutionTransferRelation(Configuration pConfig, LogManager pLogger, CFA pCfa)
+  public ConstraintsTransferRelation(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pCfa);
   }

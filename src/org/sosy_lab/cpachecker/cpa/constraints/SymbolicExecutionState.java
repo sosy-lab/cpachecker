@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Map;
 
@@ -92,8 +92,8 @@ public class SymbolicExecutionState extends ValueAnalysisState {
       Value currValue = values.get(otherEntry.getKey());
 
       if (!otherValue.equals(currValue)) {
-        if (otherValue instanceof SymbolicValue && currValue != null) {
-          lessOrEqual = ((SymbolicValue) otherValue).includes(currValue);
+        if (otherValue instanceof Constraint && currValue != null) {
+          lessOrEqual = ((Constraint) otherValue).includes(currValue);
         } else {
           lessOrEqual = false;
         }

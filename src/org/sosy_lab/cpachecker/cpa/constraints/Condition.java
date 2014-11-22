@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import com.google.common.base.Optional;
 
 /**
- * A single condition for a {@link SymbolicValue}.
+ * A single condition for a {@link Constraint}.
  *
  * <p>A condition consists of a value and one of the
  * following operators that describes the relation to this value:
@@ -92,10 +92,10 @@ public class Condition {
         default:
           throw new AssertionError("Unhandled operator " + operator);
       }
-    } else if (pValue instanceof SymbolicValue) {
-      final SymbolicValue symbolicValue = (SymbolicValue) pValue;
-      final Optional<Condition> lesserCondition = symbolicValue.getLesserCondition();
-      final Optional<Condition> greaterCondition = symbolicValue.getGreaterCondition();
+    } else if (pValue instanceof Constraint) {
+      final Constraint constraint = (Constraint) pValue;
+      final Optional<Condition> lesserCondition = constraint.getLesserCondition();
+      final Optional<Condition> greaterCondition = constraint.getGreaterCondition();
       boolean isIncluded = true;
 
       if (lesserCondition.isPresent()) {
@@ -159,7 +159,7 @@ public class Condition {
         }
       }
 
-      return Optional.<Value>of(new SymbolicValue(newCondition));
+      return Optional.<Value>of(new Constraint(newCondition));
 
     } else {
       if (haveSingleIntersection(this, pOtherCondition)) {
@@ -177,7 +177,7 @@ public class Condition {
         }
       }
 
-      return Optional.<Value>of(new SymbolicValue(this, pOtherCondition));
+      return Optional.<Value>of(new Constraint(this, pOtherCondition));
     }
   }
 

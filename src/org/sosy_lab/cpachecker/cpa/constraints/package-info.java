@@ -23,7 +23,7 @@
  */
 
 /**
- * Configurable Program Analysis using Symbolic Execution for
- * tracking the symbolic values of tracked variables.
+ * Contains classes for Constraints CPA.
+ * Constraints CPA tracks constraints such as conditions in if- or while-statements.
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;

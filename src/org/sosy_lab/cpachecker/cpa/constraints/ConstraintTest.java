@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.symbolic;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,26 +30,26 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Test class for {@link SymbolicValue}
+ * Test class for {@link Constraint}
  */
-public class SymbolicValueTest {
+public class ConstraintTest {
 
   private final static long NUMBER = 5l;
 
   private final static NumericValue DEFAULT_NUM_VAL = new NumericValue(NUMBER);
-  private SymbolicValue symbolicValue;
+  private Constraint constraint;
 
   @Before
   public void setUp() {
     Condition lesserEqualCond = new Condition(Condition.Operator.LESS_EQUAL, DEFAULT_NUM_VAL);
 
-    symbolicValue = new SymbolicValue(lesserEqualCond);
+    constraint = new Constraint(lesserEqualCond);
   }
 
   @Test
   public void mergeWith_NumericValue() {
     NumericValue numValue = new NumericValue(NUMBER);
-    Value newValue = symbolicValue.mergeWith(numValue).get();
+    Value newValue = constraint.mergeWith(numValue).get();
 
     Assert.assertTrue(newValue.equals(numValue));
   }
@@ -57,8 +57,8 @@ public class SymbolicValueTest {
   @Test
   public void mergeWith_SymbolicValue() {
     Condition greaterEqualCond = new Condition(Condition.Operator.GREATER_EQUAL, DEFAULT_NUM_VAL);
-    SymbolicValue otherValue = new SymbolicValue(greaterEqualCond);
-    Value newValue = symbolicValue.mergeWith(otherValue).get();
+    Constraint otherValue = new Constraint(greaterEqualCond);
+    Value newValue = constraint.mergeWith(otherValue).get();
 
     Assert.assertTrue(newValue.equals(DEFAULT_NUM_VAL));
   }
@@ -66,8 +66,8 @@ public class SymbolicValueTest {
   @Test
   public void mergeWith_NoIntersection() {
     Condition greaterCond = new Condition(Condition.Operator.GREATER, DEFAULT_NUM_VAL);
-    SymbolicValue otherValue = new SymbolicValue(greaterCond);
+    Constraint otherValue = new Constraint(greaterCond);
 
-    Assert.assertFalse(symbolicValue.mergeWith(otherValue).isPresent());
+    Assert.assertFalse(constraint.mergeWith(otherValue).isPresent());
   }
 }
