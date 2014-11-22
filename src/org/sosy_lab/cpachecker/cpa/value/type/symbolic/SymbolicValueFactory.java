@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -64,6 +65,22 @@ public class SymbolicValueFactory {
 
     final InvariantsFormula<Value> formula = InvariantsFormulaManager.INSTANCE.add(
         leftFormulaOperand, rightFormulaOperand);
+
+    return new SymbolicFormula(formula);
+  }
+
+  public SymbolicValue createSubtraction(Value pLeftValue, Type pLeftType, Value pRightValue, Type pRightType) {
+    checkSymbolic(pLeftValue, pRightValue);
+    final InvariantsFormulaManager factory = InvariantsFormulaManager.INSTANCE;
+
+    final InvariantsFormula<Value> minusOperand = getFormulaOperand(new NumericValue(-1));
+
+    final InvariantsFormula<Value> leftFormulaOperand = getFormulaOperand(pLeftValue);
+    final InvariantsFormula<Value> rightFormulaOperand = getFormulaOperand(pRightValue);
+
+    final InvariantsFormula<Value> rightOperandNegation = factory.multiply(rightFormulaOperand, minusOperand);
+
+    final InvariantsFormula<Value> formula = factory.add(leftFormulaOperand, rightOperandNegation);
 
     return new SymbolicFormula(formula);
   }

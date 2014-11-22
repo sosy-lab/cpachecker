@@ -306,7 +306,7 @@ public abstract class AbstractExpressionValueVisitor
       case PLUS:
         return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType);
       case MINUS:
-        throw new AssertionError(); // TODO!
+        return factory.createSubtraction(pLeftValue, pLeftType, pRightValue, pRightType);
       case MULTIPLY:
         return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType);
       case DIVIDE:
@@ -846,7 +846,7 @@ public abstract class AbstractExpressionValueVisitor
       case PLUS:
         return factory.createAddition(pLeftValue, pLeftType, pRightValue, pRightType);
       case MINUS:
-        throw new AssertionError(); // TODO!
+        return factory.createSubtraction(pLeftValue, pLeftType, pRightValue, pRightType);
       case MULTIPLY:
         return factory.createMultiplication(pLeftValue, pLeftType, pRightValue, pRightType);
       case DIVIDE:
