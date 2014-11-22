@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+  <option name="-explicitAnalysis-NoRefiner"/>
+  <option name="-setprop">cpa.value.symbolicExecution=true</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition>
+    <sourcefiles>
+      <include>../programs/simple/explicit/symbolic/*.c</include>
+    </sourcefiles>
+  </rundefinition>
+</benchmark>
