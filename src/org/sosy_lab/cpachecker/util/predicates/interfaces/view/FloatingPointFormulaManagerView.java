@@ -130,11 +130,6 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
-  public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
-    return manager.makeNumber(pN, type);
-  }
-
-  @Override
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
     return manager.makeVariable(pVar, pType);
   }

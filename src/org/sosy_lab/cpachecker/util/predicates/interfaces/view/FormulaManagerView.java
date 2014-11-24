@@ -299,30 +299,6 @@ public class FormulaManagerView {
     return (T) t;
   }
 
-  /**
-   * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
-   */
-  @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, String value) {
-    Formula t;
-    if (formulaType.isIntegerType()) {
-      t = integerFormulaManager.makeNumber(value);
-    } else if (formulaType.isRationalType()) {
-      t = getRationalFormulaManager().makeNumber(value);
-    } else if (formulaType.isBitvectorType()) {
-      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
-    } else if (formulaType.isFloatingPointType()) {
-      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-
-    return (T) t;
-  }
-
   @SuppressWarnings("unchecked")
   public  <T extends Formula> T makeNegate(T pNum) {
     Formula t;
