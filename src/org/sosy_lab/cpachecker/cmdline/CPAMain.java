@@ -60,6 +60,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CPAMain {
 
+  static final PrintStream ERROR_OUTPUT = System.err;
+  static final int ERROR_EXIT_CODE = 1;
+
   @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
     // initialize various components
@@ -72,18 +75,18 @@ public class CPAMain {
         cpaConfig = p.getFirst();
         outputDirectory = p.getSecond();
       } catch (InvalidCmdlineArgumentException e) {
-        System.err.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       } catch (IOException e) {
-        System.err.println("Could not read config file " + e.getMessage());
-        System.exit(1);
+        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
+        System.exit(ERROR_EXIT_CODE);
       }
 
       logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      System.err.println("Invalid configuration: " + e.getMessage());
-      System.exit(1);
+      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
     cpaConfig.enableLogging(logManager);
@@ -110,7 +113,7 @@ public class CPAMain {
       }
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
-      System.exit(1);
+      System.exit(ERROR_EXIT_CODE);
       return;
     }
 
