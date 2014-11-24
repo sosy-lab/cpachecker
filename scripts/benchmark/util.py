@@ -25,6 +25,7 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, print_function, unicode_literals
 
+import errno
 import glob
 import logging
 import os
@@ -52,9 +53,12 @@ def killProcess(pid, sig=signal.SIGKILL):
     This function kills the process and the children in its process group.
     '''
     try:
-        os.killpg(pid, sig)
-    except OSError: # process itself returned and exited before killing
-        pass
+        os.kill(pid, sig)
+    except OSError as e:
+        if e.errno == errno.ESRCH: # process itself returned and exited before killing
+            logging.debug("Failure {0} while killing process {1} with signal {2}: {3}".format(e.errno, pid, sig, e.strerror))
+        else:
+            logging.warning("Failure {0} while killing process {1} with signal {2}: {3}".format(e.errno, pid, sig, e.strerror))
 
 def printOut(value, end='\n'):
     """
