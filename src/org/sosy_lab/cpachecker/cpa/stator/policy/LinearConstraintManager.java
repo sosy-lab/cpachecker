@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,7 +124,7 @@ public class LinearConstraintManager {
     }
 
     if (sum == null) {
-      return rfmgr.makeNumber("0");
+      return rfmgr.makeNumber(0);
     } else {
       return sum;
     }

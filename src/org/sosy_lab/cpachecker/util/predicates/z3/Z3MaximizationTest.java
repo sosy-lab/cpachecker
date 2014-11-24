@@ -109,10 +109,10 @@ public class Z3MaximizationTest {
         x - y >= 1
        */
       List<BooleanFormula> constraints = ImmutableList.of(
-          rfmgr.lessOrEquals(x, rfmgr.makeNumber("10")),
-          rfmgr.lessOrEquals(y, rfmgr.makeNumber("15")),
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
           rfmgr.equal(obj, rfmgr.add(x, y)),
-          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber("1"))
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
       );
 
       prover.addConstraint(bfmgr.and(constraints));
