@@ -1478,9 +1478,6 @@ cpa.statistics.metric.pointerVariablesCount = true
 # type.
 cpa.statistics.metric.structVariablesCount = true
 
-# set to true if you want to print the statistics in the standard output.
-cpa.statistics.printOut = true
-
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 

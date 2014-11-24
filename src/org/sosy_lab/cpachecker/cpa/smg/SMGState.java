@@ -1017,10 +1017,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
 
-    if(isInNeq(pKnownVal1, pKnownVal2)) {
-      System.out.println("Error");
-    }
-
+    assert !isInNeq(pKnownVal1, pKnownVal2);
     heap.mergeValues(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 

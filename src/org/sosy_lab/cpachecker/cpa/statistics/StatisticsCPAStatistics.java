@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,13 +55,12 @@ public class StatisticsCPAStatistics implements Statistics  {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path statisticsCPAFile = null;
   private final StatisticsCPA cpa;
+  private final LogManager logger;
 
-  @Option(secure=true, description="set to true if you want to print the statistics in the standard output.")
-  private boolean printOut = true;
-
-  public StatisticsCPAStatistics(Configuration config, StatisticsCPA cpa) throws InvalidConfigurationException {
+  public StatisticsCPAStatistics(Configuration config, LogManager logger, StatisticsCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
+    this.logger = logger;
   }
 
   @SuppressWarnings("unchecked")
@@ -78,7 +79,6 @@ public class StatisticsCPAStatistics implements Statistics  {
         }
       }
 
-      out.println("StatisticsCPA");
       statistics = lastState.getStatistics();
     }
 
@@ -105,17 +105,14 @@ public class StatisticsCPAStatistics implements Statistics  {
         // Save in json without merge type
         jsonMap.put(propName, value);
       }
-      if (printOut) {
-        out.println("\t" + propName + mergeInfo + ": " + value);
-      }
+      out.println("\t" + propName + mergeInfo + ": " + value);
     }
 
     if (statisticsCPAFile != null) {
       try {
         JSON.writeJSONString(jsonMap, statisticsCPAFile);
       } catch (IOException e) {
-        e.printStackTrace();
-        throw new RuntimeException(e);
+        logger.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
     }
   }

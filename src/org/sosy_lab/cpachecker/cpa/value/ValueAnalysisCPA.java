@@ -340,7 +340,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
         }
       }
     } catch (CPAException e) {
-      e.printStackTrace();
+      throw new CPATransferException("Cannot compare abstract successors", e);
     }
     return true;
   }

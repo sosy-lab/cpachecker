@@ -61,12 +61,6 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
-    /*if (pCfaEdge.getPredecessor().getNodeNumber() == 1) {
-      System.out.println("##########################");
-      System.out.println(pElement);
-      System.out.println(pPrecision);
-    }*/
-
     /*Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pCfaEdge);
 
     if (lLevel1Cache == null) {
@@ -90,10 +84,6 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
       lCacheMisses++;
     } else {
       lCacheHits++;
-    }
-
-    if ((lCacheMisses + lCacheHits) % 100 == 0) {
-      System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
     }
 
     return lSuccessors;*/

@@ -215,7 +215,7 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
       factory.addProvider(SimpleIntProviderFactory.getAssumeCountProvider(defMerge));
     }
 
-    this.stats = new StatisticsCPAStatistics(config, this);
+    this.stats = new StatisticsCPAStatistics(config, pLogger, this);
 
     MergeOperator mergeOp = null;
     if (isAnalysis || mergeType.equals("sep")) {

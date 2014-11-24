@@ -124,7 +124,8 @@ public class Z3MaximizationTest {
       Assert.assertEquals(OptEnvironment.OptStatus.OPT, response);
 
       Model model = prover.getModel();
-      System.out.println("Model = " + model);
+      Assert.assertEquals("obj : Real: 19\nx : Real: 10\ny : Real: 9",
+          model.toString());
 
       // Check the value.
       Assert.assertEquals(Rational.ofString("19"), prover.value());

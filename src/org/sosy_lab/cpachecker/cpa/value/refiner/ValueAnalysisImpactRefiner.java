@@ -166,7 +166,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     Set<ARGState> interpolatedTargets = new HashSet<>();
-//System.out.println("----------------------- ref: " + totalRefinements + "--------------------------------------");
     int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
       i++;
@@ -176,7 +175,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
         continue;
       }
-//System.out.println(ARGUtils.getOnePathTo(errorPath.getLast().getFirst()).toString().hashCode());
       ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
       if (initialInterpolantIsTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
@@ -273,7 +271,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
 
       Multimap<CFANode, MemoryLocation> extractPrecisionIncrement = interpolationTree.extractPrecisionIncrement(root);
-//System.out.println(new TreeSet<>(extractPrecisionIncrement.values()));
       VariableTrackingPrecision currentPrecision = subTreePrecision.withIncrement(extractPrecisionIncrement);
 
       if (globalPrecision != null) {
@@ -339,7 +336,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       for (ARGState children : coverageRoot.getSubgraph()) {
         if (!children.isCovered()) {
           children.setCovered(coverageRoot);
-          //System.out.println("set coverage for " + children.getStateId());
         }
       }
     }

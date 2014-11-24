@@ -201,11 +201,10 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
           partitionsRead.release();
         }
       } catch (IOException | ClassNotFoundException e) {
-        logger.log(Level.SEVERE, "Partition reading failed. Stop checking");
+        logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
         abort();
       } catch (Exception e2) {
-        logger.log(Level.SEVERE, "Unexpected failure during proof reading");
-        e2.printStackTrace();
+        logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abort();
       } finally {
         if (streams != null) {
