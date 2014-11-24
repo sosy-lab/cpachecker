@@ -47,6 +47,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -77,7 +78,7 @@ public class SolverTest {
   public ExpectedException thrown = ExpectedException.none();
 
   private final LogManager logger = TestLogManager.getInstance();
-  private static int index = 0; // to get different names
+  private static final UniqueIdGenerator index = new UniqueIdGenerator(); // to get different names
 
   private FormulaManagerFactory factory;
   private FormulaManager mgr;
@@ -115,7 +116,7 @@ public class SolverTest {
   public void simpleStackTestBool() throws SolverException, InterruptedException {
     ProverEnvironment stack = factory.newProverEnvironment(true, true);
 
-    int i = index++;
+    int i = index.getFreshId();
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
     BooleanFormula b = bmgr.makeVariable("bool_b"+i);
     BooleanFormula or = bmgr.or(a, b);
@@ -173,7 +174,7 @@ public class SolverTest {
   }
 
   private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws Exception {
-    int i = index++;
+    int i = index.getFreshId();
     X a = nmgr.makeVariable("num_a"+i);
     X b = nmgr.makeVariable("num_b"+i);
     BooleanFormula leqAB = nmgr.lessOrEquals(a, b);

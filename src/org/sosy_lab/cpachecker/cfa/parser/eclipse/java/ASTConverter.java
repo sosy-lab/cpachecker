@@ -1899,10 +1899,6 @@ class ASTConverter {
     return binaryExpression;
   }
 
-  private boolean isUnspecified(JType pType) {
-    return pType instanceof JSimpleType && ((JSimpleType) pType).getType() == JBasicType.UNSPECIFIED;
-  }
-
   // pType is the type of the operands of the operation
   private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
     final String invalidTypeMsg = "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";

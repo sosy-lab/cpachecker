@@ -35,14 +35,14 @@ public interface OptEnvironment extends AutoCloseable {
   void addConstraint(BooleanFormula constraint);
 
   /**
-   * Add maximization {@param objective}.
+   * Add maximization <code>objective</code>.
    *
    * <b>Note: currently only one constraint is supported</b>
    */
   void maximize(Formula objective);
 
   /**
-   * Add minimization {@param objective}.
+   * Add minimization <code>objective</code>.
    *
    * <b>Note: currently only one constraint is supported</b>
    */

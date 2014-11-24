@@ -104,7 +104,7 @@ public class Rational implements Comparable<Rational>{
 
   /**
    * Wrapper around the constructor, returns cached constants if possible.
-   * Assumes that {@param num} and {@param den} are in the normal form.
+   * Assumes that <code>num</code> and <code>den</code> are in the normal form.
    */
   private static Rational ofNormalForm(BigInteger num, BigInteger den) {
     if (num.equals(b_zero)) {
@@ -123,9 +123,15 @@ public class Rational implements Comparable<Rational>{
 
   public Rational times(Rational b) {
     Rational a = this;
-    if (a == ZERO || b == ZERO) return ZERO;
-    if (a == ONE) return b;
-    if (b == ONE) return a;
+    if (a == ZERO || b == ZERO) {
+      return ZERO;
+    }
+    if (a == ONE) {
+      return b;
+    }
+    if (b == ONE) {
+      return a;
+    }
 
     // reduce p1/q2 and p2/q1, then multiply, where a = p1/q1 and b = p2/q2
     Rational c = of(a.num, b.den);
@@ -135,8 +141,12 @@ public class Rational implements Comparable<Rational>{
 
   public Rational plus(Rational b) {
     Rational a = this;
-    if (a == ZERO) return b;
-    if (b == ZERO) return a;
+    if (a == ZERO) {
+      return b;
+    }
+    if (b == ZERO) {
+      return a;
+    }
 
     return of((a.num.multiply(b.den).add(b.num.multiply(a.den))),
         a.den.multiply(b.den));
@@ -193,9 +203,15 @@ public class Rational implements Comparable<Rational>{
 
   @Override
   public boolean equals(Object y) {
-    if (this == y) return true;
-    if (y == null) return false;
-    if (y.getClass() != this.getClass()) return false;
+    if (this == y) {
+      return true;
+    }
+    if (y == null) {
+      return false;
+    }
+    if (y.getClass() != this.getClass()) {
+      return false;
+    }
     Rational b = (Rational) y;
     return (num.equals(b.num) && den.equals(b.den));
   }

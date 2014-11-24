@@ -102,7 +102,9 @@ public class ValueDeterminationFormulaManager {
 
         // Don't perform value determination on templates not updated during
         // the iteration.
-        if (toNode == focusedNode && !updated.contains(template)) continue;
+        if (toNode == focusedNode && !updated.contains(template)) {
+          continue;
+        }
 
         CFAEdge incomingEdge = incoming.getValue();
 
@@ -272,8 +274,8 @@ public class ValueDeterminationFormulaManager {
   }
 
   /**
-   * @return the subset of the {@param abstractStates} related to the given
-   * {@param valueDeterminationNode} and the set of {@param updates}.
+   * @return the subset of the <code>abstractStates</code> related to the given
+   * <code>valueDeterminationNode</code> and the set of <code>updates</code>.
    *
    * <p>Note that the returned set is usually an over-approximation, because we
    * are not tracking the actual relationships between variables.
@@ -313,7 +315,9 @@ public class ValueDeterminationFormulaManager {
           PolicyBound bound = updated.get(template);
 
           // Only keep track of templates which were updated.
-          if (bound == null) continue;
+          if (bound == null) {
+            continue;
+          }
           edge = bound.trace;
         } else {
           edge = stateBound.trace;

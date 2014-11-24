@@ -271,9 +271,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   }
 
   /**
-   * @return Representation of {@param abstractStates} as a table,
-   * centered on the {@param focusedNode},
-   * passing through only the updates represented in the {@param updated}.
+   * @return Representation of <code>abstractStates</code> as a table,
+   * centered on the <code>focusedNode</code>,
+   * passing through only the updates represented in the <code>updated</code>.
    */
   Table<CFANode, LinearExpression, CFAEdge> abstractStatesToTable(
       Map<CFANode, PolicyAbstractState> abstractStates,

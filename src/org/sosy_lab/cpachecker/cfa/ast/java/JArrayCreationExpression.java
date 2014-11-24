@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 

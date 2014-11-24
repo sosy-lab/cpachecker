@@ -133,7 +133,7 @@ public final class PolicyAbstractState implements AbstractState,
 
   /**
    * @return {@link PolicyBound} for the given {@link LinearExpression}
-   * {@param e} or an empty optional if it is unbounded.
+   * <code>e</code> or an empty optional if it is unbounded.
    */
   public Optional<PolicyBound> getBound(
       LinearExpression e) {
@@ -213,8 +213,12 @@ public final class PolicyAbstractState implements AbstractState,
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)  return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     PolicyAbstractState other = (PolicyAbstractState)o;
     return (abstraction.equals(other.abstraction) && node.equals(other.node));
   }

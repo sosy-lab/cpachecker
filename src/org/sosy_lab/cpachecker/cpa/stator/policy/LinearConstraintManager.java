@@ -256,8 +256,8 @@ public class LinearConstraintManager {
   }
 
   /**
-   * @return Subset of {@param origConstraints} containing only the formula
-   * related to (possibly indirectly) {@param relatedTo}.
+   * @return Subset of <code>origConstraints</code> containing only the formula
+   * related to (possibly indirectly) <code>relatedTo</code>.
    */
   @SuppressWarnings("unused")
   List<BooleanFormula> getRelated(
