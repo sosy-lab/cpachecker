@@ -305,6 +305,23 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         if (baseVariable == null) {
           AliasedLocation addressExpression = null;
 
+          // addressedFields is used to treat structure assignment and field addressing separately:
+          // assuming s1 and s2 both have substructure ss1, which in its turn has fields f1 and f2,
+          // and there is also outer structure ss2 of the same type as ss1, in
+          // s1.ss1 = s2.ss1;
+          // ss2.f1 = 0;
+          // it isn't necessary to start tracking
+          // either s1.ss1.f{1,2} or s2.ss1.f{1,2}, because as s{1,2}.ss1 itself is not tracked,
+          // it's known that their values remain undefined and only some other outer structure field is assigned.
+          // But in
+          // p2 = &(s2.ss1);
+          // p2->f1 = 0;
+          // the fields f1 and f2 along with the field s{1,2}.ss1 should be tracked from the first line onwards, because
+          // it's too hard to determine (without the help of some alias analysis)
+          // whether f1 assigned in the second line is an outer or inner structure field.
+          final List<Pair<CCompositeType, String>> alreadyUsedFields = getUsedFields();
+          usedFields.clear();
+
           if (errorConditions != null && operand instanceof CFieldReference) {
             // for &(s->f) and &((*s).f) do special case because the pointer is
             // not actually dereferenced and thus we don't want to add error conditions
@@ -332,6 +349,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           if (addressExpression == null) {
             addressExpression = operand.accept(this).asAliasedLocation();
           }
+
+          addressedFields.addAll(usedFields);
+          usedFields.addAll(alreadyUsedFields);
 
           return Value.ofValue(addressExpression.getAddress());
         } else {
@@ -461,6 +481,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Collections.unmodifiableList(initializedFields);
   }
 
+  List<Pair<CCompositeType, String>> getAddressedFields() {
+    return Collections.unmodifiableList(addressedFields);
+  }
+
   Map<String, CType> getUsedDeferredAllocationPointers() {
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
@@ -477,5 +501,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
+  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
   private final Map<String, CType> usedDeferredAllocationPointers = Maps.newHashMapWithExpectedSize(1);
 }
