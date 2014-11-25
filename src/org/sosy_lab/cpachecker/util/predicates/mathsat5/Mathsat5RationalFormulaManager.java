@@ -56,7 +56,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
 
   @Override
   protected Long makeNumberImpl(BigDecimal pNumber) {
-    return makeNumberImpl(pNumber.toString());
+    return makeNumberImpl(pNumber.toPlainString());
   }
 
   @Override

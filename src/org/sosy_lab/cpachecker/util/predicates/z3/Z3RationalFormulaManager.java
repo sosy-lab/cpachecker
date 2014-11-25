@@ -54,6 +54,6 @@ class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFormula, R
 
   @Override
   protected Long makeNumberImpl(BigDecimal pNumber) {
-    return makeNumberImpl(pNumber.toString());
+    return makeNumberImpl(pNumber.toPlainString());
   }
 }
