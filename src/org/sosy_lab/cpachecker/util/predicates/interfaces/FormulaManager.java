@@ -54,6 +54,11 @@ public interface FormulaManager {
   BooleanFormulaManager getBooleanFormulaManager();
 
   /**
+   * Returns the Array-Theory.
+   */
+  ArrayFormulaManager getArrayFormulaManager();
+
+  /**
    * Returns the Bitvector-Theory.
    */
   BitvectorFormulaManager getBitvectorFormulaManager();

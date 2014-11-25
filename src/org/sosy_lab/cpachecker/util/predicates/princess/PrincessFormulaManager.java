@@ -48,7 +48,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
           PrincessIntegerFormulaManager pIntegerManager) {
-    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null, null, null);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null, null, null, null);
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
