@@ -107,6 +107,7 @@ public class FormulaManagerView {
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
   private final QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private final ArrayFormulaManagerView arrayFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -171,6 +172,7 @@ public class FormulaManagerView {
     booleanFormulaManager = new BooleanFormulaManagerView(this, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(this, manager.getFunctionFormulaManager());
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(this, manager.getQuantifiedFormulaManager());
+    arrayFormulaManager = new ArrayFormulaManagerView(this, manager.getArrayFormulaManager());
 
     FloatingPointFormulaManager rawFloatingPointFormulaManager;
     switch (encodeFloatAs) {
@@ -723,6 +725,10 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     return quantifiedFormulaManager;
+  }
+
+  public ArrayFormulaManagerView getArrayFormulaManager() {
+    return arrayFormulaManager;
   }
 
   @SuppressWarnings("unchecked")
