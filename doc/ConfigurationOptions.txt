@@ -1297,9 +1297,6 @@ cpa.predicate.targetStateSatCheck = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
-# Use precise floating point arithmetic (slow and only suppored by MathSAT).
-cpa.predicate.useFloatingPointArithmetic = true
-
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
 cpa.predicate.useInvariantsForAbstraction = false
