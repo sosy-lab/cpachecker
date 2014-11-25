@@ -164,8 +164,6 @@ public class ValueAnalysisFeasibilityChecker {
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final MutableARGPath path)
       throws CPAException, InterruptedException {
 
-    assert(isFeasible(path)) : "Cannot reevalute an infeasible path!";
-
     try {
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
       ValueAnalysisState next = new ValueAnalysisState();
@@ -175,6 +173,10 @@ public class ValueAnalysisFeasibilityChecker {
             next,
             precision,
             pathElement.getSecond());
+
+        if(successors.isEmpty()) {
+          return reevaluatedPath;
+        }
 
         // extract singleton successor state
         next = Iterables.getOnlyElement(successors);
