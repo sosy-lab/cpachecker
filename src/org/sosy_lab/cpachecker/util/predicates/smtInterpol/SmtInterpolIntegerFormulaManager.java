@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -58,6 +59,16 @@ class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<
   @Override
   protected Term makeNumberImpl(String pI) {
     return getFormulaCreator().getEnv().numeral(pI);
+  }
+
+  @Override
+  protected Term makeNumberImpl(double pNumber) {
+    return makeNumberImpl((long)pNumber);
+  }
+
+  @Override
+  protected Term makeNumberImpl(BigDecimal pNumber) {
+    return decimalAsInteger(pNumber);
   }
 
   @Override
