@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * State for Symbolic Execution Analysis.
@@ -40,37 +38,40 @@ import com.google.common.collect.ImmutableMap;
  * <p>This state contains a mapping of tracked variables and their corresponding symbolic value.
  * </p>
  */
-public class ConstraintsState extends ValueAnalysisState {
+public class ConstraintsState implements LatticeAbstractState<ConstraintsState> {
 
   /**
-   * Stores identifiers and their corresponding values
+   * Stores identifiers and their corresponding constraints
    */
-  private PersistentMap<MemoryLocation, Value> values;
+  private Set<Constraint> constraints;
 
   /**
-   * Create a new <code>ConstraintsState</code> object with the given values and their
-   * corresponding types.
+   * Create a new <code>ConstraintsState</code> object with the given constraints.
    *
-   * @param pConstantsMap a map containing (identifier, value) pairs
-   * @param pLocToTypeMap a map containing (identifier, type) pairs
+   * @param pConstraints the constraints to use for the newly created <code>ConstraintsState</code> object
    */
-  public ConstraintsState(Map<MemoryLocation, Value> pConstantsMap, Map<MemoryLocation, Type> pLocToTypeMap) {
-    super(PathCopyingPersistentTreeMap.copyOf(pConstantsMap), PathCopyingPersistentTreeMap.copyOf(pLocToTypeMap));
+  public ConstraintsState(Set<Constraint> pConstraints) {
+    constraints = new HashSet<>(pConstraints);
+  }
+
+  public static ConstraintsState copyOf(ConstraintsState pState) {
+    return new ConstraintsState(new HashSet<>(pState.constraints));
   }
 
   /**
-   * Creates a new, initial  <code>ConstraintsState</code> object.
+   * Creates a new, initial <code>ConstraintsState</code> object.
    */
   public ConstraintsState() {
-    values = PathCopyingPersistentTreeMap.of();
+    constraints = new HashSet<>();
   }
 
-  public Map<MemoryLocation, Value> getValueMap() {
-    return ImmutableMap.copyOf(values);
+  public Set<Constraint> getConstraints() {
+    return ImmutableSet.copyOf(constraints);
   }
 
   @Override
-  public ConstraintsState join(ValueAnalysisState pReached) {
+  public ConstraintsState join(ConstraintsState other) throws CPAException {
+    // we currently use merge^sep
     throw new UnsupportedOperationException();
   }
 
@@ -80,50 +81,42 @@ public class ConstraintsState extends ValueAnalysisState {
    * @param other the other state to check against
    * @return <code>true</code> if this state is less or equal than the given state, <code>false</code> otherwise
    */
+  @Override
   public boolean isLessOrEqual(ConstraintsState other) {
-    boolean lessOrEqual = true;
+    boolean lessOrEqual = false;
 
-    if (values.size() > other.values.size()) {
-      return false;
-    }
-
-    for (Map.Entry<MemoryLocation, Value> otherEntry : other.values.entrySet()) {
-      Value otherValue = otherEntry.getValue();
-      Value currValue = values.get(otherEntry.getKey());
-
-      if (!otherValue.equals(currValue)) {
-        if (otherValue instanceof Constraint && currValue != null) {
-          lessOrEqual = ((Constraint) otherValue).includes(currValue);
-        } else {
-          lessOrEqual = false;
+    for (Constraint otherConstraint : other.constraints) {
+      for (Constraint currConstraint : constraints) {
+        if (otherConstraint.equals(currConstraint) || otherConstraint.includes(currConstraint)) {
+          lessOrEqual = true;
+          break;
         }
       }
 
       if (!lessOrEqual) {
         break;
       }
+
+      lessOrEqual = false;
     }
 
     return lessOrEqual;
   }
 
-  @Override
-  public String getCPAName() {
-    return "SymbolicExecution";
+  public void addConstraint(Constraint pConstraint) {
+    constraints.add(pConstraint);
   }
 
   @Override
-  public boolean checkProperty(String property) throws InvalidQueryException {
-    return false;
-  }
+  public String toString() {
+    StringBuilder sb = new StringBuilder("[");
 
-  @Override
-  public Object evaluateProperty(String property) throws InvalidQueryException {
-    return null;
-  }
+    for (Constraint currConstraint : constraints) {
+      sb.append(" <");
+      sb.append(currConstraint);
+      sb.append(">\n");
+    }
 
-  @Override
-  public void modifyProperty(String modification) throws InvalidQueryException {
-
+    return sb.append("] size->  ").append(constraints.size()).toString();
   }
 }

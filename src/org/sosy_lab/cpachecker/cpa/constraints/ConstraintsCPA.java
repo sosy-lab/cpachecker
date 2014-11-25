@@ -87,7 +87,7 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     abstractDomain = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
-    transferRelation = new ConstraintsTransferRelation();
+    transferRelation = new ConstraintsTransferRelation(logger);
   }
 
   private MergeOperator initializeMergeOperator() {
