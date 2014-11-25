@@ -84,7 +84,7 @@ public class FormulaEncodingOptions {
   private boolean useParameterVariablesForGlobals = false;
 
   @Option(secure=true, description = "Use precise floating point arithmetic (slow and only suppored by MathSAT).")
-  private boolean useFloatingPointArithmetic = false;
+  private boolean useFloatingPointArithmetic = true;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
