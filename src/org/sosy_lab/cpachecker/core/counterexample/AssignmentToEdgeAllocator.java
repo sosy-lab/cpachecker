@@ -37,10 +37,10 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -1338,19 +1338,13 @@ public class AssignmentToEdgeAllocator {
     private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
       ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
 
-      int bitLength = machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
+      BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
+      BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
 
-      BigInteger lowerInclusiveBound = BigInteger.ZERO;
-      BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitLength);
-      if (machineModel.isSigned(pType)) {
-        upperExclusiveBound = upperExclusiveBound.shiftRight(1);
-        lowerInclusiveBound = upperExclusiveBound.negate();
-      }
-
-      assert lowerInclusiveBound.compareTo(upperExclusiveBound) < 0;
+      assert lowerInclusiveBound.compareTo(upperInclusiveBound) < 0;
 
       if (pIntegerValue.compareTo(lowerInclusiveBound) < 0
-          || pIntegerValue.compareTo(upperExclusiveBound) >= 0) {
+          || pIntegerValue.compareTo(upperInclusiveBound) > 0) {
         result = result.addCast(pType);
       }
 
