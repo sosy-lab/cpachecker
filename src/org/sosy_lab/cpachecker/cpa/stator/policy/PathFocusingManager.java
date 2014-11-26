@@ -36,8 +36,8 @@ public class PathFocusingManager {
    *
    * @return Focused policy.
    */
-  Table<CFANode, LinearExpression, ? extends CFAEdge> pathFocusing(
-      Table<CFANode, LinearExpression, ? extends CFAEdge> policy,
+  Table<CFANode, LinearExpression, CFAEdge> pathFocusing(
+      Table<CFANode, LinearExpression, CFAEdge> policy,
       CFANode focusedNode) throws InterruptedException {
 
     return fixpointFocusing(convert(policy), focusedNode);
@@ -46,11 +46,11 @@ public class PathFocusingManager {
   /**
    * Change every edge to multi-edge.
    */
-  private Table<CFANode, LinearExpression, MultiEdge> convert(
-      Table<CFANode, LinearExpression, ? extends CFAEdge> t
+  private Table<CFANode, LinearExpression, CFAEdge> convert(
+      Table<CFANode, LinearExpression, CFAEdge> t
   ) {
-    Table<CFANode, LinearExpression, MultiEdge> out = HashBasedTable.create();
-    for (Table.Cell<CFANode, LinearExpression, ? extends CFAEdge> cell : t.cellSet()) {
+    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
+    for (Table.Cell<CFANode, LinearExpression, CFAEdge> cell : t.cellSet()) {
       CFAEdge edge = cell.getValue();
       out.put(
           cell.getRowKey(),
@@ -61,8 +61,8 @@ public class PathFocusingManager {
     return out;
   }
 
-  private Table<CFANode, LinearExpression, ? extends CFAEdge> fixpointFocusing(
-      Table<CFANode, LinearExpression, MultiEdge> policy,
+  private Table<CFANode, LinearExpression, CFAEdge> fixpointFocusing(
+      Table<CFANode, LinearExpression, CFAEdge> policy,
       final CFANode focusedOn
   ) throws InterruptedException {
     boolean changed = true; // For the initial iteration.
@@ -75,7 +75,7 @@ public class PathFocusingManager {
       Multimap<CFANode, CFANode> outgoing = HashMultimap.create();
 
       // Step 1: Fill in [incoming] and [outgoing] maps in O(N).
-      for (Table.Cell<CFANode, LinearExpression, MultiEdge> cell : policy.cellSet()) {
+      for (Table.Cell<CFANode, LinearExpression, CFAEdge> cell : policy.cellSet()) {
         CFANode to = cell.getRowKey();
         CFANode from = cell.getValue().getPredecessor();
 
@@ -101,18 +101,19 @@ public class PathFocusingManager {
           CFANode from = incomingNodes.iterator().next();
           CFANode to = outgoingNodes.iterator().next();
 
-          Map<LinearExpression, MultiEdge> midRow, toRow;
+          Map<LinearExpression, CFAEdge> midRow, toRow;
           midRow = policy.row(mid);
           toRow = policy.row(to);
 
           // Check that all edges to the mid- row are equal.
-          final MultiEdge fromToMid = midRow.values().iterator().next();
+          final MultiEdge fromToMid =
+              (MultiEdge)midRow.values().iterator().next();
 
           boolean allMidEqual = Iterables.all(
               midRow.values(),
-              new Predicate<MultiEdge>() {
+              new Predicate<CFAEdge>() {
                 @Override
-                public boolean apply(MultiEdge input) {
+                public boolean apply(CFAEdge input) {
                   return input.equals(fromToMid);
                 }
               });
@@ -120,10 +121,10 @@ public class PathFocusingManager {
           // Can't handle disjunctions for now.
           if (!allMidEqual) continue;
 
-          final MultiEdge midToTo = toRow.values().iterator().next();
-          boolean allEqual = Iterables.all(toRow.values(), new Predicate<MultiEdge>() {
+          final MultiEdge midToTo = (MultiEdge)toRow.values().iterator().next();
+          boolean allEqual = Iterables.all(toRow.values(), new Predicate<CFAEdge>() {
             @Override
-            public boolean apply(MultiEdge input) {
+            public boolean apply(CFAEdge input) {
               return input.equals(midToTo);
             }
           });

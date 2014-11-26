@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,12 +20,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -32,7 +38,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
-import com.google.common.collect.HashBasedTable;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
@@ -47,11 +54,14 @@ public class ValueDeterminationFormulaManager {
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
   private final LogManager logger;
   private final LinearConstraintManager lcmgr;
+  private final FormulaManagerFactory formulaManagerFactory;
+  private final PolicyIterationStatistics statistics;
 
   private final int threshold;
 
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String TEMPLATE_PREFIX = "[%s]_";
+  private final ShutdownNotifier shutdownNotifier;
 
   @SuppressWarnings("unused")
   public ValueDeterminationFormulaManager(
@@ -61,8 +71,10 @@ public class ValueDeterminationFormulaManager {
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      LinearConstraintManager lcmgr
-  ) throws InvalidConfigurationException{
+      LinearConstraintManager lcmgr,
+      FormulaManagerFactory pFormulaManagerFactory,
+      ShutdownNotifier pShutdownNotifier,
+      PolicyIterationStatistics pStatistics) throws InvalidConfigurationException{
 
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
@@ -71,93 +83,222 @@ public class ValueDeterminationFormulaManager {
     this.logger = logger;
     this.formulaManager = rfmgr;
     this.lcmgr = lcmgr;
+    formulaManagerFactory = pFormulaManagerFactory;
+    shutdownNotifier = pShutdownNotifier;
+    statistics = pStatistics;
 
     threshold = getThreshold(cfa);
   }
 
   /**
+   * TODO: description.
+   */
+  public Map<CFANode, PolicyAbstractState> findRelated(
+      PolicyAbstractState newState,
+      Map<CFANode, PolicyAbstractState> abstractStates,
+      CFANode focusedNode,
+      Map<LinearExpression, PolicyBound> updated) {
+
+    Map<CFANode, PolicyAbstractState> out = new HashMap<>();
+    Set<CFANode> visited = Sets.newHashSet();
+
+    LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
+    queue.add(focusedNode);
+    while (!queue.isEmpty()) {
+      Iterator<CFANode> it = queue.iterator();
+      CFANode node = it.next();
+      it.remove();
+      visited.add(node);
+
+      PolicyAbstractState state;
+      if (node == focusedNode) {
+        state = newState;
+
+      } else {
+        state = abstractStates.get(node);
+      }
+
+      out.put(node, state);
+
+      for (Map.Entry<LinearExpression, PolicyBound> entry : state) {
+        LinearExpression template = entry.getKey();
+        PolicyBound bound = entry.getValue();
+
+        // Do not follow the edges which are associated with the focused node
+        // but are not in <updated>.
+        if (!(state == newState && !updated.containsKey(template))) {
+          CFANode toVisit = bound.trace.getPredecessor();
+          if (!visited.contains(toVisit)) {
+            queue.add(toVisit);
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
    * Convert a value determination problem into a single formula.
    *
-   * @param policy Selected policy
+   * @param policy Selected policy.
+   * The abstract state associated with the {@param focusedNode}
+   * is the <b>new</b> state, with {@param updated} applied.
+   *
    * @return Global constraint for value determination.
    * @throws CPATransferException
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      Table<CFANode, LinearExpression, ? extends CFAEdge> policy,
+      Map<CFANode, PolicyAbstractState> policy,
       final CFANode focusedNode,
-      final Set<LinearExpression> updated
-      ) throws CPATransferException, InterruptedException{
-
-    Map<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> policyMap
-        = policy.rowMap();
-
+      final Map<LinearExpression, PolicyBound> updated
+  ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> entry : policyMap.entrySet()) {
-
+    for (Entry<CFANode, PolicyAbstractState> entry : policy.entrySet()) {
       CFANode toNode = entry.getKey();
-      for (Entry<LinearExpression, ? extends CFAEdge> incoming : entry.getValue().entrySet()) {
+      PolicyAbstractState state = entry.getValue();
+      Preconditions.checkState(state.isAbstract());
+
+      for (Entry<LinearExpression, PolicyBound> incoming : state) {
         LinearExpression template = incoming.getKey();
-
-        // Don't perform value determination on templates not updated during
-        // the iteration.
-        if (toNode == focusedNode && !updated.contains(template)) {
-          continue;
-        }
-
-        CFAEdge incomingEdge = incoming.getValue();
-
         String templatePrefix = String.format(TEMPLATE_PREFIX, template);
 
-        CFANode fromNode = incomingEdge.getPredecessor();
-        int toNodeNo = toNode.getNodeNumber();
-        int toNodePrimeNo = toPrime(toNodeNo);
+        if (toNode == focusedNode && !updated.containsKey(template)) {
 
-        PathFormula edgePathFormula = pathFormulaWithCustomIdx(
-            incomingEdge,
-            toNodeNo,
-            toNodePrimeNo,
-            templatePrefix
-        );
-        BooleanFormula edgeFormula = edgePathFormula.getFormula();
+          // Insert the invariant from the previous constraints.
+          // Do not follow the trace.
+          PolicyBound bound = incoming.getValue();
+          NumeralFormula templateFormula = lcmgr.linearExpressionToFormula(
+              template, SSAMap.emptySSAMap(), templatePrefix);
+          BooleanFormula constraint = rfmgr.lessOrEquals(
+              templateFormula, rfmgr.makeNumber(bound.bound.toString())
+          );
+          constraints.add(constraint);
+        } else {
+          CFAEdge trace = incoming.getValue().trace;
 
-        if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
-          constraints.add(edgeFormula);
-        }
-        if (policyMap.get(fromNode) == null) {
-          // NOTE: nodes with no templates aren't in the policy.
-          continue;
-        }
 
-        for (LinearExpression fromTemplate : policyMap.get(fromNode).keySet()) {
+          CFANode fromNode = trace.getPredecessor();
+          int toNodeNo = toNode.getNodeNumber();
+          int toNodePrimeNo = toPrime(toNodeNo);
 
-          // Add input constraints on the edge variables.
-          NumeralFormula edgeInput = lcmgr.linearExpressionToFormula(
-              fromTemplate,
-              SSAMap.emptySSAMap().withDefault(toNodeNo),
+          PathFormula edgePathFormula = pathFormulaWithCustomIdx(
+              trace,
+              toNodeNo,
+              toNodePrimeNo,
               templatePrefix
           );
+          BooleanFormula edgeFormula = edgePathFormula.getFormula();
 
-          BooleanFormula f = rfmgr.lessOrEquals(
-              edgeInput,
-              rfmgr.makeVariable(absDomainVarName(fromNode, fromTemplate)));
+          if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
+            constraints.add(edgeFormula);
+          }
+          if (policy.get(fromNode) == null) {
+            // NOTE: nodes with no templates aren't in the policy.
+            continue;
+          }
 
-          constraints.add(f);
+          for (Entry<LinearExpression, PolicyBound> fromEntry : policy.get(fromNode)) {
+            LinearExpression fromTemplate = fromEntry.getKey();
+
+            // Add input constraints on the edge variables.
+            NumeralFormula edgeInput = lcmgr.linearExpressionToFormula(
+                fromTemplate,
+                SSAMap.emptySSAMap().withDefault(toNodeNo),
+                templatePrefix
+            );
+
+            BooleanFormula f = rfmgr.lessOrEquals(
+                edgeInput,
+                rfmgr.makeVariable(absDomainVarName(fromNode, fromTemplate)));
+
+            constraints.add(f);
+          }
+
+          NumeralFormula outExpr = lcmgr.linearExpressionToFormula(
+              template, edgePathFormula.getSsa(), templatePrefix);
+
+          NumeralFormula out = rfmgr.makeVariable(absDomainVarName(toNode, template));
+
+          BooleanFormula outConstraint = rfmgr.equal(outExpr, out);
+
+          logger.log(Level.FINE, "Output constraint = ", outConstraint);
+          constraints.add(outConstraint);
+
         }
 
-        NumeralFormula outExpr = lcmgr.linearExpressionToFormula(
-            template, edgePathFormula.getSsa(), templatePrefix);
-
-        NumeralFormula out = rfmgr.makeVariable(absDomainVarName(toNode, template));
-
-        BooleanFormula outConstraint = rfmgr.equal(outExpr, out);
-
-        logger.log(Level.FINE, "Output constraint = ", outConstraint);
-        constraints.add(outConstraint);
       }
     }
     return constraints;
+  }
+
+  /**
+   * Perform the associated maximization.
+   */
+  PolicyAbstractState valueDeterminationMaximization(
+      PolicyAbstractState prevState,
+      Templates templates,
+      Map<LinearExpression, PolicyBound> updated,
+      CFANode node,
+      List<BooleanFormula> pValueDeterminationConstraints
+  )
+      throws InterruptedException, CPATransferException {
+
+    ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
+    Set<LinearExpression> unbounded = new HashSet<>();
+
+    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
+
+      LinearExpression template = policyValue.getKey();
+      CFAEdge policyEdge = policyValue.getValue().trace;
+
+      // Maximize for each template subject to the overall constraints.
+      try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+        shutdownNotifier.shutdownIfNecessary();
+
+        for (BooleanFormula constraint : pValueDeterminationConstraints) {
+          solver.addConstraint(constraint);
+        }
+
+        logger.log(Level.FINE,
+            "# Value determination: optimizing for template" , template);
+
+        NumeralFormula objective = rfmgr.makeVariable(
+            absDomainVarName(node, template));
+
+        solver.maximize(objective);
+
+        statistics.valueDeterminationSolverTimer.start();
+        statistics.valueDetCalls++;
+
+        try {
+          OptEnvironment.OptStatus result = solver.check();
+          switch (result) {
+            case OPT:
+              builder.put(
+                  template,
+                  PolicyBound.of(policyEdge, solver.value()));
+              break;
+            case UNBOUNDED:
+              unbounded.add(template);
+              break;
+            case UNSAT:
+              throw new CPATransferException("" +
+                  "Unexpected solver state, value determination problem" +
+                  " should be feasible");
+            case UNDEF:
+              throw new CPATransferException("Unexpected solver status");
+          }
+        } catch (SolverException e) {
+          throw new CPATransferException("Failed maximization", e);
+        } finally {
+          statistics.valueDeterminationSolverTimer.stop();
+        }
+      }
+    }
+    return prevState.withUpdates(
+        builder.build(), unbounded, templates);
   }
 
   /**
@@ -273,67 +414,6 @@ public class ValueDeterminationFormulaManager {
     return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
   }
 
-  /**
-   * @return the subset of the <code>abstractStates</code> related to the given
-   * <code>valueDeterminationNode</code> and the set of <code>updates</code>.
-   *
-   * <p>Note that the returned set is usually an over-approximation, because we
-   * are not tracking the actual relationships between variables.
-   */
-  Table<CFANode, LinearExpression, CFAEdge> findRelated(
-      final Map<CFANode, PolicyAbstractState> abstractStates,
-      final CFANode focusedNode,
-      final Map<LinearExpression, PolicyBound> updated) throws InterruptedException {
-
-    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
-    Set<CFANode> visited = Sets.newHashSet();
-
-    // Problems started when the same thing was added twice to the queue...
-    LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
-    queue.add(focusedNode);
-
-    while (!queue.isEmpty()) {
-      Iterator<CFANode> it = queue.iterator();
-      CFANode node = it.next();
-      it.remove();
-
-      visited.add(node);
-
-      PolicyAbstractState state = abstractStates.get(node);
-      for (Map.Entry<LinearExpression, PolicyBound> entry : state) {
-        LinearExpression template = entry.getKey();
-        PolicyBound stateBound = entry.getValue();
-
-        CFAEdge edge;
-
-        // For the value determination node only track the updated edges.
-        // NOTE: don't forget to add the constraints from others though!
-        if (node == focusedNode) {
-
-          // Actually the same issue here, we need to use the merged node
-          // instead of the original node the first time around.
-          PolicyBound bound = updated.get(template);
-
-          // Only keep track of templates which were updated.
-          if (bound == null) {
-            continue;
-          }
-          edge = bound.trace;
-        } else {
-          edge = stateBound.trace;
-        }
-
-        // Put things related to the node.
-        out.put(node, template, edge);
-
-        CFANode toVisit = edge.getPredecessor();
-        if (!visited.contains(toVisit)) {
-          queue.add(toVisit);
-        }
-      }
-    }
-    return out;
-  }
 
   /**
    * Useful for debugging.

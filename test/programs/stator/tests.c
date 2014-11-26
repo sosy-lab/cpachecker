@@ -9,6 +9,8 @@ int main() {
     y++;
     x += y;
     y += x;
-    if (x >= 10 || y >= 10) break;
+
+    // TODO: support ">=" as well.
+    if (x > 10 || y > 10) break;
   }
 }

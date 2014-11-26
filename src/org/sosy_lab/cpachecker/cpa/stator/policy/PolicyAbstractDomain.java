@@ -35,10 +35,8 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Table;
 
 /**
  * Abstract domain for policy iteration.
@@ -176,38 +174,25 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    Table<CFANode, LinearExpression, ? extends CFAEdge> policy;
-    policy = abstractStatesToTable(toMap(precision), node, updated);
-
-    logger.log(Level.FINEST, "# Initial policy: ", policy);
-    if (useCompactedValueDetermination) {
-
-      policy = vdfmgr.findRelated(toMap(precision), node, updated);
-    }
-    logger.log(Level.FINEST, "# Policy after value determination", policy);
-    if (pathFocusing) {
-      policy = pathFocusingManager.pathFocusing(policy, node);
-    }
-    logger.log(Level.FINEST, "# Policy after path focusing", policy);
+    Map<CFANode, PolicyAbstractState> policy = vdfmgr.findRelated(
+        newState, toMap(precision), node, updated);
+    logger.log(Level.FINE, "# Policy: ", policy);
 
     List<BooleanFormula> valueDeterminationConstraints =
-        vdfmgr.valueDeterminationFormula(policy, node, updated.keySet());
+        vdfmgr.valueDeterminationFormula(policy, node, updated);
+
     logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
-    Pair<ImmutableMap<LinearExpression, PolicyBound>,
-        Set<LinearExpression>> p;
+    PolicyAbstractState joinedState;
     if (runAcceleratedValueDetermination) {
-      p = valueDeterminationMaximizationAccelerated(
-          updated, node, valueDeterminationConstraints);
-    } else {
-      p = valueDeterminationMaximization(
-          updated, node, valueDeterminationConstraints);
-    }
-    ImmutableMap<LinearExpression, PolicyBound> updatedValueDetermination = p.getFirst();
-    Set<LinearExpression> unbounded = p.getSecond();
 
-    PolicyAbstractState joinedState = prevState.withUpdates(
-        updatedValueDetermination, unbounded, allTemplates);
+      joinedState = valueDeterminationMaximizationCombinedObjectives(
+          prevState, allTemplates, updated, node, valueDeterminationConstraints);
+    } else {
+
+      joinedState = vdfmgr.valueDeterminationMaximization(
+          prevState, allTemplates, updated, node, valueDeterminationConstraints);
+    }
 
     Preconditions.checkState(isLessOrEqual(newState, joinedState));
     Preconditions.checkState(isLessOrEqual(prevState, joinedState));
@@ -215,96 +200,17 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     return joinedState;
   }
 
-  private Pair<ImmutableMap<LinearExpression, PolicyBound>,
-      Set<LinearExpression>>
-  valueDeterminationMaximization(
-      Map<LinearExpression, PolicyBound> updated, CFANode node,
-      List<BooleanFormula> pValueDeterminationConstraints)
-      throws InterruptedException, CPATransferException {
 
-    ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
-    Set<LinearExpression> unbounded = new HashSet<>();
-
-    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
-
-      LinearExpression template = policyValue.getKey();
-      CFAEdge policyEdge = policyValue.getValue().trace;
-
-      // Maximize for each template subject to the overall constraints.
-      try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-        shutdownNotifier.shutdownIfNecessary();
-
-        for (BooleanFormula constraint : pValueDeterminationConstraints) {
-          solver.addConstraint(constraint);
-        }
-
-        logger.log(Level.FINE,
-            "# Value determination: optimizing for template" , template);
-
-        NumeralFormula objective = rfmgr.makeVariable(
-            vdfmgr.absDomainVarName(node, template));
-
-        statistics.valueDeterminationSolverTimer.start();
-        statistics.valueDetCalls++;
-        ExtendedRational newValue;
-        try {
-          newValue = lcmgr.maximize(solver, objective);
-        } catch (SolverException e) {
-          throw new CPATransferException("Failed maximization", e);
-        } finally {
-          statistics.valueDeterminationSolverTimer.stop();
-        }
-
-        Preconditions.checkState(newValue != ExtendedRational.NEG_INFTY,
-            "Value determination should not be unsatisfiable");
-        if (newValue.isRational()) {
-          builder.put(
-              template,
-              PolicyBound.of(policyEdge, newValue.getRational()));
-        } else {
-          unbounded.add(template);
-        }
-      }
-    }
-
-    return Pair.of(builder.build(), unbounded);
-  }
-
-  /**
-   * @return Representation of <code>abstractStates</code> as a table,
-   * centered on the <code>focusedNode</code>,
-   * passing through only the updates represented in the <code>updated</code>.
-   */
-  Table<CFANode, LinearExpression, CFAEdge> abstractStatesToTable(
-      Map<CFANode, PolicyAbstractState> abstractStates,
-      final CFANode focusedNode,
-      Map<LinearExpression, PolicyBound> updated
-  ) {
-    Table<CFANode, LinearExpression, CFAEdge> table = HashBasedTable.create();
-    for (Entry<CFANode, PolicyAbstractState> entry : abstractStates.entrySet()) {
-      CFANode node = entry.getKey();
-      PolicyAbstractState state = entry.getValue();
-
-      for (Entry<LinearExpression, PolicyBound> entry2 : state) {
-        LinearExpression template = entry2.getKey();
-        PolicyBound bound = entry2.getValue();
-        if (node == focusedNode && updated.containsKey(template)) {
-          bound = updated.get(template);
-        }
-        table.put(node, template, bound.trace);
-      }
-    }
-    return table;
-  }
 
   /**
    * Fasten up the value determination computation by concurrently
    * maximizing for multiple constraints.
    */
-  private Pair<ImmutableMap<LinearExpression, PolicyBound>,
-      Set<LinearExpression>>
-  valueDeterminationMaximizationAccelerated(
-      Map<LinearExpression, PolicyBound> updated, CFANode node,
+  private PolicyAbstractState valueDeterminationMaximizationCombinedObjectives(
+      PolicyAbstractState prevState,
+      Templates templates,
+      Map<LinearExpression, PolicyBound> updated,
+      CFANode node,
       List<BooleanFormula> pValueDeterminationConstraints)
       throws InterruptedException, CPATransferException {
 
@@ -356,7 +262,8 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         }
       }
     }
-    return Pair.of(builder.build(), unbounded);
+    return prevState.withUpdates(
+        builder.build(), unbounded, templates);
   }
 
   enum PARTIAL_ORDER {
