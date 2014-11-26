@@ -23,15 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.livevar;
 
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -61,17 +65,19 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 /**
  * This transferrelation computes the live variables for each location.
@@ -124,11 +130,23 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * Returns a collection of the variable name in the leftHandSide, or if
    * it is a CFieldReference we return an empty set.
    */
-  private Collection<String> handleLeftHandSide(CLeftHandSide exp) {
-    if (exp instanceof CFieldReference) {
+  private Collection<String> handleLeftHandSide(CExpression pLeftHandSide) {
+    // special case for field references, this has to be refactored
+    // and improved together with the TODO from handleAssignments
+    if (pLeftHandSide instanceof CFieldReference) {
       return Collections.emptySet();
+
+      // for ArraysubscriptExpressions we may only consider the ArrayExpression
+      // and not the subscript
+    } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
+      return handleExpression(((CArraySubscriptExpression)pLeftHandSide).getArrayExpression());
+
+      // up to now all other cases can be handled simply by regarding the
+      // leftHandSide as an usual expression
     } else {
-      return handleExpression(exp);
+      Collection<String> left = handleExpression(pLeftHandSide);
+      checkArgument(left.size() == 1, "More than one variable in the leftHandSide");
+      return left;
     }
   }
 
@@ -221,32 +239,49 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   private LiveVariablesState handleAssignments(CAssignment assignment) {
-    Collection<String> assignedVariable = handleLeftHandSide(assignment.getLeftHandSide());
-    Collection<String> rightHandSideVariables;
+    final Collection<String> rightHandSideVariables = new HashSet<>();
 
+    // if the leftHandSide is an ArraySubscriptExpression we need to split this
+    // expression up. On the one hand the Subscript has to become live, as it is
+    // read, on the other hand, the lefHandSide should only consist of one
+    // variable for our analysis
+    if (assignment.getLeftHandSide() instanceof CArraySubscriptExpression) {
+      CArraySubscriptExpression left = (CArraySubscriptExpression)assignment.getLeftHandSide();
+      rightHandSideVariables.addAll(handleExpression(left.getSubscriptExpression()));
+    }
+
+    final Collection<String> assignedVariable = handleLeftHandSide(assignment.getLeftHandSide());
+
+    // check all variables of the rightHandsides, they should be live afterwards
+    // if the leftHandSide is live
     if (assignment instanceof CExpressionAssignmentStatement) {
-      rightHandSideVariables = handleExpression((CExpression) assignment.getRightHandSide());
+      rightHandSideVariables.addAll(handleExpression((CExpression) assignment.getRightHandSide()));
 
     } else if (assignment instanceof CFunctionCallAssignmentStatement){
       CFunctionCallAssignmentStatement funcStmt = (CFunctionCallAssignmentStatement) assignment;
-      rightHandSideVariables = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
+      rightHandSideVariables.addAll(getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions()));
 
     } else {
       throw new AssertionError("Unhandled assignment type.");
     }
 
-    // this maybe a field reference which is assigned, therefore we have to
-    // leave the make the owner of the field reference life, as it is accessed
+    // this is a field reference which is assigned, therefore we have to
+    // leave the owner of the field reference life, if it was live before (TODO)
     if (assignedVariable.isEmpty()) {
-      Set<String> completeSet = Sets.newHashSet();
-      completeSet.addAll(rightHandSideVariables);
-      completeSet.addAll(handleExpression(assignment.getLeftHandSide()));
-      return state.addLiveVariables(completeSet);
+      rightHandSideVariables.addAll(handleExpression(assignment.getLeftHandSide()));
+      return state.addLiveVariables(rightHandSideVariables);
 
-      // parameters of function calls always have to get live, because the
-      // function needs those for assigning their variables
-    } else if (state.contains(assignedVariable.iterator().next())
-               || assignment instanceof CFunctionCallAssignmentStatement) {
+      // if the leftHandSide is a global variable or if it is addressed, the
+      // leftHandSide variable remains live
+    } else if (isAlwaysLive(assignment.getLeftHandSide())) {
+      rightHandSideVariables.addAll(assignedVariable);
+      return state.addLiveVariables(rightHandSideVariables);
+
+      // if the lefthandSide is live all variables on the rightHandSide
+      // have to get live, parameters of function calls always have to get live,
+      // because the function needs those for assigning their variables
+    } else if (assignment instanceof CFunctionCallAssignmentStatement
+              || isLeftHandSideLive(assignment.getLeftHandSide())) {
       return state.removeAndAddLiveVariables(assignedVariable, rightHandSideVariables);
 
       // assigned variable is not live, so we do not need to make the
@@ -254,6 +289,25 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     } else {
       return state;
     }
+  }
+
+  /**
+   * This method checks if a leftHandSide variable is always live.
+   */
+  private boolean isAlwaysLive(CLeftHandSide expression) {
+    Collection<CIdExpression> tmp = expression.accept(new CIdExpressionCollectingVisitor());
+    checkArgument(tmp.size() == 1, "More than one variable in leftHandSide");
+    return FluentIterable.<CIdExpression>from(tmp).allMatch(ALWAYS_LIVE_PREDICATE);
+  }
+
+  /**
+   * This method checks if a leftHandSide variable is live at a given location,
+   * this means it either is always live, or it is live in the current state.
+   */
+  private boolean isLeftHandSideLive(CLeftHandSide expression) {
+    Collection<CIdExpression> tmp = expression.accept(new CIdExpressionCollectingVisitor());
+    checkArgument(tmp.size() == 1, "More than one variable in leftHandSide");
+    return FluentIterable.<CIdExpression>from(tmp).allMatch(LOCALLY_LIVE_PREDICATE);
   }
 
   /**
@@ -341,4 +395,29 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
     return null;
   }
+
+  private static final Predicate<CIdExpression> ALWAYS_LIVE_PREDICATE = new Predicate<CIdExpression>() {
+    @Override
+    public boolean apply(CIdExpression pInput) {
+      CSimpleDeclaration decl = pInput.getDeclaration();
+
+      // a variable is always live either if it is addressed or
+      // if it is a global variable
+      if (decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal()) {
+        return true;
+      } else if (decl.getType().getCanonicalType() instanceof CPointerType) {
+        return true;
+      }
+
+      return false;
+    }};
+
+  private final Predicate<CIdExpression> LOCALLY_LIVE_PREDICATE =
+        // a variable is locally live either if it is globally live
+        // or if it is live in the current state
+        Predicates.or(ALWAYS_LIVE_PREDICATE, new Predicate<CIdExpression>() {
+                  @Override
+                  public boolean apply(CIdExpression pInput) {
+                      return state.contains(pInput.getDeclaration().getQualifiedName());
+                  }});
 }
