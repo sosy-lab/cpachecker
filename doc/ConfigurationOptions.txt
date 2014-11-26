@@ -1556,6 +1556,9 @@ cpa.value.precisionFile = no default value
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# export interpolation trees to this file template
+cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = TOP
   enum:     [TOP, BOTTOM, COMMON]
