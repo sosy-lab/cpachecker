@@ -161,6 +161,7 @@ public class PathFormulaTest {
 
   @Test
   public void testSSAExceptionNegative() {
+    thrown.expect(IllegalArgumentException.class);
     builder.setIndex("a", CNumericTypes.INT, -5);
   }
 
