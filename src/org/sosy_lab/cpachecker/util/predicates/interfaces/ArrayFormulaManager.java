@@ -37,7 +37,7 @@ public interface ArrayFormulaManager {
    * @param pIndex    The position from which to read
    * @return          A formula that represents the "read"
    */
-  public BooleanFormula select (Formula pArray, Formula pIndex);
+  public <T extends Formula> ArrayFormula<T> select (ArrayFormula<T> pArray, Formula pIndex);
 
   /**
    * Store a value into a cell of the specified array.
@@ -47,7 +47,15 @@ public interface ArrayFormulaManager {
    * @param pValue    The value that should be written
    * @return          A formula that represents the "write"
    */
-  public BooleanFormula store (Formula pArray, Formula pIndex, Formula pValue);
+  public <T extends Formula> ArrayFormula<T> store (ArrayFormula<T> pArray, Formula pIndex, Formula pValue);
+
+  /**
+   * Declare a new array.
+   *
+   * @param pName     The name of the array variable
+   * @return          Formula that represents the array
+   */
+  public <T extends Formula> ArrayFormula<T> makeArray(String pName, FormulaType<T> pElementType);
 
 }
 

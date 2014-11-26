@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class ArrayFormulaManagerView
   extends BaseManagerView
@@ -40,15 +40,19 @@ public class ArrayFormulaManagerView
   }
 
   @Override
-  public BooleanFormula select(Formula pArray, Formula pIndex) {
+  public <T extends Formula> ArrayFormula<T> select(ArrayFormula<T> pArray, Formula pIndex) {
     return manager.select(pArray, pIndex);
   }
 
   @Override
-  public BooleanFormula store(Formula pArray, Formula pIndex, Formula pValue) {
+  public <T extends Formula> ArrayFormula<T> store(ArrayFormula<T> pArray, Formula pIndex, Formula pValue) {
     return manager.store(pArray, pIndex, pValue);
   }
 
+  @Override
+  public <T extends Formula> ArrayFormula<T> makeArray(String pName, FormulaType<T> pElementType) {
+    return manager.makeArray(pName, pElementType);
+  }
 
 
 

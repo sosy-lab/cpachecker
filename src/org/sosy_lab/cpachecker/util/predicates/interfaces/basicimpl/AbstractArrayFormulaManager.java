@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 
 public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
@@ -36,22 +37,32 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
     super(pFormulaCreator);
   }
 
+  protected <T extends Formula> ArrayFormula<T> wrap(TFormulaInfo pTerm) {
+    return getFormulaCreator().encapsulateArray(pTerm, null);
+  }
+
   @Override
-  public BooleanFormula select(Formula pArray, Formula pIndex) {
-    return wrapBool(select(
+  public <T extends Formula> ArrayFormula<T> select(ArrayFormula<T> pArray, Formula pIndex) {
+    return wrap(select(
         extractInfo(pArray),
         extractInfo(pIndex)));
   }
   protected abstract TFormulaInfo select(TFormulaInfo pArray, TFormulaInfo pIndex);
 
   @Override
-  public BooleanFormula store(Formula pArray, Formula pIndex, Formula pValue) {
-    return wrapBool(store(
+  public <T extends Formula> ArrayFormula<T> store(ArrayFormula<T> pArray, Formula pIndex, Formula pValue) {
+    return wrap(store(
         extractInfo(pArray),
         extractInfo(pIndex),
         extractInfo(pValue)));
   }
   protected abstract TFormulaInfo store(TFormulaInfo pArray, TFormulaInfo pIndex, TFormulaInfo pValue);
+
+  @Override
+  public <T extends Formula> ArrayFormula<T> makeArray(String pName, FormulaType<T> pElementType) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
 
 }
