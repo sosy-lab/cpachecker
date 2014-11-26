@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-
 public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements ArrayFormulaManager {
@@ -37,32 +36,42 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
     super(pFormulaCreator);
   }
 
-  protected <T extends Formula> ArrayFormula<T> wrap(TFormulaInfo pTerm) {
-    return getFormulaCreator().encapsulateArray(pTerm, null);
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> wrap(TFormulaInfo pTerm, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    return getFormulaCreator().encapsulateArray(pTerm, pIndexType, pElementType);
   }
 
   @Override
-  public <T extends Formula> ArrayFormula<T> select(ArrayFormula<T> pArray, Formula pIndex) {
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> select(ArrayFormula<TI, TE> pArray, Formula pIndex) {
     return wrap(select(
         extractInfo(pArray),
-        extractInfo(pIndex)));
+        extractInfo(pIndex)),
+      pArray.getIndexType(),
+      pArray.getElementType());
   }
   protected abstract TFormulaInfo select(TFormulaInfo pArray, TFormulaInfo pIndex);
 
   @Override
-  public <T extends Formula> ArrayFormula<T> store(ArrayFormula<T> pArray, Formula pIndex, Formula pValue) {
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store(ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue) {
     return wrap(store(
         extractInfo(pArray),
         extractInfo(pIndex),
-        extractInfo(pValue)));
+        extractInfo(pValue)),
+      pArray.getIndexType(),
+      pArray.getElementType());
   }
   protected abstract TFormulaInfo store(TFormulaInfo pArray, TFormulaInfo pIndex, TFormulaInfo pValue);
 
   @Override
-  public <T extends Formula> ArrayFormula<T> makeArray(String pName, FormulaType<T> pElementType) {
-    // TODO Auto-generated method stub
-    return null;
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    return wrap(
+        internalMakeArray(
+            pName,
+            pIndexType,
+            pElementType),
+        pIndexType,
+        pElementType);
   }
+  protected abstract <TI extends Formula, TE extends Formula> TFormulaInfo internalMakeArray(String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
 
 
 }

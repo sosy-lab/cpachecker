@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -99,8 +100,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return new FloatingPointFormulaImpl<>(pTerm);
   }
 
-  protected <T extends Formula> ArrayFormula<T> encapsulateArray(TFormulaInfo pTerm, FormulaType<T> pElementType) {
-    return new ArrayFormulaImpl<>(pTerm, pElementType);
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> encapsulateArray(TFormulaInfo pTerm, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    return new ArrayFormulaType<>(pTerm, pIndexType, pElementType);
   }
 
   @SuppressWarnings("unchecked")

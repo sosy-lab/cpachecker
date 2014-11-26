@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractArrayFormulaManager;
 
 
@@ -43,6 +45,16 @@ class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long
   @Override
   protected Long store(Long pArray, Long pIndex, Long pValue) {
     return Z3NativeApi.mk_store(z3context, pArray, pIndex, pValue);
+  }
+
+  @Override
+  protected <TI extends Formula, TE extends Formula> Long internalMakeArray(String pName, FormulaType<TI> pIndexType,
+      FormulaType<TE> pElementType) {
+
+    long indexType = toSolverType(pIndexType);
+    long elementType = toSolverType(pElementType);
+
+    return Z3NativeApi.mk_array_sort(z3context, indexType, elementType);
   }
 
 }

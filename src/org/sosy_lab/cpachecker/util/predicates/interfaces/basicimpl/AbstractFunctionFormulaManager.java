@@ -71,23 +71,4 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
-  public TType toSolverType(FormulaType<?> formulaType) {
-    TType t;
-    if (formulaType.isBooleanType()) {
-      t = getFormulaCreator().getBoolType();
-    } else if (formulaType.isIntegerType()) {
-      t = getFormulaCreator().getIntegerType();
-    } else if (formulaType.isRationalType()) {
-      t = getFormulaCreator().getRationalType();
-    } else if (formulaType.isBitvectorType()) {
-      FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
-      t = getFormulaCreator().getBitvectorType(bitPreciseType.getSize());
-    } else if (formulaType.isFloatingPointType()) {
-      FormulaType.FloatingPointType fpType = (FormulaType.FloatingPointType)formulaType;
-      t = getFormulaCreator().getFloatingPointType(fpType);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return t;
-  }
 }

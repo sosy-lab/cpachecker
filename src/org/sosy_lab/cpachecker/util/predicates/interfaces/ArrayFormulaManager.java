@@ -37,7 +37,7 @@ public interface ArrayFormulaManager {
    * @param pIndex    The position from which to read
    * @return          A formula that represents the "read"
    */
-  public <T extends Formula> ArrayFormula<T> select (ArrayFormula<T> pArray, Formula pIndex);
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> select (ArrayFormula<TI, TE> pArray, Formula pIndex);
 
   /**
    * Store a value into a cell of the specified array.
@@ -47,15 +47,17 @@ public interface ArrayFormulaManager {
    * @param pValue    The value that should be written
    * @return          A formula that represents the "write"
    */
-  public <T extends Formula> ArrayFormula<T> store (ArrayFormula<T> pArray, Formula pIndex, Formula pValue);
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store (ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue);
 
   /**
    * Declare a new array.
    *
-   * @param pName     The name of the array variable
-   * @return          Formula that represents the array
+   * @param pName         The name of the array variable
+   * @param pIndexType    The type of the array index
+   * @param pElementType  The type of the array elements
+   * @return              Formula that represents the array
    */
-  public <T extends Formula> ArrayFormula<T> makeArray(String pName, FormulaType<T> pElementType);
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
 
 }
 

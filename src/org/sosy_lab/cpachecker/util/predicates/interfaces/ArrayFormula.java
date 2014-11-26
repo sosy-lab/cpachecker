@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+@SuppressWarnings("unused")
+public interface ArrayFormula<TI extends Formula, TE extends Formula> extends Formula {
 
-public interface ArrayFormula<T extends Formula> extends Formula {
+  public FormulaType<TE> getElementType();
+  public FormulaType<TI> getIndexType();
 
 }

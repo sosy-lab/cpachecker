@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.io.Serializable;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -90,21 +88,6 @@ class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> i
 class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
   public FloatingPointFormulaImpl(TFormulaInfo info) {
     super(info);
-  }
-}
-
-/**
- * Simple ArrayFormulaImpl implementation.
- */
-@SuppressWarnings("serial")
-class ArrayFormulaImpl<T extends Formula, TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements ArrayFormula<T> {
-  private final FormulaType<T> elementType;
-  public ArrayFormulaImpl(TFormulaInfo info, FormulaType<T> elementType) {
-    super(info);
-    this.elementType = elementType;
-  }
-  public FormulaType<T> getElementType() {
-    return elementType;
   }
 }
 
