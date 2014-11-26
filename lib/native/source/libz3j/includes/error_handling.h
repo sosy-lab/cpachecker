@@ -7,7 +7,7 @@ JNIEnv* globalEnv;
 void Z3JavaErrorHandler(Z3_context c, Z3_error_code e) {
     JNIEnv* env = globalEnv;
     if (e != Z3_OK) {
-        char const * errMsg = Z3_get_error_msg(e);
+        char const * errMsg = Z3_get_error_msg_ex(c, e);
 
         // These errors normally should not occur and we don't wish them
         // to be caught.
