@@ -144,12 +144,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3QuantifiedFormulaManager quantifierManager = new Z3QuantifiedFormulaManager(creator);
     Z3ArrayFormulaManager arrayManager = new Z3ArrayFormulaManager(creator);
 
-    Z3FormulaManager instance = new Z3FormulaManager(
+
+    // Set the custom error handling
+    // which will throw java Exception
+    // instead of exit(1).
+    setInternalErrorHandler(context);
+    return new Z3FormulaManager(
         creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, quantifierManager, arrayManager,
         smtLogger, config);
-    return instance;
   }
 
   @Override

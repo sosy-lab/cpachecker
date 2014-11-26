@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -122,4 +123,9 @@ public class Z3Test {
     org.junit.Assert.assertTrue(solver.isUnsat(fmgr.makeXor(result, expectedResult)));
   }
 
+  @Test(expected=Exception.class)
+  public void testErrorHandling() throws Exception {
+    // Will exit(1) without an exception handler.
+    fmgr.getRationalFormulaManager().makeNumber("not-a-number");
+  }
 }

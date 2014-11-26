@@ -212,7 +212,7 @@ final class Z3NativeApi {
 
   // CREATE CONTEXT
   public static native long mk_context(long config);
-  public static native long mk_context_rc(long context);
+  public static native long mk_context_rc(long config);
   public static native void del_context(long context);
   public static native void inc_ref(long context, long ast);
   public static native void dec_ref(long context, long ast);
@@ -621,9 +621,8 @@ final class Z3NativeApi {
 
     public static native String get_smtlib_error(long context);
 
+    public static native void setInternalErrorHandler(long ctx);
 
-    // ERROR HANDLING
-    // TODO set_error_handler()
     public static native int get_error_code(long context);
     public static native void set_error(long context, int error_code);
     public static native String get_error_msg(int error_code);
