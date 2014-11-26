@@ -47,16 +47,21 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
@@ -233,7 +238,9 @@ public class ARGStatistics implements IterationStatistics {
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
-          cex = CounterexampleInfo.feasible(path, Model.empty());
+
+          Model model = createModelForPath(path);
+          cex = CounterexampleInfo.feasible(path, model);
         }
       }
       if (cex != null) {
@@ -242,6 +249,32 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     return counterexamples;
+  }
+
+  private Model createModelForPath(ARGPath pPath) {
+
+    FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
+        CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
+
+    CFAPathWithAssignments result = null;
+
+    // TODO Merge different paths
+    for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
+      ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
+      CFAPathWithAssignments cexPath = CFAPathWithAssignments.of(path, cpa.getLogger(), cpa.getMachineModel());
+
+      if (result != null) {
+        result = result.mergePaths(cexPath);
+      } else {
+        result = cexPath;
+      }
+    }
+
+    if(result == null) {
+      return Model.empty();
+    } else {
+      return Model.empty().withAssignmentInformation(result);
+    }
   }
 
   @Override

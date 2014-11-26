@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
@@ -109,7 +109,7 @@ public class BDDCompressExpressionVisitor
 
     // for numeral values
     Region[] lVal;
-    BigInteger val1 = VariableClassification.getNumber(pE.getOperand1());
+    BigInteger val1 = VariableClassificationBuilder.getNumber(pE.getOperand1());
     if (val1 == null) {
       lVal = pE.getOperand1().accept(this);
     } else {
@@ -118,7 +118,7 @@ public class BDDCompressExpressionVisitor
     }
 
     // for numeral values
-    BigInteger val2 = VariableClassification.getNumber(pE.getOperand2());
+    BigInteger val2 = VariableClassificationBuilder.getNumber(pE.getOperand2());
     Region[] rVal;
     if (val2 == null) {
       rVal = pE.getOperand2().accept(this);

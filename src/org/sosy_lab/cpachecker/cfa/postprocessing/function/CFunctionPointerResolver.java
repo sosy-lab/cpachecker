@@ -42,8 +42,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -124,7 +124,7 @@ public class CFunctionPointerResolver {
   private final MutableCFA cfa;
   private final LogManager logger;
 
-  public CFunctionPointerResolver(MutableCFA pCfa, List<Pair<IADeclaration, String>> pGlobalVars,
+  public CFunctionPointerResolver(MutableCFA pCfa, List<Pair<ADeclaration, String>> pGlobalVars,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
@@ -140,7 +140,7 @@ public class CFunctionPointerResolver {
           varCollector.visitEdge(edge);
         }
       }
-      for (Pair<IADeclaration, String> decl : pGlobalVars) {
+      for (Pair<ADeclaration, String> decl : pGlobalVars) {
         if (decl.getFirst() instanceof CVariableDeclaration) {
           CVariableDeclaration varDecl = (CVariableDeclaration)decl.getFirst();
           varCollector.visitDeclaration(varDecl);
@@ -254,7 +254,7 @@ public class CFunctionPointerResolver {
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
       if (pEdge instanceof CStatementEdge) {
         final CStatementEdge edge = (CStatementEdge) pEdge;
-        final IAStatement stmt = edge.getStatement();
+        final AStatement stmt = edge.getStatement();
         if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall)stmt)) {
           functionPointerCalls.add(edge);
         }

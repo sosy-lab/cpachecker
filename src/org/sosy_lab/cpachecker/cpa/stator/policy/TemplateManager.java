@@ -30,8 +30,8 @@ public class TemplateManager {
     pConfig.inject(this, TemplateManager.class);
   }
 
-  public PolicyAbstractState.Templates updateTemplatesForEdge(
-      PolicyAbstractState.Templates prevTemplates, CFAEdge edge) {
+  public Templates updateTemplatesForEdge(
+      Templates prevTemplates, CFAEdge edge) {
 
     Set<LinearExpression> newTemplates = new HashSet<>();
     if (edge instanceof ADeclarationEdge) {

@@ -44,8 +44,6 @@ public class CtoFormulaTypeHandler {
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
-  private final boolean useFloats;
-
   private final BaseSizeofVisitor sizeofVisitor;
 
   private final FormulaType<?> pointerType;
@@ -57,7 +55,6 @@ public class CtoFormulaTypeHandler {
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    useFloats = pOptions.useFloatingPointArithmetic();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
@@ -100,7 +97,7 @@ public class CtoFormulaTypeHandler {
   }
 
   private FormulaType<?> getFormulaTypeFromCType0(CType type) {
-    if (useFloats && type instanceof CSimpleType) {
+    if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {
       case FLOAT:

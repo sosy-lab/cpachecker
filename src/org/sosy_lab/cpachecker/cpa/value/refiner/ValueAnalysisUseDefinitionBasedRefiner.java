@@ -84,7 +84,6 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
   private ErrorPathPrefixPreference prefixPreference = ErrorPathPrefixPreference.DOMAIN_BEST_SHALLOW;
@@ -131,7 +130,6 @@ public class ValueAnalysisUseDefinitionBasedRefiner extends AbstractARGBasedRefi
 
     cfa               = pCfa;
     logger            = pLogger;
-    shutdownNotifier  = pShutdownNotifier;
   }
 
   @Override

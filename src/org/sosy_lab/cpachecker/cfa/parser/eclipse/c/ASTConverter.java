@@ -153,6 +153,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -1351,8 +1352,38 @@ class ASTConverter {
   }
 
   public CReturnStatement convert(final IASTReturnStatement s) {
-    return new CReturnStatement(getLocation(s),
-        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue())));
+    final FileLocation loc = getLocation(s);
+    final Optional<CExpression> returnExp = Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+    final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
+
+    final Optional<CAssignment> returnAssignment;
+    if (returnVariableDeclaration.isPresent()) {
+      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.get());
+      CExpression rhs = null;
+      if (returnExp.isPresent()) {
+        rhs = returnExp.get();
+      } else {
+        logger.log(Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
+        CInitializer defaultValue = CDefaults.forType(returnVariableDeclaration.get().getType(), loc);
+        if (defaultValue instanceof CInitializerExpression) {
+          rhs = ((CInitializerExpression)defaultValue).getExpression();
+        }
+      }
+      if (rhs != null) {
+        returnAssignment = Optional.<CAssignment>of(
+            new CExpressionAssignmentStatement(loc, lhs, rhs));
+      } else {
+        returnAssignment = Optional.absent();
+      }
+
+    } else {
+      if (returnExp.isPresent()) {
+        logger.log(Level.WARNING, loc + ":", "Return statement with expression", returnExp.get(), "in void function.");
+      }
+      returnAssignment = Optional.absent();
+    }
+
+    return new CReturnStatement(loc, returnExp, returnAssignment);
   }
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {

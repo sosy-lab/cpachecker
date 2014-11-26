@@ -31,7 +31,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -63,7 +63,7 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
             AVariableDeclaration declaration = (AVariableDeclaration) edge.getDeclaration();
             if (declaration.getQualifiedName().equals(CFASingleLoopTransformation.PROGRAM_COUNTER_VAR_NAME)) {
               if (declaration.getInitializer() instanceof AInitializerExpression) {
-                IAExpression expression = ((AInitializerExpression) declaration.getInitializer()).getExpression();
+                AExpression expression = ((AInitializerExpression) declaration.getInitializer()).getExpression();
                 if (expression instanceof AIntegerLiteralExpression) {
                   BigInteger pcValue = ((AIntegerLiteralExpression) expression).getValue();
                   state = ProgramCounterState.getStateForValue(pcValue);

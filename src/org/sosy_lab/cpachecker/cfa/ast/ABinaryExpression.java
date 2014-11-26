@@ -33,16 +33,16 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 /**
  * This is the abstract Class for all Expressions with two Operands and one Operator.
  */
-public abstract class ABinaryExpression extends AExpression {
+public abstract class ABinaryExpression extends AbstractExpression {
 
 
-  private final IAExpression operand1;
-  private final IAExpression operand2;
+  private final AExpression operand1;
+  private final AExpression operand2;
   private final ABinaryOperator operator;
 
   public ABinaryExpression(FileLocation pFileLocation, Type pType,
-      final IAExpression pOperand1,
-      final IAExpression pOperand2,
+      final AExpression pOperand1,
+      final AExpression pOperand2,
       final ABinaryOperator pOperator) {
     super(pFileLocation, pType);
     operand1 = pOperand1;
@@ -52,11 +52,11 @@ public abstract class ABinaryExpression extends AExpression {
 
 
 
-  public IAExpression getOperand1() {
+  public AExpression getOperand1() {
     return operand1;
   }
 
-  public IAExpression getOperand2() {
+  public AExpression getOperand2() {
     return operand2;
   }
 

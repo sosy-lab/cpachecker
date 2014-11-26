@@ -34,7 +34,6 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -57,13 +56,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
@@ -586,6 +585,10 @@ class DynamicMemoryHandler {
     }
     // Now iterate over the variable used in the LHS
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
+      // Don't consider deferred allocation pointers that were already handled in the RHS
+      if (rhsUsedDeferredAllocationPointers.containsKey(usedPointer.getKey())) {
+        continue;
+      }
       if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // *((int *)__tmp) = 5;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
@@ -663,8 +666,7 @@ class DynamicMemoryHandler {
    * declared in current function scope from tracking after returning from the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
-    String prefix = CtoFormulaConverter.scoped("", function);
-    SortedSet<String> localVariables = Collections3.subSetWithPrefix(pts.getDeferredAllocationVariables(), prefix);
+    SortedSet<String> localVariables = CFAUtils.filterVariablesOfFunction(pts.getDeferredAllocationVariables(), function);
 
     for (final String variable : localVariables) {
       handleDeferredAllocationPointerRemoval(variable, true);

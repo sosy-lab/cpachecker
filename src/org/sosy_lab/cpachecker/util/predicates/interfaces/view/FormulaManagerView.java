@@ -55,9 +55,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -88,6 +91,7 @@ public class FormulaManagerView {
     INTEGER,
     RATIONAL,
     BITVECTOR,
+    FLOAT,
     ;
   }
 
@@ -103,6 +107,7 @@ public class FormulaManagerView {
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
   private final QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private final ArrayFormulaManagerView arrayFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -119,11 +124,17 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
   private Theory encodeBitvectorAs = Theory.RATIONAL;
 
+  @Option(secure=true, description="Theory to use as backend for floats."
+      + " If different from FLOAT, the specified theory is used to approximate floats."
+      + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
+  private Theory encodeFloatAs = Theory.RATIONAL;
+
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
   public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
+    logger = pLogger;
     manager = checkNotNull(pBaseManager);
     unsafeManager = manager.getUnsafeFormulaManager();
 
@@ -150,24 +161,47 @@ public class FormulaManagerView {
             manager.getRationalFormulaManager(), manager.getFunctionFormulaManager(),
             ignoreExtractConcat);
       break;
+      case FLOAT:
+        throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
       default:
         throw new AssertionError();
     }
     bitvectorFormulaManager = new BitvectorFormulaManagerView(this, rawBitvectorFormulaManager);
 
-    FloatingPointFormulaManagerView fpfmgr = null;
-    try {
-      fpfmgr = new FloatingPointFormulaManagerView(this, manager.getFloatingPointFormulaManager());
-    } catch (UnsupportedOperationException e) {
-      // optional theory
-    }
-    floatingPointFormulaManager = fpfmgr;
     integerFormulaManager = new NumeralFormulaManagerView<>(this, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(this, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(this, manager.getFunctionFormulaManager());
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(this, manager.getQuantifiedFormulaManager());
+    arrayFormulaManager = new ArrayFormulaManagerView(this, manager.getArrayFormulaManager());
 
-    logger = pLogger;
+    FloatingPointFormulaManager rawFloatingPointFormulaManager;
+    switch (encodeFloatAs) {
+    case FLOAT:
+      try {
+        rawFloatingPointFormulaManager = manager.getFloatingPointFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException(
+            "The chosen SMT solver does not support the theory of floats, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeFloatAs "
+            + "to approximate floats with another theory.",
+            e);
+      }
+      break;
+    case INTEGER:
+      rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+          this, getIntegerFormulaManager());
+      break;
+    case RATIONAL:
+      rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+          this, getRationalFormulaManager());
+    break;
+    case BITVECTOR:
+      throw new InvalidConfigurationException("Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
+    default:
+      throw new AssertionError();
+    }
+    floatingPointFormulaManager = new FloatingPointFormulaManagerView(this, rawFloatingPointFormulaManager);
   }
 
 
@@ -176,7 +210,9 @@ public class FormulaManagerView {
     assert !(toWrap instanceof WrappingFormula<?, ?>);
 
     if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
-      return (T1) new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)targetType, toWrap);
+      return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
+    } else if (targetType.isFloatingPointType() && (encodeFloatAs != Theory.FLOAT)) {
+      return (T1) new WrappingFloatingPointFormula<>((FloatingPointType)targetType, toWrap);
     } else if (targetType.equals(manager.getFormulaType(toWrap))) {
       return (T1) toWrap;
     } else {
@@ -196,6 +232,16 @@ public class FormulaManagerView {
     if (type.isBitvectorType()) {
       switch (encodeBitvectorAs) {
       case BITVECTOR:
+        return type;
+      case INTEGER:
+        return FormulaType.IntegerType;
+      case RATIONAL:
+        return FormulaType.RationalType;
+      }
+    }
+    if (type.isFloatingPointType()) {
+      switch (encodeFloatAs) {
+      case FLOAT:
         return type;
       case INTEGER:
         return FormulaType.IntegerType;
@@ -292,30 +338,6 @@ public class FormulaManagerView {
       t = getRationalFormulaManager().makeNumber(value);
     } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-
-    return (T) t;
-  }
-
-  /**
-   * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
-   */
-  @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeNumber(FormulaType<T> formulaType, String value) {
-    Formula t;
-    if (formulaType.isIntegerType()) {
-      t = integerFormulaManager.makeNumber(value);
-    } else if (formulaType.isRationalType()) {
-      t = getRationalFormulaManager().makeNumber(value);
-    } else if (formulaType.isBitvectorType()) {
-      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
-    } else if (formulaType.isFloatingPointType()) {
-      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -703,6 +725,10 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     return quantifiedFormulaManager;
+  }
+
+  public ArrayFormulaManagerView getArrayFormulaManager() {
+    return arrayFormulaManager;
   }
 
   @SuppressWarnings("unchecked")

@@ -119,15 +119,15 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     }
 
     /** Find the templates which were updated */
-    final Map<LinearExpression, PolicyTemplateBound> updated = new HashMap<>();
+    final Map<LinearExpression, PolicyBound> updated = new HashMap<>();
 
-    PolicyAbstractState.Templates allTemplates = newState.getTemplates().merge(
+    Templates allTemplates = newState.getTemplates().merge(
         prevState.getTemplates());
     Set<LinearExpression> unbounded = new HashSet<>();
 
     for (LinearExpression template : allTemplates) {
-      PolicyTemplateBound newValue = newState.getPolicyTemplateBound(template).orNull();
-      PolicyTemplateBound oldValue = prevState.getPolicyTemplateBound(template).orNull();
+      PolicyBound newValue = newState.getBound(template).orNull();
+      PolicyBound oldValue = prevState.getBound(template).orNull();
 
       // Can't do better than unbounded.
       if (oldValue == null) {
@@ -165,9 +165,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
   private PolicyAbstractState valueDetermination(
       final PolicyAbstractState prevState,
       final PolicyAbstractState newState,
-      Map<LinearExpression, PolicyTemplateBound> updated,
+      Map<LinearExpression, PolicyBound> updated,
       CFANode node,
-      PolicyAbstractState.Templates allTemplates,
+      Templates allTemplates,
       PolicyPrecision precision)
       throws CPAException, InterruptedException {
 
@@ -177,11 +177,12 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         "node is strictly larger");
 
     Table<CFANode, LinearExpression, ? extends CFAEdge> policy;
-    policy = reachedToPolicy(precision, node, updated);
+    policy = abstractStatesToTable(toMap(precision), node, updated);
 
     logger.log(Level.FINEST, "# Initial policy: ", policy);
     if (useCompactedValueDetermination) {
-      policy = pathFocusingManager.findRelated(policy, node, updated);
+
+      policy = vdfmgr.findRelated(toMap(precision), node, updated);
     }
     logger.log(Level.FINEST, "# Policy after value determination", policy);
     if (pathFocusing) {
@@ -193,7 +194,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         vdfmgr.valueDeterminationFormula(policy, node, updated.keySet());
     logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
-    Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
+    Pair<ImmutableMap<LinearExpression, PolicyBound>,
         Set<LinearExpression>> p;
     if (runAcceleratedValueDetermination) {
       p = valueDeterminationMaximizationAccelerated(
@@ -202,12 +203,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       p = valueDeterminationMaximization(
           updated, node, valueDeterminationConstraints);
     }
-    ImmutableMap<LinearExpression, PolicyTemplateBound> updatedValueDetermination = p.getFirst();
+    ImmutableMap<LinearExpression, PolicyBound> updatedValueDetermination = p.getFirst();
     Set<LinearExpression> unbounded = p.getSecond();
 
-    // TODO: also what happens if the edge reported in the output is the
-    // artificially created multi-edge? can we use that later on just fine?
-    // This will be required for the iteration through the multiple policies.
     PolicyAbstractState joinedState = prevState.withUpdates(
         updatedValueDetermination, unbounded, allTemplates);
 
@@ -217,20 +215,20 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     return joinedState;
   }
 
-  private Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
+  private Pair<ImmutableMap<LinearExpression, PolicyBound>,
       Set<LinearExpression>>
   valueDeterminationMaximization(
-      Map<LinearExpression, PolicyTemplateBound> updated, CFANode node,
+      Map<LinearExpression, PolicyBound> updated, CFANode node,
       List<BooleanFormula> pValueDeterminationConstraints)
       throws InterruptedException, CPATransferException {
 
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
     Set<LinearExpression> unbounded = new HashSet<>();
 
-    for (Entry<LinearExpression, PolicyTemplateBound> policyValue : updated.entrySet()) {
+    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
 
       LinearExpression template = policyValue.getKey();
-      CFAEdge policyEdge = policyValue.getValue().edge;
+      CFAEdge policyEdge = policyValue.getValue().trace;
 
       // Maximize for each template subject to the overall constraints.
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
@@ -262,7 +260,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         if (newValue.isRational()) {
           builder.put(
               template,
-              PolicyTemplateBound.of(policyEdge, newValue.getRational()));
+              PolicyBound.of(policyEdge, newValue.getRational()));
         } else {
           unbounded.add(template);
         }
@@ -272,18 +270,49 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     return Pair.of(builder.build(), unbounded);
   }
 
-  private Pair<ImmutableMap<LinearExpression, PolicyTemplateBound>,
+  /**
+   * @return Representation of <code>abstractStates</code> as a table,
+   * centered on the <code>focusedNode</code>,
+   * passing through only the updates represented in the <code>updated</code>.
+   */
+  Table<CFANode, LinearExpression, CFAEdge> abstractStatesToTable(
+      Map<CFANode, PolicyAbstractState> abstractStates,
+      final CFANode focusedNode,
+      Map<LinearExpression, PolicyBound> updated
+  ) {
+    Table<CFANode, LinearExpression, CFAEdge> table = HashBasedTable.create();
+    for (Entry<CFANode, PolicyAbstractState> entry : abstractStates.entrySet()) {
+      CFANode node = entry.getKey();
+      PolicyAbstractState state = entry.getValue();
+
+      for (Entry<LinearExpression, PolicyBound> entry2 : state) {
+        LinearExpression template = entry2.getKey();
+        PolicyBound bound = entry2.getValue();
+        if (node == focusedNode && updated.containsKey(template)) {
+          bound = updated.get(template);
+        }
+        table.put(node, template, bound.trace);
+      }
+    }
+    return table;
+  }
+
+  /**
+   * Fasten up the value determination computation by concurrently
+   * maximizing for multiple constraints.
+   */
+  private Pair<ImmutableMap<LinearExpression, PolicyBound>,
       Set<LinearExpression>>
   valueDeterminationMaximizationAccelerated(
-      Map<LinearExpression, PolicyTemplateBound> updated, CFANode node,
+      Map<LinearExpression, PolicyBound> updated, CFANode node,
       List<BooleanFormula> pValueDeterminationConstraints)
       throws InterruptedException, CPATransferException {
 
-    ImmutableMap.Builder<LinearExpression, PolicyTemplateBound> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
     Set<LinearExpression> unbounded = new HashSet<>();
 
-    Map<NumeralFormula, Pair<PolicyTemplateBound, LinearExpression>> objectives = new HashMap<>();
-    for (Entry<LinearExpression, PolicyTemplateBound> policyValue : updated.entrySet()) {
+    Map<NumeralFormula, Pair<PolicyBound, LinearExpression>> objectives = new HashMap<>();
+    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
       LinearExpression template = policyValue.getKey();
       NumeralFormula objective = rfmgr.makeVariable(
           vdfmgr.absDomainVarName(node, template));
@@ -311,17 +340,17 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       for (Entry<NumeralFormula, ExtendedRational> e : model.entrySet()) {
         NumeralFormula f = e.getKey();
         ExtendedRational newValue = e.getValue();
-        Pair<PolicyTemplateBound, LinearExpression> p = objectives.get(f);
+        Pair<PolicyBound, LinearExpression> p = objectives.get(f);
         LinearExpression template = p.getSecond();
-        PolicyTemplateBound templateBound = p.getFirst();
+        PolicyBound templateBound = p.getFirst();
 
         assert (template != null && templateBound != null);
-        CFAEdge policyEdge = templateBound.edge;
+        CFAEdge policyEdge = templateBound.trace;
 
         if (newValue.isRational()) {
           builder.put(
               template,
-              PolicyTemplateBound.of(policyEdge, newValue.getRational()));
+              PolicyBound.of(policyEdge, newValue.getRational()));
         } else {
           unbounded.add(template);
         }
@@ -360,10 +389,10 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     boolean less_or_equal = true;
     boolean greater_or_equal = true;
 
-    for (Entry<LinearExpression, PolicyTemplateBound> e : newState) {
+    for (Entry<LinearExpression, PolicyBound> e : newState) {
       Rational newBound = e.getValue().bound;
 
-      PolicyTemplateBound prevValue = prevState.getPolicyTemplateBound(
+      PolicyBound prevValue = prevState.getBound(
           e.getKey()).orNull();
 
       int cmp;
@@ -402,29 +431,6 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       out.put(state.getNode(), state);
     }
     return out;
-  }
-
-  private Table<CFANode, LinearExpression, CFAEdge> reachedToPolicy(
-      PolicyPrecision p,
-      final CFANode focusedNode,
-      Map<LinearExpression, PolicyTemplateBound> updated
-  ) {
-    Table<CFANode, LinearExpression, CFAEdge> table = HashBasedTable.create();
-    Map<CFANode, PolicyAbstractState> map = toMap(p);
-    for (Entry<CFANode, PolicyAbstractState> entry : map.entrySet()) {
-      CFANode node = entry.getKey();
-      PolicyAbstractState state = entry.getValue();
-
-      for (Entry<LinearExpression, PolicyTemplateBound> entry2 : state) {
-        LinearExpression template = entry2.getKey();
-        PolicyTemplateBound bound = entry2.getValue();
-        if (node == focusedNode && updated.containsKey(template)) {
-          bound = updated.get(template);
-        }
-        table.put(node, template, bound.edge);
-      }
-    }
-    return table;
   }
 
   /**

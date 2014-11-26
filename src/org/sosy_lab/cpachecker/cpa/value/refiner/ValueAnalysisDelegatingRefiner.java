@@ -260,8 +260,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       if (performValueAnalysisRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
-    } else {
-
     }
 
     if (predicatingRefiner != null) {

@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,9 +32,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 
+// TODO: don't perform namespacing if the node has only one incoming edge.
+// why don't we namespace on edges instead of namespacing on templates?
 public class ValueDeterminationFormulaManager {
   private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
@@ -96,7 +102,9 @@ public class ValueDeterminationFormulaManager {
 
         // Don't perform value determination on templates not updated during
         // the iteration.
-        if (toNode == focusedNode && !updated.contains(template)) continue;
+        if (toNode == focusedNode && !updated.contains(template)) {
+          continue;
+        }
 
         CFAEdge incomingEdge = incoming.getValue();
 
@@ -265,6 +273,67 @@ public class ValueDeterminationFormulaManager {
     return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
   }
 
+  /**
+   * @return the subset of the <code>abstractStates</code> related to the given
+   * <code>valueDeterminationNode</code> and the set of <code>updates</code>.
+   *
+   * <p>Note that the returned set is usually an over-approximation, because we
+   * are not tracking the actual relationships between variables.
+   */
+  Table<CFANode, LinearExpression, CFAEdge> findRelated(
+      final Map<CFANode, PolicyAbstractState> abstractStates,
+      final CFANode focusedNode,
+      final Map<LinearExpression, PolicyBound> updated) throws InterruptedException {
+
+    Table<CFANode, LinearExpression, CFAEdge> out = HashBasedTable.create();
+    Set<CFANode> visited = Sets.newHashSet();
+
+    // Problems started when the same thing was added twice to the queue...
+    LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
+    queue.add(focusedNode);
+
+    while (!queue.isEmpty()) {
+      Iterator<CFANode> it = queue.iterator();
+      CFANode node = it.next();
+      it.remove();
+
+      visited.add(node);
+
+      PolicyAbstractState state = abstractStates.get(node);
+      for (Map.Entry<LinearExpression, PolicyBound> entry : state) {
+        LinearExpression template = entry.getKey();
+        PolicyBound stateBound = entry.getValue();
+
+        CFAEdge edge;
+
+        // For the value determination node only track the updated edges.
+        // NOTE: don't forget to add the constraints from others though!
+        if (node == focusedNode) {
+
+          // Actually the same issue here, we need to use the merged node
+          // instead of the original node the first time around.
+          PolicyBound bound = updated.get(template);
+
+          // Only keep track of templates which were updated.
+          if (bound == null) {
+            continue;
+          }
+          edge = bound.trace;
+        } else {
+          edge = stateBound.trace;
+        }
+
+        // Put things related to the node.
+        out.put(node, template, edge);
+
+        CFANode toVisit = edge.getPredecessor();
+        if (!visited.contains(toVisit)) {
+          queue.add(toVisit);
+        }
+      }
+    }
+    return out;
+  }
 
   /**
    * Useful for debugging.

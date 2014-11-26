@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -382,7 +380,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
         // we can omit the warning (no pointers involved),
         // and we don't need to scope the variable reference
-        return conv.makeVariable(CtoFormulaConverter.exprToVarName(fExp), fExp.getExpressionType(), ssa);
+        return conv.makeVariable(CtoFormulaConverter.exprToVarNameUnscoped(fExp), fExp.getExpressionType(), ssa);
       }
     }
 
@@ -411,47 +409,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    final BigDecimal val = fExp.getValue();
-
-    if (t.isFloatingPointType()) {
-      return conv.fmgr.getFloatingPointFormulaManager().makeNumber(val, (FloatingPointType)t);
-    }
-
-    if (val.scale() <= 0) {
-      // actually an integral number
-      return conv.fmgr.makeNumber(t, convertBigDecimalToBigInteger(val, fExp));
-
-    } else {
-      if (t.isBitvectorType()) {
-        // not representible
-        return conv.makeConstant("__float_constant__" + val, fExp.getExpressionType());
-      }
-
-      // represent x.y by xy / (10^z) where z is the number of digits in y
-      // (the "scale" of a BigDecimal)
-
-      BigDecimal n = val.movePointRight(val.scale()); // this is "xy"
-      BigInteger numerator = convertBigDecimalToBigInteger(n, fExp);
-
-      BigDecimal d = BigDecimal.ONE.scaleByPowerOfTen(val.scale()); // this is "10^z"
-      BigInteger denominator = convertBigDecimalToBigInteger(d, fExp);
-      assert denominator.signum() > 0;
-
-      return conv.fmgr.makeDivide(conv.fmgr.makeNumber(t, numerator),
-                                   conv.fmgr.makeNumber(t, denominator),
-                                   true);
-    }
-  }
-
-  private static BigInteger convertBigDecimalToBigInteger(BigDecimal d, CFloatLiteralExpression fExp)
-      throws NumberFormatException {
-    try {
-      return d.toBigIntegerExact();
-    } catch (ArithmeticException e) {
-      NumberFormatException nfe = new NumberFormatException("Cannot represent floating point literal " + fExp.toASTString() + " as fraction because " + d + " cannot be represented as a long");
-      nfe.initCause(e);
-      throw nfe;
-    }
+    return conv.fmgr.getFloatingPointFormulaManager().makeNumber(fExp.getValue(),
+        (FloatingPointType)t);
   }
 
   @Override
@@ -644,7 +603,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
     } else {
       conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", functionNameExpression);
-      String escapedName = CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(functionNameExpression), function);
+      String escapedName = CtoFormulaConverter.exprToVarName(functionNameExpression, function);
       functionName = ("<func>{" + escapedName + "}").intern();
     }
 

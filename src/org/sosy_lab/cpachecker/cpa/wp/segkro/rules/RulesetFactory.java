@@ -21,50 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
+
+import com.google.common.collect.Lists;
 
 
+public class RulesetFactory {
 
-public abstract class AstNode implements IAstNode {
+  public static List<Rule> createRuleset() {
+    List<Rule> result = Lists.newArrayList();
 
-  private final FileLocation fileLocation;
+    // the ordering of this rules might be important!
 
-  public AstNode(final FileLocation pFileLocation) {
-    fileLocation = checkNotNull(pFileLocation);
+    result.add(new EliminationRule());
+    result.add(new EquivalenceRule());
+    result.add(new UniverifyRule());
+    result.add(new SubstitutionRule());
+    result.add(new LinkRule());
+    result.add(new ExistentialRule());
+    result.add(new ExtendLeftRule());
+    result.add(new ExtendRightRule());
+
+    return result;
   }
 
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  @Override
-  public String toParenthesizedASTString() {
-    return "(" + toASTString() + ")";
-  }
-
-  @Override
-  public String toString() {
-    return toASTString();
-  }
-
-  @Override
-  public int hashCode() {
-    return 2857;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (obj instanceof AstNode) {
-      return true;
-    }
-
-    return false;
-  }
 }

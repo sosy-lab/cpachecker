@@ -36,6 +36,10 @@
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
+    <sourcefiles>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    </sourcefiles>
     <option name="-predicateAnalysis-bitprecise"/>
   </rundefinition>
 </benchmark>

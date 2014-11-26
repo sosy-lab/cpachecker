@@ -21,11 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.wp.segkro;
 
 /**
- * Abstract interface for side-effect free expressions.
+ * Goal: Avoid irrelevant predicates.
  */
-public interface IALeftHandSide extends IAExpression {
+public class MinCorePrio {
 
 }

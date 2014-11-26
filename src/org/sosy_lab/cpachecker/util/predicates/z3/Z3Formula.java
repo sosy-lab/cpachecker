@@ -90,3 +90,4 @@ class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
     super(z3context, z3expr);
   }
 }
+

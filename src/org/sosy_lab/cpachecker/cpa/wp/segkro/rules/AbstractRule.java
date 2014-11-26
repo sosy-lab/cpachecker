@@ -21,17 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
+
+import java.util.List;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Conclusion;
+import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Premise;
+import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 
-/**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples function parameter declarations and struct members.
- * It includes local and global variables and types, as well as functions.
- */
-public interface IADeclaration extends IASimpleDeclaration {
+public abstract class AbstractRule implements Rule {
 
+  @Override
+  public List<Premise> getPremises() {
+    return null;
+  }
 
-  public boolean isGlobal();
+  @Override
+  public Conclusion getConclusion() {
+    return null;
+  }
+
+  @Override
+  public Set<BooleanFormula> apply(BooleanFormula pInput) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

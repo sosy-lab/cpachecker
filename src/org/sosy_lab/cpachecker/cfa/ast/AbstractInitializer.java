@@ -24,7 +24,30 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-public interface IAInitializer extends IAstNode {
 
+public abstract class AbstractInitializer extends AbstractAstNode implements AInitializer {
 
+  public AbstractInitializer(final FileLocation pFileLocation) {
+    super(pFileLocation);
+  }
+
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof AbstractInitializer)) {
+      return false;
+    }
+
+    return super.equals(obj);
+  }
 }

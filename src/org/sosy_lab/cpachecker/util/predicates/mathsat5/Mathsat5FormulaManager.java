@@ -98,10 +98,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
       Mathsat5RationalFormulaManager pRationalManager,
       Mathsat5BitvectorFormulaManager pBitpreciseManager,
       Mathsat5FloatingPointFormulaManager pFloatingPointmanager,
+      Mathsat5ArrayFormulaManager pArrayManager,
       Mathsat5Settings pSettings,
       final ShutdownNotifier pShutdownNotifier) {
     super(creator, unsafeManager, pFunctionManager, pBooleanManager,
-        pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null);
+        pIntegerManager, pRationalManager, pBitpreciseManager, pFloatingPointmanager, null, pArrayManager);
 
     mathsatConfig = pMathsatConfig;
     settings = pSettings;
@@ -156,10 +157,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
     Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator, functionTheory);
+    Mathsat5ArrayFormulaManager arrayTheory = new Mathsat5ArrayFormulaManager(creator);
 
     return new Mathsat5FormulaManager(logger, msatConf, creator,
         unsafeManager, functionTheory, booleanTheory,
-        integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory,
+        integerTheory, rationalTheory, bitvectorTheory, floatingPointTheory, arrayTheory,
         settings, pShutdownNotifier);
   }
 

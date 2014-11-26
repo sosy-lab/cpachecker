@@ -476,7 +476,7 @@ def getDebugOutputAfterCrash(outputFileName):
                 except IOError as e:
                     logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
                 break
-            if line.startswith('# An error report file with more information is saved as:'):
+            if unicode(line, errors='ignore').startswith('# An error report file with more information is saved as:'):
                 logging.debug('Going to append error report file')
                 next = True
 
@@ -496,7 +496,7 @@ class _TimelimitThread(threading.Thread):
     """
     def __init__(self, cgroupCpuacct, rlimits, process, cpuCount=1):
         super(_TimelimitThread, self).__init__()
-        daemon = True
+        self.daemon = True
         self.cgroupCpuacct = cgroupCpuacct
         self.timelimit = rlimits[TIMELIMIT]
         self.softtimelimit = rlimits.get(SOFTTIMELIMIT, self.timelimit)

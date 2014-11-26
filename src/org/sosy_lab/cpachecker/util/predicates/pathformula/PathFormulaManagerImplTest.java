@@ -274,7 +274,8 @@ public class PathFormulaManagerImplTest {
             Collections.<CParameterDeclaration>emptyList()
         ),
         new FunctionExitNode(name),
-        Collections.<String>emptyList()
+        Collections.<String>emptyList(),
+        Optional.<CVariableDeclaration>absent()
     );
 
     return main;

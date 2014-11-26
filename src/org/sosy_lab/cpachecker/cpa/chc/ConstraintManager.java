@@ -45,8 +45,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -291,7 +291,7 @@ public class ConstraintManager {
     Constraint ac = new Constraint();
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-      IAInitializer initializer = vdecl.getInitializer();
+      AInitializer initializer = vdecl.getInitializer();
       String varName = vdecl.getName();
       Term lhs = CVar2PrologPrimedVar(varName);
       if (initializer != null) {
@@ -315,7 +315,7 @@ public class ConstraintManager {
   public static Constraint getConstraint(AReturnStatementEdge aRetEdge)
     throws UnrecognizedCCodeException {
 
-    IAExpression expression = aRetEdge.getExpression().isPresent()
+    AExpression expression = aRetEdge.getExpression().isPresent()
         ? aRetEdge.getExpression().get()
         : CIntegerLiteralExpression.ZERO; // this is the default in C
 
@@ -348,7 +348,7 @@ public class ConstraintManager {
     // expression is an assignment operation, e.g. a = g(b);
     if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
-      IAExpression op1 = assignExp.getLeftHandSide();
+      AExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
       if ((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
@@ -393,14 +393,14 @@ public class ConstraintManager {
 
 
   public static Collection<Constraint> getConstraint(List<String> names,
-      List<? extends IAExpression> expressions) {
+      List<? extends AExpression> expressions) {
 
     ArrayList<Constraint> cnList = new ArrayList<>();
 
     for (int i = 0; i < names.size(); i++) {
 
       String name = names.get(i);
-      IAExpression expression = expressions.get(i);
+      AExpression expression = expressions.get(i);
 
       for (Pair<Term,ArrayList<Term>> p: paramExpressionToCLP(name, expression)) {
         cnList.add(new Constraint(
@@ -541,7 +541,7 @@ public class ConstraintManager {
   }
 
 
-  private static Collection<Pair<Term,ArrayList<Term>>> expressionToCLP(IAExpression ce) {
+  private static Collection<Pair<Term,ArrayList<Term>>> expressionToCLP(AExpression ce) {
 
     ArrayList<Term> vars = new ArrayList<>();
 
@@ -588,7 +588,7 @@ public class ConstraintManager {
 
 
   private static Collection<Pair<Term,ArrayList<Term>>> paramExpressionToCLP(
-      String paramName, IAExpression ce) {
+      String paramName, AExpression ce) {
 
     ArrayList<Term> vars = new ArrayList<>();
 

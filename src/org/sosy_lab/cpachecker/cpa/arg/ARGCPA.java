@@ -44,6 +44,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -114,6 +115,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   private final CEXExporter cexExporter;
   private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
+  private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
@@ -160,6 +162,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     cexExporter = new CEXExporter(config, logger);
     stats = new ARGStatistics(config, this);
+    machineModel = cfa.getMachineModel();
   }
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,
@@ -287,5 +290,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }
     }
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 }

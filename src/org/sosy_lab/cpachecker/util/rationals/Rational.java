@@ -2,16 +2,13 @@ package org.sosy_lab.cpachecker.util.rationals;
 
 import java.math.BigInteger;
 
+import com.google.common.base.Objects;
+
 /**
  * Rational class, throws exceptions on
  * unsupported operations (e.g. 1/0).
  */
 public class Rational implements Comparable<Rational>{
-
-  private final BigInteger num;
-
-  // Invariant: denominator is always positive.
-  private final BigInteger den;
 
   // -- Just some shortcuts for BigIntegers --
   static private final BigInteger b_zero = BigInteger.ZERO;
@@ -23,59 +20,159 @@ public class Rational implements Comparable<Rational>{
   public static final Rational NEG_ONE = new Rational(b_m_one, b_one);
 
   /**
-   * If the denominator and the numerator is zero, create NaN number.
-   * If the denominator is zero and the numerator is positive, create INFTY
-   * If the den is zero and the numerator is negative, create NEG_INFTY
-   * Create a rational number otherwise.
+   * Rationals are always stored in the normal form.
+   * That is:
+   *
+   * a) denominator is strictly positive.
+   * b) numerator and denominator do not have common factors.
+   * c) 0, 1 and -1 have unique representation corresponding to the
+   * class static constants ZERO, ONE and NEG_ONE. That is, they can be
+   * compared using the '==' operator.
    */
-  public Rational(BigInteger numerator, BigInteger denominator) {
-    if (denominator.equals(b_zero)) {
-      throw new UnsupportedOperationException(
+  private final BigInteger num;
+  private final BigInteger den;
+
+  private Rational(BigInteger numerator, BigInteger denominator) {
+    num = numerator;
+    den = denominator;
+  }
+
+  /** Factory functions **/
+
+  /**
+   * Create a new rational.
+   *
+   * Function responsible for maintaining the internal invariants.
+   */
+  public static Rational of(BigInteger numerator, BigInteger denominator) {
+    int denSignum = denominator.signum();
+    if (denSignum == 0) {
+      throw new IllegalArgumentException(
           "Infinity is not supported, use ExtendedRational instead");
     }
 
-    // Make {@code denominator} positive.
-    if (denominator.signum() == -1) {
+    if (denSignum == -1) {
+      // Make {@code denominator} positive.
       denominator = denominator.negate();
       numerator = numerator.negate();
     }
 
-    // Reduce by GCD.
+    // Reduce by GCD. GCD will never be zero as the denominator is never
+    // zero at this stage.
     BigInteger gcd = numerator.gcd(denominator);
-    num = numerator.divide(gcd);
-    den = denominator.divide(gcd);
+    numerator = numerator.divide(gcd);
+    denominator = denominator.divide(gcd);
 
+    return ofNormalForm(numerator, denominator);
   }
 
   public static Rational ofLongs(long numerator, long denominator) {
-    return new Rational(
+    return of(
         BigInteger.valueOf(numerator), BigInteger.valueOf(denominator));
   }
 
   public static Rational ofLong(long numerator) {
-    if (numerator == 1) {
-      return Rational.ONE;
-    } else if (numerator == 0) {
-      return Rational.ZERO;
-    }
-    return new Rational(BigInteger.valueOf(numerator), b_one);
-  }
-
-  public static Rational ofInt(int numerator) {
-    return ofLong(numerator);
+    return of(BigInteger.valueOf(numerator), b_one);
   }
 
   public static Rational ofBigInteger(BigInteger numerator) {
-    if (numerator.equals(BigInteger.ONE)) {
-      return Rational.ONE;
-    } else if (numerator.equals(BigInteger.ZERO)) {
-      return Rational.ZERO;
-    }
-    return new Rational(numerator, b_one);
+    return of(numerator, b_one);
   }
 
-  public static Rational ofBigIntegers(BigInteger numerator, BigInteger denominator) {
-    return new Rational(numerator, denominator);
+  /**
+   * Reverses the effect of {@link Rational#toString}.
+   * Supports 2 different formats: with slash (e.g. "25/17")
+   * or without slash (e.g. "5")
+   *
+   * @param s Input string,
+   * @throws NumberFormatException {@code s} is not a valid representation
+   * of Rational.
+   * @return New {@link Rational}.
+   */
+  public static Rational ofString(String s) throws NumberFormatException {
+    int idx = s.indexOf('/');
+    BigInteger num, den;
+    if (idx == -1) { // No slash found.
+      num = new BigInteger(s);
+      return ofBigInteger(num);
+    } else {
+      num = new BigInteger(s.substring(0, idx));
+      den = new BigInteger(s.substring(idx + 1, s.length()));
+      return of(num, den);
+    }
+  }
+
+  /**
+   * Wrapper around the constructor, returns cached constants if possible.
+   * Assumes that <code>num</code> and <code>den</code> are in the normal form.
+   */
+  private static Rational ofNormalForm(BigInteger num, BigInteger den) {
+    if (num.equals(b_zero)) {
+      return ZERO;
+    } else if (den.equals(b_one)) {
+      if (num.equals(b_one)) {
+        return ONE;
+      } else if (num.equals(b_m_one)) {
+        return NEG_ONE;
+      }
+    }
+    return new Rational(num, den);
+  }
+
+  /** Arithmetic operations. **/
+
+  public Rational times(Rational b) {
+    Rational a = this;
+    if (a == ZERO || b == ZERO) {
+      return ZERO;
+    }
+    if (a == ONE) {
+      return b;
+    }
+    if (b == ONE) {
+      return a;
+    }
+
+    // reduce p1/q2 and p2/q1, then multiply, where a = p1/q1 and b = p2/q2
+    Rational c = of(a.num, b.den);
+    Rational d = of(b.num, a.den);
+    return ofNormalForm(c.num.multiply(d.num), c.den.multiply(d.den));
+  }
+
+  public Rational plus(Rational b) {
+    Rational a = this;
+    if (a == ZERO) {
+      return b;
+    }
+    if (b == ZERO) {
+      return a;
+    }
+
+    return of((a.num.multiply(b.den).add(b.num.multiply(a.den))),
+        a.den.multiply(b.den));
+  }
+
+  public Rational minus(Rational b) {
+    Rational a = this;
+    return a.plus(b.negate());
+  }
+
+  public Rational divides(Rational b) {
+    // Reciprocal method will throw the exception for the division-by-zero
+    // error if required.
+    return times(b.reciprocal());
+  }
+
+  public Rational reciprocal() throws IllegalArgumentException {
+    if (num.equals(b_zero)) {
+      throw new IllegalArgumentException(
+          "Division by zero not supported, use ExtendedRational if you need it");
+    }
+    return ofNormalForm(den, num);
+  }
+
+  public Rational negate() {
+    return ofNormalForm(num.negate(), den);
   }
 
   /**
@@ -90,118 +187,37 @@ public class Rational implements Comparable<Rational>{
    */
   @Override
   public String toString() {
-      if (den.equals(BigInteger.ONE)) {
-        return num.toString();
-      }
-      return num + "/" + den;
-  }
-
-  /**
-   * Reverses the effect of {@link Rational#toString}.
-   * Supports 2 different formats.
-   *
-   * d) a/b -> Rational(a, b)
-   * e) a -> a/1
-   *
-   * @param s Input string,
-   * @throws NumberFormatException {@code s} is not a valid representation
-   * of Rational.
-   * @return New {@link Rational}.
-   */
-  public static Rational ofString(String s) {
-    int idx = s.indexOf('/');
-    BigInteger num, den;
-    if (idx == -1) { // No slash found.
-      num = new BigInteger(s);
-      return ofBigInteger(num);
-    } else {
-      num = new BigInteger(s.substring(0, idx));
-      den = new BigInteger(s.substring(idx + 1, s.length()));
-      return ofBigIntegers(num, den);
+    if (den.equals(b_one)) {
+      return num.toString();
     }
+    return num + "/" + den;
   }
 
   @Override
   public int compareTo(Rational b) {
-      Rational a = this;
-      BigInteger lhs = a.num.multiply(b.den);
-      BigInteger rhs = a.den.multiply(b.num);
-      return lhs.subtract(rhs).signum();
+    Rational a = this;
+    BigInteger lhs = a.num.multiply(b.den);
+    BigInteger rhs = a.den.multiply(b.num);
+    return lhs.subtract(rhs).signum();
   }
 
   @Override
   public boolean equals(Object y) {
-    if (this == y) return true;
-    if (y == null) return false;
-    if (y.getClass() != this.getClass()) return false;
+    if (this == y) {
+      return true;
+    }
+    if (y == null) {
+      return false;
+    }
+    if (y.getClass() != this.getClass()) {
+      return false;
+    }
     Rational b = (Rational) y;
-    return compareTo(b) == 0;
+    return (num.equals(b.num) && den.equals(b.den));
   }
 
   @Override
   public int hashCode() {
-    return this.toString().hashCode();
-  }
-
-  /**
-   * No modifications are necessary to support extra types as no division is performed.
-   */
-  public Rational times(Rational b) {
-    Rational a = this;
-
-    // reduce p1/q2 and p2/q1, then multiply, where a = p1/q1 and b = p2/q2
-    Rational c = new Rational(a.num, b.den);
-    Rational d = new Rational(b.num, a.den);
-    return new Rational(c.num.multiply(d.num), c.den.multiply(d.den));
-  }
-
-  public Rational plus(Rational b) {
-    Rational a = this;
-
-    // special cases
-    if (a.compareTo(ZERO) == 0) {
-      return b;
-    }
-    if (b.compareTo(ZERO) == 0) {
-      return a;
-    }
-
-    // Find gcd of numerators and denominators
-    BigInteger f = a.num.gcd(b.num);
-    BigInteger g = a.den.gcd(b.den);
-
-    BigInteger num = ((
-        a.num.divide(f)).multiply(b.den.divide(g)
-    ).add(
-        b.num.divide(f).multiply(a.den.divide(g))
-    )).multiply(f);
-    BigInteger den = lcm(a.den, b.den);
-    return new Rational(num, den);
-  }
-
-  public Rational minus(Rational b) {
-    Rational a = this;
-    return a.plus(b.negate());
-  }
-
-  public Rational divides(Rational b) {
-    Rational a = this;
-    if (b.equals(Rational.ZERO)) {
-      throw new UnsupportedOperationException(
-          "Infinity is not supported, use ExtendedRational");
-    }
-    return a.times(b.reciprocal());
-  }
-
-  public Rational reciprocal() { return new Rational(den, num);  }
-
-  public Rational negate() {
-    return new Rational(num.negate(), den);
-  }
-
-  private static BigInteger lcm(BigInteger m, BigInteger n) {
-    m = m.abs();
-    n = n.abs();
-    return m.multiply(n.divide(m.gcd(n)));
+    return Objects.hashCode(num, den);
   }
 }

@@ -23,15 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * Interface for all statements that contain an assignment.
- * Only sub-classes of {@link IAStatement} may implement this interface.
- */
-public interface IAssignment extends IAstNode {
+*
+* Abstract class for side-effect free expressions.
+* This class is only SuperClass of all abstract Classes and their Subclasses.
+* The Interface {@link AExpression} contains all language specific
+* AST Nodes as well.
+*/
+public abstract class AbstractExpression extends AbstractRightHandSide implements AExpression {
 
+  public AbstractExpression(FileLocation pFileLocation, Type pType) {
+    super(pFileLocation, pType);
+  }
 
-  IALeftHandSide getLeftHandSide();
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
 
-  IARightHandSide getRightHandSide();
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AbstractExpression)) {
+      return false;
+    }
+
+    return super.equals(obj);
+  }
 }

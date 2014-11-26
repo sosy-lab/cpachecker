@@ -182,7 +182,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
+      throw new AssertionError(e);
     }
     done = true;
     }

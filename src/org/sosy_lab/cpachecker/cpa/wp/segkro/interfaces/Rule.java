@@ -21,30 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import java.util.List;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
-/**
- * This interface represents the core components that occur in each declaration:
- * a type and an (optional) name.
- *
- * It is part of the declaration of types and variables (see {@link IADeclaration})
- * and functions (see {@link AFunctionDeclaration}).
- * It is also used stand-alone for the declaration of members of composite types
- * (e.g. structs) and for the declaration of function parameters.
- */
-public interface IASimpleDeclaration extends IAstNode {
+public interface Rule {
+  public List<Premise>getPremises();
+  public Conclusion getConclusion();
 
-  public String getName();
-
-  public String getOrigName();
-
-  Type getType();
-
-  /**
-   * Get globally unique name of this declaration, qualified with the function name.
-   */
-  public String getQualifiedName();
+  public Set<BooleanFormula> apply(BooleanFormula pInput);
 }

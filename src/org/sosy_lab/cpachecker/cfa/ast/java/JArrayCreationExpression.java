@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
@@ -53,7 +52,7 @@ import com.google.common.collect.ImmutableList;
  *   There is an expression in the list for each array dimension from left to right.
  *
  */
-public class JArrayCreationExpression extends AExpression implements JExpression {
+public class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
   private final List<JExpression> length;
   private final JArrayInitializer initializer;

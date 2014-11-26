@@ -83,9 +83,6 @@ public class FormulaEncodingOptions {
           "The global variables are also encoded with return-variables at function-exit.")
   private boolean useParameterVariablesForGlobals = false;
 
-  @Option(secure=true, description = "Use precise floating point arithmetic (slow and only suppored by MathSAT).")
-  private boolean useFloatingPointArithmetic = false;
-
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -121,9 +118,5 @@ public class FormulaEncodingOptions {
 
   public boolean useParameterVariablesForGlobals() {
     return useParameterVariablesForGlobals;
-  }
-
-  public boolean useFloatingPointArithmetic() {
-    return useFloatingPointArithmetic;
   }
 }

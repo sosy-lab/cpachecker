@@ -28,7 +28,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -85,7 +85,7 @@ public class VariableNameExtractor {
     this.environment = pEnvironment;
   }
 
-  public String getVarName(IAExpression pLhs) throws UnrecognizedCodeException {
+  public String getVarName(AExpression pLhs) throws UnrecognizedCodeException {
     if (pLhs instanceof AIdExpression) {
       return getVarName((AIdExpression) pLhs);
     } else if (pLhs instanceof CFieldReference) {
@@ -138,7 +138,7 @@ public class VariableNameExtractor {
     return varName;
   }
 
-  private String getFieldReferenceVarName(String pVarName, @Nullable IAExpression pOwner,
+  private String getFieldReferenceVarName(String pVarName, @Nullable AExpression pOwner,
       boolean pIsPointerDereference) throws UnrecognizedCodeException {
     String varName = pVarName;
     if (pOwner != null) {
@@ -147,7 +147,7 @@ public class VariableNameExtractor {
     return varName;
   }
 
-  private String getArraySubscriptVarName(IAExpression pOwner, IAExpression pSubscript) throws UnrecognizedCodeException {
+  private String getArraySubscriptVarName(AExpression pOwner, AExpression pSubscript) throws UnrecognizedCodeException {
     if (pSubscript instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
       return String.format("%s[%d]", getVarName(pOwner), literal.asLong()).toString();

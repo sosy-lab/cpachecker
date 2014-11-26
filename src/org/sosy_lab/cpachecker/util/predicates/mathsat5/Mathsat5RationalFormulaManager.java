@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -45,6 +47,16 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
   @Override
   public FormulaType<RationalFormula> getFormulaType() {
     return FormulaType.RationalType;
+  }
+
+  @Override
+  protected Long makeNumberImpl(double pNumber) {
+    return makeNumberImpl(Double.toString(pNumber));
+  }
+
+  @Override
+  protected Long makeNumberImpl(BigDecimal pNumber) {
+    return makeNumberImpl(pNumber.toPlainString());
   }
 
   @Override

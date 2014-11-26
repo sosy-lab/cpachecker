@@ -61,7 +61,7 @@ class KillProcessOnOomThread(threading.Thread):
     """
     def __init__(self, cgroup, process, memlimit):
         super(KillProcessOnOomThread, self).__init__()
-        daemon = True
+        self.daemon = True
         self._finished = threading.Event()
         self._process = process
         self._memlimit = memlimit

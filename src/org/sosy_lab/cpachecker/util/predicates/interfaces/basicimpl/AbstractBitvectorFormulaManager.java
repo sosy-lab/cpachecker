@@ -266,13 +266,6 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo makeBitvectorImpl(int pLength, BigInteger pI) ;
 
   @Override
-  public BitvectorFormula makeBitvector(int pLength, String i) {
-    return wrap(makeBitvectorImpl(pLength, i));
-  }
-  protected abstract TFormulaInfo makeBitvectorImpl(int pLength, String pI) ;
-
-
-  @Override
   public BitvectorFormula makeVariable(int pLength, String pVar) {
     return wrap(makeVariableImpl(pLength, pVar));
   }

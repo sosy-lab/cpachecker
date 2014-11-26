@@ -83,7 +83,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -166,7 +166,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // There can be global declarations in a function
   // because we move some declarations to the global scope (e.g., static variables)
-  private final List<Pair<IADeclaration, String>> globalDeclarations = new ArrayList<>();
+  private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
@@ -221,7 +221,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return encounteredAsm;
   }
 
-  List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
   }
 
@@ -379,7 +379,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (newD.isGlobal()) {
-        globalDeclarations.add(Pair.<IADeclaration, String>of(newD, rawSignature));
+        globalDeclarations.add(Pair.<ADeclaration, String>of(newD, rawSignature));
 
       } else {
         CFANode nextNode = newCFANode();
@@ -426,7 +426,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
     final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames);
+        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 

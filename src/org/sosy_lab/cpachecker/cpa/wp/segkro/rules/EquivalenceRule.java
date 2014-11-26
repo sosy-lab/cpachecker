@@ -21,25 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
-
-import com.google.common.base.Function;
+package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 
 
-public interface IAstNode {
-
-  public static final Function<IAstNode, String> TO_AST_STRING = new Function<IAstNode, String>() {
-
-    @Override
-    public String apply(IAstNode pInput) {
-      return pInput.toASTString();
-    }
-  };
-
-  public FileLocation getFileLocation();
-
-  public String toASTString();
-
-  public String toParenthesizedASTString() ;
+public class EquivalenceRule extends AbstractRule {
 
 }

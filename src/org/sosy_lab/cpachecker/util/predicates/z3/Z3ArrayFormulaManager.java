@@ -21,14 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import com.google.common.base.Optional;
-
-
-public interface IAReturnStatement extends IAstNode {
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractArrayFormulaManager;
 
 
-  public Optional<? extends IAExpression> getReturnValue();
+class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long> {
+
+  private final long z3context;
+
+  Z3ArrayFormulaManager(Z3FormulaCreator creator) {
+    super(creator);
+    this.z3context = creator.getEnv();
+  }
+
+  @Override
+  protected Long select(Long pArray, Long pIndex) {
+    return Z3NativeApi.mk_select(z3context, pArray, pIndex);
+  }
+
+  @Override
+  protected Long store(Long pArray, Long pIndex, Long pValue) {
+    return Z3NativeApi.mk_store(z3context, pArray, pIndex, pValue);
+  }
 
 }

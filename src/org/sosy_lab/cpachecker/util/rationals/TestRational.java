@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.util.rationals;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -14,8 +15,11 @@ public class TestRational {
     x = Rational.ofLongs(108, 96);
     Assert.assertEquals("9/8", x.toString());
 
-    x = Rational.ofInt(50);
+    x = Rational.ofLong(50);
     Assert.assertEquals("50", x.toString());
+
+    x = Rational.of(BigInteger.ZERO, BigInteger.ONE);
+    Assert.assertEquals("0", x.toString());
   }
 
   @Test public void testAddition() {
@@ -78,5 +82,21 @@ public class TestRational {
 
     a = Rational.ofString("-2");
     Assert.assertEquals(Rational.ofLongs(-2, 1), a);
+  }
+
+  @Test public void testCanonicity() {
+    Rational a, b;
+    a = Rational.ofString("6/8");
+    b = Rational.ofString("-6/8");
+    Assert.assertTrue(Rational.ZERO == a.plus(b));
+
+    a = Rational.ofString("2");
+    b = Rational.ofString("-1");
+    Assert.assertTrue(Rational.NEG_ONE == b);
+    Assert.assertTrue(Rational.ONE == a.plus(b));
+
+    a = Rational.ofString("-2");
+    b = Rational.ofString("1");
+    Assert.assertTrue(Rational.NEG_ONE == a.plus(b));
   }
 }

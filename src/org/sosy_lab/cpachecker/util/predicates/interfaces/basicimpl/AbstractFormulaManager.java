@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  * @param <TFormulaInfo> The solver specific type.
  */
 public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
+
+  private final AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
@@ -76,10 +79,13 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
       AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
       AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
-      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager) {
+      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
+      AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
+
+    this.arrayManager = arrayManager;
 
     this.quantifiedManager = quantifiedManager;
 
@@ -168,6 +174,11 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   @Override
   public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
     return quantifiedManager;
+  }
+
+  @Override
+  public ArrayFormulaManager getArrayFormulaManager() {
+    return arrayManager;
   }
 
   public abstract Appender dumpFormula(TFormulaInfo t);

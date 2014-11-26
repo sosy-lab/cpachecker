@@ -111,7 +111,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
         if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
           // this is the reference to a global field variable
           // we don't need to scope the variable reference
-          String var = CtoFormulaConverter.exprToVarName(fexp);
+          String var = CtoFormulaConverter.exprToVarNameUnscoped(fexp);
 
           return conv.makeFreshVariable(var, fexp.getExpressionType(), ssa);
         }

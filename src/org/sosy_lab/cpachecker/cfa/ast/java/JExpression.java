@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 /**
  * Interface of Side effect free Expressions.
  */
-public interface JExpression extends JRightHandSide, IAExpression {
+public interface JExpression extends JRightHandSide, AExpression {
 
   public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 

@@ -21,12 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 
-/**
- * Abstract interface for side-effect free expressions.
- */
-public interface IAExpression extends IARightHandSide {
 
+public class UniverifyRule extends AbstractRule {
 
 }

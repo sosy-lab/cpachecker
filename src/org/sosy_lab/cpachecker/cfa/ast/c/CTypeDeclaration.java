@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * struct s { int i; }
  * typedef int my_int;
  */
-public abstract class CTypeDeclaration extends ADeclaration implements CDeclaration {
+public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
 
   private final String qualifiedName;
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 
 
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
  * This excludes for examples function parameter declarations and struct members.
  * It includes local and global variables and types, as well as functions.
  */
-public interface CDeclaration extends  CSimpleDeclaration, IADeclaration {
+public interface CDeclaration extends  CSimpleDeclaration, ADeclaration {
 
 
 

@@ -27,7 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 import com.google.common.base.Optional;
 
@@ -56,7 +56,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
 
 
 
-  public List<? extends IAExpression> getArguments() {
+  public List<? extends AExpression> getArguments() {
     return functionCall.getFunctionCallExpression().getParameterExpressions();
   }
 

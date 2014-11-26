@@ -21,26 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast;
+package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-/**
- * Interfaces for all possible right-hand sides of an assignment.
- *
- */
-public interface IARightHandSide extends IAstNode {
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractArrayFormulaManager;
 
+class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long> {
 
-  /**
-   * This method returns the type of the expression.
-   * If the expression is evaluated, the result of the evaluation has this type.
-   * <p>
-   * In some cases the parser can not determine the correct type
-   * (because of missing information),
-   * then this method can return a ProblemType.
-   */
-  public Type getExpressionType();
+  private final long mathsatEnv;
 
+  public Mathsat5ArrayFormulaManager(
+      Mathsat5FormulaCreator pCreator) {
+    super(pCreator);
+    this.mathsatEnv = pCreator.getEnv();
+  }
 
+  @Override
+  protected Long select(Long pArray, Long pIndex) {
+    return msat_make_array_read(mathsatEnv, pArray, pIndex);
+  }
+
+  @Override
+  protected Long store(Long pArray, Long pIndex, Long pValue) {
+    return msat_make_array_write(mathsatEnv, pArray, pIndex, pValue);
+  }
 }

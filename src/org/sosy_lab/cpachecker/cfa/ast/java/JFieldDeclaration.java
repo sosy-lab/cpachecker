@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -124,7 +124,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
    *
    * @param initializer
    */
-  public void updateInitializer(AInitializer initializer) {
+  public void updateInitializer(AbstractInitializer initializer) {
     addInitializer(initializer);
   }
 

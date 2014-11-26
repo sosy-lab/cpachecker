@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public abstract class CDesignator extends AstNode implements CAstNode {
+public abstract class CDesignator extends AbstractAstNode implements CAstNode {
 
   public CDesignator(FileLocation pFileLoc) {
     super(pFileLoc);

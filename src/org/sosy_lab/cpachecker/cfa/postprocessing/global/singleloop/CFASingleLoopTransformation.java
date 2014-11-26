@@ -786,7 +786,9 @@ public class CFASingleLoopTransformation {
         FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION,
         ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, ImmutableList.<CParameterDeclaration>of());
     FunctionEntryNode artificialFunctionEntryNode =
-        new CFunctionEntryNode(FileLocation.DUMMY, artificialFunctionDeclaration, artificialFunctionExitNode, Collections.<String>emptyList());
+        new CFunctionEntryNode(FileLocation.DUMMY, artificialFunctionDeclaration,
+            artificialFunctionExitNode, Collections.<String>emptyList(),
+            Optional.<CVariableDeclaration>absent());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node).toList()) {
@@ -1261,7 +1263,8 @@ public class CFASingleLoopTransformation {
             entryFileLocation,
             ((CFunctionEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
-            oldEntryNode.getFunctionParameterNames());
+            oldEntryNode.getFunctionParameterNames(),
+            ((CFunctionEntryNode)oldEntryNode).getReturnVariable());
       } else if (oldEntryNode instanceof JMethodEntryNode) {
         functionEntryNode = new JMethodEntryNode(
             entryFileLocation,
@@ -1402,7 +1405,9 @@ public class CFASingleLoopTransformation {
       return new CStatementEdge(rawStatement, statementEdge.getStatement(), fileLocation, pNewPredecessor, pNewSuccessor);
     case CallToReturnEdge:
       CFunctionSummaryEdge cFunctionSummaryEdge = (CFunctionSummaryEdge) pEdge;
-      return new CFunctionSummaryEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression());
+      return new CFunctionSummaryEdge(rawStatement, fileLocation,
+          pNewPredecessor, pNewSuccessor, cFunctionSummaryEdge.getExpression(),
+          (CFunctionEntryNode)getOrCreateNewFromOld(cFunctionSummaryEdge.getFunctionEntry(), pNewToOldMapping));
     default:
       throw new IllegalArgumentException("Unsupported edge type: " + pEdge.getEdgeType());
     }

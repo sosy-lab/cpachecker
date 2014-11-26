@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -33,7 +34,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -47,11 +48,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Multimap;
 
 
@@ -61,20 +64,34 @@ public class LiveVariables {
   private final Multimap<CFANode, String> liveVariables;
   private final Set<String> globalVariables;
   private final VariableClassification variableClassification;
+  private final Set<String> alwaysLivePrefixes;
 
-  private LiveVariables(Multimap<CFANode, String> pLiveVariables, VariableClassification pVariableClassification, Set<String> pGlobalVariables) {
+  private LiveVariables(Multimap<CFANode, String> pLiveVariables,
+                        VariableClassification pVariableClassification,
+                        Set<String> pGlobalVariables,
+                        Set<String> pAlwaysLivePrefixes) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
+    alwaysLivePrefixes = pAlwaysLivePrefixes;
   }
 
   public boolean isVariableLive(String varName, CFANode location) {
+    // all global, pseudo global (variables from other functions) and addressed
+    // variables are always considered being live
     if (globalVariables.contains(varName)
-        || variableClassification.getAddressedVariables().contains(varName)) {
+        || variableClassification.getAddressedVariables().contains(varName)
+        || !varName.startsWith(location.getFunctionName())
+        || alwaysLivePrefixes.contains(location.getFunctionName())) {
       return true;
-    } else if (variableClassification.getIrrelevantVariables().contains(varName)) {
+
+      // irrelevant variables from variable classification can be considered
+      // as not being live
+    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
       return false;
     }
+
+    // check if a variable is live at a given point
     return liveVariables.containsEntry(location, varName);
   }
 
@@ -83,6 +100,7 @@ public class LiveVariables {
     private Multimap<CFANode, String> liveVariables = null;
     private VariableClassification variableClassification = null;
     private Set<String> globalVariables = null;
+    private final Set<String> alwaysLivePrefixes = new HashSet<>();
 
     public Optional<LiveVariables> build() {
       // if not all parts are available we return an absent optional
@@ -92,18 +110,18 @@ public class LiveVariables {
         return Optional.absent();
       }
 
-      return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables));
+      return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables, alwaysLivePrefixes));
     }
 
     public void addLiveVariablesByVariableClassification(VariableClassification vc) {
       variableClassification = vc;
     }
 
-    public void addLiveVariablesFromGlobalScope(List<Pair<IADeclaration, String>> pList) {
-      globalVariables = FluentIterable.<Pair<IADeclaration, String>>from(pList)
-                                      .transform(new Function<Pair<IADeclaration, String>, String>() {
+    public void addLiveVariablesFromGlobalScope(List<Pair<ADeclaration, String>> pList) {
+      globalVariables = FluentIterable.<Pair<ADeclaration, String>>from(pList)
+                                      .transform(new Function<Pair<ADeclaration, String>, String>() {
                                                     @Override
-                                                    public String apply(Pair<IADeclaration, String> pInput) {
+                                                    public String apply(Pair<ADeclaration, String> pInput) {
                                                       return pInput.getFirst().getQualifiedName();
                                                     }}).filter(Predicates.notNull()).toSet();
     }
@@ -119,11 +137,49 @@ public class LiveVariables {
 
       AnalysisParts analysisParts = analysisPartsOpt.get();
 
+      Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
+
       // put all FunctionExitNodes into the waitlist
       for (FunctionEntryNode node : pCfa.getAllFunctionHeads()) {
         FunctionExitNode exitNode = node.getExitNode();
-        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
-            analysisParts.cpa.getInitialPrecision(exitNode));
+        if (pCfa.getAllNodes().contains(exitNode)) {
+          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
+                                       analysisParts.cpa.getInitialPrecision(exitNode));
+
+          // functionexitnode is not reachable due to (one or more) endless loops
+          // in the code, thus we check them, too and insert the edges back to
+          // the loophead, as starting nodes for our evaluation
+        } else if(loopStructure.isPresent()){
+          LoopStructure structure = loopStructure.get();
+          ImmutableCollection<Loop> loops = structure.getLoopsForFunction(node.getFunctionName());
+          boolean loopWithoutOutgoingEdgesFound = false;
+          for (Loop l : loops) {
+            if (l.getOutgoingEdges().isEmpty()) {
+              loopWithoutOutgoingEdgesFound = true;
+              for (CFANode n : l.getLoopHeads()) {
+                analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(n),
+                                             analysisParts.cpa.getInitialPrecision(n));
+              }
+            }
+          }
+
+          if (!loopWithoutOutgoingEdgesFound && !loops.isEmpty()) {
+            throw new AssertionError("Cannot handle live variables without having an edge to start for the function: " + node.getFunctionName());
+
+            // no endless loops, but also the exitnode is not part of the cfa
+            // -> everythin should be tracked
+          } else {
+            alwaysLivePrefixes.add(node.getFunctionName());
+            logger.log(Level.INFO, "All variables live for function: " + node.getFunctionName());
+          }
+
+          // over-approximation here, we have to say that every variable
+          // in this function is live, because we do not have any information
+          // about them
+        } else {
+          alwaysLivePrefixes.add(node.getFunctionName());
+          logger.log(Level.INFO, "All variables live for function: " + node.getFunctionName());
+        }
       }
 
       logger.log(Level.INFO, "Starting live variables collection ...");

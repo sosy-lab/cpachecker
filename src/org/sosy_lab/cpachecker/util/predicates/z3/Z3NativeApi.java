@@ -32,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * should not be incremented. The object will be destroyed after next usage.
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
+@SuppressWarnings("unused")
 final class Z3NativeApi {
 
   // Helper Classes,
@@ -58,13 +59,14 @@ final class Z3NativeApi {
   /** Start optimization - Nikolaj Bjorner branch. **/
 
   /**
-   * \brief Create a new optimize context.
+   * Create a new optimize context.
    *
-   * \conly \remark User must use #Z3_optimize_inc_ref
-   * and #Z3_optimize_dec_ref to manage optimize objects.
-   * \conly Even if the context was created using
-   * #Z3_mk_context instead of #Z3_mk_context_rc.
+   * User must use {@link #optimize_inc_ref}
+   * and {@link #optimize_dec_ref} to manage optimize objects.
+   * Even if the context was created using
+   * {@link #mk_context} instead of {@link #mk_context_rc}.
    *
+   * @param context Z3_context pointer
    * @return Z3_optimize pointer.
    */
   public static native long mk_optimize(long context);
@@ -89,23 +91,28 @@ final class Z3NativeApi {
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
    */
   public static native int optimize_maximize(long context, long optimize, long ast);
 
   /**
-   * Add a minimazation constraint.
+   * Add a minimization constraint.
    *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
    * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
    */
   public static native int optimize_minimize(long context, long optimize, long ast);
 
 
   /**
    * Check consistency and produce optimal values.
+   *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
+   * @return status as {@link Z3NativeApiConstants.Z3_LBOOL}:
+   *   false, undefined or true.
    */
   public static native int optimize_check(long context, long optimize);
 
@@ -121,9 +128,7 @@ final class Z3NativeApi {
   public static native long optimize_get_model(long context, long optimize);
 
   /**
-   * \brief Assert hard constraint to the optimization context.
-   *
-   * def_API('Z3_optimize_assert', VOID, (_in(CONTEXT), _in(OPTIMIZE), _in(AST)))
+   * Assert hard constraint to the optimization context.
    *
    * @param context Z3_context pointer
    * @param optimize Z3_optimize pointer
@@ -131,6 +136,67 @@ final class Z3NativeApi {
    */
   public static native void optimize_assert(
       long context, long optimize, long ast);
+
+  /**
+   * Set parameters on optimization context.
+   *
+   * @param c Z3_context context
+   * @param o Z3_optimize optimization context
+   * @param p Z3_params parameters
+   */
+  public static native void optimize_set_params(long c, long o, long p);
+
+    /**
+     * Return the parameter description set for the given optimize object.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @return Z3_param_descrs
+     */
+    public static native long optimize_get_param_descrs(long c, long o);
+
+    /**
+     * Retrieve lower bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_lower(long c, long o, int idx);
+
+    /**
+     * Retrieve upper bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_upper(long c, long o, int idx);
+
+    /**
+     * @param c Z3_context context.
+     * @param o Z3_optimize optimization context.
+     * @return Current context as a string.
+     */
+    public static native String optimize_to_string(long c, long o);
+
+    /**
+     * @param c Z3_context
+     * @param t Z3_optimize
+     * @return Description of parameters accepted by optimize
+     */
+    public static native String optimize_get_help(long c, long t);
+
+    /**
+     * Retrieve statistics information from the last call to {@link #optimize_check}
+     *
+     * @return Z3_stats
+     */
+    public static native long optimize_get_statistics(long c, long d);
 
   /** -- end optimization -- **/
 

@@ -32,6 +32,7 @@ import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Joiner;
 
@@ -153,11 +154,9 @@ class FunctionPointerState implements LatticeAbstractState<FunctionPointerState>
       }
     }
 
-    void clearVariablesWithPrefix(String prefix) {
-      for (String var : values.keySet()) {
-        if (var.startsWith(prefix)) {
-          values = values.removeAndCopy(var);
-        }
+    void clearVariablesForFunction(String function) {
+      for (String var : CFAUtils.filterVariablesOfFunction(values.keySet(), function)) {
+        values = values.removeAndCopy(var);
       }
     }
 

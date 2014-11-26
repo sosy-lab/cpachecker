@@ -33,15 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -74,7 +72,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
-            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0, null);
+            pAutomatonCPA, ImmutableList.<AStatement>of(), 0, 0, null);
     }
 
     @Override
@@ -94,7 +92,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
             AutomatonInternalState.BOTTOM,
-            pAutomatonCPA, ImmutableList.<IAStatement>of(), 0, 0, null);
+            pAutomatonCPA, ImmutableList.<AStatement>of(), 0, 0, null);
     }
 
     @Override
@@ -111,7 +109,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient final ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
-  private final ImmutableList<IAStatement> assumptions;
+  private final ImmutableList<AStatement> assumptions;
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
@@ -119,7 +117,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<IAStatement> pAssumptions, int successfulMatches, int failedMatches,
+      ImmutableList<AStatement> pAssumptions, int successfulMatches, int failedMatches,
       String violatedPropertyDescription) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
@@ -135,14 +133,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       int successfulMatches, int failedMatches, String violatedPropertyDescription) {
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
-        ImmutableList.<IAStatement>of(), successfulMatches, failedMatches,
+        ImmutableList.<AStatement>of(), successfulMatches, failedMatches,
         violatedPropertyDescription);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<IAStatement> pAssumptions,
+      ImmutableList<AStatement> pAssumptions,
       int successfulMatches,
       int failedMatches,
       String pViolatedPropertyDescription) {
@@ -199,11 +197,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.hashCode();
   }
 
-  public List<CStatementEdge> getAsStatementEdges(CIdExpression name_of_return_Var, String cFunctionName) {
+  public List<CStatementEdge> getAsStatementEdges(String cFunctionName) {
     if (assumptions.isEmpty()) { return ImmutableList.of(); }
 
     List<CStatementEdge> result = new ArrayList<>(assumptions.size());
-    for (IAStatement statement : assumptions) {
+    for (AStatement statement : assumptions) {
 
       if (statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
@@ -222,14 +220,14 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(AIdExpression name_of_return_Var, String cFunctionName) {
+  public List<AssumeEdge> getAsAssumeEdges(String cFunctionName) {
     if (assumptions.isEmpty()) {
       return ImmutableList.of();
     }
 
     List<AssumeEdge> result = new ArrayList<>(assumptions.size());
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
-    for (IAStatement statement : assumptions) {
+    for (AStatement statement : assumptions) {
 
       if (statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
@@ -396,7 +394,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public ImmutableList<IAStatement> getAssumptions() {
+  public ImmutableList<AStatement> getAssumptions() {
     return assumptions;
   }
 

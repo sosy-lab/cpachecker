@@ -69,9 +69,12 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -97,6 +100,27 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+  }
+
+  public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
+
+    List<Pair<ValueAnalysisState, CFAEdge>> path = new ArrayList<>(pPath.size());
+
+    PathIterator it = pPath.pathIterator();
+
+    while (it.hasNext()) {
+      it.advance();
+      ValueAnalysisState state = AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
+      CFAEdge edge = it.getIncomingEdge();
+
+      if (state == null) {
+        return null;
+      }
+
+      path.add(Pair.of(state, edge));
+    }
+
+    return createConcreteStatePath(path);
   }
 
   public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath, MachineModel pMachineModel)

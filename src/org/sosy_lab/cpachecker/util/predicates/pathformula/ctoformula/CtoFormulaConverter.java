@@ -37,8 +37,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -85,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -97,6 +95,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -141,14 +140,13 @@ public class CtoFormulaConverter {
                         "fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
-  public static final String RETURN_VARIABLE_NAME = "__retval__";
+  @Deprecated
+  public static final String RETURN_VARIABLE_NAME = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
   public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
       );
-
-  private static final String SCOPE_SEPARATOR = "::";
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -249,22 +247,28 @@ public class CtoFormulaConverter {
     return typeHandler.getFormulaTypeFromCType(type);
   }
 
-  /** prefixes function to variable name
-  * Call only if you are sure you have a local variable!
-  */
-  public static String scoped(String var, String function) {
-    return (function + SCOPE_SEPARATOR + var).intern();
-  }
-
   /**
-   * This method eleminates all spaces from an expression's ASTString and returns
-   * the new String.
+   * This method produces a String representation of an arbitrary expression
+   * that can be used as a variable name in a formula.
+   * The name is not globally unique.
    *
    * @param e the expression which should be named
    * @return the name of the expression
    */
-  public static String exprToVarName(IAstNode e) {
+  static String exprToVarNameUnscoped(AAstNode e) {
     return e.toASTString().replaceAll("[ \n\t]", "");
+  }
+
+  /**
+   * This method produces a String representation of an arbitrary expression
+   * that can be used as a variable name in a formula.
+   * The name is local to the given function.
+   *
+   * @param e the expression which should be named
+   * @return the name of the expression
+   */
+  static String exprToVarName(AAstNode e, String function) {
+    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
   /**
@@ -718,7 +722,7 @@ public class CtoFormulaConverter {
 
     case ReturnStatementEdge: {
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.getExpression(), returnEdge, function,
+      return makeReturn(returnEdge.asAssignment(), returnEdge, function,
           ssa, pts, constraints, errorConditions);
     }
 
@@ -897,8 +901,12 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-
-      final CIdExpression rhs = createReturnVariable(funcCallExp.getFileLocation(), funcCallExp.getDeclaration());
+      final Optional<CVariableDeclaration> returnVariableDeclaration = ce.getFunctionEntry().getReturnVariable();
+      if (!returnVariableDeclaration.isPresent()) {
+        throw new UnrecognizedCCodeException("Void function used in assignment", ce, retExp);
+      }
+      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
+          returnVariableDeclaration.get());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -997,44 +1005,19 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final Optional<CExpression> rightExp,
+  protected BooleanFormula makeReturn(final Optional<CAssignment> assignment,
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws CPATransferException, InterruptedException {
-    if (!rightExp.isPresent()) {
+    if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeBoolean(true);
     } else {
 
-      // we have to save the information about the return value,
-      // so that we can use it later on, if it is assigned to
-      // a variable. We create a function::__retval__ variable
-      // that will hold the return value
-      final CFunctionDeclaration functionDeclaration =
-          ((CFunctionEntryNode) edge.getSuccessor().getEntryNode()).getFunctionDefinition();
-      final CIdExpression lhs = createReturnVariable(rightExp.get().getFileLocation(), functionDeclaration);
-
-      return makeAssignment(lhs, rightExp.get(), edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
+          edge, function, ssa, pts, constraints, errorConditions);
     }
-  }
-
-  private static CIdExpression createReturnVariable(final FileLocation fileLocation,
-      final CFunctionDeclaration functionDeclaration) {
-    final CVariableDeclaration returnVariableDeclaration = createReturnVariableDeclaration(functionDeclaration);
-    final CIdExpression lhs = new CIdExpression(fileLocation,
-                       returnVariableDeclaration);
-    return lhs;
-  }
-
-  protected static final CVariableDeclaration createReturnVariableDeclaration(
-      final CFunctionDeclaration functionDeclaration) {
-    final String retVarName = RETURN_VARIABLE_NAME;
-    final CType returnType = functionDeclaration.getType().getReturnType();
-
-    return new CVariableDeclaration(functionDeclaration.getFileLocation(), false,
-        CStorageClass.AUTO, returnType,
-        retVarName, retVarName, scoped(retVarName, functionDeclaration.getName()), null);
   }
 
   /**
@@ -1310,7 +1293,7 @@ public class CtoFormulaConverter {
     logger.logfOnce(Level.FINEST, "%s: Unhandled expression treated as free variable: %s",
         exp.getFileLocation(), exp.toASTString());
 
-    String var = scoped(exprToVarName(exp), function);
+    String var = exprToVarName(exp, function);
     if (makeFresh) {
       return makeFreshVariable(var, exp.getExpressionType(), ssa);
     } else {
