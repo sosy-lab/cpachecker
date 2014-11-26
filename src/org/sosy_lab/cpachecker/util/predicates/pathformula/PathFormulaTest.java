@@ -23,15 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.lang.reflect.Constructor;
 
-import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMFreshValueProvider;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.testing.ClassSanityTester;
@@ -63,6 +68,16 @@ public class PathFormulaTest {
             dummyPTS);
   }
 
+  @Rule
+  public final ExpectedException thrown = ExpectedException.none();
+
+  private SSAMapBuilder builder;
+
+  @Before
+  public void createBuilder() {
+    builder = SSAMap.emptySSAMap().builder();
+  }
+
   @Test
   public void testEquals() throws Exception {
     classSanityTester().testEquals(PathFormula.class);
@@ -75,46 +90,46 @@ public class PathFormulaTest {
 
   @Test
   public void testSSA() {
-    SSAMap.SSAMapBuilder builder = SSAMap.emptySSAMap().builder()
+    builder
         .setIndex("a", CNumericTypes.INT, 1)
         .setIndex("b", CNumericTypes.INT, 2)
         .setIndex("c", CNumericTypes.INT, 3);
 
-    Assert.assertTrue(builder.getIndex("a") == 1);
-    Assert.assertTrue(builder.getIndex("b") == 2);
-    Assert.assertTrue(builder.getIndex("c") == 3);
+    assertThat(builder.getIndex("a")).is(1);
+    assertThat(builder.getIndex("b")).is(2);
+    assertThat(builder.getIndex("c")).is(3);
 
-    Assert.assertTrue(builder.getFreshIndex("a") == 2);
-    Assert.assertTrue(builder.getFreshIndex("b") == 3);
-    Assert.assertTrue(builder.getFreshIndex("c") == 4);
+    assertThat(builder.getFreshIndex("a")).is(2);
+    assertThat(builder.getFreshIndex("b")).is(3);
+    assertThat(builder.getFreshIndex("c")).is(4);
 
     // simple var
     builder = builder.setIndex("b", CNumericTypes.INT, 5);
 
-    Assert.assertTrue(builder.getIndex("b") == 5);
-    Assert.assertTrue(builder.getFreshIndex("b") == 6);
+    assertThat(builder.getIndex("b")).is(5);
+    assertThat(builder.getFreshIndex("b")).is(6);
   }
 
   @Test
   public void testSSAbam() {
-    SSAMap.SSAMapBuilder builder = SSAMap.emptySSAMap().builder()
+    builder
         .setIndex("a", CNumericTypes.INT, 1)
         .setIndex("b", CNumericTypes.INT, 2)
         .setIndex("c", CNumericTypes.INT, 3);
 
-    Assert.assertTrue(builder.getIndex("a") == 1);
-    Assert.assertTrue(builder.getIndex("b") == 2);
-    Assert.assertTrue(builder.getIndex("c") == 3);
+    assertThat(builder.getIndex("a")).is(1);
+    assertThat(builder.getIndex("b")).is(2);
+    assertThat(builder.getIndex("c")).is(3);
 
-    Assert.assertTrue(builder.getFreshIndex("a") == 2);
-    Assert.assertTrue(builder.getFreshIndex("b") == 3);
-    Assert.assertTrue(builder.getFreshIndex("c") == 4);
+    assertThat(builder.getFreshIndex("a")).is(2);
+    assertThat(builder.getFreshIndex("b")).is(3);
+    assertThat(builder.getFreshIndex("c")).is(4);
 
     // simple var
     builder = builder.setIndex("b", CNumericTypes.INT, 5);
 
-    Assert.assertTrue(builder.getIndex("b") == 5);
-    Assert.assertTrue(builder.getFreshIndex("b") == 6);
+    assertThat(builder.getIndex("b")).is(5);
+    assertThat(builder.getFreshIndex("b")).is(6);
 
 
     // latest used var
@@ -122,37 +137,38 @@ public class PathFormulaTest {
     bamfvp.put("c", 7);
     builder.mergeFreshValueProviderWith(bamfvp);
 
-    Assert.assertTrue(builder.getIndex("c") == 3);
-    Assert.assertTrue(builder.getFreshIndex("c") + " vs " + 8, builder.getFreshIndex("c") == 8);
+    assertThat(builder.getIndex("c") == 3);
+    assertThat(builder.getFreshIndex("c")).is(8);
 
     BAMFreshValueProvider bamfvp2 = new BAMFreshValueProvider();
     bamfvp2.put("c", 9);
     builder.mergeFreshValueProviderWith(bamfvp2);
-    Assert.assertTrue(builder.getFreshIndex("c") == 10);
+    assertThat(builder.getFreshIndex("c")).is(10);
 
     builder = builder.setIndex("c", CNumericTypes.INT, 15);
 
-    Assert.assertTrue(builder.getIndex("c") == 15);
-    Assert.assertTrue(builder.getFreshIndex("c") == 16);
+    assertThat(builder.getIndex("c")).is(15);
+    assertThat(builder.getFreshIndex("c")).is(16);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test
   public void testSSAExceptionMonotone() {
-    SSAMap.emptySSAMap().builder()
-        .setIndex("a", CNumericTypes.INT, 2)
-        .setIndex("a", CNumericTypes.INT, 1);
+    builder.setIndex("a", CNumericTypes.INT, 2);
+
+    thrown.expect(IllegalArgumentException.class);
+    builder.setIndex("a", CNumericTypes.INT, 1);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test
   public void testSSAExceptionNegative() {
-    SSAMap.emptySSAMap().builder()
-        .setIndex("a", CNumericTypes.INT, -5);
+    builder.setIndex("a", CNumericTypes.INT, -5);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test
   public void testSSAExceptionMonotone2() {
-    SSAMap.emptySSAMap().builder()
-        .setIndex("a", CNumericTypes.INT, 2)
-        .setIndex("a", CNumericTypes.INT, 1);
+    builder.setIndex("a", CNumericTypes.INT, 2);
+
+    thrown.expect(IllegalArgumentException.class);
+    builder.setIndex("a", CNumericTypes.INT, 1);
   }
 }
