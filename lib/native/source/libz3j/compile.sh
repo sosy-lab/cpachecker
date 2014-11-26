@@ -15,8 +15,13 @@ set -o pipefail
 
 JNI_HEADERS="$(../get_jni_headers.sh)"
 
-OUTFILENAME="libz3j.so"
-Z3_SO_FILENAME="libz3.so"
+if [[ `uname` == CYGWIN* ]] ; then
+    OUTFILENAME="libz3j.dll"
+    Z3_SO_FILENAME="libz3.dll"
+else
+    OUTFILENAME="libz3j.so"
+    Z3_SO_FILENAME="libz3.so"
+fi
 Z3_LIBNAME="-lz3"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -43,6 +48,10 @@ else
 	exit 1
 fi
 
+if [[ `uname` == CYGWIN* ]] ; then
+    echo "A failure in the following steps might be due to a wrong compiler environment. Has libz3.dll been compiled for 64bit?"
+fi
+
 gcc -Wall -g -o $OUTFILENAME -shared -Wl,-soname,$OUTFILENAME -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o -lc $Z3_LIBNAME
 
 if [ $? -eq 0 ]; then
@@ -52,18 +61,20 @@ else
 	exit 1
 fi
 
-MISSING_SYMBOLS="$(readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
-if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libz3j.so:"
-	readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND
-	exit 1
-fi
+if [[ ! `uname` == CYGWIN* ]] ; then
+    MISSING_SYMBOLS="$(readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
+    if [ ! -z "$MISSING_SYMBOLS" ]; then
+    	echo "Warning: There are the following unresolved dependencies in libz3j.so:"
+    	readelf -Ws $OUTFILENAME | grep NOTYPE | grep GLOBAL | grep UND
+    	exit 1
+    fi
 
-MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
-if [ ! -z "$MISSING_SYMBOLS" ]; then
-	echo "Warning: There are the following unresolved dependencies in libz3.so:"
-	readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND
-	exit 1
+    MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND)"
+    if [ ! -z "$MISSING_SYMBOLS" ]; then
+    	echo "Warning: There are the following unresolved dependencies in libz3.so:"
+    	readelf -Ws $Z3_LIB_DIR/$Z3_SO_FILENAME | grep NOTYPE | grep GLOBAL | grep UND
+    	exit 1
+    fi
 fi
 
 echo "All Done"
