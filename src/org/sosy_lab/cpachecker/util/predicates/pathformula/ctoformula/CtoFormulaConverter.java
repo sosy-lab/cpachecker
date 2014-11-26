@@ -410,7 +410,8 @@ public class CtoFormulaConverter {
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
-  protected Formula makeCast(final CType pFromType, final CType pToType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
+  protected Formula makeCast(final CType pFromType, final CType pToType,
+      Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
     CType fromType = pFromType.getCanonicalType();
@@ -455,7 +456,7 @@ public class CtoFormulaConverter {
       CSimpleType sfromType = (CSimpleType)fromType;
       if (toType instanceof CSimpleType) {
         CSimpleType stoType = (CSimpleType)toType;
-        return makeSimpleCast(sfromType, stoType, formula);
+        return makeSimpleCast(sfromType, stoType, formula, constraints);
       }
     }
 
@@ -501,7 +502,8 @@ public class CtoFormulaConverter {
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
+  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType,
+      Formula pFormula, Constraints constraints) {
     final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
     final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
@@ -1086,6 +1088,7 @@ public class CtoFormulaConverter {
           rhs.getExpressionType(),
           lhsType,
           r,
+          constraints,
           edge);
 
     return fmgr.assignment(l, r);

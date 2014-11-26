@@ -439,7 +439,7 @@ class AssignmentHandler {
     final BooleanFormula result;
 
     rvalueType = implicitCastToPointer(rvalueType);
-    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, edge) : null;
+    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, constraints, edge) : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);

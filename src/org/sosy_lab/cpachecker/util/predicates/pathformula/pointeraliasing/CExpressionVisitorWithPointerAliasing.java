@@ -181,6 +181,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final Formula index = conv.makeCast(subscriptType,
                                         CPointerType.POINTER_TO_VOID,
                                         asValueFormula(subscript.accept(this), subscriptType),
+                                        constraints,
                                         edge);
 
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
@@ -256,7 +257,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
     if (CTypeUtils.isSimpleType(resultType)) {
-      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), edge));
+      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), constraints, edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.

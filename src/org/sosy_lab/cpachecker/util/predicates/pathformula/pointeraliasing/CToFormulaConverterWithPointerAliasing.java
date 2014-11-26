@@ -762,9 +762,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, CFAEdge pEdge)
+  protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, Constraints constraints, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
-    return super.makeCast(pFromType, pToType, pFormula, pEdge);
+    return super.makeCast(pFromType, pToType, pFormula, constraints, pEdge);
   }
 
   @Override
