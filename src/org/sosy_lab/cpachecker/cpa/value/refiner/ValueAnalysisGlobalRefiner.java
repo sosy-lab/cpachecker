@@ -38,9 +38,11 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -82,7 +84,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
 
-  ValueAnalysisPathInterpolator interpolatingRefiner;
+  @Option(secure=true, description="export interpolation trees to this file template")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+
+  ValueAnalysisPathInterpolator pathInterpolator;
   ValueAnalysisFeasibilityChecker checker;
 
   private final LogManager logger;
@@ -117,13 +123,17 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     pConfig.inject(this);
 
-    logger                = pLogger;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+    logger = pLogger;
+    pathInterpolator = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
+    checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
   }
 
   @Override
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
+    return performRefinement(new ARGReachedSet(pReached));
+  }
+
+  public boolean performRefinement(final ARGReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
     totalTime.start();
     totalRefinements++;
@@ -131,7 +141,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     Collection<ARGState> targets = getTargetStates(pReached);
 
     // stop once any feasible counterexample is found
-    if (isAnyPathFeasible(new ARGReachedSet(pReached), getTargetPaths(targets))) {
+    if (isAnyPathFeasible(pReached, getTargetPaths(targets))) {
       totalTime.stop();
       return false;
     }
@@ -140,35 +150,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
-      i++;
-
-      MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
-
-      if (errorPath.isEmpty()) {
-        logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
-        continue;
-      }
-
-      ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
-
-      if (isInitialInterpolantTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
-        errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
-        initialItp  = ValueAnalysisInterpolant.createInitial();
-      }
-
-      logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
-
-      interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
-
-      if (exportInterpolationTree.equals("ALWAYS")) {
-        interpolationTree.exportToDot(totalRefinements, i);
-      }
-
-      logger.log(Level.FINEST, "finished interpolation #", i);
+      populateInterpolationTree(interpolationTree, ++i);
     }
 
-    if (exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(totalRefinements, i);
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
     }
 
     Map<ARGState, VariableTrackingPrecision> refinementInformation = new HashMap<>();
@@ -181,13 +167,38 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       refinementInformation.put(root, subTreePrecision.withIncrement(interpolationTree.extractPrecisionIncrement(root)));
     }
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
     for (Map.Entry<ARGState, VariableTrackingPrecision> info : refinementInformation.entrySet()) {
-      reached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+      pReached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
     totalTime.stop();
     return true;
+  }
+
+  private void populateInterpolationTree(ValueAnalysisInterpolationTree interpolationTree, int iterationCount) throws CPAException, InterruptedException {
+    MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
+
+    if (errorPath.isEmpty()) {
+      logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
+      return;
+    }
+
+    ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
+
+    if (isInitialInterpolantTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
+      errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
+      initialItp  = ValueAnalysisInterpolant.createInitial();
+    }
+
+    logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
+
+    interpolationTree.addInterpolants(pathInterpolator.performInterpolation(errorPath, initialItp));
+
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
+      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, iterationCount));
+    }
+
+    logger.log(Level.FINEST, "finished interpolation #", iterationCount);
   }
 
   private boolean isInitialInterpolantTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, MutableARGPath errorPath)
@@ -202,7 +213,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
-  private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,
+  private VariableTrackingPrecision joinSubtreePrecisions(final ARGReachedSet pReached,
       Collection<ARGState> targetsReachableFromRoot) {
 
     VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
@@ -215,9 +226,11 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return precision;
   }
 
-  private VariableTrackingPrecision extractPrecision(final ReachedSet pReached,
+  private VariableTrackingPrecision extractPrecision(final ARGReachedSet pReached,
       ARGState state) {
-    return (VariableTrackingPrecision) Precisions.asIterable(pReached.getPrecision(state)).filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
+    return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+        .get(0);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
@@ -288,8 +301,8 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
    * @param pReached the set of reached states
    * @return the target states
    */
-  private Collection<ARGState> getTargetStates(final ReachedSet pReached) {
-    Set<ARGState> targets = from(pReached)
+  private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
+    Set<ARGState> targets = from(pReached.asReachedSet())
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE).toSet();
 
@@ -323,7 +336,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
       out.println("Total time for global refinement:     " + totalTime);
 
-      interpolatingRefiner.printStatistics(out, pResult, pReached);
+      pathInterpolator.printStatistics(out, pResult, pReached);
     }
   }
 

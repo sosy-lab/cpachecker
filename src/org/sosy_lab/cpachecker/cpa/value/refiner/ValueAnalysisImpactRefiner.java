@@ -37,9 +37,11 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -91,6 +93,10 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
       values={"NEVER", "FINAL", "ALWAYS"})
   private String exportInterpolationTree = "NEVER";
+
+  @Option(secure=true, description="export interpolation trees to this file template")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
   ValueAnalysisPathInterpolator interpolatingRefiner;
   ValueAnalysisFeasibilityChecker checker;
@@ -188,15 +194,15 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
-      if (exportInterpolationTree.equals("ALWAYS")) {
-        interpolationTree.exportToDot(totalRefinements, i);
+      if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
+        interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
       }
 
       logger.log(Level.FINEST, "finished interpolation #", i);
     }
 
-    if (exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(totalRefinements, i);
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
     }
 /*
     try (Writer w = Files.openOutputFile(Paths.get("output/ARG_" + totalRefinements + ".dot"))) {

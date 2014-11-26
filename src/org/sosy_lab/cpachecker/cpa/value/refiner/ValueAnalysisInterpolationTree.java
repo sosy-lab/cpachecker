@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +40,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -161,12 +162,11 @@ class ValueAnalysisInterpolationTree {
   }
 
   /**
-   * This method exports the current representation to a *.dot file.
+   * This method exports the current representation in dot format to the given file.
    *
-   * @param refinementCnt the current refinement counter
-   * @param iteration the current iteration of the current refinement
+   * @param Path file the file to write to
    */
-  void exportToDot(int refinementCnt, int iteration) {
+  void exportToDot(Path file) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
@@ -190,11 +190,10 @@ class ValueAnalysisInterpolationTree {
     }
     result.append("}");
 
-    try {
-      Files.writeFile(Paths.get("itpTree_" + refinementCnt + "_" + iteration + ".dot"), result.toString());
+    try (Writer w = Files.openOutputFile(file)) {
+      w.write(result.toString());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e,
-          "Could not write interpolation tree to file");
+      logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");
     }
   }
 
