@@ -136,7 +136,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     // when there is information about the liveness of variables available we want
     // to use it
     if (cfa.getLiveVariables().isPresent()) {
-      precisionAdjustment = new ValueAnalysisPrecisionAdjustment(transferRelation, cfa.getLiveVariables().get());
+      precisionAdjustment = new ValueAnalysisPrecisionAdjustment(cfa.getLiveVariables().get());
     } else {
       precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }

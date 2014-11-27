@@ -23,23 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
 
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
-  private final ValueAnalysisTransferRelation transfer;
   private final LiveVariables liveVariables;
 
-  public ValueAnalysisPrecisionAdjustment(ValueAnalysisTransferRelation pTransfer, LiveVariables pLiveVariables) {
-    transfer = pTransfer;
+  public ValueAnalysisPrecisionAdjustment(LiveVariables pLiveVariables) {
     liveVariables = pLiveVariables;
   }
 
@@ -47,14 +48,16 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates, AbstractState fullState)
       throws CPAException, InterruptedException {
 
-    return prec((ValueAnalysisState)pState, (VariableTrackingPrecision)pPrecision);
+    LocationState locState = AbstractStates.extractStateByType(fullState, LocationState.class);
+
+    return prec((ValueAnalysisState)pState, (VariableTrackingPrecision)pPrecision, locState.getLocationNode());
   }
 
-  private PrecisionAdjustmentResult prec(ValueAnalysisState pState, VariableTrackingPrecision pPrecision) {
+  private PrecisionAdjustmentResult prec(ValueAnalysisState pState, VariableTrackingPrecision pPrecision, CFANode location) {
     ValueAnalysisState resultState = ValueAnalysisState.copyOf(pState);
 
     for (MemoryLocation loc : pState.getTrackedMemoryLocations()) {
-      if (!liveVariables.isVariableLive(loc.getAsSimpleString(), transfer.getSuccessorNodeFromLastEdge())) {
+      if (!liveVariables.isVariableLive(loc.getAsSimpleString(), location)) {
         resultState.forget(loc);
       }
     }

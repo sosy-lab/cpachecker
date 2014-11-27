@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -186,12 +185,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
    */
   private ValueAnalysisState oldState;
 
-  /**
-   * Save the old successor node for the precision adjustment with live
-   * variables
-   */
-  private CFANode successorNodeFromLastEdge;
-
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
@@ -209,10 +202,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       addressedVariables = ImmutableSet.of();
       booleanVariables   = ImmutableSet.of();
     }
-  }
-
-  public CFANode getSuccessorNodeFromLastEdge() {
-    return successorNodeFromLastEdge;
   }
 
   @Override
@@ -242,8 +231,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = ValueAnalysisState.copyOf((ValueAnalysisState) pAbstractState);
-
-    successorNodeFromLastEdge = pCfaEdge.getSuccessor();
   }
 
   @Override
