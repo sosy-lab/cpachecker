@@ -56,6 +56,9 @@ abstract class Mathsat5AbstractProver {
     try {
       return !msat_check_sat(curEnv);
     } catch (IllegalStateException e) {
+      // If there was a timeout, MathSAT returns UNKNOWN
+      mgr.getShutdownNotifier().shutdownIfNecessary();
+
       String msg = Strings.nullToEmpty(e.getMessage());
       if (msg.contains("too many iterations")
           || msg.contains("impossible to build a suitable congruence graph!")) {
