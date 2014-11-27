@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -88,10 +90,13 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
-  ValueAnalysisPathInterpolator pathInterpolator;
-  ValueAnalysisFeasibilityChecker checker;
+  private ValueAnalysisPathInterpolator pathInterpolator;
+
+  private ValueAnalysisFeasibilityChecker checker;
 
   private final LogManager logger;
+
+  private int previousErrorPath = -1;
 
   // statistics
   private int totalRefinements  = 0;
@@ -117,7 +122,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return refiner;
   }
 
-  private ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
+  ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
@@ -126,6 +131,14 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     logger = pLogger;
     pathInterpolator = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
     checker = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+  }
+
+  private boolean madeProgress(ARGPath path) {
+    boolean progress = (previousErrorPath == -1 || previousErrorPath != path.toString().hashCode());
+
+    previousErrorPath = path.toString().hashCode();
+
+    return progress;
   }
 
   @Override
@@ -139,9 +152,14 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     totalRefinements++;
 
     Collection<ARGState> targets = getTargetStates(pReached);
+    List<ARGPath> targetPaths = getTargetPaths(targets);
+
+    if(!madeProgress(targetPaths.get(0))) {
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
+    }
 
     // stop once any feasible counterexample is found
-    if (isAnyPathFeasible(pReached, getTargetPaths(targets))) {
+    if (isAnyPathFeasible(pReached, targetPaths)) {
       totalTime.stop();
       return false;
     }
@@ -150,7 +168,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
     int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
-      populateInterpolationTree(interpolationTree, ++i);
+      performInterpolation(interpolationTree, ++i);
     }
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
@@ -175,7 +193,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return true;
   }
 
-  private void populateInterpolationTree(ValueAnalysisInterpolationTree interpolationTree, int iterationCount) throws CPAException, InterruptedException {
+  private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree, int iterationCount) throws CPAException, InterruptedException {
     MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
     if (errorPath.isEmpty()) {
@@ -320,7 +338,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public String getName() {
-        return "ValueAnalysisGlobalRefiner";
+        return ValueAnalysisGlobalRefiner.class.getSimpleName();
       }
 
       @Override
@@ -334,7 +352,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     if (totalRefinements > 0) {
       out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
-      out.println("Total time for global refinement:     " + totalTime);
+      out.println("Total time for refinement:            " + totalTime);
 
       pathInterpolator.printStatistics(out, pResult, pReached);
     }

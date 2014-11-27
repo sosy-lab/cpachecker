@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -50,11 +48,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
@@ -88,7 +84,7 @@ import com.google.common.collect.Multimap;
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.value.refiner")
-public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
+public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   private ShutdownNotifier shutDownNotifier;
 
@@ -105,7 +101,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisPathInterpolator interpolatingRefiner;
+  private ValueAnalysisGlobalRefiner valueRefiner;
 
   /**
    * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
@@ -113,25 +109,10 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private PredicateCPARefiner predicatingRefiner;
 
   /**
-   * the hash code of the previous error path
-   */
-  private int previousErrorPathID = -1;
-
-  /**
    * the flag to determine whether or not to check for repeated refinements
    */
   @Option(secure=true, description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = true;
-
-  // statistics
-  private int numberOfValueAnalysisRefinements           = 0;
-  private int numberOfPredicateRefinements               = 0;
-  private int numberOfSuccessfulValueAnalysisRefinements = 0;
-
-  /**
-   * the identifier which is used to identify repeated refinements
-   */
-  private int previousRefinementId = 0;
 
   private final CFA cfa;
 
@@ -239,14 +220,17 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+
     config = pConfig;
+    logger = pLogger;
+
     shutDownNotifier = pShutdownNotifier;
 
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    predicatingRefiner    = pBackupRefiner;
-    staticRefiner         = pValueAnalysisStaticRefiner;
-    cfa                   = pCfa;
-    logger                = pLogger;
+    cfa = pCfa;
+
+    valueRefiner  = new ValueAnalysisGlobalRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    predicatingRefiner = pBackupRefiner;
+    staticRefiner = pValueAnalysisStaticRefiner;
   }
 
   @Override
@@ -263,7 +247,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
 
     if (predicatingRefiner != null) {
-      numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, pErrorPath);
 
     } else {
@@ -293,10 +276,10 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
-    numberOfValueAnalysisRefinements++;
 
-    UnmodifiableReachedSet reachedSet             = reached.asReachedSet();
-    Precision precision                           = reachedSet.getPrecision(reachedSet.getLastState());
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+
     FluentIterable<Precision> precisions = Precisions.asIterable(precision);
     VariableTrackingPrecision valueAnalysisPrecision = (VariableTrackingPrecision) precisions.filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
     BDDPrecision bddPrecision = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
@@ -304,103 +287,35 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Predicate<? super Precision>> newPrecisionTypes = new ArrayList<>(2);
 
-    Multimap<CFANode, MemoryLocation> increment;
-    Pair<ARGState, CFAEdge> refinementRoot;
-
     if (!initialStaticRefinementDone && staticRefiner != null) {
       initialStaticRefinementDone = true;
-      refinementRoot              = errorPath.get(1);
-      increment                   = staticRefiner.extractPrecisionIncrementFromCfa(errorPath);
-    } else {
-      increment       = interpolatingRefiner.determinePrecisionIncrement(errorPath);
-      refinementRoot  = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
-      // no increment - value-analysis refinement was not successful
-      if (increment.isEmpty()) {
-        return false;
+      Multimap<CFANode, MemoryLocation> increment = staticRefiner.extractPrecisionIncrementFromCfa(errorPath);
+
+      refinedPrecisions.add(valueAnalysisPrecision.withIncrement(increment));
+      newPrecisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+
+      if (bddPrecision != null) {
+        BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
+        refinedPrecisions.add(refinedBDDPrecision);
+        newPrecisionTypes.add(Predicates.instanceOf(BDDPrecision.class));
       }
 
-      // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-      if (checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
-        refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
-      }
-    }
-
-    VariableTrackingPrecision refinedValueAnalysisPrecision  = valueAnalysisPrecision.withIncrement(increment);
-    refinedPrecisions.add(refinedValueAnalysisPrecision);
-    newPrecisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-
-    if (bddPrecision != null) {
-      BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-      refinedPrecisions.add(refinedBDDPrecision);
-      newPrecisionTypes.add(Predicates.instanceOf(BDDPrecision.class));
-    }
-
-    if (valueAnalysisRefinementWasSuccessful(errorPath, valueAnalysisPrecision, refinedValueAnalysisPrecision)) {
-      numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
+
     } else {
-      return false;
+      return valueRefiner.performRefinement(reached);
     }
-  }
-
-  /**
-   * The not-so-fancy heuristic to determine if two subsequent refinements are similar
-   *
-   * @param increment the precision increment
-   * @param refinementRoot the current refinement root
-   * @return true, if the current refinement is found to be similar to the previous one, else false
-   */
-  private boolean isRepeatedRefinement(Multimap<CFANode, MemoryLocation> increment, Pair<ARGState, CFAEdge> refinementRoot) {
-    int currentRefinementId = refinementRoot.getSecond().getSuccessor().getNodeNumber();
-    boolean result         = (previousRefinementId == currentRefinementId);
-    previousRefinementId    = currentRefinementId;
-
-    return result;
-  }
-
-  /**
-   * This helper method checks if the refinement was successful, i.e.,
-   * that either the counterexample is not a repeated counterexample, or that the precision did grow.
-   *
-   * Repeated counterexamples might occur when combining the analysis with thresholding,
-   * or when ignoring variable classes, i.e. when combined with BDD analysis (i.e. cpa.value.precision.ignoreBoolean).
-   *
-   * @param errorPath the current error path
-   * @param valueAnalysisPrecision the previous precision
-   * @param refinedValueAnalysisPrecision the refined precision
-   */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
-      VariableTrackingPrecision refinedValueAnalysisPrecision) {
-    // new error path or precision refined -> success
-    boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
-        || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
-
-    previousErrorPathID = errorPath.toString().hashCode();
-
-    return success;
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(this);
-    pStatsCollection.add(interpolatingRefiner);
+
+    valueRefiner.collectStatistics(pStatsCollection);
+
     if (predicatingRefiner != null) {
       predicatingRefiner.collectStatistics(pStatsCollection);
     }
-  }
-
-  @Override
-  public String getName() {
-    return "ValueAnalysisDelegatingRefiner";
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
-    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
-    out.println("  number of predicate refinements:                     " + numberOfPredicateRefinements);
   }
 
   /**
