@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
@@ -372,25 +370,18 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
   @Override
   public String toDOTLabel() {
-
-    //this part may be seperated into an util class
-    Map<String, String> map = new HashMap<>();
-
-    // to merge interval & refCount to one String
-    // create a new HashMap with varName as key and [Interval] (refCount) as value
-    for (Entry<String, Interval> entry : intervals.entrySet()) {
-      StringBuilder string = new StringBuilder();
-      string.append(entry.getValue().toString());
-      string.append(" ("); // just to improve readability
-      string.append(referenceCounts.get(entry.getKey()).toString());
-      string.append(")");
-      map.put(entry.getKey(), string.toString());
-    }
-
     StringBuilder sb = new StringBuilder();
 
     sb.append("{");
-    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, map);
+    // create a string like: x =  [low; high] (refCount)
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      sb.append(entry.getKey().toString());
+      sb.append(" = ");
+      sb.append(entry.getValue().toString());
+      sb.append(" (");
+      sb.append(referenceCounts.get(entry.getKey()).toString());
+      sb.append("), ");
+    }
     sb.append("}");
 
     return sb.toString();
