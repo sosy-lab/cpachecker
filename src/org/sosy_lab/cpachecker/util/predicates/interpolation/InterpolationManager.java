@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -152,19 +153,19 @@ public final class InterpolationManager {
     ;
   }
 
-  @Option(secure=true, description="Strategy how to interact woith the intepolating prover. " +
+  @Option(secure=true, description="Strategy how to interact with the intepolating prover. " +
           "The analysis must support the strategy, otherwise the result will be useless!" +
           "\n- CPACHECKER_SEQ: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
-          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver has to generate nice interpolants. " +
+          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', " +
+          "i.e. the solver has to generate nice interpolants itself. " +
           "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
           "\n- CPACHECKER_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
-          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]." +
+          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme." +
           "\n- NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "\n- NESTED2: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants'," +
-          "with modification: pathformulas for call and return are True)." +
-          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants similar to NESTED3")
+          "\n- NESTED_TREE: same as NESTED, but the algorithm is different." +
+          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants")
   private InterpolationStrategy strategy = InterpolationStrategy.CPACHECKER_SEQ;
-  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED, TREE};
+  private static enum InterpolationStrategy {CPACHECKER_SEQ, INDUCTIVE_SEQ, CPACHECKER_WELLSCOPED, NESTED, TREE, NESTED_TREE};
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -289,7 +290,7 @@ public final class InterpolationManager {
   public CounterexampleTraceInfo buildCounterexampleTrace(
           final List<BooleanFormula> pFormulas) throws CPAException, InterruptedException {
     return buildCounterexampleTrace(
-            pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
+        pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
@@ -574,13 +575,13 @@ public final class InterpolationManager {
         break;
       }
 
-      case CPACHECKER_WELLSCOPED: { // TODO not fully working and not used
-        final Pair<List<T>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
+      case CPACHECKER_WELLSCOPED: {
+        final Pair<List<Pair<T, BooleanFormula>>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
         final List<BooleanFormula> itps = new ArrayList<>();
         for (int end_of_A = 0; end_of_A < itpGroupsIds.size() - 1; end_of_A++) {
           // last iteration is left out because B would be empty
           final int start_of_A = p.getSecond().get(end_of_A);
-          itps.add(getInterpolantFromSublist(interpolator.itpProver, p.getFirst(), start_of_A, end_of_A));
+          itps.add(getInterpolantFromSublist(interpolator.itpProver, projectToFirst(p.getFirst()), start_of_A, end_of_A));
         }
         interpolants = flattenTreeItps(orderedFormulas, itps);
         break;
@@ -591,15 +592,27 @@ public final class InterpolationManager {
         final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
         for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
           // use a new prover, because we use several distinct queries
-          lastItp = getNestedInterpolant3(orderedFormulas, interpolants, callstack, interpolator, positionOfA, lastItp);
+          lastItp = getNestedInterpolant(orderedFormulas, interpolants, callstack, interpolator, positionOfA, lastItp);
         }
         break;
       }
 
+      case NESTED_TREE: {
+        final Pair<List<Pair<T, BooleanFormula>>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
+        final List<BooleanFormula> itps = new ArrayList<>();
+        final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
+        for (int positionOfA = 0; positionOfA < orderedFormulas.size() - 1; positionOfA++) {
+          itps.add(getTreeInterpolant(interpolator, itpStack, p.getFirst(), p.getSecond(), positionOfA));
+        }
+        logger.log(Level.ALL, "received interpolants of tree :", itps);
+        interpolants = flattenTreeItps(orderedFormulas, itps);
+        break;
+      }
+
       case TREE: {
-        final Pair<List<T>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
+        final Pair<List<Pair<T, BooleanFormula>>, List<Integer>> p = buildTreeStructure(itpGroupsIds, orderedFormulas);
         final List<BooleanFormula> itps = interpolator.itpProver.getTreeInterpolants(
-            wrapAllInSets(p.getFirst()), Ints.toArray(p.getSecond()));
+            wrapAllInSets(projectToFirst(p.getFirst())), Ints.toArray(p.getSecond()));
         logger.log(Level.ALL, "received interpolants of tree :", itps);
         assert p.getFirst().size() - 1 == itps.size() : "expecting N-1 interpolants for N formulas";
         interpolants = flattenTreeItps(orderedFormulas, itps);
@@ -623,33 +636,53 @@ public final class InterpolationManager {
     });
   }
 
+  private static <T,S> List<T> projectToFirst(List<Pair<T,S>> l) {
+    return Lists.transform(l, new Function<Pair<T,S>, T>() {
+      @Override
+      public T apply(Pair<T,S> p) {
+        return p.getFirst();
+      }
+    });
+  }
+
   /**
    * Build a tree of formulas according to controlflow (function calls and returns).
+   * A new subtree is started with the first node (FunctionEntryNode) inside a function that has a function-return.
+   * A subtree is connected with the whole tree with the calling statement (functioncall with arg-to-param-assignment).
    *
    * @param itpGroupsIds formulas from the solver-stack, sorted according controlflow
    * @param orderedFormulas formulas and abstract states, sorted according to position on the solver-stack.
    *                        we assume DIRECTION.FORWARDS as order, such that itpGroups and orderedFormulas are sorted equal.
    *
-   * @return Pair (pFormulas := tree-elements, pStartOfSubTree := tree-structure)
+   * @return Pair (pFormulas := tree-elements, pStartOfSubTree := tree-structure),
+   *         where a tree-element is the asserted formulas (as itp-group) and the formula (for logging)
    */
-  private <T> Pair<List<T>, List<Integer>> buildTreeStructure(
+  private <T> Pair<List<Pair<T, BooleanFormula>>, List<Integer>> buildTreeStructure(
       final List<T> itpGroupsIds,
       final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas) {
 
-    final List<T> formulas = new ArrayList<>();
+    Preconditions.checkState(direction == CexTraceAnalysisDirection.FORWARDS,
+        "formulas have to be ordered FORWARDS to match controlflow");
+
+    final List<Pair<T, BooleanFormula>> formulas = new ArrayList<>();
     final List<Integer> startOfSubTree = new ArrayList<>();
 
-    final Deque<Triple<T, Integer, BooleanFormula>> stack = new ArrayDeque<>();
+    final Deque<Triple<Pair<T, BooleanFormula>, Integer, BooleanFormula>> stack = new ArrayDeque<>();
     final List<BooleanFormula> formulas2 = new ArrayList<>(); // only for logging
 
-    stack.add(Triple.of(itpGroupsIds.get(0), 0, orderedFormulas.get(0).getFirst())); // every complete tree start at left-most node
+    stack.add(Triple.of(
+        Pair.of(itpGroupsIds.get(0), orderedFormulas.get(0).getFirst()),
+        0,
+        orderedFormulas.get(0).getFirst())
+    ); // every tree starts at the left-most node, post-order!
     for (int positionOfA = 0; positionOfA < orderedFormulas.size(); positionOfA++) {
       // first element is handled before
 
       // If we have entered or exited a function, update the stack of entry points
       final AbstractState abstractionState = checkNotNull(orderedFormulas.get(positionOfA).getSecond());
       final CFANode node = AbstractStates.extractLocation(abstractionState);
-      final T formula = itpGroupsIds.get(positionOfA);
+      final Pair<T, BooleanFormula> formula = Pair.of(itpGroupsIds.get(positionOfA),
+          orderedFormulas.get(positionOfA).getFirst());
       final BooleanFormula formula2 = orderedFormulas.get(positionOfA).getFirst();
 
       if (node instanceof FunctionEntryNode && callHasReturn(orderedFormulas, positionOfA)) {
@@ -665,7 +698,7 @@ public final class InterpolationManager {
         formulas2.add(formula2);
 
         // then add the common root (merge-formula)
-        final Triple<T, Integer, BooleanFormula> commonRoot = stack.removeLast();
+        final Triple<Pair<T, BooleanFormula>, Integer, BooleanFormula> commonRoot = stack.removeLast();
         startOfSubTree.add(stack.getLast().getSecond());
         formulas.add(commonRoot.getFirst());
         formulas2.add(commonRoot.getThird());
@@ -801,7 +834,7 @@ public final class InterpolationManager {
    * instead of a return-edge, we use dummy-edges with simple pathformula "true".
    * Actually the implementation does not use "true", but omits it completely and
    * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge). */
-  private <T> BooleanFormula getNestedInterpolant3(
+  private <T> BooleanFormula getNestedInterpolant(
           final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas,
           final List<BooleanFormula> interpolants,
           final Deque<Triple<BooleanFormula, BooleanFormula, CFANode>> callstack,
@@ -898,7 +931,7 @@ public final class InterpolationManager {
 
         final BooleanFormula rebuildItp = bfmgr.and(rebuildInterpolant(itp, itp2), scopingItp.getFirst());
 
-        if (log) logger.log(Level.ALL, "\nrebuild itp =", itp, "and", itp2, "=", rebuildItp);
+        logger.log(Level.ALL, "\nrebuild itp =", itp, "and", itp2, "=", rebuildItp);
 
         interpolants.add(rebuildItp);
         return itp2;
@@ -907,6 +940,58 @@ public final class InterpolationManager {
         interpolants.add(itp);
         return itp;
       }
+    }
+  }
+
+
+  /** This implementation is similar to the paper "Tree Interpolation in Vampire*" from Blanc et al.
+   * In comparision to the paper, we directly use the post-order-sorted formula-list instead of the tree. This is easier to implement. */
+  private <T> BooleanFormula getTreeInterpolant(Interpolator<T> interpolator,
+      Deque<Pair<BooleanFormula, Integer>> itpStack, List<Pair<T, BooleanFormula>> formulas,
+      List<Integer> startOfSubTree, int positionOfA) throws SolverException, InterruptedException {
+
+    // use a new prover, because we use several distinct interpolation-queries
+    try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
+      final int currentSubtree = startOfSubTree.get(positionOfA);
+
+      // build partition A
+      final List<T> A = new ArrayList<>();
+      final List<BooleanFormula> Af = new ArrayList<>();
+      while(!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
+        final BooleanFormula childITP = itpStack.pollLast().getFirst();
+        A.add(itpProver.push(childITP));
+        Af.add(childITP);
+      }
+      A.add(itpProver.push(formulas.get(positionOfA).getSecond()));
+      Af.add(formulas.get(positionOfA).getSecond());
+
+      assert itpStack.isEmpty() == (currentSubtree == 0) :
+          "empty stack is only allowed, if we are in the left-most branch" +
+              startOfSubTree + "@" + positionOfA + "=" + currentSubtree + " vs " + itpStack.size();
+
+      // build partition B
+      final List<T> B = new ArrayList<>();
+      final List<BooleanFormula> Bf = new ArrayList<>();
+      for (Pair<BooleanFormula, Integer> externalChild : itpStack) {
+        B.add(itpProver.push(externalChild.getFirst()));
+        Bf.add(externalChild.getFirst());
+      }
+      for (int i = positionOfA + 1; i < formulas.size(); i++) {
+        B.add(itpProver.push(formulas.get(i).getSecond()));
+        Bf.add(formulas.get(i).getSecond());
+      }
+
+      boolean check = itpProver.isUnsat();
+      assert check : "asserted formulas should be UNSAT";
+
+      // get interpolant via Craig interpolation
+      //logger.log(Level.ALL, "A=", Af);
+      //logger.log(Level.ALL, "B=", Bf);
+      final BooleanFormula interpolant = itpProver.getInterpolant(A);
+
+      // update the stack for further computation
+      itpStack.addLast(Pair.of(interpolant, currentSubtree));
+      return interpolant;
     }
   }
 
