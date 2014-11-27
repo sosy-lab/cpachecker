@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public class Z3OptProver implements OptEnvironment {
 
@@ -85,6 +86,9 @@ public class Z3OptProver implements OptEnvironment {
   @Override
   public OptStatus check()
       throws InterruptedException, SolverException {
+    // TODO: check whether we can switch constraints using push and pop.
+    // because the objective seems to be essentially the
+    // _constraint_.
 
     Preconditions.checkState(objectiveHandle.isPresent());
 
@@ -111,16 +115,21 @@ public class Z3OptProver implements OptEnvironment {
   public Rational upper() {
     Preconditions.checkState(objectiveHandle.isPresent());
     int idx = objectiveHandle.get();
-    return rationalFromZ3AST(
-        optimize_get_upper(z3context, z3optContext, idx));
+
+    long ast = optimize_get_upper(z3context, z3optContext, idx);
+
+    return rationalFromZ3AST(replaceEpsilon(ast, 0));
   }
 
   @Override
   public Rational lower() {
     Preconditions.checkState(objectiveHandle.isPresent());
     int idx = objectiveHandle.get();
+    long ast = optimize_get_lower(z3context, z3optContext, idx);
+
+    // TODO: change the epsilon value from 1 to a more suitable number.
     return rationalFromZ3AST(
-        optimize_get_lower(z3context, z3optContext, idx));
+        replaceEpsilon(ast, 1));
   }
 
   @Override
@@ -143,6 +152,27 @@ public class Z3OptProver implements OptEnvironment {
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
     z3optContext = 0;
+  }
+
+  /**
+   * Replace the epsilon in the returned formula with a numeric value.
+   */
+  private long replaceEpsilon(long ast, int newValue) {
+    // TODO: due to the bug in Z3 only integral substitutions are allowed
+    Z3Formula z = new Z3RationalFormula(z3context, ast);
+
+    Z3Formula epsFormula =
+        (Z3Formula)mgr.getIntegerFormulaManager().makeVariable("epsilon");
+
+    // TODO: make the substitution for epsilon configurable.
+    Z3Formula out = mgr.getUnsafeFormulaManager().substitute(
+        z,
+        ImmutableList.of(epsFormula),
+        ImmutableList.of(
+            (Z3Formula)mgr.getIntegerFormulaManager().makeNumber(newValue))
+    );
+    return simplify(z3context, out.getExpr());
+
   }
 
   private Rational rationalFromZ3AST(long ast) {

@@ -536,9 +536,44 @@ final class Z3NativeApi {
 
   // MODIFIERS
   public static native long update_term(long context, long a1, int a2, long[] a3);
-  public static native long substitute(long context, long a1, int a2, long[] a3, long[] a4);
-  public static native long substitute_vars(long context, long a1, int a2, long[] a3);
-  public static native long translate(long context, long a1, long a2);
+
+  /**
+   * Substitute every occurrence of <code>from[i]</code> in <code>a</code>
+   * with <code>to[i]</code>, for <code>i</code> smaller than
+   * <code>num_exprs</code>.
+   * The result is the new AST. The arrays <code>from</code> and <code>to</code>
+   * must have size <code>num_exprs</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, we must have
+   * that sort of <code>from[i]</code> must be equal to sort of
+   * <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param from Change from
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute(long context, long a, int num_exprs,
+        long[] from, long[] to);
+
+  /**
+   * Substitute the free variables in <code>a</code> with the expressions in
+   * <code>to</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, the variable
+   * with de-Bruijn
+   * index <code>i</code> is replaced with term <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute_vars(long context, long a, int num_exprs,
+      long[] to);
+  public static native long translate(long contextSource, long a,
+      long contextTarget);
 
 
   // MODELS
