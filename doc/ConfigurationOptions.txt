@@ -1490,15 +1490,6 @@ cpa.stator.policy.generateLowerBound = true
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
-# Run (simplified) path focusing
-cpa.stator.policy.pathFocusing = true
-
-# Maximize for the sum of the templates during value determination
-cpa.stator.policy.runAcceleratedValueDetermination = true
-
-# Use only relevant nodes for value determination
-cpa.stator.policy.useCompactedValueDetermination = true
-
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
