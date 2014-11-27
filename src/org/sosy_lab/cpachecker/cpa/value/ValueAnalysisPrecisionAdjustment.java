@@ -44,7 +44,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates)
+  public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates, AbstractState fullState)
       throws CPAException, InterruptedException {
 
     return prec((ValueAnalysisState)pState, (VariableTrackingPrecision)pPrecision);

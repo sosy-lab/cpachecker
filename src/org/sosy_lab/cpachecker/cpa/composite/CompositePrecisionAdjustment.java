@@ -87,7 +87,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+                                               UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
@@ -105,7 +105,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      PrecisionAdjustmentResult out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      PrecisionAdjustmentResult out = precisionAdjustment.prec(oldElement, oldPrecision, slice, fullState);
       AbstractState newElement = out.abstractState();
       Precision newPrecision = out.precision();
       if (out.action() == Action.BREAK) {

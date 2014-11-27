@@ -135,7 +135,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
   @Override
   public PrecisionAdjustmentResult prec(AbstractState pElement,
                                                Precision pPrecision,
-                                               UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+                                               UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
     total.start();
     modified = false;
 
@@ -181,7 +181,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
       } else {
         totalComposite.start();
 
-        PrecisionAdjustmentResult result = precisionAdjustment.prec(oldState, oldPrecision, slice);
+        PrecisionAdjustmentResult result = precisionAdjustment.prec(oldState, oldPrecision, slice, fullState);
         AbstractState newElement = result.abstractState();
         Precision newPrecision = result.precision();
 

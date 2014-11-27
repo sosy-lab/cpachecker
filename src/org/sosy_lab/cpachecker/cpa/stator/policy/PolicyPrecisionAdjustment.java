@@ -10,7 +10,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class PolicyPrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(AbstractState state,
-      Precision precision, UnmodifiableReachedSet states)
+      Precision precision, UnmodifiableReachedSet states, AbstractState fullState)
       throws CPAException, InterruptedException {
 
     return PrecisionAdjustmentResult.create(

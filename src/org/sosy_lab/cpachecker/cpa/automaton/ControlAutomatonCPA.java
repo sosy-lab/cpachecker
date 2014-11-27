@@ -140,9 +140,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
       @Override
       public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
-          UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
+          UnmodifiableReachedSet pStates, AbstractState fullState) throws CPAException, InterruptedException {
 
-        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates, fullState);
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
           return wrappedPrec.withAction(Action.BREAK);

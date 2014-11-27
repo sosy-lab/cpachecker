@@ -91,7 +91,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
