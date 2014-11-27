@@ -8,35 +8,23 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 /**
  * Abstract domain for policy iteration.
@@ -44,49 +32,24 @@ import com.google.common.collect.Lists;
 @Options(prefix="cpa.stator.policy")
 public final class PolicyAbstractDomain implements AbstractDomain {
 
-  @Option(secure=true, name="pathFocusing",
-      description="Run (simplified) path focusing")
-  private boolean pathFocusing = true;
-
-  @Option(secure=true, name="runAcceleratedValueDetermination",
-      description="Maximize for the sum of the templates during value determination")
-  private boolean runAcceleratedValueDetermination = true;
-
-  @Option(secure=true, name="useCompactedValueDetermination",
-      description="Use only relevant nodes for value determination")
-  private boolean useCompactedValueDetermination = true;
-
   private final ValueDeterminationFormulaManager vdfmgr;
   private final LogManager logger;
   private final FormulaManagerFactory formulaManagerFactory;
-  private final LinearConstraintManager lcmgr;
-  private final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
-      rfmgr;
-  private final ShutdownNotifier shutdownNotifier;
-
   private final PolicyIterationStatistics statistics;
-  private final PathFocusingManager pathFocusingManager;
 
   //
   public PolicyAbstractDomain(
       Configuration config,
       ValueDeterminationFormulaManager vdfmgr,
-      FormulaManagerView fmgr,
       FormulaManagerFactory formulaManagerFactory,
       LogManager logger,
-      LinearConstraintManager lcmgr,
-      ShutdownNotifier pShutdownNotifier,
       PolicyIterationStatistics pStatistics
   ) throws InvalidConfigurationException {
     config.inject(this, PolicyAbstractDomain.class);
     this.vdfmgr = vdfmgr;
     this.logger = logger;
     this.formulaManagerFactory = formulaManagerFactory;
-    this.lcmgr = lcmgr;
-    rfmgr = fmgr.getRationalFormulaManager();
-    shutdownNotifier = pShutdownNotifier;
     statistics = pStatistics;
-    pathFocusingManager = new PathFocusingManager(pShutdownNotifier, statistics);
   }
 
 
@@ -183,87 +146,13 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
     logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
-    PolicyAbstractState joinedState;
-    if (runAcceleratedValueDetermination) {
-
-      joinedState = valueDeterminationMaximizationCombinedObjectives(
+    PolicyAbstractState joinedState = vdfmgr.valueDeterminationMaximization(
           prevState, allTemplates, updated, node, valueDeterminationConstraints);
-    } else {
-
-      joinedState = vdfmgr.valueDeterminationMaximization(
-          prevState, allTemplates, updated, node, valueDeterminationConstraints);
-    }
 
     Preconditions.checkState(isLessOrEqual(newState, joinedState));
     Preconditions.checkState(isLessOrEqual(prevState, joinedState));
     logger.log(Level.FINE, "# New state after merge: ", joinedState);
     return joinedState;
-  }
-
-
-
-  /**
-   * Fasten up the value determination computation by concurrently
-   * maximizing for multiple constraints.
-   */
-  private PolicyAbstractState valueDeterminationMaximizationCombinedObjectives(
-      PolicyAbstractState prevState,
-      Templates templates,
-      Map<LinearExpression, PolicyBound> updated,
-      CFANode node,
-      List<BooleanFormula> pValueDeterminationConstraints)
-      throws InterruptedException, CPATransferException {
-
-    ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
-    Set<LinearExpression> unbounded = new HashSet<>();
-
-    Map<NumeralFormula, Pair<PolicyBound, LinearExpression>> objectives = new HashMap<>();
-    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
-      LinearExpression template = policyValue.getKey();
-      NumeralFormula objective = rfmgr.makeVariable(
-          vdfmgr.absDomainVarName(node, template));
-      objectives.put(objective, Pair.of(policyValue.getValue(), template));
-    }
-
-    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-      for (BooleanFormula constraint : pValueDeterminationConstraints) {
-        solver.addConstraint(constraint);
-      }
-
-      statistics.valueDeterminationSolverTimer.start();
-      statistics.valueDetCalls++;
-      Map<NumeralFormula, ExtendedRational> model;
-      try {
-        model = lcmgr.maximizeObjectives(solver,
-                Lists.newArrayList(objectives.keySet()));
-      } catch (SolverException e) {
-        logUnsatCore(pValueDeterminationConstraints);
-        throw new CPATransferException("Failed maximization", e);
-      } finally {
-        statistics.valueDeterminationSolverTimer.stop();
-      }
-
-      for (Entry<NumeralFormula, ExtendedRational> e : model.entrySet()) {
-        NumeralFormula f = e.getKey();
-        ExtendedRational newValue = e.getValue();
-        Pair<PolicyBound, LinearExpression> p = objectives.get(f);
-        LinearExpression template = p.getSecond();
-        PolicyBound templateBound = p.getFirst();
-
-        assert (template != null && templateBound != null);
-        CFAEdge policyEdge = templateBound.trace;
-
-        if (newValue.isRational()) {
-          builder.put(
-              template,
-              PolicyBound.of(policyEdge, newValue.getRational()));
-        } else {
-          unbounded.add(template);
-        }
-      }
-    }
-    return prevState.withUpdates(
-        builder.build(), unbounded, templates);
   }
 
   enum PARTIAL_ORDER {

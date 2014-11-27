@@ -23,12 +23,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -183,18 +183,27 @@ public class PolicyTransferRelation  extends
           solver.addConstraint(constraint);
         }
 
-        ExtendedRational value = lcmgr.maximize(solver, template, outputSSA);
+        NumeralFormula objective = lcmgr.linearExpressionToFormula(
+            template, outputSSA);
+        solver.maximize(objective);
 
-        // If the state is not reachable, bail early.
-        if (value == ExtendedRational.NEG_INFTY) {
-          logger.log(Level.FINE, "# Stopping, unfeasible branch.");
-          return Collections.emptyList();
-        } else if (value.isRational()) {
-          PolicyBound constraint = PolicyBound.of(
-              edge, value.getRational());
-          logger.log(Level.FINE, "# Updating constraint on node", toNode,
-              " template ", template, " to ", constraint);
-          newStateData.put(template, constraint);
+        OptEnvironment.OptStatus result = solver.check();
+
+        switch (result) {
+          case OPT:
+            PolicyBound constraint = PolicyBound.of(
+                edge, solver.value());
+            logger.log(Level.FINE, "# Updating constraint on node", toNode,
+                " template ", template, " to ", constraint);
+            newStateData.put(template, constraint);
+            break;
+          case UNSAT:
+            logger.log(Level.FINE, "# Stopping, unfeasible branch.");
+            return Collections.emptyList();
+          case UNBOUNDED:
+            continue;
+          case UNDEF:
+            throw new CPATransferException("Unexpected solver status: undefined");
         }
       } catch (SolverException e) {
         throw new CPATransferException("Failed maximization", e);

@@ -32,6 +32,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 
 /**
  * Configurable-Program-Analysis implementation for policy iteration.
+ *
+ * // TODO: we need to keep it around until path focusing will support
+ * // integration with other analysis.
  */
 @Options(prefix="cpa.policy")
 public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
@@ -61,10 +64,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     FormulaManagerView formulaManager = new FormulaManagerView(realFormulaManager, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-    FreshVariableManager freshVariableManager = new FreshVariableManager(
-        formulaManager.getRationalFormulaManager(),
-        formulaManager.getBooleanFormulaManager());
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger, freshVariableManager);
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger);
 
     statistics = new PolicyIterationStatistics(config);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
@@ -80,11 +80,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     abstractDomain = new PolicyAbstractDomain(
         config,
         valueDeterminationFormulaManager,
-        formulaManager,
         formulaManagerFactory,
         logger,
-        lcmgr,
-        shutdownNotifier,
         statistics
     );
 

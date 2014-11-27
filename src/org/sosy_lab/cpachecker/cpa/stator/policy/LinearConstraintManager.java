@@ -1,20 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -34,26 +29,17 @@ public class LinearConstraintManager {
 
   private final NumeralFormulaManagerView<
         NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
+
+  @SuppressWarnings("unused, FieldCanBeLocal")
   private final LogManager logger;
   private final FormulaManagerView fmgr;
 
-  /**
-   * Something which is bigger then MAX_INT/MAX_FLOW (or whatever domain we
-   * are working with).
-   */
-  private final Rational BAZILLION = Rational.ofString(
-      "100000000");
-  private final FreshVariableManager freshVariableManager;
-
   LinearConstraintManager(
       FormulaManagerView pFmgr,
-      LogManager logger,
-      FreshVariableManager pFreshVariableManager
-      ) {
+      LogManager pLogger) {
     fmgr = pFmgr;
     rfmgr = pFmgr.getRationalFormulaManager();
-    this.logger = logger;
-    freshVariableManager = pFreshVariableManager;
+    logger = pLogger;
   }
 
   /**
@@ -128,131 +114,6 @@ public class LinearConstraintManager {
     } else {
       return sum;
     }
-  }
-
-  /**
-   * Maximizes a list of input objectives, provided they are
-   * <i>independent</i> of each other -- that is maximizing
-   * their sum is equivalent to maximizing them separately.
-   * Assumes that the set of constraints on the solver is satisfiable.
-   *
-   * @return Mapping from the input formulas to the resulting maximized values.
-   */
-  public Map<NumeralFormula, ExtendedRational> maximizeObjectives(
-      OptEnvironment prover,
-      List<NumeralFormula> objectives)
-    throws SolverException, InterruptedException {
-
-    Map<String, NumeralFormula> input = new HashMap<>();
-    Map<NumeralFormula, ExtendedRational> out = new HashMap<>();
-
-    for (NumeralFormula formula : objectives) {
-      NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
-      prover.addConstraint(rfmgr.equal(target, formula));
-
-      // Enforce bounds for all variables.
-      prover.addConstraint(
-          rfmgr.lessOrEquals(target, rfmgr.makeNumber(BAZILLION.toString()))
-      );
-      input.put(target.toString(), formula);
-    }
-
-    NumeralFormula sum = rfmgr.sum(objectives);
-    NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
-    prover.addConstraint(rfmgr.equal(sum, target));
-    prover.maximize(target);
-    OptEnvironment.OptStatus status = prover.check();
-
-    switch (status) {
-      case OPT:
-        Model model = prover.getModel();
-        logger.log(Level.FINEST, "OPT");
-        logger.log(Level.FINEST, "Model = ", model);
-        for (Map.Entry<String, NumeralFormula> e : input.entrySet()) {
-          String varName = e.getKey();
-          NumeralFormula formula = e.getValue();
-          Rational r = rationalFromModel(model, varName);
-          ExtendedRational eOut;
-          if (r.equals(BAZILLION)) {
-            eOut = ExtendedRational.INFTY;
-          } else {
-            eOut = new ExtendedRational(r);
-          }
-          out.put(formula, eOut);
-        }
-        return out;
-      default:
-        throw new SolverException("Solver in the inconsistent state, aborting");
-    }
-  }
-
-  /**
-   * @param prover Prover engine used
-   * @param expression Expression to maximize
-   * @return Returned value in the extended rational field.
-   *
-   * @throws SolverException, InterruptedException
-   */
-  ExtendedRational maximize(
-      OptEnvironment prover, LinearExpression expression, SSAMap pSSAMap
-  ) throws SolverException, InterruptedException {
-
-    NumeralFormula objective = linearExpressionToFormula(expression, pSSAMap);
-    logger.log(Level.FINE, "MAXIMIZING for objective: ", objective);
-
-    return maximize(prover, objective);
-  }
-
-  /**
-   *  Lower-level API allowing one to provide the actual formula.
-   */
-  ExtendedRational maximize(
-      OptEnvironment prover, NumeralFormula objective
-  ) throws SolverException, InterruptedException {
-
-    // We can only maximize a single variable.
-    // Create a new variable, make it equal to the linear expression which we
-    // have.
-    NumeralFormula.RationalFormula target = freshVariableManager.freshRationalVar();
-
-    // Hack, Z3 does not seem to work well with unbounded
-    // objectives, so we simply constraint the result above by BAZILLION
-    // (a sufficiently large number), and if the output number is equal to
-    // the BAZILLION we say that the result is unbounded.
-    prover.addConstraint(
-        rfmgr.lessOrEquals(target, rfmgr.makeNumber(BAZILLION.toString()))
-    );
-
-    prover.addConstraint(rfmgr.equal(target, objective));
-    prover.maximize(target);
-
-    OptEnvironment.OptStatus result = prover.check();
-
-    switch (result) {
-      case OPT:
-        Model model = prover.getModel();
-        logger.log(Level.FINEST, "OPT");
-        logger.log(Level.FINEST, "Model = ", model);
-        return new ExtendedRational(rationalFromModel(model, target.toString()));
-      case UNSAT:
-        logger.log(Level.FINEST, "UNSAT");
-        return ExtendedRational.NEG_INFTY;
-      case UNBOUNDED:
-        logger.log(Level.FINEST, "UNBOUNDED");
-        return ExtendedRational.INFTY;
-      case UNDEF:
-        logger.log(Level.FINEST, "UNDEFINED");
-        throw new SolverException("Result undefined: something is wrong");
-      default:
-        logger.log(Level.FINEST, "ERROR RUNNING OPTIMIZATION");
-        throw new RuntimeException("Internal Error, unaccounted case");
-    }
-  }
-
-  public Rational rationalFromModel(Model model, String varName) {
-    return (Rational) model.get(
-        new Model.Constant(varName, Model.TermType.Real)
-    );
   }
 
   /**

@@ -127,10 +127,8 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-    FreshVariableManager freshVariableManager = new FreshVariableManager(
-        formulaManager.getRationalFormulaManager(),
-        formulaManager.getBooleanFormulaManager());
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager, logger, freshVariableManager);
+    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager,
+        logger);
     TemplateManager templateManager = new TemplateManager(config);
 
     statistics = new PolicyIterationStatistics(config);
