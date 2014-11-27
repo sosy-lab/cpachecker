@@ -137,7 +137,7 @@ public class PathFormulaTest {
     bamfvp.put("c", 7);
     builder.mergeFreshValueProviderWith(bamfvp);
 
-    assertThat(builder.getIndex("c") == 3);
+    assertThat(builder.getIndex("c")).is(3);
     assertThat(builder.getFreshIndex("c")).is(8);
 
     BAMFreshValueProvider bamfvp2 = new BAMFreshValueProvider();
