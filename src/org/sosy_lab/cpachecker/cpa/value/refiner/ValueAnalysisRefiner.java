@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.value.refinement")
-public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
+public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(secure=true, description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.TOP;
@@ -103,15 +103,15 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
   private int totalTargetsFound = 0;
   private final Timer totalTime = new Timer();
 
-  public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
+      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(valueAnalysisCpa.getConfiguration(),
+    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(valueAnalysisCpa.getConfiguration(),
                                     valueAnalysisCpa.getLogger(),
                                     valueAnalysisCpa.getShutdownNotifier(),
                                     valueAnalysisCpa.getCFA());
@@ -122,7 +122,7 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
     return refiner;
   }
 
-  ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
+  ValueAnalysisRefiner(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
           throws InvalidConfigurationException {
 
@@ -338,12 +338,12 @@ public class ValueAnalysisGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public String getName() {
-        return ValueAnalysisGlobalRefiner.class.getSimpleName();
+        return ValueAnalysisRefiner.class.getSimpleName();
       }
 
       @Override
       public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
-        ValueAnalysisGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
+        ValueAnalysisRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
   }

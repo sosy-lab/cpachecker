@@ -101,7 +101,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   /**
    * refiner used for value-analysis interpolation refinement
    */
-  private ValueAnalysisGlobalRefiner valueRefiner;
+  private ValueAnalysisRefiner valueRefiner;
 
   /**
    * backup-refiner used for predicate refinement, when value-analysis refinement fails (due to lack of expressiveness)
@@ -228,7 +228,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     cfa = pCfa;
 
-    valueRefiner  = new ValueAnalysisGlobalRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    valueRefiner  = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner = pBackupRefiner;
     staticRefiner = pValueAnalysisStaticRefiner;
   }
