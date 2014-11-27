@@ -1555,12 +1555,22 @@ cpa.value.precisionFile = no default value
 # multiple times per refinmenet
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
+cpa.value.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+cpa.value.refinement.exportInterpolationTree = no default value
+  allowed values: [NEVER, FINAL, ALWAYS]
 
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
+cpa.value.refinement.interpolationTreeExportFile = no default value
 
 # whether or not to do lazy-abstraction
+cpa.value.refinement.restart = BOTTOM
+  enum:     [TOP, BOTTOM, COMMON]
 cpa.value.refinement.restart = TOP
+  enum:     [TOP, BOTTOM, COMMON]
+cpa.value.refinement.restart = no default value
   enum:     [TOP, BOTTOM, COMMON]
 
 # globalPrec
@@ -1569,6 +1579,8 @@ cpa.value.refinement.useGlobalPrecision = false
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
+cpa.value.refinement.useTopDownInterpolationStrategy = true
+cpa.value.refinement.useTopDownInterpolationStrategy = no default value
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root

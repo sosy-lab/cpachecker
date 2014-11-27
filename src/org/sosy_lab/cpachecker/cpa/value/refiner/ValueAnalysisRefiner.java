@@ -74,7 +74,7 @@ import com.google.common.collect.Iterables;
 public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   @Option(secure=true, description="whether or not to do lazy-abstraction", name="restart", toUppercase = true)
-  private RestartStrategy restartStrategy = RestartStrategy.TOP;
+  private RestartStrategy restartStrategy = RestartStrategy.BOTTOM;
 
   @Option(secure=true, description="whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
   private boolean useTopDownInterpolationStrategy = true;
