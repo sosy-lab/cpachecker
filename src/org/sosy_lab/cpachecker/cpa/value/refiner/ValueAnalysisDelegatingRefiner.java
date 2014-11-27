@@ -25,18 +25,15 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -62,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -228,7 +224,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     cfa = pCfa;
 
-    valueRefiner  = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    valueRefiner = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
     predicatingRefiner = pBackupRefiner;
     staticRefiner = pValueAnalysisStaticRefiner;
   }
@@ -252,15 +248,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     } else {
 
       try {
-        ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
-        List<Pair<ValueAnalysisState, CFAEdge>> evaluatedPath = evaluator.evaluate(errorPath);
-
-        ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
-        Model model = va.allocateAssignmentsToPath(evaluatedPath, cfa.getMachineModel());
-
-        return CounterexampleInfo.feasible(pErrorPath, model);
-
+        return CounterexampleInfo.feasible(pErrorPath, createModel(errorPath));
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Failed to configure feasbility checker", e);
       }
@@ -308,14 +296,21 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+  /**
+   * This method creates a model for the given error path.
+   *
+   * @param errorPath the error path for which to create the model
+   * @return the model for the given error path
+   * @throws InvalidConfigurationException
+   * @throws InterruptedException
+   * @throws CPAException
+   */
+  private Model createModel(MutableARGPath errorPath) throws InvalidConfigurationException, InterruptedException,
+      CPAException {
+    ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
+    ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
 
-    valueRefiner.collectStatistics(pStatsCollection);
-
-    if (predicatingRefiner != null) {
-      predicatingRefiner.collectStatistics(pStatsCollection);
-    }
+    return va.allocateAssignmentsToPath(evaluator.evaluate(errorPath), cfa.getMachineModel());
   }
 
   /**
@@ -334,6 +329,16 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     }
     catch (InterruptedException | InvalidConfigurationException e) {
       throw new CPAException("counterexample-check failed: ", e);
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
+    valueRefiner.collectStatistics(pStatsCollection);
+
+    if (predicatingRefiner != null) {
+      predicatingRefiner.collectStatistics(pStatsCollection);
     }
   }
 }
