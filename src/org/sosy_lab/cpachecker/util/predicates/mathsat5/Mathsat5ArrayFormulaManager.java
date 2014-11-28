@@ -54,4 +54,5 @@ class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long
       FormulaType<TE> pElementType) {
     throw new UnsupportedOperationException("Please implement me!");
   }
+
 }

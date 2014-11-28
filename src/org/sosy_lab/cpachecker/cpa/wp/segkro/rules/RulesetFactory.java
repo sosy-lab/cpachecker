@@ -26,25 +26,27 @@ package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.Lists;
 
 
 public class RulesetFactory {
 
-  public static List<Rule> createRuleset() {
+  public static List<Rule> createRuleset(FormulaManager pFm, Solver pSolver) {
     List<Rule> result = Lists.newArrayList();
 
     // the ordering of this rules might be important!
 
-    result.add(new EliminationRule());
-    result.add(new EquivalenceRule());
-    result.add(new UniverifyRule());
-    result.add(new SubstitutionRule());
-    result.add(new LinkRule());
-    result.add(new ExistentialRule());
-    result.add(new ExtendLeftRule());
-    result.add(new ExtendRightRule());
+    result.add(new EliminationRule(pFm, pSolver));
+    result.add(new EquivalenceRule(pFm, pSolver));
+    result.add(new UniverifyRule(pFm, pSolver));
+    result.add(new SubstitutionRule(pFm, pSolver));
+    result.add(new LinkRule(pFm, pSolver));
+    result.add(new ExistentialRule(pFm, pSolver));
+    result.add(new ExtendLeftRule(pFm, pSolver));
+    result.add(new ExtendRightRule(pFm, pSolver));
 
     return result;
   }

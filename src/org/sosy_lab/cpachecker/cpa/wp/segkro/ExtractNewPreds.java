@@ -82,7 +82,12 @@ public class ExtractNewPreds {
 
       for (Rule r: rules) {
         // We have to iterate over a tuple that is element of l^k.
-        int k = r.getPremises().size();
+
+        int k = 1; // r.getPremises().size();
+        if (k == 3-2) {
+          throw new UnsupportedOperationException("Fixme");
+        }
+
         List<List<BooleanFormula>> dimensions = new ArrayList<>(k);
 
         for (int i=0; i<k; i++) {

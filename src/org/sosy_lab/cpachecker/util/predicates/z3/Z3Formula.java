@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
@@ -64,6 +66,22 @@ abstract class Z3Formula implements Formula {
   public long getExpr() {
     return z3expr;
   }
+}
+
+class Z3ArrayFormula<TD extends Formula, TR extends Formula> extends Z3Formula
+implements ArrayFormula<TD, TR> {
+
+  private final FormulaType<TD> domainType;
+  private final FormulaType<TR> rangeType;
+
+  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
+    super(pZ3context, pZ3expr);
+    domainType = pIndexType;
+    rangeType = pElementType;
+  }
+
+  public FormulaType<TD> getDomainType() { return domainType; }
+  public FormulaType<TR> getRangeType() { return rangeType; }
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {

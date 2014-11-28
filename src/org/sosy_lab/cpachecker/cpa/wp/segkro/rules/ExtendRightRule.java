@@ -23,7 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
 
 public class ExtendRightRule extends AbstractRule {
+
+  public ExtendRightRule(FormulaManager pFm, Solver pSolver) {
+    super(pFm, pSolver);
+  }
 
 }

@@ -35,13 +35,15 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.collect.Lists;
 
@@ -127,5 +129,21 @@ public class Z3Test {
   public void testErrorHandling() throws Exception {
     // Will exit(1) without an exception handler.
     fmgr.getRationalFormulaManager().makeNumber("not-a-number");
+  }
+
+  @Test @Ignore
+  public void testArrayTheory() {
+    ArrayFormulaManagerView afm = fmgr.getArrayFormulaManager();
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm = fmgr.getIntegerFormulaManager();
+
+    IntegerFormula _i = fmgr.makeVariable(NumeralType.IntegerType, "i");
+    IntegerFormula _1 = ifm.makeNumber(1);
+    IntegerFormula _0 = ifm.makeNumber(0);
+    IntegerFormula _i_plus_1 = ifm.add(_i, _1);
+
+    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    IntegerFormula _b_at_i_plus_1 = afm.select(_b, _i_plus_1);
+    BooleanFormula _b_at_i_plus_1_EQUAL_0 = ifm.equal(_b_at_i_plus_1, _0);
+
   }
 }

@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -80,21 +81,49 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
     return super.getFormulaType(pFormula);
   }
 
-  @Override
-  public FormulaType<?> getFormulaType(Long pFormula) {
+  private FormulaType<?> getFormulaTypeFromSort(Long pSort) {
     long z3context = getEnv();
-    long sort = get_sort(z3context, pFormula);
-    long sortKind = get_sort_kind(z3context, sort);
+    long sortKind = get_sort_kind(z3context, pSort);
     if (sortKind == Z3_BOOL_SORT) {
       return FormulaType.BooleanType;
     } else if (sortKind == Z3_INT_SORT) {
       return FormulaType.IntegerType;
+    } else if (sortKind == Z3_ARRAY_SORT) {
+      long domainSort = get_array_sort_domain(z3context, pSort);
+      long rangeSort = get_array_sort_range(z3context, pSort);
+      return FormulaType.getArrayType(
+          getFormulaTypeFromSort(domainSort),
+          getFormulaTypeFromSort(rangeSort));
     } else if (sortKind == Z3_REAL_SORT) {
       return FormulaType.RationalType;
     } else if (sortKind == Z3_BV_SORT) {
-      return FormulaType.getBitvectorTypeWithSize(get_bv_sort_size(z3context, sort));
+      return FormulaType.getBitvectorTypeWithSize(get_bv_sort_size(z3context, pSort));
     }
     throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Long pFormula) {
+    long sort = get_sort(getEnv(), pFormula);
+    return getFormulaTypeFromSort(sort);
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula>
+  FormulaType<TR> getArrayFormulaElementType(ArrayFormula<TD, TR> pArray) {
+    return ((Z3ArrayFormula<TD,TR>) pArray).getRangeType();
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula>
+  FormulaType<TD> getArrayFormulaIndexType(ArrayFormula<TD, TR> pArray) {
+    return ((Z3ArrayFormula<TD,TR>) pArray).getDomainType();
+  }
+
+  @Override
+  protected <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> encapsulateArray(Long pTerm,
+      FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
+    return new Z3ArrayFormula<>(getEnv(), pTerm, pIndexType, pElementType);
   }
 
   @SuppressWarnings("unchecked")

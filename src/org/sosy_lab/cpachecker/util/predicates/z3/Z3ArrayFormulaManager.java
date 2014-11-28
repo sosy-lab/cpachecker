@@ -27,10 +27,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractArrayFormulaManager;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+
 
 class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long> {
 
   private final long z3context;
+
+  private final Table<Long, Long, Long> allocatedArraySorts = HashBasedTable.create();
 
   Z3ArrayFormulaManager(Z3FormulaCreator creator) {
     super(creator);
@@ -39,22 +44,36 @@ class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long
 
   @Override
   protected Long select(Long pArray, Long pIndex) {
-    return Z3NativeApi.mk_select(z3context, pArray, pIndex);
+    final long term = Z3NativeApi.mk_select(z3context, pArray, pIndex);
+    Z3NativeApi.inc_ref(z3context, term);
+    return term;
   }
 
   @Override
   protected Long store(Long pArray, Long pIndex, Long pValue) {
-    return Z3NativeApi.mk_store(z3context, pArray, pIndex, pValue);
+    final long term = Z3NativeApi.mk_store(z3context, pArray, pIndex, pValue);
+    Z3NativeApi.inc_ref(z3context, term);
+    return term;
   }
 
   @Override
   protected <TI extends Formula, TE extends Formula> Long internalMakeArray(String pName, FormulaType<TI> pIndexType,
       FormulaType<TE> pElementType) {
 
-    long indexType = toSolverType(pIndexType);
-    long elementType = toSolverType(pElementType);
+    final long indexType = toSolverType(pIndexType);
+    final long elementType = toSolverType(pElementType);
 
-    return Z3NativeApi.mk_array_sort(z3context, indexType, elementType);
+    Long allocatedArraySort = allocatedArraySorts.get(indexType, elementType);
+    if (allocatedArraySort == null) {
+      allocatedArraySort = Z3NativeApi.mk_array_sort(z3context, indexType, elementType);
+      Z3NativeApi.inc_ref(z3context, allocatedArraySort);
+      allocatedArraySorts.put(indexType, elementType, allocatedArraySort);
+    }
+
+    final long arrayTerm = getFormulaCreator().makeVariable(allocatedArraySort, pName);
+    Z3NativeApi.inc_ref(z3context, arrayTerm);
+
+    return arrayTerm;
   }
 
 }

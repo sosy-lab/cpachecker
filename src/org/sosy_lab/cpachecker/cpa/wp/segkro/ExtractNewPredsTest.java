@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.wp.segkro;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.TestLogManager;
@@ -34,8 +35,15 @@ import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.rules.RulesetFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.collect.Lists;
 
@@ -63,14 +71,33 @@ public class ExtractNewPredsTest {
     solver = new Solver(fmgr, factory);
 
     List<Rule> rules = Lists.newArrayList();
-    rules = RulesetFactory.createRuleset();
+    rules = RulesetFactory.createRuleset(formulaManager, solver);
 
     enp = new ExtractNewPreds(rules);
   }
 
-  @Test
+  @Test @Ignore
   public void test() {
-    // enp.extractNewPreds(pInputFormula)
+    ArrayFormulaManagerView afm = fmgr.getArrayFormulaManager();
+    BooleanFormulaManagerView bfm = fmgr.getBooleanFormulaManager();
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm = fmgr.getIntegerFormulaManager();
+
+    IntegerFormula _i = fmgr.makeVariable(NumeralType.IntegerType, "i");
+    IntegerFormula _al = fmgr.makeVariable(NumeralType.IntegerType, "al");
+    IntegerFormula _0 = ifm.makeNumber(0);
+    IntegerFormula _1 = ifm.makeNumber(1);
+    IntegerFormula _i_plus_1 = ifm.add(_i, _1);
+
+    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    IntegerFormula _b_at_i_plus_1 = afm.select(_b, _i_plus_1);
+    BooleanFormula _b_at_i_plus_1_EQUAL_0 = ifm.equal(_b_at_i_plus_1, _0);
+    BooleanFormula _b_at_i_plus_1_NOTEQUAL_0 = bfm.not(ifm.equal(_b_at_i_plus_1, _0));
+
+    BooleanFormula _i_LESS_al = ifm.lessThan(_i, _al);
+    BooleanFormula _i_plus_1_GEQ_al = ifm.greaterOrEquals(_i_plus_1, _al);
+
+
+
   }
 
 }

@@ -23,8 +23,59 @@
  */
 package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+/**
+ * Implementation of the "SUB" inference rule:
+ *    Substitution of equalities.
+ */
 public class SubstitutionRule extends AbstractRule {
 
+  public SubstitutionRule(FormulaManager pFm, Solver pSolver) {
+    super(pFm, pSolver);
+  }
+
+  private boolean equalFormulas(Formula f1, Formula f2) {
+    throw new UnsupportedOperationException("Implement me");
+  }
+
+  private Map<Formula, Formula> getEqualitiesFrom(BooleanFormula f) {
+    throw new UnsupportedOperationException("Implement me");
+  }
+
+  @Override
+  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
+
+    Set<BooleanFormula> result = Sets.newHashSet();
+    Map<Formula, Formula> varEqualExpressionMap = Maps.newHashMap();
+
+    // Create an index of the equalities
+    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
+      varEqualExpressionMap.putAll(getEqualitiesFrom(conjunctive));
+    }
+
+    // Perform the substitution
+    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
+      BooleanFormula substResult = fm.getUnsafeFormulaManager().substitute(conjunctive, varEqualExpressionMap);
+      result.add(substResult);
+    }
+
+    return result;
+  }
+
+  @Override
+  public Set<BooleanFormula> apply(BooleanFormula pInput) {
+    return apply(Lists.newArrayList(pInput));
+  }
 }

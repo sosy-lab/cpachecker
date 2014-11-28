@@ -29,8 +29,27 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface Rule {
-  public List<Premise>getPremises();
-  public Conclusion getConclusion();
 
+  /**
+   * @return  Return a human-readable name for the rule.
+   */
+  public String getRuleName();
+
+  /**
+   * Apply the rule for an arbitrary boolean formula that also might contain disjunctions.
+   *
+   * @param pInput  An arbitrary boolean formula
+   * @return  Set of boolean formulas (predicates) that can be concluded based on the rule.
+   */
   public Set<BooleanFormula> apply(BooleanFormula pInput);
+
+  /**
+   * Apply the rule and return a set of boolean formulas that can be concluded from the input.
+   *
+   * @param pConjunctiveInputPredicates
+   *        A set of boolean formulas (predicates) that do not contain disjunctions.
+   * @return
+   *        Set of boolean formulas (predicates) that can be concluded based on the rule.
+   */
+  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates);
 }
