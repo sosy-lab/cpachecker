@@ -24,14 +24,10 @@ import com.google.common.collect.ImmutableSet;
  *
  * Logic-less container class.
  */
-public final class PolicyAbstractState implements AbstractState,
+public final class PolicyState implements AbstractState,
     Iterable<Entry<LinearExpression, PolicyBound>>,
     Graphable {
 
-  /**
-   * Other known states.
-   * TODO
-   */
   private final ImmutableList<AbstractState> otherStates;
 
   /** All we care about: they are not divided per template. */
@@ -51,7 +47,7 @@ public final class PolicyAbstractState implements AbstractState,
   /**
    * Constructor with the abstraction provided.
    */
-  private PolicyAbstractState(
+  private PolicyState(
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode pNode,
@@ -67,7 +63,7 @@ public final class PolicyAbstractState implements AbstractState,
   /**
    * Constructor without the abstraction.
    */
-  private PolicyAbstractState(
+  private PolicyState(
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode pNode,
@@ -82,24 +78,24 @@ public final class PolicyAbstractState implements AbstractState,
   /**
    * Factory methods.
    */
-  public static PolicyAbstractState ofAbstraction(
+  public static PolicyState ofAbstraction(
       Map<LinearExpression, PolicyBound> data,
       Set<Template> templates,
       CFANode node,
       Set<CFAEdge> pIncomingEdges,
       Iterable<AbstractState> pOtherStates
   ) {
-    return new PolicyAbstractState(
+    return new PolicyState(
         pOtherStates, pIncomingEdges, node, data, templates);
   }
 
-  public static PolicyAbstractState ofIntermediate(
+  public static PolicyState ofIntermediate(
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode node,
       Set<Template> pTemplates
   ) {
-    return new PolicyAbstractState(
+    return new PolicyState(
         pOtherStates,
         pIncomingEdges,
         node,
@@ -107,8 +103,8 @@ public final class PolicyAbstractState implements AbstractState,
     );
   }
 
-  public static PolicyAbstractState empty(CFANode node) {
-    return new PolicyAbstractState(
+  public static PolicyState empty(CFANode node) {
+    return new PolicyState(
         ImmutableList.<AbstractState>of(), // other states
         ImmutableSet.<CFAEdge>of(), // incoming edges
         node, // node
@@ -152,7 +148,7 @@ public final class PolicyAbstractState implements AbstractState,
 
   /** Update methods */
 
-  public PolicyAbstractState withUpdates(
+  public PolicyState withUpdates(
       Map<LinearExpression, PolicyBound> updates,
       Set<LinearExpression> unbounded,
       Set<Template> newTemplates) {
@@ -178,7 +174,7 @@ public final class PolicyAbstractState implements AbstractState,
         }
       }
     }
-    return new PolicyAbstractState(
+    return new PolicyState(
         otherStates, incomingEdges, getNode(), builder.build(),
         newTemplates);
   }
@@ -220,7 +216,7 @@ public final class PolicyAbstractState implements AbstractState,
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    PolicyAbstractState other = (PolicyAbstractState)o;
+    PolicyState other = (PolicyState)o;
     return (abstraction.equals(other.abstraction) && node.equals(other.node));
   }
 

@@ -95,7 +95,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    return PolicyAbstractState.empty(node);
+    return PolicyState.empty(node);
   }
 
   @Override

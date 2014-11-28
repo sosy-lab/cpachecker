@@ -91,15 +91,15 @@ public class ValueDeterminationFormulaManager {
   }
 
   /**
-   * TODO: description.
+   *
    */
-  public Map<CFANode, PolicyAbstractState> findRelated(
-      PolicyAbstractState newState,
-      Map<CFANode, PolicyAbstractState> abstractStates,
+  public Map<CFANode, PolicyState> findRelated(
+      PolicyState newState,
+      Map<CFANode, PolicyState> abstractStates,
       CFANode focusedNode,
       Map<LinearExpression, PolicyBound> updated) {
 
-    Map<CFANode, PolicyAbstractState> out = new HashMap<>();
+    Map<CFANode, PolicyState> out = new HashMap<>();
     Set<CFANode> visited = Sets.newHashSet();
 
     LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
@@ -110,7 +110,7 @@ public class ValueDeterminationFormulaManager {
       it.remove();
       visited.add(node);
 
-      PolicyAbstractState state;
+      PolicyState state;
       if (node == focusedNode) {
         state = newState;
 
@@ -149,15 +149,15 @@ public class ValueDeterminationFormulaManager {
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      Map<CFANode, PolicyAbstractState> policy,
+      Map<CFANode, PolicyState> policy,
       final CFANode focusedNode,
       final Map<LinearExpression, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, PolicyAbstractState> entry : policy.entrySet()) {
+    for (Entry<CFANode, PolicyState> entry : policy.entrySet()) {
       CFANode toNode = entry.getKey();
-      PolicyAbstractState state = entry.getValue();
+      PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
 
       for (Entry<LinearExpression, PolicyBound> incoming : state) {
@@ -236,8 +236,8 @@ public class ValueDeterminationFormulaManager {
   /**
    * Perform the associated maximization.
    */
-  PolicyAbstractState valueDeterminationMaximization(
-      PolicyAbstractState prevState,
+  PolicyState valueDeterminationMaximization(
+      PolicyState prevState,
       Set<Template> templates,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,

@@ -21,8 +21,8 @@ public class PolicyMergeOperator implements MergeOperator{
     statistics.timeInMerge.start();
     try {
       AbstractState out = domain.join(
-          (PolicyAbstractState)newState,
-          (PolicyAbstractState)prevState,
+          (PolicyState)newState,
+          (PolicyState)prevState,
           (PolicyPrecision)p);
 
       // Note: returning an exactly same state is important, due to the issues

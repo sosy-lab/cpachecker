@@ -64,9 +64,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
    * @param prevState A previous abstract state for this node (if such exists)
    * @return New abstract state.
    */
-  public PolicyAbstractState join(
-      final PolicyAbstractState newState,
-      final PolicyAbstractState prevState,
+  public PolicyState join(
+      final PolicyState newState,
+      final PolicyState prevState,
       PolicyPrecision precision)
       throws CPAException, InterruptedException {
 
@@ -126,9 +126,9 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     }
   }
 
-  private PolicyAbstractState valueDetermination(
-      final PolicyAbstractState prevState,
-      final PolicyAbstractState newState,
+  private PolicyState valueDetermination(
+      final PolicyState prevState,
+      final PolicyState newState,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
       Set<Template> allTemplates,
@@ -140,7 +140,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
         "There must exist at least one policy for which the new" +
         "node is strictly larger");
 
-    Map<CFANode, PolicyAbstractState> policy = vdfmgr.findRelated(
+    Map<CFANode, PolicyState> policy = vdfmgr.findRelated(
         newState, toMap(precision), node, updated);
     logger.log(Level.FINE, "# Policy: ", policy);
 
@@ -149,7 +149,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
     logger.log(Level.FINE, "# Resulting formula: \n", valueDeterminationConstraints, "\n# end");
 
-    PolicyAbstractState joinedState = vdfmgr.valueDeterminationMaximization(
+    PolicyState joinedState = vdfmgr.valueDeterminationMaximization(
           prevState, allTemplates, updated, node, valueDeterminationConstraints);
 
     Preconditions.checkState(isLessOrEqual(newState, joinedState));
@@ -171,15 +171,15 @@ public final class PolicyAbstractDomain implements AbstractDomain {
 
     logger.log(Level.FINE, "# Comparing state =", newState, " to the state =", prevState);
     PARTIAL_ORDER ord = compare(
-        (PolicyAbstractState)newState, (PolicyAbstractState)prevState
+        (PolicyState)newState, (PolicyState)prevState
     );
     boolean ret = (ord == PARTIAL_ORDER.LESS || ord == PARTIAL_ORDER.EQUAL);
     logger.log(Level.FINE, "# Got comparison result = ", ord, ", returning = ", ret);
     return ret;
   }
 
-  PARTIAL_ORDER compare(PolicyAbstractState newState,
-                        PolicyAbstractState prevState) {
+  PARTIAL_ORDER compare(PolicyState newState,
+                        PolicyState prevState) {
 
     if (newState == prevState) {
       return PARTIAL_ORDER.EQUAL;
@@ -222,10 +222,10 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     return ret;
   }
 
-  private Map<CFANode, PolicyAbstractState> toMap(PolicyPrecision p) {
-    Map<CFANode, PolicyAbstractState> out = new HashMap<>();
+  private Map<CFANode, PolicyState> toMap(PolicyPrecision p) {
+    Map<CFANode, PolicyState> out = new HashMap<>();
     for (AbstractState s : p.getReached()) {
-      PolicyAbstractState state = (PolicyAbstractState) s;
+      PolicyState state = (PolicyState) s;
       Preconditions.checkState(!out.containsKey(state.getNode()));
       out.put(state.getNode(), state);
     }

@@ -57,8 +57,8 @@ public class PolicyTransferRelation  extends
    * phase with other states.
    */
   public static class LazyState implements AbstractState {
-    final PolicyAbstractState previousState;
-    public LazyState(PolicyAbstractState pState) {
+    final PolicyState previousState;
+    public LazyState(PolicyState pState) {
       previousState = pState;
     }
   }
@@ -94,7 +94,7 @@ public class PolicyTransferRelation  extends
       ) throws CPATransferException, InterruptedException {
 
     // Lazy evaluation: postpone the analysis until {@code strengthen} is called.
-    return Collections.singleton(new LazyState((PolicyAbstractState) pState));
+    return Collections.singleton(new LazyState((PolicyState) pState));
   }
 
   /**
@@ -124,8 +124,8 @@ public class PolicyTransferRelation  extends
     }
   }
 
-  public Collection<PolicyAbstractState> getAbstractSuccessors(
-      PolicyAbstractState prevState,
+  public Collection<PolicyState> getAbstractSuccessors(
+      PolicyState prevState,
       CFAEdge edge,
       List<PathFormulaReportingState> reportingStates
   ) throws CPATransferException, InterruptedException {
@@ -215,7 +215,7 @@ public class PolicyTransferRelation  extends
       }
     }
 
-    PolicyAbstractState newState = PolicyAbstractState.ofAbstraction(
+    PolicyState newState = PolicyState.ofAbstraction(
         newStateData.build(), toTemplates, toNode,
         new HashSet<CFAEdge>(), new ArrayList<AbstractState>());
 

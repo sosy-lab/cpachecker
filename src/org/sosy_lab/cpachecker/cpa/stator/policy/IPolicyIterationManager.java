@@ -15,25 +15,25 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * Interface for the processing functions for policy iteration.
  */
 public interface IPolicyIterationManager {
-  PolicyAbstractState join(
-      PolicyAbstractState oldState,
-      PolicyAbstractState newState
+  PolicyState join(
+      PolicyState oldState,
+      PolicyState newState
   ) throws CPAException, InterruptedException;
 
   boolean isLessOrEqual(
-      PolicyAbstractState state1,
-      PolicyAbstractState state2
+      PolicyState state1,
+      PolicyState state2
   ) throws CPAException, InterruptedException;
 
-  Collection<PolicyAbstractState> getAbstractSuccessors(
-      PolicyAbstractState state, CFAEdge edge
+  Collection<PolicyState> getAbstractSuccessors(
+      PolicyState state, CFAEdge edge
   ) throws CPATransferException, InterruptedException;
 
-  Collection<PolicyAbstractState> strengthen(
-      PolicyAbstractState state,
+  Collection<PolicyState> strengthen(
+      PolicyState state,
       List<AbstractState> otherStates,
       @Nullable CFAEdge pCFAEdge
   ) throws CPATransferException, InterruptedException;
 
-  PolicyAbstractState getInitialState(CFANode node);
+  PolicyState getInitialState(CFANode node);
 }

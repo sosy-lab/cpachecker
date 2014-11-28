@@ -61,12 +61,9 @@ public class LinearConstraintManager {
    * @param pSSAMap Version number for each variable.
    *
    * @return NumeralFormula for the SMT solver.
-   * @throws UnsupportedOperationException if the conversion can not be
-   * performed.
    */
   NumeralFormula linearExpressionToFormula(
-      LinearExpression expr, SSAMap pSSAMap)
-      throws UnsupportedOperationException {
+      LinearExpression expr, SSAMap pSSAMap) {
     return linearExpressionToFormula(expr, pSSAMap, "");
   }
 
@@ -76,8 +73,6 @@ public class LinearConstraintManager {
    * @param customPrefix Custom string prefix to add before each variable.
    *
    * @return NumeralFormula for the SMT solver.
-   * @throws UnsupportedOperationException if the conversion can not be
-   * performed.
    */
   NumeralFormula linearExpressionToFormula(
       LinearExpression expr, SSAMap pSSAMap, String customPrefix
@@ -93,11 +88,11 @@ public class LinearConstraintManager {
 
       NumeralFormula item = rfmgr.makeVariable(customPrefix + origVarName, idx);
 
-      if (coeff.equals(Rational.ZERO)) {
+      if (coeff == Rational.ZERO) {
         continue;
-      } else if (coeff.equals(Rational.NEG_ONE)) {
+      } else if (coeff == Rational.NEG_ONE) {
         item = rfmgr.negate(item);
-      } else if (!coeff.equals(Rational.ONE)){
+      } else if (coeff != Rational.ONE){
         item = rfmgr.multiply(
             item, rfmgr.makeNumber(entry.getValue().toString()));
       }

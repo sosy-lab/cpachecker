@@ -113,7 +113,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final ImmutableMap<CFANode, LoopStructure.Loop> loopStructure;
 
   /** Scary-hairy global, contains all abstract states. */
-  private final Map<CFANode, PolicyAbstractState> abstractStates;
+  private final Map<CFANode, PolicyState> abstractStates;
 
   /** Another scary global, all nodes found to be unreachable */
   private final Set<CFANode> unreachable;
@@ -129,53 +129,57 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * is {@code pNode}
    */
   @Override
-  public PolicyAbstractState getInitialState(CFANode pNode) {
-    PolicyAbstractState initial = PolicyAbstractState.empty(pNode);
+  public PolicyState getInitialState(CFANode pNode) {
+    PolicyState initial = PolicyState.empty(pNode);
     abstractStates.put(pNode, initial);
     return initial;
   }
 
   @Override
-  public Collection<PolicyAbstractState> getAbstractSuccessors(PolicyAbstractState oldState, CFAEdge edge)
+  public Collection<PolicyState> getAbstractSuccessors(PolicyState oldState, CFAEdge edge)
       throws CPATransferException, InterruptedException {
-
-    CFANode toNode = edge.getSuccessor();
 
     Set<Template> newTemplates = Sets.union(
         oldState.getTemplates(),
         templateManager.templatesForEdge(edge)
     );
 
-    PolicyAbstractState out = PolicyAbstractState.ofIntermediate(
+    PolicyState out = PolicyState.ofIntermediate(
         ImmutableList.<AbstractState>of(),
         ImmutableSet.of(edge),
         edge.getSuccessor(),
         newTemplates
     );
 
-    if (shouldPerformAbstraction(toNode)) {
+    // NOTE: the abstraction computation is delayed until the
+    // {@code strengthen} call.
 
-      Optional<PolicyAbstractState> abstraction = performAbstraction(out);
-      if (!abstraction.isPresent()) {
-        return Collections.emptyList();
-      }
-      out = abstraction.get();
-    }
-
-    abstractStates.put(toNode, out);
     return Collections.singleton(out);
   }
 
   @Override
-  public Collection<PolicyAbstractState> strengthen(
-      PolicyAbstractState state,
+  public Collection<PolicyState> strengthen(
+      PolicyState state,
       List<AbstractState> otherStates,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+
+    CFANode toNode = state.getNode();
+    if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
+
+      Optional<PolicyState> abstraction = performAbstraction(state);
+      if (!abstraction.isPresent()) {
+        unreachable.add(toNode);
+        abstractStates.put(toNode, state);
+        return Collections.emptyList();
+      }
+      state = abstraction.get();
+    }
+    abstractStates.put(toNode, state);
 
     statistics.strengthenTimer.start();
     try {
       if (state.isAbstract()) {
-        return null;
+        return Collections.singleton(state);
       }
 
       boolean hasTargetState = false;
@@ -191,11 +195,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           unreachable.add(state.getNode());
           return Collections.emptyList();
         } else {
-          return null;
+          return Collections.singleton(state);
         }
       }
 
-      return null;
+      return Collections.singleton(state);
 
     } finally {
       statistics.strengthenTimer.stop();
@@ -209,7 +213,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   @Override
   public boolean isLessOrEqual(
-       PolicyAbstractState oldState, PolicyAbstractState newState) {
+       PolicyState oldState, PolicyState newState) {
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract(),
         "Abstraction state of two states associated with the same node should " +
             "match");
@@ -242,12 +246,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   @Override
-  public PolicyAbstractState join(
-      PolicyAbstractState newState, PolicyAbstractState oldState)
+  public PolicyState join(
+      PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     statistics.timeInMerge.start();
     try {
-      PolicyAbstractState out = join0(newState, oldState);
+      PolicyState out = join0(newState, oldState);
       abstractStates.put(out.getNode(), out);
 
       // Note: returning an exactly same state is important, due to the issues
@@ -261,8 +265,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
   }
 
-  PolicyAbstractState join0(PolicyAbstractState newState,
-                            PolicyAbstractState oldState)
+  PolicyState join0(PolicyState newState,
+                            PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     Preconditions.checkState(oldState.getNode() == newState.getNode());
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
@@ -278,7 +282,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
-      return PolicyAbstractState.ofIntermediate(
+      return PolicyState.ofIntermediate(
           Iterables.concat(
               oldState.getOtherStates(), newState.getOtherStates()),
           Sets.union(oldState.getIncomingEdges(), newState.getIncomingEdges()),
@@ -311,7 +315,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
 
-    PolicyAbstractState stateWithUpdates =
+    PolicyState stateWithUpdates =
         oldState.withUpdates(updated, unbounded, allTemplates);
     logger.log(Level.FINE, "# State with updates: ", stateWithUpdates);
 
@@ -323,7 +327,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Restrict the set of nodes to the ones related to the
       // {@code updated} ones.
-      Map<CFANode, PolicyAbstractState> related =
+      // TODO: this is bad code, don't want to pass the global around.
+      // Later we can move it back to this class, after we get rid of
+      // PolicyCPA.
+      Map<CFANode, PolicyState> related =
           vdfmgr.findRelated(stateWithUpdates, abstractStates, node, updated);
 
       // Note: this formula contains no disjunctions, as the policy entails
@@ -368,7 +375,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether the {@param state} is reachable.
    */
-  private boolean checkSatisfiability(PolicyAbstractState state)
+  private boolean checkSatisfiability(PolicyState state)
         throws CPATransferException, InterruptedException {
 
     CFANode node = state.getNode();
@@ -394,7 +401,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Abstracted state if the state is reachable, empty optional
    * otherwise.
    */
-  private Optional<PolicyAbstractState> performAbstraction(PolicyAbstractState state)
+  private Optional<PolicyState> performAbstraction(PolicyState state)
       throws CPATransferException, InterruptedException {
     final CFANode node = state.getNode();
     final PathFormula p = allPathsToNode(state, node);
@@ -430,8 +437,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             visitedNodes.add(node);
 
             CFANode successor = node;
-            // Unfortunately this time we don't know the limit on the size
-            // of the policy.
             while (true) {
               int toNodeNo = successor.getNodeNumber();
               Object o = model.get(
@@ -482,7 +487,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
 
-    return Optional.of(PolicyAbstractState.ofAbstraction(
+    return Optional.of(PolicyState.ofAbstraction(
         abstraction.build(),
         state.getTemplates(),
         node,
@@ -523,7 +528,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   * Recursively compute the formula representing all possible paths
   * to the node {@param current} from the already resolved nodes.
   */
-  private PathFormula allPathsToNode(PolicyAbstractState toState, CFANode current)
+  private PathFormula allPathsToNode(PolicyState toState, CFANode current)
       throws CPATransferException, InterruptedException {
     HashMap<CFANode, PathFormula> memoization = new HashMap<>();
     return recAllPathsToNode(toState, current, memoization, true);
@@ -540,13 +545,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * NOTE: this computation can be cached.
    */
   private PathFormula recAllPathsToNode(
-      PolicyAbstractState finalToState,
+      PolicyState finalToState,
       CFANode toNode,
       Map<CFANode, PathFormula> memoization,
       boolean firstEntrance)
       throws CPATransferException, InterruptedException {
 
-    PolicyAbstractState s;
+    PolicyState s;
 
     // We use the non-abstracted version on the first iteration,
     // and the abstracted version on the second one.
@@ -577,8 +582,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       for (final CFAEdge edge : s.getIncomingEdges()) {
         CFANode predecessor = edge.getPredecessor();
         if (unreachable.contains(predecessor)) {
-          // TODO: what if all predecessors are unreachable?
-          // What do we return then?
           continue;
         }
 
@@ -593,9 +596,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Recursively compute the value for the predecessor.
         // Try the memoization cache first.
-        PathFormula prev = memoization.get(predecessor);
-
         // Issue the recursive call if the cache is empty.
+        PathFormula prev = memoization.get(predecessor);
         if (prev == null) {
           prev = recAllPathsToNode(finalToState, predecessor, memoization, false);
         }
@@ -611,6 +613,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           out = pfmgr.makeOr(out, p);
         }
       }
+
+      if (out == null) {
+        // Return false if no input is available.
+        out = new PathFormula(
+            bfmgr.makeBoolean(false),
+            SSAMap.emptySSAMap(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            1
+        );
+      }
     }
 
     memoization.put(toNode, out);
@@ -618,7 +630,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   private BooleanFormula abstractStateToFormula(
-      PolicyAbstractState abstractState, SSAMap ssa) {
+      PolicyState abstractState, SSAMap ssa) {
 
     List<BooleanFormula> tokens = new ArrayList<>();
     for (Entry<LinearExpression, PolicyBound> entry : abstractState) {

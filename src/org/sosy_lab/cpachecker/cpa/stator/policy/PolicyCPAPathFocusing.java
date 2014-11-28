@@ -62,8 +62,8 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
     public AbstractState join(AbstractState state1, AbstractState state2)
         throws CPAException, InterruptedException {
      return policyIterationManager.join(
-         (PolicyAbstractState) state1,
-         (PolicyAbstractState) state2
+         (PolicyState) state1,
+         (PolicyState) state2
      );
     }
 
@@ -71,8 +71,8 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
     public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
         throws CPAException, InterruptedException {
       return policyIterationManager.isLessOrEqual(
-          (PolicyAbstractState) state1,
-          (PolicyAbstractState) state2
+          (PolicyState) state1,
+          (PolicyState) state2
       );
     }
   }
@@ -92,7 +92,7 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
         AbstractState state, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
       return policyIterationManager.getAbstractSuccessors(
-          (PolicyAbstractState) state, cfaEdge
+          (PolicyState) state, cfaEdge
       );
     }
 
@@ -101,7 +101,7 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
         List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
         Precision precision) throws CPATransferException, InterruptedException {
       return policyIterationManager.strengthen(
-          (PolicyAbstractState) state, otherStates, cfaEdge);
+          (PolicyState) state, otherStates, cfaEdge);
     }
   }
 
