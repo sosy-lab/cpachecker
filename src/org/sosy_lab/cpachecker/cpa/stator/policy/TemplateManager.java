@@ -7,9 +7,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 @Options(prefix="cpa.stator.policy")
@@ -30,30 +32,41 @@ public class TemplateManager {
     pConfig.inject(this, TemplateManager.class);
   }
 
-  public Templates updateTemplatesForEdge(
-      Templates prevTemplates, CFAEdge edge) {
-
-    Set<LinearExpression> newTemplates = new HashSet<>();
+  public Set<Template> templatesForEdge(CFAEdge edge) {
+    Set<Template> templates = new HashSet<>();
     if (edge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+      CDeclaration declaration = declarationEdge.getDeclaration();
 
-      if ((declarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
+      // Only C is handled for now.
+      if (declaration instanceof CVariableDeclaration) {
+        CVariableDeclaration variableDeclaration =
+            (CVariableDeclaration)declaration;
+
         String varName = declarationEdge.getDeclaration().getQualifiedName();
         if (!varName.contains(TMP_VARIABLE)) {
-          // NOTE: Let's also check for liveness! [other property?
-          // CPA communication FTW!!].
+
+          // TODO: check for liveness, this information is available now.
           // If the variable is no longer alive at a certain location
           // there is no point in tracking it (deeper analysis -> dependencies).
           if (generateUpperBound) {
-            newTemplates.add(LinearExpression.ofVariable(varName));
+            templates.add(
+                new Template(
+                    LinearExpression.ofVariable(varName),
+                    variableDeclaration
+                )
+            );
           }
           if (generateLowerBound) {
-            newTemplates.add(LinearExpression.ofVariable(varName).negate());
+            templates.add(
+                new Template(
+                    LinearExpression.ofVariable(varName).negate(),
+                    variableDeclaration));
           }
         }
       }
     }
-    return prevTemplates.withTemplates(newTemplates);
+    return templates;
   }
 
 

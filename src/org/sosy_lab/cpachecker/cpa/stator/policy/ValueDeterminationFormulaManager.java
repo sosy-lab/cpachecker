@@ -238,7 +238,7 @@ public class ValueDeterminationFormulaManager {
    */
   PolicyAbstractState valueDeterminationMaximization(
       PolicyAbstractState prevState,
-      Templates templates,
+      Set<Template> templates,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
       List<BooleanFormula> pValueDeterminationConstraints

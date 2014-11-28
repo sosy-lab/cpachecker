@@ -46,7 +46,7 @@ public final class PolicyAbstractState implements AbstractState,
       abstraction;
 
   /** Templates tracked. NOTE: might be better to just resort back to a set. */
-  private final Templates templates;
+  private final ImmutableSet<Template> templates;
 
   /**
    * Constructor with the abstraction provided.
@@ -56,12 +56,12 @@ public final class PolicyAbstractState implements AbstractState,
       Set<CFAEdge> pIncomingEdges,
       CFANode pNode,
       Map<LinearExpression, PolicyBound> pPAbstraction,
-      Templates pTemplates) {
+      Set<Template> pTemplates) {
     otherStates = ImmutableList.copyOf(pOtherStates);
     incomingEdges = ImmutableSet.copyOf(pIncomingEdges);
     node = pNode;
     abstraction = Optional.of(ImmutableMap.copyOf(pPAbstraction));
-    templates = pTemplates;
+    templates = ImmutableSet.copyOf(pTemplates);
   }
 
   /**
@@ -71,12 +71,12 @@ public final class PolicyAbstractState implements AbstractState,
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode pNode,
-      Templates pTemplates) {
+      Set<Template> pTemplates) {
     otherStates = ImmutableList.copyOf(pOtherStates);
     incomingEdges = ImmutableSet.copyOf(pIncomingEdges);
     node = pNode;
     abstraction = Optional.absent();
-    templates = pTemplates;
+    templates = ImmutableSet.copyOf(pTemplates);
   }
 
   /**
@@ -84,7 +84,7 @@ public final class PolicyAbstractState implements AbstractState,
    */
   public static PolicyAbstractState ofAbstraction(
       Map<LinearExpression, PolicyBound> data,
-      Templates templates,
+      Set<Template> templates,
       CFANode node,
       Set<CFAEdge> pIncomingEdges,
       Iterable<AbstractState> pOtherStates
@@ -97,7 +97,7 @@ public final class PolicyAbstractState implements AbstractState,
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode node,
-      Templates pTemplates
+      Set<Template> pTemplates
   ) {
     return new PolicyAbstractState(
         pOtherStates,
@@ -113,7 +113,7 @@ public final class PolicyAbstractState implements AbstractState,
         ImmutableSet.<CFAEdge>of(), // incoming edges
         node, // node
         ImmutableMap.<LinearExpression, PolicyBound>of(),
-        Templates.empty() // templates
+        ImmutableSet.<Template>of() // templates
     );
   }
 
@@ -142,7 +142,7 @@ public final class PolicyAbstractState implements AbstractState,
     return Optional.fromNullable(abstraction.get().get(e));
   }
 
-  public Templates getTemplates() {
+  public ImmutableSet<Template> getTemplates() {
     return templates;
   }
 
@@ -155,26 +155,27 @@ public final class PolicyAbstractState implements AbstractState,
   public PolicyAbstractState withUpdates(
       Map<LinearExpression, PolicyBound> updates,
       Set<LinearExpression> unbounded,
-      Templates newTemplates) {
+      Set<Template> newTemplates) {
     Preconditions.checkState(abstraction.isPresent(),
         "Updates can only be applied to the abstracted state");
 
     ImmutableMap<LinearExpression, PolicyBound> map = abstraction.get();
 
-    ImmutableSet<LinearExpression> allTemplates = ImmutableSet.<LinearExpression>
-        builder().addAll(updates.keySet()).addAll(map.keySet()).build();
-
     ImmutableMap.Builder<LinearExpression, PolicyBound> builder =
         ImmutableMap.builder();
 
-    for (LinearExpression template : allTemplates) {
-      if (unbounded.contains(template)) {
+    for (Template template : newTemplates) {
+      LinearExpression expr = template.linearExpression;
+      if (unbounded.contains(expr)) {
         continue;
       }
-      if (updates.containsKey(template)) {
-        builder.put(template, updates.get(template));
+      if (updates.containsKey(expr)) {
+        builder.put(expr, updates.get(expr));
       } else {
-        builder.put(template, map.get(template));
+        PolicyBound v = map.get(expr);
+        if (v != null) {
+          builder.put(expr, map.get(expr));
+        }
       }
     }
     return new PolicyAbstractState(

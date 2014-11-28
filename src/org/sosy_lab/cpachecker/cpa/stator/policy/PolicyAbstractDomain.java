@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 /**
  * Abstract domain for policy iteration.
@@ -82,11 +83,13 @@ public final class PolicyAbstractDomain implements AbstractDomain {
     /** Find the templates which were updated */
     final Map<LinearExpression, PolicyBound> updated = new HashMap<>();
 
-    Templates allTemplates = newState.getTemplates().merge(
-        prevState.getTemplates());
+    Set<Template> allTemplates = Sets.union(
+        newState.getTemplates(), prevState.getTemplates()
+    );
     Set<LinearExpression> unbounded = new HashSet<>();
 
-    for (LinearExpression template : allTemplates) {
+    for (Template templateWrapper : allTemplates) {
+      LinearExpression template = templateWrapper.linearExpression;
       PolicyBound newValue = newState.getBound(template).orNull();
       PolicyBound oldValue = prevState.getBound(template).orNull();
 
@@ -128,7 +131,7 @@ public final class PolicyAbstractDomain implements AbstractDomain {
       final PolicyAbstractState newState,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
-      Templates allTemplates,
+      Set<Template> allTemplates,
       PolicyPrecision precision)
       throws CPAException, InterruptedException {
 

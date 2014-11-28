@@ -54,10 +54,6 @@ import com.google.common.collect.Sets;
  */
 public class PolicyIterationManager {
 
-  /**
-   * Dependencies.
-   */
-  private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
   private final BooleanFormulaManager bfmgr;
@@ -81,7 +77,9 @@ public class PolicyIterationManager {
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics) {
-    cfa = pCfa;
+    /*
+    Dependencies.
+   */
     pfmgr = pPfmgr;
     lcmgr = pLcmgr;
     bfmgr = pBfmgr;
@@ -95,7 +93,7 @@ public class PolicyIterationManager {
 
     /** Compute the cache for nodes */
     ImmutableMap.Builder<Integer, CFANode> nodeMapBuilder = ImmutableMap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : pCfa.getAllNodes()) {
       nodeMapBuilder.put(node.getNodeNumber(), node);
     }
     nodeMap = nodeMapBuilder.build();
@@ -103,7 +101,7 @@ public class PolicyIterationManager {
     /** Compute the cache for loops */
     ImmutableMap.Builder<CFANode, LoopStructure.Loop> loopStructureBuilder =
         ImmutableMap.builder();
-    LoopStructure loopStructure1 = cfa.getLoopStructure().get();
+    LoopStructure loopStructure1 = pCfa.getLoopStructure().get();
     for (LoopStructure.Loop l : loopStructure1.getAllLoops()) {
       for (CFANode n : l.getLoopHeads()) {
         loopStructureBuilder.put(n, l);
@@ -152,8 +150,10 @@ public class PolicyIterationManager {
       throws CPATransferException, InterruptedException {
 
     CFANode toNode = edge.getSuccessor();
-    Templates newTemplates = templateManager.updateTemplatesForEdge(
-        oldState.getTemplates(), edge
+
+    Set<Template> newTemplates = Sets.union(
+        oldState.getTemplates(),
+        templateManager.templatesForEdge(edge)
     );
 
     PolicyAbstractState out = PolicyAbstractState.ofIntermediate(
@@ -283,8 +283,9 @@ public class PolicyIterationManager {
     final boolean isAbstract = oldState.isAbstract();
     final CFANode node = oldState.getNode();
 
-    Templates allTemplates = oldState.getTemplates().merge(
-        newState.getTemplates());
+    Set<Template> allTemplates = Sets.union(
+        oldState.getTemplates(), newState.getTemplates()
+    );
 
     if (!isAbstract) {
 
@@ -303,7 +304,8 @@ public class PolicyIterationManager {
 
     // Traditional join as currently present in the non-path-focusing code:
     // just pick the biggest bound, and keep the biggest trace to match.
-    for (LinearExpression template : allTemplates) {
+    for (Template templateWrapper : allTemplates) {
+      LinearExpression template = templateWrapper.linearExpression;
       Optional<PolicyBound> oldValue, newValue;
       oldValue = oldState.getBound(template);
       newValue = newState.getBound(template);
@@ -408,7 +410,9 @@ public class PolicyIterationManager {
     ImmutableMap.Builder<LinearExpression, PolicyBound> abstraction
         = ImmutableMap.builder();
 
-    for (final LinearExpression template : state.getTemplates()) {
+    for (Template templateWrapper : state.getTemplates()) {
+      LinearExpression template = templateWrapper.linearExpression;
+
       // Optimize for the template subject to the
       // constraints introduced by {@code p}.
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {

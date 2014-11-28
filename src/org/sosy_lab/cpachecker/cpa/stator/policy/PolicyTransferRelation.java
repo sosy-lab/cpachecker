@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 /**
  * Transfer relation for policy iteration.
@@ -138,8 +140,10 @@ public class PolicyTransferRelation  extends
         Collections.singletonList(edge));
 
     /** Propagating templates */
-    Templates toTemplates = templateManager.updateTemplatesForEdge(
-        prevState.getTemplates(), edge);
+    Set<Template> toTemplates = Sets.union(
+        prevState.getTemplates(),
+        templateManager.templatesForEdge(edge)
+    );
 
     /** Propagate the invariants */
     ImmutableMap.Builder<LinearExpression, PolicyBound> newStateData;
@@ -177,7 +181,8 @@ public class PolicyTransferRelation  extends
 
     constraints.add(edgeFormula.getFormula());
 
-    for (LinearExpression template : toTemplates) {
+    for (Template templateWrapper : toTemplates) {
+      LinearExpression template = templateWrapper.linearExpression;
       try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
         for (BooleanFormula constraint : constraints) {
           solver.addConstraint(constraint);
