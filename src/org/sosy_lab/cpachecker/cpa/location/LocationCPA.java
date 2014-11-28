@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -62,8 +64,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD);
+  public LocationCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD, config);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();

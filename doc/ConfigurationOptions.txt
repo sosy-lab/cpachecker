@@ -1614,6 +1614,10 @@ limits.time.cpu = -1ns
 # for infinite)
 limits.time.wall = -1ns
 
+# With this option enabled, instead of FunctionCall- and FunctionReturnEdges)
+# the FunctionSummaryEdges are used.
+location.useFunctionSummaryEdges = false
+
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
 
