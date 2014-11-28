@@ -336,7 +336,7 @@ public abstract class VariableTrackingPrecision implements Precision {
 
     @Override
     public boolean isEmpty() {
-      if (variableWhitelist.toString().isEmpty()) { return true; }
+      if (!variableWhitelist.toString().isEmpty()) { return false; }
       if (!vc.isPresent()) { return true; }
       VariableClassification varClass = vc.get();
 
