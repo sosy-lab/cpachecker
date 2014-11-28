@@ -290,8 +290,12 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   //////////////////////// IMPACT STUFF ///////////////////////////
 
   @Override
-  public VariableTrackingPrecision getGlobalPrecision() {
-    return globalPrecision;
+  public void forceRestart(ReachedSet reached) {
+    ARGState firstChild = Iterables.getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
+
+    new ARGReachedSet(reached).removeSubtree(firstChild,
+        globalPrecision,
+        VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
   }
 
   private Set<ARGState> strengthenStates(ValueAnalysisInterpolationTree interpolationTree) {
