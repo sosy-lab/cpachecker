@@ -50,9 +50,8 @@ import com.google.common.collect.Sets;
 
 /**
  * Main logic in a single class.
- * // TODO: extract the interface.
  */
-public class PolicyIterationManager {
+public class PolicyIterationManager implements IPolicyIterationManager {
 
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
@@ -77,9 +76,6 @@ public class PolicyIterationManager {
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics) {
-    /*
-    Dependencies.
-   */
     pfmgr = pPfmgr;
     lcmgr = pLcmgr;
     bfmgr = pBfmgr;
@@ -108,7 +104,6 @@ public class PolicyIterationManager {
       }
     }
     loopStructure = loopStructureBuilder.build();
-
     abstractStates = new HashMap<>();
   }
 
@@ -140,13 +135,15 @@ public class PolicyIterationManager {
    * @return Initial state for the analysis, assuming the first node
    * is {@param pNode}
    */
-  public AbstractState getInitialState(CFANode pNode) {
+  @Override
+  public PolicyAbstractState getInitialState(CFANode pNode) {
     PolicyAbstractState initial = PolicyAbstractState.empty(pNode);
     abstractStates.put(pNode, initial);
     return initial;
   }
 
-  Collection<PolicyAbstractState> getAbstractSuccessors(PolicyAbstractState oldState, CFAEdge edge)
+  @Override
+  public Collection<PolicyAbstractState> getAbstractSuccessors(PolicyAbstractState oldState, CFAEdge edge)
       throws CPATransferException, InterruptedException {
 
     CFANode toNode = edge.getSuccessor();
@@ -176,7 +173,8 @@ public class PolicyIterationManager {
     return Collections.singleton(out);
   }
 
-  public Collection<? extends AbstractState> strengthen(
+  @Override
+  public Collection<PolicyAbstractState> strengthen(
       PolicyAbstractState state,
       List<AbstractState> otherStates,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
@@ -222,7 +220,8 @@ public class PolicyIterationManager {
    * which is smaller-or-equal (with respect to the abstract lattice)
    * than the {@param newState}.
    */
-  boolean isLessOrEqual(PolicyAbstractState oldState, PolicyAbstractState newState) {
+  @Override
+  public boolean isLessOrEqual(PolicyAbstractState oldState, PolicyAbstractState newState) {
     // NOTE: hm this will stop being true if we enforce the abstraction after
     // N states (if it does not depend just on the node).
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract(),
@@ -256,7 +255,8 @@ public class PolicyIterationManager {
     }
   }
 
-  PolicyAbstractState join(PolicyAbstractState newState, PolicyAbstractState oldState)
+  @Override
+  public PolicyAbstractState join(PolicyAbstractState newState, PolicyAbstractState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     statistics.timeInMerge.start();
     try {

@@ -49,12 +49,12 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final PolicyIterationStatistics statistics;
-  private final PolicyIterationManager policyIterationManager;
+  private final IPolicyIterationManager policyIterationManager;
 
   public static class DelegateAbstractDomain implements AbstractDomain {
-    private final PolicyIterationManager policyIterationManager;
+    private final IPolicyIterationManager policyIterationManager;
 
-    public DelegateAbstractDomain(PolicyIterationManager pPolicyIterationManager) {
+    public DelegateAbstractDomain(IPolicyIterationManager pPolicyIterationManager) {
       policyIterationManager = pPolicyIterationManager;
     }
 
@@ -78,10 +78,10 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
   }
   
   public static class DelegateTransferRelation extends SingleEdgeTransferRelation {
-    private final PolicyIterationManager policyIterationManager;
+    private final IPolicyIterationManager policyIterationManager;
 
     public DelegateTransferRelation(
-        PolicyIterationManager pPolicyIterationManager) {
+        IPolicyIterationManager pPolicyIterationManager) {
       policyIterationManager = pPolicyIterationManager;
 
     }
