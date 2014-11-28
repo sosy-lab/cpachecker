@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -327,13 +328,29 @@ public final class InterpolationManager {
       }
 
       try {
-        return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
-      } catch (SolverException e) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
-      } finally {
-        if (!reuseInterpolationEnvironment) {
-          currentInterpolator.close();
+        try {
+          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+        } finally {
+          if (!reuseInterpolationEnvironment) {
+            currentInterpolator.close();
+          }
         }
+      } catch (SolverException e) {
+        logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
+
+        // Maybe the solver can handle the formulas if we do not attempt to interpolate
+        try (ProverEnvironment prover = factory.newProverEnvironment(true, false)) {
+          for (BooleanFormula block : f) {
+            prover.push(block);
+          }
+          if (!prover.isUnsat()) {
+            return getErrorPath(f, prover, elementsOnPath);
+          }
+        } catch (SolverException e2) {
+          // in case of exception throw original one below
+          logger.logDebugException(e2, "Solving trace failed even without interpolation");
+        }
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
     } finally {
@@ -915,6 +932,47 @@ public final class InterpolationManager {
     // add formula to solver environment
     pItpProver.push(branchingFormula);
 
+    return getErrorPath0(f, pItpProver, branchingFormula);
+  }
+
+  /**
+   * Get information about the error path from the solver after the formulas
+   * have been proved to be satisfiable.
+   *
+   * @param f The list of formulas on the path.
+   * @param pProver The solver.
+   * @param elementsOnPath The ARGElements of the paths represented by f.
+   * @return Information about the error path, including a satisfying assignment.
+   * @throws CPATransferException
+   * @throws InterruptedException
+   */
+  private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
+      ProverEnvironment pProver, Set<ARGState> elementsOnPath)
+      throws CPATransferException, SolverException, InterruptedException {
+
+    // get the branchingFormula
+    // this formula contains predicates for all branches we took
+    // this way we can figure out which branches make a feasible path
+    BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
+
+    if (bfmgr.isTrue(branchingFormula)) {
+      return CounterexampleTraceInfo.feasible(f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
+    }
+
+    // add formula to solver environment
+    pProver.push(branchingFormula);
+
+    return getErrorPath0(f, pProver, branchingFormula);
+  }
+
+  /**
+   * Call {@link #getErrorPath(List, InterpolatingProverEnvironment, Set)}
+   * or {@link #getErrorPath(List, ProverEnvironment, Set)} instead.
+   */
+  private CounterexampleTraceInfo getErrorPath0(List<BooleanFormula> f,
+      BasicProverEnvironment pItpProver, BooleanFormula branchingFormula)
+      throws CPATransferException, SolverException, InterruptedException {
+
     // need to ask solver for satisfiability again,
     // otherwise model doesn't contain new predicates
     boolean stillSatisfiable = !pItpProver.isUnsat();
@@ -934,7 +992,7 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> Model getModel(InterpolatingProverEnvironment<T> pItpProver) {
+  private Model getModel(BasicProverEnvironment pItpProver) {
     try {
       return pItpProver.getModel();
     } catch (SolverException e) {
