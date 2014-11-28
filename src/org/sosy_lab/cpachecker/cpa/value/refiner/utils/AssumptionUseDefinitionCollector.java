@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -61,7 +62,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+
+import com.google.common.base.Optional;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -251,8 +253,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             dependingVariables.remove(assignedVariable);
 
             collectedVariables.add(assignedVariable);
-            // also add special FUNCTION_RETURN_VAR as relevant variable
-            collectedVariables.add(VariableClassification.createFunctionReturnVariable(returnStatementEdge.getPredecessor().getFunctionName()));
+
+            // also add special function return variable as relevant variable
+            Optional<? extends AVariableDeclaration> returnVarName = returnStatementEdge.
+                getSuccessor().getEntryNode().getReturnVariable();
+            if(returnVarName.isPresent()) {
+              collectedVariables.add(returnVarName.get().getQualifiedName());
+            }
 
             if (returnStatementEdge.getExpression().isPresent()) {
               collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
