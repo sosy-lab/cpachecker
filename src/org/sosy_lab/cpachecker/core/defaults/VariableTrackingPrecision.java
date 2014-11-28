@@ -226,8 +226,14 @@ public abstract class VariableTrackingPrecision implements Precision {
     private boolean trackFloatVariables = true;
 
     @Option(secure=true, description ="If this option is used, variables that are addressed"
-        + "are tracked.")
+        + " may get tracked depending on the rest of the precision. When this option"
+        + " is disabled, a variable that is addressed is definitely not tracked.")
     private boolean trackAddressedVariables = true;
+
+    @Option(secure=true, description ="If this option is used, all variables that are"
+        + " of a different classification than IntAdd, IntEq and Boolean get tracked"
+        + " by the precision.")
+    private boolean trackVariablesBesidesEqAddBool = true;
 
     private Optional<VariableClassification> vc;
     private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
@@ -245,6 +251,7 @@ public abstract class VariableTrackingPrecision implements Precision {
       || !trackIntEqualVariables
       || !trackIntAddVariables
       || !trackAddressedVariables
+      || !trackVariablesBesidesEqAddBool
       || !variableBlacklist.toString().isEmpty();
     }
 
@@ -304,12 +311,17 @@ public abstract class VariableTrackingPrecision implements Precision {
         final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
         final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
 
-        final boolean isIgnoredBoolean = !trackBooleanVariables && varIsBoolean;
-        final boolean isIgnoredIntEqual = !trackIntEqualVariables && varIsIntEqual;
-        final boolean isIgnoredIntAdd = !trackIntAddVariables && varIsIntAdd;
-        final boolean isIgnoredAddressed = !trackAddressedVariables && varIsAddressed;
+        // if the variable is not in a matching classification we have to check
+        // if other variables should be tracked
+        if (!(varIsBoolean || varIsIntAdd || varIsIntEqual)) {
+          return trackVariablesBesidesEqAddBool;
+        }
 
-        return !(isIgnoredBoolean || isIgnoredIntAdd || isIgnoredIntEqual || isIgnoredAddressed);
+        final boolean isTrackedBoolean = trackBooleanVariables && varIsBoolean;
+        final boolean isTrackedIntEqual = trackIntEqualVariables && varIsIntEqual;
+        final boolean isTrackedIntAdd = trackIntAddVariables && varIsIntAdd;
+
+        return isTrackedBoolean || isTrackedIntAdd || isTrackedIntEqual;
       }
     }
 
@@ -346,10 +358,8 @@ public abstract class VariableTrackingPrecision implements Precision {
           !varClass.getIntEqualVars().isEmpty();
       boolean trackSomeIntAdds = trackIntAddVariables &&
           !varClass.getIntAddVars().isEmpty();
-      boolean trackSomeAddressed = trackAddressedVariables &&
-          !varClass.getAddressedVariables().isEmpty();
 
-      return !(trackSomeIntBools || trackSomeIntEquals || trackSomeIntAdds || trackSomeAddressed);
+      return !(trackSomeIntBools || trackSomeIntEquals || trackSomeIntAdds || trackVariablesBesidesEqAddBool);
     }
 
     @Override
