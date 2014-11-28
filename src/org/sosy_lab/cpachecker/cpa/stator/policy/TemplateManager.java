@@ -9,7 +9,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
@@ -34,7 +33,7 @@ public class TemplateManager {
 
   public Set<Template> templatesForEdge(CFAEdge edge) {
     Set<Template> templates = new HashSet<>();
-    if (edge instanceof ADeclarationEdge) {
+    if (edge instanceof CDeclarationEdge) {
       CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
       CDeclaration declaration = declarationEdge.getDeclaration();
 

@@ -467,7 +467,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                 // Trace has finished.
                 break;
               }
-              int fromNodeNo = Integer.valueOf(o.toString());
+              int fromNodeNo = Integer.parseInt(o.toString());
               CFAEdge edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
               assert edge != null;
               traceReversed.add(edge);
