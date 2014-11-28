@@ -609,10 +609,6 @@ cpa.bdd.bitsize = 64
 # use a smaller bitsize for all vars, that have only intEqual values
 cpa.bdd.compressIntEqual = true
 
-# Pattern for variablenames that will always be tracked with BDDs.This
-# pattern should only be used for known variables, i.e. for boolean vars.
-cpa.bdd.forceTrackingPattern = ""
-
 # declare the bits of a var from 0 to N or from N to 0
 cpa.bdd.initBitsIncreasing = true
 
@@ -625,30 +621,11 @@ cpa.bdd.initPartitions = Ordered = true
 # declare partitions ordered
 cpa.bdd.initPartitionsOrdered = true
 
-# whether the precision is initially empty (this should be set to true when
-# refinement is used)
-cpa.bdd.initiallyEmptyPrecision = false
-
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
-
-# whether or not to add newly-found variables only to the exact program
-# location or to the whole scope of the variable.
-cpa.bdd.precision.refinement.useScopedInterpolation = false
-
-# track boolean variables from cfa
-cpa.bdd.trackBoolean = true
-
-# track variables, only used in simple calculations (add, sub, gt, lt,
-# eq,...) from cfa as bitvectors with (default) 32 bits
-cpa.bdd.trackIntAdd = true
-
-# track variables from cfa, that are only compared for equality, they are
-# tracked as (small) bitvectors
-cpa.bdd.trackIntEqual = true
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1743,7 +1720,9 @@ pcc.useCores = 1
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
-# If this option is used, variables that are addressedare tracked.
+# If this option is used, variables that are addressed may get tracked
+# depending on the rest of the precision. When this option is disabled, a
+# variable that is addressed is definitely not tracked.
 precision.trackAddressedVariables = true
 
 # If this option is used, booleans from the cfa are tracked.
@@ -1760,6 +1739,10 @@ precision.trackIntAddVariables = true
 # If this option is used, variables that are only compared for equality are
 # tracked.
 precision.trackIntEqualVariables = true
+
+# If this option is used, all variables that are of a different
+# classification than IntAdd, IntEq and Boolean get tracked by the precision.
+precision.trackVariablesBesidesEqAddBool = true
 
 # blacklist regex for variables that won't be tracked by the CPA using this
 # precision
