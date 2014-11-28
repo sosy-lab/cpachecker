@@ -106,8 +106,8 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   private final LogManager logger;
 
   // statistics
-  private int totalRefinements  = 0;
-  private int totalTargetsFound = 0;
+  private int refinementCounter  = 0;
+  private int targetCounter = 0;
   private final Timer totalTime = new Timer();
 
   private final ARGCPA argCpa;
@@ -158,10 +158,10 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   public boolean performRefinement(final ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
     totalTime.start();
-    totalRefinements++;
+    refinementCounter++;
 
     List<ARGState> targets  = getErrorStates(pReached);
-    totalTargetsFound       = totalTargetsFound + targets.size();
+    targetCounter       = targetCounter + targets.size();
 
     // stop once any feasible counterexample is found
     if (isAnyPathFeasible(new ARGReachedSet(pReached), getTargetPaths(targets))) {
@@ -172,10 +172,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
     Set<ARGState> interpolatedTargets = new HashSet<>();
-    int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
-      i++;
-
       ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
       if (errorPath == null) {
         logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
@@ -195,14 +192,14 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       interpolationTree.addInterpolants(interpolatingRefiner.performInterpolation(errorPath, initialItp));
 
       if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-        interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
+        interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
       }
 
-      logger.log(Level.FINEST, "finished interpolation #", i);
+      logger.log(Level.FINEST, "finished interpolation #");
     }
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
 /*
     try (Writer w = Files.openOutputFile(Paths.get("output/ARG_" + totalRefinements + ".dot"))) {
@@ -477,9 +474,9 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    if (totalRefinements > 0) {
-      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
-      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
+    if (refinementCounter > 0) {
+      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
+      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
       out.println("Total time for global refinement:     " + totalTime);
 
       interpolatingRefiner.printStatistics(out, pResult, pReached);

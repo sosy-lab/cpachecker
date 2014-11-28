@@ -40,7 +40,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -67,6 +67,11 @@ class ValueAnalysisInterpolationTree {
    * the logger in use
    */
   private final LogManager logger;
+
+  /**
+   * the counter to count interpolation queries
+   */
+  private int interpolationCounter = 0;
 
   /**
    * the predecessor relation of the states contained in this tree
@@ -131,6 +136,7 @@ class ValueAnalysisInterpolationTree {
    * @return true if there are more paths left for interpolation, else false
    */
   public boolean hasNextPathForInterpolation() {
+    interpolationCounter++;
     return strategy.hasNextPathForInterpolation();
   }
 
@@ -167,7 +173,7 @@ class ValueAnalysisInterpolationTree {
    *
    * @param Path file the file to write to
    */
-  void exportToDot(Path file) {
+  void exportToDot(PathTemplate file, int refinementCounter) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
@@ -191,7 +197,7 @@ class ValueAnalysisInterpolationTree {
     }
     result.append("}");
 
-    try (Writer w = Files.openOutputFile(file)) {
+    try (Writer w = Files.openOutputFile(file.getPath(refinementCounter, interpolationCounter))) {
       w.write(result.toString());
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");

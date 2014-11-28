@@ -98,8 +98,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private int previousErrorPath = -1;
 
   // statistics
-  private int totalRefinements  = 0;
-  private int totalTargetsFound = 0;
+  private int refinementCounter  = 0;
+  private int targetCounter = 0;
   private final Timer totalTime = new Timer();
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -148,7 +148,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   public boolean performRefinement(final ARGReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing global refinement ...");
     totalTime.start();
-    totalRefinements++;
+    refinementCounter++;
 
     Collection<ARGState> targets = getTargetStates(pReached);
     List<ARGPath> targetPaths = getTargetPaths(targets);
@@ -165,13 +165,12 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
 
-    int i = 0;
     while (interpolationTree.hasNextPathForInterpolation()) {
-      performInterpolation(interpolationTree, ++i);
+      performInterpolation(interpolationTree);
     }
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, i));
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
 
     Map<ARGState, VariableTrackingPrecision> refinementInformation = new HashMap<>();
@@ -192,7 +191,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return true;
   }
 
-  private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree, int iterationCount) throws CPAException, InterruptedException {
+  private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
     if (errorPath == null) {
@@ -212,10 +211,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     interpolationTree.addInterpolants(pathInterpolator.performInterpolation(errorPath, initialItp));
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile.getPath(totalRefinements, iterationCount));
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
-
-    logger.log(Level.FINEST, "finished interpolation #", iterationCount);
   }
 
   private boolean isInitialInterpolantTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
@@ -326,7 +323,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     assert !targets.isEmpty();
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
 
-    totalTargetsFound = totalTargetsFound + targets.size();
+    targetCounter = targetCounter + targets.size();
 
     return targets;
   }
@@ -348,9 +345,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    if (totalRefinements > 0) {
-      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", totalRefinements));
-      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", totalTargetsFound));
+    if (refinementCounter > 0) {
+      out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
+      out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
       out.println("Total time for refinement:            " + totalTime);
 
       pathInterpolator.printStatistics(out, pResult, pReached);
