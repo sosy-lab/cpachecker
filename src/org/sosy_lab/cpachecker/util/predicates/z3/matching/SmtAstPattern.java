@@ -21,8 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-/**
- * Interface to the SMT solver Z3 (based on the native C API and JNI).
- */
-package org.sosy_lab.cpachecker.util.predicates.z3;
+
+public interface SmtAstPattern {
+
+}

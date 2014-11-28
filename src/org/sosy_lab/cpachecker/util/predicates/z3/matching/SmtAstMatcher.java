@@ -21,8 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-/**
- * Interface to the SMT solver Z3 (based on the native C API and JNI).
- */
-package org.sosy_lab.cpachecker.util.predicates.z3;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
+
+public interface SmtAstMatcher {
+
+  public SmtAstMatchResult perform(List<SmtAstPattern> pMatchers, Formula pF);
+
+  // a+b  <-->  b+a
+  public void defineCommutative(String pFunctionName);
+
+  // a >= b  <-->  b <= a
+  public void defineRotations(String pFunctionName, String pRotationFunctionName);
+}

@@ -33,7 +33,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
 @SuppressWarnings("unused")
-final class Z3NativeApi {
+public final class Z3NativeApi {
 
   // Helper Classes,
   // they are used during the native operations

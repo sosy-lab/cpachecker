@@ -25,24 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import java.io.IOException;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.collect.Lists;
@@ -50,33 +42,7 @@ import com.google.common.collect.Lists;
 /**
  * Testing the custom SSA implementation.
  */
-public class Z3Test {
-
-  private FormulaManager formulaManager;
-  private FormulaManagerView fmgr;
-  private Solver solver;
-
-  @Before
-  public void setup() throws Exception {
-    Configuration.defaultConfiguration();
-
-    Configuration config = Configuration
-        .builder()
-        .setOption("cpa.predicate.solver", "Z3")
-        .build();
-
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, TestLogManager.getInstance(), ShutdownNotifier.create());
-    formulaManager = factory.getFormulaManager();
-    fmgr = new FormulaManagerView(formulaManager, config, TestLogManager.getInstance());
-    solver = new Solver(fmgr, factory);
-  }
-
-  @After
-  public void closeFormulaManager() throws Exception {
-    if (formulaManager instanceof AutoCloseable) {
-      ((AutoCloseable)formulaManager).close();
-    }
-  }
+public class Z3Test extends SolverBasedTest {
 
   @Test @Ignore
   public void doTest1() throws InterruptedException, SolverException, IOException {

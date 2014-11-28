@@ -23,6 +23,6 @@
  */
 
 /**
- * Interface to the SMT solver Z3 (based on the native C API and JNI).
+ * Pattern matching for Z3 ASTs.
  */
-package org.sosy_lab.cpachecker.util.predicates.z3;
+package org.sosy_lab.cpachecker.util.predicates.z3.matching;

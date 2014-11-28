@@ -26,65 +26,30 @@ package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 import com.google.common.collect.Lists;
 
 
-public class RulesTest0 {
+public class RulesTest0 extends SolverBasedTest {
 
-  private FormulaManager formulaManager;
-  private FormulaManagerView fmgr;
-  private Solver solver;
-
-  private List<Rule> allRules;
-
-  private ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
-
-  @Before
+  @Override
   public void setUp() throws Exception {
-    Configuration.defaultConfiguration();
+    super.setUp();
 
-    Configuration config = Configuration
-        .builder()
-        .setOption("cpa.predicate.solver", "Z3")
-        .build();
-
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, TestLogManager.getInstance(), ShutdownNotifier.create());
-    formulaManager = factory.getFormulaManager();
-    fmgr = new FormulaManagerView(formulaManager, config, TestLogManager.getInstance());
-    afm = fmgr.getArrayFormulaManager();
-    bfm = fmgr.getBooleanFormulaManager();
-    ifm = fmgr.getIntegerFormulaManager();
-    solver = new Solver(fmgr, factory);
-
-    allRules = RulesetFactory.createRuleset(formulaManager, solver);
   }
 
   @Test
   public void testElim1() throws SolverException, InterruptedException {
+
     IntegerFormula _c1 = fmgr.makeVariable(NumeralType.IntegerType, "c1");
     IntegerFormula _c2 = fmgr.makeVariable(NumeralType.IntegerType, "c2");
     IntegerFormula _e1 = fmgr.makeVariable(NumeralType.IntegerType, "e1");
