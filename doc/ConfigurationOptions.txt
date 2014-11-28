@@ -1582,7 +1582,7 @@ cpa.value.refiner.doLazyAbstraction = true
 
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
-cpa.value.refiner.performInitialStaticRefinement = false
+cpa.value.refiner.performStaticRefinement = false
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
