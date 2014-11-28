@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 
 /**
@@ -103,6 +103,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
           throws CPAException, InvalidConfigurationException {
     Configuration config  = pBddCpa.getConfiguration();
     LogManager logger     = pBddCpa.getLogger();
+
+    pBddCpa.injectRefinablePrecision();
 
     return new BddRefiner(
         config,
@@ -164,7 +166,11 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
-    BDDPrecision bddPrecision         = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
+    VariableTrackingPrecision bddPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision)
+                                                                                   .filter(VariableTrackingPrecision
+                                                                                           .isMatchingCPAClass(BDDCPA.class))
+                                                                                   .get(0);
+
 
     Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
     Pair<ARGState, CFAEdge> refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
@@ -174,10 +180,10 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       return false;
     }
 
-    BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
+    VariableTrackingPrecision refinedBDDPrecision = bddPrecision.withIncrement(increment);
 
     numberOfSuccessfulValueAnalysisRefinements++;
-    reached.removeSubtree(refinementRoot.getFirst(), refinedBDDPrecision, Predicates.instanceOf(BDDPrecision.class));
+    reached.removeSubtree(refinementRoot.getFirst(), refinedBDDPrecision, VariableTrackingPrecision.isMatchingCPAClass(BDDCPA.class));
     return true;
   }
 
