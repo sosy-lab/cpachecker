@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStaticRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -90,10 +89,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, name="refiner.performInitialStaticRefinement",
-      description="use heuristic to extract a precision from the CFA statically on first refinement")
-  private boolean performInitialStaticRefinement = false;
-
   @Option(secure=true, description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
@@ -108,7 +103,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private ValueAnalysisTransferRelation transferRelation;
   private VariableTrackingPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
-  private final ValueAnalysisStaticRefiner staticRefiner;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
 
@@ -131,7 +125,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
-    staticRefiner       = initializeStaticRefiner(cfa);
 
     // when there is information about the liveness of variables available we want
     // to use it
@@ -165,14 +158,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     } else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
-    }
-
-    return null;
-  }
-
-  private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
-    if (performInitialStaticRefinement) {
-      return new ValueAnalysisStaticRefiner(config, logger);
     }
 
     return null;
@@ -278,10 +263,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   VariableTrackingPrecision getPrecision() {
     return precision;
-  }
-
-  public ValueAnalysisStaticRefiner getStaticRefiner() {
-    return staticRefiner;
   }
 
   @Override

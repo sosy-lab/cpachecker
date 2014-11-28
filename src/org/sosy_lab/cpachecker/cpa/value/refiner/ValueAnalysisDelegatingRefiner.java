@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
@@ -34,23 +33,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -59,21 +53,14 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Multimap;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
@@ -83,11 +70,6 @@ import com.google.common.collect.Multimap;
 public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   private ShutdownNotifier shutDownNotifier;
-
-  /**
-   * the flag to determine if initial refinement was done already
-   */
-  private boolean initialStaticRefinementDone = false;
 
   /**
    * refiner used for (optional) initial static refinement, based on information extracted solely from the CFA
@@ -202,7 +184,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         pValueAnalysisCpa.getShutdownNotifier(),
         cpa,
         backupRefiner,
-        pValueAnalysisCpa.getStaticRefiner(),
         pValueAnalysisCpa.getCFA());
   }
 
@@ -212,7 +193,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final ShutdownNotifier pShutdownNotifier,
       final ConfigurableProgramAnalysis pCpa,
       @Nullable final PredicateCPARefiner pBackupRefiner,
-      ValueAnalysisStaticRefiner pValueAnalysisStaticRefiner,
       final CFA pCfa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
@@ -225,74 +205,40 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     cfa = pCfa;
 
     valueRefiner = new ValueAnalysisRefiner(pConfig, pLogger, pShutdownNotifier, pCfa);
+    staticRefiner = new ValueAnalysisStaticRefiner(pConfig, pLogger);
+
     predicatingRefiner = pBackupRefiner;
-    staticRefiner = pValueAnalysisStaticRefiner;
   }
 
   @Override
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
+    // TODO: only have a mutable copy where needed
     MutableARGPath errorPath = pErrorPath.mutableCopy();
 
-    // if path is infeasible, try to refine the precision
+    // if infeasible, refine with the optional static refiner or the value refiner
     if (!isPathFeasable(errorPath)) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
-        return CounterexampleInfo.spurious();
+
+      if(!staticRefiner.performRefinement(reached, pErrorPath)) {
+        valueRefiner.performRefinement(reached);
       }
+
+      return CounterexampleInfo.spurious();
     }
 
-    if (predicatingRefiner != null) {
-      return predicatingRefiner.performRefinement(reached, pErrorPath);
+    // if feasible, refine with the optional predicate refiner or return CEX
+    else {
 
-    } else {
+      if (predicatingRefiner != null) {
+        return predicatingRefiner.performRefinement(reached, pErrorPath);
+      }
 
       try {
         return CounterexampleInfo.feasible(pErrorPath, createModel(errorPath));
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Failed to configure feasbility checker", e);
       }
-    }
-  }
-
-  /**
-   * This method performs an value-analysis refinement.
-   *
-   * @param reached the current reached set
-   * @param errorPath the current error path
-   * @returns true, if the value-analysis refinement was successful, else false
-   * @throws CPAException when value-analysis interpolation fails
-   */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
-
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
-
-    FluentIterable<Precision> precisions = Precisions.asIterable(precision);
-    VariableTrackingPrecision valueAnalysisPrecision = (VariableTrackingPrecision) precisions.filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class)).get(0);
-    BDDPrecision bddPrecision = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
-
-    ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
-    ArrayList<Predicate<? super Precision>> newPrecisionTypes = new ArrayList<>(2);
-
-    if (!initialStaticRefinementDone && staticRefiner != null) {
-      initialStaticRefinementDone = true;
-
-      Multimap<CFANode, MemoryLocation> increment = staticRefiner.extractPrecisionIncrementFromCfa(errorPath);
-
-      refinedPrecisions.add(valueAnalysisPrecision.withIncrement(increment));
-      newPrecisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-
-      if (bddPrecision != null) {
-        BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-        refinedPrecisions.add(refinedBDDPrecision);
-        newPrecisionTypes.add(Predicates.instanceOf(BDDPrecision.class));
-      }
-
-      return true;
-
-    } else {
-      return valueRefiner.performRefinement(reached);
     }
   }
 
