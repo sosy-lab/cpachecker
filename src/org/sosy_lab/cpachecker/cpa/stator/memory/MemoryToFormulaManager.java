@@ -38,7 +38,7 @@ public class MemoryToFormulaManager {
 
   public PathFormula getFormulaApproximation(
       AliasState state, SSAMap outputMap, final SSAMap inputMap) {
-    outMapBuilder = outputMap.withDefault(1).builder();
+    outMapBuilder = outputMap.builder();
 
     AbstractMemoryAddress createAssignmentOn = state.getCreateAssignmentOn();
 

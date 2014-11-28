@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -43,6 +44,22 @@ public final class PolicyState implements AbstractState,
 
   /** Templates tracked. NOTE: might be better to just resort back to a set. */
   private final ImmutableSet<Template> templates;
+
+  /**
+   * Copy constructor.
+   */
+  private PolicyState(
+      Iterable<AbstractState> pOtherStates,
+      ImmutableSet<CFAEdge> pIncomingEdges,
+      CFANode pNode,
+      Optional<ImmutableMap<LinearExpression, PolicyBound>> pPAbstraction,
+      ImmutableSet<Template> pTemplates) {
+    otherStates = ImmutableList.copyOf(pOtherStates);
+    incomingEdges = pIncomingEdges;
+    node = pNode;
+    abstraction = pPAbstraction;
+    templates = pTemplates;
+  }
 
   /**
    * Constructor with the abstraction provided.
@@ -148,6 +165,15 @@ public final class PolicyState implements AbstractState,
 
   /** Update methods */
 
+  public PolicyState withOtherStates(
+      List<AbstractState> pOtherStates
+  ) {
+    return new PolicyState(
+        pOtherStates, incomingEdges, node, abstraction,
+        templates
+    );
+  }
+
   public PolicyState withUpdates(
       Map<LinearExpression, PolicyBound> updates,
       Set<LinearExpression> unbounded,
@@ -175,7 +201,7 @@ public final class PolicyState implements AbstractState,
       }
     }
     return new PolicyState(
-        otherStates, incomingEdges, getNode(), builder.build(),
+        otherStates, incomingEdges, node, builder.build(),
         newTemplates);
   }
 

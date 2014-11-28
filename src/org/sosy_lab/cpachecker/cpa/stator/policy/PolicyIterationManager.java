@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.PathFormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -51,6 +53,10 @@ import com.google.common.collect.Sets;
  */
 public class PolicyIterationManager implements IPolicyIterationManager {
 
+  private final FormulaManagerView fmgr;
+
+  @SuppressWarnings("unused, FieldCanBeLocal")
+  private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
   private final BooleanFormulaManager bfmgr;
@@ -63,7 +69,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final ValueDeterminationFormulaManager vdfmgr;
   private final PolicyIterationStatistics statistics;
 
-  public PolicyIterationManager(CFA pCfa,
+  public PolicyIterationManager(
+      FormulaManagerView pFormulaManager,
+      CFA pCfa,
       PathFormulaManager pPfmgr,
       LinearConstraintManager pLcmgr,
       BooleanFormulaManager pBfmgr,
@@ -74,6 +82,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics) {
+    fmgr = pFormulaManager;
+    cfa = pCfa;
     pfmgr = pPfmgr;
     lcmgr = pLcmgr;
     bfmgr = pBfmgr;
@@ -151,9 +161,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         newTemplates
     );
 
-    // NOTE: the abstraction computation is delayed until the
-    // {@code strengthen} call.
-
+    // NOTE: the abstraction computation and the global update is delayed
+    // until the {@code strengthen} call.
     return Collections.singleton(out);
   }
 
@@ -163,19 +172,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       List<AbstractState> otherStates,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-    CFANode toNode = state.getNode();
-    if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
+    state = state.withOtherStates(otherStates);
 
-      Optional<PolicyState> abstraction = performAbstraction(state);
-      if (!abstraction.isPresent()) {
-        unreachable.add(toNode);
-        abstractStates.put(toNode, state);
-        return Collections.emptyList();
+    statistics.abstractionTimer.start();
+    try {
+      // Perform the abstraction, if necessary.
+      CFANode toNode = state.getNode();
+      if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
+        Optional<PolicyState> abstraction = performAbstraction(state);
+        if (!abstraction.isPresent()) {
+          unreachable.add(toNode);
+          abstractStates.put(toNode, state);
+          return Collections.emptyList();
+        }
+        state = abstraction.get();
       }
-      state = abstraction.get();
+      abstractStates.put(toNode, state);
+    } finally {
+      statistics.abstractionTimer.stop();
     }
-    abstractStates.put(toNode, state);
 
+    // Perform the reachability check for the target states.
     statistics.strengthenTimer.start();
     try {
       if (state.isAbstract()) {
@@ -465,7 +482,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
             // Last successor is the ultimate "predecessor"
             CFANode predecessor = successor;
-            assert !traceReversed.isEmpty();
+            assert !traceReversed.isEmpty() : model;
             MultiEdge edge = new MultiEdge(predecessor, node,
                 Lists.reverse(traceReversed));
             logger.log(Level.FINE, "# Constructed edge: ", edge);
@@ -602,11 +619,28 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           prev = recAllPathsToNode(finalToState, predecessor, memoization, false);
         }
 
-        prev = pfmgr.makeAnd(prev, branchConstraint);
-
-        // TODO: problem: what about the <otherStates> potentially associated
-        // with the node?
+        // Use the {@code otherStates} for the formula construction.
+        Optional<PathFormulaReportingState> other =
+            getPathFormulaReportingState(s);
         PathFormula p = pfmgr.makeAnd(prev, edge);
+        if (other.isPresent()) {
+          PathFormula otherP = other.get().getFormulaApproximation(
+              fmgr,
+              p.getSsa(),
+              prev.getSsa()
+          );
+
+          //
+          p = new PathFormula(
+              bfmgr.and(p.getFormula(), otherP.getFormula()),
+              otherP.getSsa(),
+              p.getPointerTargetSet(),
+              p.getLength()
+          );
+        }
+
+        p = pfmgr.makeAnd(p, branchConstraint);
+
         if (out == null) {
           out = p;
         } else {
@@ -627,6 +661,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     memoization.put(toNode, out);
     return out;
+  }
+
+  private Optional<PathFormulaReportingState> getPathFormulaReportingState(
+      PolicyState state
+  ) {
+    for (AbstractState oState : state.getOtherStates()) {
+      if (oState instanceof PathFormulaReportingState) {
+        return Optional.of((PathFormulaReportingState)oState);
+      }
+    }
+    return Optional.absent();
   }
 
   private BooleanFormula abstractStateToFormula(

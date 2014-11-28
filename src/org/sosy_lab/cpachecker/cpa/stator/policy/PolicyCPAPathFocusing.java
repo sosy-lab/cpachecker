@@ -144,8 +144,9 @@ public class PolicyCPAPathFocusing implements ConfigurableProgramAnalysis, Stati
         );
     
     policyIterationManager = new PolicyIterationManager(
-      cfa, pathFormulaManager, lcmgr,
-      formulaManager.getBooleanFormulaManager(),
+        formulaManager,
+        cfa, pathFormulaManager, lcmgr,
+        formulaManager.getBooleanFormulaManager(),
         formulaManagerFactory, logger, shutdownNotifier,
         formulaManager.getRationalFormulaManager(),
         templateManager, valueDeterminationFormulaManager,

@@ -18,6 +18,7 @@ public class PolicyIterationStatistics implements Statistics {
   Timer valueDeterminationSolverTimer = new Timer();
   Timer timeInMerge = new Timer();
   Timer strengthenTimer = new Timer();
+  Timer abstractionTimer = new Timer();
 
   int valueDetCalls = 0;
 
@@ -37,6 +38,7 @@ public class PolicyIterationStatistics implements Statistics {
     out.printf("Number of calls to the value determination solver: %s\n", valueDetCalls);
     printTimer(out, timeInMerge, "merge-step");
     printTimer(out, strengthenTimer, "strengthen");
+    printTimer(out, strengthenTimer, "abstraction");
   }
 
   public void printTimer(PrintStream out, Timer t, String name) {

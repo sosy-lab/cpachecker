@@ -60,6 +60,7 @@ public class PathFocusingTest {
         .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, " +
+                "cpa.stator.memory.ExplicitMemoryCPA, " +
                 "cpa.stator.policy.PolicyCPAPathFocusing")
         .put("cpa.predicate.solver", "Z3")
         .put("log.consoleLevel", "FINE")
@@ -72,28 +73,28 @@ public class PathFocusingTest {
 
   }
 
-//  @Test public void checkPointerRead() throws Exception {
-//    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-//        getProperties(),
-//        "test/programs/stator/pointer_read.c"
-//    );
-//    results.assertIsSafe();
-//  }
-//
-//  @Test public void checkPointerWrite() throws Exception {
-//    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-//        getProperties(),
-//        "test/programs/stator/pointer_write.c"
-//    );
-//    results.assertIsUnsafe();
-//  }
-//
-//  @Test public void checkPointerAssignment() throws Exception {
-//    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-//        getProperties(),
-//        "test/programs/stator/pointer2.c"
-//    );
-//
-//    results.assertIsSafe();
-//  }
+  @Test public void checkPointerRead() throws Exception {
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(),
+        "test/programs/stator/pointer_read.c"
+    );
+    results.assertIsSafe();
+  }
+
+  @Test public void checkPointerWrite() throws Exception {
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(),
+        "test/programs/stator/pointer_write.c"
+    );
+    results.assertIsUnsafe();
+  }
+
+  @Test public void checkPointerAssignment() throws Exception {
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(),
+        "test/programs/stator/pointer2.c"
+    );
+
+    results.assertIsSafe();
+  }
 }
