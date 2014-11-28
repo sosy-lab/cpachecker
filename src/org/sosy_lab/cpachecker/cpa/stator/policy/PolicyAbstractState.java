@@ -19,8 +19,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Abstract state for policy iteration: bounds on each expression (from the template),
- * for the given control node.
+ * Abstract state for policy iteration: bounds on each expression (from the
+ * template), for the given control node.
  *
  * Logic-less container class.
  */
