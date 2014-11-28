@@ -11,7 +11,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Integration testing for policy iteration.
  */
-public class STATORBenchmarksTest {
+public class PolicyIterationTest {
 
   @Test public void checkInitialState() throws Exception {
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
