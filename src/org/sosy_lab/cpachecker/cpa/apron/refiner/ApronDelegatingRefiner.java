@@ -157,7 +157,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     MutableARGPath errorPath = pErrorPath.mutableCopy();
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(errorPath) && !existsExplicitApronRefinement) {
+    if (!isPathFeasable(pErrorPath) && !existsExplicitApronRefinement) {
       if (performValueAnalysisRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
@@ -310,7 +310,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(MutableARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, apronCPA.getConfiguration());

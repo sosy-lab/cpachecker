@@ -43,6 +43,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
@@ -204,7 +205,7 @@ class ValueAnalysisInterpolationTree {
    * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
    * @return the next error path for a subsequent interpolation
    */
-  MutableARGPath getNextPathForInterpolation() {
+  ARGPath getNextPathForInterpolation() {
     return strategy.getNextPathForInterpolation();
   }
 
@@ -214,8 +215,8 @@ class ValueAnalysisInterpolationTree {
    * @param errorPath the path for which to obtain the initial interpolant
    * @return the initial interpolant for the given path
    */
-  ValueAnalysisInterpolant getInitialInterpolantForPath(MutableARGPath errorPath) {
-    return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
+  ValueAnalysisInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+    return strategy.getInitialInterpolantForRoot(errorPath.getFirstState());
   }
 
   /**
@@ -405,7 +406,7 @@ class ValueAnalysisInterpolationTree {
 
   private interface InterpolationStrategy {
 
-    public MutableARGPath getNextPathForInterpolation();
+    public ARGPath getNextPathForInterpolation();
 
     public boolean hasNextPathForInterpolation();
 
@@ -420,14 +421,14 @@ class ValueAnalysisInterpolationTree {
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
     @Override
-    public MutableARGPath getNextPathForInterpolation() {
+    public ARGPath getNextPathForInterpolation() {
       MutableARGPath errorPath = new MutableARGPath();
 
       ARGState current = sources.pop();
 
       if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
         logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
-        return errorPath;
+        return null;
       }
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
@@ -456,7 +457,7 @@ class ValueAnalysisInterpolationTree {
         }
       }
 
-      return errorPath;
+      return errorPath.immutableCopy();
     }
 
     /**
@@ -501,7 +502,7 @@ class ValueAnalysisInterpolationTree {
     private List<ARGState> sources = new ArrayList<>(targets);
 
     @Override
-    public MutableARGPath getNextPathForInterpolation() {
+    public ARGPath getNextPathForInterpolation() {
       ARGState current = sources.remove(0);
 
       assert current.isTarget() : "current element is not a target";
@@ -519,7 +520,7 @@ class ValueAnalysisInterpolationTree {
         current = parent;
       }
 
-      return errorPath;
+      return errorPath.immutableCopy();
     }
 
     @Override

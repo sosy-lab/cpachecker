@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -214,11 +213,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    // TODO: only have a mutable copy where needed
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
-
     // if infeasible, refine with the optional static refiner or the value refiner
-    if (!isPathFeasable(errorPath)) {
+    if (!isPathFeasable(pErrorPath)) {
 
       if(!staticRefiner.performRefinement(reached, pErrorPath)) {
         valueRefiner.performRefinement(reached);
@@ -235,7 +231,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       }
 
       try {
-        return CounterexampleInfo.feasible(pErrorPath, createModel(errorPath));
+        return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Failed to configure feasbility checker", e);
       }
@@ -251,7 +247,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * @throws InterruptedException
    * @throws CPAException
    */
-  private Model createModel(MutableARGPath errorPath) throws InvalidConfigurationException, InterruptedException,
+  private Model createModel(ARGPath errorPath) throws InvalidConfigurationException, InterruptedException,
       CPAException {
     ValueAnalysisFeasibilityChecker evaluator = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
     ValueAnalysisConcreteErrorPathAllocator va = new ValueAnalysisConcreteErrorPathAllocator(logger, shutDownNotifier);
@@ -266,7 +262,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(MutableARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ValueAnalysisPathChecker, which does check the given path at full precision
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);

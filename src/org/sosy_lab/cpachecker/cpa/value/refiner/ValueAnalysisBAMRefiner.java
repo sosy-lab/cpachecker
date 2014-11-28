@@ -52,7 +52,7 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
       InterruptedException {
     CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
     if (!refineResult.isSpurious()) {
-      if (refiner.isPathFeasable(pPath.mutableCopy())) {
+      if (refiner.isPathFeasable(pPath)) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
     }

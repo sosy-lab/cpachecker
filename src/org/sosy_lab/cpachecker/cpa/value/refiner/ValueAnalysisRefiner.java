@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -194,9 +193,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree, int iterationCount) throws CPAException, InterruptedException {
-    MutableARGPath errorPath = interpolationTree.getNextPathForInterpolation();
+    ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
-    if (errorPath.isEmpty()) {
+    if (errorPath == null) {
       logger.log(Level.FINEST, "skipping interpolation, error path is empty, because initial interpolant is already false");
       return;
     }
@@ -204,11 +203,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
     if (isInitialInterpolantTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
-      errorPath   = ARGUtils.getOneMutablePathTo(errorPath.getLast().getFirst());
+      errorPath   = ARGUtils.getOnePathTo(errorPath.getLastState());
       initialItp  = ValueAnalysisInterpolant.createInitial();
     }
 
-    logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirst().getFirst().getStateId(), ", using interpolant ", initialItp);
+    logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirstState().getStateId(), ", using interpolant ", initialItp);
 
     interpolationTree.addInterpolants(pathInterpolator.performInterpolation(errorPath, initialItp));
 
@@ -219,11 +218,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     logger.log(Level.FINEST, "finished interpolation #", iterationCount);
   }
 
-  private boolean isInitialInterpolantTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, MutableARGPath errorPath)
+  private boolean isInitialInterpolantTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
-    if (errorPath.getFirst().getFirst() == root) {
+    if (errorPath.getFirstState() == root) {
       return false;
     }
 
@@ -276,7 +275,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private boolean isErrorPathFeasible(final ARGPath errorPath)
       throws CPAException, InterruptedException {
-    if (checker.isFeasible(errorPath.mutableCopy())) {
+    if (checker.isFeasible(errorPath)) {
       logger.log(Level.FINEST, "found a feasible cex - returning from refinement");
 
       return true;

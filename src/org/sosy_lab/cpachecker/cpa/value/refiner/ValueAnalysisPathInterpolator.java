@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -45,6 +43,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
@@ -115,14 +115,14 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     interpolator     = new ValueAnalysisEdgeInterpolator(pConfig, logger, shutdownNotifier, cfa);
   }
 
-  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(MutableARGPath errorPath,
+  protected Map<ARGState, ValueAnalysisInterpolant> performInterpolation(ARGPath errorPath,
       ValueAnalysisInterpolant interpolant) throws CPAException, InterruptedException {
     totalInterpolations.inc();
     timerInterpolation.start();
 
     interpolationOffset = -1;
 
-    List<CFAEdge> errorTrace = obtainErrorTrace(obtainErrorPathPrefix(errorPath, interpolant));
+    ARGPath errorPathPrefix = obtainErrorPathPrefix(errorPath, interpolant);
 
     // obtain use-def relation, containing variables relevant to the "failing" assumption
     Set<MemoryLocation> useDefRelation = new HashSet<>();
@@ -134,24 +134,34 @@ public class ValueAnalysisPathInterpolator implements Statistics {
     }*/
 
     Map<ARGState, ValueAnalysisInterpolant> pathInterpolants = new LinkedHashMap<>(errorPath.size());
-    for (int i = 0; i < errorPath.size() - 1; i++) {
+
+    PathIterator pathIterator = errorPath.pathIterator();
+    while(pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
       if (!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorTrace, i, interpolant, useDefRelation);
+        interpolant = interpolator.deriveInterpolant(errorPathPrefix,
+            pathIterator.getOutgoingEdge(),
+            pathIterator.getIndex(),
+            interpolant,
+            useDefRelation);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
       if (!interpolant.isTrivial() && interpolationOffset == -1) {
-        interpolationOffset = i + 1;
+        interpolationOffset = pathIterator.getIndex();
       }
 
       sizeOfInterpolant.setNextValue(interpolant.getSize());
 
-      pathInterpolants.put(errorPath.get(i + 1).getFirst(), interpolant);
+      pathIterator.advance();
 
-      assert ((i != errorTrace.size() - 1) || interpolant.isFalse()) : "final interpolant is not false";
+      pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
+
+      if(!pathIterator.hasNext()) {
+        assert interpolant.isFalse() : "final interpolant is not false";
+      }
     }
 
     timerInterpolation.stop();
@@ -166,7 +176,8 @@ public class ValueAnalysisPathInterpolator implements Statistics {
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
-    Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath, ValueAnalysisInterpolant.createInitial());
+    Map<ARGState, ValueAnalysisInterpolant> itps = performInterpolation(errorPath.immutableCopy(),
+        ValueAnalysisInterpolant.createInitial());
 
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
@@ -220,16 +231,6 @@ public class ValueAnalysisPathInterpolator implements Statistics {
   }
 
   /**
-   * This method obtains, from the error path, the list of CFA edges to be interpolated.
-   *
-   * @param errorPath the error path
-   * @return the list of CFA edges to be interpolated
-   */
-  private List<CFAEdge> obtainErrorTrace(MutableARGPath errorPath) {
-    return from(errorPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList();
-  }
-
-  /**
    * This path obtains a (sub)path of the error path which is given to the interpolation procedure.
    *
    * @param errorPath the original error path
@@ -238,15 +239,15 @@ public class ValueAnalysisPathInterpolator implements Statistics {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private MutableARGPath obtainErrorPathPrefix(MutableARGPath errorPath, ValueAnalysisInterpolant interpolant)
+  private ARGPath obtainErrorPathPrefix(ARGPath errorPath, ValueAnalysisInterpolant interpolant)
           throws CPAException, InterruptedException {
 
     try {
       ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-      List<MutableARGPath> prefixes                  = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
+      List<ARGPath> prefixes = checker.getInfeasilbePrefixes(errorPath, interpolant.createValueAnalysisState());
 
-      ErrorPathClassifier classifier          = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
-      errorPath                               = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
+      ErrorPathClassifier classifier = new ErrorPathClassifier(cfa.getVarClassification(), cfa.getLoopStructure());
+      errorPath = classifier.obtainPrefix(prefixPreference, errorPath, prefixes);
 
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Configuring ValueAnalysisFeasibilityChecker failed: " + e.getMessage(), e);
