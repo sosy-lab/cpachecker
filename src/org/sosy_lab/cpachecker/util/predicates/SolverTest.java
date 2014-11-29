@@ -96,7 +96,12 @@ public class SolverTest {
 
     Configuration config = builder.build();
 
-    factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
+    try {
+      factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
+    } catch (NoClassDefFoundError e) {
+      assume().withFailureMessage("Scala is not on class path")
+              .that(e.getMessage()).doesNotContain("scala");
+    }
     mgr = factory.getFormulaManager();
     bmgr = mgr.getBooleanFormulaManager();
     imgr = mgr.getIntegerFormulaManager();
