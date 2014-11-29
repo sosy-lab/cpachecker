@@ -76,7 +76,7 @@ import com.google.common.base.Predicate;
 public class FormulaManagerFactory {
 
   @VisibleForTesting
-  static enum Solvers {
+  public static enum Solvers {
     MATHSAT5,
     SMTINTERPOL,
     Z3,

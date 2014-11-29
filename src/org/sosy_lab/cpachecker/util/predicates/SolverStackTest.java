@@ -26,11 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.junit.Assert.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,85 +35,40 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Builder;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 @RunWith(Parameterized.class)
-public class SolverTest {
+public class SolverStackTest extends SolverBasedTest0 {
 
   @Parameters(name="{0}")
-  public static List<Object[]> getSolvers() {
-    List<Object[]> result = new ArrayList<>();
-    for (Solvers solver : Solvers.values()) {
-      result.add(new Object[] { solver });
-    }
-    return result;
+  public static List<Object[]> getAllSolvers() {
+    return allSolversAsParameters();
   }
 
   @Parameter(0)
   public Solvers solver;
 
+  @Override
+  protected Solvers solverToUse() {
+    return solver;
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private final LogManager logger = TestLogManager.getInstance();
   private static final UniqueIdGenerator index = new UniqueIdGenerator(); // to get different names
 
-  private FormulaManagerFactory factory;
-  private FormulaManager mgr;
-  private BooleanFormulaManager bmgr;
-  private NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
-  private NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-
-  @Before
-  public void initSolver() throws Exception {
-    ConfigurationBuilder builder = new Builder();
-    builder.setOption("cpa.predicate.solver", solver.toString());
-
-    // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
-    builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
-
-    Configuration config = builder.build();
-
-    try {
-      factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
-    } catch (NoClassDefFoundError e) {
-      assume().withFailureMessage("Scala is not on class path")
-              .that(e.getMessage()).doesNotContain("scala");
-    }
-    mgr = factory.getFormulaManager();
-    bmgr = mgr.getBooleanFormulaManager();
-    imgr = mgr.getIntegerFormulaManager();
-    try {
-      rmgr = mgr.getRationalFormulaManager();
-    } catch (UnsupportedOperationException e) {
-      rmgr = null;
-    }
-  }
-
-  @After
-  public void closeSolver() throws Exception {
-    if (mgr instanceof AutoCloseable) {
-      ((AutoCloseable)mgr).close();
-    }
+  private void requireMultipleStackSupport() {
+    assume().withFailureMessage("Solver does not support multiple stacks yet")
+            .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
   }
 
   @Test
@@ -173,8 +125,7 @@ public class SolverTest {
 
   @Test
   public void singleStackTestRational() throws Exception {
-    assume().withFailureMessage("Solver does not support theory of rationals")
-            .that(rmgr).isNotNull();
+    requireRationals();
 
     ProverEnvironment env = factory.newProverEnvironment(true, true);
     simpleStackTestNum(rmgr, env);
@@ -239,8 +190,7 @@ public class SolverTest {
 
   @Test
   public void dualStackTest() throws Exception {
-    assume().withFailureMessage("Solver does not support multiple stacks yet")
-            .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
+    requireMultipleStackSupport();
 
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
@@ -264,8 +214,7 @@ public class SolverTest {
 
   @Test
   public void dualStackTest2() throws Exception {
-    assume().withFailureMessage("Solver does not support multiple stacks yet")
-            .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
+    requireMultipleStackSupport();
 
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
@@ -283,45 +232,6 @@ public class SolverTest {
     assertFalse(stack1.isUnsat());
     stack2.pop(); // L1
     assertFalse(stack2.isUnsat());
-    assertFalse(stack1.isUnsat());
-  }
-
-  @Test
-  public void intTest1() throws Exception {
-    IntegerFormula a = imgr.makeVariable("int_a");
-    IntegerFormula num = imgr.makeNumber(2);
-
-    BooleanFormula f = imgr.equal(imgr.add(a, a), num);
-
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
-    stack1.push(f); // L1
-    assertFalse(stack1.isUnsat());
-  }
-
-  @Test
-  public void intTest2() throws Exception {
-    IntegerFormula a = imgr.makeVariable("int_b");
-    IntegerFormula num = imgr.makeNumber(1);
-
-    BooleanFormula f = imgr.equal(imgr.add(a, a), num);
-
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
-    stack1.push(f); // L1
-    assertTrue(stack1.isUnsat());
-  }
-
-  @Test
-  public void realTest() throws Exception {
-    assume().withFailureMessage("Solver does not support theory of rationals")
-            .that(rmgr).isNotNull();
-
-    RationalFormula a = rmgr.makeVariable("int_c");
-    RationalFormula num = rmgr.makeNumber(1);
-
-    BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
-
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
-    stack1.push(f); // L1
     assertFalse(stack1.isUnsat());
   }
 }
