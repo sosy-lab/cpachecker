@@ -105,8 +105,10 @@ public class SolverTest {
     mgr = factory.getFormulaManager();
     bmgr = mgr.getBooleanFormulaManager();
     imgr = mgr.getIntegerFormulaManager();
-    if (solver != Solvers.PRINCESS) { // PRINCESS does not support Rational-theory
+    try {
       rmgr = mgr.getRationalFormulaManager();
+    } catch (UnsupportedOperationException e) {
+      rmgr = null;
     }
   }
 
