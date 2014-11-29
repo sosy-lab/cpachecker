@@ -29,8 +29,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+import com.google.common.base.Optional;
 
 /**
  * Factory for creating {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint} objects.
@@ -38,13 +41,40 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ConstraintFactory {
 
   private String functionName;
+  private Optional<ValueAnalysisState> valueState;
+  private boolean missingInformation = false;
 
   private ConstraintFactory(String pFunctionName) {
     functionName = pFunctionName;
+    valueState = Optional.absent();
+  }
+
+  private ConstraintFactory(String pFunctionName, ValueAnalysisState pValueState) {
+    this(pFunctionName);
+    valueState = Optional.of(pValueState);
   }
 
   public static ConstraintFactory getInstance(String pFunctionName) {
     return new ConstraintFactory(pFunctionName);
+  }
+
+  public static ConstraintFactory getInstance(String pFunctionName, ValueAnalysisState pValueState) {
+    return new ConstraintFactory(pFunctionName, pValueState);
+  }
+
+  /**
+   * Returns whether information was missing while creating the last constraint.
+   *
+   * <p>This method always resets after one call. So when calling this method after the creation of a constraint,
+   * it will only return <code>true</code> at the first call, if at all.</p>
+   *
+   * @return <code>true</code> if information was missing, <code>false</code> otherwise
+   */
+  public boolean hasMissingInformation() {
+    boolean hasMissingInformation = missingInformation;
+    missingInformation = false;
+
+    return hasMissingInformation;
   }
 
   public Constraint createPositiveConstraint(CExpression pLeftExpression, CBinaryExpression.BinaryOperator pOperator,
@@ -162,22 +192,53 @@ public class ConstraintFactory {
   }
 
   private ConstraintOperand createOperand(AExpression pExpression) throws UnrecognizedCodeException {
+    InvariantsFormula<Value> operandFormula;
+
     if (pExpression instanceof CExpression) {
-      return new ConstraintOperand(transformExpression((CExpression) pExpression));
+      operandFormula = transformExpression((CExpression) pExpression);
     } else {
-      return new ConstraintOperand(transformExpression((JExpression) pExpression));
+      operandFormula = transformExpression((JExpression) pExpression);
     }
+
+    return operandFormula == null ? null : new ConstraintOperand(operandFormula);
   }
 
   private InvariantsFormula<Value> transformExpression(CExpression pExpression) throws UnrecognizedCodeException {
-    CExpressionToFormulaVisitor formulaTransformer = new CExpressionToFormulaVisitor(functionName);
+    CExpressionToFormulaVisitor formulaTransformer = getCTransformer();
+    InvariantsFormula<Value> expressionFormula = formulaTransformer.transform(pExpression);
+
+    if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
+      missingInformation = true;
+    }
+
+    return expressionFormula;
+  }
+
+  private CExpressionToFormulaVisitor getCTransformer() {
+    if (valueState.isPresent()) {
+      return new CExpressionToFormulaVisitor(functionName, valueState.get());
+    } else {
+      return new CExpressionToFormulaVisitor(functionName);
+    }
+  }
+
+  private InvariantsFormula<Value> transformExpression(JExpression pExpression) throws UnrecognizedCodeException {
+    JExpressionToFormulaVisitor formulaTransformer = getJavaTransformer();
+    InvariantsFormula<Value> expressionFormula = formulaTransformer.transform(pExpression);
+
+    if (expressionFormula == null && formulaTransformer.hasMissingInformation()) {
+      missingInformation = true;
+    }
 
     return formulaTransformer.transform(pExpression);
   }
 
-  private InvariantsFormula<Value> transformExpression(JExpression pExpression) throws UnrecognizedCodeException {
-    JExpressionToFormulaVisitor formulaTransformer = new JExpressionToFormulaVisitor(functionName);
 
-    return formulaTransformer.transform(pExpression);
+  private JExpressionToFormulaVisitor getJavaTransformer() {
+    if (valueState.isPresent()) {
+      return new JExpressionToFormulaVisitor(functionName, valueState.get());
+    } else {
+      return new JExpressionToFormulaVisitor(functionName);
+    }
   }
 }

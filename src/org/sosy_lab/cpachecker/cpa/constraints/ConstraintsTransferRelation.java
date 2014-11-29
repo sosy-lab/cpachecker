@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -34,15 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -57,7 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ExpressionToFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -70,9 +67,11 @@ import com.google.common.base.Optional;
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
 
-  private static final String AMPERSAND = "&";
-
   private final LogManager logger;
+
+  private boolean missingInformation = false;
+  private AExpression missingInformationExpression = null;
+  private boolean missingInformationTruth;
 
   public ConstraintsTransferRelation(LogManager pLogger) {
     logger = pLogger;
@@ -92,32 +91,6 @@ public class ConstraintsTransferRelation
 
   @Override
   protected ConstraintsState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) {
-    if (pStatement instanceof JAssignment) {
-      JExpression leftHandSide = ((JAssignment) pStatement).getLeftHandSide();
-
-      assert leftHandSide instanceof JIdExpression;
-      String identifier = ((JIdExpression) leftHandSide).getName();
-
-      new ExpressionToFormulaVisitor(functionName).addAlias(identifier);
-
-    } else if (pStatement instanceof CAssignment) {
-      CExpression leftHandSide = ((CAssignment) pStatement).getLeftHandSide();
-
-      assert leftHandSide instanceof CIdExpression || leftHandSide instanceof CPointerExpression;
-      String identifier;
-
-      if (leftHandSide instanceof CPointerExpression) {
-        leftHandSide = ((CPointerExpression) leftHandSide).getOperand();
-
-        identifier = AMPERSAND + ((CIdExpression) leftHandSide).getName();
-      } else {
-
-        identifier = ((CIdExpression) leftHandSide).getName();
-      }
-
-      new ExpressionToFormulaVisitor(functionName).addAlias(identifier);
-    }
-
     return state;
   }
 
@@ -134,51 +107,64 @@ public class ConstraintsTransferRelation
   @Override
   protected ConstraintsState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDeclaration)
       throws CPATransferException {
-    String identifier = pDeclaration.getName();
-
-    new ExpressionToFormulaVisitor(functionName).addAlias(identifier);
-
     return state;
   }
 
   @Override
   protected ConstraintsState handleAssumption(AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
-    ConstraintsState newState = ConstraintsState.copyOf(state);
+
+    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName);
+    final FileLocation fileLocation = pCfaEdge.getFileLocation();
+
+    ConstraintsState newState = getNewState(state, pExpression, factory, pTruthAssumption, fileLocation);
+
+    return newState;
+  }
+
+  private ConstraintsState getNewState(ConstraintsState pOldState, AExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption, FileLocation pFileLocation) {
+
+    ConstraintsState newState = ConstraintsState.copyOf(pOldState);
 
     try {
-      Optional<Constraint> newConstraint = createConstraint(pExpression, pTruthAssumption);
+      Optional<Constraint> newConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
+
+      if (pFactory.hasMissingInformation()) {
+        assert !missingInformation && missingInformationExpression == null && !missingInformationTruth;
+        missingInformation = true;
+        missingInformationExpression = pExpression;
+        missingInformationTruth = pTruthAssumption;
+
+        assert !newConstraint.isPresent();
+      }
 
       if (newConstraint.isPresent()) {
         newState.addConstraint(newConstraint.get());
       }
+
     } catch (UnrecognizedCodeException e) {
-      logger.logUserException(Level.WARNING, e, pCfaEdge.getFileLocation().toString());
+      logger.logUserException(Level.WARNING, e, pFileLocation.toString());
     }
 
     return newState;
   }
 
-  private Optional<Constraint> createConstraint(AExpression pExpression, boolean pTruthAssumption)
-      throws UnrecognizedCodeException {
-    Optional<Constraint> result;
+  private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
 
     if (pExpression instanceof JBinaryExpression) {
-      result = createConstraint((JBinaryExpression) pExpression, pTruthAssumption);
+      return createConstraint((JBinaryExpression) pExpression, pFactory, pTruthAssumption);
 
     } else if (pExpression instanceof CBinaryExpression) {
-      result = createConstraint((CBinaryExpression) pExpression, pTruthAssumption);
+      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
 
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
-
-    return result;
   }
 
-  private Optional<Constraint> createConstraint(JBinaryExpression pExpression, boolean pTruthAssumption)
-      throws UnrecognizedCodeException {
-
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName);
+  private Optional<Constraint> createConstraint(JBinaryExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
 
     JExpression leftOperand = pExpression.getOperand1();
     JExpression rightOperand = pExpression.getOperand2();
@@ -186,18 +172,16 @@ public class ConstraintsTransferRelation
     Constraint constraint;
 
     if (pTruthAssumption) {
-      constraint = factory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
     } else {
-      constraint = factory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
     }
 
     return Optional.fromNullable(constraint);
   }
 
-  private Optional<Constraint> createConstraint(CBinaryExpression pExpression, boolean pTruthAssumption)
-      throws UnrecognizedCodeException {
-
-    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName);
+  private Optional<Constraint> createConstraint(CBinaryExpression pExpression, ConstraintFactory pFactory,
+      boolean pTruthAssumption) throws UnrecognizedCodeException {
 
     CExpression leftOperand = pExpression.getOperand1();
     CExpression rightOperand = pExpression.getOperand2();
@@ -205,20 +189,62 @@ public class ConstraintsTransferRelation
     Constraint constraint;
 
     if (pTruthAssumption) {
-      constraint = factory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createPositiveConstraint(leftOperand, pExpression.getOperator(), rightOperand);
     } else {
-      constraint = factory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
+      constraint = pFactory.createNegativeConstraint(leftOperand, pExpression.getOperator(), rightOperand);
     }
 
     return Optional.fromNullable(constraint);
   }
 
-
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement, List<AbstractState> pElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
-    assert pElement instanceof ConstraintsState;
+  public Collection<? extends AbstractState> strengthen(AbstractState pStateToStrengthen,
+      List<AbstractState> pStrengtheningStates, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+    assert pStateToStrengthen instanceof ConstraintsState;
 
-    return null;
+    Collection<ConstraintsState> newStates = new ArrayList<>();
+
+    if (!missingInformation) {
+      return null;
+    }
+
+    for (AbstractState currState : pStrengtheningStates) {
+      if (currState instanceof ValueAnalysisState) {
+        Collection<ConstraintsState> newValueStrengthenedStates =
+            strengthen((ConstraintsState) pStateToStrengthen, (ValueAnalysisState) currState, pCfaEdge);
+
+        newStates.addAll(newValueStrengthenedStates);
+      }
+    }
+
+    if (newStates.isEmpty()) {
+      return null;
+    }
+
+    return newStates;
+  }
+
+  private Collection<ConstraintsState> strengthen(ConstraintsState pStateToStrengthen,
+      ValueAnalysisState pStrengtheningState, CFAEdge pCfaEdge) {
+
+    Collection<ConstraintsState> newStates = new ArrayList<>();
+    final String functionName = pCfaEdge.getPredecessor().getFunctionName();
+    final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, pStrengtheningState);
+    final FileLocation fileLocation = pCfaEdge.getFileLocation();
+
+    ConstraintsState newState =
+        getNewState(pStateToStrengthen, missingInformationExpression, factory, missingInformationTruth, fileLocation);
+
+    newStates.add(newState);
+    resetMissingInformationStatus();
+
+    return newStates;
+  }
+
+
+  private void resetMissingInformationStatus() {
+    missingInformation = false;
+    missingInformationExpression = null;
+    missingInformationTruth = false;
   }
 }

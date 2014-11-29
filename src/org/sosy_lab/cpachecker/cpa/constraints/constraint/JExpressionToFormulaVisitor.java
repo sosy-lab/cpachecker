@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -63,6 +64,10 @@ public class JExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
 
   public JExpressionToFormulaVisitor(String pFunctionName) {
     super(pFunctionName);
+  }
+
+  public JExpressionToFormulaVisitor(String pFunctionName, ValueAnalysisState pValueState) {
+    super(pFunctionName, pValueState);
   }
 
   public InvariantsFormula<Value> transform(JExpression pExpression) throws UnrecognizedCodeException {

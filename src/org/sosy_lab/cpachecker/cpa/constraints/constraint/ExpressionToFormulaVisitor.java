@@ -27,8 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
@@ -36,10 +34,13 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+import com.google.common.base.Optional;
 
 /**
  * Class for transforming expressions to formulas.
@@ -50,16 +51,22 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class ExpressionToFormulaVisitor {
 
-  private static Map<MemoryLocation, Alias> identifierAliasses = new HashMap<>();
-
   private final String functionName;
 
-  private boolean hasMissingInformation = false;
+  private boolean missingInformation = false;
+  private Optional<ValueAnalysisState> valueState;
 
   public ExpressionToFormulaVisitor(String pFunctionName) {
     functionName = pFunctionName;
+    valueState = Optional.absent();
   }
 
+  public ExpressionToFormulaVisitor(String pFunctionName, ValueAnalysisState pValueState) {
+    this(pFunctionName);
+    valueState = Optional.of(pValueState);
+  }
+
+   /* Not needed if strengthening with ValueAnalysis works
   public void addAlias(String pIdentifier) {
     MemoryLocation memLoc = MemoryLocation.valueOf(functionName, pIdentifier, 0);
 
@@ -79,7 +86,7 @@ public class ExpressionToFormulaVisitor {
     MemoryLocation memLoc = MemoryLocation.valueOf(functionName, pIdentifier, 0);
 
     return identifierAliasses.get(memLoc);
-  }
+  }*/
 
   protected InvariantsFormula<Value> negate(InvariantsFormula<Value> pFormula) {
     checkNotNull(pFormula);
@@ -104,11 +111,35 @@ public class ExpressionToFormulaVisitor {
     return new NumericValue(pValue);
   }
 
-  public InvariantsFormula<Value> visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    final String identifier = pIastIdExpression.getName();
-    Alias newAlias = getNewAlias(identifier);
+  /**
+   * Returns whether information was missing while transforming the last expression.
+   *
+   * <p>This method always resets after one call. So when calling this method after the creation of a formula,
+   * it will only return <code>true</code> at the first call, if at all.</p>
+   *
+   * @return <code>true</code> if information was missing, <code>false</code> otherwise
+   */
+  public boolean hasMissingInformation() {
+    return missingInformation;
+  }
 
-    return InvariantsFormulaManager.INSTANCE.<Value>asConstant(newAlias);
+  public InvariantsFormula<Value> visit(AIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+    if (!valueState.isPresent()) {
+      missingInformation = true;
+      return null;
+    }
+
+    final ValueAnalysisState state = valueState.get();
+    final String identifier = pIastIdExpression.getName();
+    final MemoryLocation memLoc = MemoryLocation.valueOf(functionName, identifier, 0);
+
+    final Value idValue = state.getValueFor(memLoc);
+
+    if (idValue == null) {
+      return null;
+    }
+
+    return InvariantsFormulaManager.INSTANCE.asConstant(idValue);
   }
 
   public InvariantsFormula<Value> visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)

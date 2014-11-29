@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -57,6 +58,10 @@ public class CExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
 
   public CExpressionToFormulaVisitor(String pFunctionName) {
     super(pFunctionName);
+  }
+
+  public CExpressionToFormulaVisitor(String pFunctionName, ValueAnalysisState pValueState) {
+    super(pFunctionName, pValueState);
   }
 
   public InvariantsFormula<Value> transform(CExpression pExpression) throws UnrecognizedCodeException {
@@ -131,14 +136,8 @@ public class CExpressionToFormulaVisitor extends ExpressionToFormulaVisitor
         }
       }
 
-      case AMPER:
-        assert pIastUnaryExpression.getOperand() instanceof CIdExpression;
-        CIdExpression operand = (CIdExpression) pIastUnaryExpression.getOperand();
-
-        return factory.<Value>asConstant(getNewAlias(AMPERSAND + operand.getName()));
-
       default:
-        return null; // TODO: alignof, sizeof with own formulas
+        return null; // TODO: amper, alignof, sizeof with own formulas
     }
   }
 
