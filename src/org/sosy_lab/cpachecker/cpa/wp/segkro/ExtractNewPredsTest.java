@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.wp.segkro;
 
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
@@ -45,10 +46,8 @@ public class ExtractNewPredsTest extends SolverBasedTest {
 
   private ExtractNewPreds enp;
 
-  @Override
+  @Before
   public void setUp() throws Exception {
-    super.setUp();
-
     List<Rule> rules = Lists.newArrayList();
     rules = RulesetFactory.createRuleset(formulaManager, solver);
     enp = new ExtractNewPreds(rules);

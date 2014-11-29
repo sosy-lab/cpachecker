@@ -41,12 +41,6 @@ import com.google.common.collect.Lists;
 
 public class RulesTest0 extends SolverBasedTest {
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-
-  }
-
   @Test
   public void testElim1() throws SolverException, InterruptedException {
 
