@@ -27,7 +27,9 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -38,19 +40,31 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
 import org.sosy_lab.cpachecker.util.test.DebugOutput;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 
 public class Z3AstMatcher implements SmtAstMatcher {
 
   private final long ctx;
   private final Z3FormulaManager fm;
+  private final FormulaCreator<Long, Long, Long> fmc;
 
-  private FormulaCreator<Long, Long, Long> fmc;
+  private Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
+  private Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
+  private Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
   public Z3AstMatcher(Z3FormulaManager pFm, FormulaCreator<Long, Long, Long> pFormulaCreator) {
     this.ctx = pFm.getEnvironment();
     this.fm = pFm;
     this.fmc = pFormulaCreator;
+
+    defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
+    defineRotations(">", "<");
+
+    defineFunctionAliases("*", Sets.newHashSet("Integer__*_", "Real__*_"));
   }
 
   @Override
@@ -64,6 +78,11 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return internalPerform(pPatternSelection, pF, Sets.<Long>newTreeSet());
   }
 
+  private SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
+    DebugOutput.debugMsg(ObjectArrays.concat("FAILED MATCH", pDescription));
+    return SmtAstMatchResult.NOMATCH_RESULT;
+  }
+
   private SmtAstMatchResult internalPerform(final SmtAstPatternSelection pPatternSelection, final Formula pF, final Set<Long> visited) {
     // TODO: Cache the match result
 
@@ -75,11 +94,11 @@ public class Z3AstMatcher implements SmtAstMatcher {
       matches = matches + (r.matches() ? 1 : 0);
 
       if (r.matches() && pPatternSelection.getRelationship().isNone()) {
-        return SmtAstMatchResult.NOMATCH_RESULT;
+        return newMatchFailedResult("Match but NONE should!");
       }
 
       if (!r.matches() && pPatternSelection.getRelationship().isAnd()) {
-        return SmtAstMatchResult.NOMATCH_RESULT;
+        return newMatchFailedResult("No match but ALL should!");
       }
 
       if (r.matches() && pPatternSelection.getRelationship().isOr()) {
@@ -98,7 +117,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     }
 
     if (matches == 0 && pPatternSelection.getRelationship().isOr()) {
-      return SmtAstMatchResult.NOMATCH_RESULT;
+      return newMatchFailedResult("No match but ANY should!");
     }
 
     return aggregatedResult;
@@ -127,7 +146,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     case Z3_NUMERAL_AST: // handle this as an unary function
     case Z3_APP_AST:  // k-nary function
       if (!(pP instanceof SmtFunctionApplicationPattern)) {
-        return SmtAstMatchResult.NOMATCH_RESULT;
+        return newMatchFailedResult("No function application!");
       }
 
       SmtFunctionApplicationPattern fp = (SmtFunctionApplicationPattern) pP;
@@ -144,10 +163,23 @@ public class Z3AstMatcher implements SmtAstMatcher {
         functionParameterCount = get_app_num_args(ctx, ast);
       }
 
+      boolean considerArgumentsInReverse = false; // TODO: Add support for cases where NOT fp.function.isPresent()
+
       if (fp.function.isPresent()) {
-        if (!fp.function.get().equals(functionSymbol)) {
-          DebugOutput.debugMsg("Difference:", fp.function.get(), functionSymbol);
-          return SmtAstMatchResult.NOMATCH_RESULT;
+        boolean isExpectedFunction = isExpectedFunctionSumbol(fp.function.get(), functionSymbol);
+
+        if (!isExpectedFunction) {
+          Comparable<?> functionSymbolRotated = functionRotations.get(functionSymbol);
+          if (functionSymbolRotated != null) {
+            if (isExpectedFunctionSumbol(fp.function.get(), functionSymbolRotated)) {
+              isExpectedFunction = true;
+              considerArgumentsInReverse = true;
+            }
+          }
+        }
+
+        if (!isExpectedFunction) {
+          return newMatchFailedResult("Function missmatch!", fp.function.get(), functionSymbol);
         }
       }
 
@@ -158,7 +190,9 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
 
       // Perform the matching recursively on the arguments
-      Iterator<SmtAstPattern> itPatternsInSequence = fp.getArgumentPatternIterator();
+      Set<SmtAstPattern> argPatternsMatched = Sets.newHashSet();
+
+      Iterator<SmtAstPattern> itPatternsInSequence = fp.getArgumentPatternIterator(considerArgumentsInReverse);
       for (int i=0; i<functionParameterCount; i++) {
         final long argAst = get_app_arg(ctx, ast, i);
         final FormulaType<?> argFormulaType = fmc.getFormulaType(argAst);
@@ -167,16 +201,14 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
         Queue<SmtAstPattern> patternInSequence = new ArrayDeque<>();
         if (isCommutative(functionSymbol)) {
+          patternInSequence.addAll(fp.getArgumentPatterns(considerArgumentsInReverse));
+        } else {
           if (itPatternsInSequence.hasNext()) {
             patternInSequence.add(itPatternsInSequence.next());
           } else {
             assert false;
           }
-        } else {
-          patternInSequence.addAll(fp.getArgumentPatterns());
         }
-
-        int differentArgPatternsMatched = 0;
 
         while (!patternInSequence.isEmpty()) {
           final SmtAstPattern argPattern = patternInSequence.poll();
@@ -187,7 +219,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
                 );
 
           if (argMatchingResult.matches()) {
-            differentArgPatternsMatched++;
+            argPatternsMatched.add(argPattern);
             result.putMatchingArgumentFormula(argPattern, argFormula);
             for (String boundVar: argMatchingResult.getBoundVariables()) {
               for (Formula varBinding : argMatchingResult.getVariableBindings(boundVar)) {
@@ -196,23 +228,24 @@ public class Z3AstMatcher implements SmtAstMatcher {
             }
 
             if (fp.getArgumentsLogic().isNone()) {
-              return SmtAstMatchResult.NOMATCH_RESULT;
+              return newMatchFailedResult("Match but NONE should!");
             }
 
           } else if (fp.getArgumentsLogic().isAnd()) {
-            return SmtAstMatchResult.NOMATCH_RESULT;
+            return newMatchFailedResult("No match but ALL should!");
           }
         }
 
-        if (differentArgPatternsMatched == 0
+        if (argPatternsMatched.isEmpty()
             && fp.getArgumentsLogic().isOr()) {
-          return SmtAstMatchResult.NOMATCH_RESULT;
+          return newMatchFailedResult("No match but ANY should!");
         }
+      }
 
-        if (differentArgPatternsMatched != fp.getArgumentPatternCount()
-            && fp.getArgumentsLogic().isAnd()) {
-          return SmtAstMatchResult.NOMATCH_RESULT;
-        }
+      if (argPatternsMatched.size() != fp.getArgumentPatternCount()
+          && fp.getArgumentsLogic().isAnd()) {
+        assert false; // might be dead code
+        return newMatchFailedResult("No match but ALL should!");
       }
 
       return result;
@@ -230,7 +263,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       for (int b=0; b<boundCount; b++) {
 
       }
-      long bodyAst = get_quantifier_body(ctx, ast);
+      //long bodyAst = get_quantifier_body(ctx, ast);
 
       // TODO
 
@@ -256,27 +289,37 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
-  private boolean isCommutative(final String pFunctionName) {
-    return false;
+  private boolean isExpectedFunctionSumbol(Comparable<?> pExpectedSymbol, Comparable<?> pFound) {
+    boolean result = pExpectedSymbol.equals(pFound);
+    if (!result) {
+      Collection<Comparable<?>> definedAliase = functionAliases.get(pExpectedSymbol);
+      for (Comparable<?> alias: definedAliase) {
+        if (alias.equals(pFound)) {
+          return true;
+        }
+      }
+    }
+    return result;
   }
 
+  private boolean isCommutative(final String pFunctionName) {
+    return commutativeFunctions.contains(pFunctionName);
+  }
 
   @Override
   public void defineCommutative(String pFunctionName) {
-    // TODO Auto-generated method stub
-
+    commutativeFunctions.add(pFunctionName);
   }
 
   @Override
   public void defineRotations(String pFunctionName, String pRotationFunctionName) {
-    // TODO Auto-generated method stub
-
+    functionRotations.put(pFunctionName, pRotationFunctionName);
+    functionRotations.put(pRotationFunctionName, pFunctionName);
   }
 
   @Override
   public void defineFunctionAliases(String pFunctionName, Set<String> pAliases) {
-    // TODO Auto-generated method stub
-
+    functionAliases.putAll(pFunctionName, pAliases);
   }
 
 }

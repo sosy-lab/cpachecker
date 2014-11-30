@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 import com.google.common.base.Optional;
 
 
-
 public class SmtQuantificationPattern implements SmtAstPattern {
 
   private static enum QuantifierType { FORALL, EXISTS }

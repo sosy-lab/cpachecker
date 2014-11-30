@@ -56,24 +56,39 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
   private BooleanFormula _c1_times_ex_plus_e1_GEQ_0;
   private BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0;
 
-  private SmtAstPatternSelection elimPremisePattern1;
-  private SmtAstPattern elimPremisePattern1a;
-  private SmtAstPattern elimPremisePattern1b;
-  private SmtAstPattern elimPremisePattern2;
-
   private Z3AstMatcher matcher;
-  private SmtAstPattern simplePattern1;
+  private IntegerFormula _i1;
+  private IntegerFormula _j1;
+  private IntegerFormula _j2;
+  private IntegerFormula _a1;
+  private IntegerFormula _1;
+  private IntegerFormula _minus1;
+  private IntegerFormula _1_plus_a1;
+  private BooleanFormula _not_j1_EQUALS_minus1;
+  private BooleanFormula _i1_EQUALS_1_plus_a1;
+  private IntegerFormula _j12_plus_a1;
+  private BooleanFormula _j1_EQUALS_j2_plus_a1;
+  private BooleanFormula _f_and_of_foo;
+  private SmtAstPatternSelection elimPremisePattern1;
+  private SmtAstPatternSelection elimPremisePattern2;
 
   @Before
+  public void setupEnvironment() throws Exception {
+    setupMatcher();
+    setupTestFormulas();
+    setupTestPatterns();
+  }
+
   public void setupMatcher() {
     Z3FormulaManager zfm =(Z3FormulaManager) formulaManager;
     matcher = new Z3AstMatcher(zfm, zfm.getFormulaCreator());
   }
 
-  @Before
   public void setupTestFormulas() throws Exception {
-
     _0 = ifm.makeNumber(0);
+    _1 = ifm.makeNumber(1);
+    _minus1 = ifm.makeNumber(-1);
+
     _al = fmgr.makeVariable(NumeralType.IntegerType, "al");
     _bl = fmgr.makeVariable(NumeralType.IntegerType, "bl");
     _c1 = fmgr.makeVariable(NumeralType.IntegerType, "c1");
@@ -81,6 +96,11 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
     _e1 = fmgr.makeVariable(NumeralType.IntegerType, "e1");
     _e2 = fmgr.makeVariable(NumeralType.IntegerType, "e2");
     _eX = fmgr.makeVariable(NumeralType.IntegerType, "eX");
+
+    _i1 = fmgr.makeVariable(NumeralType.IntegerType, "i@1");
+    _j1= fmgr.makeVariable(NumeralType.IntegerType, "j@1");
+    _j2 = fmgr.makeVariable(NumeralType.IntegerType, "j@2");
+    _a1 = fmgr.makeVariable(NumeralType.IntegerType, "a@1");
 
     _c1_times_ex_plus_e1_GEQ_0
       = ifm.greaterOrEquals(
@@ -100,101 +120,75 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
 
     _0_LESSTHAN_bl = ifm.lessThan(_0, _bl);
     _0_GEQ_al = ifm.greaterOrEquals(_0, _al);
+
+    _1_plus_a1 = ifm.add(_1, _a1);
+    _not_j1_EQUALS_minus1 = bfm.not(ifm.equal(_j1, _minus1));
+    _i1_EQUALS_1_plus_a1 = ifm.equal(_i1, _1_plus_a1);
+
+    _j12_plus_a1 = ifm.add(_j2, _a1);
+    _j1_EQUALS_j2_plus_a1 = ifm.equal(_j1, _j12_plus_a1);
+
+    _f_and_of_foo = bfm.and(Lists.newArrayList(
+            _i1_EQUALS_1_plus_a1,
+            _not_j1_EQUALS_minus1,
+            _j1_EQUALS_j2_plus_a1));
   }
 
-  @Before
   public void setupTestPatterns() {
-
-    simplePattern1 =
-        match(">=",
-            matchNullaryBind("z"),
-            matchNullaryBind("al"));
-
-    elimPremisePattern1a =
-              match("+",
-                  match("*",
-                      matchAnyBind("c1"),
-                      matchAnyBind("eX")),
-                  matchAnyBind("e1"));
-
-    elimPremisePattern1b =
-              match("+",
-                  matchAnyBind("eX"),
-                  matchAnyBind("e1"));
-
     elimPremisePattern1 =
-        withDefaultBinding(
-            "c1", _0,
-              or(elimPremisePattern1a, elimPremisePattern1b));
-
+        withDefaultBinding("c1", _0,
+          or(
+              match(">=",
+                  match("+",
+                      match("*",
+                          matchAnyBind("c1"),
+                          matchAnyBind("eX")),
+                      matchAnyBind("e1")),
+                  matchNullary("0")),
+              match(">=",
+                  matchAnyBind("e1"),
+                  matchNullary("0"))));
 
     elimPremisePattern2 =
-        match("+",
-            match("*",
-                match("-",
-                    match(0),
-                    matchAnyBind("c2")),
-                matchAnyBind("eX")),
-            matchAnyBind("e2"));
+        withDefaultBinding("c2", _0,
+          or(
+              match(">=",
+                  match("+",
+                      match("*",
+                          match("-",
+                              matchNullary("0"),
+                              matchAnyBind("c2")),
+                          matchAnyBind("eX")),
+                      matchAnyBind("e2")),
+                  matchNullary("0")),
+              match(">=",
+                  matchAnyBind("e2"),
+                  matchNullary("0"))));
+
   }
 
   @Test
   public void testSimple1() {
-    SmtAstMatchResult result1 = matcher.perform(simplePattern1, _0_GEQ_al);
-    assertThat(result1.matches()).isTrue();
-    assertThat(result1.getVariableBindings("z")).contains(_0);
-    assertThat(result1.getVariableBindings("al")).contains(_al);
+    SmtAstPattern patternA = match(">=",
+        matchNullaryBind("z"),
+        matchNullaryBind("al"));
+
+    SmtAstPattern patternB = match(">",
+        matchNullaryBind("z"),
+        matchNullaryBind("al"));
+
+    SmtAstMatchResult resultA = matcher.perform(patternA, _0_GEQ_al);
+    assertThat(resultA.matches()).isTrue();
+    assertThat(resultA.getVariableBindings("z")).containsExactly(_0);
+    assertThat(resultA.getVariableBindings("al")).containsExactly(_al);
+
+    SmtAstMatchResult resultB = matcher.perform(patternB, _0_GEQ_al);
+    assertThat(resultB.matches()).isFalse();
   }
 
-
-  @Test
-  public void testAstMatchingElim() {
-    // The Strings c1, eX, e2, c2 represent bound formulas
-    // that must reference to the same formula!!
-
-    // Consider commutativity of different functions!
-
-    // At this point: We have defined the match-patterns.
-    // Now it is time to do the matching.
-
-    SmtAstMatchResult result1 = matcher.perform(elimPremisePattern1, _c1_times_ex_plus_e1_GEQ_0);
-    SmtAstMatchResult result2 = matcher.perform(elimPremisePattern2, _c1_times_ex_plus_e1_GEQ_0);
-
-    // A (sub-)formula represents the root of the matching AST
-    Collection<Formula> f1 = result1.getMatchingArgumentFormula(elimPremisePattern1a);
-    Collection<Formula> f2 = result1.getMatchingArgumentFormula(elimPremisePattern2);
-    // Every bound formula can be accessed in the result
-    Collection<Formula> eX = result1.getVariableBindings("eX");
-
-    assertThat(eX).contains(_eX);
-    assertThat(f1).contains(_c1_times_ex_plus_e1_GEQ_0);
-    assertThat(f2).contains(_minus_c2_times_ex_plus_e2_GEQ_0);
-  }
 
   @Test
   public void testAstMatchingSubstitute() {
-
-    // Create the formula >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    IntegerFormula _i1 = fmgr.makeVariable(NumeralType.IntegerType, "i@1");
-    IntegerFormula _j1= fmgr.makeVariable(NumeralType.IntegerType, "j@1");
-    IntegerFormula _j2 = fmgr.makeVariable(NumeralType.IntegerType, "j@2");
-    IntegerFormula _a1 = fmgr.makeVariable(NumeralType.IntegerType, "a@1");
-
-    IntegerFormula _1 = ifm.makeNumber(1);
-    IntegerFormula _minus1 = ifm.makeNumber(-1);
-
-    IntegerFormula _1_plus_a1 = ifm.add(_1, _a1);
-    BooleanFormula _not_j1_EQUALS_minus1 = bfm.not(ifm.equal(_j1, _minus1));
-    BooleanFormula _i1_EQUALS_1_plus_a1 = ifm.equal(_i1, _1_plus_a1);
-
-    IntegerFormula _j12_plus_a1 = ifm.add(_j2, _a1);
-    BooleanFormula _j1_EQUALS_j2_plus_a1 = ifm.equal(_j1, _j12_plus_a1);
-
-    BooleanFormula f = bfm.and(Lists.newArrayList(
-            _i1_EQUALS_1_plus_a1,
-            _not_j1_EQUALS_minus1,
-            _j1_EQUALS_j2_plus_a1));
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     SmtAstPattern patternPremise1 =
         match(  // The assumption that the parent function is a logical AND
@@ -210,8 +204,8 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
 
     // TODO: There might be multiple valid bindings to a variable ("models")
 
-    SmtAstMatchResult result1 = matcher.perform(patternPremise1, f);
-    SmtAstMatchResult result2 = matcher.perform(patternPremise2, f);
+    SmtAstMatchResult result1 = matcher.perform(patternPremise1, _f_and_of_foo);
+    SmtAstMatchResult result2 = matcher.perform(patternPremise2, _f_and_of_foo);
 
     // A (sub-)formula represents the root of the matching AST
     Collection<Formula> f1 = result1.getMatchingArgumentFormula(patternPremise1);
@@ -229,23 +223,32 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
   }
 
   @Test
-  public void testLinearCombi() {
+  public void testLinearCombi1() {
+    final SmtAstMatchResult result1 = matcher.perform(elimPremisePattern1, _0_GEQ_al);
+    final SmtAstMatchResult result2 = matcher.perform(elimPremisePattern1, _0_LESSTHAN_bl);
 
-    final SmtAstMatchResult result1 = matcher.perform(elimPremisePattern1, _0_LESSTHAN_bl);
-    final SmtAstMatchResult result2 = matcher.perform(elimPremisePattern2, _0_GEQ_al);
+    assertThat(result1.matches()).isFalse();
+    assertThat(result2.matches()).isFalse();
+  }
 
-    assertThat(result1.matches()).isTrue();
+  @Test
+  public void testLinearCombi2() {
+    final SmtAstMatchResult result1 = matcher.perform(elimPremisePattern1, _minus_c2_times_ex_plus_e2_GEQ_0);
+    assertThat(result1.matches()).isFalse();
+  }
+
+  @Test
+  public void testLinearCombi3() {
+    final SmtAstMatchResult result2 = matcher.perform(elimPremisePattern1, _c1_times_ex_plus_e1_GEQ_0);
     assertThat(result2.matches()).isTrue();
+    assertThat(result2.getVariableBindings("c1")).containsExactly(_c1);
+    assertThat(result2.getVariableBindings("eX")).containsExactly(_eX);
+  }
 
-    assertThat(result1.getMatchingArgumentFormula(elimPremisePattern1a))
-      .containsAnyOf(_0_LESSTHAN_bl, _0_GEQ_al);
-    assertThat(result1.getMatchingArgumentFormula(elimPremisePattern2))
-      .containsAnyOf(_0_LESSTHAN_bl, _0_GEQ_al);
-
-    assertThat(result1.getVariableBindings("e1"))
-      .containsExactly(_al);
-    assertThat(result1.getVariableBindings("e2"))
-      .containsExactly(_bl);
+  @Test
+  public void testLinearCombi4() {
+    final SmtAstMatchResult result3 = matcher.perform(elimPremisePattern2, _minus_c2_times_ex_plus_e2_GEQ_0);
+    assertThat(result3.matches()).isTrue();
   }
 
 

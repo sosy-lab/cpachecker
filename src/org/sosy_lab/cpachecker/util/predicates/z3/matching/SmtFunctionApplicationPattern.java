@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 
 public class SmtFunctionApplicationPattern implements SmtAstPattern {
 
@@ -59,12 +60,50 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
     return argumentPatterns.getPatterns().size();
   }
 
-  public Iterator<SmtAstPattern> getArgumentPatternIterator() {
-    return argumentPatterns.getPatterns().iterator();
+  public Iterator<SmtAstPattern> getArgumentPatternIterator(boolean reversed) {
+    return getArgumentPatterns(reversed).iterator();
   }
 
-  public Collection<SmtAstPattern> getArgumentPatterns() {
+  public List<SmtAstPattern> getArgumentPatterns(boolean reversed) {
+    if (reversed) {
+      return Lists.reverse(argumentPatterns.getPatterns());
+    }
     return argumentPatterns.getPatterns();
+  }
+
+  @Override
+  public String toString() {
+    String functionText = function.isPresent() ? function.get().toString() : "?";
+    String bindToText = bindMatchTo.isPresent() ? bindMatchTo.get().toString() : "-";
+    return String.format("%s | %s | %d args", functionText, bindToText, argumentPatterns.getPatterns().size());
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((argumentPatterns == null) ? 0 : argumentPatterns.hashCode());
+    result = prime * result + ((bindMatchTo == null) ? 0 : bindMatchTo.hashCode());
+    result = prime * result + ((function == null) ? 0 : function.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof SmtFunctionApplicationPattern)) { return false; }
+    SmtFunctionApplicationPattern other = (SmtFunctionApplicationPattern) obj;
+    if (argumentPatterns == null) {
+      if (other.argumentPatterns != null) { return false; }
+    } else if (!argumentPatterns.equals(other.argumentPatterns)) { return false; }
+    if (bindMatchTo == null) {
+      if (other.bindMatchTo != null) { return false; }
+    } else if (!bindMatchTo.equals(other.bindMatchTo)) { return false; }
+    if (function == null) {
+      if (other.function != null) { return false; }
+    } else if (!function.equals(other.function)) { return false; }
+    return true;
   }
 
 }

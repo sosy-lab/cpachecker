@@ -144,6 +144,13 @@ public class SmtAstPatternBuilder {
         and());
   }
 
+  public static SmtAstPattern matchNullary(Comparable<?> pSymbol) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>of(pSymbol),
+        Optional.<String>absent(),
+        and());
+  }
+
   public static SmtAstPatternSelection or(SmtAstPattern... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
         LogicalConnection.OR,

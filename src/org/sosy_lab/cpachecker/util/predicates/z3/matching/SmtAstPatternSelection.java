@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -42,7 +42,7 @@ public interface SmtAstPatternSelection extends Iterable<SmtAstPattern> {
     public boolean isNone() { return this == NONE; }
   }
 
-  public Collection<SmtAstPattern> getPatterns();
+  public List<SmtAstPattern> getPatterns();
 
   public LogicalConnection getRelationship();
 

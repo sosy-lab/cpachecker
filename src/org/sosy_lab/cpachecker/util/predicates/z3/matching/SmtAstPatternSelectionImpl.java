@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -49,7 +49,7 @@ public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
   }
 
   @Override
-  public Collection<SmtAstPattern> getPatterns() {
+  public List<SmtAstPattern> getPatterns() {
     return patterns;
   }
 
