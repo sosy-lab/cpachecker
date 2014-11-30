@@ -33,10 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * State for Symbolic Execution Analysis.
- *
- * <p>This state contains a mapping of tracked variables and their corresponding symbolic value.
- * </p>
+ * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
 public class ConstraintsState implements LatticeAbstractState<ConstraintsState> {
 
@@ -46,7 +43,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   private Set<Constraint> constraints;
 
   /**
-   * Stores whether this states constraints are solvable.
+   * Stores whether this state's constraints are solvable.
    */
   private boolean isSolvable = true;
 
