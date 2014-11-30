@@ -46,16 +46,17 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   private Set<Constraint> constraints;
 
   /**
-   * Create a new <code>ConstraintsState</code> object with the given constraints.
+   * Stores whether this states constraints are solvable.
+   */
+  private boolean isSolvable = true;
+
+  /**
+   * Creates a new <code>ConstraintsState</code> object with the given constraints.
    *
    * @param pConstraints the constraints to use for the newly created <code>ConstraintsState</code> object
    */
   public ConstraintsState(Set<Constraint> pConstraints) {
     constraints = new HashSet<>(pConstraints);
-  }
-
-  public static ConstraintsState copyOf(ConstraintsState pState) {
-    return new ConstraintsState(new HashSet<>(pState.constraints));
   }
 
   /**
@@ -65,6 +66,23 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     constraints = new HashSet<>();
   }
 
+  /**
+   * Returns a new copy of the given <code>ConstraintsState</code> object.
+   *
+   * @param pState the state to copy
+   * @return a new copy of the given <code>ConstraintsState</code> object
+   */
+  public static ConstraintsState copyOf(ConstraintsState pState) {
+    return new ConstraintsState(new HashSet<>(pState.constraints));
+  }
+
+  /**
+   * Returns the constraints stored in this state.
+   *
+   * <p>A new set is returned, so changing the returned set will not change the constraints in this state.</p>
+   *
+   * @return the constraints stored in this state
+   */
   public Set<Constraint> getConstraints() {
     return ImmutableSet.copyOf(constraints);
   }
@@ -103,6 +121,11 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     return lessOrEqual;
   }
 
+  /**
+   * Adds the given {@link Constraint} to this state.
+   *
+   * @param pConstraint the <code>Constraint</code> to add
+   */
   public void addConstraint(Constraint pConstraint) {
     constraints.add(pConstraint);
   }
