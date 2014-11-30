@@ -87,7 +87,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     // TODO: Cache the match result
 
     int matches = 0;
-    Z3AstMatchResult aggregatedResult = new Z3AstMatchResult();
+    SmtAstMatchResultImpl aggregatedResult = new SmtAstMatchResultImpl();
 
     for (SmtAstPattern p: pPatternSelection) {
       SmtAstMatchResult r = internalPerform(p, pF, Sets.newHashSet(visited));
@@ -127,7 +127,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     assert (visited.size() == 0);
 
     final long ast = fm.extractInfo(pF);
-    final Z3AstMatchResult result = new Z3AstMatchResult();
+    final SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
     result.setMatchingRootFormula(pF);
     if (pP.getBindMatchTo().isPresent()) {
       result.putBoundVaribale(pP.getBindMatchTo().get(), pF);

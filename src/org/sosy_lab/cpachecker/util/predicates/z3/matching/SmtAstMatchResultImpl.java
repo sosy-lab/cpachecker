@@ -32,13 +32,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-public class Z3AstMatchResult implements SmtAstMatchResult {
+public class SmtAstMatchResultImpl implements SmtAstMatchResult {
 
   private final Multimap<SmtAstPattern, Formula> argumentPatternMatches;
   private final Multimap<String, Formula> variableBindings;
   private Formula matchingRootFormula;
 
-  public Z3AstMatchResult() {
+  public SmtAstMatchResultImpl() {
     this.argumentPatternMatches = HashMultimap.create();
     this.variableBindings = HashMultimap.create();
   }
@@ -81,7 +81,6 @@ public class Z3AstMatchResult implements SmtAstMatchResult {
   public Collection<String> getBoundVariables() {
     return variableBindings.keySet();
   }
-
 
   @Override
   public String toString() {
