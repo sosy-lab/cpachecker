@@ -9,6 +9,9 @@ Further guidelines that are very worth reading:
 - Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
 - Google's Java style guide: http://google-styleguide.googlecode.com/svn/trunk/javaguide.html
 
+Some additional information can be found in other files
+in this directory, e.g. Logging.txt and Test.txt.
+
 We suggest to use Eclipse for development,
 as several parts of this guide are incorporated into the Eclipse project configuration
 (indentation, spaces instead of tabs, no trailing whitespaces).
@@ -171,13 +174,9 @@ Coding:
   Strings do not need copying, and for other uses there is the valueOf() method.
 - Avoid Cloneable and clone(), use copy constructors instead if you need them
   (you don't if you use immutable classes).
-- When using our LogManager, don't concatenate log messages with +,
-  pass each part as a separate argument (concatenation will be done only if necessary).
 - Never swallow an exception.
   If throwing another exception, add the original one as the cause.
-  If logging, either use logUserException()
-  (if the exception text should be shown to the user)
-  or logDebugException() (in all other cases).
+  If logging, use the appropriate logger methods (c.f. doc/Logging.txt).
 - Always put @Override when implementing an overriding method
   (Eclipse does this automatically).
 
