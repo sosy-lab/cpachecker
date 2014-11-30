@@ -24,33 +24,47 @@
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
 import java.util.Collection;
+import java.util.Iterator;
+
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 
-
-
-public class SmtAstPatternImpl implements SmtAstPattern {
-
-  public static enum PatternLogic {
-    ALL, ANY, NONE
-  }
+public class SmtFunctionApplicationPattern implements SmtAstPattern {
 
   public final Optional<Comparable<?>> function;
   public final Optional<String> bindMatchTo;
-  public final ImmutableList<SmtAstPattern> argumentMatchers;
-  public final PatternLogic argumentToSatisfy;
+  public final SmtAstPatternSelection argumentPatterns;
 
-  public SmtAstPatternImpl(
+  public SmtFunctionApplicationPattern(
       Optional<Comparable<?>> pFunction,
       Optional<String> pBindMatchTo,
-      Collection<SmtAstPattern> pArgumentMatchers,
-      PatternLogic pArgumentToSatisfy) {
+      SmtAstPatternSelection pArgumentPatterns) {
 
     this.function = pFunction;
     this.bindMatchTo = pBindMatchTo;
-    this.argumentMatchers = ImmutableList.copyOf(pArgumentMatchers);
-    this.argumentToSatisfy = pArgumentToSatisfy;
+    this.argumentPatterns = pArgumentPatterns;
+  }
+
+  @Override
+  public Optional<String> getBindMatchTo() {
+    return bindMatchTo;
+  }
+
+  public LogicalConnection getArgumentsLogic() {
+    return argumentPatterns.getRelationship();
+  }
+
+  public int getArgumentPatternCount() {
+    return argumentPatterns.getPatterns().size();
+  }
+
+  public Iterator<SmtAstPattern> getArgumentPatternIterator() {
+    return argumentPatterns.getPatterns().iterator();
+  }
+
+  public Collection<SmtAstPattern> getArgumentPatterns() {
+    return argumentPatterns.getPatterns();
   }
 
 }

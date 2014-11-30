@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreat
 
 import com.google.common.base.Preconditions;
 
-class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
+public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
 

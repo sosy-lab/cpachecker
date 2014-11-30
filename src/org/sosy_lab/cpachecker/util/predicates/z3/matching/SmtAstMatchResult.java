@@ -23,15 +23,37 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
+import com.google.common.base.Optional;
 
 
 public interface SmtAstMatchResult {
 
-  public Set<Formula> getMatchingFormula(SmtAstPattern pMatcher);
+  public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pForArgumentPattern);
 
-  public Set<Formula> getBoundFormula(String pString);
+  public Optional<Formula> getMatchingRootFormula();
+
+  public Collection<String> getBoundVariables();
+
+  public Collection<Formula> getVariableBindings(String pVariableName);
+
+  public boolean matches();
+
+  public final static SmtAstMatchResult NOMATCH_RESULT = new SmtAstMatchResult() {
+    @Override
+    public boolean matches() { return false; }
+    @Override
+    public Optional<Formula> getMatchingRootFormula() { return Optional.absent(); }
+    @Override
+    public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pMatcher) { return Collections.emptySet(); }
+    @Override
+    public Collection<Formula> getVariableBindings(String pString) { return Collections.emptySet(); }
+    @Override
+    public Collection<String> getBoundVariables() { return Collections.emptySet(); }
+  };
 
 }

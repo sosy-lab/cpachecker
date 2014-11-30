@@ -23,7 +23,29 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
+import java.util.Collection;
+import java.util.Map;
 
-public class Z3SmtAstMatcher implements SmtAstPattern {
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
+/**
+ * A collection of SmtAstPattern that is connected
+ *  using a logical operator.
+ */
+public interface SmtAstPatternSelection extends Iterable<SmtAstPattern> {
+
+  public static enum LogicalConnection {
+    AND, OR, NONE;
+
+    public boolean isAnd() { return this == AND; }
+    public boolean isOr() { return this == OR; }
+    public boolean isNone() { return this == NONE; }
+  }
+
+  public Collection<SmtAstPattern> getPatterns();
+
+  public LogicalConnection getRelationship();
+
+  public Map<String, Formula> getDefaultBindings();
 
 }

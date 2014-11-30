@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternImpl.PatternLogic;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
-
+import com.google.common.collect.Maps;
 
 
 public class SmtAstPatternBuilder {
@@ -56,11 +58,10 @@ public class SmtAstPatternBuilder {
    * @return  A description of the pattern that matches the specified sub-formula within the AST
    */
   public static SmtAstPattern match(Comparable<?> pFunction, SmtAstPattern... argumentMatchers) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
         Optional.<String>absent(),
-        Arrays.asList(argumentMatchers),
-        PatternLogic.ALL);
+        and(argumentMatchers));
   }
 
   /**
@@ -71,22 +72,20 @@ public class SmtAstPatternBuilder {
    * @param argumentMatchers  The child patterns.
    */
   public static SmtAstPattern match(SmtAstPattern... argumentMatchers) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
-        Arrays.asList(argumentMatchers),
-        PatternLogic.ALL);
+        and(argumentMatchers));
   }
 
   /**
    * The same as described in {@link #match}, but binds the matching formula to a variable.
    */
   public static SmtAstPattern matchBind(Comparable<?> pFunction, String pBindMatchTo, SmtAstPattern... argumentMatchers) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
         Optional.of(pBindMatchTo),
-        Arrays.asList(argumentMatchers),
-        PatternLogic.ALL);
+        and(argumentMatchers));
   }
 
   /**
@@ -95,22 +94,20 @@ public class SmtAstPatternBuilder {
    * @return  Pattern.
    */
   public static SmtAstPattern matchAny() {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
-        Collections.<SmtAstPattern>emptyList(),
-        PatternLogic.ANY);
+        and());
   }
 
   /**
    * The same as described in {@link #matchAny}, but binds the matching formula to a variable.
    */
   public static SmtAstPattern matchAnyBind(String pBindMatchTo) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>of(pBindMatchTo),
-        Collections.<SmtAstPattern>emptyList(),
-        PatternLogic.ALL);
+        and());
   }
 
   /**
@@ -121,34 +118,61 @@ public class SmtAstPatternBuilder {
    * @return
    */
   public static SmtAstPattern matchIfNot(Comparable<?> pFunction, SmtAstPattern... argumentMatchers) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
         Optional.<String>absent(),
-        Arrays.asList(argumentMatchers),
-        PatternLogic.NONE);
+        none(argumentMatchers));
   }
 
   /**
    * Matches only if NONE of the patterns matches an arbitrary function application.
    *
-   * @param argumentMatchers
+   * @param quantorBodyMatchers
    * @return
    */
   public static SmtAstPattern matchIfNot(SmtAstPattern... pMatchers) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
-        Arrays.asList(pMatchers),
-        PatternLogic.NONE);
+        none(pMatchers));
   }
 
   public static SmtAstPattern matchNullaryBind(String pBindMatchTo) {
-    return new SmtAstPatternImpl(
+    return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>of(pBindMatchTo),
-        Collections.<SmtAstPattern>emptyList(), // This also means, that a matching function must have no parameters! (PatternLogic.ALL can be taken into account)
-        PatternLogic.ALL);
+        and());
   }
 
+  public static SmtAstPatternSelection or(SmtAstPattern... pDisjuncts) {
+    return new SmtAstPatternSelectionImpl(
+        LogicalConnection.OR,
+        Arrays.asList(pDisjuncts),
+        Collections.<String,Formula>emptyMap());
+  }
+
+  public static SmtAstPatternSelection and(SmtAstPattern... pDisjuncts) {
+    return new SmtAstPatternSelectionImpl(
+        LogicalConnection.AND,
+        Arrays.asList(pDisjuncts),
+        Collections.<String,Formula>emptyMap());
+  }
+
+  public static SmtAstPatternSelection none(SmtAstPattern... pDisjuncts) {
+    return new SmtAstPatternSelectionImpl(
+        LogicalConnection.NONE,
+        Arrays.asList(pDisjuncts),
+        Collections.<String,Formula>emptyMap());
+  }
+
+  public static SmtAstPatternSelection withDefaultBinding(String pVariableName, Formula pDefaultBinding, SmtAstPatternSelection pSelection) {
+    Map<String,Formula> defaultBindings = Maps.newHashMap(pSelection.getDefaultBindings());
+    defaultBindings.put(pVariableName, pDefaultBinding);
+
+    return new SmtAstPatternSelectionImpl(
+        pSelection.getRelationship(),
+        pSelection.getPatterns(),
+        defaultBindings);
+  }
 
 }

@@ -26,8 +26,29 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 import com.google.common.base.Optional;
 
 
-public interface SmtAstPattern {
 
-  public Optional<String> getBindMatchTo();
+public class SmtQuantificationPattern implements SmtAstPattern {
+
+  private static enum QuantifierType { FORALL, EXISTS }
+
+  public final Optional<QuantifierType> matchQuantificationWithType;
+  public final Optional<String> bindMatchTo;
+  public final SmtAstPatternSelection quantorBodyMatchers;
+
+  public SmtQuantificationPattern(
+      Optional<QuantifierType> pMatchQuantificationWithType,
+      Optional<String> pBindMatchTo,
+      SmtAstPatternSelection pQuantorBodyPatterns) {
+
+    this.bindMatchTo = pBindMatchTo;
+
+    this.quantorBodyMatchers = pQuantorBodyPatterns;
+    this.matchQuantificationWithType = pMatchQuantificationWithType;
+  }
+
+  @Override
+  public Optional<String> getBindMatchTo() {
+    return bindMatchTo;
+  }
 
 }

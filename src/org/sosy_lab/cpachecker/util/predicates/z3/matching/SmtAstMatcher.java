@@ -23,18 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
 public interface SmtAstMatcher {
 
-  public SmtAstMatchResult perform(List<SmtAstPattern> pMatchers, Formula pF);
+  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF);
+  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF);
 
   // a+b  <-->  b+a
   public void defineCommutative(String pFunctionName);
 
   // a >= b  <-->  b <= a
   public void defineRotations(String pFunctionName, String pRotationFunctionName);
+
+  public void defineFunctionAliases(String pFunctionName, Set<String> pAliases);
 }
