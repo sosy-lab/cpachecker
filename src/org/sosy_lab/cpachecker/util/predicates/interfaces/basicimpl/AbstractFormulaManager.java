@@ -118,7 +118,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   }
 
-  protected final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
+  public final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
   }
 

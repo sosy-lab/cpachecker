@@ -106,7 +106,7 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
   }
 
   @SuppressWarnings("unchecked")
-  protected <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
     if (pType.isBooleanType()) {
       return (T)new BooleanFormulaImpl<>(pTerm);
     } else if (pType.isIntegerType()) {
