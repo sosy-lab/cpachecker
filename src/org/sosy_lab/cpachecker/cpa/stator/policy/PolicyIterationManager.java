@@ -55,7 +55,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   private final FormulaManagerView fmgr;
 
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
@@ -363,10 +363,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * @return Whether to perform the value determination on {@param node}.
+   * @return Whether to perform the value determination on <code>node</code>.
    *
-   * Returns true iff the {@param node} is a loophead and at least one of
-   * the bounds in {@param updated} has an associated edge coming from
+   * Returns true iff the <code>node</code> is a loophead and at least one of
+   * the bounds in <code>updated</code> has an associated edge coming from
    * outside of the loop.
    */
   private boolean shouldPerformValueDetermination(
@@ -390,7 +390,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * @return Whether the {@param state} is reachable.
+   * @return Whether the <code>state</code> is reachable.
    */
   private boolean checkSatisfiability(PolicyState state)
         throws CPATransferException, InterruptedException {
@@ -513,8 +513,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * @return {@link CFAEdge} object connecting the node {@param fromNodeNo}
-   * to the node {@param toNodeNo}.
+   * @return {@link CFAEdge} object connecting the node <code>fromNodeNo</code>
+   * to the node <code>toNodeNo</code>.
    */
   private CFAEdge edgeFromIdentifier(int fromNodeNo, int toNodeNo) {
     CFANode toNode = nodeMap.get(toNodeNo);
@@ -532,7 +532,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    *
    * @return Whether to compute the abstraction when creating a new
-   * state associated with {@param node}.
+   * state associated with <code>node</code>.
    */
   private boolean shouldPerformAbstraction(CFANode node) {
     // TODO: make configurable.
@@ -543,7 +543,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   /**
   * Recursively compute the formula representing all possible paths
-  * to the node {@param current} from the already resolved nodes.
+  * to the node <code>current</code> from the already resolved nodes.
   */
   private PathFormula allPathsToNode(PolicyState toState, CFANode current)
       throws CPATransferException, InterruptedException {

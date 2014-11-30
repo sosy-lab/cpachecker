@@ -30,7 +30,7 @@ public class LinearConstraintManager {
   private final NumeralFormulaManagerView<
         NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
 
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final LogManager logger;
   private final FormulaManagerView fmgr;
 

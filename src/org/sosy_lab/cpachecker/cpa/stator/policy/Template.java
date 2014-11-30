@@ -31,6 +31,7 @@ public class Template {
     return linearExpression.hashCode();
   }
 
+  @Override
   public String toString() {
     return linearExpression.toString();
   }

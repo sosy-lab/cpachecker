@@ -141,8 +141,8 @@ public class ValueDeterminationFormulaManager {
    * Convert a value determination problem into a single formula.
    *
    * @param policy Selected policy.
-   * The abstract state associated with the {@param focusedNode}
-   * is the <b>new</b> state, with {@param updated} applied.
+   * The abstract state associated with the <code>focusedNode</code>
+   * is the <b>new</b> state, with <code>updated</code> applied.
    *
    * @return Global constraint for value determination.
    * @throws CPATransferException

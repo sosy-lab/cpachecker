@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManag
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.SubjectFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Abstract base class with helpful utilities for writing tests
  * that use an SMT solver.
@@ -84,6 +86,7 @@ import com.google.common.truth.SubjectFactory;
  * Test that rely on a theory that not all solvers support
  * should call one of the require methods at the beginning.
  */
+@SuppressFBWarnings(value="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification="test code")
 public abstract class SolverBasedTest0 {
 
   /**
@@ -189,6 +192,8 @@ public abstract class SolverBasedTest0 {
    * Use this for checking assertions about BooleanFormulas with Truth:
    * <code>assert_().about(BooleanFormula()).that(formula).is...()</code>.
    */
+  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
+      justification="fits better when called as about(BooleanFormula())")
   protected final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormula() {
     return BooleanFormulaOfSolver(factory);
   }
@@ -198,6 +203,8 @@ public abstract class SolverBasedTest0 {
    * (given the correspondign solver) with Truth:
    * <code>assert_().about(BooleanFormulaOfSolver(factory)).that(formula).is...()</code>.
    */
+  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
+      justification="fits better when called as about(BooleanFormulaOfSolver())")
   public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
       final FormulaManagerFactory factory) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
