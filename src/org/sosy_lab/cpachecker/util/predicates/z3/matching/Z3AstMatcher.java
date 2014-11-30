@@ -65,6 +65,8 @@ public class Z3AstMatcher implements SmtAstMatcher {
   }
 
   private SmtAstMatchResult internalPerform(final SmtAstPatternSelection pPatternSelection, final Formula pF, final Set<Long> visited) {
+    // TODO: Cache the match result
+
     int matches = 0;
     Z3AstMatchResult aggregatedResult = new Z3AstMatchResult();
 
@@ -85,6 +87,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
 
       if (r.matches()) {
+        aggregatedResult.setMatchingRootFormula(pF);
         aggregatedResult.putMatchingArgumentFormula(p, pF); // TODO: Refactor/code duplication
         for (String boundVar: r.getBoundVariables()) {
           for (Formula varBinding : r.getVariableBindings(boundVar)) {
@@ -92,6 +95,10 @@ public class Z3AstMatcher implements SmtAstMatcher {
           }
         }
       }
+    }
+
+    if (matches == 0 && pPatternSelection.getRelationship().isOr()) {
+      return SmtAstMatchResult.NOMATCH_RESULT;
     }
 
     return aggregatedResult;
