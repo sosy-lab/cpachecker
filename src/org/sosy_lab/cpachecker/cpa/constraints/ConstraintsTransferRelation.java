@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -48,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,7 +60,15 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
 
@@ -73,8 +85,26 @@ public class ConstraintsTransferRelation
   private AExpression missingInformationExpression = null;
   private boolean missingInformationTruth;
 
-  public ConstraintsTransferRelation(LogManager pLogger) {
+  private Solver solver;
+  private FormulaManagerView formulaManager;
+
+  public ConstraintsTransferRelation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
     logger = pLogger;
+
+    initializeSolver(pLogger, pConfig, pShutdownNotifier);
+  }
+
+  private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    final FormulaManagerFactory factory = new FormulaManagerFactory(pConfig, pLogger, pShutdownNotifier);
+
+    final FormulaManager baseManager = factory.getFormulaManager();
+    formulaManager = new FormulaManagerView(baseManager, pConfig, pLogger);
+
+    solver = new Solver(formulaManager, factory);
   }
 
   @Override
@@ -116,13 +146,19 @@ public class ConstraintsTransferRelation
     final ConstraintFactory factory = ConstraintFactory.getInstance(functionName);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
-    ConstraintsState newState = getNewState(state, pExpression, factory, pTruthAssumption, fileLocation);
+    ConstraintsState newState = null;
+    try {
+      newState = getNewState(state, pExpression, factory, pTruthAssumption, fileLocation);
+
+    } catch (SolverException | InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, fileLocation.toString());
+    }
 
     return newState;
   }
 
   private ConstraintsState getNewState(ConstraintsState pOldState, AExpression pExpression, ConstraintFactory pFactory,
-      boolean pTruthAssumption, FileLocation pFileLocation) {
+      boolean pTruthAssumption, FileLocation pFileLocation) throws SolverException, InterruptedException {
 
     ConstraintsState newState = ConstraintsState.copyOf(pOldState);
 
@@ -146,7 +182,45 @@ public class ConstraintsTransferRelation
       logger.logUserException(Level.WARNING, e, pFileLocation.toString());
     }
 
-    return newState;
+    if (!isSolvable(newState)) {
+      return null;
+
+    } else {
+      return newState;
+    }
+  }
+
+  private boolean isSolvable(ConstraintsState pState) throws SolverException, InterruptedException {
+    BooleanFormula constraintConjunction = getConjunction(pState);
+
+    return !solver.isUnsat(constraintConjunction);
+  }
+
+  private BooleanFormula getConjunction(ConstraintsState pState) {
+    final Set<Constraint> constraints = pState.getConstraints();
+    final FormulaCreator<?> formulaCreator = new BooleanFormulaCreator(formulaManager);
+    Formula completeFormula = null;
+    Formula currFormula;
+
+    for (Constraint currConstraint : constraints) {
+
+      currFormula = formulaCreator.transform(currConstraint);
+
+      if (completeFormula == null) {
+        completeFormula = currFormula;
+
+      } else {
+        completeFormula = formulaManager.makeAnd(completeFormula, currFormula);
+      }
+    }
+
+    if (completeFormula == null) {
+      final BooleanFormulaManager manager = formulaManager.getBooleanFormulaManager();
+
+      completeFormula = manager.makeBoolean(true);
+    }
+
+    return (BooleanFormula) completeFormula;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
@@ -217,10 +291,6 @@ public class ConstraintsTransferRelation
       }
     }
 
-    if (newStates.isEmpty()) {
-      return null;
-    }
-
     return newStates;
   }
 
@@ -232,10 +302,18 @@ public class ConstraintsTransferRelation
     final ConstraintFactory factory = ConstraintFactory.getInstance(functionName, pStrengtheningState);
     final FileLocation fileLocation = pCfaEdge.getFileLocation();
 
-    ConstraintsState newState =
-        getNewState(pStateToStrengthen, missingInformationExpression, factory, missingInformationTruth, fileLocation);
+    ConstraintsState newState = null;
+    try {
+      newState =
+          getNewState(pStateToStrengthen, missingInformationExpression, factory, missingInformationTruth, fileLocation);
 
-    newStates.add(newState);
+    } catch (SolverException | InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, fileLocation.toString());
+    }
+
+    if (newState != null) {
+      newStates.add(newState);
+    }
     resetMissingInformationStatus();
 
     return newStates;

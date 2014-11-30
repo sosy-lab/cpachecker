@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Optional;
 
@@ -43,6 +45,30 @@ import com.google.common.base.Optional;
  * <p>Example: '2 < 5'</p>
  */
 public class Constraint implements Value {
+
+  public Formula transformToFormula(FormulaCreator<? extends Formula> pFormulaCreator) {
+    Formula formula;
+
+    switch (operator) {
+      case LESS:
+        formula = pFormulaCreator.createLess(leftOperand, rightOperand);
+        break;
+      case LESS_EQUAL:
+        formula = pFormulaCreator.createLessOrEqual(leftOperand, rightOperand);
+        break;
+      case EQUAL:
+        formula = pFormulaCreator.createEqual(leftOperand, rightOperand);
+        break;
+      default:
+        throw new AssertionError("Unhandled operator " + operator);
+    }
+
+    if (!positiveConstraint) {
+      formula = pFormulaCreator.createNot(formula);
+    }
+
+    return formula;
+  }
 
   public enum Operator { LESS, LESS_EQUAL, EQUAL }
 

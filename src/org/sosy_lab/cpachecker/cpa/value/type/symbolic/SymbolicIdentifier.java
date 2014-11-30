@@ -73,6 +73,10 @@ public class SymbolicIdentifier implements SymbolicValue {
     return new SymbolicIdentifier(nextId++, pType);
   }
 
+  public Type getType() {
+    return type;
+  }
+
   @Override
   public int hashCode() {
     return (int) (id ^ (id >>> 32));
