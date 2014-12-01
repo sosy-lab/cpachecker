@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 /**
@@ -11,10 +11,10 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 public class Template {
 
   final LinearExpression linearExpression;
-  final CSimpleDeclaration declaration;
+  final ASimpleDeclaration declaration;
 
   public Template(LinearExpression pLinearExpression,
-      CSimpleDeclaration pDeclaration) {
+      ASimpleDeclaration pDeclaration) {
     linearExpression = pLinearExpression;
     declaration = pDeclaration;
   }

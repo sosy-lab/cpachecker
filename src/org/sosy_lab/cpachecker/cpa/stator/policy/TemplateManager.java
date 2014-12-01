@@ -8,7 +8,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
@@ -41,21 +41,17 @@ public class TemplateManager {
   public ImmutableSet<Template> templatesForNode(CFANode node) {
     ImmutableSet.Builder<Template> out = ImmutableSet.builder();
     LiveVariables liveVariables = cfa.getLiveVariables().get();
-    for (CSimpleDeclaration s : liveVariables.getLiveVariablesForNode(node)) {
+    for (ASimpleDeclaration s : liveVariables.getLiveVariablesForNode(node)) {
       String varName = s.getQualifiedName();
       logger.log(Level.FINEST, "Processing variable", varName);
       if (varName.contains(TMP_VARIABLE)) {
         continue;
       }
       if (generateUpperBound) {
-        out.add(
-            new Template(LinearExpression.ofVariable(varName), s)
-        );
+        out.add(new Template(LinearExpression.ofVariable(varName), s));
       }
       if (generateLowerBound) {
-        out.add(
-            new Template(LinearExpression.ofVariable(varName).negate(), s)
-        );
+        out.add(new Template(LinearExpression.ofVariable(varName).negate(), s));
       }
     }
     return out.build();
