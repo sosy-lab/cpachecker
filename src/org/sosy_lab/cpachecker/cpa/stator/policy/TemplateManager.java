@@ -1,20 +1,25 @@
 package org.sosy_lab.cpachecker.cpa.stator.policy;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
+
+import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
+  private final CFA cfa;
+  private final LogManager logger;
+
   @Option(secure=true, name="generateLowerBound",
       description="Generate templates for the lower bounds of each variable")
   private boolean generateLowerBound = true;
@@ -26,47 +31,33 @@ public class TemplateManager {
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
 
-  public TemplateManager(Configuration pConfig)
+  public TemplateManager(LogManager pLogger, Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException{
     pConfig.inject(this, TemplateManager.class);
+    cfa = pCfa;
+    logger = pLogger;
   }
 
-  public Set<Template> templatesForEdge(CFAEdge edge) {
-    Set<Template> templates = new HashSet<>();
-    if (edge instanceof CDeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-      CDeclaration declaration = declarationEdge.getDeclaration();
-
-      // Only C is handled for now.
-      if (declaration instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration =
-            (CVariableDeclaration)declaration;
-
-        String varName = declarationEdge.getDeclaration().getQualifiedName();
-        if (!varName.contains(TMP_VARIABLE)) {
-
-          // TODO: check for liveness, this information is available now.
-          // If the variable is no longer alive at a certain location
-          // there is no point in tracking it (deeper analysis -> dependencies).
-          if (generateUpperBound) {
-            templates.add(
-                new Template(
-                    LinearExpression.ofVariable(varName),
-                    variableDeclaration
-                )
-            );
-          }
-          if (generateLowerBound) {
-            templates.add(
-                new Template(
-                    LinearExpression.ofVariable(varName).negate(),
-                    variableDeclaration));
-          }
-        }
+  public ImmutableSet<Template> templatesForNode(CFANode node) {
+    ImmutableSet.Builder<Template> out = ImmutableSet.builder();
+    LiveVariables liveVariables = cfa.getLiveVariables().get();
+    for (CSimpleDeclaration s : liveVariables.getLiveVariablesForNode(node)) {
+      String varName = s.getQualifiedName();
+      logger.log(Level.FINEST, "Processing variable", varName);
+      if (varName.contains(TMP_VARIABLE)) {
+        continue;
+      }
+      if (generateUpperBound) {
+        out.add(
+            new Template(LinearExpression.ofVariable(varName), s)
+        );
+      }
+      if (generateLowerBound) {
+        out.add(
+            new Template(LinearExpression.ofVariable(varName).negate(), s)
+        );
       }
     }
-    return templates;
+    return out.build();
   }
-
-
 }

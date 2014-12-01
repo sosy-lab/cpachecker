@@ -49,7 +49,7 @@ public class ExplicitMemoryCPA implements ConfigurableProgramAnalysis, Statistic
     transferRelation = new ExplicitMemoryTransferRelation(
         cfa.getMachineModel(), logger, statistics);
     mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopJoinOperator(abstractDomain);
+    stopOperator = new StopSepOperator(abstractDomain);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 

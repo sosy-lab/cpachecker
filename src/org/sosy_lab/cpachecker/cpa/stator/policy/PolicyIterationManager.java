@@ -149,16 +149,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   public Collection<PolicyState> getAbstractSuccessors(PolicyState oldState, CFAEdge edge)
       throws CPATransferException, InterruptedException {
 
-    Set<Template> newTemplates = Sets.union(
-        oldState.getTemplates(),
-        templateManager.templatesForEdge(edge)
-    );
-
+    CFANode node = edge.getSuccessor();
     PolicyState out = PolicyState.ofIntermediate(
         ImmutableList.<AbstractState>of(),
         ImmutableSet.of(edge),
         edge.getSuccessor(),
-        newTemplates
+        templateManager.templatesForNode(node)
     );
 
     // NOTE: the abstraction computation and the global update is delayed
@@ -224,29 +220,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * @return {@code true} if and only if {@code oldState} represents a state
+   * @return {@code true} if and only if {@code newState} represents a state
    * which is smaller-or-equal (with respect to the abstract lattice)
-   * than the {@code newState}.
+   * than the {@code oldState}.
    */
   @Override
-  public boolean isLessOrEqual(
-       PolicyState oldState, PolicyState newState) {
-    Preconditions.checkState(oldState.isAbstract() == newState.isAbstract(),
+  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState) {
+    Preconditions.checkState(newState.isAbstract() == oldState.isAbstract(),
         "Abstraction state of two states associated with the same node should " +
             "match");
 
-    boolean isAbstract = oldState.isAbstract();
+    boolean isAbstract = newState.isAbstract();
 
     if (!isAbstract) {
-
-      // Two formulas are incomparable.
-      return false;
+      return oldState.getIncomingEdges().containsAll(
+          newState.getIncomingEdges());
     } else {
 
-      for (Entry<LinearExpression, PolicyBound> entry : newState) {
+      for (Entry<LinearExpression, PolicyBound> entry : oldState) {
         LinearExpression template = entry.getKey();
         PolicyBound newBound = entry.getValue();
-        Optional<PolicyBound> oldBound = oldState.getBound(template);
+        Optional<PolicyBound> oldBound = newState.getBound(template);
 
         if (!oldBound.isPresent()) {
 
@@ -263,8 +257,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   @Override
-  public PolicyState join(
-      PolicyState newState, PolicyState oldState)
+  public PolicyState join(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     statistics.timeInMerge.start();
     try {
@@ -282,18 +275,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
   }
 
-  PolicyState join0(PolicyState newState,
-                            PolicyState oldState)
+  PolicyState join0(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
     Preconditions.checkState(oldState.getNode() == newState.getNode());
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
+    Preconditions.checkState(oldState.getTemplates().equals(newState.getTemplates()));
 
     final boolean isAbstract = oldState.isAbstract();
     final CFANode node = oldState.getNode();
 
-    Set<Template> allTemplates = Sets.union(
-        oldState.getTemplates(), newState.getTemplates()
-    );
+    Set<Template> allTemplates = oldState.getTemplates();
 
     if (!isAbstract) {
 

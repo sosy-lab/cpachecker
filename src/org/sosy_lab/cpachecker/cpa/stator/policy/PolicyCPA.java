@@ -130,7 +130,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
         AnalysisDirection.FORWARD);
     LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager,
         logger);
-    TemplateManager templateManager = new TemplateManager(config);
+    TemplateManager templateManager = new TemplateManager(
+        logger, config, cfa);
 
     statistics = new PolicyIterationStatistics(config);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =

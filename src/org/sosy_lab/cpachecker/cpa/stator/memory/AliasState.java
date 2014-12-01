@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.stator.memory;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
@@ -71,17 +72,9 @@ public class AliasState implements
 
       // Null means TOP.
       if ((otherValues == null && values != AbstractMemoryAddress.TOP)
-          || !values.isLessOrEqual(otherValues)) return false;
-    }
-
-    for (Entry<String, MemorySegment> entry : varMapping.entrySet()) {
-      String var = entry.getKey();
-      MemorySegment segment = entry.getValue();
-      MemorySegment otherSegment = otherState.varMapping.get(var);
-      if (otherSegment == null) {
+          || !values.isLessOrEqual(otherValues)) {
         return false;
       }
-      Preconditions.checkState(segment.equals(otherSegment));
     }
     return true;
   }
@@ -93,7 +86,9 @@ public class AliasState implements
 
   @Override
   public AliasState join(AliasState otherState) {
-    if (isLessOrEqual(otherState)) return otherState;
+    if (isLessOrEqual(otherState)){
+      return otherState;
+    }
 
     ImmutableMap.Builder<MemorySegment, AbstractMemoryAddress> builder =
         ImmutableMap.builder();
@@ -119,7 +114,9 @@ public class AliasState implements
         withUpdate(otherState.varMapping),
         createAssignmentOn.join(otherState.createAssignmentOn)
     );
-    if (out.equals(otherState)) return otherState;
+    if (out.equals(otherState)) {
+      return otherState;
+    }
     return out;
   }
 
@@ -209,6 +206,22 @@ public class AliasState implements
   @Override
   public Iterator<Entry<MemorySegment, AbstractMemoryAddress>> iterator() {
     return data.entrySet().iterator();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null) {
+      return false;
+    }
+    if (o.getClass() != this.getClass()) {
+      return false;
+    }
+    AliasState other = (AliasState) o;
+    return data.equals(other.data);
+  }
+
+  public int hashCode() {
+    return Objects.hashCode(data);
   }
 
   @Override

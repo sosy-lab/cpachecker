@@ -84,6 +84,7 @@ public class PolicyIterationTest {
         .put("cpa.predicate.handlePointerAliasing", "false")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("parser.usePreprocessor", "true")
+        .put("cfa.findLiveVariables", "true")
     ).build();
 
   }
