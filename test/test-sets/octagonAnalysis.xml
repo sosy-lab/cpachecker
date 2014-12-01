@@ -86,8 +86,8 @@
    <option name="-octagonAnalysis-restart-int"/>
  </rundefinition>
 
-<!-- Analyses which will be compared to the octagon ones -->
-
+<!-- Analyses which were compared to the octagon ones in Bachelor thesis of Thomas Stieglmaier -->
+<!--
  <rundefinition name="explicitAnalysis-noRefiner-noCBMC">
     <option name="-heap">29000M</option>
     <option name="-explicitAnalysis-NoRefiner"/>
@@ -103,4 +103,5 @@
     <option name="-predicateAnalysis"/>
     <option name="-setprop">analysis.checkCounterexamples=false</option>
  </rundefinition>
+-->
 </benchmark>
