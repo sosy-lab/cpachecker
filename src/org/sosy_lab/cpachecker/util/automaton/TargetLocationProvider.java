@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import java.util.HashSet;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -58,7 +57,7 @@ public class TargetLocationProvider {
   private final Configuration config;
   private final CFA cfa;
 
-  final static String specificationPropertyName = "specification";
+  private final static String specificationPropertyName = "specification";
 
   public TargetLocationProvider(ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier,
       LogManager pLogManager, Configuration pConfig, CFA pCfa) {
@@ -71,23 +70,15 @@ public class TargetLocationProvider {
   }
 
   public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    String specification = config.getProperty(specificationPropertyName);
-    return tryGetAutomatonTargetLocations(pRootNode, specification);
-  }
-
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode, @Nullable String specification) {
     try {
-      // Create new configuration based on existing config but with default set of CPAs
-
-      ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
+      // Create new configuration with default set of CPAs
+      ConfigurationBuilder configurationBuilder = Configuration.builder();
+      if (config.hasProperty(specificationPropertyName)) {
+        configurationBuilder.copyOptionFrom(config, specificationPropertyName);
+      }
       configurationBuilder.setOption("output.disable", "true");
       configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
       configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
-
-      if (specification == null) {
-        String defaultSpecification = "config/specification/default.spc";
-        configurationBuilder.setOption(specificationPropertyName, defaultSpecification);
-      }
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
@@ -119,31 +110,4 @@ public class TargetLocationProvider {
       return null;
     }
   }
-
-  private ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-
-    return builder;
-  }
-
 }
