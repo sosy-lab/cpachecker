@@ -88,10 +88,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -324,14 +326,23 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
-    Optional<? extends AVariableDeclaration> returnVarName = returnEdge.getSuccessor().getEntryNode().getReturnVariable();
+    FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
-    if (expression != null && returnVarName.isPresent()) {
+    MemoryLocation functionReturnVar = null;
+    if(functionEntryNode instanceof CFunctionEntryNode) {
 
-      MemoryLocation functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
+      Optional<? extends AVariableDeclaration> returnVarName = functionEntryNode.getReturnVariable();
+      functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
+    }
+
+    else if(functionEntryNode instanceof JMethodEntryNode) {
+      functionReturnVar = MemoryLocation.valueOf(VariableClassification.createFunctionReturnVariable(functionName));
+    }
+
+    if (expression != null && functionReturnVar != null) {
 
       return handleAssignmentToVariable(functionReturnVar,
-          returnEdge.getSuccessor().getEntryNode().getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
+          functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
           expression,
           evv);
     } else {
