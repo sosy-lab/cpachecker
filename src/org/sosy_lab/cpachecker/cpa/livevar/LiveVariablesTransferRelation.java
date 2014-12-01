@@ -80,7 +80,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
- * This transferrelation computes the live variables for each location.
+ * This transfer relation computes the live variables for each location.
  *
  * Note that alias information is currently not used, thus, the analysis may be
  * imprecise e.g. if a pointer pointing to a variable is dereferenced and a new
@@ -88,7 +88,7 @@ import com.google.common.collect.Multimap;
  */
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
-  private final Multimap<CFANode, String> liveVariables = HashMultimap.<CFANode, String>create();
+  private final Multimap<CFANode, CSimpleDeclaration> liveVariables = HashMultimap.create();
 
   @Override
   protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor) {
@@ -106,8 +106,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     // multiedges in reverse
     for (final CFAEdge innerEdge : Lists.reverse(cfaEdge.getEdges())) {
       edge = innerEdge;
-      final LiveVariablesState intermediateResult = handleSimpleEdge(innerEdge);
-      state = intermediateResult;
+      state = handleSimpleEdge(innerEdge);
     }
     edge = cfaEdge; // reset edge
     return state;
@@ -116,26 +115,26 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * Returns a collection of all variable names which occur in expression
    */
-  private Collection<String> handleExpression(CExpression expression) {
+  private Collection<CSimpleDeclaration> handleExpression(CExpression expression) {
     Set<CIdExpression> result = expression.accept(new CIdExpressionCollectingVisitor());
 
-    return FluentIterable.from(result).transform(new Function<CIdExpression, String>() {
+    return FluentIterable.from(result).transform(new Function<CIdExpression, CSimpleDeclaration>() {
       @Override
-      public String apply(CIdExpression exp) {
-        return exp.getDeclaration().getQualifiedName();
+      public CSimpleDeclaration apply(CIdExpression exp) {
+        return exp.getDeclaration();
       }}).toSet();
   }
 
   /**
    * Returns a collection of the variable names in the leftHandSide
    */
-  private Collection<String> handleLeftHandSide(CExpression pLeftHandSide) {
+  private Collection<CSimpleDeclaration> handleLeftHandSide(CExpression pLeftHandSide) {
     Set<CIdExpression> result = pLeftHandSide.accept(new LeftHandSideIdExpressionVisitor());
 
-    return FluentIterable.from(result).transform(new Function<CIdExpression, String>() {
+    return FluentIterable.from(result).transform(new Function<CIdExpression, CSimpleDeclaration>() {
       @Override
-      public String apply(CIdExpression exp) {
-        return exp.getDeclaration().getQualifiedName();
+      public CSimpleDeclaration apply(CIdExpression exp) {
+        return exp.getDeclaration();
       }}).toSet();
   }
 
@@ -151,23 +150,22 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   protected LiveVariablesState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
 
-    // we do only care about variable declarations
+    // We only care about variable declarations.
     if (!(decl instanceof CVariableDeclaration)) {
       return state;
     }
 
     CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-    String deadVarName = varDecl.getQualifiedName();
-    Collection<String> deadVar = Collections.singleton(deadVarName);
+    Set<CVariableDeclaration> deadVar = Collections.singleton(varDecl);
     CInitializer init = varDecl.getInitializer();
 
-    // there is no initializer thus we only have to remove the initialized variable
-    // from the live variables
+    // There is no initializer thus we only have to remove the initialized variable
+    // from the live variables.
     if (init == null) {
       return state.removeLiveVariables(deadVar);
 
-      // don't do anything if declarated variable is not live
-    } else if (!state.contains(deadVarName)) {
+      // Don't do anything if the declared variable is not live.
+    } else if (!state.contains(varDecl)) {
       return state;
     }
 
@@ -178,7 +176,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This method computes the variables that are used for initializing an other
    * variable from a given initializer.
    */
-  private Collection<String> getVariablesUsedForInitialization(CInitializer init) throws CPATransferException {
+  private Collection<CSimpleDeclaration> getVariablesUsedForInitialization(CInitializer init) throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (init instanceof CDesignatedInitializer) {
       return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
@@ -186,7 +184,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
     } else if (init instanceof CInitializerList) {
-      Collection<String> readVars = new ArrayList<>();
+      Collection<CSimpleDeclaration> readVars = new ArrayList<>();
 
       for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
         readVars.addAll(getVariablesUsedForInitialization(inList));
@@ -228,11 +226,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   private LiveVariablesState handleAssignments(CAssignment assignment) {
-    final Collection<String> newLiveVariables = new HashSet<>();
+    final Collection<CSimpleDeclaration> newLiveVariables = new HashSet<>();
     final CLeftHandSide leftHandSide = assignment.getLeftHandSide();
-    final Collection<String> assignedVariable = handleLeftHandSide(leftHandSide);
-    final Collection<String> allLeftHandSideVariables = handleExpression(leftHandSide);
-    final Collection<String> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariable)));
+    final Collection<CSimpleDeclaration> assignedVariable = handleLeftHandSide(leftHandSide);
+    final Collection<CSimpleDeclaration> allLeftHandSideVariables = handleExpression(leftHandSide);
+    final Collection<CSimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariable)));
 
     // all variables that occur in combination with the leftHandSide additionally
     // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
@@ -291,7 +289,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   private boolean isAlwaysLive(CLeftHandSide expression) {
     Collection<CIdExpression> tmp = expression.accept(new LeftHandSideIdExpressionVisitor());
-    return FluentIterable.<CIdExpression>from(tmp).anyMatch(ALWAYS_LIVE_PREDICATE);
+    return FluentIterable.from(tmp).anyMatch(ALWAYS_LIVE_PREDICATE);
   }
 
   /**
@@ -300,14 +298,14 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   private boolean isLeftHandSideLive(CLeftHandSide expression) {
     Collection<CIdExpression> tmp = expression.accept(new LeftHandSideIdExpressionVisitor());
-    return FluentIterable.<CIdExpression>from(tmp).anyMatch(LOCALLY_LIVE_PREDICATE);
+    return FluentIterable.from(tmp).anyMatch(LOCALLY_LIVE_PREDICATE);
   }
 
   /**
    * This method returns the variables that are used in a given list of CExpressions.
    */
-  private Collection<String> getVariablesUsedAsParameters(List<CExpression> parameters) {
-    Collection<String> newLiveVars = new ArrayList<>();
+  private Collection<CSimpleDeclaration> getVariablesUsedAsParameters(List<CExpression> parameters) {
+    Collection<CSimpleDeclaration> newLiveVars = new ArrayList<>();
     for (CExpression expression : parameters) {
       newLiveVars.addAll(handleExpression(expression));
     }
@@ -335,16 +333,16 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      * all functions connected, this method is implemented.
      */
 
-    Collection<String> variablesInArguments = new ArrayList<>();
+    Collection<CSimpleDeclaration> variablesInArguments = new ArrayList<>();
     for (CExpression arg : arguments) {
       variablesInArguments.addAll(handleExpression(arg));
     }
 
     // we can safely remove the parameters from the live variables as the function
     // starts at this edge.
-    Collection<String> parameterVars = new ArrayList<>(parameters.size());
+    Collection<CSimpleDeclaration> parameterVars = new ArrayList<>(parameters.size());
     for (CParameterDeclaration decl : parameters) {
-      parameterVars.add(decl.getQualifiedName());
+      parameterVars.add(decl);
     }
 
     return state.removeAndAddLiveVariables(parameterVars, variablesInArguments);
@@ -374,7 +372,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This method puts some variables that are initially live into the
    * live variables multimap.
    */
-  public void putInitialLiveVariables(CFANode node, Collection<String> liveVars) {
+  public void putInitialLiveVariables(CFANode node, Collection<? extends CSimpleDeclaration> liveVars) {
     liveVariables.putAll(node, liveVars);
   }
 
@@ -383,7 +381,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, String> getLiveVariables() {
+  public Multimap<CFANode, CSimpleDeclaration> getLiveVariables() {
     return liveVariables;
   }
 
@@ -410,16 +408,16 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       return false;
     }};
 
-    /**
-     * a variable is locally live either if it is globally live or if it
-     * is live in the current state
-     */
+  /**
+   * a variable is locally live either if it is globally live or if it
+   * is live in the current state
+   */
   private final Predicate<CIdExpression> LOCALLY_LIVE_PREDICATE =
-        or(ALWAYS_LIVE_PREDICATE, new Predicate<CIdExpression>() {
-                  @Override
-                  public boolean apply(CIdExpression pInput) {
-                      return state.contains(pInput.getDeclaration().getQualifiedName());
-                  }});
+      or(ALWAYS_LIVE_PREDICATE, new Predicate<CIdExpression>() {
+        @Override
+        public boolean apply(CIdExpression pInput) {
+          return state.contains(pInput.getDeclaration());
+        }});
 
 
   /**

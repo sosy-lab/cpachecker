@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -60,7 +61,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 public class LiveVariables {
 
@@ -80,15 +84,21 @@ public class LiveVariables {
   }
 
   private final Multimap<CFANode, String> liveVariables;
+  private final Multimap<CFANode, CSimpleDeclaration> liveVariablesByType;
   private final Set<String> globalVariables;
+  private final Set<CSimpleDeclaration> globalVariablesByType;
   private final VariableClassification variableClassification;
 
   private LiveVariables(Multimap<CFANode, String> pLiveVariables,
-                        VariableClassification pVariableClassification,
-                        Set<String> pGlobalVariables) {
+      Multimap<CFANode, CSimpleDeclaration> pLiveVariablesByType,
+      VariableClassification pVariableClassification,
+      Set<String> pGlobalVariables,
+      Set<CSimpleDeclaration> pGlobalVariablesByType) {
     liveVariables = pLiveVariables;
+    liveVariablesByType = pLiveVariablesByType;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
+    globalVariablesByType = pGlobalVariablesByType;
   }
 
   public boolean isVariableLive(String varName, CFANode location) {
@@ -109,6 +119,13 @@ public class LiveVariables {
     return liveVariables.containsEntry(location, varName);
   }
 
+  public Set<CSimpleDeclaration> getLiveVariablesForNode(CFANode location) {
+     return ImmutableSet.<CSimpleDeclaration>builder()
+         .addAll(liveVariablesByType.get(location))
+         .addAll(globalVariablesByType)
+         .build();
+  }
+
   public static Optional<LiveVariables> create(VariableClassification variableClassification,
                                        List<Pair<ADeclaration, String>> globalsList,
                                        final CFA pCFA,
@@ -127,12 +144,29 @@ public class LiveVariables {
 
     // prerequisites for creating the live variables
     Set<String> globalVariables = FluentIterable.from(globalsList).transform(DECLARATION_TO_STRING).filter(notNull()).toSet();
+    Set<CSimpleDeclaration> pGlobalVariablesByType = FluentIterable.from(globalsList).transform(
+        new Function<Pair<ADeclaration, String>, CSimpleDeclaration>() {
+          public CSimpleDeclaration apply(Pair<ADeclaration, String> input) {
+            ADeclaration decl = input.getFirst();
+            if (decl instanceof CSimpleDeclaration) {
+              return (CSimpleDeclaration) decl;
+            }
+            return null;
+          }
+        }
+    ).filter(notNull()).toSet();
     Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(pCFA, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
     Multimap<CFANode, String> liveVariables = null;
+    Multimap<CFANode, CSimpleDeclaration> liveVariablesByType = null;
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(pCFA, logger, parts.get(), liveVarConfig.evaluationStrategy);
+      liveVariablesByType = addLiveVariablesFromCFA(pCFA, logger, parts.get(), liveVarConfig.evaluationStrategy);
+      liveVariables = Multimaps.transformEntries(liveVariablesByType, new Maps.EntryTransformer<CFANode, CSimpleDeclaration, String>() {
+        public String transformEntry(CFANode key, CSimpleDeclaration value) {
+          return value.getQualifiedName();
+        }
+      });
     }
 
     // when the analysis did not finish or could even not be created we return
@@ -141,7 +175,8 @@ public class LiveVariables {
       return Optional.absent();
     }
 
-    return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables));
+    return Optional.of(new LiveVariables(liveVariables, liveVariablesByType,
+        variableClassification, globalVariables, pGlobalVariablesByType));
   }
 
   private final static Function<Pair<ADeclaration, String>, String> DECLARATION_TO_STRING =
@@ -152,7 +187,7 @@ public class LiveVariables {
       }};
 
 
-  private static Multimap<CFANode, String> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
+  private static Multimap<CFANode, CSimpleDeclaration> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
                                               AnalysisParts analysisParts, String evaluationStrategy) {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();

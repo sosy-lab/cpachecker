@@ -32,6 +32,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -127,17 +129,17 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      Optional<? extends AVariableDeclaration> returnVarName = eNode.getEntryNode().getReturnVariable();
+      Optional<? extends AVariableDeclaration> returnVar = eNode.getEntryNode().getReturnVariable();
 
       // p.e. a function void foo();
-      if (!returnVarName.isPresent()) {
+      if (!returnVar.isPresent()) {
         return new LiveVariablesState();
 
       // all other function types
       } else {
-        String functionReturnVariable = returnVarName.get().getQualifiedName();
-        transfer.putInitialLiveVariables(pNode, Collections.singleton(functionReturnVariable));
-        return new LiveVariablesState(ImmutableSet.of(functionReturnVariable));
+        CVariableDeclaration returnVarDecl = (CVariableDeclaration)returnVar.get();
+        transfer.putInitialLiveVariables(pNode, Collections.singleton(returnVarDecl));
+        return new LiveVariablesState(ImmutableSet.of(returnVarDecl));
       }
 
     } else {
@@ -156,7 +158,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, String> getLiveVariables() {
+  public Multimap<CFANode, CSimpleDeclaration> getLiveVariables() {
     return transfer.getLiveVariables();
   }
 
