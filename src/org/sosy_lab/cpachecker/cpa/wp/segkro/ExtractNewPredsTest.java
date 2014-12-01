@@ -30,12 +30,14 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.rules.RulesetFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
@@ -45,9 +47,12 @@ import com.google.common.collect.Lists;
 public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
+  private FormulaManagerView mgrv;
 
   @Before
   public void setUp() throws Exception {
+    mgrv = new FormulaManagerView(mgr, config, logger);
+    Solver solver = new Solver(mgrv, factory);
     List<Rule> rules = Lists.newArrayList();
     rules = RulesetFactory.createRuleset(mgr, solver);
     enp = new ExtractNewPreds(rules);

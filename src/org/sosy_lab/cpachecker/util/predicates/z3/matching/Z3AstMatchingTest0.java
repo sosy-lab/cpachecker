@@ -33,7 +33,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -89,18 +88,18 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     _1 = imgr.makeNumber(1);
     _minus1 = imgr.makeNumber(-1);
 
-    _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
-    _bl = mgrv.makeVariable(NumeralType.IntegerType, "bl");
-    _c1 = mgrv.makeVariable(NumeralType.IntegerType, "c1");
-    _c2 = mgrv.makeVariable(NumeralType.IntegerType, "c2");
-    _e1 = mgrv.makeVariable(NumeralType.IntegerType, "e1");
-    _e2 = mgrv.makeVariable(NumeralType.IntegerType, "e2");
-    _eX = mgrv.makeVariable(NumeralType.IntegerType, "eX");
+    _al = imgr.makeVariable("al");
+    _bl = imgr.makeVariable("bl");
+    _c1 = imgr.makeVariable("c1");
+    _c2 = imgr.makeVariable("c2");
+    _e1 = imgr.makeVariable("e1");
+    _e2 = imgr.makeVariable("e2");
+    _eX = imgr.makeVariable("eX");
 
-    _i1 = mgrv.makeVariable(NumeralType.IntegerType, "i@1");
-    _j1 = mgrv.makeVariable(NumeralType.IntegerType, "j@1");
-    _j2 = mgrv.makeVariable(NumeralType.IntegerType, "j@2");
-    _a1 = mgrv.makeVariable(NumeralType.IntegerType, "a@1");
+    _i1 = imgr.makeVariable("i@1");
+    _j1 = imgr.makeVariable("j@1");
+    _j2 = imgr.makeVariable("j@2");
+    _a1 = imgr.makeVariable("a@1");
 
     _c1_times_ex_plus_e1_GEQ_0
       = imgr.greaterOrEquals(

@@ -28,13 +28,17 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
@@ -45,6 +49,15 @@ public class RulesTest0 extends SolverBasedTest0 {
   @Override
   protected Solvers solverToUse() {
     return Solvers.Z3;
+  }
+
+  private Solver solver;
+  private FormulaManagerView mgrv;
+
+  @Before
+  public void setup() throws InvalidConfigurationException {
+    mgrv = new FormulaManagerView(mgr, config, logger);
+    solver = new Solver(mgrv, factory);
   }
 
   @Test
