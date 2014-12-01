@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.Serializable;
@@ -35,6 +35,7 @@ import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+
 
 /**
  * This class is used to keep information about already performed memory allocations of unknown type, e.g.
@@ -184,7 +185,7 @@ class DeferredAllocationPool implements Serializable {
     final Set<T> fromBigger = new HashSet<>(biggerList);
     PersistentList<T> result = biggerList;
 
-    for (final T target : from(smallerList).filter(in(fromBigger))) {
+    for (final T target : from(smallerList).filter(not(in(fromBigger)))) {
       result = result.with(target);
     }
     return result;
