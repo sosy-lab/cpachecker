@@ -154,7 +154,6 @@ class DefaultReachedSet implements ReachedSet {
     for (AbstractState state : toRemove) {
       remove(state);
     }
-    assert firstState != null || reached.isEmpty() : "firstState may only be removed if the whole reached set is cleared";
   }
 
   @Override
