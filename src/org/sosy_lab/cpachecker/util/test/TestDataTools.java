@@ -23,19 +23,91 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class TestDataTools {
 
+  public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
+
+  public static final CInitializer INT_ZERO_INITIALIZER = new CInitializerExpression(
+      FileLocation.DUMMY,
+      CIntegerLiteralExpression.ZERO);
+
+  public static Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> makeDeclaration(
+      String varName, CType varType, @Nullable CInitializer initializer) {
+
+    final FileLocation loc = FileLocation.DUMMY;
+    final CVariableDeclaration decl = new CVariableDeclaration(
+        loc, true, CStorageClass.AUTO, varType, varName, varName, varName, initializer);
+
+    return Triple.of(
+        new CDeclarationEdge(
+            String.format("%s %s", "dummy", varName),
+            FileLocation.DUMMY,
+            DUMMY_CFA_NODE,
+            DUMMY_CFA_NODE,
+            decl),
+        decl,
+        new CIdExpression(
+            FileLocation.DUMMY,
+            decl));
+  }
+
+  public static Pair<CFAEdge, CExpressionAssignmentStatement> makeAssignment(CLeftHandSide pLhs, CExpression pRhs) {
+
+    CExpressionAssignmentStatement stmt = new CExpressionAssignmentStatement(
+        FileLocation.DUMMY,
+        pLhs,
+        pRhs);
+
+    CFAEdge edge = new CStatementEdge(
+        "dummy := rhs",
+        stmt,
+        FileLocation.DUMMY,
+        DUMMY_CFA_NODE,
+        DUMMY_CFA_NODE);
+
+    return Pair.of(edge, stmt);
+  }
+
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
-    CVariableDeclaration decl = new CVariableDeclaration(loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
+    CVariableDeclaration decl = new CVariableDeclaration(
+        loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
+
     return new CIdExpression(loc, decl);
+  }
+
+  public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
+    CAssumeEdge assumeEdge = new CAssumeEdge(
+        "dummyassume",
+        FileLocation.DUMMY,
+        DUMMY_CFA_NODE,
+        DUMMY_CFA_NODE,
+        pAssumeExr,
+        true);
+
+    return Pair.of(assumeEdge, pAssumeExr);
   }
 
 }
