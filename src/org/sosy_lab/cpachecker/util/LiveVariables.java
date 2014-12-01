@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.HashSet;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.notNull;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -32,6 +36,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -52,28 +58,37 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Multimap;
 
-
 public class LiveVariables {
 
+  @Options(prefix="liveVar")
+  private static class LiveVariablesConfiguration {
+
+    @Option(values={"FUNCTION-WISE", "GLOBAL"}, toUppercase=true,
+        description="By changing this option one can adjust the way how"
+            + " live variables are created. Function-wise means that each"
+            + " function is handled separately, global means that the whole"
+            + " cfa is used for the computation.", secure=true)
+    private String evaluationStrategy = "FUNCTION-WISE";
+
+    public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+  }
 
   private final Multimap<CFANode, String> liveVariables;
   private final Set<String> globalVariables;
   private final VariableClassification variableClassification;
-  private final Set<String> alwaysLivePrefixes;
 
   private LiveVariables(Multimap<CFANode, String> pLiveVariables,
                         VariableClassification pVariableClassification,
-                        Set<String> pGlobalVariables,
-                        Set<String> pAlwaysLivePrefixes) {
+                        Set<String> pGlobalVariables) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
-    alwaysLivePrefixes = pAlwaysLivePrefixes;
   }
 
   public boolean isVariableLive(String varName, CFANode location) {
@@ -81,8 +96,7 @@ public class LiveVariables {
     // variables are always considered being live
     if (globalVariables.contains(varName)
         || variableClassification.getAddressedVariables().contains(varName)
-        || !varName.startsWith(location.getFunctionName())
-        || alwaysLivePrefixes.contains(location.getFunctionName())) {
+        || !varName.startsWith(location.getFunctionName())) {
       return true;
 
       // irrelevant variables from variable classification can be considered
@@ -95,166 +109,175 @@ public class LiveVariables {
     return liveVariables.containsEntry(location, varName);
   }
 
-  public static class LiveVariablesBuilder {
+  public static Optional<LiveVariables> create(VariableClassification variableClassification,
+                                       List<Pair<ADeclaration, String>> globalsList,
+                                       final CFA pCFA,
+                                       final LogManager logger,
+                                       final ShutdownNotifier shutdownNotifier,
+                                       final Configuration config) throws InvalidConfigurationException {
+    checkNotNull(variableClassification);
+    checkNotNull(globalsList);
+    checkNotNull(pCFA);
+    checkNotNull(logger);
+    checkNotNull(shutdownNotifier);
 
-    private Multimap<CFANode, String> liveVariables = null;
-    private VariableClassification variableClassification = null;
-    private Set<String> globalVariables = null;
-    private final Set<String> alwaysLivePrefixes = new HashSet<>();
+    // create configuration object, so that we know which analysis strategy should
+    // be chosen later on
+    LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    public Optional<LiveVariables> build() {
-      // if not all parts are available we return an absent optional
-      if (liveVariables == null
-          || variableClassification == null
-          || globalVariables == null) {
-        return Optional.absent();
+    // prerequisites for creating the live variables
+    Set<String> globalVariables = FluentIterable.from(globalsList).transform(DECLARATION_TO_STRING).filter(notNull()).toSet();
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(pCFA, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
+    Multimap<CFANode, String> liveVariables = null;
+
+    // create live variables
+    if (parts.isPresent()) {
+      liveVariables = addLiveVariablesFromCFA(pCFA, logger, parts.get(), liveVarConfig.evaluationStrategy);
+    }
+
+    // when the analysis did not finish or could even not be created we return
+    // an absent optional
+    if (liveVariables == null) {
+      return Optional.absent();
+    }
+
+    return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables));
+  }
+
+  private final static Function<Pair<ADeclaration, String>, String> DECLARATION_TO_STRING =
+      new Function<Pair<ADeclaration, String>, String>() {
+        @Override
+        public String apply(Pair<ADeclaration, String> pInput) {
+          return pInput.getFirst().getQualifiedName();
+      }};
+
+
+  private static Multimap<CFANode, String> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
+                                              AnalysisParts analysisParts, String evaluationStrategy) {
+
+    Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
+
+    // put all FunctionExitNodes into the waitlist
+    final Collection<FunctionEntryNode> functionHeads;
+    if (evaluationStrategy.equals("FUNCTION-WISE")) {
+      functionHeads = pCfa.getAllFunctionHeads();
+    } else {
+      functionHeads = Collections.singleton(pCfa.getMainFunction());
+    }
+
+    for (FunctionEntryNode node : functionHeads) {
+      FunctionExitNode exitNode = node.getExitNode();
+      if (pCfa.getAllNodes().contains(exitNode)) {
+        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
+                                     analysisParts.cpa.getInitialPrecision(exitNode));
       }
-
-      return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables, alwaysLivePrefixes));
     }
 
-    public void addLiveVariablesByVariableClassification(VariableClassification vc) {
-      variableClassification = vc;
-    }
+    if(loopStructure.isPresent()){
+      LoopStructure structure = loopStructure.get();
+      ImmutableCollection<Loop> loops = structure.getAllLoops();
 
-    public void addLiveVariablesFromGlobalScope(List<Pair<ADeclaration, String>> pList) {
-      globalVariables = FluentIterable.<Pair<ADeclaration, String>>from(pList)
-                                      .transform(new Function<Pair<ADeclaration, String>, String>() {
-                                                    @Override
-                                                    public String apply(Pair<ADeclaration, String> pInput) {
-                                                      return pInput.getFirst().getQualifiedName();
-                                                    }}).filter(Predicates.notNull()).toSet();
-    }
-
-    public void addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
-                                        final ShutdownNotifier shutdownNotifier) {
-
-      Optional<AnalysisParts> analysisPartsOpt = getNecessaryAnalysisComponents(pCfa, logger, shutdownNotifier);
-
-      // without the analysis parts we cannot do the live variables analysis
-      if (!analysisPartsOpt.isPresent()) {
-        return;}
-
-      AnalysisParts analysisParts = analysisPartsOpt.get();
-
-      Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
-
-      // put all FunctionExitNodes into the waitlist
-      for (FunctionEntryNode node : pCfa.getAllFunctionHeads()) {
-        FunctionExitNode exitNode = node.getExitNode();
-        if (pCfa.getAllNodes().contains(exitNode)) {
-          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
-                                       analysisParts.cpa.getInitialPrecision(exitNode));
-
-          // functionexitnode is not reachable due to (one or more) endless loops
-          // in the code, thus we check them, too and insert the edges back to
-          // the loophead, as starting nodes for our evaluation
-        } else if(loopStructure.isPresent()){
-          LoopStructure structure = loopStructure.get();
-          ImmutableCollection<Loop> loops = structure.getLoopsForFunction(node.getFunctionName());
-          boolean loopWithoutOutgoingEdgesFound = false;
-          for (Loop l : loops) {
-            if (l.getOutgoingEdges().isEmpty()) {
-              loopWithoutOutgoingEdgesFound = true;
-              for (CFANode n : l.getLoopHeads()) {
-                analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(n),
-                                             analysisParts.cpa.getInitialPrecision(n));
-              }
-            }
+      for (Loop l : loops) {
+        if (l.getOutgoingEdges().isEmpty()) {
+          for (CFANode n : l.getLoopHeads()) {
+            analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(n),
+                                         analysisParts.cpa.getInitialPrecision(n));
           }
-
-          if (!loopWithoutOutgoingEdgesFound && !loops.isEmpty()) {
-            throw new AssertionError("Cannot handle live variables without having an edge to start for the function: " + node.getFunctionName());
-
-            // no endless loops, but also the exitnode is not part of the cfa
-            // -> everythin should be tracked
-          } else {
-            alwaysLivePrefixes.add(node.getFunctionName());
-            logger.log(Level.INFO, "All variables live for function: " + node.getFunctionName());
-          }
-
-          // over-approximation here, we have to say that every variable
-          // in this function is live, because we do not have any information
-          // about them
-        } else {
-          alwaysLivePrefixes.add(node.getFunctionName());
-          logger.log(Level.INFO, "All variables live for function: " + node.getFunctionName());
         }
       }
+    }
 
-      logger.log(Level.INFO, "Starting live variables collection ...");
-      try {
-        do {
-          analysisParts.algorithm.run(analysisParts.reachedSet);
-        } while (analysisParts.reachedSet.hasWaitingState());
+    logger.log(Level.INFO, "Starting live variables collection ...");
+    try {
+      do {
+        analysisParts.algorithm.run(analysisParts.reachedSet);
+      } while (analysisParts.reachedSet.hasWaitingState());
 
-      } catch (CPAException | InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not compute live variables.");
-        return;
+    } catch (CPAException | InterruptedException e) {
+      logger.logUserException(Level.WARNING, e, "Could not compute live variables.");
+      return null;
+    }
+
+    logger.log(Level.INFO, "Stopping live variables collection ...");
+
+    LiveVariablesCPA liveVarCPA = ((WrapperCPA) analysisParts.cpa).retrieveWrappedCpa(LiveVariablesCPA.class);
+
+    return liveVarCPA.getLiveVariables();
+  }
+
+  private static Optional<AnalysisParts> getNecessaryAnalysisComponents(final CFA cfa,
+      final LogManager logger,
+      final ShutdownNotifier shutdownNotifier,
+      final String evaluationStrategy) {
+
+    try {
+      Configuration config;
+      if (evaluationStrategy.equals("FUNCTION-WISE")) {
+        config = getLocalConfiguration();
+      } else {
+        config = getGlobalConfiguration();
       }
 
-      logger.log(Level.INFO, "Stopping live variables collection ...");
+      ReachedSetFactory reachedFactory = new ReachedSetFactory(config,
+                                                               logger);
+      ConfigurableProgramAnalysis cpa = new CPABuilder(config,
+                                                       logger,
+                                                       shutdownNotifier,
+                                                       reachedFactory).buildCPAs(cfa);
+      Algorithm algorithm = CPAAlgorithm.create(cpa,
+                                                logger,
+                                                config,
+                                                shutdownNotifier);
+      ReachedSet reached = reachedFactory.create();
+      return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
-      LiveVariablesCPA liveVarCPA = ((WrapperCPA) analysisParts.cpa).retrieveWrappedCpa(LiveVariablesCPA.class);
-
-      liveVariables = liveVarCPA.getLiveVariables();
+    } catch (InvalidConfigurationException | CPAException e) {
+      // this should never happen, but if it does we continue the
+      // analysis without having the live variable analysis
+      logger.logUserException(Level.WARNING, e, "An error occured during the creation"
+          + " of the necessary CPA parts for the live variables analysis.");
+      return Optional.absent();
     }
+  }
 
-    private static Optional<AnalysisParts> getNecessaryAnalysisComponents(final CFA cfa,
-        final LogManager logger,
-        final ShutdownNotifier shutdownNotifier) {
 
-      try {
-        ReachedSetFactory reachedFactory = new ReachedSetFactory(getLiveVariablesReachedConfiguration(),
-                                                                 logger);
-        ConfigurableProgramAnalysis cpa = new CPABuilder(getLiveVariablesCPAConfiguration(),
-                                                         logger,
-                                                         shutdownNotifier,
-                                                         reachedFactory).buildCPAs(cfa);
-        Algorithm algorithm = CPAAlgorithm.create(cpa,
-                                                  logger,
-                                                  Configuration.defaultConfiguration(),
-                                                  shutdownNotifier);
-        ReachedSet reached = reachedFactory.create();
-        return Optional.of(new AnalysisParts(cpa, algorithm, reached));
+  private static Configuration getGlobalConfiguration() throws InvalidConfigurationException {
+    ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.setOption("analysis.traversal.order", "BFS");
+    configBuilder.setOption("analysis.traversal.usePostorder", "true");
+    configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
+    configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+    configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
+                                               + " cpa.callstack.CallstackCPABackwards,"
+                                               + " cpa.livevar.LiveVariablesCPA");
+    configBuilder.setOption("cpa.location.followFunctionCalls", "true");
 
-      } catch (InvalidConfigurationException | CPAException e) {
-        // this should never happen, but if it does we continue the
-        // analysis without having the live variable analysis
-        logger.logUserException(Level.WARNING, e, "An error occured during the creation"
-            + " of the necessary CPA parts for the live variables analysis.");
-        return Optional.absent();
-      }
-    }
+    return configBuilder.build();
+  }
 
-    private static Configuration getLiveVariablesReachedConfiguration() throws InvalidConfigurationException {
-      ConfigurationBuilder configBuilder = Configuration.builder();
-      configBuilder.setOption("analysis.traversal.order", "BFS");
-      configBuilder.setOption("analysis.traversal.usePostorder", "true");
-      return configBuilder.build();
-    }
+  private static Configuration getLocalConfiguration() throws InvalidConfigurationException {
+    ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.setOption("analysis.traversal.order", "BFS");
+    configBuilder.setOption("analysis.traversal.usePostorder", "true");
+    configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
+    configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+    configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
+                                               + " cpa.livevar.LiveVariablesCPA");
+    configBuilder.setOption("cpa.location.followFunctionCalls", "false");
 
-    private static Configuration getLiveVariablesCPAConfiguration() throws InvalidConfigurationException {
-      ConfigurationBuilder configBuilder = Configuration.builder();
-      configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
-      configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
-      configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
-          + " cpa.callstack.CallstackCPABackwards,"
-          + " cpa.livevar.LiveVariablesCPA");
-      return configBuilder.build();
-    }
+    return configBuilder.build();
+  }
 
-    private static class AnalysisParts {
+  private static class AnalysisParts {
 
-      private final ConfigurableProgramAnalysis cpa;
-      private final Algorithm algorithm;
-      private final ReachedSet reachedSet;
+    private final ConfigurableProgramAnalysis cpa;
+    private final Algorithm algorithm;
+    private final ReachedSet reachedSet;
 
-      private AnalysisParts(ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm, ReachedSet pReachedSet) {
-        cpa = pCPA;
-        algorithm = pAlgorithm;
-        reachedSet = pReachedSet;
-      }
+    private AnalysisParts(ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm, ReachedSet pReachedSet) {
+      cpa = pCPA;
+      algorithm = pAlgorithm;
+      reachedSet = pReachedSet;
     }
   }
 }
