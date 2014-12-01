@@ -329,10 +329,8 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
     MemoryLocation functionReturnVar = null;
-    if(functionEntryNode instanceof CFunctionEntryNode) {
-
-      Optional<? extends AVariableDeclaration> returnVarName = functionEntryNode.getReturnVariable();
-      functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
+    if(functionEntryNode instanceof CFunctionEntryNode && functionEntryNode.getReturnVariable().isPresent()) {
+      functionReturnVar = MemoryLocation.valueOf(functionEntryNode.getReturnVariable().get().getQualifiedName());
     }
 
     else if(functionEntryNode instanceof JMethodEntryNode) {
