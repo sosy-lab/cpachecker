@@ -27,9 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -41,38 +40,38 @@ import com.google.common.collect.ImmutableSet.Builder;
 
 public class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
 
-  private final ImmutableSet<CSimpleDeclaration> liveVars;
+  private final ImmutableSet<ASimpleDeclaration> liveVars;
 
-  LiveVariablesState() {
+  public LiveVariablesState() {
     liveVars = ImmutableSet.of();
   }
 
-  LiveVariablesState(final Set<? extends CSimpleDeclaration> pLiveVariables) {
+  public LiveVariablesState(final ImmutableSet<ASimpleDeclaration> pLiveVariables) {
     checkNotNull(pLiveVariables);
-    liveVars = ImmutableSet.copyOf(pLiveVariables);
+    liveVars = pLiveVariables;
   }
 
-  LiveVariablesState union(LiveVariablesState pState2) {
+  public LiveVariablesState union(LiveVariablesState pState2) {
     if (isSubsetOf(pState2)) {
       return pState2;
     }
 
-    Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
+    Builder<ASimpleDeclaration> builder = ImmutableSet.builder();
     builder.addAll(liveVars);
     builder.addAll(pState2.liveVars);
 
     return new LiveVariablesState(builder.build());
   }
 
-  boolean isSubsetOf(LiveVariablesState pState2) {
+  public boolean isSubsetOf(LiveVariablesState pState2) {
     return pState2.liveVars.containsAll(liveVars);
   }
 
-  boolean contains(CSimpleDeclaration variableName) {
+  public boolean contains(ASimpleDeclaration variableName) {
     return liveVars.contains(variableName);
   }
 
-  LiveVariablesState addLiveVariables(Collection<? extends CSimpleDeclaration> pLiveVariables) {
+  public LiveVariablesState addLiveVariables(Collection<ASimpleDeclaration> pLiveVariables) {
     checkNotNull(pLiveVariables);
 
     if (pLiveVariables.isEmpty()
@@ -80,22 +79,22 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
       return this;
     }
 
-    Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
+    Builder<ASimpleDeclaration> builder = ImmutableSet.builder();
     builder.addAll(liveVars);
     builder.addAll(pLiveVariables);
 
     return new LiveVariablesState(builder.build());
   }
 
-  LiveVariablesState removeLiveVariables(Collection<? extends CSimpleDeclaration> pNonLiveVariables) {
+  public LiveVariablesState removeLiveVariables(Collection<ASimpleDeclaration> pNonLiveVariables) {
     checkNotNull(pNonLiveVariables);
 
     if (pNonLiveVariables.isEmpty()) {
       return this;
     }
 
-    Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
-    for (CSimpleDeclaration liveVar : liveVars) {
+    Builder<ASimpleDeclaration> builder = ImmutableSet.builder();
+    for (ASimpleDeclaration liveVar : liveVars) {
       if (!pNonLiveVariables.contains(liveVar)) {
         builder.add(liveVar);
       }
@@ -104,8 +103,8 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     return new LiveVariablesState(builder.build());
   }
 
-  LiveVariablesState removeAndAddLiveVariables(Collection<? extends CSimpleDeclaration> pNonLiveVariables,
-                                                      Collection<? extends CSimpleDeclaration> pLiveVariables) {
+  public LiveVariablesState removeAndAddLiveVariables(Collection<ASimpleDeclaration> pNonLiveVariables,
+                                                      Collection<ASimpleDeclaration> pLiveVariables) {
     checkNotNull(pLiveVariables);
     checkNotNull(pNonLiveVariables);
 
@@ -118,8 +117,8 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
       return addLiveVariables(pLiveVariables);
     }
 
-    Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
-    for (CSimpleDeclaration liveVar : liveVars) {
+    Builder<ASimpleDeclaration> builder = ImmutableSet.builder();
+    for (ASimpleDeclaration liveVar : liveVars) {
       if (!pNonLiveVariables.contains(liveVar) || pLiveVariables.contains(liveVar)) {
         builder.add(liveVar);
       }
@@ -181,7 +180,7 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
     return false;
   }
 
-  Iterable<? extends CSimpleDeclaration> getLiveVariables() {
+  public Iterable<? extends ASimpleDeclaration> getLiveVariables() {
     return liveVars;
   }
 

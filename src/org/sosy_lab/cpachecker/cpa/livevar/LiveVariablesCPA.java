@@ -31,9 +31,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -129,17 +128,16 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   public AbstractState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      Optional<? extends AVariableDeclaration> returnVar = eNode.getEntryNode().getReturnVariable();
+      Optional<? extends AVariableDeclaration> returnVarName = eNode.getEntryNode().getReturnVariable();
 
       // p.e. a function void foo();
-      if (!returnVar.isPresent()) {
+      if (!returnVarName.isPresent()) {
         return new LiveVariablesState();
 
       // all other function types
       } else {
-        CVariableDeclaration returnVarDecl = (CVariableDeclaration)returnVar.get();
-        transfer.putInitialLiveVariables(pNode, Collections.singleton(returnVarDecl));
-        return new LiveVariablesState(ImmutableSet.of(returnVarDecl));
+        transfer.putInitialLiveVariables(pNode, Collections.singleton((ASimpleDeclaration)returnVarName.get()));
+        return new LiveVariablesState(ImmutableSet.of((ASimpleDeclaration)returnVarName.get()));
       }
 
     } else {
@@ -158,7 +156,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, CSimpleDeclaration> getLiveVariables() {
+  public Multimap<CFANode, ASimpleDeclaration> getLiveVariables() {
     return transfer.getLiveVariables();
   }
 
