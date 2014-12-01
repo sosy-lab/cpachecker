@@ -32,13 +32,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
-import org.sosy_lab.cpachecker.util.test.DebugOutput;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -55,8 +56,10 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
   private Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   private Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
+  private LogManager logger;
 
-  public Z3AstMatcher(Z3FormulaManager pFm, FormulaCreator<Long, Long, Long> pFormulaCreator) {
+  public Z3AstMatcher(LogManager pLogger, Z3FormulaManager pFm, FormulaCreator<Long, Long, Long> pFormulaCreator) {
+    this.logger = pLogger;
     this.ctx = pFm.getEnvironment();
     this.fm = pFm;
     this.fmc = pFormulaCreator;
@@ -79,7 +82,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
   }
 
   private SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
-    DebugOutput.debugMsg(ObjectArrays.concat("FAILED MATCH", pDescription));
+    logger.log(Level.ALL, ObjectArrays.concat("FAILED MATCH", pDescription));
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 

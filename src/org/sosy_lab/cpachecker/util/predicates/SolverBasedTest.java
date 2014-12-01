@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import org.junit.After;
 import org.junit.Before;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -40,7 +41,7 @@ public abstract class SolverBasedTest {
   // TODO: Merge this class with SolverTest
 
   protected Solver solver;
-
+  protected LogManager log;
   protected FormulaManager formulaManager;
   protected FormulaManagerView fmgr;
   protected ArrayFormulaManagerView afm;
@@ -60,13 +61,14 @@ public abstract class SolverBasedTest {
         .setOption("cpa.predicate.solver", getSolverToUse())
         .build();
 
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, TestLogManager.getInstance(), ShutdownNotifier.create());
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, log, ShutdownNotifier.create());
     formulaManager = factory.getFormulaManager();
     fmgr    = new FormulaManagerView(formulaManager, config, TestLogManager.getInstance());
     afm     = fmgr.getArrayFormulaManager();
     bfm     = fmgr.getBooleanFormulaManager();
     ifm     = fmgr.getIntegerFormulaManager();
     solver  = new Solver(fmgr, factory);
+    log = TestLogManager.getInstance();
   }
 
   @After

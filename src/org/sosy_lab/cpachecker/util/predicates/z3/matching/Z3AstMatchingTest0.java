@@ -81,7 +81,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
 
   public void setupMatcher() {
     Z3FormulaManager zfm =(Z3FormulaManager) formulaManager;
-    matcher = new Z3AstMatcher(zfm, zfm.getFormulaCreator());
+    matcher = new Z3AstMatcher(log, zfm, zfm.getFormulaCreator());
   }
 
   public void setupTestFormulas() throws Exception {
