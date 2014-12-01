@@ -125,7 +125,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-  @Options(prefix="location")
   private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
 
     protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa, boolean pFollowFunctionCalls) {
