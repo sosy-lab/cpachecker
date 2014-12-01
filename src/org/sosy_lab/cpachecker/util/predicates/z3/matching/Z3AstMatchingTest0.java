@@ -31,17 +31,17 @@ import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
+import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
 
-public class Z3AstMatchingTest0 extends SolverBasedTest {
+public class Z3AstMatchingTest0 extends SolverBasedTest0 {
 
   private IntegerFormula _0;
   private IntegerFormula _al;
@@ -80,55 +80,55 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
   }
 
   public void setupMatcher() {
-    Z3FormulaManager zfm =(Z3FormulaManager) formulaManager;
-    matcher = new Z3AstMatcher(log, zfm, zfm.getFormulaCreator());
+    Z3FormulaManager zfm =(Z3FormulaManager) mgr;
+    matcher = new Z3AstMatcher(logger, zfm, zfm.getFormulaCreator());
   }
 
   public void setupTestFormulas() throws Exception {
-    _0 = ifm.makeNumber(0);
-    _1 = ifm.makeNumber(1);
-    _minus1 = ifm.makeNumber(-1);
+    _0 = imgr.makeNumber(0);
+    _1 = imgr.makeNumber(1);
+    _minus1 = imgr.makeNumber(-1);
 
-    _al = fmgr.makeVariable(NumeralType.IntegerType, "al");
-    _bl = fmgr.makeVariable(NumeralType.IntegerType, "bl");
-    _c1 = fmgr.makeVariable(NumeralType.IntegerType, "c1");
-    _c2 = fmgr.makeVariable(NumeralType.IntegerType, "c2");
-    _e1 = fmgr.makeVariable(NumeralType.IntegerType, "e1");
-    _e2 = fmgr.makeVariable(NumeralType.IntegerType, "e2");
-    _eX = fmgr.makeVariable(NumeralType.IntegerType, "eX");
+    _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _bl = mgrv.makeVariable(NumeralType.IntegerType, "bl");
+    _c1 = mgrv.makeVariable(NumeralType.IntegerType, "c1");
+    _c2 = mgrv.makeVariable(NumeralType.IntegerType, "c2");
+    _e1 = mgrv.makeVariable(NumeralType.IntegerType, "e1");
+    _e2 = mgrv.makeVariable(NumeralType.IntegerType, "e2");
+    _eX = mgrv.makeVariable(NumeralType.IntegerType, "eX");
 
-    _i1 = fmgr.makeVariable(NumeralType.IntegerType, "i@1");
-    _j1= fmgr.makeVariable(NumeralType.IntegerType, "j@1");
-    _j2 = fmgr.makeVariable(NumeralType.IntegerType, "j@2");
-    _a1 = fmgr.makeVariable(NumeralType.IntegerType, "a@1");
+    _i1 = mgrv.makeVariable(NumeralType.IntegerType, "i@1");
+    _j1 = mgrv.makeVariable(NumeralType.IntegerType, "j@1");
+    _j2 = mgrv.makeVariable(NumeralType.IntegerType, "j@2");
+    _a1 = mgrv.makeVariable(NumeralType.IntegerType, "a@1");
 
     _c1_times_ex_plus_e1_GEQ_0
-      = ifm.greaterOrEquals(
-          ifm.add(
-              ifm.multiply(_c1, _eX),
+      = imgr.greaterOrEquals(
+          imgr.add(
+              imgr.multiply(_c1, _eX),
               _e1),
           _0);
 
     _minus_c2_times_ex_plus_e2_GEQ_0
-      = ifm.greaterOrEquals(
-          ifm.add(
-              ifm.multiply(
-                  ifm.subtract(_0, _c2),
+      = imgr.greaterOrEquals(
+          imgr.add(
+              imgr.multiply(
+                  imgr.subtract(_0, _c2),
                   _eX),
               _e2),
           _0);
 
-    _0_LESSTHAN_bl = ifm.lessThan(_0, _bl);
-    _0_GEQ_al = ifm.greaterOrEquals(_0, _al);
+    _0_LESSTHAN_bl = imgr.lessThan(_0, _bl);
+    _0_GEQ_al = imgr.greaterOrEquals(_0, _al);
 
-    _1_plus_a1 = ifm.add(_1, _a1);
-    _not_j1_EQUALS_minus1 = bfm.not(ifm.equal(_j1, _minus1));
-    _i1_EQUALS_1_plus_a1 = ifm.equal(_i1, _1_plus_a1);
+    _1_plus_a1 = imgr.add(_1, _a1);
+    _not_j1_EQUALS_minus1 = bmgr.not(imgr.equal(_j1, _minus1));
+    _i1_EQUALS_1_plus_a1 = imgr.equal(_i1, _1_plus_a1);
 
-    _j12_plus_a1 = ifm.add(_j2, _a1);
-    _j1_EQUALS_j2_plus_a1 = ifm.equal(_j1, _j12_plus_a1);
+    _j12_plus_a1 = imgr.add(_j2, _a1);
+    _j1_EQUALS_j2_plus_a1 = imgr.equal(_j1, _j12_plus_a1);
 
-    _f_and_of_foo = bfm.and(Lists.newArrayList(
+    _f_and_of_foo = bmgr.and(Lists.newArrayList(
             _i1_EQUALS_1_plus_a1,
             _not_j1_EQUALS_minus1,
             _j1_EQUALS_j2_plus_a1));
@@ -185,7 +185,6 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
     SmtAstMatchResult resultB = matcher.perform(patternB, _0_GEQ_al);
     assertThat(resultB.matches()).isFalse();
   }
-
 
   @Test
   public void testAstMatchingSubstitute() {
@@ -250,6 +249,5 @@ public class Z3AstMatchingTest0 extends SolverBasedTest {
     final SmtAstMatchResult result3 = matcher.perform(elimPremisePattern2, _minus_c2_times_ex_plus_e2_GEQ_0);
     assertThat(result3.matches()).isTrue();
   }
-
 
 }

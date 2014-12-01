@@ -38,10 +38,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.SubjectFactory;
@@ -101,8 +104,11 @@ public abstract class SolverBasedTest0 {
     return result;
   }
 
+  protected Solver solver;
+  protected LogManager logger;
   protected FormulaManagerFactory factory;
   protected FormulaManager mgr;
+  protected FormulaManagerView mgrv;
   protected BooleanFormulaManager bmgr;
   protected FunctionFormulaManager fmgr;
   protected NumeralFormulaManager<IntegerFormula, IntegerFormula> imgr;
@@ -128,15 +134,19 @@ public abstract class SolverBasedTest0 {
     builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
 
     Configuration config = builder.build();
+    logger = TestLogManager.getInstance();
 
     try {
-      factory = new FormulaManagerFactory(config, TestLogManager.getInstance(),
+      factory = new FormulaManagerFactory(config, logger,
           ShutdownNotifier.create());
     } catch (NoClassDefFoundError e) {
       assume().withFailureMessage("Scala is not on class path")
               .that(e.getMessage()).doesNotContain("scala");
     }
     mgr = factory.getFormulaManager();
+    mgrv = new FormulaManagerView(mgr, config, logger);
+    solver = new Solver(mgrv, factory);
+
     fmgr = mgr.getFunctionFormulaManager();
     bmgr = mgr.getBooleanFormulaManager();
     imgr = mgr.getIntegerFormulaManager();

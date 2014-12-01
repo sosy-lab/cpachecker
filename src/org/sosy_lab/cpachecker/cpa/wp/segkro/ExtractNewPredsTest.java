@@ -30,7 +30,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.cpa.wp.segkro.rules.RulesetFactory;
-import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
@@ -38,29 +37,30 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
 
-public class ExtractNewPredsTest extends SolverBasedTest {
+public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
 
   @Before
   public void setUp() throws Exception {
     List<Rule> rules = Lists.newArrayList();
-    rules = RulesetFactory.createRuleset(formulaManager, solver);
+    rules = RulesetFactory.createRuleset(mgr, solver);
     enp = new ExtractNewPreds(rules);
   }
 
   @Test @Ignore
   public void test() {
-    ArrayFormulaManagerView afm = fmgr.getArrayFormulaManager();
-    BooleanFormulaManagerView bfm = fmgr.getBooleanFormulaManager();
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm = fmgr.getIntegerFormulaManager();
+    ArrayFormulaManagerView afm = mgrv.getArrayFormulaManager();
+    BooleanFormulaManagerView bfm = mgrv.getBooleanFormulaManager();
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm = mgrv.getIntegerFormulaManager();
 
-    IntegerFormula _i = fmgr.makeVariable(NumeralType.IntegerType, "i");
-    IntegerFormula _al = fmgr.makeVariable(NumeralType.IntegerType, "al");
+    IntegerFormula _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
+    IntegerFormula _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
     IntegerFormula _0 = ifm.makeNumber(0);
     IntegerFormula _1 = ifm.makeNumber(1);
     IntegerFormula _i_plus_1 = ifm.add(_i, _1);
