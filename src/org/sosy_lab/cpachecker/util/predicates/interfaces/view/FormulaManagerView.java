@@ -292,6 +292,9 @@ public class FormulaManagerView {
       t = bitvectorFormulaManager.makeVariable(impl.getSize(), name);
     } else if (formulaType.isFloatingPointType()) {
       t = floatingPointFormulaManager.makeVariable(name, (FormulaType.FloatingPointType)formulaType);
+    } else if (formulaType.isArrayType()) {
+      FormulaType.ArrayFormulaType<?,?> arrayType = (FormulaType.ArrayFormulaType<?,?>) formulaType;
+      t = arrayFormulaManager.makeArray(name, arrayType.getIndexType(), arrayType.getElementType());
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

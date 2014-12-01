@@ -44,9 +44,19 @@ class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long
 
   @Override
   protected Long select(Long pArray, Long pIndex) {
-    final long term = Z3NativeApi.mk_select(z3context, pArray, pIndex);
-    Z3NativeApi.inc_ref(z3context, term);
-    return term;
+    try {
+      final long term = Z3NativeApi.mk_select(z3context, pArray, pIndex);
+      Z3NativeApi.inc_ref(z3context, term);
+
+      return term;
+
+    } catch (IllegalArgumentException ae) {
+      int errorCode = Z3NativeApi.get_error_code(z3context);
+      throw new IllegalArgumentException(
+          String.format("Errorcode: %d, msg: %s",
+              errorCode,
+              Z3NativeApi.get_error_msg_ex(z3context, errorCode)));
+    }
   }
 
   @Override

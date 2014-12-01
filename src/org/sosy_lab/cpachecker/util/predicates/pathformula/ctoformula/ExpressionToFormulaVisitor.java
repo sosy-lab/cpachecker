@@ -75,9 +75,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
   private final String        function;
-  private final SSAMapBuilder ssa;
   private final Constraints   constraints;
   protected final FormulaManagerView mgr;
+  protected final SSAMapBuilder ssa;
 
   public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
       FormulaManagerView pFmgr, CFAEdge pEdge, String pFunction,

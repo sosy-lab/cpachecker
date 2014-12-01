@@ -40,20 +40,23 @@ public class ArrayFormulaManagerView
   }
 
   @Override
-  public <TD extends Formula, TR extends Formula> TR
-  select (ArrayFormula<TD, TR> pArray, Formula pIndex) {
-    return manager.select(pArray, pIndex);
+  public <TD extends Formula, TR extends Formula> TR select (
+      ArrayFormula<TD, TR> pArray, Formula pIndex) {
+
+    return manager.select(pArray, unwrap(pIndex));
   }
 
   @Override
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR>
-  store (ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
-    return manager.store(pArray, pIndex, pValue);
+  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> store (
+      ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
+
+    return manager.store(pArray, unwrap(pIndex), unwrap(pValue));
   }
 
   @Override
   public <TD extends Formula, TR extends Formula, FTD extends FormulaType<TD>, FTR extends FormulaType<TR>> ArrayFormula<TD, TR> makeArray(
       String pName, FTD pIndexType, FTR pElementType) {
+
     return manager.makeArray(pName, pIndexType, pElementType);
   }
 
