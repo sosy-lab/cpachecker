@@ -192,27 +192,84 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     _a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i);
   }
 
-  @Test
-  public void testMakePredicateWithoutArray() throws UnrecognizedCCodeException, InterruptedException {
-    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
-    BooleanFormula result = ctfBwd.makePredicate(
-        _i_notequal_0.getSecond(),
-        _i_notequal_0.getFirst(),
-        "foo", ssa);
-
-    assertThat(result.toString()).comparesEqualTo("(and (not (= i@1 0.0)) true)");
-  }
 
   @Test
-  public void testMakePredicate() throws UnrecognizedCCodeException, InterruptedException {
+  public void testMakePredicate1() throws UnrecognizedCCodeException, InterruptedException {
+    // a[2] != 0
+
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     BooleanFormula result = ctfBwd.makePredicate(
         _a_at_2_notequal_0.getSecond(),
         _a_at_2_notequal_0.getFirst(),
         "foo", ssa);
 
-    assertThat(result.toString()).comparesEqualTo("");
+    assertThat(result.toString()).comparesEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
   }
+
+  @Test
+  public void testMakePredicate2() throws UnrecognizedCCodeException, InterruptedException {
+    // a[a[2]] != 0
+  }
+
+  @Test
+  public void testArrayDesignator1() throws UnrecognizedCCodeException, InterruptedException {
+    // int x[] = { 0, 1, 2 } ;
+  }
+
+  @Test
+  public void testArrayDeclaration1() throws UnrecognizedCCodeException, InterruptedException {
+    // int array[100];
+  }
+
+  @Test
+  public void testMultiDimensional1() throws UnrecognizedCCodeException, InterruptedException {
+    // int array2d[3][7];
+  }
+
+  @Test
+  public void testMultiDimensional2() throws UnrecognizedCCodeException, InterruptedException {
+    // array2d[3][7] = 23;
+  }
+
+  @Test
+  public void testArrayAsPointer1() throws UnrecognizedCCodeException, InterruptedException {
+    // Equivalence of
+    //    array[0]
+    // and
+    //    *array
+  }
+
+  @Test
+  public void testArrayAsPointer2() throws UnrecognizedCCodeException, InterruptedException {
+    // Equivalence of
+    //    array[2]
+    // and
+    //    *(array + 2)
+  }
+
+  @Test
+  public void testArrayAsPointer3() throws UnrecognizedCCodeException, InterruptedException {
+    // Equivalence of
+    //    array[n - 1]
+    // and
+    //    *(array + n - 1)
+  }
+
+  @Test
+  public void testArrayAsPointer4() throws UnrecognizedCCodeException, InterruptedException {
+    // Equivalence of
+    //    array[i - 1][j - 1]
+    // and
+    //    *(*(array + i - 1) + j - 1)
+  }
+
+  @Test
+  public void testArrayMalloc() throws UnrecognizedCCodeException, InterruptedException {
+    // int* a = malloc(100 * sizeof(int));
+  }
+
+
+
 
 
 }
