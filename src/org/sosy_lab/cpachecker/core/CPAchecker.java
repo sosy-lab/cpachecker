@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -63,6 +64,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -71,6 +74,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 
@@ -114,7 +118,42 @@ public class CPAchecker {
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  public static enum InitialStatesFor { ENTRY, TARGET, EXIT }
+  public static enum InitialStatesFor {
+    /**
+     * This enum constant represents the function entry node of the entry function
+     */
+    ENTRY,
+
+    /**
+     * This enum constant represents the set of function entry nodes of all
+     * functions.
+     */
+    FUNCTION_ENTRIES,
+
+    /**
+     * This enum constant represents all locations that are possible targets
+     * of the analysis.
+     */
+    TARGET,
+
+    /**
+     * This enum constant represents the function exit node of the entry function.
+     */
+    EXIT,
+
+    /**
+     * This enum constant represents all function exit nodes of all functions,
+     * and all loop heads of endless loops.
+     */
+    FUNCTION_SINKS,
+
+    /**
+     * This enum constant represents all function exit nodes of the entry function,
+     * and all loop heads of endless loops.
+     */
+    PROGRAM_SINKS
+  }
+
   @Option(secure=true, name="initialStatesFor",
       description="What CFA nodes should be the starting point of the analysis?")
   private InitialStatesFor initialStatesFor = InitialStatesFor.ENTRY;
@@ -395,15 +434,33 @@ public class CPAchecker {
 
     ImmutableSet<? extends CFANode> initialLocations = null;
 
-    if (initialStatesFor == InitialStatesFor.TARGET) {
+    switch (initialStatesFor) {
+    case ENTRY:
+      initialLocations = ImmutableSet.of(analysisEntryFunction);
+      break;
+    case EXIT:
+      initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
+      break;
+    case FUNCTION_ENTRIES:
+      initialLocations = ImmutableSet.copyOf(cfa.getAllFunctionHeads());
+      break;
+    case FUNCTION_SINKS:
+      initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()))
+                                                        .addAll(getAllFunctionExitNodes(cfa))
+                                                        .build();
+      break;
+    case PROGRAM_SINKS:
+      initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()))
+                                                        .add(analysisEntryFunction.getExitNode())
+                                                        .build();
+      break;
+    case TARGET:
       TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
       initialLocations = tlp.tryGetAutomatonTargetLocations(analysisEntryFunction);
+      break;
+    default:
+      throw new AssertionError("Unhandled case statement: " + initialStatesFor);
 
-    } else if (initialStatesFor == InitialStatesFor.EXIT) {
-      initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
-
-    } else {
-      initialLocations = ImmutableSet.of(analysisEntryFunction);
     }
 
     if (initialLocations == null) {
@@ -416,6 +473,32 @@ public class CPAchecker {
 
       reached.add(initialState, initialPrecision);
     }
+  }
 
+  private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {
+    Set<CFANode> functionExitNodes = new HashSet<>();
+
+    for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+      FunctionExitNode exitNode = node.getExitNode();
+      if (cfa.getAllNodes().contains(exitNode)) {
+        functionExitNodes.add(exitNode);
+      }
+    }
+    return functionExitNodes;
+  }
+
+  private Set<CFANode> getAllEndlessLoopHeads(LoopStructure structure) {
+    ImmutableCollection<Loop> loops = structure.getAllLoops();
+    Set<CFANode> loopHeads = new HashSet<>();
+
+    for (Loop l : loops) {
+      if (l.getOutgoingEdges().isEmpty()) {
+        // one loopHead per loop should be enough for finding all locations
+        for (CFANode head : l.getLoopHeads()) {
+          loopHeads.add(head);
+        }
+      }
+    }
+    return loopHeads;
   }
 }
