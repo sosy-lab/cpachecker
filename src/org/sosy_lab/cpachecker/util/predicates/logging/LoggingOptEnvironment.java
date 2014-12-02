@@ -72,18 +72,18 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public Rational upper() {
-    return wrapped.upper();
+  public Rational upper(int epsilon) {
+    return wrapped.upper(epsilon);
   }
 
   @Override
-  public Rational lower() {
-    return wrapped.lower();
+  public Rational lower(int epsilon) {
+    return wrapped.lower(epsilon);
   }
 
   @Override
-  public Rational value() {
-    return wrapped.value();
+  public Rational value(int epsilon) {
+    return wrapped.value(epsilon);
   }
 
   @Override

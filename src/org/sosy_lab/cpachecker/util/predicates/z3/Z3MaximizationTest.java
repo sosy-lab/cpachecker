@@ -128,7 +128,7 @@ public class Z3MaximizationTest {
           model.toString());
 
       // Check the value.
-      Assert.assertEquals(Rational.ofString("19"), prover.value());
+      Assert.assertEquals(Rational.ofString("19"), prover.value(0));
     }
 
   }

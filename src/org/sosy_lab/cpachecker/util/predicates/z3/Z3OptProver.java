@@ -112,33 +112,33 @@ public class Z3OptProver implements OptEnvironment {
   }
 
   @Override
-  public Rational upper() {
+  public Rational upper(int epsilon) {
     Preconditions.checkState(objectiveHandle.isPresent());
     int idx = objectiveHandle.get();
 
     long ast = optimize_get_upper(z3context, z3optContext, idx);
 
-    return rationalFromZ3AST(replaceEpsilon(ast, 0));
+    return rationalFromZ3AST(replaceEpsilon(ast, epsilon));
   }
 
   @Override
-  public Rational lower() {
+  public Rational lower(int epsilon) {
     Preconditions.checkState(objectiveHandle.isPresent());
     int idx = objectiveHandle.get();
     long ast = optimize_get_lower(z3context, z3optContext, idx);
 
     // TODO: change the epsilon value from 1 to a more suitable number.
     return rationalFromZ3AST(
-        replaceEpsilon(ast, 1));
+        replaceEpsilon(ast, epsilon));
   }
 
   @Override
-  public Rational value() {
+  public Rational value(int epsilon) {
     Preconditions.checkState(isMaximization.isPresent());
     if(isMaximization.get()) {
-      return upper();
+      return upper(epsilon);
     }
-    return lower();
+    return lower(epsilon);
   }
 
   @Override

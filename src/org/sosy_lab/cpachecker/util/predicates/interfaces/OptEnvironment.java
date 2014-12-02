@@ -57,21 +57,27 @@ public interface OptEnvironment extends AutoCloseable {
   OptStatus check() throws InterruptedException, SolverException;
 
   /**
+   * @param epsilon Value to substitute for the {@code epsilon}.
    * @return Upper approximation of the optimized value.
    */
-  Rational upper();
+  Rational upper(int epsilon);
 
   /**
+   * @param epsilon Value to substitute for the {@code epsilon}.
    * @return Lower approximation of the optimized value.
    */
-  Rational lower();
+  Rational lower(int epsilon);
 
   /**
+   * @param epsilon Value to substitute for the {@code epsilon}.
    * @return Value of the approximation objective:
-   * equivalent to {@link #upper()} for the maximization problem
-   * and {@link #lower()} for the minimization problem.
-   */
-  Rational value();
+   * equivalent to {@link #upper(int epsilon)} for the maximization problem
+   * and {@link #lower(int epsilon)} for the minimization problem.
+   *
+   * TODO: The value of the epsilon is integral because currently Z3 gives
+   * epsilon integral sort, see https://z3.codeplex.com/workitem/145
+   * */
+  Rational value(int epsilon);
 
   Model getModel() throws SolverException;
 
