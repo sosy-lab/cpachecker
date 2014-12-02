@@ -38,8 +38,8 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public <TD extends Formula, TR extends Formula> TR
-  select (ArrayFormula<TD, TR> pArray, Formula pIndex) {
+  public <TD extends Formula, TR extends Formula> TR select (
+      ArrayFormula<TD, TR> pArray, Formula pIndex) {
 
     final FormulaType<? extends Formula> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
     final TFormulaInfo term = select(
@@ -51,8 +51,8 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo select(TFormulaInfo pArray, TFormulaInfo pIndex);
 
   @Override
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR>
-  store (ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
+  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> store (
+      ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
 
     final FormulaType<TD> indexType = getFormulaCreator().getArrayFormulaIndexType(pArray);
     final FormulaType<TR> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
@@ -73,7 +73,17 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
     return getFormulaCreator().encapsulateArray(namedArrayFormula, pIndexType, pElementType);
   }
 
-  protected abstract <TI extends Formula, TE extends Formula> TFormulaInfo
-  internalMakeArray(String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
+  protected abstract <TI extends Formula, TE extends Formula> TFormulaInfo internalMakeArray(
+      String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
+
+  @Override
+  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray) {
+    return (FTD) getFormulaCreator().getArrayFormulaIndexType(pArray);
+  }
+
+  @Override
+  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray) {
+    return (FTR) getFormulaCreator().getArrayFormulaElementType(pArray);
+  }
 
 }

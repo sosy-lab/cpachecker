@@ -43,7 +43,10 @@ public class ArrayFormulaManagerView
   public <TD extends Formula, TR extends Formula> TR select (
       ArrayFormula<TD, TR> pArray, Formula pIndex) {
 
-    return manager.select(pArray, unwrap(pIndex));
+    final TR selectResult = manager.select(pArray, unwrap(pIndex));
+    final FormulaType<TR> resultType = getRangeType(pArray);
+
+    return wrap(resultType, selectResult);
   }
 
   @Override
@@ -53,13 +56,25 @@ public class ArrayFormulaManagerView
     return manager.store(pArray, unwrap(pIndex), unwrap(pValue));
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <TD extends Formula, TR extends Formula, FTD extends FormulaType<TD>, FTR extends FormulaType<TR>> ArrayFormula<TD, TR> makeArray(
       String pName, FTD pIndexType, FTR pElementType) {
 
-    return manager.makeArray(pName, pIndexType, pElementType);
+    FTD uit = (FTD) unwrapType(pIndexType);
+    FTR uet = (FTR) unwrapType(pElementType);
+
+    return manager.makeArray(pName, uit, uet);
   }
 
+  @Override
+  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray) {
+    return manager.getDomainType(pArray);
+  }
 
+  @Override
+  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray) {
+    return manager.getRangeType(pArray);
+  }
 
 }

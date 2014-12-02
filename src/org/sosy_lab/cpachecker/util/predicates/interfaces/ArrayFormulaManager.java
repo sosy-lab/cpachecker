@@ -63,5 +63,8 @@ public interface ArrayFormulaManager {
     FTD extends FormulaType<TD>, FTR extends FormulaType<TR>>
     ArrayFormula<TD, TR> makeArray(String pName, FTD pIndexType, FTR pElementType);
 
+  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray);
+  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray);
+
 }
 

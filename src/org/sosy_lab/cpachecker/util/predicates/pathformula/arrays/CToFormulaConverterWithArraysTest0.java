@@ -98,6 +98,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private Pair<CAssumeEdge, CExpression> _a_at_i_equal_b_at_i;
   private Pair<CFAEdge, CExpressionAssignmentStatement> _a_at_i_assign_b_at_i;
   private Pair<CAssumeEdge, CExpression> _a_at_2_notequal_0;
+  private Pair<CAssumeEdge, CExpression> _i_notequal_0;
 
   private CArraySubscriptExpression _b_at_i;
   private CArraySubscriptExpression _a_at_i;
@@ -178,12 +179,28 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         CIntegerLiteralExpression.ZERO,
         BinaryOperator.NOT_EQUALS));
 
+    _i_notequal_0 = makeAssume(expressionBuilder.buildBinaryExpression(
+        _i.getThird(),
+        CIntegerLiteralExpression.ZERO,
+        BinaryOperator.NOT_EQUALS));
+
     _a_at_i_equal_b_at_i = makeAssume(expressionBuilder.buildBinaryExpression(
         _a_at_i,
         _b_at_i,
         BinaryOperator.EQUALS));
 
     _a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i);
+  }
+
+  @Test
+  public void testMakePredicateWithoutArray() throws UnrecognizedCCodeException, InterruptedException {
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    BooleanFormula result = ctfBwd.makePredicate(
+        _i_notequal_0.getSecond(),
+        _i_notequal_0.getFirst(),
+        "foo", ssa);
+
+    assertThat(result.toString()).comparesEqualTo("(and (not (= i@1 0.0)) true)");
   }
 
   @Test

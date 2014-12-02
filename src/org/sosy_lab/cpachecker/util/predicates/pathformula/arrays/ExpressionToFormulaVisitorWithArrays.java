@@ -86,7 +86,7 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
       final Formula arrayIndexExpr = ase.getSubscriptExpression().accept(this);
       final Formula arrayIndexExprCasted = ctfa.makeCastForMe(
             ase.getSubscriptExpression().getExpressionType(),
-            machine.getPointerEquivalentSimpleType(), arrayIndexExpr, null, null);
+            machine.getArrayDomainType(), arrayIndexExpr, null, null);
 
       return amgr.select(arrayDeclaration, arrayIndexExprCasted);
 
