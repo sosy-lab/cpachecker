@@ -44,9 +44,9 @@ public class CtoFormulaTypeHandlerWithArrays extends CtoFormulaTypeHandler {
   protected FormulaType<?> getFormulaTypeFromCType0(CType pType) {
     if (pType instanceof CArrayType) {
       final CArrayType at = (CArrayType) pType;
-      FormulaType<?> arrayDomainType = getFormulaTypeFromCType(machineModel.getArrayDomainType());
-      FormulaType<?> arrayRangeType = getFormulaTypeFromCType(at.getType());
-      return FormulaType.getArrayType(arrayDomainType, arrayRangeType);
+      FormulaType<?> arrayIndexType = getFormulaTypeFromCType(machineModel.getArrayIndexType());
+      FormulaType<?> arrayElementType = getFormulaTypeFromCType(at.getType());
+      return FormulaType.getArrayType(arrayIndexType, arrayElementType);
     }
 
     return super.getFormulaTypeFromCType0(pType);

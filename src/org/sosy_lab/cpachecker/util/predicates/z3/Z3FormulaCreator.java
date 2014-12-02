@@ -107,13 +107,13 @@ public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   protected <TD extends Formula, TR extends Formula>
   FormulaType<TR> getArrayFormulaElementType(ArrayFormula<TD, TR> pArray) {
-    return ((Z3ArrayFormula<TD,TR>) pArray).getRangeType();
+    return ((Z3ArrayFormula<TD,TR>) pArray).getElementType();
   }
 
   @Override
   protected <TD extends Formula, TR extends Formula>
   FormulaType<TD> getArrayFormulaIndexType(ArrayFormula<TD, TR> pArray) {
-    return ((Z3ArrayFormula<TD,TR>) pArray).getDomainType();
+    return ((Z3ArrayFormula<TD,TR>) pArray).getIndexType();
   }
 
   @Override

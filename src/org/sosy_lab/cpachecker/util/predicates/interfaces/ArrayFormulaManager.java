@@ -37,8 +37,8 @@ public interface ArrayFormulaManager {
    * @param pIndex    The position from which to read
    * @return          A formula that represents the result of the "read"
    */
-  public <TD extends Formula, TR extends Formula> TR
-    select (ArrayFormula<TD, TR> pArray, Formula pIndex);
+  public <TI extends Formula, TE extends Formula> TE
+    select (ArrayFormula<TI, TE> pArray, Formula pIndex);
 
   /**
    * Store a value into a cell of the specified array.
@@ -48,8 +48,8 @@ public interface ArrayFormulaManager {
    * @param pValue    The value that should be written
    * @return          A formula that represents the "write"
    */
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR>
-    store (ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue);
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE>
+    store (ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue);
 
   /**
    * Declare a new array.
@@ -59,12 +59,12 @@ public interface ArrayFormulaManager {
    * @param pElementType  The type of the array elements
    * @return              Formula that represents the array
    */
-  public <TD extends Formula, TR extends Formula,
-    FTD extends FormulaType<TD>, FTR extends FormulaType<TR>>
-    ArrayFormula<TD, TR> makeArray(String pName, FTD pIndexType, FTR pElementType);
+  public <TI extends Formula, TE extends Formula,
+    FTI extends FormulaType<TI>, FTE extends FormulaType<TE>>
+    ArrayFormula<TI, TE> makeArray(String pName, FTI pIndexType, FTE pElementType);
 
-  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray);
-  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray);
+  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray);
+  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray);
 
 }
 

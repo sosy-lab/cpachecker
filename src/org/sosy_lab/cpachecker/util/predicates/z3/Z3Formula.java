@@ -68,20 +68,20 @@ abstract class Z3Formula implements Formula {
   }
 }
 
-class Z3ArrayFormula<TD extends Formula, TR extends Formula> extends Z3Formula
-implements ArrayFormula<TD, TR> {
+class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
+implements ArrayFormula<TI, TE> {
 
-  private final FormulaType<TD> domainType;
-  private final FormulaType<TR> rangeType;
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
 
-  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
+  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
     super(pZ3context, pZ3expr);
-    domainType = pIndexType;
-    rangeType = pElementType;
+    indexType = pIndexType;
+    elementType = pElementType;
   }
 
-  public FormulaType<TD> getDomainType() { return domainType; }
-  public FormulaType<TR> getRangeType() { return rangeType; }
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {

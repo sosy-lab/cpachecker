@@ -76,18 +76,18 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
  * Simple ArrayFormula implementation.
  */
 @SuppressWarnings("serial")
-class ArrayFormulaImpl<TD extends Formula, TR extends Formula, TFormulaInfo>
+class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
 extends AbstractFormula<TFormulaInfo>
-implements ArrayFormula<TD, TR> {
-  private final FormulaType<TD> domainType;
-  private final FormulaType<TR> rangeType;
-  public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
+implements ArrayFormula<TI, TE> {
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
+  public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
     super(info);
-    this.domainType = pIndexType;
-    this.rangeType = pElementType;
+    this.indexType = pIndexType;
+    this.elementType = pElementType;
   }
-  public FormulaType<TD> getDomainType() { return domainType; }
-  public FormulaType<TR> getRangeType() { return rangeType; }
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 /**

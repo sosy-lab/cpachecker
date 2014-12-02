@@ -36,23 +36,23 @@ public class ArrayFormulaManagerView
 
   /**
    * Used to keep track of the types that were used
-   * to wrap the array domain (the index), and its range (the values).
+   * to wrap the array index (the domain), and its values (the range).
    *
    * This information is needed when accessing the array:
    *    The result (of a 'select') has to be wrapped with the intended type again.
    */
-  private static class BoxedArrayFormula<TD extends Formula, TR extends Formula> implements ArrayFormula<TD, TR> {
+  private static class BoxedArrayFormula<TI extends Formula, TE extends Formula> implements ArrayFormula<TI, TE> {
 
-    public final FormulaType<TD> wrappingDomainType;
-    public final FormulaType<TR> wrappingRangeType;
+    public final FormulaType<TI> wrappingIndexType;
+    public final FormulaType<TE> wrappingElementType;
     public final ArrayFormula<?, ?> formula;
 
     public BoxedArrayFormula(
         ArrayFormula<?, ?> pFormula,
-        FormulaType<TD> pWrappingDomainType, FormulaType<TR> pWrappingRangeType
+        FormulaType<TI> pWrappingIndexType, FormulaType<TE> pWrappingElementType
         ) {
-      wrappingDomainType = pWrappingDomainType;
-      wrappingRangeType = pWrappingRangeType;
+      wrappingIndexType = pWrappingIndexType;
+      wrappingElementType = pWrappingElementType;
       formula = pFormula;
     }
 
@@ -64,41 +64,41 @@ public class ArrayFormulaManagerView
   }
 
   @Override
-  public <TD extends Formula, TR extends Formula> TR select (
-      ArrayFormula<TD, TR> pArray, Formula pIndex) {
+  public <TI extends Formula, TE extends Formula> TE select (
+      ArrayFormula<TI, TE> pArray, Formula pIndex) {
 
-    final ArrayFormula<TD, TR> declaredArray = unbox(pArray);
-    final TR selectResult = manager.select(declaredArray, unwrap(pIndex));
-    final FormulaType<TR> resultType = getRangeType(pArray);
+    final ArrayFormula<TI, TE> declaredArray = unbox(pArray);
+    final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
+    final FormulaType<TE> resultType = getElementType(pArray);
 
     return wrap(resultType, selectResult);
   }
 
   @Override
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> store (
-      ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store (
+      ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue) {
 
-    final ArrayFormula<TD, TR> declaredArray = unbox(pArray);
+    final ArrayFormula<TI, TE> declaredArray = unbox(pArray);
 
     return manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <TD extends Formula, TR extends Formula, FTD extends FormulaType<TD>, FTR extends FormulaType<TR>> ArrayFormula<TD, TR> makeArray(
-      String pName, FTD pIndexType, FTR pElementType) {
+  public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>, FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
+      String pName, FTI pIndexType, FTE pElementType) {
 
-    final FTD unwrappedDomainType = (FTD) unwrapType(pIndexType);
-    final FTR unwrappedRangeType = (FTR) unwrapType(pElementType);
+    final FTI unwrappedIndexType = (FTI) unwrapType(pIndexType);
+    final FTE unwrappedElementType = (FTE) unwrapType(pElementType);
 
-    final ArrayFormula<TD, TR> resultWithUnwrappedTypes = manager.makeArray(pName, unwrappedDomainType, unwrappedRangeType);
+    final ArrayFormula<TI, TE> resultWithUnwrappedTypes = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
 
     return new BoxedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> unbox (
-      ArrayFormula<TD, TR> pArray) {
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> unbox (
+      ArrayFormula<TI, TE> pArray) {
     if (pArray instanceof BoxedArrayFormula) {
       return ((BoxedArrayFormula) pArray).formula;
     }
@@ -106,23 +106,22 @@ public class ArrayFormulaManagerView
     return pArray;
   }
 
-
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings("unchecked")
   @Override
-  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray) {
+  public <TD extends Formula, FTI extends FormulaType<TD>> FTI getIndexType(ArrayFormula<TD, ?> pArray) {
     if (pArray instanceof BoxedArrayFormula) {
-      return (FTD) ((BoxedArrayFormula<TD, ?>) pArray).wrappingDomainType;
+      return (FTI) ((BoxedArrayFormula<TD, ?>) pArray).wrappingIndexType;
     }
-    return manager.getDomainType(pArray);
+    return manager.getIndexType(pArray);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray) {
+  public <TR extends Formula, FTE extends FormulaType<TR>> FTE getElementType(ArrayFormula<?, TR> pArray) {
     if (pArray instanceof BoxedArrayFormula) {
-      return (FTR) ((BoxedArrayFormula<?, TR>) pArray).wrappingRangeType;
+      return (FTE) ((BoxedArrayFormula<?, TR>) pArray).wrappingElementType;
     }
-    return manager.getRangeType(pArray);
+    return manager.getElementType(pArray);
   }
 
 }

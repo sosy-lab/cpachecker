@@ -175,23 +175,23 @@ public abstract class FormulaType<T extends Formula> {
     return DOUBLE_PRECISION_FP_TYPE;
   }
 
-  public static final class ArrayFormulaType<TD extends Formula, TR extends Formula>
-  extends FormulaType<ArrayFormula<TD,TR>> {
+  public static final class ArrayFormulaType<TI extends Formula, TE extends Formula>
+  extends FormulaType<ArrayFormula<TI,TE>> {
 
-    private final FormulaType<TR> rangeType;
-    private final FormulaType<TD> domainType;
+    private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
 
-    public ArrayFormulaType(FormulaType<TD> pDomainSort, FormulaType<TR> pRangeSort) {
-      this.domainType = pDomainSort;
-      this.rangeType = pRangeSort;
+    public ArrayFormulaType(FormulaType<TI> pDomainSort, FormulaType<TE> pRangeSort) {
+      this.indexType = pDomainSort;
+      this.elementType = pRangeSort;
     }
 
     public FormulaType<? extends Formula> getElementType() {
-      return rangeType;
+      return elementType;
     }
 
     public FormulaType<? extends Formula> getIndexType() {
-      return domainType;
+      return indexType;
     }
 
     @Override

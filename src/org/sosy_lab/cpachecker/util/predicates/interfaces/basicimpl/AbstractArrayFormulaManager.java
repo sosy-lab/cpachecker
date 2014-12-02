@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-@SuppressWarnings("unchecked")
 public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
   implements ArrayFormulaManager {
@@ -37,25 +36,26 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
     super(pFormulaCreator);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public <TD extends Formula, TR extends Formula> TR select (
-      ArrayFormula<TD, TR> pArray, Formula pIndex) {
+  public <TI extends Formula, TE extends Formula> TE select (
+      ArrayFormula<TI, TE> pArray, Formula pIndex) {
 
     final FormulaType<? extends Formula> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
     final TFormulaInfo term = select(
         extractInfo(pArray),
         extractInfo(pIndex));
 
-    return (TR) getFormulaCreator().encapsulate(elementType, term);
+    return (TE) getFormulaCreator().encapsulate(elementType, term);
   }
   protected abstract TFormulaInfo select(TFormulaInfo pArray, TFormulaInfo pIndex);
 
   @Override
-  public <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> store (
-      ArrayFormula<TD, TR> pArray, Formula pIndex, Formula pValue) {
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store (
+      ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue) {
 
-    final FormulaType<TD> indexType = getFormulaCreator().getArrayFormulaIndexType(pArray);
-    final FormulaType<TR> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
+    final FormulaType<TI> indexType = getFormulaCreator().getArrayFormulaIndexType(pArray);
+    final FormulaType<TE> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
 
     final TFormulaInfo term = store(
         extractInfo(pArray),
@@ -66,8 +66,8 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo store(TFormulaInfo pArray, TFormulaInfo pIndex, TFormulaInfo pValue);
 
   @Override
-  public <TD extends Formula, TR extends Formula, FTD extends FormulaType<TD>, FTR extends FormulaType<TR>> ArrayFormula<TD, TR> makeArray(
-      String pName, FTD pIndexType, FTR pElementType) {
+  public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>, FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
+      String pName, FTI pIndexType, FTE pElementType) {
 
     final TFormulaInfo namedArrayFormula = internalMakeArray(pName, pIndexType, pElementType);
     return getFormulaCreator().encapsulateArray(namedArrayFormula, pIndexType, pElementType);
@@ -76,14 +76,16 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract <TI extends Formula, TE extends Formula> TFormulaInfo internalMakeArray(
       String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
 
+  @SuppressWarnings("unchecked")
   @Override
-  public <TD extends Formula, FTD extends FormulaType<TD>> FTD getDomainType(ArrayFormula<TD, ?> pArray) {
-    return (FTD) getFormulaCreator().getArrayFormulaIndexType(pArray);
+  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
+    return (FTI) getFormulaCreator().getArrayFormulaIndexType(pArray);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public <TR extends Formula, FTR extends FormulaType<TR>> FTR getRangeType(ArrayFormula<?, TR> pArray) {
-    return (FTR) getFormulaCreator().getArrayFormulaElementType(pArray);
+  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
+    return (FTE) getFormulaCreator().getArrayFormulaElementType(pArray);
   }
 
 }

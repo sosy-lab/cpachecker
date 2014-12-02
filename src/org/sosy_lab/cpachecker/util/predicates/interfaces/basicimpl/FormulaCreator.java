@@ -127,15 +127,15 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
   }
 
   @SuppressWarnings("unchecked")
-  protected <TD extends Formula, TR extends Formula>
-  FormulaType<TR> getArrayFormulaElementType(ArrayFormula<TD, TR> pArray) {
-    return ((ArrayFormulaImpl<TD, TR, TFormulaInfo>)pArray).getRangeType();
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TE> getArrayFormulaElementType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getElementType();
   }
 
   @SuppressWarnings("unchecked")
-  protected <TD extends Formula, TR extends Formula>
-  FormulaType<TD> getArrayFormulaIndexType(ArrayFormula<TD, TR> pArray) {
-    return ((ArrayFormulaImpl<TD, TR, TFormulaInfo>)pArray).getDomainType();
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TI> getArrayFormulaIndexType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getIndexType();
   }
 
   /**

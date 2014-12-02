@@ -538,7 +538,7 @@ public enum MachineModel {
     return type.accept(alignofVisitor);
   }
 
-  public CType getArrayDomainType() {
+  public CType getArrayIndexType() {
     return CNumericTypes.INT;
   }
 }
