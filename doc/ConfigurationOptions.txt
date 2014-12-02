@@ -115,7 +115,7 @@ analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARA
 
 # What CFA nodes should be the starting point of the analysis?
 analysis.initialStatesFor = ENTRY
-  enum:     [ENTRY, TARGET, EXIT]
+  enum:     [ENTRY, FUNCTION_ENTRIES, TARGET, EXIT, FUNCTION_SINKS, PROGRAM_SINKS]
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -1466,11 +1466,17 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Value to substitute for the epsilon
+cpa.stator.policy.epsilon = 1
+
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
 
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
+
+# Perform abstraction only at the nodes from the cut-set.
+cpa.stator.policy.pathFocusing = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
@@ -1562,6 +1568,10 @@ cpa.value.refiner.performStaticRefinement = false
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
+cpa.value.refiner.prefixPreference = no default value
+  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
+             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
+             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
              DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
