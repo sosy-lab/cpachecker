@@ -38,6 +38,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -59,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -233,8 +238,39 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testArrayDesignator1() throws UnrecognizedCCodeException, InterruptedException {
-    // int x[] = { 0, 1, 2 } ;
+  public void testArrayDesignatedList() throws UnrecognizedCCodeException, InterruptedException {
+    // int a[1000] = { 1, 3, 5, 7, 9, [1000-5] = 8, 6, 4, 2, 0 };
+    //  all other elements should be initialized with ZERO
+    //  Solvers support this by allowing to specify a default value for arrays
+  }
+
+  private CInitializerExpression createIntInitExpr(int pValue) {
+    return new CInitializerExpression(
+        FileLocation.DUMMY,
+        CIntegerLiteralExpression.createDummyLiteral(pValue, CNumericTypes.INT));
+  }
+
+  @Test
+  public void testArrayInitializerList() throws InterruptedException, CPATransferException {
+    // int x[] = { 1, 3, 5, 7 } ;
+
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x = makeDeclaration(
+        "x",
+        new CArrayType(false, false, CNumericTypes.INT, null),
+        new CInitializerList(FileLocation.DUMMY,
+            Lists.<CInitializer>newArrayList(
+                createIntInitExpr(1),
+                createIntInitExpr(3),
+                createIntInitExpr(5),
+                createIntInitExpr(7)
+                )));
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    BooleanFormula result = ctfBwd.makeDeclaration(
+        _x.getFirst(), "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+    .comparesEqualTo("adfigj");
   }
 
   @Test
