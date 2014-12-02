@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -473,7 +474,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     // create a string like: local:  [varName1; varName2; ... ; ...]
     sb.append("local:");
-    sb.append(createStringOfMap(globalReachDefs));
+    sb.append(createStringOfMap(localReachDefs));
     sb.append("\\n");
 
     sb.append(System.identityHashCode(stateOnLastFunctionCall));
@@ -489,10 +490,10 @@ public class ReachingDefState implements AbstractState, Serializable,
     sb.append(" [");
     for (Entry<String, Set<DefinitionPoint>> entry : map.entrySet()) {
       sb.append(" (");
-      sb.append(entry.getKey().toString());
-      sb.append(": ");
-      sb.append(entry.getValue().toArray().toString().replace(",", ";"));
-      sb.append("), ");
+      sb.append(entry.getKey());
+      sb.append(": [");
+      Joiner.on("; ").appendTo(sb, entry.getValue());
+      sb.append("]), ");
     }
     sb.append("]");
     return sb.toString();

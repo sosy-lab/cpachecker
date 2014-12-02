@@ -375,11 +375,11 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     sb.append("{");
     // create a string like: x =  [low; high] (refCount)
     for (Entry<String, Interval> entry : intervals.entrySet()) {
-      sb.append(entry.getKey().toString());
+      sb.append(entry.getKey());
       sb.append(" = ");
-      sb.append(entry.getValue().toString());
+      sb.append(entry.getValue());
       sb.append(" (");
-      sb.append(referenceCounts.get(entry.getKey()).toString());
+      sb.append(referenceCounts.get(entry.getKey()));
       sb.append("), ");
     }
     sb.append("}");
