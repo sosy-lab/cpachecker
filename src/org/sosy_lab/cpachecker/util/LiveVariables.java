@@ -67,15 +67,19 @@ import com.google.common.collect.Multimap;
 
 public class LiveVariables {
 
+  public enum EvaluationStrategy {
+    FUNCTION_WISE, GLOBAL;
+  }
+
   @Options(prefix="liveVar")
   private static class LiveVariablesConfiguration {
 
-    @Option(values={"FUNCTION-WISE", "GLOBAL"}, toUppercase=true,
+    @Option(toUppercase=true,
         description="By changing this option one can adjust the way how"
             + " live variables are created. Function-wise means that each"
             + " function is handled separately, global means that the whole"
             + " cfa is used for the computation.", secure=true)
-    private String evaluationStrategy = "FUNCTION-WISE";
+    private EvaluationStrategy evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
 
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -172,16 +176,16 @@ public class LiveVariables {
 
 
   private static Multimap<CFANode, ASimpleDeclaration> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
-                                              AnalysisParts analysisParts, String evaluationStrategy) {
+                                              AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
 
     // put all FunctionExitNodes into the waitlist
     final Collection<FunctionEntryNode> functionHeads;
-    if (evaluationStrategy.equals("FUNCTION-WISE")) {
-      functionHeads = pCfa.getAllFunctionHeads();
-    } else {
-      functionHeads = Collections.singleton(pCfa.getMainFunction());
+    switch (evaluationStrategy) {
+    case FUNCTION_WISE: functionHeads = pCfa.getAllFunctionHeads(); break;
+    case GLOBAL: functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
+    default: throw new AssertionError("Unhandeld case statement: " + evaluationStrategy);
     }
 
     for (FunctionEntryNode node : functionHeads) {
@@ -227,14 +231,14 @@ public class LiveVariables {
   private static Optional<AnalysisParts> getNecessaryAnalysisComponents(final CFA cfa,
       final LogManager logger,
       final ShutdownNotifier shutdownNotifier,
-      final String evaluationStrategy) {
+      final EvaluationStrategy evaluationStrategy) {
 
     try {
       Configuration config;
-      if (evaluationStrategy.equals("FUNCTION-WISE")) {
-        config = getLocalConfiguration();
-      } else {
-        config = getGlobalConfiguration();
+      switch (evaluationStrategy) {
+        case FUNCTION_WISE: config = getLocalConfiguration(); break;
+        case GLOBAL: config = getGlobalConfiguration(); break;
+        default: throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
       }
 
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config,
