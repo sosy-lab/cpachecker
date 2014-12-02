@@ -878,13 +878,27 @@ public class CtoFormulaConverter {
       int size = machineModel.getSizeof(decl.getType());
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
-        Formula zero = fmgr.makeNumber(getFormulaTypeFromCType(decl.getType()), 0L);
+        CType elementCType = decl.getType();
+        if (elementCType instanceof CArrayType) {
+          elementCType = ((CArrayType) elementCType).getType();
+        }
+        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
+        Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
       }
     }
 
     for (CAssignment assignment : CInitializers.convertToAssignments(decl, edge)) {
-      result = bfmgr.and(result, makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(), edge, function, ssa, pts, constraints, errorConditions));
+      result = bfmgr.and(result,
+          makeAssignment(
+              assignment.getLeftHandSide(),
+              assignment.getRightHandSide(),
+              edge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions));
     }
 
     return result;
