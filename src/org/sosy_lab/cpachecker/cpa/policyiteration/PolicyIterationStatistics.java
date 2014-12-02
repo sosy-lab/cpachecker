@@ -33,14 +33,14 @@ public class PolicyIterationStatistics implements Statistics {
 
     printTimer(out, valueDeterminationTimer, "value determination");
     printTimer(out, valueDeterminationSolverTimer, "value determination solver");
-    out.printf("Number of calls to the value determination solver: %s\n", valueDetCalls);
+    out.printf("Number of calls to the value determination solver: %s %n", valueDetCalls);
     printTimer(out, timeInMerge, "merge-step");
     printTimer(out, strengthenTimer, "strengthen");
     printTimer(out, strengthenTimer, "abstraction");
   }
 
   public void printTimer(PrintStream out, Timer t, String name) {
-    out.printf("Time spent in %s: %s (Max: %s)\n",
+    out.printf("Time spent in %s: %s (Max: %s)%n",
         name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 

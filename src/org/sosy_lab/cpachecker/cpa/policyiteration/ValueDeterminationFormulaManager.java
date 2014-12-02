@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Table;
 
 
 // TODO: don't perform namespacing if the node has only one incoming edge.
@@ -362,24 +361,5 @@ public class ValueDeterminationFormulaManager {
 
   String absDomainVarName(CFANode node, LinearExpression template) {
     return String.format(BOUND_VAR_NAME, node.getNodeNumber(), template);
-  }
-
-
-  /**
-   * Useful for debugging.
-   */
-  @SuppressWarnings("unused")
-  private void pprintPolicyTable(Table<CFANode, LinearExpression, ? extends CFAEdge> t) {
-    Map<CFANode, ? extends Map<LinearExpression, ? extends CFAEdge>> m = t.rowMap();
-    for (CFANode node : m.keySet()) {
-      Map<LinearExpression, ? extends CFAEdge> data = m.get(node);
-      logger.log(Level.FINE, node, ": \n");
-      for (Entry<LinearExpression, ? extends CFAEdge> entry : data.entrySet()) {
-        CFAEdge edge = entry.getValue();
-
-        logger.log(Level.FINE, "\t", entry.getKey(), edge.getCode(),
-            edge.getPredecessor(), "->", edge.getSuccessor());
-      }
-    }
   }
 }
