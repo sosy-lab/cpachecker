@@ -369,6 +369,23 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
   }
 
+  @Override
+  protected LiveVariablesState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    CFunctionCall functionCall = cfaEdge.getExpression();
+    if (functionCall instanceof CFunctionCallAssignmentStatement) {
+      return handleAssignments((CAssignment) functionCall);
+
+    } else if (functionCall instanceof CFunctionCallStatement) {
+      CFunctionCallStatement funcStmt = (CFunctionCallStatement) functionCall;
+      return state.addLiveVariables(getVariablesUsedAsParameters(funcStmt
+                                                                  .getFunctionCallExpression()
+                                                                  .getParameterExpressions()));
+
+    } else {
+      throw new CPATransferException("Missing case for if-then-else statement.");
+    }
+  }
+
   /**
    * This method puts some variables that are initially live into the
    * live variables multimap.
