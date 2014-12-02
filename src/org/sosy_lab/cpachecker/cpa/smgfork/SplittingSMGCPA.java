@@ -34,7 +34,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.*;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -140,12 +145,14 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
-    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+    if (pNode instanceof CFunctionEntryNode) {
+      CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+      try {
+        initState.addStackFrame(functionNode.getFunctionDefinition());
+        initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+      } catch (SMGInconsistentException exc) {
+        logger.log(Level.SEVERE, exc.getMessage());
+      }
     }
 
     return initState;
