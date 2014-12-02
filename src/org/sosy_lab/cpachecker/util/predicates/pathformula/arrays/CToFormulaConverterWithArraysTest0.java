@@ -83,6 +83,8 @@ import com.google.common.base.Optional;
 
 public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
+  private static final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
+
   private CToFormulaConverterWithArrays ctfBwd;
 
   private CBinaryExpressionBuilder expressionBuilder;
@@ -131,7 +133,6 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   @Before
   public void setupCfaTestData() throws UnrecognizedCCodeException {
-    final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
 
     _a = makeDeclaration("a", unlimitedIntArrayType, null);
     _b = makeDeclaration("b", unlimitedIntArrayType, null);
@@ -203,12 +204,32 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a_at_2_notequal_0.getFirst(),
         "foo", ssa);
 
-    assertThat(result.toString()).comparesEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
+    assertThat(result.toString())
+      .comparesEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
   }
 
   @Test
   public void testMakePredicate2() throws UnrecognizedCCodeException, InterruptedException {
     // a[a[2]] != 0
+
+    CArraySubscriptExpression _a_at__a_at_2 = new CArraySubscriptExpression(
+        FileLocation.DUMMY,
+        unlimitedIntArrayType,
+        _a.getThird(),
+        _a_at_2);
+    Pair<CAssumeEdge, CExpression> _a_at__a_at_2_notequal_0 = makeAssume(expressionBuilder.buildBinaryExpression(
+        _a_at__a_at_2,
+        CIntegerLiteralExpression.ZERO,
+        BinaryOperator.NOT_EQUALS));
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    BooleanFormula result = ctfBwd.makePredicate(
+        _a_at__a_at_2_notequal_0.getSecond(),
+        _a_at__a_at_2_notequal_0.getFirst(),
+        "foo", ssa);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo("(not (= (select a@1 (select a@1 2.0)) 0.0))");
   }
 
   @Test

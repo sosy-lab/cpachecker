@@ -57,6 +57,31 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
   }
 
   @Override
+  public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+
+    //  Example for a CArraySubscriptExpression: a[2]
+    //   .arrayExpression: a
+    //   .subscriptExpression: 2
+    //   .type: (int)[]
+
+    if (!(pE.getArrayExpression() instanceof CIdExpression)) {
+      throw new UnrecognizedCCodeException("CArraySubscriptExpression: Assuming that every array-expression is a CidExpression!", pE);
+    }
+
+    final String arrayVarName = ((CIdExpression) pE.getArrayExpression()).getDeclaration().getQualifiedName();
+    final CType arrayType = pE.getArrayExpression().getExpressionType();
+
+    final ArrayFormula<?, ?> arrayDeclaration = (ArrayFormula<?, ?>) ctfa.makeVariableForMe(arrayVarName, arrayType, ssa);
+    // Make a cast of the subscript expression to the type of the array domain (type of for the index)
+    final Formula arrayIndexExpr = pE.getSubscriptExpression().accept(this);
+    final Formula arrayIndexExprCasted = ctfa.makeCastForMe(
+        pE.getSubscriptExpression().getExpressionType(),
+          machine.getArrayIndexType(), arrayIndexExpr, null, null);
+
+    return amgr.select(arrayDeclaration, arrayIndexExprCasted);
+  }
+
+  @Override
   public Formula visit(CUnaryExpression pExp) throws UnrecognizedCCodeException {
     final CExpression operand = pExp.getOperand();
     final UnaryOperator op = pExp.getOperator();
@@ -68,27 +93,8 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
       //  that is (semantically equivalent) transformed to
       //    &(a[2]) == &(b[i])
       //
-      //  Example for a CArraySubscriptExpression: a[2]
-      //   .arrayExpression: a
-      //   .subscriptExpression: 2
-      //   .type: (int)[]
 
-      final CArraySubscriptExpression ase = (CArraySubscriptExpression) operand;
-      if (!(ase.getArrayExpression() instanceof CIdExpression)) {
-        throw new UnrecognizedCCodeException("CArraySubscriptExpression: Assuming that every array-expression is a CidExpression!", pExp);
-      }
-
-      final String arrayVarName = ((CIdExpression) ase.getArrayExpression()).getDeclaration().getQualifiedName();
-      final CType arrayType = ase.getArrayExpression().getExpressionType();
-
-      final ArrayFormula<?, ?> arrayDeclaration = (ArrayFormula<?, ?>) ctfa.makeVariableForMe(arrayVarName, arrayType, ssa);
-      // Make a cast of the subscript expression to the type of the array domain (type of for the index)
-      final Formula arrayIndexExpr = ase.getSubscriptExpression().accept(this);
-      final Formula arrayIndexExprCasted = ctfa.makeCastForMe(
-            ase.getSubscriptExpression().getExpressionType(),
-            machine.getArrayIndexType(), arrayIndexExpr, null, null);
-
-      return amgr.select(arrayDeclaration, arrayIndexExprCasted);
+      return operand.accept(this);
 
     } else {
       return super.visit(pExp);

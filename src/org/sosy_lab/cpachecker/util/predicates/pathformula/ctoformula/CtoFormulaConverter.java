@@ -417,6 +417,11 @@ public class CtoFormulaConverter {
     CType fromType = pFromType.getCanonicalType();
     CType toType = pToType.getCanonicalType();
 
+    if (fromType instanceof CArrayType) {
+      // In case of an array, we are interested in the type of values that it stores.
+      fromType = ((CArrayType) fromType).getType();
+    }
+
     if (fromType.equals(toType)) {
       return formula; // No cast required;
     }
