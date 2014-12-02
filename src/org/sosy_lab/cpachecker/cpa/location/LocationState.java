@@ -66,7 +66,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     @Option(secure=true, description="with this option enabled, unction calls taht occur"
         + " in the CFA are followed. By disabling this option one can traverse a function"
         + " withou following function calls (in this case FunctionSummaryEdges are used)")
-    private boolean followfunctionCalls = true;
+    private boolean followFunctionCalls = true;
 
     public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -76,10 +76,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       states = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
         LocationState state = locationType == LocationStateType.BACKWARD
-            ? new BackwardsLocationState(node, pCfa, followfunctionCalls)
+            ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
             : locationType == LocationStateType.BACKWARDNOTARGET
-                ? new BackwardsLocationStateNoTarget(node, pCfa, followfunctionCalls)
-                : new LocationState(node, followfunctionCalls);
+                ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
+                : new LocationState(node, followFunctionCalls);
 
         states[node.getNodeNumber()] = state;
       }
