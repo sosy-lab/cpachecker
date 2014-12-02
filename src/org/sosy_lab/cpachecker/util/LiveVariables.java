@@ -149,7 +149,18 @@ public class LiveVariables {
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
     // prerequisites for creating the live variables
-    Set<ASimpleDeclaration> globalVariables = FluentIterable.from(globalsList).transform(DECLARATION_FILTER).filter(notNull()).toSet();
+    Set<ASimpleDeclaration> globalVariables;
+    switch (liveVarConfig.evaluationStrategy) {
+    case FUNCTION_WISE: globalVariables = FluentIterable.from(globalsList)
+                                                        .transform(DECLARATION_FILTER)
+                                                        .filter(notNull())
+                                                        .toSet();
+      break;
+    case GLOBAL: globalVariables = Collections.emptySet(); break;
+    default:
+      throw new AssertionError("Unhandled case statement: " + liveVarConfig.evaluationStrategy);
+    }
+
     Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(pCFA, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
     Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
 
