@@ -76,6 +76,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.io.Resources;
 
 @Options(prefix="analysis")
@@ -446,9 +447,11 @@ public class CPAchecker {
                                                         .build();
       break;
     case PROGRAM_SINKS:
-      initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()))
-                                                        .add(analysisEntryFunction.getExitNode())
-                                                        .build();
+      Builder<CFANode> builder = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()));
+      if (cfa.getAllNodes().contains(analysisEntryFunction.getExitNode())) {
+        builder.add(analysisEntryFunction.getExitNode());
+      }
+       initialLocations = builder.build();
       break;
     case TARGET:
       TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
