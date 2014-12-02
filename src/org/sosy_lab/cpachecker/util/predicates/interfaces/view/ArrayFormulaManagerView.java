@@ -38,7 +38,7 @@ public class ArrayFormulaManagerView
    * Used to keep track of the types that were used
    * to wrap the array domain (the index), and its range (the values).
    *
-   * This information is needed the when accessing the array:
+   * This information is needed when accessing the array:
    *    The result (of a 'select') has to be wrapped with the intended type again.
    */
   private static class BoxedArrayFormula<TD extends Formula, TR extends Formula> implements ArrayFormula<TD, TR> {
