@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -119,7 +120,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
       CFAEdge edge = path.get(i);
       collectVariables(edge, collectedVariables);
 
-      if(dependingVariables.isEmpty()) {
+      if(Iterables.getLast(path).getEdgeType() == CFAEdgeType.AssumeEdge
+          && dependingVariables.isEmpty()) {
         dependenciesResolvedOffset = i;
         return collectedVariables;
       }
