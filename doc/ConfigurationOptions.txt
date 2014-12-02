@@ -794,6 +794,11 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
+# with this option enabled, unction calls taht occur in the CFA are followed.
+# By disabling this option one can traverse a function withou following
+# function calls (in this case FunctionSummaryEdges are used)
+cpa.location.followfunctionCalls = true
+
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
@@ -1547,6 +1552,10 @@ cpa.value.refiner.checkForRepeatedRefinements = true
 # whether or not to do lazy-abstraction
 cpa.value.refiner.doLazyAbstraction = true
 
+# whether to perform (more precise) edge-based interpolation or (more
+# efficient) path-based interpolation
+cpa.value.refiner.performEdgeBasedInterpolation = true
+
 # use heuristic to extract a precision from the CFA statically on first
 # refinement
 cpa.value.refiner.performStaticRefinement = false
@@ -1614,9 +1623,11 @@ limits.time.cpu = -1ns
 # for infinite)
 limits.time.wall = -1ns
 
-# With this option enabled, instead of FunctionCall- and FunctionReturnEdges)
-# the FunctionSummaryEdges are used.
-location.useFunctionSummaryEdges = false
+# By changing this option one can adjust the way how live variables are
+# created. Function-wise means that each function is handled separately,
+# global means that the whole cfa is used for the computation.
+liveVar.evaluationStrategy = "FUNCTION-WISE"
+  allowed values: [FUNCTION-WISE, GLOBAL]
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
