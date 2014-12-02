@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -134,7 +135,7 @@ public class LiveVariables {
 
   public static Optional<LiveVariables> create(VariableClassification variableClassification,
                                        List<Pair<ADeclaration, String>> globalsList,
-                                       final CFA pCFA,
+                                       final MutableCFA pCFA,
                                        final LogManager logger,
                                        final ShutdownNotifier shutdownNotifier,
                                        final Configuration config) throws InvalidConfigurationException {
@@ -143,6 +144,9 @@ public class LiveVariables {
     checkNotNull(pCFA);
     checkNotNull(logger);
     checkNotNull(shutdownNotifier);
+
+    // we need a cfa with variableClassification, thus we create one now
+    CFA cfa = pCFA.makeImmutableCFA(Optional.of(variableClassification));
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
@@ -161,12 +165,12 @@ public class LiveVariables {
       throw new AssertionError("Unhandled case statement: " + liveVarConfig.evaluationStrategy);
     }
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(pCFA, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
     Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(pCFA, logger, parts.get(), liveVarConfig.evaluationStrategy);
+      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), liveVarConfig.evaluationStrategy);
     }
 
     // when the analysis did not finish or could even not be created we return

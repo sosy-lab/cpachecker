@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -90,6 +91,11 @@ import com.google.common.collect.Multimap;
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
   private final Multimap<CFANode, ASimpleDeclaration> liveVariables = HashMultimap.<CFANode, ASimpleDeclaration>create();
+  private final VariableClassification variableClassification;
+
+  public LiveVariablesTransferRelation(VariableClassification pVarClass) {
+    variableClassification = pVarClass;
+  }
 
   @Override
   protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor) {
@@ -412,18 +418,16 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * variable is always live either if it is addressed or if it is a global variable
    */
-  private static final Predicate<CIdExpression> ALWAYS_LIVE_PREDICATE = new Predicate<CIdExpression>() {
+  private final Predicate<CIdExpression> ALWAYS_LIVE_PREDICATE = new Predicate<CIdExpression>() {
     @Override
     public boolean apply(CIdExpression pInput) {
       CSimpleDeclaration decl = pInput.getDeclaration();
 
-      if (decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal()) {
-        return true;
-      } else if (decl.getType().getCanonicalType() instanceof CPointerType) {
-        return true;
-      }
+      boolean retVal = decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal();
+      retVal = retVal || decl.getType().getCanonicalType() instanceof CPointerType;
+      retVal = retVal || variableClassification.getAddressedVariables().contains(decl.getQualifiedName());
 
-      return false;
+      return retVal;
     }};
 
     /**

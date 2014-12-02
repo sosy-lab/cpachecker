@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -79,12 +80,19 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
   }
 
-  private LiveVariablesCPA(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private LiveVariablesCPA(final Configuration pConfig,
+                           final LogManager pLogger,
+                           final ShutdownNotifier pShutdownNotifier,
+                           final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
     logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
-    transfer = new LiveVariablesTransferRelation();
+
+    if (!cfa.getVarClassification().isPresent()) {
+      throw new AssertionError("Without information of the variable classification"
+          + " the live variables analysis cannot be used.");
+    }
+    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification().get());
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
