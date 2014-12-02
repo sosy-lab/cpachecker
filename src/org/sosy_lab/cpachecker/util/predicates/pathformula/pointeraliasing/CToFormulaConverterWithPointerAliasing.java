@@ -626,6 +626,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     declareSharedBase(declaration, false, constraints, pts);
+    if (CTypeUtils.containsArray(declarationType)) {
+      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
+    }
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -661,10 +664,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
-    }
-
-    if (CTypeUtils.containsArray(declarationType)) {
-      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
     }
 
     return result;
