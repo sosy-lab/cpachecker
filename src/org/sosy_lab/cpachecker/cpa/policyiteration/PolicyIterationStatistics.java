@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
   Timer valueDeterminationTimer = new Timer();
-  Timer policyPropagationTimer = new Timer();
   Timer valueDeterminationSolverTimer = new Timer();
   Timer timeInMerge = new Timer();
   Timer strengthenTimer = new Timer();
@@ -33,7 +32,6 @@ public class PolicyIterationStatistics implements Statistics {
       ReachedSet reached) {
 
     printTimer(out, valueDeterminationTimer, "value determination");
-    printTimer(out, policyPropagationTimer, "policy propagation");
     printTimer(out, valueDeterminationSolverTimer, "value determination solver");
     out.printf("Number of calls to the value determination solver: %s\n", valueDetCalls);
     printTimer(out, timeInMerge, "merge-step");

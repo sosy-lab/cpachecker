@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.HashMap;
 import java.util.Map;

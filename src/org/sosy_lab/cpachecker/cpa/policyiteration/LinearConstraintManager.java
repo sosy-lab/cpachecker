@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
-import org.sosy_lab.cpachecker.util.rationals.LinearConstraint;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
@@ -40,20 +39,6 @@ public class LinearConstraintManager {
     fmgr = pFmgr;
     rfmgr = pFmgr.getRationalFormulaManager();
     logger = pLogger;
-  }
-
-  /**
-   * @param constraint Constraint to convert.
-   * @param pSSAMap Map which contains the versioning index for each variable.
-   * @return formula which can be passed to a solver.
-   */
-  BooleanFormula linearConstraintToFormula(
-      LinearConstraint constraint, SSAMap pSSAMap) {
-
-      return rfmgr.lessOrEquals(
-          linearExpressionToFormula(constraint.getExpression(), pSSAMap),
-          rfmgr.makeNumber(constraint.getBound().toString())
-      );
   }
 
   /**

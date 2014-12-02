@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Collection;
 import java.util.List;
@@ -146,6 +146,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
         );
     
     policyIterationManager = new PolicyIterationManager(
+        config,
         formulaManager,
         cfa, pathFormulaManager, lcmgr,
         formulaManager.getBooleanFormulaManager(),

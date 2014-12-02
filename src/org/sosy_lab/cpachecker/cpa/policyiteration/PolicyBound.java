@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.rationals.Rational;

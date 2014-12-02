@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +10,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.base.Objects;
@@ -24,6 +25,8 @@ import com.google.common.collect.ImmutableSet;
  * template), for the given control node.
  *
  * Logic-less container class.
+ *
+ * TODO: might be a good idea to have a separate class for the abstracted value.
  */
 public final class PolicyState implements AbstractState,
     Iterable<Entry<LinearExpression, PolicyBound>>,
@@ -42,6 +45,8 @@ public final class PolicyState implements AbstractState,
   private final Optional<ImmutableMap<LinearExpression, PolicyBound>>
       abstraction;
 
+  private final Optional<PathFormula> pathFormula;
+
   /** Templates tracked. NOTE: might be better to just resort back to a set. */
   private final ImmutableSet<Template> templates;
 
@@ -53,12 +58,14 @@ public final class PolicyState implements AbstractState,
       ImmutableSet<CFAEdge> pIncomingEdges,
       CFANode pNode,
       Optional<ImmutableMap<LinearExpression, PolicyBound>> pPAbstraction,
-      ImmutableSet<Template> pTemplates) {
+      ImmutableSet<Template> pTemplates,
+      Optional<PathFormula> pPathFormula) {
     otherStates = ImmutableList.copyOf(pOtherStates);
     incomingEdges = pIncomingEdges;
     node = pNode;
     abstraction = pPAbstraction;
     templates = pTemplates;
+    pathFormula = pPathFormula;
   }
 
   /**
@@ -75,6 +82,7 @@ public final class PolicyState implements AbstractState,
     node = pNode;
     abstraction = Optional.of(ImmutableMap.copyOf(pPAbstraction));
     templates = ImmutableSet.copyOf(pTemplates);
+    pathFormula = Optional.absent();
   }
 
   /**
@@ -84,12 +92,18 @@ public final class PolicyState implements AbstractState,
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode pNode,
-      Set<Template> pTemplates) {
+      Set<Template> pTemplates,
+      PathFormula pPathFormula) {
     otherStates = ImmutableList.copyOf(pOtherStates);
     incomingEdges = ImmutableSet.copyOf(pIncomingEdges);
     node = pNode;
     abstraction = Optional.absent();
     templates = ImmutableSet.copyOf(pTemplates);
+    pathFormula = Optional.of(pPathFormula);
+  }
+
+  public PathFormula getPathFormula() {
+    return pathFormula.get();
   }
 
   /**
@@ -110,13 +124,15 @@ public final class PolicyState implements AbstractState,
       Iterable<AbstractState> pOtherStates,
       Set<CFAEdge> pIncomingEdges,
       CFANode node,
-      Set<Template> pTemplates
+      Set<Template> pTemplates,
+      PathFormula pPathFormula
   ) {
     return new PolicyState(
         pOtherStates,
         pIncomingEdges,
         node,
-        pTemplates
+        pTemplates,
+        pPathFormula
     );
   }
 
@@ -170,7 +186,7 @@ public final class PolicyState implements AbstractState,
   ) {
     return new PolicyState(
         pOtherStates, incomingEdges, node, abstraction,
-        templates
+        templates, pathFormula
     );
   }
 
@@ -211,7 +227,7 @@ public final class PolicyState implements AbstractState,
       return (new PolicyDotWriter()).toDOTLabel(abstraction.get());
     } else {
       // NOTE: not much else to visualize for non-abstracted states.
-      return "";
+      return pathFormula.get().getFormula().toString();
     }
   }
 

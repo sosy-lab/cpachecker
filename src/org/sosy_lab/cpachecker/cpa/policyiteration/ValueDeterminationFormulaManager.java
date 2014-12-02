@@ -1,10 +1,7 @@
-package org.sosy_lab.cpachecker.cpa.stator.policy;
+package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,7 +37,6 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 
@@ -88,53 +84,6 @@ public class ValueDeterminationFormulaManager {
     statistics = pStatistics;
 
     threshold = getThreshold(cfa);
-  }
-
-  /**
-   *
-   */
-  public Map<CFANode, PolicyState> findRelated(
-      PolicyState newState,
-      Map<CFANode, PolicyState> abstractStates,
-      CFANode focusedNode,
-      Map<LinearExpression, PolicyBound> updated) {
-
-    Map<CFANode, PolicyState> out = new HashMap<>();
-    Set<CFANode> visited = Sets.newHashSet();
-
-    LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
-    queue.add(focusedNode);
-    while (!queue.isEmpty()) {
-      Iterator<CFANode> it = queue.iterator();
-      CFANode node = it.next();
-      it.remove();
-      visited.add(node);
-
-      PolicyState state;
-      if (node == focusedNode) {
-        state = newState;
-
-      } else {
-        state = abstractStates.get(node);
-      }
-
-      out.put(node, state);
-
-      for (Map.Entry<LinearExpression, PolicyBound> entry : state) {
-        LinearExpression template = entry.getKey();
-        PolicyBound bound = entry.getValue();
-
-        // Do not follow the edges which are associated with the focused node
-        // but are not in <updated>.
-        if (!(state == newState && !updated.containsKey(template))) {
-          CFANode toVisit = bound.trace.getPredecessor();
-          if (!visited.contains(toVisit)) {
-            queue.add(toVisit);
-          }
-        }
-      }
-    }
-    return out;
   }
 
   /**
@@ -241,7 +190,8 @@ public class ValueDeterminationFormulaManager {
       Set<Template> templates,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
-      List<BooleanFormula> pValueDeterminationConstraints
+      List<BooleanFormula> pValueDeterminationConstraints,
+      int epsilon
   )
       throws InterruptedException, CPATransferException {
 
@@ -278,7 +228,7 @@ public class ValueDeterminationFormulaManager {
             case OPT:
               builder.put(
                   template,
-                  PolicyBound.of(policyEdge, solver.value()));
+                  PolicyBound.of(policyEdge, solver.value(epsilon)));
               break;
             case UNBOUNDED:
               unbounded.add(template);
