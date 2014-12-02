@@ -220,7 +220,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    * @throws NullPointerException - if no type is present in this state for the given memory location
    * @return the type associated with the given memory location
    */
-  Type getTypeForMemoryLocation(MemoryLocation loc) {
+  public Type getTypeForMemoryLocation(MemoryLocation loc) {
     return memLocToType.get(loc);
   }
 
