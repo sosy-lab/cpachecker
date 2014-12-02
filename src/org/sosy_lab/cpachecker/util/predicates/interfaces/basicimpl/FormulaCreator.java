@@ -151,6 +151,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       t = FormulaType.IntegerType;
     } else if (formula instanceof RationalFormula) {
       t = FormulaType.RationalType;
+    } else if (formula instanceof ArrayFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for arrays needs to overwrite FormulaCreator.getFormulaType()");
     } else if (formula instanceof BitvectorFormula) {
       throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
     } else {

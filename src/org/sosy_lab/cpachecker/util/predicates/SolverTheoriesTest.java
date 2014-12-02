@@ -35,8 +35,10 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -144,18 +146,45 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     assert_().about(BooleanFormula()).that(result).isEquivalentTo(expected);
   }
 
-  @SuppressWarnings("unused")
-  @Test @Ignore
-  public void arrayTest() {
+  @Test
+  public void testGetFormulaType() {
+    requireArrays();
+
+    BooleanFormula _boolVar = bmgr.makeVariable("boolVar");
+    assertThat(mgr.getFormulaType(_boolVar))
+      .isInstanceOf(FormulaType.BooleanType.getClass());
+
+    IntegerFormula _intVar = imgr.makeNumber(1);
+    assertThat(mgr.getFormulaType(_intVar))
+      .isInstanceOf(FormulaType.IntegerType.getClass());
+
+    ArrayFormula<IntegerFormula, IntegerFormula> _arrayVar = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    assertThat(mgr.getFormulaType(_arrayVar))
+      .isInstanceOf(FormulaType.ArrayFormulaType.class);
+  }
+
+  @Test
+  public void testMakeIntArray() {
     requireArrays();
 
     IntegerFormula _i = imgr.makeVariable("i");
     IntegerFormula _1 = imgr.makeNumber(1);
-    IntegerFormula _0 = imgr.makeNumber(0);
     IntegerFormula _i_plus_1 = imgr.add(_i, _1);
 
     ArrayFormula<IntegerFormula, IntegerFormula> _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _b_at_i_plus_1 = amgr.select(_b, _i_plus_1);
-    BooleanFormula _b_at_i_plus_1_EQUAL_0 = imgr.equal(_b_at_i_plus_1, _0);
+
+    assertThat(_b_at_i_plus_1.toString()).comparesEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+  }
+
+  @Test
+  public void testMakeBitVectorArray() {
+    requireArrays();
+
+    BitvectorFormula _i = mgr.getBitvectorFormulaManager().makeVariable(64, "i");
+    ArrayFormula<BitvectorFormula, BitvectorFormula> _b = amgr.makeArray("b", FormulaType.getBitvectorTypeWithSize(64), FormulaType.getBitvectorTypeWithSize(32));
+    BitvectorFormula _b_at_i = amgr.select(_b, _i);
+
+    assertThat(_b_at_i.toString()).comparesEqualTo("(select b i)"); // Compatibility to all solvers not guaranteed
   }
 }

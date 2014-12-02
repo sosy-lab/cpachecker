@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
-import com.google.common.base.Preconditions;
-
 public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
@@ -70,14 +68,12 @@ public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
-    if (pFormula instanceof BitvectorFormula) {
+    if (pFormula instanceof ArrayFormula<?,?>
+    || pFormula instanceof BitvectorFormula) {
       long term = extractInfo(pFormula);
-      long z3context = getEnv();
-      long sort = get_sort(z3context, term);
-      Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
-      return (FormulaType<T>) FormulaType.getBitvectorTypeWithSize(
-          get_bv_sort_size(z3context, sort));
+      return (FormulaType<T>) getFormulaType(term);
     }
+
     return super.getFormulaType(pFormula);
   }
 
