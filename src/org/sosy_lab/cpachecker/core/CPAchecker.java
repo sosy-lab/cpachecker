@@ -120,36 +120,32 @@ public class CPAchecker {
 
   public static enum InitialStatesFor {
     /**
-     * This enum constant represents the function entry node of the entry function
+     * Function entry node of the entry function
      */
     ENTRY,
 
     /**
-     * This enum constant represents the set of function entry nodes of all
-     * functions.
+     * Set of function entry nodes of all functions.
      */
     FUNCTION_ENTRIES,
 
     /**
-     * This enum constant represents all locations that are possible targets
-     * of the analysis.
+     * All locations that are possible targets of the analysis.
      */
     TARGET,
 
     /**
-     * This enum constant represents the function exit node of the entry function.
+     * Function exit node of the entry function.
      */
     EXIT,
 
     /**
-     * This enum constant represents all function exit nodes of all functions,
-     * and all loop heads of endless loops.
+     * All function exit nodes of all functions and all loop heads of endless loops.
      */
     FUNCTION_SINKS,
 
     /**
-     * This enum constant represents all function exit nodes of the entry function,
-     * and all loop heads of endless loops.
+     * All function exit nodes of the entry function, and all loop heads of endless loops.
      */
     PROGRAM_SINKS
   }
