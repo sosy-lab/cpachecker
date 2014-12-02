@@ -54,6 +54,8 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
   public LiveVariablesState union(LiveVariablesState pState2) {
     if (isSubsetOf(pState2)) {
       return pState2;
+    } else if (pState2.isSubsetOf(this)) {
+      return this;
     }
 
     Builder<ASimpleDeclaration> builder = ImmutableSet.builder();
