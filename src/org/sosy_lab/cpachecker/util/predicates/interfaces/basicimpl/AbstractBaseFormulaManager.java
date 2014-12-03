@@ -63,7 +63,7 @@ abstract class AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> {
     return getFormulaCreator().encapsulateBoolean(pTerm);
   }
 
-  public TType toSolverType(FormulaType<?> formulaType) {
+  protected final TType toSolverType(FormulaType<?> formulaType) {
     TType t;
     if (formulaType.isBooleanType()) {
       t = getFormulaCreator().getBoolType();

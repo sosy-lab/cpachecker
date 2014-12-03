@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -51,13 +49,9 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
   }
 
   @Override
-  protected <T extends Formula> String declareUninterpretedFunctionImpl(
-          String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
-    Sort[] types = new Sort[pArgs.size()];
-    for (int i = 0; i < types.length; i++) {
-      types[i] = toSolverType(pArgs.get(i));
-    }
-    Sort returnType = toSolverType(pReturnType);
+  protected String declareUninterpretedFunctionImpl(
+          String pName, Sort returnType, List<Sort> pArgs) {
+    Sort[] types = pArgs.toArray(new Sort[pArgs.size()]);
     getFormulaCreator().getEnv().declareFun(pName, types, returnType);
 
     return pName;

@@ -27,8 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -55,13 +53,9 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   @Override
-  public <T extends Formula> Long declareUninterpretedFunctionImpl(
-        String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
-    long[] types = new long[pArgs.size()];
-    for (int i = 0; i < types.length; i++) {
-      types[i] = toSolverType(pArgs.get(i));
-    }
-    long returnType = toSolverType(pReturnType);
+  protected Long declareUninterpretedFunctionImpl(
+        String pName, Long returnType, List<Long> pArgTypes) {
+    long[] types = Longs.toArray(pArgTypes);
     return createFunctionImpl(pName, returnType, types);
   }
 

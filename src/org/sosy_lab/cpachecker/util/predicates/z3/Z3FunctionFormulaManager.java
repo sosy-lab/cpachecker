@@ -27,8 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.primitives.Longs;
@@ -56,17 +54,13 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
   }
 
   @Override
-  protected <T extends Formula> Long declareUninterpretedFunctionImpl(
+  protected Long declareUninterpretedFunctionImpl(
         String pName,
-        FormulaType<T> pReturnType,
-        List<FormulaType<?>> pArgs) {
+        Long returnType,
+        List<Long> pArgTypes) {
 
     long symbol = mk_string_symbol(z3context, pName);
-    long[] sorts = new long[pArgs.size()];
-    for (int i = 0; i < pArgs.size(); i++) {
-      sorts[i] = toSolverType(pArgs.get(i));
-    }
-    long returnType = toSolverType(pReturnType);
+    long[] sorts = Longs.toArray(pArgTypes);
     long func = mk_func_decl(z3context, symbol, sorts, returnType);
     inc_ref(z3context, func);
 

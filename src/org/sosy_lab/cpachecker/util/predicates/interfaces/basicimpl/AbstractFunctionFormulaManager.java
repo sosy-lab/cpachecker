@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,15 +54,21 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TFunctionDecl
     this.unsafeManager = unsafeManager;
   }
 
-  protected abstract <T extends Formula> TFunctionDecl declareUninterpretedFunctionImpl(
-      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs);
+  protected abstract TFunctionDecl declareUninterpretedFunctionImpl(
+      String pName, TType pReturnType, List<TType> pArgTypes);
 
   @Override
   public final <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
-      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgTypes) {
+
+    List<TType> argTypes = new ArrayList<>(pArgTypes.size());
+    for (FormulaType<?> argtype : pArgTypes) {
+      argTypes.add(toSolverType(argtype));
+    }
 
     return new AbstractUninterpretedFunctionDeclaration<>(pReturnType,
-        declareUninterpretedFunctionImpl(pName, pReturnType, pArgs), pArgs);
+        declareUninterpretedFunctionImpl(pName, toSolverType(pReturnType), argTypes),
+        pArgTypes);
   }
 
   @Override
