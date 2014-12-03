@@ -163,7 +163,7 @@ public class LiveVariablesState implements LatticeAbstractState<LiveVariablesSta
 
   @Override
   public boolean isLessOrEqual(LiveVariablesState pOther) throws CPAException, InterruptedException {
-    return pOther.isSubsetOf(this);
+    return isSubsetOf(pOther);
   }
 
   @Override
