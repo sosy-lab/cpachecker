@@ -56,9 +56,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
@@ -216,7 +219,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
 
   @Test
-  public void testArrayView() {
+  public void testArrayView1() {
     NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
@@ -228,6 +231,42 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     IntegerFormula _b_at_i_plus_1 = amgv.select(_b, _i_plus_1);
 
     assertThat(_b_at_i_plus_1.toString()).comparesEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+  }
+
+  @Test
+  public void testArrayView2() {
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
+
+    IntegerFormula _i = imgv.makeVariable("i");
+
+    ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, RationalFormula>> multi
+      = amgv.makeArray("multi",
+        NumeralType.IntegerType,
+        FormulaType.getArrayType(
+            NumeralType.IntegerType, NumeralType.RationalType));
+
+    RationalFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
+
+    assertThat(valueInMulti.toString()).comparesEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
+  }
+
+  @Test
+  public void testArrayView3() {
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
+
+    IntegerFormula _i = imgv.makeVariable("i");
+
+    ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, BitvectorFormula>> multi
+      = amgv.makeArray("multi",
+        NumeralType.IntegerType,
+        FormulaType.getArrayType(
+            NumeralType.IntegerType, FormulaType.getBitvectorTypeWithSize(32)));
+
+    BitvectorFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
+
+    assertThat(valueInMulti.toString()).comparesEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
   }
 
   @Test
