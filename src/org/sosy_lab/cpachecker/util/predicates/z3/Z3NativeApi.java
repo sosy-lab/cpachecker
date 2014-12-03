@@ -138,6 +138,26 @@ public final class Z3NativeApi {
       long context, long optimize, long ast);
 
   /**
+   * Create a backtracking point.
+   *
+   * The optimize solver contains a set of rules, added facts and assertions.
+   * The set of rules, facts and assertions are restored upon calling {#link #optimize_pop}
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_push(long c, long d);
+
+  /**
+   * Backtrack one level.
+   * The number of calls to pop cannot exceed calls to push.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_pop(long c, long d);
+
+  /**
    * Set parameters on optimization context.
    *
    * @param c Z3_context context

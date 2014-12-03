@@ -36,9 +36,11 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
+import static com.google.common.truth.Truth.assertThat;
 
 
 /**
@@ -130,7 +132,56 @@ public class Z3MaximizationTest {
       // Check the value.
       Assert.assertEquals(Rational.ofString("19"), prover.value(0));
     }
+  }
 
+  @Test public void testSwitchingObjectives() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, y, obj;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      obj = rfmgr.makeVariable("obj");
+
+      /*
+        real x, y, obj
+        x <= 10
+        y <= 15
+        obj = x + y
+        x - y >= 1
+       */
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
+          rfmgr.equal(obj, rfmgr.add(x, y)),
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      OptStatus response;
+
+      prover.push();
+
+      prover.maximize(obj);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.value(0)).isEqualTo(Rational.ofString("19"));
+
+      prover.pop();
+      prover.push();
+
+      prover.maximize(x);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.value(0)).isEqualTo(Rational.ofString("10"));
+
+      prover.pop();
+      prover.push();
+
+      prover.maximize(rfmgr.makeVariable("y"));
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.value(0)).isEqualTo(Rational.ofString("9"));
+
+      prover.pop();
+    }
   }
 
 }

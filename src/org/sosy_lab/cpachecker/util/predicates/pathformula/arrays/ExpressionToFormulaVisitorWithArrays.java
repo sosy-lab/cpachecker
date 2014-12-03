@@ -87,12 +87,17 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
     final UnaryOperator op = pExp.getOperator();
 
     if (op == UnaryOperator.AMPER && operand instanceof CArraySubscriptExpression) {
-      // Example use-case:
-      //  C expression
-      //      a[2] == b[i]
-      //  that is (semantically equivalent) transformed to
+      // C99 standard (draft), 6.5.3.2 Address and indirection operators:
+      //    "Similarly,if the operand is the result of a [] operator,
+      //     neither the & operator nor the unary * that is implied
+      //     by the [] is evaluated and the result is as if the & operator were removed
+      //     and the [] operator were changed to a + operator."
+
+      // Example:
+      //  The C expression
       //    &(a[2]) == &(b[i])
-      //
+      //  is semantically equivalent to
+      //       a[2] == b[i]
 
       return operand.accept(this);
 

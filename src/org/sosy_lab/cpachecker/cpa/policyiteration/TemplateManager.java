@@ -47,6 +47,11 @@ public class TemplateManager {
       if (varName.contains(TMP_VARIABLE)) {
         continue;
       }
+      if (s.getType().toString().contains("*")) {
+
+        // Do not calculate the numeric value for pointers.
+        continue;
+      }
       if (generateUpperBound) {
         out.add(new Template(LinearExpression.ofVariable(varName), s));
       }

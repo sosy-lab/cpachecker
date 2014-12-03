@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -97,18 +98,18 @@ public class ValueDeterminationFormulaManager {
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      Map<CFANode, PolicyState> policy,
+      Map<CFANode, PolicyAbstractedState> policy,
       final CFANode focusedNode,
       final Map<LinearExpression, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, PolicyState> entry : policy.entrySet()) {
+    for (Entry<CFANode, PolicyAbstractedState> entry : policy.entrySet()) {
       CFANode toNode = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
 
-      for (Entry<LinearExpression, PolicyBound> incoming : state) {
+      for (Entry<LinearExpression, PolicyBound> incoming : state.asAbstracted()) {
         LinearExpression template = incoming.getKey();
         String templatePrefix = String.format(TEMPLATE_PREFIX, template);
 
@@ -184,8 +185,8 @@ public class ValueDeterminationFormulaManager {
   /**
    * Perform the associated maximization.
    */
-  PolicyState valueDeterminationMaximization(
-      PolicyState prevState,
+  PolicyAbstractedState valueDeterminationMaximization(
+      PolicyAbstractedState prevState,
       Set<Template> templates,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
@@ -197,57 +198,53 @@ public class ValueDeterminationFormulaManager {
     ImmutableMap.Builder<LinearExpression, PolicyBound> builder = ImmutableMap.builder();
     Set<LinearExpression> unbounded = new HashSet<>();
 
-    for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
+    // Maximize for each template subject to the overall constraints.
+    statistics.valueDeterminationSolverTimer.start();
+    statistics.valueDetCalls++;
+    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+      shutdownNotifier.shutdownIfNecessary();
 
-      LinearExpression template = policyValue.getKey();
-      CFAEdge policyEdge = policyValue.getValue().trace;
+      for (BooleanFormula constraint : pValueDeterminationConstraints) {
+        solver.addConstraint(constraint);
+      }
 
-      // Maximize for each template subject to the overall constraints.
-      try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-        shutdownNotifier.shutdownIfNecessary();
-
-        for (BooleanFormula constraint : pValueDeterminationConstraints) {
-          solver.addConstraint(constraint);
-        }
-
+      for (Entry<LinearExpression, PolicyBound> policyValue : updated.entrySet()) {
+        LinearExpression template = policyValue.getKey();
+        CFAEdge policyEdge = policyValue.getValue().trace;
         logger.log(Level.FINE,
             "# Value determination: optimizing for template" , template);
 
         NumeralFormula objective = rfmgr.makeVariable(
             absDomainVarName(node, template));
 
+        solver.push();
         solver.maximize(objective);
 
-        statistics.valueDeterminationSolverTimer.start();
-        statistics.valueDetCalls++;
-
-        try {
-          OptEnvironment.OptStatus result = solver.check();
-          switch (result) {
-            case OPT:
-              builder.put(
-                  template,
-                  PolicyBound.of(policyEdge, solver.value(epsilon)));
-              break;
-            case UNBOUNDED:
-              unbounded.add(template);
-              break;
-            case UNSAT:
-              throw new CPATransferException("" +
-                  "Unexpected solver state, value determination problem" +
-                  " should be feasible");
-            case UNDEF:
-              throw new CPATransferException("Unexpected solver status");
-          }
-        } catch (SolverException e) {
-          throw new CPATransferException("Failed maximization", e);
-        } finally {
-          statistics.valueDeterminationSolverTimer.stop();
+        OptEnvironment.OptStatus result = solver.check();
+        switch (result) {
+          case OPT:
+            builder.put(
+                template, PolicyBound.of(policyEdge, solver.value(epsilon)));
+            break;
+          case UNBOUNDED:
+            unbounded.add(template);
+            break;
+          case UNSAT:
+            throw new SolverException("" +
+                "Unexpected solver state, value determination problem" +
+                " should be feasible");
+          case UNDEF:
+            throw new SolverException("Unexpected solver status");
         }
+        solver.pop();
       }
+    } catch (SolverException e) {
+      throw new CPATransferException("Failed maximization", e);
+    } finally {
+      statistics.valueDeterminationSolverTimer.stop();
     }
-    return prevState.withUpdates(
-        builder.build(), unbounded, templates);
+
+    return prevState.withUpdates(builder.build(), unbounded, templates);
   }
 
   /**

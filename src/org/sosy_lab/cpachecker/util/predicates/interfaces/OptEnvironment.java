@@ -37,14 +37,14 @@ public interface OptEnvironment extends AutoCloseable {
   /**
    * Add maximization <code>objective</code>.
    *
-   * <b>Note: currently only one constraint is supported</b>
+   * <b>Note: {@code push/pop} should be used for switching objectives</b>
    */
   void maximize(Formula objective);
 
   /**
    * Add minimization <code>objective</code>.
    *
-   * <b>Note: currently only one constraint is supported</b>
+   * <b>Note: {@code push/pop} should be used for switching objectives</b>
    */
   void minimize(Formula objective);
 
@@ -55,6 +55,16 @@ public interface OptEnvironment extends AutoCloseable {
    * @return Status of the optimization problem.
    */
   OptStatus check() throws InterruptedException, SolverException;
+
+  /**
+   * Create backtracking point.
+   */
+  void push();
+
+  /**
+   * Backtrack one level.
+   */
+  void pop();
 
   /**
    * @param epsilon Value to substitute for the {@code epsilon}.
