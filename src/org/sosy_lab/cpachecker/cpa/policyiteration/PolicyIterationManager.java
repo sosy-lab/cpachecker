@@ -65,10 +65,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
 
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final FormulaManagerView fmgr;
 
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
@@ -620,7 +620,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       tokens.add(constraint);
     }
     BooleanFormula constraint = bfmgr.and(tokens);
-    
+
     return new PathFormula(
         constraint, ssa,
         abstractState.getPointerTargetSet(),
