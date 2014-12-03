@@ -41,18 +41,18 @@ public class ArrayFormulaManagerView
    * This information is needed when accessing the array:
    *    The result (of a 'select') has to be wrapped with the intended type again.
    */
-  private static class BoxedArrayFormula<TI extends Formula, TE extends Formula> implements ArrayFormula<TI, TE> {
+  private static class UnwrappedArrayFormula<TI extends Formula, TE extends Formula> implements ArrayFormula<TI, TE> {
 
-    public final FormulaType<TI> wrappingIndexType;
-    public final FormulaType<TE> wrappingElementType;
+    public final FormulaType<TI> indexTypeWasWrappedAs;
+    public final FormulaType<TE> elementTypeWasWrappedAs;
     public final ArrayFormula<?, ?> formula;
 
-    public BoxedArrayFormula(
+    public UnwrappedArrayFormula(
         ArrayFormula<?, ?> pFormula,
-        FormulaType<TI> pWrappingIndexType, FormulaType<TE> pWrappingElementType
-        ) {
-      wrappingIndexType = pWrappingIndexType;
-      wrappingElementType = pWrappingElementType;
+        FormulaType<TI> pIndexWasWrappedAs,
+        FormulaType<TE> pElementTypeWasWrappedAs) {
+      indexTypeWasWrappedAs = pIndexWasWrappedAs;
+      elementTypeWasWrappedAs = pElementTypeWasWrappedAs;
       formula = pFormula;
     }
 
@@ -93,14 +93,14 @@ public class ArrayFormulaManagerView
 
     final ArrayFormula<TI, TE> resultWithUnwrappedTypes = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
 
-    return new BoxedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
+    return new UnwrappedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> unbox (
       ArrayFormula<TI, TE> pArray) {
-    if (pArray instanceof BoxedArrayFormula) {
-      return ((BoxedArrayFormula) pArray).formula;
+    if (pArray instanceof UnwrappedArrayFormula) {
+      return ((UnwrappedArrayFormula) pArray).formula;
     }
 
     return pArray;
@@ -109,8 +109,8 @@ public class ArrayFormulaManagerView
   @SuppressWarnings("unchecked")
   @Override
   public <TD extends Formula, FTI extends FormulaType<TD>> FTI getIndexType(ArrayFormula<TD, ?> pArray) {
-    if (pArray instanceof BoxedArrayFormula) {
-      return (FTI) ((BoxedArrayFormula<TD, ?>) pArray).wrappingIndexType;
+    if (pArray instanceof UnwrappedArrayFormula) {
+      return (FTI) ((UnwrappedArrayFormula<TD, ?>) pArray).indexTypeWasWrappedAs;
     }
     return manager.getIndexType(pArray);
   }
@@ -118,8 +118,8 @@ public class ArrayFormulaManagerView
   @SuppressWarnings("unchecked")
   @Override
   public <TR extends Formula, FTE extends FormulaType<TR>> FTE getElementType(ArrayFormula<?, TR> pArray) {
-    if (pArray instanceof BoxedArrayFormula) {
-      return (FTE) ((BoxedArrayFormula<?, TR>) pArray).wrappingElementType;
+    if (pArray instanceof UnwrappedArrayFormula) {
+      return (FTE) ((UnwrappedArrayFormula<?, TR>) pArray).elementTypeWasWrappedAs;
     }
     return manager.getElementType(pArray);
   }
