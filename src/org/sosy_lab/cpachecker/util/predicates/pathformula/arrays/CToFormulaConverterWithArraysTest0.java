@@ -55,8 +55,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -209,6 +214,21 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     _a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i);
   }
 
+
+  @Test
+  public void testArrayView() {
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
+
+    IntegerFormula _i = imgv.makeVariable("i");
+    IntegerFormula _1 = imgv.makeNumber(1);
+    IntegerFormula _i_plus_1 = imgv.add(_i, _1);
+
+    ArrayFormula<IntegerFormula, IntegerFormula> _b = amgv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    IntegerFormula _b_at_i_plus_1 = amgv.select(_b, _i_plus_1);
+
+    assertThat(_b_at_i_plus_1.toString()).comparesEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+  }
 
   @Test
   public void testMakePredicate1() throws UnrecognizedCCodeException, InterruptedException {

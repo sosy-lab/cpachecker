@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.UnWrappedFormula;
 
 
 /**
@@ -132,8 +131,6 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
   protected TFormulaInfo extractInfo(Formula pT) {
     if (pT instanceof AbstractFormula) {
       return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
-    } else if (pT instanceof UnWrappedFormula) {
-      return (TFormulaInfo) ((UnWrappedFormula<?>)pT).getUnwrapped();
     }
     throw new IllegalArgumentException("Cannot get the formula info of type " + pT.getClass().getSimpleName() + " in the Solver!");
   }

@@ -94,10 +94,10 @@ final class WrappingFloatingPointFormula<TWrap extends Formula>
 }
 
 final class WrappingArrayFormula<TWrap extends Formula, TI extends Formula, TE extends Formula>
-  extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
-  implements ArrayFormula<TI, TE> {
+extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
+implements ArrayFormula<TI, TE> {
 
-  WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
-    super(type, pToWrap);
-  }
+WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
+  super(type, pToWrap);
+}
 }

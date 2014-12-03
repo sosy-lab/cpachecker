@@ -42,6 +42,10 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
       ArrayFormula<TI, TE> pArray, Formula pIndex) {
 
     final FormulaType<? extends Formula> elementType = getFormulaCreator().getArrayFormulaElementType(pArray);
+    // Examples:
+    //    Array<Bitvector,Bitvector>
+    //    Rational
+
     final TFormulaInfo term = select(
         extractInfo(pArray),
         extractInfo(pIndex));

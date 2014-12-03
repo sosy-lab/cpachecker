@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -211,10 +212,19 @@ public class FormulaManagerView {
 
     if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
       return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
+
     } else if (targetType.isFloatingPointType() && (encodeFloatAs != Theory.FLOAT)) {
       return (T1) new WrappingFloatingPointFormula<>((FloatingPointType)targetType, toWrap);
+
+    } else if (targetType.isArrayType()) {
+      final ArrayFormulaType<?, ?> targetArrayType = (ArrayFormulaType<?, ?>) targetType;
+//      final FormulaType<? extends Formula> targetIndexType = targetArrayType.getIndexType();
+//      final FormulaType<? extends Formula> targetElementType = targetArrayType.getElementType();
+      return (T1) new WrappingArrayFormula<>(targetArrayType, toWrap);
+
     } else if (targetType.equals(manager.getFormulaType(toWrap))) {
       return (T1) toWrap;
+
     } else {
       throw new IllegalArgumentException("invalid wrap call");
     }
