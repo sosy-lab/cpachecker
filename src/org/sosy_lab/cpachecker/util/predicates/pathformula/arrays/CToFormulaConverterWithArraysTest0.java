@@ -91,6 +91,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private static final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
 
   private CToFormulaConverterWithArrays ctfBwd;
+  private CToFormulaConverterWithArrays ctfFwd;
 
   private CBinaryExpressionBuilder expressionBuilder;
   private FormulaManagerView mgrv;
@@ -134,6 +135,16 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         ShutdownNotifier.create(),
         th,
         AnalysisDirection.BACKWARD);
+
+    ctfFwd = new CToFormulaConverterWithArrays(
+        opts,
+        mgrv,
+        mm,
+        Optional.<VariableClassification>absent(),
+        logger,
+        ShutdownNotifier.create(),
+        th,
+        AnalysisDirection.FORWARD);
   }
 
   @Before
@@ -270,22 +281,117 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _x.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-    .comparesEqualTo("adfigj");
+      .comparesEqualTo("adfigj");
   }
 
   @Test
-  public void testArrayDeclaration1() throws UnrecognizedCCodeException, InterruptedException {
-    // int array[100];
+  public void testArrayDeclaration1() throws InterruptedException, CPATransferException {
+    // int arr[100];
+
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _arr = makeDeclaration(
+        "arr",
+        new CArrayType(
+            false,
+            false,
+            CNumericTypes.INT,
+            CIntegerLiteralExpression.createDummyLiteral(100, CNumericTypes.INT)),
+            null
+            );
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+
+    final BooleanFormula resultBwd = ctfBwd.makeDeclaration(
+        _arr.getFirst(), "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultBwd).toString())
+      .comparesEqualTo("true");
+
+    final BooleanFormula resultFwd = ctfFwd.makeDeclaration(
+        _arr.getFirst(), "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
+      .comparesEqualTo("The result should be an initialized array"); //TODO
   }
 
   @Test
-  public void testMultiDimensional1() throws UnrecognizedCCodeException, InterruptedException {
-    // int array2d[3][7];
+  public void testMultiDimensional1() throws InterruptedException, CPATransferException {
+    // int arr2d[3][7];
+
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _arr2d = makeDeclaration(
+        "_arr2d",
+        new CArrayType(
+            false,
+            false,
+            new CArrayType(
+                false,
+                false,
+                CNumericTypes.INT,
+                CIntegerLiteralExpression.createDummyLiteral(7, CNumericTypes.INT)),
+            CIntegerLiteralExpression.createDummyLiteral(3, CNumericTypes.INT)
+           ),
+          null
+        );
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+
+    final BooleanFormula resultBwd = ctfBwd.makeDeclaration(
+        _arr2d.getFirst(), "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultBwd).toString())
+      .comparesEqualTo("true");
+
+    final BooleanFormula resultFwd = ctfFwd.makeDeclaration(
+        _arr2d.getFirst(), "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
+      .comparesEqualTo("The result should be an initialized array"); //TODO
   }
 
   @Test
   public void testMultiDimensional2() throws UnrecognizedCCodeException, InterruptedException {
-    // array2d[3][7] = 23;
+    // arr2d[3][7] == 23;
+    // arr2d[3][7] = 23;
+
+    final CArrayType arrayWith10 = new CArrayType(
+        false,
+        false,
+        CNumericTypes.INT,
+        CIntegerLiteralExpression.createDummyLiteral(10, CNumericTypes.INT));
+
+    final CArrayType typeOf_arr2d = new CArrayType(
+        false,
+        false,
+        arrayWith10,
+        CIntegerLiteralExpression.createDummyLiteral(10, CNumericTypes.INT)
+       );
+
+    final Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _arr2d
+      = makeDeclaration("arr2d", typeOf_arr2d, null);
+
+    CArraySubscriptExpression _arr2d_at_3_7 = new CArraySubscriptExpression(
+        FileLocation.DUMMY,
+        CNumericTypes.INT,
+        new CArraySubscriptExpression(
+            FileLocation.DUMMY,
+            arrayWith10,
+            _arr2d.getThird(),
+            CIntegerLiteralExpression.createDummyLiteral(3, CNumericTypes.INT)),
+         CIntegerLiteralExpression.createDummyLiteral(7, CNumericTypes.INT)
+        );
+
+    Pair<CAssumeEdge, CExpression> _arr2d_at_3_7_equal_23 = makeAssume(expressionBuilder.buildBinaryExpression(
+        _arr2d_at_3_7,
+        CIntegerLiteralExpression.createDummyLiteral(23, CNumericTypes.INT),
+        BinaryOperator.EQUALS));
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    BooleanFormula result = ctfBwd.makePredicate(
+        _arr2d_at_3_7_equal_23.getSecond(),
+        _arr2d_at_3_7_equal_23.getFirst(),
+        "foo", ssa);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo("TODOTODO");
   }
 
   @Test
