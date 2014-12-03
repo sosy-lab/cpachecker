@@ -169,21 +169,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     CFANode node = edge.getSuccessor();
     PathFormula prev;
 
-    // TODO: optimization, do not create auxiliary variables for the cases
-    // when there's only one incoming edge.
-    NumeralFormula branchVar =  rfmgr.makeVariable(
-        String.format(SELECTION_VAR_TEMPLATE, node.getNodeNumber()));
-    BooleanFormula branchConstraint = rfmgr.equal(
-        branchVar,
-        rfmgr.makeNumber(edge.getPredecessor().getNodeNumber())
-    );
-
     if (oldState.isAbstract()) {
       prev = abstractStateToPathFormula(oldState.asAbstracted());
     } else {
       prev = oldState.asIntermediate().getPathFormula();
     }
-    prev = pfmgr.makeAnd(prev, branchConstraint);
+
+    if (node.getNumEnteringEdges() > 1) {
+      // Create path selection variables if there are multiple choices for
+      // the entering edge.
+      NumeralFormula branchVar =  rfmgr.makeVariable(
+          String.format(SELECTION_VAR_TEMPLATE, node.getNodeNumber()));
+      BooleanFormula branchConstraint = rfmgr.equal(
+          branchVar,
+          rfmgr.makeNumber(edge.getPredecessor().getNodeNumber())
+      );
+      prev = pfmgr.makeAnd(prev, branchConstraint);
+    }
+
 
     PolicyState out = PolicyState.ofIntermediate(
         edge.getSuccessor(),
@@ -508,19 +511,34 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     CFANode successor = node;
     while (true) {
       int toNodeNo = successor.getNodeNumber();
-      Object o = model.get(
-          new Model.Constant(
-              String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
-              Model.TermType.Real
-          )
-      );
-      if (o == null) {
+      CFANode toNode = nodeMap.get(toNodeNo);
+      CFAEdge edge;
+      int fromNodeNo;
+      if (toNode.getNumEnteringEdges() > 1) {
+        Object o = model.get(
+            new Model.Constant(
+                String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
+                Model.TermType.Real
+            )
+        );
+        if (o == null) {
 
-        // Trace has finished.
+          // Trace has finished.
+          break;
+        }
+        fromNodeNo = Integer.parseInt(o.toString());
+        edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
+      } else if (toNode.getNumEnteringEdges() == 0) {
+
+        // Function start.
         break;
+      } else {
+
+        // Shortcut: only one entering edge.
+        edge = toNode.getEnteringEdge(0);
+        fromNodeNo = edge.getPredecessor().getNodeNumber();
       }
-      int fromNodeNo = Integer.parseInt(o.toString());
-      CFAEdge edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
+
       assert edge != null;
       traceReversed.add(edge);
       successor = nodeMap.get(fromNodeNo);
