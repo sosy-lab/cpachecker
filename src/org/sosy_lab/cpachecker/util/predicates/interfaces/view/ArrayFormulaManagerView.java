@@ -67,7 +67,7 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula> TE select (
       ArrayFormula<TI, TE> pArray, Formula pIndex) {
 
-    final ArrayFormula<TI, TE> declaredArray = unbox(pArray);
+    final ArrayFormula<TI, TE> declaredArray = rewrapIfNeeded(pArray);
     final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
     final FormulaType<TE> resultType = getElementType(pArray);
 
@@ -78,7 +78,7 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store (
       ArrayFormula<TI, TE> pArray, Formula pIndex, Formula pValue) {
 
-    final ArrayFormula<TI, TE> declaredArray = unbox(pArray);
+    final ArrayFormula<TI, TE> declaredArray = rewrapIfNeeded(pArray);
 
     return manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
   }
@@ -97,7 +97,7 @@ public class ArrayFormulaManagerView
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> unbox (
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> rewrapIfNeeded (
       ArrayFormula<TI, TE> pArray) {
     if (pArray instanceof UnwrappedArrayFormula) {
       return ((UnwrappedArrayFormula) pArray).formula;
