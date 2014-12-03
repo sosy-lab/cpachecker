@@ -190,7 +190,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PolicyState out = PolicyState.ofIntermediate(
         edge.getSuccessor(),
-        templateManager.templatesForNode(node),
+
+        // We take the variables alive at the location + templates for the
+        // previous location (variable may be not alive at {@code node},
+        // but required for the guard associated with {@code edge}
+        // nevertheless.
+        Sets.union(templateManager.templatesForNode(node),
+            oldState.getTemplates()),
         pfmgr.makeAnd(prev, edge),
         leafs
     );
@@ -313,12 +319,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throws CPATransferException, InterruptedException, SolverException {
     Preconditions.checkState(oldState.getNode() == newState.getNode());
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
-    Preconditions.checkState(oldState.getTemplates().equals(newState.getTemplates()));
 
     final boolean isAbstract = oldState.isAbstract();
     final CFANode node = oldState.getNode();
 
-    Set<Template> allTemplates = oldState.getTemplates();
+    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
+        newState.getTemplates());
 
     if (!isAbstract) {
       PolicyIntermediateState iNewState = newState.asIntermediate();

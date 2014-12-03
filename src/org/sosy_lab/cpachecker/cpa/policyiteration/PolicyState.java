@@ -93,9 +93,10 @@ public abstract class PolicyState implements AbstractState, Graphable {
     @Override
     public String toDOTLabel() {
       return String.format(
-          "%s%n%s",
+          "%s%n%s%n%s",
           (new PolicyDotWriter()).toDOTLabel(abstraction),
-          pointerTargetSet
+          pointerTargetSet,
+          templates
       );
     }
 

@@ -10,15 +10,20 @@
         <include>../programs/policyiteration/*.c</include>
     </sourcefiles>
 
-    <!-- TODO: No path focusing-->
-    <!--<rundefinition>-->
-        <!--<option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>-->
-    <!--</rundefinition>-->
-
-    <!-- Path focusing-->
-    <rundefinition>
-        <option name ="-setprop">cpa.stator.policy.pathFocusing=true</option>
+    <rundefinition name="vanilla">
+        <sourcefiles>
+            <include>../programs/policyiteration/pointers/*.c</include>
+        </sourcefiles>
     </rundefinition>
+
+    <rundefinition name="noPointerAliasing">
+        <option name ="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    </rundefinition>
+
+    <rundefinition name="noPathFocusing">
+        <option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>
+    </rundefinition>
+
 
     <columns>
         <column title="total">Total time for CPA algorithm</column>
