@@ -625,7 +625,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
                                functionNameExpression);
         }
-        return makeNondet(functionName, returnType); // BUG when expType = void
+        return makeNondet(functionName, returnType);
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
