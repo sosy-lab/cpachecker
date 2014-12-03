@@ -445,17 +445,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     ImmutableMap.Builder<LinearExpression, PolicyBound> abstraction
         = ImmutableMap.builder();
 
-    for (Template templateWrapper : state.getTemplates()) {
-      LinearExpression template = templateWrapper.linearExpression;
+    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+      solver.addConstraint(p.getFormula());
 
-      // Optimize for the template subject to the
-      // constraints introduced by {@code p}.
-      try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-        shutdownNotifier.shutdownIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
 
-        solver.addConstraint(p.getFormula());
+      for (Template templateWrapper : state.getTemplates()) {
+        LinearExpression template = templateWrapper.linearExpression;
+
+        // Optimize for the template subject to the
+        // constraints introduced by {@code p}.
         NumeralFormula objective =
             lcmgr.linearExpressionToFormula(template, p.getSsa());
+
+        solver.push();
         solver.maximize(objective);
 
         // Generate the trace for the single template.
@@ -465,48 +468,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             Rational bound = solver.value(EPSILON);
             Model model = solver.getModel();
             logger.log(Level.FINE, "# Model =" + model);
-
-            // Re-arrange the unique policy into the multi-edge.
-            // Make sure that the edges meet.
-            final List<CFAEdge> traceReversed = new ArrayList<>();
-            final Set<CFANode> visitedNodes = new HashSet<>();
-            visitedNodes.add(node);
-
-            CFANode successor = node;
-            while (true) {
-              int toNodeNo = successor.getNodeNumber();
-              Object o = model.get(
-                  new Model.Constant(
-                      String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
-                      Model.TermType.Real
-                  )
-              );
-              if (o == null) {
-
-                // Trace has finished.
-                break;
-              }
-              int fromNodeNo = Integer.parseInt(o.toString());
-              CFAEdge edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
-              assert edge != null;
-              traceReversed.add(edge);
-              successor = nodeMap.get(fromNodeNo);
-              if (visitedNodes.contains(successor)) {
-
-                // Don't loop.
-                break;
-              }
-              visitedNodes.add(successor);
-            }
-
-            // Last successor is the ultimate "predecessor"
-            CFANode predecessor = successor;
-            assert !traceReversed.isEmpty() : model;
-            MultiEdge edge = new MultiEdge(predecessor, node,
-                Lists.reverse(traceReversed));
-            logger.log(Level.FINE, "# Constructed edge: ", edge);
+            MultiEdge edge = traceFromModel(node, model);
             abstraction.put(template, new PolicyBound(edge, bound));
-
             break;
           case UNSAT:
             // Short circuit: this point is infeasible.
@@ -514,20 +477,69 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           case UNBOUNDED:
             // Skip the constraint: it does not return any additional
             // information.
-            continue;
+            break;
           case UNDEF:
             throw new CPATransferException("Solver returned undefined status");
         }
-      } catch (SolverException e) {
-        throw new CPATransferException("Solver error: ", e);
+
+        solver.pop();
       }
+
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver error: ", e);
     }
+    // Optimize for the template subject to the
+    // constraints introduced by {@code p}.
 
     return Optional.of(PolicyState.ofAbstraction(
         abstraction.build(),
         state.getTemplates(),
         node,
         p.getPointerTargetSet()));
+  }
+
+  private MultiEdge traceFromModel(CFANode node, Model model) {
+    // Re-arrange the unique policy into the multi-edge.
+    // Make sure that the edges meet.
+    final List<CFAEdge> traceReversed = new ArrayList<>();
+    final Set<CFANode> visitedNodes = new HashSet<>();
+    visitedNodes.add(node);
+
+    CFANode successor = node;
+    while (true) {
+      int toNodeNo = successor.getNodeNumber();
+      Object o = model.get(
+          new Model.Constant(
+              String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
+              Model.TermType.Real
+          )
+      );
+      if (o == null) {
+
+        // Trace has finished.
+        break;
+      }
+      int fromNodeNo = Integer.parseInt(o.toString());
+      CFAEdge edge = edgeFromIdentifier(fromNodeNo, toNodeNo);
+      assert edge != null;
+      traceReversed.add(edge);
+      successor = nodeMap.get(fromNodeNo);
+      if (visitedNodes.contains(successor)) {
+
+        // Don't loop.
+        break;
+      }
+      visitedNodes.add(successor);
+    }
+
+    // Last successor is the ultimate "predecessor"
+    CFANode predecessor = successor;
+    assert !traceReversed.isEmpty() : model;
+    MultiEdge edge = new MultiEdge(predecessor, node,
+        Lists.reverse(traceReversed));
+
+    logger.log(Level.FINE, "# Constructed edge: ", edge);
+    return edge;
   }
 
   /**
