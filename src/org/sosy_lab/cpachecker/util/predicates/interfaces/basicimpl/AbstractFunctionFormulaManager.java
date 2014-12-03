@@ -37,9 +37,10 @@ import com.google.common.collect.Lists;
  * This class simplifies the implementation of the FunctionFormulaManager by converting the types to the solver specific type.
  * It depends on UnsafeFormulaManager to make clear that the UnsafeFormulaManager should not depend on FunktionFormulaManager.
  * @param <TFormulaInfo> The solver specific type.
+ * @param <TFunctionDecl> The solver specific type of declarations of uninterpreted functions
  * @param <TType> The solver specific type of formula-types.
  */
-public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
+public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TFunctionDecl, TType, TEnv>
     extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv>
     implements FunctionFormulaManager {
 
@@ -52,6 +53,17 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     this.unsafeManager = unsafeManager;
   }
 
+  protected abstract <T extends Formula> TFunctionDecl declareUninterpretedFunctionImpl(
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs);
+
+  @Override
+  public final <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
+      String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
+
+    return new AbstractUninterpretedFunctionDeclaration<>(pReturnType,
+        declareUninterpretedFunctionImpl(pName, pReturnType, pArgs), pArgs);
+  }
+
   @Override
   public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
@@ -59,16 +71,25 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
     return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
-  protected abstract <TFormula extends Formula> TFormulaInfo
-    createUninterpretedFunctionCallImpl(UninterpretedFunctionDeclaration<TFormula> pFuncType, List<TFormulaInfo> pArgs);
+  protected abstract TFormulaInfo createUninterpretedFunctionCallImpl(
+      TFunctionDecl func, List<TFormulaInfo> pArgs);
 
   @Override
-  public final <T extends Formula> T callUninterpretedFunction(UninterpretedFunctionDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
-    FormulaType<T> retType = pFuncType.getReturnType();
+  public final <T extends Formula> T callUninterpretedFunction(
+      UninterpretedFunctionDeclaration<T> pFunc, List<? extends Formula> pArgs) {
+    FormulaType<T> retType = pFunc.getReturnType();
     List<TFormulaInfo> list = Lists.transform(pArgs, extractor);
 
-    TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFuncType, list);
+    TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFunc, list);
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
+  final <T extends Formula> TFormulaInfo createUninterpretedFunctionCallImpl(
+      UninterpretedFunctionDeclaration<T> pFunc, List<TFormulaInfo> pArgs) {
+    @SuppressWarnings("unchecked")
+    AbstractUninterpretedFunctionDeclaration<T, TFunctionDecl> func =
+        (AbstractUninterpretedFunctionDeclaration<T, TFunctionDecl>)pFunc;
+
+    return createUninterpretedFunctionCallImpl(func.getFuncDecl(), pArgs);
+  }
 }

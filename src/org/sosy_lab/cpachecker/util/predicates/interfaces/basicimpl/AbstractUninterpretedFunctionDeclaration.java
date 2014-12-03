@@ -34,16 +34,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionD
 /**
  * A simple straightforward implementation of FunctionFormulaType<T>
  */
-public abstract class AbstractUninterpretedFunctionDeclaration<T extends Formula, TFuncDecl> extends UninterpretedFunctionDeclaration<T> {
+class AbstractUninterpretedFunctionDeclaration<T extends Formula, TFuncDecl> extends UninterpretedFunctionDeclaration<T> {
 
   private final TFuncDecl funcDecl;
 
-  public AbstractUninterpretedFunctionDeclaration(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
+  AbstractUninterpretedFunctionDeclaration(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
     super(returnType, argumentTypes);
     this.funcDecl = checkNotNull(funcDecl);
   }
 
-  public TFuncDecl getFuncDecl() {
+  TFuncDecl getFuncDecl() {
     return funcDecl;
   }
 }

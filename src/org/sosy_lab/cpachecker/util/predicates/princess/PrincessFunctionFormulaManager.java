@@ -29,12 +29,11 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import ap.parser.IExpression;
 
-class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, TermType, PrincessEnvironment> {
+class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExpression, PrincessEnvironment.FunctionType, TermType, PrincessEnvironment> {
 
   private final PrincessUnsafeFormulaManager unsafeManager;
 
@@ -46,16 +45,15 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
   }
 
   @Override
-  public <TFormula extends Formula> IExpression createUninterpretedFunctionCallImpl(UninterpretedFunctionDeclaration<TFormula> pFuncType,
-      List<IExpression> pArgs) {
-    PrincessUninterpretedFunctionDeclaration<TFormula> func = (PrincessUninterpretedFunctionDeclaration<TFormula>) pFuncType;
-    assert pArgs.size() == func.getFuncDecl().getArgs().size() : "functiontype has different number of args.";
+  protected IExpression createUninterpretedFunctionCallImpl(
+      PrincessEnvironment.FunctionType pFuncDecl, List<IExpression> pArgs) {
+    assert pArgs.size() == pFuncDecl.getArgs().size() : "functiontype has different number of args.";
     return unsafeManager.createUIFCallImpl(
-            func.getFuncDecl().getFuncDecl(), func.getFuncDecl().getResultType(), pArgs);
+        pFuncDecl.getFuncDecl(), pFuncDecl.getResultType(), pArgs);
   }
 
   @Override
-  public <T extends Formula> PrincessUninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
+  protected  <T extends Formula> PrincessEnvironment.FunctionType declareUninterpretedFunctionImpl(
         String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
 
     List<TermType> types = new ArrayList<>(pArgs.size());
@@ -63,8 +61,6 @@ class PrincessFunctionFormulaManager extends AbstractFunctionFormulaManager<IExp
       types.add(toSolverType(type));
     }
     TermType returnType = toSolverType(pReturnType);
-    PrincessEnvironment.FunctionType funcDecl = getFormulaCreator().getEnv().declareFun(pName, returnType, types);
-
-    return new PrincessUninterpretedFunctionDeclaration<>(pReturnType, pArgs, funcDecl);
+    return getFormulaCreator().getEnv().declareFun(pName, returnType, types);
   }
 }

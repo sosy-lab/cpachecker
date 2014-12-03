@@ -53,7 +53,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
@@ -73,7 +73,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
@@ -162,7 +162,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
+  public AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 

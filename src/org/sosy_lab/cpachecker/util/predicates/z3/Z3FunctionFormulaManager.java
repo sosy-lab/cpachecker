@@ -29,12 +29,11 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.primitives.Longs;
 
-class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long> {
+class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long, Long, Long> {
 
   private final Z3UnsafeFormulaManager unsafeManager;
   private final long z3context;
@@ -51,17 +50,13 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
   }
 
   @Override
-  public <TFormula extends Formula> Long createUninterpretedFunctionCallImpl(
-      UninterpretedFunctionDeclaration<TFormula> pFuncType,
-      List<Long> pArgs) {
-    Z3UninterpretedFunctionDeclaration<TFormula> func = (Z3UninterpretedFunctionDeclaration<TFormula>) pFuncType;
+  protected Long createUninterpretedFunctionCallImpl(Long funcDecl, List<Long> pArgs) {
     long[] args = Longs.toArray(pArgs);
-    long funcDecl = func.getFuncDecl();
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
   @Override
-  public <T extends Formula> Z3UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
+  protected <T extends Formula> Long declareUninterpretedFunctionImpl(
         String pName,
         FormulaType<T> pReturnType,
         List<FormulaType<?>> pArgs) {
@@ -77,6 +72,6 @@ class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Long, Long
 
     smtLogger.logFunctionDeclaration(symbol, sorts, returnType);
 
-    return new Z3UninterpretedFunctionDeclaration<>(pReturnType, pArgs, func);
+    return func;
   }
 }

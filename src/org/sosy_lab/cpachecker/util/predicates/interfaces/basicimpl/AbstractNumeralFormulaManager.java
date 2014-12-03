@@ -30,9 +30,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -61,7 +61,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private static final String UF_DIVIDE_NAME = "_/_";
   private static final String UF_MODULO_NAME = "_%_";
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final UninterpretedFunctionDeclaration<ResultFormulaType> multUfDecl;
   private final UninterpretedFunctionDeclaration<ResultFormulaType> divUfDecl;
@@ -69,7 +69,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
 
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> pFunctionManager) {
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> pFunctionManager) {
     super(pCreator);
     functionManager = pFunctionManager;
 

@@ -29,7 +29,6 @@ import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFloatingPointFormulaManager;
 
 import com.google.common.collect.ImmutableList;
@@ -130,7 +129,7 @@ class Mathsat5FloatingPointFormulaManager
 
   private Long genericCast(Long pNumber, FormulaType<?> pTargetType) {
     FormulaType<?> formulaType = getFormulaCreator().getFormulaType(pNumber);
-    UninterpretedFunctionDeclaration<?> castFuncType = ffmgr.declareUninterpretedFunction(
+    Long castFuncType = ffmgr.declareUninterpretedFunctionImpl(
         "__cast_" + formulaType + "_to_" + pTargetType, pTargetType, ImmutableList.<FormulaType<?>>of(formulaType));
     return ffmgr.createUninterpretedFunctionCallImpl(castFuncType, ImmutableList.of(pNumber));
   }
