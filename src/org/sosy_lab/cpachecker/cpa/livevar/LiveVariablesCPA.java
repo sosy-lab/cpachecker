@@ -92,7 +92,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
       throw new AssertionError("Without information of the variable classification"
           + " the live variables analysis cannot be used.");
     }
-    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification().get());
+    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification().get(), pConfig);
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();

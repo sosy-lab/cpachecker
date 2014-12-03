@@ -794,10 +794,17 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
+# With this option the handling of global variables during the analysis can
+# be fine-tuned. For example while doing a function-wise analysis it is
+# important to assume that all global variables are live. In contrast to
+# that, while doing a global analysis, we do not need to assume global
+# variables being live.
+cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
+
 # with this option enabled, unction calls taht occur in the CFA are followed.
 # By disabling this option one can traverse a function withou following
 # function calls (in this case FunctionSummaryEdges are used)
-cpa.location.followfunctionCalls = true
+cpa.location.followFunctionCalls = true
 
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
@@ -1568,10 +1575,6 @@ cpa.value.refiner.performStaticRefinement = false
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refiner.prefixPreference = no default value
-  enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
-             DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
-             DOMAIN_WORST_SHALLOW, DOMAIN_WORST_DEEP]
 cpa.value.refiner.prefixPreference = DOMAIN_BEST_SHALLOW
   enum:     [DEFAULT, SHORTEST, LONGEST, DOMAIN_BEST_SHALLOW, DOMAIN_BEST_BOUNDED,
              DOMAIN_BEST_DEEP, REFINE_SHALLOW, REFINE_DEEP, RANDOM, MEDIAN, MIDDLE,
@@ -1636,8 +1639,8 @@ limits.time.wall = -1ns
 # By changing this option one can adjust the way how live variables are
 # created. Function-wise means that each function is handled separately,
 # global means that the whole cfa is used for the computation.
-liveVar.evaluationStrategy = "FUNCTION-WISE"
-  allowed values: [FUNCTION-WISE, GLOBAL]
+liveVar.evaluationStrategy = FUNCTION_WISE
+  enum:     [FUNCTION_WISE, GLOBAL]
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value

@@ -292,6 +292,7 @@ public class LiveVariables {
                                                + " cpa.callstack.CallstackCPABackwards,"
                                                + " cpa.livevar.LiveVariablesCPA");
     configBuilder.setOption("cpa.location.followFunctionCalls", "true");
+    configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "false");
 
     return configBuilder.build();
   }
@@ -305,6 +306,7 @@ public class LiveVariables {
     configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
                                                + " cpa.livevar.LiveVariablesCPA");
     configBuilder.setOption("cpa.location.followFunctionCalls", "false");
+    configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "true");
 
     return configBuilder.build();
   }

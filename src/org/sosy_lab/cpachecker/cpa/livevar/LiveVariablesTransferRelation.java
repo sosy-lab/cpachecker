@@ -35,6 +35,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -88,12 +92,21 @@ import com.google.common.collect.Multimap;
  * imprecise e.g. if a pointer pointing to a variable is dereferenced and a new
  * value is assigned.
  */
+@Options(prefix="cpa.liveVar")
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
   private final Multimap<CFANode, ASimpleDeclaration> liveVariables = HashMultimap.<CFANode, ASimpleDeclaration>create();
   private final VariableClassification variableClassification;
 
-  public LiveVariablesTransferRelation(VariableClassification pVarClass) {
+  @Option(secure=true, description="With this option the handling of global variables"
+      + " during the analysis can be fine-tuned. For example while doing a function-wise"
+      + " analysis it is important to assume that all global variables are live. In contrast"
+      + " to that, while doing a global analysis, we do not need to assume global"
+      + " variables being live.")
+  private boolean assumeGlobalVariablesAreAlwaysLive = true;
+
+  public LiveVariablesTransferRelation(VariableClassification pVarClass, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     variableClassification = pVarClass;
   }
 
@@ -423,7 +436,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     public boolean apply(CIdExpression pInput) {
       CSimpleDeclaration decl = pInput.getDeclaration();
 
-      boolean retVal = decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal();
+      boolean retVal =  assumeGlobalVariablesAreAlwaysLive
+                        && decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal();
+
       retVal = retVal || decl.getType().getCanonicalType() instanceof CPointerType;
       retVal = retVal || variableClassification.getAddressedVariables().contains(decl.getQualifiedName());
 
