@@ -22,6 +22,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyIntermediateState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,10 +47,7 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -171,21 +170,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         branchVar,
         rfmgr.makeNumber(edge.getPredecessor().getNodeNumber())
     );
-    if (oldState.isAbstract()) {
 
-      PathFormula empty = pfmgr.makeEmptyPathFormula();
+    if (oldState.isAbstract()) {
+      PathFormula empty = new PathFormula(
+          bfmgr.makeBoolean(true),
+          SSAMap.emptySSAMap(),
+          oldState.asAbstracted().getPointerTargetSet(),
+          0
+      );
       prev = pfmgr.makeAnd(
           empty,
-          abstractStateToFormula(oldState, empty.getSsa())
+          abstractStateToFormula(oldState.asAbstracted(), empty.getSsa())
       );
     } else {
-      prev = oldState.getPathFormula();
+      prev = oldState.asIntermediate().getPathFormula();
     }
     prev = pfmgr.makeAnd(prev, branchConstraint);
 
     PolicyState out = PolicyState.ofIntermediate(
-        ImmutableList.<AbstractState>of(),
-        ImmutableSet.of(edge),
         edge.getSuccessor(),
         templateManager.templatesForNode(node),
         pfmgr.makeAnd(prev, edge)
@@ -202,14 +204,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       List<AbstractState> otherStates,
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
-    state = state.withOtherStates(otherStates);
-
     statistics.abstractionTimer.start();
     try {
       // Perform the abstraction, if necessary.
       CFANode toNode = state.getNode();
       if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
-        Optional<PolicyState> abstraction = performAbstraction(state);
+        PolicyIntermediateState iState = (PolicyIntermediateState)state;
+
+        Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
         if (!abstraction.isPresent()) {
           abstractStates.put(toNode, state);
           return Collections.emptyList();
@@ -227,7 +229,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       if (state.isAbstract()) {
         return Collections.singleton(state);
       }
-
       boolean hasTargetState = false;
       for (AbstractState oState : otherStates) {
         if (AbstractStates.isTargetState(oState)) {
@@ -236,7 +237,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
 
       if (hasTargetState) {
-        boolean isSat = checkSatisfiability(state);
+        boolean isSat = checkSatisfiability(state.asIntermediate());
         if (!isSat) {
           return Collections.emptyList();
         } else {
@@ -265,17 +266,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     if (!isAbstract) {
 
-      // TODO: compare the path formulas.
-      // but that won't make things better!
-
-//      return false;
-      return oldState.getPathFormula().equals(newState.getPathFormula());
+      // Can we do "<" for path formulas?
+      return oldState.asIntermediate().getPathFormula().equals(
+          newState.asIntermediate().getPathFormula());
     } else {
-
-      for (Entry<LinearExpression, PolicyBound> entry : oldState) {
+      PolicyAbstractedState aNewState = newState.asAbstracted();
+      for (Entry<LinearExpression, PolicyBound> entry : oldState.asAbstracted()) {
         LinearExpression template = entry.getKey();
         PolicyBound newBound = entry.getValue();
-        Optional<PolicyBound> oldBound = newState.getBound(template);
+
+        // TODO: why is it called "old"?
+        Optional<PolicyBound> oldBound = aNewState.getBound(template);
 
         if (!oldBound.isPresent()) {
 
@@ -322,20 +323,18 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<Template> allTemplates = oldState.getTemplates();
 
     if (!isAbstract) {
-
-      PathFormula newPath = newState.getPathFormula();
-      PathFormula oldPath = oldState.getPathFormula();
+      PathFormula newPath = newState.asIntermediate().getPathFormula();
+      PathFormula oldPath = oldState.asIntermediate().getPathFormula();
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
       return PolicyState.ofIntermediate(
-          Iterables.concat(
-              oldState.getOtherStates(), newState.getOtherStates()),
-          Sets.union(oldState.getIncomingEdges(), newState.getIncomingEdges()),
-          node, allTemplates,
-          pfmgr.makeOr(newPath, oldPath)
+          node, allTemplates, pfmgr.makeOr(newPath, oldPath)
       );
     }
+
+    PolicyAbstractedState aNewState = newState.asAbstracted();
+    PolicyAbstractedState aOldState = oldState.asAbstracted();
 
     Map<LinearExpression, PolicyBound> updated = new HashMap<>();
     Set<LinearExpression> unbounded = new HashSet<>();
@@ -345,8 +344,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     for (Template templateWrapper : allTemplates) {
       LinearExpression template = templateWrapper.linearExpression;
       Optional<PolicyBound> oldValue, newValue;
-      oldValue = oldState.getBound(template);
-      newValue = newState.getBound(template);
+      oldValue = aOldState.getBound(template);
+      newValue = aNewState.getBound(template);
 
       if (!oldValue.isPresent()) {
 
@@ -362,8 +361,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
 
-    PolicyState stateWithUpdates =
-        oldState.withUpdates(updated, unbounded, allTemplates);
+    PolicyAbstractedState stateWithUpdates =
+        aOldState.withUpdates(updated, unbounded, allTemplates);
     logger.log(Level.FINE, "# State with updates: ", stateWithUpdates);
 
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -372,7 +371,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       logger.log(Level.FINE, "# Value Determination launched");
 
-      Map<CFANode, PolicyState> related =
+      Map<CFANode, PolicyAbstractedState> related =
           findRelated(stateWithUpdates, node, updated);
 
       // Note: this formula contains no disjunctions, as the policy entails
@@ -381,7 +380,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           related, node, updated);
 
       return vdfmgr.valueDeterminationMaximization(
-          oldState,
+          aOldState,
           allTemplates,
           updated, node, constraints, EPSILON);
     }
@@ -417,10 +416,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether the <code>state</code> is reachable.
    */
-  private boolean checkSatisfiability(PolicyState state)
+  private boolean checkSatisfiability(PolicyState.PolicyIntermediateState state)
         throws CPATransferException, InterruptedException {
 
-    PathFormula p = allPathsToNode(state);
+    PathFormula p = state.getPathFormula();
 
     try (ProverEnvironment solver
             = formulaManagerFactory.newProverEnvironment(false, false)) {
@@ -442,10 +441,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Abstracted state if the state is reachable, empty optional
    * otherwise.
    */
-  private Optional<PolicyState> performAbstraction(PolicyState state)
+  private Optional<PolicyAbstractedState> performAbstraction(
+      PolicyIntermediateState state)
       throws CPATransferException, InterruptedException {
     final CFANode node = state.getNode();
-    final PathFormula p = allPathsToNode(state);
+    final PathFormula p = state.getPathFormula();
 
     ImmutableMap.Builder<LinearExpression, PolicyBound> abstraction
         = ImmutableMap.builder();
@@ -532,8 +532,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         abstraction.build(),
         state.getTemplates(),
         node,
-        state.getIncomingEdges(),
-        state.getOtherStates()));
+        p.getPointerTargetSet()));
   }
 
   /**
@@ -562,17 +561,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return !pathFocusing || node.isLoopStart();
   }
 
-  /**
-  * Recursively compute the formula representing all possible paths
-  * to the node <code>current</code> from the already resolved nodes.
-  */
-  private PathFormula allPathsToNode(PolicyState toState)
-      throws CPATransferException, InterruptedException {
-    return toState.getPathFormula();
-  }
-
   private BooleanFormula abstractStateToFormula(
-      PolicyState abstractState, SSAMap ssa) {
+      PolicyAbstractedState abstractState, SSAMap ssa) {
 
     List<BooleanFormula> tokens = new ArrayList<>();
     for (Entry<LinearExpression, PolicyBound> entry : abstractState) {
@@ -591,12 +581,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return the subset of {@code abstractStates} required for the update
    * {@code updated}.
    */
-  private Map<CFANode, PolicyState> findRelated(
-      PolicyState newState,
+  private Map<CFANode, PolicyAbstractedState> findRelated(
+      PolicyAbstractedState newState,
       CFANode focusedNode,
       Map<LinearExpression, PolicyBound> updated) {
 
-    Map<CFANode, PolicyState> out = new HashMap<>();
+    Map<CFANode, PolicyAbstractedState> out = new HashMap<>();
     Set<CFANode> visited = Sets.newHashSet();
 
     LinkedHashSet<CFANode> queue = new LinkedHashSet<>();
@@ -607,12 +597,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       it.remove();
       visited.add(node);
 
-      PolicyState state;
+      PolicyAbstractedState state;
       if (node == focusedNode) {
         state = newState;
 
       } else {
-        state = abstractStates.get(node);
+        state = (PolicyAbstractedState)abstractStates.get(node);
       }
 
       out.put(node, state);

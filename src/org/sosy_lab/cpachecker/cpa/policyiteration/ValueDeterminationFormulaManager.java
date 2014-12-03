@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -97,18 +98,18 @@ public class ValueDeterminationFormulaManager {
    * @throws InterruptedException
    */
   public List<BooleanFormula> valueDeterminationFormula(
-      Map<CFANode, PolicyState> policy,
+      Map<CFANode, PolicyAbstractedState> policy,
       final CFANode focusedNode,
       final Map<LinearExpression, PolicyBound> updated
   ) throws CPATransferException, InterruptedException{
     List<BooleanFormula> constraints = new ArrayList<>();
 
-    for (Entry<CFANode, PolicyState> entry : policy.entrySet()) {
+    for (Entry<CFANode, PolicyAbstractedState> entry : policy.entrySet()) {
       CFANode toNode = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
 
-      for (Entry<LinearExpression, PolicyBound> incoming : state) {
+      for (Entry<LinearExpression, PolicyBound> incoming : state.asAbstracted()) {
         LinearExpression template = incoming.getKey();
         String templatePrefix = String.format(TEMPLATE_PREFIX, template);
 
@@ -184,8 +185,8 @@ public class ValueDeterminationFormulaManager {
   /**
    * Perform the associated maximization.
    */
-  PolicyState valueDeterminationMaximization(
-      PolicyState prevState,
+  PolicyAbstractedState valueDeterminationMaximization(
+      PolicyAbstractedState prevState,
       Set<Template> templates,
       Map<LinearExpression, PolicyBound> updated,
       CFANode node,
