@@ -29,6 +29,7 @@ import static com.google.common.base.Predicates.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -62,8 +63,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -93,30 +94,35 @@ public class LiveVariables {
   private final Set<ASimpleDeclaration> globalVariables;
   private final VariableClassification variableClassification;
 
+  /** For efficient access to the string representation of the declarations
+   * we use these maps additionally.
+   */
+  private final Multimap<CFANode, String> liveVariablesStrings;
+  private final Set<String> globalVariablesStrings;
+
   private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
                         VariableClassification pVariableClassification,
                         Set<ASimpleDeclaration> pGlobalVariables) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
+
+    globalVariablesStrings = FluentIterable.from(globalVariables).transform(new Function<ASimpleDeclaration, String>() {
+      @Override
+      public String apply(ASimpleDeclaration pInput) {
+        return pInput.getQualifiedName();
+      }}).toSet();
+
+    liveVariablesStrings = HashMultimap.<CFANode, String>create();
+    for (Entry<CFANode, ASimpleDeclaration> e : liveVariables.entries()) {
+      liveVariablesStrings.put(e.getKey(), e.getValue().getQualifiedName());
+    }
   }
 
   public boolean isVariableLive(ASimpleDeclaration variable, CFANode location) {
-    return isVariableLive(variable.getQualifiedName(), location);
-  }
+    String varName = variable.getQualifiedName();
 
-  public boolean isVariableLive(final String varName, CFANode location) {
-    // all global, pseudo global (variables from other functions) and addressed
-    // variables are always considered being live
-    final Predicate<ASimpleDeclaration> IS_VAR_CONTAINED_PREDICATE = new Predicate<ASimpleDeclaration>() {
-      @Override
-      public boolean apply(ASimpleDeclaration pInput) {
-        return pInput.getQualifiedName().equals(varName);
-      }};
-
-    boolean isGlobal = FluentIterable.from(globalVariables).anyMatch(IS_VAR_CONTAINED_PREDICATE);
-
-    if (isGlobal
+    if (globalVariables.contains(variable)
         || variableClassification.getAddressedVariables().contains(varName)
         || !varName.startsWith(location.getFunctionName())) {
       return true;
@@ -128,7 +134,23 @@ public class LiveVariables {
     }
 
     // check if a variable is live at a given point
-    return FluentIterable.from(liveVariables.get(location)).anyMatch(IS_VAR_CONTAINED_PREDICATE);
+    return liveVariables.containsEntry(location, varName);
+  }
+
+  public boolean isVariableLive(final String varName, CFANode location) {
+    if (globalVariablesStrings.contains(varName)
+        || variableClassification.getAddressedVariables().contains(varName)
+        || !varName.startsWith(location.getFunctionName())) {
+      return true;
+
+      // irrelevant variables from variable classification can be considered
+      // as not being live
+    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
+      return false;
+    }
+
+    // check if a variable is live at a given point
+    return liveVariablesStrings.containsEntry(location, varName);
   }
 
   public Set<ASimpleDeclaration> getLiveVariablesForNode(CFANode node) {
