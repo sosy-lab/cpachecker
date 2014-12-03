@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.junit.Assert.*;
 
@@ -233,5 +234,39 @@ public class SolverStackTest extends SolverBasedTest0 {
     stack2.pop(); // L1
     assertFalse(stack2.isUnsat());
     assertFalse(stack1.isUnsat());
+  }
+
+  /**
+   * This test checks that a SMT solver uses "global declarations":
+   * regardless of the stack at declaration time,
+   * declarations always live for the full life time of the solver
+   * (i.e., they do not get deleted on pop()).
+   * This is contrary to the SMTLib standard,
+   * but required by us, e.g. for BMC with induction
+   * (where we create new formulas while there is something on the stack).
+   */
+  @Test
+  public void dualStackGlobalDeclarations() throws Exception {
+    requireMultipleStackSupport();
+
+    // Create non-empty stack
+    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    stack1.push(bmgr.makeVariable("bool_a"));
+
+    // Declare b while non-empty stack exists
+    final String varName = "bool_b";
+    final BooleanFormula b = bmgr.makeVariable(varName);
+
+    // Clear stack (without global declarations b gets deleted)
+    stack1.push(b);
+    assertFalse(stack1.isUnsat());
+    stack1.pop();
+    stack1.pop();
+    stack1.close();
+
+    // Check that "b" (the reference to the old formula)
+    // is equivalent to a new formula with the same variable
+    assert_().about(BooleanFormula())
+             .that(b).isEquivalentTo(bmgr.makeVariable(varName));
   }
 }
