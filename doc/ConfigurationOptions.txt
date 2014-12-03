@@ -1473,9 +1473,6 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
-# Attempt to compare the produced path formulas
-cpa.stator.policy.comparePathFormulas = false
-
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = 1
 
