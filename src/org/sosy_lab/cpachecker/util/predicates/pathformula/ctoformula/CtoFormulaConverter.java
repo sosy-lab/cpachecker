@@ -417,6 +417,11 @@ public class CtoFormulaConverter {
     CType fromType = pFromType.getCanonicalType();
     CType toType = pToType.getCanonicalType();
 
+    if (fromType instanceof CArrayType) {
+      // In case of an array, we are interested in the type of values that it stores.
+      fromType = ((CArrayType) fromType).getType();
+    }
+
     if (fromType.equals(toType)) {
       return formula; // No cast required;
     }
@@ -874,6 +879,9 @@ public class CtoFormulaConverter {
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();
+        if (elementCType instanceof CArrayType) {
+          elementCType = ((CArrayType) elementCType).getType();
+        }
         FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
         Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
