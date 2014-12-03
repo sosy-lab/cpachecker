@@ -132,7 +132,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
 
-
   /**
    * This method refines the precision with the given increment.
    *
@@ -205,7 +204,6 @@ public abstract class VariableTrackingPrecision implements Precision {
         description="blacklist regex for variables that won't be tracked by the CPA using this precision")
     private Pattern variableBlacklist = Pattern.compile("");
 
-
     @Option(secure = true, name="variableWhitelist",
         description="whitelist regex for variables that will always be tracked by the CPA using this precision")
     private Pattern variableWhitelist = Pattern.compile("");
@@ -277,11 +275,11 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     private boolean isOnBlacklist(String variable) {
-      return variableBlacklist.matcher(variable).matches();
+      return !variableBlacklist.toString().isEmpty() && variableBlacklist.matcher(variable).matches();
     }
 
     private boolean isOnWhitelist(String variable) {
-      return variableWhitelist.matcher(variable).matches();
+      return !variableWhitelist.toString().isEmpty() && variableWhitelist.matcher(variable).matches();
     }
 
     /** returns true, iff the variable is in an varClass, that should be ignored. */
