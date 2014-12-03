@@ -69,13 +69,13 @@ public class ArrayFormulaManagerView
   public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>, FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
       String pName, FTI pIndexType, FTE pElementType) {
 
-    final ArrayFormulaType<TI, TE> arrayType = new ArrayFormulaType<>(pIndexType, pElementType);
+    final ArrayFormulaType<TI, TE> inputArrayType = new ArrayFormulaType<>(pIndexType, pElementType);
     final FTI unwrappedIndexType = (FTI) unwrapType(pIndexType);
     final FTE unwrappedElementType = (FTE) unwrapType(pElementType);
 
-    final ArrayFormula<TI, TE> resultWithUnwrappedTypes = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
+    final ArrayFormula<TI, TE> result = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
 
-    return wrap(arrayType, resultWithUnwrappedTypes); // new UnwrappedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
+    return wrap(inputArrayType, result); // new UnwrappedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
   }
 
   @Override
