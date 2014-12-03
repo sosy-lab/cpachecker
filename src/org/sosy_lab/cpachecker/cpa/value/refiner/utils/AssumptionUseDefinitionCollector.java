@@ -199,8 +199,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
    * @param collectedVariables the mapping of collected variables
    */
   private void collectVariables(CFAEdge edge, Set<String> collectedVariables) {
-    String currentFunction = edge.getPredecessor().getFunctionName();
-
     switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
@@ -215,11 +213,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
       if (declaration.getName() != null) {
-        String variableName = declaration.getName();
-
-        if (!declaration.isGlobal()) {
-          variableName = scoped(variableName, currentFunction);
-        }
+        String variableName = declaration.getQualifiedName();
 
         if (dependingVariables.contains(variableName)) {
           dependingVariables.remove(variableName);
@@ -249,22 +243,25 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
         if (functionCall instanceof CFunctionCallAssignmentStatement) {
           CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
-          String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), previousFunctionReturnEdge.getSuccessor().getFunctionName());
 
-          if (dependingVariables.contains(assignedVariable)) {
-            dependingVariables.remove(assignedVariable);
+          if(funcAssign.getLeftHandSide() instanceof CIdExpression) {
+            String assignedVariable = ((CIdExpression)(funcAssign.getLeftHandSide())).getDeclaration().getQualifiedName();
 
-            collectedVariables.add(assignedVariable);
+            if (dependingVariables.contains(assignedVariable)) {
+              dependingVariables.remove(assignedVariable);
 
-            // also add special function return variable as relevant variable
-            Optional<? extends AVariableDeclaration> returnVarName = returnStatementEdge.
-                getSuccessor().getEntryNode().getReturnVariable();
-            if(returnVarName.isPresent()) {
-              collectedVariables.add(returnVarName.get().getQualifiedName());
-            }
+              collectedVariables.add(assignedVariable);
 
-            if (returnStatementEdge.getExpression().isPresent()) {
-              collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
+              // also add special function return variable as relevant variable
+              Optional<? extends AVariableDeclaration> returnVarName = returnStatementEdge.
+                  getSuccessor().getEntryNode().getReturnVariable();
+              if(returnVarName.isPresent()) {
+                collectedVariables.add(returnVarName.get().getQualifiedName());
+              }
+
+              if (returnStatementEdge.getExpression().isPresent()) {
+                collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
+              }
             }
           }
         }
@@ -298,12 +295,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
       CStatementEdge statementEdge = (CStatementEdge)edge;
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
-        String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
-        if (dependingVariables.contains(assignedVariable)) {
-          dependingVariables.remove(assignedVariable);
-          collectedVariables.add(assignedVariable);
-          collectVariables(statementEdge, assignment.getRightHandSide());
+        if(assignment.getLeftHandSide() instanceof CIdExpression) {
+          String assignedVariable = ((CIdExpression)(assignment.getLeftHandSide())).getDeclaration().getQualifiedName();
+
+          if (dependingVariables.contains(assignedVariable)) {
+            dependingVariables.remove(assignedVariable);
+            collectedVariables.add(assignedVariable);
+            collectVariables(statementEdge, assignment.getRightHandSide());
+          }
         }
       }
       break;
@@ -330,21 +330,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
   }
 
   /**
-   * This method prefixes the name of a non-global variable with a given function name.
-   *
-   * @param variableName the variable name
-   * @param functionName the function name
-   * @return the prefixed variable name
-   */
-  private String scoped(String variableName, String functionName) {
-    if (globalVariables.contains(variableName)) {
-      return variableName;
-    } else {
-      return functionName + "::" + variableName;
-    }
-  }
-
-  /**
    * This method delegates the collecting job to the CollectVariablesVisitor.
    *
    * @param edge the edge to analyze
@@ -359,10 +344,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
    */
   private class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
                                                implements CRightHandSideVisitor<Void, RuntimeException> {
-    /**
-     * the current assignment edge
-     */
-    private final CFAEdge currentEdge;
 
     /**
      * This method acts as the constructor of the class.
@@ -371,16 +352,16 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
      * @param collectedVariables the mapping of locations to variable names up to the current edge
      */
     public CollectVariablesVisitor(CFAEdge currentEdge) {
-      this.currentEdge = currentEdge;
     }
 
     private void collectVariables(String variableName) {
-      dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      dependingVariables.add(variableName);
     }
 
     @Override
     public Void visit(CIdExpression pE) {
-      collectVariables(pE.getName());
+      collectVariables(pE.getDeclaration().getQualifiedName());
+
       return null;
     }
 
