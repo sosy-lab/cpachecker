@@ -138,7 +138,7 @@ public class LiveVariables {
     }
 
     // check if a variable is live at a given point
-    return liveVariables.containsEntry(location, varName);
+    return liveVariables.containsEntry(location, variable);
   }
 
   public boolean isVariableLive(final String varName, CFANode location) {
@@ -320,11 +320,10 @@ public class LiveVariables {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");
-    configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
-    configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+    configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
     configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
-                                               + " cpa.callstack.CallstackCPABackwards,"
-                                               + " cpa.livevar.LiveVariablesCPA");
+                                               + "cpa.callstack.CallstackCPABackwards,"
+                                               + "cpa.livevar.LiveVariablesCPA");
     configBuilder.setOption("cpa.location.followFunctionCalls", "true");
     configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "false");
 
@@ -335,10 +334,9 @@ public class LiveVariables {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");
-    configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
-    configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+    configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
     configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
-                                               + " cpa.livevar.LiveVariablesCPA");
+                                               + "cpa.livevar.LiveVariablesCPA");
     configBuilder.setOption("cpa.location.followFunctionCalls", "false");
     configBuilder.setOption("cpa.liveVar.assumeGlobalVariablesAreAlwaysLive", "true");
 
