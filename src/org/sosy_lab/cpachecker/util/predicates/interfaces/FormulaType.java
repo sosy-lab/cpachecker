@@ -203,6 +203,34 @@ public abstract class FormulaType<T extends Formula> {
     public String toString() {
       return "Array";
     }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((elementType == null) ? 0 : elementType.hashCode());
+      result = prime * result + ((indexType == null) ? 0 : indexType.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) { return true; }
+      if (obj == null) { return false; }
+      if (getClass() != obj.getClass()) { return false; }
+
+      ArrayFormulaType<?,?> other = (ArrayFormulaType<?,?>) obj;
+      if (elementType == null) {
+        if (other.elementType != null) { return false; }
+      } else if (!elementType.equals(other.elementType)) { return false; }
+
+      if (indexType == null) {
+        if (other.indexType != null) { return false; }
+      } else if (!indexType.equals(other.indexType)) { return false; }
+
+      return true;
+    }
+
   }
 
   public static final class FloatingPointType extends FormulaType<FloatingPointFormula> {

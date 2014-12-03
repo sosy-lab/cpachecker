@@ -32,11 +32,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
+
+  private final Table<Long, Long, Long> allocatedArraySorts = HashBasedTable.create();
 
   Z3FormulaCreator(
       long pEnv,
@@ -133,7 +139,15 @@ public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
       return (T)new Z3RationalFormula(getEnv(), pTerm);
     } else if (pType.isBitvectorType()) {
       return (T)new Z3BitvectorFormula(getEnv(), pTerm);
+    } else if (pType.isArrayType()) {
+      ArrayFormulaType<?, ?> arrFt = (ArrayFormulaType<?, ?>) pType;
+      return (T) new Z3ArrayFormula<>(
+          getEnv(),
+          pTerm,
+          arrFt.getIndexType(),
+          arrFt.getElementType());
     }
+
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in Z3");
   }
 
@@ -145,6 +159,17 @@ public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   public BitvectorFormula encapsulateBitvector(Long pTerm) {
     return new Z3BitvectorFormula(getEnv(), pTerm);
+  }
+
+  @Override
+  public Long getArrayType(Long pIndexType, Long pElementType) {
+    Long allocatedArraySort = allocatedArraySorts.get(pIndexType, pElementType);
+    if (allocatedArraySort == null) {
+      allocatedArraySort = Z3NativeApi.mk_array_sort(getEnv(), pIndexType, pElementType);
+      Z3NativeApi.inc_ref(getEnv(), allocatedArraySort);
+      allocatedArraySorts.put(pIndexType, pElementType, allocatedArraySort);
+    }
+    return allocatedArraySort;
   }
 
   @Override

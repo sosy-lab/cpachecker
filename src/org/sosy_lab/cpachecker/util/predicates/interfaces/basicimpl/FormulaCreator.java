@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.UnWrappedFormula;
@@ -86,6 +87,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   public abstract TType getFloatingPointType(FormulaType.FloatingPointType type);
 
+  public abstract TType getArrayType(TType indexType, TType elementType);
+
   public abstract TFormulaInfo makeVariable(TType type, String varName);
 
   public BooleanFormula encapsulateBoolean(TFormulaInfo pTerm) {
@@ -118,6 +121,9 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       return (T)new BitvectorFormulaImpl<>(pTerm);
     } else if (pType.isFloatingPointType()) {
       return (T)new FloatingPointFormulaImpl<>(pTerm);
+    } else if (pType.isArrayType()) {
+      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) pType;
+      return (T) encapsulateArray(pTerm, arrayType.getIndexType(), arrayType.getElementType());
     }
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in the Solver!");
   }

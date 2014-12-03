@@ -48,6 +48,7 @@ public class ArrayFormulaManagerView
     final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
     final FormulaType<TE> resultType = getElementType(pArray);
 
+    // the result of a select can also be a reference to an array! (multi-dimensional arrays)
     return wrap(resultType, selectResult);
   }
 
