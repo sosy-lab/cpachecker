@@ -21,17 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.princess;
+package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUninterpretedFunctionDeclaration;
 
-class PrincessFunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, PrincessEnvironment.FunctionType> {
+class Z3UninterpretedFunctionDeclaration<T extends Formula> extends AbstractUninterpretedFunctionDeclaration<T, Long> {
 
-  PrincessFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, PrincessEnvironment.FunctionType funcDecl) {
+  Z3UninterpretedFunctionDeclaration(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
     super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

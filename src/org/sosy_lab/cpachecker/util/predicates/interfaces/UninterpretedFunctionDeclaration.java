@@ -31,15 +31,18 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Represents a uninterpreted function type.
+ * Represents a uninterpreted function.
+ * This not a subclass of {@link Formula} because it does not represent a term
+ * (only the <em>application</em> of a uninterpreted function is a formula term,
+ * not the function itself).
  * @param <T> The type of the return value
  */
-public abstract class FunctionFormulaType<T extends Formula> {
+public abstract class UninterpretedFunctionDeclaration<T extends Formula> {
 
   private final FormulaType<T> returnType;
   private final List<FormulaType<?>> argumentTypes;
 
-  protected FunctionFormulaType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes) {
+  protected UninterpretedFunctionDeclaration(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes) {
     returnType = checkNotNull(pReturnType);
     argumentTypes = ImmutableList.copyOf(pArgumentTypes);
   }

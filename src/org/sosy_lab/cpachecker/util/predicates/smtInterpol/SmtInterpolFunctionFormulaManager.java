@@ -27,7 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -45,16 +45,16 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
   }
 
   @Override
-  public <TFormula extends Formula> Term createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
+  public <TFormula extends Formula> Term createUninterpretedFunctionCallImpl(UninterpretedFunctionDeclaration<TFormula> pFuncType,
       List<Term> pArgs) {
-    SmtInterpolFunctionType<TFormula> interpolType = (SmtInterpolFunctionType<TFormula>) pFuncType;
+    SmtInterpolUninterpretedFunctionDeclaration<TFormula> func = (SmtInterpolUninterpretedFunctionDeclaration<TFormula>) pFuncType;
     Term[] args = SmtInterpolUtil.toTermArray(pArgs);
-    String funcDecl = interpolType.getFuncDecl();
+    String funcDecl = func.getFuncDecl();
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
   @Override
-  public <T extends Formula> SmtInterpolFunctionType<T> declareUninterpretedFunction(
+  public <T extends Formula> SmtInterpolUninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
           String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
     Sort[] types = new Sort[pArgs.size()];
     for (int i = 0; i < types.length; i++) {
@@ -63,6 +63,6 @@ class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<T
     Sort returnType = toSolverType(pReturnType);
     getFormulaCreator().getEnv().declareFun(pName, types, returnType);
 
-    return new SmtInterpolFunctionType<>(pReturnType, pArgs, pName);
+    return new SmtInterpolUninterpretedFunctionDeclaration<>(pReturnType, pArgs, pName);
   }
 }

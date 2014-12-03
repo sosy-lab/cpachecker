@@ -27,11 +27,11 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUninterpretedFunctionDeclaration;
 
-class Mathsat5FunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, Long> {
+class Mathsat5UninterpretedFunctionDeclaration<T extends Formula> extends AbstractUninterpretedFunctionDeclaration<T, Long> {
 
-  public Mathsat5FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
+  public Mathsat5UninterpretedFunctionDeclaration(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
     super(pReturnType, funcDecl, pArgumentTypes);
   }
 }

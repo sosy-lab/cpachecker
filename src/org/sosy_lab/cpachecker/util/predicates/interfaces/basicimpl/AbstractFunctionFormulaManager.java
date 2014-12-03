@@ -29,7 +29,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.Lists;
 
@@ -53,17 +53,17 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public <T extends Formula> FunctionFormulaType<T> declareUninterpretedFunction(
+  public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, FormulaType<?>... pArgs) {
 
     return declareUninterpretedFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   protected abstract <TFormula extends Formula> TFormulaInfo
-    createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType, List<TFormulaInfo> pArgs);
+    createUninterpretedFunctionCallImpl(UninterpretedFunctionDeclaration<TFormula> pFuncType, List<TFormulaInfo> pArgs);
 
   @Override
-  public final <T extends Formula> T callUninterpretedFunction(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
+  public final <T extends Formula> T callUninterpretedFunction(UninterpretedFunctionDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();
     List<TFormulaInfo> list = Lists.transform(pArgs, extractor);
 

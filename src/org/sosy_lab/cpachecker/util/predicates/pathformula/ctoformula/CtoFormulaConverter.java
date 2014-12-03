@@ -101,7 +101,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -172,7 +172,7 @@ public class CtoFormulaConverter {
   // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionFormulaType<?> stringUfDecl;
+  private final UninterpretedFunctionDeclaration<?> stringUfDecl;
 
   protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
 

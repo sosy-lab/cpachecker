@@ -21,17 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 
-class SmtInterpolFunctionType<T extends Formula> extends AbstractFunctionFormulaType<T, String> {
+/**
+ * A simple straightforward implementation of FunctionFormulaType<T>
+ */
+public abstract class AbstractUninterpretedFunctionDeclaration<T extends Formula, TFuncDecl> extends UninterpretedFunctionDeclaration<T> {
 
-  SmtInterpolFunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, String funcDecl) {
-    super(pReturnType, funcDecl, pArgumentTypes);
+  private final TFuncDecl funcDecl;
+
+  public AbstractUninterpretedFunctionDeclaration(FormulaType<T> returnType, TFuncDecl funcDecl, List<FormulaType<?>> argumentTypes) {
+    super(returnType, argumentTypes);
+    this.funcDecl = checkNotNull(funcDecl);
+  }
+
+  public TFuncDecl getFuncDecl() {
+    return funcDecl;
   }
 }
