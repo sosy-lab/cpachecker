@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -931,7 +929,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
     CType returnType = functionType.getReturnType().getCanonicalType();
     if (isHandleAbleType(returnType)
         && !(returnType instanceof CVoidType)) {
-      state = state.declareVariable(MemoryLocation.valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0),
+      state = state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
                             getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }
 
@@ -999,7 +997,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      int returnVarIndex = state.getVariableIndexFor(MemoryLocation .valueOf(calledFunctionName, createFunctionReturnVariable(calledFunctionName), 0));
+      int returnVarIndex = state.getVariableIndexFor(MemoryLocation .valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);
@@ -1188,7 +1186,9 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Set<Octa
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), createFunctionReturnVariable(functionName), 0);
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(),
+                                                        ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(),
+                                                        0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
