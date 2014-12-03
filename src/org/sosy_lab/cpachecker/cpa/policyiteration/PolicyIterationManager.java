@@ -65,6 +65,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
 
+  // TODO: check the effect.
+  @Option(secure=true, name="comparePathFormulas",
+    description="Attempt to compare the produced path formulas")
+  private boolean comparePathFormulas = false;
+
   @SuppressWarnings("unused, FieldCanBeLocal")
   private final FormulaManagerView fmgr;
 
@@ -164,6 +169,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     CFANode node = edge.getSuccessor();
     PathFormula prev;
 
+    // TODO: optimization, do not create auxiliary variables for the cases
+    // when there's only one incoming edge.
     NumeralFormula branchVar =  rfmgr.makeVariable(
         String.format(SELECTION_VAR_TEMPLATE, node.getNodeNumber()));
     BooleanFormula branchConstraint = rfmgr.equal(
@@ -172,16 +179,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     );
 
     if (oldState.isAbstract()) {
-      PathFormula empty = new PathFormula(
-          bfmgr.makeBoolean(true),
-          SSAMap.emptySSAMap(),
-          oldState.asAbstracted().getPointerTargetSet(),
-          0
-      );
-      prev = pfmgr.makeAnd(
-          empty,
-          abstractStateToFormula(oldState.asAbstracted(), empty.getSsa())
-      );
+      prev = abstractStateToPathFormula(oldState.asAbstracted());
     } else {
       prev = oldState.asIntermediate().getPathFormula();
     }
@@ -252,9 +250,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * @return {@code true} if and only if {@code newState} represents a state
-   * which is smaller-or-equal (with respect to the abstract lattice)
-   * than the {@code oldState}.
+   * @return {@code newState <= oldState}
    */
   @Override
   public boolean isLessOrEqual(PolicyState newState, PolicyState oldState) {
@@ -265,24 +261,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     boolean isAbstract = newState.isAbstract();
 
     if (!isAbstract) {
-
-      // Can we do "<" for path formulas?
-      return oldState.asIntermediate().getPathFormula().equals(
-          newState.asIntermediate().getPathFormula());
+      return !comparePathFormulas ||
+          oldState.asIntermediate().getPathFormula()
+            .equals(newState.asIntermediate().getPathFormula());
     } else {
       PolicyAbstractedState aNewState = newState.asAbstracted();
-      for (Entry<LinearExpression, PolicyBound> entry : oldState.asAbstracted()) {
+      PolicyAbstractedState aOldState = oldState.asAbstracted();
+      for (Entry<LinearExpression, PolicyBound> entry : aOldState) {
         LinearExpression template = entry.getKey();
-        PolicyBound newBound = entry.getValue();
+        PolicyBound oldBound = entry.getValue();
 
-        // TODO: why is it called "old"?
-        Optional<PolicyBound> oldBound = aNewState.getBound(template);
+        Optional<PolicyBound> newBound = aNewState.getBound(template);
 
-        if (!oldBound.isPresent()) {
+        if (!newBound.isPresent()) {
 
-          // Old bound is infinity, new bound is not, not covered.
+          // New bound is infinity, old bound is not, not covered.
           return false;
-        } else if (oldBound.get().bound.compareTo(newBound.bound) > 0) {
+        } else if (newBound.get().bound.compareTo(oldBound.bound) > 0) {
 
           // Note that the trace obtained is irrelevant.
           return false;
@@ -561,9 +556,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return !pathFocusing || node.isLoopStart();
   }
 
-  private BooleanFormula abstractStateToFormula(
-      PolicyAbstractedState abstractState, SSAMap ssa) {
+  private PathFormula abstractStateToPathFormula(
+      PolicyAbstractedState abstractState) {
 
+    SSAMap ssa = SSAMap.emptySSAMap();
     List<BooleanFormula> tokens = new ArrayList<>();
     for (Entry<LinearExpression, PolicyBound> entry : abstractState) {
       LinearExpression template = entry.getKey();
@@ -574,7 +570,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       );
       tokens.add(constraint);
     }
-    return bfmgr.and(tokens);
+    BooleanFormula constraint = bfmgr.and(tokens);
+    
+    return new PathFormula(
+        constraint, ssa, abstractState.getPointerTargetSet(),
+        0
+    );
   }
 
   /**
