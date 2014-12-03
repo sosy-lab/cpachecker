@@ -65,11 +65,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
 
-  // TODO: check the effect.
-  @Option(secure=true, name="comparePathFormulas",
-    description="Attempt to compare the produced path formulas")
-  private boolean comparePathFormulas = false;
-
   @SuppressWarnings("unused, FieldCanBeLocal")
   private final FormulaManagerView fmgr;
 
@@ -210,7 +205,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       // Perform the abstraction, if necessary.
       CFANode toNode = state.getNode();
       if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
-        PolicyIntermediateState iState = (PolicyIntermediateState)state;
+        PolicyIntermediateState iState = state.asIntermediate();
 
         Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
         if (!abstraction.isPresent()) {
@@ -256,7 +251,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return {@code newState <= oldState}
    */
   @Override
-  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState) {
+  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState)
+      throws CPATransferException, InterruptedException {
     Preconditions.checkState(newState.isAbstract() == oldState.isAbstract(),
         "Abstraction state of two states associated with the same node should " +
             "match");
@@ -264,9 +260,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     boolean isAbstract = newState.isAbstract();
 
     if (!isAbstract) {
-      return !comparePathFormulas ||
-          oldState.asIntermediate().getPathFormula()
-            .equals(newState.asIntermediate().getPathFormula());
+      return  oldState.asIntermediate().getPathFormula()
+              .equals(newState.asIntermediate().getPathFormula());
     } else {
       PolicyAbstractedState aNewState = newState.asAbstracted();
       PolicyAbstractedState aOldState = oldState.asAbstracted();
@@ -321,8 +316,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     Set<Template> allTemplates = oldState.getTemplates();
 
     if (!isAbstract) {
-      PathFormula newPath = newState.asIntermediate().getPathFormula();
-      PathFormula oldPath = oldState.asIntermediate().getPathFormula();
+      PolicyIntermediateState iNewState = newState.asIntermediate();
+      PolicyIntermediateState iOldState = oldState.asIntermediate();
+      PathFormula newPath = iNewState.getPathFormula();
+      PathFormula oldPath = iOldState.getPathFormula();
+
+      // Just return the old state if it covers the new state.
+      if (checkCovering(iOldState, iNewState)) {
+        return newState;
+      }
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
@@ -433,6 +435,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
+   * @return Whether {@code newState} is covered by {@code oldState}
+   */
+  private boolean checkCovering(
+      PolicyIntermediateState newState, PolicyIntermediateState oldState)
+      throws CPATransferException, InterruptedException {
+    // TODO: the SMT query can be avoided by storing the parents of the state,
+    // then we can do the lexicographic comparison instead.
+    statistics.checkCoveringTimer.start();
+    try (ProverEnvironment solver
+             = formulaManagerFactory.newProverEnvironment(false, false)) {
+      solver.push(bfmgr.not(oldState.getPathFormula().getFormula()));
+      solver.push(newState.getPathFormula().getFormula());
+      return solver.isUnsat();
+    } catch (SolverException e) {
+      throw new CPATransferException("Failed Solving", e);
+    } finally {
+      statistics.checkCoveringTimer.stop();
+    }
+  }
+
+  /**
    * Perform the abstract operation on a new state
    *
    * @param state State to abstract
@@ -470,7 +493,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           case OPT:
             Rational bound = solver.value(EPSILON);
             Model model = solver.getModel();
-            logger.log(Level.FINE, "# Model =" + model);
             MultiEdge edge = traceFromModel(node, model);
             abstraction.put(template, new PolicyBound(edge, bound));
             break;
@@ -553,11 +575,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Last successor is the ultimate "predecessor"
     CFANode predecessor = successor;
     assert !traceReversed.isEmpty() : model;
-    MultiEdge edge = new MultiEdge(predecessor, node,
+    return new MultiEdge(predecessor, node,
         Lists.reverse(traceReversed));
-
-    logger.log(Level.FINE, "# Constructed edge: ", edge);
-    return edge;
   }
 
   /**
@@ -603,7 +622,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     BooleanFormula constraint = bfmgr.and(tokens);
     
     return new PathFormula(
-        constraint, ssa, abstractState.getPointerTargetSet(),
+        constraint, ssa,
+        abstractState.getPointerTargetSet(),
         0
     );
   }

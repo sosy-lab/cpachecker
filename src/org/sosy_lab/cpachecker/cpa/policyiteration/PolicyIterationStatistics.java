@@ -18,6 +18,7 @@ public class PolicyIterationStatistics implements Statistics {
   Timer timeInMerge = new Timer();
   Timer strengthenTimer = new Timer();
   Timer abstractionTimer = new Timer();
+  Timer checkCoveringTimer = new Timer();
 
   int valueDetCalls = 0;
 
@@ -37,6 +38,7 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, timeInMerge, "merge-step");
     printTimer(out, strengthenTimer, "strengthen");
     printTimer(out, strengthenTimer, "abstraction");
+    printTimer(out, checkCoveringTimer, "coverage check");
   }
 
   public void printTimer(PrintStream out, Timer t, String name) {
