@@ -216,11 +216,14 @@ public class LiveVariables {
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
       for (Loop l : loops) {
+
+        // we need only one loop head for each loop, as we are doing a merge
+        // afterwards during the analysis, and we do never stop besides when
+        // there is coverage (we have no target states)
         if (l.getOutgoingEdges().isEmpty()) {
-          for (CFANode n : l.getLoopHeads()) {
-            analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(n),
-                                         analysisParts.cpa.getInitialPrecision(n));
-          }
+          CFANode functionHead = l.getLoopHeads().iterator().next();
+          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead),
+                                       analysisParts.cpa.getInitialPrecision(functionHead));
         }
       }
     }
