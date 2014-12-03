@@ -72,6 +72,18 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
+  public void push() {
+    logger.log(Level.FINE, "Creating backtracking point");
+    wrapped.push();
+  }
+
+  @Override
+  public void pop() {
+    logger.log(Level.FINE, "Backtracking one level");
+    wrapped.pop();
+  }
+
+  @Override
   public Rational upper(int epsilon) {
     return wrapped.upper(epsilon);
   }

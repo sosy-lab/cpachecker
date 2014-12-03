@@ -65,7 +65,6 @@ public class Z3OptProver implements OptEnvironment {
 
   @Override
   public void maximize(Formula objective) {
-    Preconditions.checkState(!objectiveHandle.isPresent());
     Z3Formula z3Objective = (Z3Formula) objective;
     int handle = optimize_maximize(
         z3context, z3optContext, z3Objective.getExpr());
@@ -75,7 +74,6 @@ public class Z3OptProver implements OptEnvironment {
 
   @Override
   public void minimize(Formula objective) {
-    Preconditions.checkState(!objectiveHandle.isPresent());
     Z3Formula z3Objective = (Z3Formula) objective;
     int handle = optimize_minimize(
         z3context, z3optContext, z3Objective.getExpr());
@@ -86,10 +84,6 @@ public class Z3OptProver implements OptEnvironment {
   @Override
   public OptStatus check()
       throws InterruptedException, SolverException {
-    // TODO: check whether we can switch constraints using push and pop.
-    // because the objective seems to be essentially the
-    // _constraint_.
-
     Preconditions.checkState(objectiveHandle.isPresent());
 
     int status = optimize_check(z3context, z3optContext);
@@ -112,6 +106,16 @@ public class Z3OptProver implements OptEnvironment {
   }
 
   @Override
+  public void push() {
+    optimize_push(z3context, z3optContext);
+  }
+
+  @Override
+  public void pop() {
+    optimize_pop(z3context, z3optContext);
+  }
+
+  @Override
   public Rational upper(int epsilon) {
     Preconditions.checkState(objectiveHandle.isPresent());
     int idx = objectiveHandle.get();
@@ -127,7 +131,6 @@ public class Z3OptProver implements OptEnvironment {
     int idx = objectiveHandle.get();
     long ast = optimize_get_lower(z3context, z3optContext, idx);
 
-    // TODO: change the epsilon value from 1 to a more suitable number.
     return rationalFromZ3AST(
         replaceEpsilon(ast, epsilon));
   }
@@ -158,13 +161,11 @@ public class Z3OptProver implements OptEnvironment {
    * Replace the epsilon in the returned formula with a numeric value.
    */
   private long replaceEpsilon(long ast, int newValue) {
-    // TODO: due to the bug in Z3 only integral substitutions are allowed
     Z3Formula z = new Z3RationalFormula(z3context, ast);
 
     Z3Formula epsFormula =
         (Z3Formula)mgr.getIntegerFormulaManager().makeVariable("epsilon");
 
-    // TODO: make the substitution for epsilon configurable.
     Z3Formula out = mgr.getUnsafeFormulaManager().substitute(
         z,
         ImmutableList.of(epsFormula),
