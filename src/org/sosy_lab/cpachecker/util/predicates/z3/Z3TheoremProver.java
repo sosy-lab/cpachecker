@@ -94,7 +94,7 @@ public class Z3TheoremProver implements ProverEnvironment {
           (Z3BooleanFormula) mgr.getBooleanFormulaManager().makeVariable(
               varName);
 
-      solver_assert_and_track(z3context, z3solver, e, t.getExpr());
+      solver_assert_and_track(z3context, z3solver, e, t.getFormulaInfo());
       storedConstraints.put(varName, f);
     } else {
       solver_assert(z3context, z3solver, e);

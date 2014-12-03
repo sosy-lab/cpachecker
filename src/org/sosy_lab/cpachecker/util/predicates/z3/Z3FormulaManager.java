@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.UnWrappedFormula;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 @Options(prefix = "cpa.predicate.solver.z3")
@@ -172,9 +173,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     return encapsulateBooleanFormula(e);
   }
 
-
   static long getZ3Expr(Formula pT) {
-    return ((Z3Formula) pT).getExpr();
+    if (pT instanceof Z3Formula) {
+      return ((Z3Formula)pT).getFormulaInfo();
+    } else if (pT instanceof UnWrappedFormula) {
+      return getZ3Expr(((UnWrappedFormula<?>)pT).getUnwrapped());
+    }
+    throw new IllegalArgumentException("Cannot get the formula info of type " + pT.getClass().getSimpleName() + " in the Solver!");
   }
 
   @Override

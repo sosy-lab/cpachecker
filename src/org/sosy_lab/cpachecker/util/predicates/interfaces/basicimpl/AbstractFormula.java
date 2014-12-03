@@ -57,7 +57,7 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
     return formulaInfo.equals(((AbstractFormula<?>) o).formulaInfo);
   }
 
-  TFormulaInfo getFormulaInfo() {
+  public TFormulaInfo getFormulaInfo() {
     return formulaInfo;
   }
 
