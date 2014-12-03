@@ -93,6 +93,7 @@ public class LiveVariables {
   private final Multimap<CFANode, ASimpleDeclaration> liveVariables;
   private final Set<ASimpleDeclaration> globalVariables;
   private final VariableClassification variableClassification;
+  private final EvaluationStrategy evaluationStrategy;
 
   /** For efficient access to the string representation of the declarations
    * we use these maps additionally.
@@ -102,10 +103,12 @@ public class LiveVariables {
 
   private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
                         VariableClassification pVariableClassification,
-                        Set<ASimpleDeclaration> pGlobalVariables) {
+                        Set<ASimpleDeclaration> pGlobalVariables,
+                        EvaluationStrategy pEvaluationStrategy) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
+    evaluationStrategy = pEvaluationStrategy;
 
     globalVariablesStrings = FluentIterable.from(globalVariables).transform(new Function<ASimpleDeclaration, String>() {
       @Override
@@ -124,7 +127,8 @@ public class LiveVariables {
 
     if (globalVariables.contains(variable)
         || variableClassification.getAddressedVariables().contains(varName)
-        || !varName.startsWith(location.getFunctionName())) {
+        || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
+            && !varName.startsWith(location.getFunctionName()))) {
       return true;
 
       // irrelevant variables from variable classification can be considered
@@ -140,7 +144,8 @@ public class LiveVariables {
   public boolean isVariableLive(final String varName, CFANode location) {
     if (globalVariablesStrings.contains(varName)
         || variableClassification.getAddressedVariables().contains(varName)
-        || !varName.startsWith(location.getFunctionName())) {
+        || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
+            && !varName.startsWith(location.getFunctionName()))) {
       return true;
 
       // irrelevant variables from variable classification can be considered
@@ -205,7 +210,10 @@ public class LiveVariables {
       return Optional.absent();
     }
 
-    return Optional.of(new LiveVariables(liveVariables, variableClassification, globalVariables));
+    return Optional.of(new LiveVariables(liveVariables,
+                                         variableClassification,
+                                         globalVariables,
+                                         liveVarConfig.evaluationStrategy));
   }
 
   private final static Function<Pair<ADeclaration, String>, ASimpleDeclaration> DECLARATION_FILTER =
