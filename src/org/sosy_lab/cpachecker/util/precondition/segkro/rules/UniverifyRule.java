@@ -21,15 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 
-public class ExtendLeftRule extends AbstractRule {
+public class UniverifyRule extends AbstractRule {
 
-  public ExtendLeftRule(FormulaManager pFm, Solver pSolver) {
+  public UniverifyRule(FormulaManager pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

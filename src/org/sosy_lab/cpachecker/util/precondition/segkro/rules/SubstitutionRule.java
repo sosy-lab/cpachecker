@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import java.util.List;
 import java.util.Map;

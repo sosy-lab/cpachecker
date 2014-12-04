@@ -21,16 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro;
+package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
-import org.sosy_lab.cpachecker.cpa.wp.segkro.rules.EliminationRule;
-import org.sosy_lab.cpachecker.cpa.wp.segkro.rules.EquivalenceRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.Lists;

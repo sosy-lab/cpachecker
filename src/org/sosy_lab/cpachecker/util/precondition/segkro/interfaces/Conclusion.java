@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces;
+package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
 
 public interface Conclusion {

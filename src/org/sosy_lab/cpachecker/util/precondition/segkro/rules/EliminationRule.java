@@ -21,40 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import java.util.List;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cpa.wp.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-public abstract class AbstractRule implements Rule {
 
-  protected final FormulaManager fm;
-  protected final Solver solver;
 
-  public AbstractRule(FormulaManager pFm, Solver pSolver) {
-    this.fm = pFm;
-    this.solver = pSolver;
+public class EliminationRule extends AbstractRule {
+
+  public EliminationRule(FormulaManager pFm, Solver pSolver) {
+    super(pFm, pSolver);
   }
-
-  @Override
-  public String getRuleName() {
-    return getClass().getSimpleName();
-  }
-
-  @Override
-  public Set<BooleanFormula> apply(BooleanFormula pInput) {
-    throw new UnsupportedOperationException("Implement me in the child class if needed!");
-  }
-
-  @Override
-  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
-    throw new UnsupportedOperationException("Implement me in the child class if needed!");
-  }
-
 
 }

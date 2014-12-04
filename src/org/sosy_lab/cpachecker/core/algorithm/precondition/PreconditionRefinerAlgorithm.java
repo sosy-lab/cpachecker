@@ -52,11 +52,14 @@ import com.google.common.base.Preconditions;
 public class PreconditionRefinerAlgorithm implements Algorithm {
 
   public static enum PreconditionExportType { NONE, SMTLIB }
-
-  @Option(secure=true, name="export.type", description="(How) should the precondition be exported?")
+  @Option(secure=true,
+      name="export.type",
+      description="(How) should the precondition be exported?")
   private PreconditionExportType exportPreciditionsAs = PreconditionExportType.NONE;
 
-  @Option(secure=true, name="export.target", description="Where should the precondition be exported to?")
+  @Option(secure=true,
+      name="export.target",
+      description="Where should the precondition be exported to?")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportPreciditionsTo = Paths.get("precondition.txt");
 
@@ -113,7 +116,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // Use one set of reached states! Separate state space using a specification automaton!
       BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
-      BooleanFormula pcValid = getPreconditionForViolation(pReachedSet);
+      BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
 
       if (isDisjoint(pcViolation, pcValid)) {
         // TODO: Provide the result somehow

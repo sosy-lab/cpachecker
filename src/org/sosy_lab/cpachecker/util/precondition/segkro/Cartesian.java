@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.cpa.wp.segkro;
+package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 /* Copyright 2012 LinkedIn Corp.
 

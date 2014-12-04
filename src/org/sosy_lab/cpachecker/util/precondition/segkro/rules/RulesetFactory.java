@@ -21,17 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import java.util.List;
+
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
+import com.google.common.collect.Lists;
 
 
-public class EliminationRule extends AbstractRule {
+public class RulesetFactory {
 
-  public EliminationRule(FormulaManager pFm, Solver pSolver) {
-    super(pFm, pSolver);
+  public static List<Rule> createRuleset(FormulaManager pFm, Solver pSolver) {
+    List<Rule> result = Lists.newArrayList();
+
+    // the ordering of this rules might be important!
+
+    result.add(new EliminationRule(pFm, pSolver));
+    result.add(new EquivalenceRule(pFm, pSolver));
+    result.add(new UniverifyRule(pFm, pSolver));
+    result.add(new SubstitutionRule(pFm, pSolver));
+    result.add(new LinkRule(pFm, pSolver));
+    result.add(new ExistentialRule(pFm, pSolver));
+    result.add(new ExtendLeftRule(pFm, pSolver));
+    result.add(new ExtendRightRule(pFm, pSolver));
+
+    return result;
   }
 
 }

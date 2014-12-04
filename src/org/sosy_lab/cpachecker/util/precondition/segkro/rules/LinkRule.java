@@ -21,11 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.wp.segkro;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-/**
- * Goal: Avoid irrelevant predicates.
- */
-public class MinCorePrio {
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+
+
+public class LinkRule extends AbstractRule {
+
+  public LinkRule(FormulaManager pFm, Solver pSolver) {
+    super(pFm, pSolver);
+  }
 
 }
