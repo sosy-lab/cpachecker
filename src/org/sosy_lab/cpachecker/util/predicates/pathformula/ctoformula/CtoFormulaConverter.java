@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -147,6 +148,8 @@ public class CtoFormulaConverter {
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
       );
+
+  private static final CharMatcher ILLEGAL_VARNAME_CHARACTERS = CharMatcher.anyOf("|\\");
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -256,7 +259,9 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarNameUnscoped(AAstNode e) {
-    return e.toASTString().replaceAll("[ \n\t]", "");
+    return ILLEGAL_VARNAME_CHARACTERS.replaceFrom(
+        CharMatcher.WHITESPACE.removeFrom(e.toASTString()),
+        '_');
   }
 
   /**
