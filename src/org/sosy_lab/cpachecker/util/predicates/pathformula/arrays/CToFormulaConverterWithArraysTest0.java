@@ -85,7 +85,7 @@ import com.google.common.collect.Lists;
  *  Consider CArrayDesignator!
  *
  */
-
+@SuppressWarnings("unused")
 public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   private static final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
