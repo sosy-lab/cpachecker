@@ -122,7 +122,7 @@ public class FormulaManagerView {
   @Option(secure=true, description="Theory to use as backend for bitvectors."
       + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
-  private Theory encodeBitvectorAs = Theory.RATIONAL;
+  private Theory encodeBitvectorAs = Theory.INTEGER;
 
   @Option(secure=true, description="Theory to use as backend for floats."
       + " If different from FLOAT, the specified theory is used to approximate floats."
