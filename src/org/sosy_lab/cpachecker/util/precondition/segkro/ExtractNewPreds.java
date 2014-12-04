@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 
 /**
@@ -46,7 +45,7 @@ public class ExtractNewPreds {
 
   private final List<Rule> rules;
 
-  Ordering<Integer> ordering = new Ordering<Integer>() {
+  private Ordering<Integer> ordering = new Ordering<Integer>() {
     @Override
     public int compare(Integer left, Integer right) {
         return Ints.compare(left, right);
@@ -57,23 +56,21 @@ public class ExtractNewPreds {
     this.rules = pRules;
   }
 
-  public Set<BooleanFormula> extractAtoms(BooleanFormula pInputFormula) {
-    Set<BooleanFormula> atoms = Sets.newHashSet();
+  private List<BooleanFormula> extractAtoms(BooleanFormula pInputFormula) {
+    final List<BooleanFormula> atoms = Lists.newArrayList();
 
     return atoms;
   }
 
-  public List<BooleanFormula> extractNewPreds(BooleanFormula pInputFormula) {
-    List<BooleanFormula> result = Lists.newArrayList();
+  private List<BooleanFormula> extractNewPreds(List<BooleanFormula> pSbaseAtoms) {
+    final List<BooleanFormula> result = Lists.newArrayList();
+    final List<BooleanFormula> l = Lists.newArrayList();
+    final LinkedList<BooleanFormula> lPrime = Lists.newLinkedList();
 
-    List<BooleanFormula> l = Lists.newArrayList();
-    LinkedList<BooleanFormula> lPrime = Lists.newLinkedList();
+    // Start with the list of basic predicates.
+    //    This predicates have (initially) the LOWEST PRIORITY!!!
 
-    // Start with the list of basic predicates
-    //  (extracted from the formula
-    Set<BooleanFormula> sb = extractAtoms(pInputFormula);
-
-    lPrime.addAll(sb);
+    lPrime.addAll(pSbaseAtoms);
 
     // Keep applying the rules until no new predicates get produced
     do {
@@ -98,15 +95,17 @@ public class ExtractNewPreds {
           boolean existsTnotInSb = false;
 
           for (BooleanFormula t: tuple) {
-            if (!sb.contains(t)) {
+            if (!pSbaseAtoms.contains(t)) {
               existsTnotInSb = true;
             }
 
+            // The rules ELIM and EQ are only applied to the base predicates!!
             boolean isElimOrEq = r instanceof EliminationRule || r instanceof EquivalenceRule;
 
             if (!isElimOrEq || existsTnotInSb) {
-              // Store predicates according to their priority
-              // "in a position of the list that is beyond the positions of the associated antecedents"
+              // Store predicates according to their priority.
+              //    Put the new predicates (that is more general than the predicates in the premise)
+              //    ahead of the predicates that were used as premise.
               Set<BooleanFormula> s = r.apply(t);
               List<Integer> positions = Lists.newArrayList();
 
@@ -128,10 +127,32 @@ public class ExtractNewPreds {
         }
       }
 
+      // Fix-point iteration: Until now new predicates are produced.
     } while(l.equals(lPrime)); // TODO: Does this compare what was intended?
 
     // Store new predicates according to their priority
     return result;
+  }
+
+  /**
+   * Produces a priorised set of predicates from a conjunctive formula.
+   *
+   *    Idea: Predicates that are more general have a higher priority.
+   *
+   *    Given a rule R, with a premise P and a conclusion C,
+   *    and two predicates p1 and p2.
+   *      Priority(p1) is higher than Priority(p2), if p1 ∈  C and p2 ∈  P.
+   *
+   * @param pConjunctiveFormula
+   *          Formula consists of a conjunction of atoms; disjunctions are not considered explicitly.
+   *
+   * @return  List of predicates in ascending order (predicates with higher priority first)
+   */
+  public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) {
+    // Start with the list of basic predicates
+    //  (extracted from the conjunctive formula)
+    List<BooleanFormula> atoms = extractAtoms(pConjunctiveFormula);
+    return extractNewPreds(atoms);
   }
 
   private boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {

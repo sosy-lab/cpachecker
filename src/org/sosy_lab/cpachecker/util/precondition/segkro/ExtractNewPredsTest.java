@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.precondition.segkro;
 import java.util.List;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RulesetFactory;
@@ -47,39 +46,115 @@ import com.google.common.collect.Lists;
 public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
+
   private FormulaManagerView mgrv;
+  private ArrayFormulaManagerView afm;
+  private BooleanFormulaManagerView bfm;
+  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+
+  private BooleanFormula _i1_EQUAL_0;
+  private BooleanFormula _b0_at_i1_NOTEQUAL_0;
+  private IntegerFormula _a0_at_i1;
+  private IntegerFormula _b0_at_i1;
+  private BooleanFormula _i1_GEQ_al0;
+  private BooleanFormula _a0_at_i1_EQUAL_b0_at_i1;
+  private IntegerFormula _i1_plus_1;
+  private BooleanFormula _i0_EQUAL_i1_plus_1;
+  private BooleanFormula _b0_at_i0_EQUAL_0;
+  private IntegerFormula _b0_at_i0;
+  private BooleanFormula _i2_EQUAL_0;
+  private IntegerFormula _b0_at_i2;
+  private BooleanFormula _b0_at_i2_NOTEQUAL_0;
+  private BooleanFormula _i2_GEQ_al0;
+  private BooleanFormula _a1_at_i2_EQUAL_b0_at_i2;
+  private IntegerFormula _i2_plus_1;
+  private BooleanFormula _i1_EQUAL_i2_plus_1;
+  private BooleanFormula _b0_at_i0_NOTEQUAL_0;
+  private BooleanFormula _i0_LESS_al0;
+  private IntegerFormula _a1_at_i2;
+
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _safeTrace;
+
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _errorTrace;
 
   @Before
   public void setUp() throws Exception {
     mgrv = new FormulaManagerView(mgr, config, logger);
+    afm = mgrv.getArrayFormulaManager();
+    bfm = mgrv.getBooleanFormulaManager();
+    ifm = mgrv.getIntegerFormulaManager();
+
     Solver solver = new Solver(mgrv, factory);
     List<Rule> rules = Lists.newArrayList();
     rules = RulesetFactory.createRuleset(mgr, solver);
     enp = new ExtractNewPreds(rules);
+
+    setupTestdata();
   }
 
-  @Test @Ignore
-  public void test() {
-    ArrayFormulaManagerView afm = mgrv.getArrayFormulaManager();
-    BooleanFormulaManagerView bfm = mgrv.getBooleanFormulaManager();
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm = mgrv.getIntegerFormulaManager();
-
-    IntegerFormula _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
-    IntegerFormula _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+  public void setupTestdata() {
+    IntegerFormula _i0 = mgrv.makeVariable(NumeralType.IntegerType, "i0");
+    IntegerFormula _i1 = mgrv.makeVariable(NumeralType.IntegerType, "i1");
+    IntegerFormula _i2 = mgrv.makeVariable(NumeralType.IntegerType, "i2");
+    IntegerFormula _al0 = mgrv.makeVariable(NumeralType.IntegerType, "al0");
     IntegerFormula _0 = ifm.makeNumber(0);
     IntegerFormula _1 = ifm.makeNumber(1);
-    IntegerFormula _i_plus_1 = ifm.add(_i, _1);
 
-    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-    IntegerFormula _b_at_i_plus_1 = afm.select(_b, _i_plus_1);
-    BooleanFormula _b_at_i_plus_1_EQUAL_0 = ifm.equal(_b_at_i_plus_1, _0);
-    BooleanFormula _b_at_i_plus_1_NOTEQUAL_0 = bfm.not(ifm.equal(_b_at_i_plus_1, _0));
+    ArrayFormula<IntegerFormula, IntegerFormula> _a0 = afm.makeArray("a0", NumeralType.IntegerType, NumeralType.IntegerType);
+    ArrayFormula<IntegerFormula, IntegerFormula> _a1 = afm.makeArray("a1", NumeralType.IntegerType, NumeralType.IntegerType);
+    ArrayFormula<IntegerFormula, IntegerFormula> _b0 = afm.makeArray("b0", NumeralType.IntegerType, NumeralType.IntegerType);
 
-    BooleanFormula _i_LESS_al = ifm.lessThan(_i, _al);
-    BooleanFormula _i_plus_1_GEQ_al = ifm.greaterOrEquals(_i_plus_1, _al);
+    _i0_LESS_al0 = ifm.lessThan(_i0, _al0);
+    _i1_plus_1 = ifm.add(_i1, _1);
+    _i2_plus_1 = ifm.add(_i2, _1);
+    _a0_at_i1 = afm.select(_a0, _i1);
+    _a1_at_i2 = afm.select(_a1, _i2);
+    _b0_at_i1 = afm.select(_b0, _i1);
+    _b0_at_i0 = afm.select(_b0, _i0);
+    _i1_EQUAL_0 = ifm.equal(_i1, _0);
+    _b0_at_i1_NOTEQUAL_0 = ifm.equal(_b0_at_i1, _0);
+    _i1_GEQ_al0 = ifm.greaterOrEquals(_i1, _al0);
+    _a0_at_i1_EQUAL_b0_at_i1 = ifm.equal(_a0_at_i1, _b0_at_i1);
+    _i0_EQUAL_i1_plus_1 = ifm.equal(_i0, _i1_plus_1);
+    _b0_at_i0_EQUAL_0 = ifm.equal(_b0_at_i0, _0);
+    _b0_at_i0_NOTEQUAL_0 = bfm.not(_b0_at_i0_EQUAL_0);
+    _i2_EQUAL_0 = ifm.equal(_i2, _0);
+    _b0_at_i2 = afm.select(_b0, _i2);
+    _b0_at_i2_NOTEQUAL_0 = bfm.not(ifm.equal(_b0_at_i2, _0));
+    _i2_GEQ_al0 = ifm.greaterOrEquals(_i2, _al0);
+    _a1_at_i2_EQUAL_b0_at_i2 = ifm.equal(_a1_at_i2, _b0_at_i2);
+    _i1_EQUAL_i2_plus_1 = ifm.equal(_i1, _i2_plus_1);
 
+    _safeTrace = bfm.and(Lists.newArrayList(
+        _i1_EQUAL_0,
+        _b0_at_i1_NOTEQUAL_0,
+        _i1_GEQ_al0,
+        _a0_at_i1_EQUAL_b0_at_i1,
+        _i0_EQUAL_i1_plus_1,
+        _b0_at_i0_EQUAL_0));
 
+    _errorTrace = bfm.and(Lists.newArrayList(
+        _i2_EQUAL_0,
+        _b0_at_i2_NOTEQUAL_0,
+        _i2_GEQ_al0,
+        _a1_at_i2_EQUAL_b0_at_i2,
+        _i1_EQUAL_i2_plus_1,
+        _b0_at_i1_NOTEQUAL_0,
+        _i1_GEQ_al0,
+        _a0_at_i1_EQUAL_b0_at_i1,
+        _i0_EQUAL_i1_plus_1,
+        _b0_at_i0_NOTEQUAL_0,
+        _i0_LESS_al0));
+  }
 
+  @Test
+  public void testOnSafeTrace() {
+    enp.extractNewPreds(_safeTrace);
+  }
+
+  @Test
+  public void testOnErrorTrace() {
+    enp.extractNewPreds(_errorTrace);
   }
 
 }
