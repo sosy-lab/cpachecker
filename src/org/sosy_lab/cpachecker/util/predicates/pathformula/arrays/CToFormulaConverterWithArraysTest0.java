@@ -450,7 +450,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo("TODOTODO");
+      .comparesEqualTo("(= (select (select arr2d@1 3.0) 7.0) 23.0)");
   }
 
   @Test

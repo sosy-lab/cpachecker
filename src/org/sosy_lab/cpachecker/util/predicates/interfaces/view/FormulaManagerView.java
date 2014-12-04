@@ -239,6 +239,13 @@ public class FormulaManagerView {
   }
 
   FormulaType<?> unwrapType(FormulaType<?> type) {
+    if (type.isArrayType()) {
+      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) type;
+      return FormulaType.getArrayType(
+          unwrapType(arrayType.getIndexType()),
+          unwrapType(arrayType.getElementType()));
+    }
+
     if (type.isBitvectorType()) {
       switch (encodeBitvectorAs) {
       case BITVECTOR:
@@ -249,6 +256,7 @@ public class FormulaManagerView {
         return FormulaType.RationalType;
       }
     }
+
     if (type.isFloatingPointType()) {
       switch (encodeFloatAs) {
       case FLOAT:
