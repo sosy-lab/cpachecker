@@ -22,8 +22,6 @@ import com.google.common.collect.ImmutableSet;
  * template), for the given control node.
  *
  * Logic-less container class.
- *
- * TODO: might be a good idea to have a separate class for the abstracted value.
  */
 public abstract class PolicyState implements AbstractState, Graphable {
 
@@ -54,8 +52,6 @@ public abstract class PolicyState implements AbstractState, Graphable {
         Set<LinearExpression> unbounded,
         Set<Template> newTemplates) {
 
-      ImmutableMap<LinearExpression, PolicyBound> map = abstraction;
-
       ImmutableMap.Builder<LinearExpression, PolicyBound> builder =
           ImmutableMap.builder();
 
@@ -67,9 +63,9 @@ public abstract class PolicyState implements AbstractState, Graphable {
         if (updates.containsKey(expr)) {
           builder.put(expr, updates.get(expr));
         } else {
-          PolicyBound v = map.get(expr);
+          PolicyBound v = abstraction.get(expr);
           if (v != null) {
-            builder.put(expr, map.get(expr));
+            builder.put(expr, abstraction.get(expr));
           }
         }
       }
@@ -96,7 +92,12 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
     @Override
     public String toDOTLabel() {
-      return (new PolicyDotWriter()).toDOTLabel(abstraction);
+      return String.format(
+          "%s%n%s%n%s",
+          (new PolicyDotWriter()).toDOTLabel(abstraction),
+          pointerTargetSet,
+          templates
+      );
     }
 
     @Override
@@ -131,15 +132,24 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
   public static final class PolicyIntermediateState extends PolicyState {
     private final PathFormula pathFormula;
+    private final ImmutableMap<CFANode, PolicyAbstractedState> leafs;
 
-    private PolicyIntermediateState(CFANode pNode,
-        Set<Template> pTemplates, PathFormula pPathFormula) {
+    private PolicyIntermediateState(
+        CFANode pNode,
+        Set<Template> pTemplates,
+        PathFormula pPathFormula,
+        Map<CFANode, PolicyAbstractedState> pLeafs) {
       super(pNode, pTemplates);
       pathFormula = pPathFormula;
+      leafs = ImmutableMap.copyOf(pLeafs);
     }
 
     public PathFormula getPathFormula() {
       return pathFormula;
+    }
+
+    public ImmutableMap<CFANode, PolicyAbstractedState> getLeafs() {
+      return leafs;
     }
 
     @Override
@@ -195,14 +205,20 @@ public abstract class PolicyState implements AbstractState, Graphable {
   public static PolicyState ofIntermediate(
       CFANode node,
       Set<Template> pTemplates,
-      PathFormula pPathFormula
+      PathFormula pPathFormula,
+      Map<CFANode, PolicyAbstractedState> pLeafs
   ) {
     return new PolicyIntermediateState(
         node,
         pTemplates,
-        pPathFormula);
+        pPathFormula,
+        pLeafs);
   }
 
+  /**
+   * Cast to subclass.
+   * Syntax sugar to avoid ugliness.
+   */
   public PolicyIntermediateState asIntermediate() {
     return (PolicyIntermediateState) this;
   }
@@ -211,6 +227,9 @@ public abstract class PolicyState implements AbstractState, Graphable {
     return (PolicyAbstractedState) this;
   }
 
+  /**
+   * @return Empty abstracted state associated with {@code node}.
+   */
   public static PolicyState empty(CFANode node) {
     return ofAbstraction(
         ImmutableMap.<LinearExpression, PolicyBound>of(),
@@ -222,7 +241,6 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
   public abstract boolean isAbstract();
 
-
   public ImmutableSet<Template> getTemplates() {
     return templates;
   }
@@ -231,13 +249,10 @@ public abstract class PolicyState implements AbstractState, Graphable {
     return node;
   }
 
-  /** Update methods */
-
   @Override
   public boolean shouldBeHighlighted() {
     return false;
   }
-
 
   @Override
   public boolean equals(Object o) {

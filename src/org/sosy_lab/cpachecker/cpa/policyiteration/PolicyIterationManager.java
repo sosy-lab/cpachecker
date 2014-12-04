@@ -65,15 +65,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
 
-  // TODO: check the effect.
-  @Option(secure=true, name="comparePathFormulas",
-    description="Attempt to compare the produced path formulas")
-  private boolean comparePathFormulas = false;
-
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final FormulaManagerView fmgr;
 
-  @SuppressWarnings("unused, FieldCanBeLocal")
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final LinearConstraintManager lcmgr;
@@ -168,11 +163,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     CFANode node = edge.getSuccessor();
     PathFormula prev;
+    ImmutableMap<CFANode, PolicyAbstractedState> leafs;
 
     if (oldState.isAbstract()) {
-      prev = abstractStateToPathFormula(oldState.asAbstracted());
+      PolicyAbstractedState aOldState = oldState.asAbstracted();
+      prev = abstractStateToPathFormula(aOldState);
+      leafs = ImmutableMap.of(edge.getPredecessor(), aOldState);
     } else {
+      PolicyIntermediateState iOldState = oldState.asIntermediate();
       prev = oldState.asIntermediate().getPathFormula();
+      leafs = iOldState.getLeafs();
     }
 
     if (node.getNumEnteringEdges() > 1) {
@@ -190,8 +190,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PolicyState out = PolicyState.ofIntermediate(
         edge.getSuccessor(),
-        templateManager.templatesForNode(node),
-        pfmgr.makeAnd(prev, edge)
+
+        // We take the variables alive at the location + templates for the
+        // previous location (variable may be not alive at {@code node},
+        // but required for the guard associated with {@code edge}
+        // nevertheless.
+        Sets.union(templateManager.templatesForNode(node),
+            oldState.getTemplates()),
+        pfmgr.makeAnd(prev, edge),
+        leafs
     );
 
     // NOTE: the abstraction computation and the global update is delayed
@@ -206,21 +213,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
     statistics.abstractionTimer.start();
+    CFANode toNode = state.getNode();
     try {
       // Perform the abstraction, if necessary.
-      CFANode toNode = state.getNode();
       if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
-        PolicyIntermediateState iState = (PolicyIntermediateState)state;
+        PolicyIntermediateState iState = state.asIntermediate();
 
         Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
         if (!abstraction.isPresent()) {
-          abstractStates.put(toNode, state);
           return Collections.emptyList();
         }
         state = abstraction.get();
       }
-      abstractStates.put(toNode, state);
     } finally {
+      abstractStates.put(toNode, state);
       statistics.abstractionTimer.stop();
     }
 
@@ -256,7 +262,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return {@code newState <= oldState}
    */
   @Override
-  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState) {
+  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState)
+      throws CPATransferException, InterruptedException {
     Preconditions.checkState(newState.isAbstract() == oldState.isAbstract(),
         "Abstraction state of two states associated with the same node should " +
             "match");
@@ -264,9 +271,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     boolean isAbstract = newState.isAbstract();
 
     if (!isAbstract) {
-      return !comparePathFormulas ||
-          oldState.asIntermediate().getPathFormula()
-            .equals(newState.asIntermediate().getPathFormula());
+      return  oldState.asIntermediate().getPathFormula()
+              .equals(newState.asIntermediate().getPathFormula());
     } else {
       PolicyAbstractedState aNewState = newState.asAbstracted();
       PolicyAbstractedState aOldState = oldState.asAbstracted();
@@ -313,21 +319,29 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throws CPATransferException, InterruptedException, SolverException {
     Preconditions.checkState(oldState.getNode() == newState.getNode());
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
-    Preconditions.checkState(oldState.getTemplates().equals(newState.getTemplates()));
 
     final boolean isAbstract = oldState.isAbstract();
     final CFANode node = oldState.getNode();
 
-    Set<Template> allTemplates = oldState.getTemplates();
+    Set<Template> allTemplates = Sets.union(oldState.getTemplates(),
+        newState.getTemplates());
 
     if (!isAbstract) {
-      PathFormula newPath = newState.asIntermediate().getPathFormula();
-      PathFormula oldPath = oldState.asIntermediate().getPathFormula();
+      PolicyIntermediateState iNewState = newState.asIntermediate();
+      PolicyIntermediateState iOldState = oldState.asIntermediate();
+      PathFormula newPath = iNewState.getPathFormula();
+      PathFormula oldPath = iOldState.getPathFormula();
+
+      // Just return the old state if it covers the new state.
+      if (checkCovering(iOldState, iNewState)) {
+        return newState;
+      }
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
       return PolicyState.ofIntermediate(
-          node, allTemplates, pfmgr.makeOr(newPath, oldPath)
+          node, allTemplates, pfmgr.makeOr(newPath, oldPath),
+          mergeLeafs(iNewState.getLeafs(), iOldState.getLeafs())
       );
     }
 
@@ -470,7 +484,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           case OPT:
             Rational bound = solver.value(EPSILON);
             Model model = solver.getModel();
-            logger.log(Level.FINE, "# Model =" + model);
             MultiEdge edge = traceFromModel(node, model);
             abstraction.put(template, new PolicyBound(edge, bound));
             break;
@@ -501,9 +514,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         p.getPointerTargetSet()));
   }
 
+  /**
+   * Use the auxiliary variables from the {@code model} to reconstruct the
+   * trace which was use for abstracting the state associated with the
+   * {@code node}.
+   *
+   * @return Reconstructed trace
+   */
   private MultiEdge traceFromModel(CFANode node, Model model) {
-    // Re-arrange the unique policy into the multi-edge.
-    // Make sure that the edges meet.
     final List<CFAEdge> traceReversed = new ArrayList<>();
     final Set<CFANode> visitedNodes = new HashSet<>();
     visitedNodes.add(node);
@@ -516,14 +534,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       int fromNodeNo;
       if (toNode.getNumEnteringEdges() > 1) {
         Object o = model.get(
-            new Model.Constant(
-                String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
+            new Model.Constant(String.format(SELECTION_VAR_TEMPLATE, toNodeNo),
                 Model.TermType.Real
             )
         );
-        if (o == null) {
-
-          // Trace has finished.
+        if (o == null) { // Trace has finished.
           break;
         }
         fromNodeNo = Integer.parseInt(o.toString());
@@ -553,11 +568,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Last successor is the ultimate "predecessor"
     CFANode predecessor = successor;
     assert !traceReversed.isEmpty() : model;
-    MultiEdge edge = new MultiEdge(predecessor, node,
+    return new MultiEdge(predecessor, node,
         Lists.reverse(traceReversed));
-
-    logger.log(Level.FINE, "# Constructed edge: ", edge);
-    return edge;
   }
 
   /**
@@ -601,9 +613,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       tokens.add(constraint);
     }
     BooleanFormula constraint = bfmgr.and(tokens);
-    
+
     return new PathFormula(
-        constraint, ssa, abstractState.getPointerTargetSet(),
+        constraint, ssa,
+        abstractState.getPointerTargetSet(),
         0
     );
   }
@@ -653,5 +666,53 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     return out;
+  }
+
+  /**
+   * @return Whether {@code newState} is covered by {@code oldState}
+   */
+  private boolean checkCovering(
+      PolicyIntermediateState newState,
+      PolicyIntermediateState oldState
+  ) throws CPATransferException, InterruptedException {
+
+    Set<CFANode> allLeafs = new HashSet<>(oldState.getLeafs().size());
+    allLeafs.addAll(newState.getLeafs().keySet());
+    allLeafs.addAll(oldState.getLeafs().keySet());
+    for (CFANode n : allLeafs) {
+      PolicyAbstractedState oldS = oldState.getLeafs().get(n);
+      PolicyAbstractedState newS = newState.getLeafs().get(n);
+      if (oldS == null) {
+        return false;
+      }
+      if (newS != null && !isLessOrEqual(newS, oldS)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private ImmutableMap<CFANode, PolicyAbstractedState> mergeLeafs(
+      ImmutableMap<CFANode, PolicyAbstractedState> newLeafs,
+      ImmutableMap<CFANode, PolicyAbstractedState> oldLeafs
+  ) {
+    Set<CFANode> allLeafs = new HashSet<>(newLeafs.size());
+    ImmutableMap.Builder<CFANode, PolicyAbstractedState> builder =
+        ImmutableMap.builder();
+    allLeafs.addAll(newLeafs.keySet());
+    allLeafs.addAll(oldLeafs.keySet());
+    for (CFANode n : allLeafs) {
+      PolicyAbstractedState newS = newLeafs.get(n);
+      PolicyAbstractedState oldS = oldLeafs.get(n);
+      if (newS == null) {
+        builder.put(n, oldS);
+      } else if (oldS == null) {
+        builder.put(n, newS);
+      } else {
+        assert newS.equals(oldS);
+        builder.put(n, newS);
+      }
+    }
+    return builder.build();
   }
 }

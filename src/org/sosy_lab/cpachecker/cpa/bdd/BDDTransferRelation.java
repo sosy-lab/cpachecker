@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.util.VariableClassification.createFunctionReturnVariable;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -339,10 +337,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
-    final String returnVar =  createFunctionReturnVariable(functionName);
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      final String returnVar = fnkCall.getFunctionEntry().getReturnVariable().get().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = getBitsize(partition, lhs.getExpressionType());
@@ -356,16 +354,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] retVar = predmgr.createPredicate(returnVar, summaryExpr.getFunctionCallExpression().getExpressionType(), cfaEdge.getSuccessor(),  size, precision);
       newState = newState.addAssignment(var, retVar);
 
+      // remove returnVar from state,
+      // all other function-variables were removed earlier (see handleReturnStatementEdge()).
+      // --> now the state does not contain any variable from scope of called function.
+      if  (predmgr.getTrackedVars().containsKey(returnVar)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
+                returnVar, predmgr.getTrackedVars().get(returnVar)));
+      }
+
     } else {
       assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
-    }
-
-    // remove returnVar from state,
-    // all other function-variables were removed earlier (see handleReturnStatementEdge()).
-    // --> now the state does not contain any variable from scope of called function.
-    if  (predmgr.getTrackedVars().containsKey(returnVar)) {
-      newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
-              returnVar, predmgr.getTrackedVars().get(returnVar)));
     }
 
     return newState;
@@ -377,9 +375,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
     BDDState newState = state;
-    final String returnVar = createFunctionReturnVariable(functionName);
+    String returnVar = "";
 
     if (cfaEdge.getExpression().isPresent()) {
+      returnVar = ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration().getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
