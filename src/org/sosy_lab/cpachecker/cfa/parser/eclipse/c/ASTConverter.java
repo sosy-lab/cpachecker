@@ -1032,7 +1032,8 @@ class ASTConverter {
       }
     }
 
-    if (declaration == null && returnType instanceof CVoidType) {
+    if (declaration == null && functionName instanceof CIdExpression
+        && returnType instanceof CVoidType) {
       // Undeclared functions are a problem for analysis that need precise types.
       // We can at least set the return type to "int" as the standard says.
       logger.log(Level.FINE, e.getFileLocation() + ":",
