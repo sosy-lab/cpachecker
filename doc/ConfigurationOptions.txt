@@ -1235,8 +1235,8 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.
-cpa.predicate.solver = MATHSAT5
+# Which SMT solver to use.
+cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Export solver queries in Smtlib format into a file.
