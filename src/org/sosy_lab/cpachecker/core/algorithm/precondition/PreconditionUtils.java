@@ -21,31 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import java.io.IOException;
-import java.io.Writer;
 import java.util.List;
-import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -55,18 +45,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 
-@Options
-public class PreconditionWriter {
-
-  private final FormulaManagerView fmgr;
-
-  public PreconditionWriter(CFA pCfa, Configuration pConfig, LogManager pLogger, FormulaManagerView pFormulaManager)
-          throws InvalidConfigurationException {
-
-    pConfig.inject(this);
-
-    fmgr = pFormulaManager;
-  }
+public class PreconditionUtils {
 
   static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
@@ -79,7 +58,7 @@ public class PreconditionWriter {
       @Override
       public boolean apply(ARGState pInput) {
         boolean correct = pInput.getParents().size() <= 1;
-        assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
+        assert correct : "PreconditionWriter expects abstraction states to have only one parent, but this state has more:" + pInput;
         return correct;
       }
     });
@@ -88,11 +67,10 @@ public class PreconditionWriter {
     return result;
   }
 
-  public void writePreconditionFromAbstractions(@Nonnull Appendable pWriteTo, @Nonnull ReachedSet pReached) throws IOException, CPATransferException, InterruptedException {
-    Preconditions.checkNotNull(pWriteTo);
+  public static BooleanFormula getPreconditionFromReached(FormulaManagerView mgrv, @Nonnull ReachedSet pReached, PreconditionPartition pPartition) {
     Preconditions.checkNotNull(pReached);
 
-    BooleanFormula conjunctiveWp = fmgr.getBooleanFormulaManager().makeBoolean(true);
+    BooleanFormula conjunctiveWp = mgrv.getBooleanFormulaManager().makeBoolean(true);
 
     // Also for backwards analysis can exist multiple target states (for the same CFA location)
     FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
@@ -110,33 +88,13 @@ public class PreconditionWriter {
           PredicateAbstractState.class);
 
       // The last abstraction state before the target location contains the negation of the WP
-      conjunctiveWp = fmgr.makeAnd(conjunctiveWp, fmgr.makeNot(fmgr.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula())));
+      conjunctiveWp = mgrv.makeAnd(conjunctiveWp, mgrv.makeNot(mgrv.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula())));
     }
 
     // The WP is the negation of targetAbstraction
-    BooleanFormula wp = fmgr.simplify(conjunctiveWp);
+    BooleanFormula wp = mgrv.simplify(conjunctiveWp);
 
-    // Write the formula in the SMT-LIB2 format to the target stream
-    pWriteTo.append(wp.toString());
-  }
-
-
-  public void writePrecondition(Path pWriteTo, ReachedSet pReached) throws IOException, CPATransferException, InterruptedException {
-
-    try (Writer w = Files.openOutputFile(pWriteTo)) {
-      writePreconditionFromAbstractions(w, pReached);
-    }
-  }
-
-  public void writePrecondition(Path pWriteTo, ReachedSet pReached, @Nonnull LogManager pCatchExceptionsTo) {
-    Preconditions.checkNotNull(pCatchExceptionsTo);
-
-    try {
-      writePrecondition(pWriteTo, pReached);
-
-    } catch (Exception e) {
-      pCatchExceptionsTo.logException(Level.WARNING, e, "Writing reaching paths failed!");
-    }
+    return wp;
   }
 
 }
