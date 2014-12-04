@@ -230,7 +230,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = amgv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _b_at_i_plus_1 = amgv.select(_b, _i_plus_1);
 
-    assertThat(_b_at_i_plus_1.toString()).comparesEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+    assertThat(_b_at_i_plus_1.toString()).isEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
   }
 
   @Test
@@ -248,7 +248,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     RationalFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
 
-    assertThat(valueInMulti.toString()).comparesEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
+    assertThat(valueInMulti.toString()).isEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
   }
 
   @Test
@@ -266,7 +266,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     BitvectorFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
 
-    assertThat(valueInMulti.toString()).comparesEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
+    assertThat(valueInMulti.toString()).isEqualTo("(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
   }
 
   @Test
@@ -280,7 +280,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(result.toString())
-      .comparesEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
+      .isEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
   }
 
   @Test
@@ -312,6 +312,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     // int a[1000] = { 1, 3, 5, 7, 9, [1000-5] = 8, 6, 4, 2, 0 };
     //  all other elements should be initialized with ZERO
     //  Solvers support this by allowing to specify a default value for arrays
+
+    // This test is important because it also tests the initialization of arrays with a default value!
   }
 
   private CInitializerExpression createIntInitExpr(int pValue) {
@@ -339,8 +341,9 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     BooleanFormula result = ctfBwd.makeDeclaration(
         _x.getFirst(), "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo("adfigj");
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString()
+        .replaceAll("\n", " ").replaceAll("  ", " "))
+        .isEqualTo("(and (= |foo::x[0]@1| 1.0) (= |foo::x[1]@1| 3.0) (= |foo::x[2]@1| 5.0) (= |foo::x[3]@1| 7.0))");
   }
 
   @Test
@@ -369,7 +372,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _arr.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
-      .comparesEqualTo("The result should be an initialized array"); //TODO
+      .isEqualTo("The result should be an initialized array"); //TODO
   }
 
   @Test
@@ -397,13 +400,13 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _arr2d.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(resultBwd).toString())
-      .comparesEqualTo("true");
+      .isEqualTo("true");
 
     final BooleanFormula resultFwd = ctfFwd.makeDeclaration(
         _arr2d.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
-      .comparesEqualTo("The result should be an initialized array"); //TODO
+      .isEqualTo("The result should be an initialized array"); //TODO
   }
 
   @Test
@@ -450,7 +453,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo("(= (select (select arr2d@1 3.0) 7.0) 23.0)");
+      .isEqualTo("(= (select (select arr2d@1 3.0) 7.0) 23.0)");
   }
 
   @Test
