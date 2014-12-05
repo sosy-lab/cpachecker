@@ -181,6 +181,10 @@ public class Rational implements Comparable<Rational>{
     return num.doubleValue() / den.doubleValue();
   }
 
+  public boolean isIntegral() {
+    return den.equals(b_one);
+  }
+
   /**
    * @return  String of the form num/den.
    */
