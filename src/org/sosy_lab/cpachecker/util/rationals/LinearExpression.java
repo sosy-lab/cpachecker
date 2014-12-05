@@ -78,16 +78,7 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
    * Subtract {@code other} linear expression.
    */
   public LinearExpression sub(LinearExpression other) {
-    return new LinearExpression(ImmutableMapMerger.merge(
-        data,
-        other.data,
-        new ImmutableMapMerger.MergeFunc<String, Rational>() {
-          @Override
-          public Rational apply(String var, Rational a, Rational b) {
-            return a.minus(b);
-          }
-        }
-    ));
+    return add(other.negate());
   }
 
   /**
@@ -106,6 +97,7 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
     ));
   }
 
+  @SuppressWarnings("unused")
   public Rational getCoeff(String variable) {
     Rational out = data.get(variable);
     if (out == null) {
@@ -159,7 +151,13 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
 
   @Override
   public boolean equals(Object object) {
-    if (!(object instanceof LinearExpression)) {
+    if (object == this) {
+      return true;
+    }
+    if (object == null) {
+      return false;
+    }
+    if (object.getClass() != this.getClass()) {
       return false;
     }
     LinearExpression other = (LinearExpression) object;
