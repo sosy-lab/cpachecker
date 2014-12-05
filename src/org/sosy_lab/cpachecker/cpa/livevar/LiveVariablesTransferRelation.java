@@ -283,7 +283,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       // for example an array access *(arr + offset) = 2;
       if (assignedVariable.size() > 1) {
-        assert false : "should never happen, just for debugging purposes";
         newLiveVariables.addAll(assignedVariable);
         return state.addLiveVariables(newLiveVariables);
 
@@ -394,7 +393,13 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // we can remove the assigned variable from the live variables
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      return handleAssignments((CAssignment) summaryExpr);
+      boolean isLeftHandsideLive = isLeftHandSideLive(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+      ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
+      LiveVariablesState returnState = handleAssignments((CAssignment) summaryExpr);
+      if (isLeftHandsideLive) {
+        returnState = returnState.addLiveVariables(Collections.singleton(retVal));
+      }
+      return returnState;
 
     // no assigned variable -> nothing to change
     } else {
