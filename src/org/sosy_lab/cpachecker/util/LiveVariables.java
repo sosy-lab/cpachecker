@@ -162,12 +162,12 @@ public class LiveVariables {
     return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
   }
 
-  public static Optional<LiveVariables> create(VariableClassification variableClassification,
-                                       List<Pair<ADeclaration, String>> globalsList,
-                                       final MutableCFA pCFA,
-                                       final LogManager logger,
-                                       final ShutdownNotifier shutdownNotifier,
-                                       final Configuration config) throws InvalidConfigurationException {
+  public static Optional<LiveVariables> create(final VariableClassification variableClassification,
+                                               final List<Pair<ADeclaration, String>> globalsList,
+                                               final MutableCFA pCFA,
+                                               final LogManager logger,
+                                               final ShutdownNotifier shutdownNotifier,
+                                               final Configuration config) throws InvalidConfigurationException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
@@ -181,9 +181,18 @@ public class LiveVariables {
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
+    return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy);
+  }
+
+  private static Optional<LiveVariables> create0(final VariableClassification variableClassification,
+                                                 final List<Pair<ADeclaration, String>> globalsList,
+                                                 final LogManager logger,
+                                                 final ShutdownNotifier shutdownNotifier,
+                                                 final CFA cfa,
+                                                 final EvaluationStrategy eval) throws AssertionError {
     // prerequisites for creating the live variables
     Set<ASimpleDeclaration> globalVariables;
-    switch (liveVarConfig.evaluationStrategy) {
+    switch (eval) {
     case FUNCTION_WISE: globalVariables = FluentIterable.from(globalsList)
                                                         .transform(DECLARATION_FILTER)
                                                         .filter(notNull())
@@ -193,27 +202,31 @@ public class LiveVariables {
       break;
     case GLOBAL: globalVariables = Collections.emptySet(); break;
     default:
-      throw new AssertionError("Unhandled case statement: " + liveVarConfig.evaluationStrategy);
+      throw new AssertionError("Unhandled case statement: " + eval);
     }
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, eval);
     Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), liveVarConfig.evaluationStrategy);
+      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), eval);
     }
 
     // when the analysis did not finish or could even not be created we return
-    // an absent optional
-    if (liveVariables == null) {
+    // an absent optional, but before we try the function-wise analysis if we
+    // did not yet use it
+    if (liveVariables == null && eval != EvaluationStrategy.FUNCTION_WISE) {
+      logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
+      return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, EvaluationStrategy.FUNCTION_WISE);
+    } else if (liveVariables == null) {
       return Optional.absent();
     }
 
     return Optional.of(new LiveVariables(liveVariables,
                                          variableClassification,
                                          globalVariables,
-                                         liveVarConfig.evaluationStrategy));
+                                         eval));
   }
 
   private final static Function<Pair<ADeclaration, String>, ASimpleDeclaration> DECLARATION_FILTER =
