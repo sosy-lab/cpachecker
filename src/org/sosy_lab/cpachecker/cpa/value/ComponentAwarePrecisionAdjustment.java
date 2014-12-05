@@ -39,9 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.ConfigurablePrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.LocalizedRefinablePrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -79,6 +76,9 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
 
   @Option(secure=true, description="restrict abstractions to join points")
   private boolean alwaysAtJoins = false;
+
+  @Option(secure=true, description="forceFullset")
+  private boolean forceFullset = false;
 
   private final ImmutableSet<CFANode> loopHeads;
 
@@ -226,22 +226,14 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
 
-      Collection<MemoryLocation> candidates;
-      if (precision instanceof ConfigurablePrecision
-          || precision instanceof ScopedRefinablePrecision) {
-        candidates = state.getDelta();
-      } else if (precision instanceof LocalizedRefinablePrecision) {
-        candidates = state.getTrackedMemoryLocations();
-      } else {
-        throw new AssertionError("VariableTrackingPrecision instance which is not handled: " + precision.getClass());
-      }
-
-      for (MemoryLocation memoryLocation : candidates) {
-        if (!precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
+      for (MemoryLocation memoryLocation : state.getTrackedMemoryLocations()) {
+        if (!precision.isTracking(memoryLocation,
+            state.getTypeForMemoryLocation(memoryLocation),
+            location.getLocationNode())) {
           state.forget(memoryLocation);
         }
       }
-      state.clearDelta();
+
       abstractions.inc();
     }
 
@@ -316,7 +308,7 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
     if (assignments != null) {
 
       // forget the value for all variables that exceed their threshold
-      for (MemoryLocation memoryLocation: state.getDelta()) {
+      for (MemoryLocation memoryLocation: state.getTrackedMemoryLocations()) {
 
         // if memory location is being tracked, check against hard threshold
         if (precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location)) {
@@ -335,8 +327,6 @@ public class ComponentAwarePrecisionAdjustment extends CompositePrecisionAdjustm
           }
         }
       }
-
-      state.clearDelta();
     }
 
     return Pair.of(state, precision);

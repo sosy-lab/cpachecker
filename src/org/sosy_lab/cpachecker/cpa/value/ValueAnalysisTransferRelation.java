@@ -215,11 +215,6 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       successor = ValueAnalysisState.copyOf(successor);
     }
 
-    // only maintain the delta if needed (for later abstraction) and if there is a successor
-    if (successor != null && precision.allowsAbstraction()) {
-      successor.addToDelta(state);
-    }
-
     return super.postProcessing(successor);
   }
 
