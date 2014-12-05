@@ -212,17 +212,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
-      if (declaration.getName() != null) {
-        String variableName = declaration.getQualifiedName();
+      if(declaration instanceof CVariableDeclaration) {
+        if (declaration.getName() != null) {
+          String variableName = declaration.getQualifiedName();
 
-        if (dependingVariables.contains(variableName)) {
-          dependingVariables.remove(variableName);
-          collectedVariables.add(variableName);
+          if (dependingVariables.contains(variableName)) {
+            dependingVariables.remove(variableName);
+            collectedVariables.add(variableName);
 
-          if (((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
-            CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
-            if (initializer != null) {
-              collectVariables(edge, initializer.getExpression());
+            if (((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
+              CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
+              if (initializer != null) {
+                collectVariables(edge, initializer.getExpression());
+              }
             }
           }
         }
