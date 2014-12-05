@@ -97,8 +97,9 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
                 runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
             except ImportError:
                 runIDs = _submitRuns(runSet, webclient, benchmark)
-        _getResults(runIDs, outputHandler, webclient, benchmark)
-        outputHandler.outputAfterRunSet(runSet)
+                
+            _getResults(runIDs, outputHandler, webclient, benchmark)
+            outputHandler.outputAfterRunSet(runSet)
 
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
