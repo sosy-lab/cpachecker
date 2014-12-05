@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -102,7 +101,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private StopOperator stopOperator;
   private ValueAnalysisTransferRelation transferRelation;
   private VariableTrackingPrecision precision;
-  private PrecisionAdjustment precisionAdjustment;
+  private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
 
@@ -126,13 +125,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
 
-    // when there is information about the liveness of variables available we want
-    // to use it
-    if (cfa.getLiveVariables().isPresent()) {
-      precisionAdjustment = new ValueAnalysisPrecisionAdjustment(cfa.getLiveVariables().get());
-    } else {
-      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    }
+    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, cfa);
 
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -294,6 +287,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+
+    precisionAdjustment.collectStatistics(pStatsCollection);
   }
 
   public ValueAnalysisCPAStatistics getStats() {
