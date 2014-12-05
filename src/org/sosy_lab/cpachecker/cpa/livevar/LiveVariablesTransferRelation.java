@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -283,19 +283,33 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       // for example an array access *(arr + offset) = 2;
       if (assignedVariable.size() > 1) {
+        assert false : "should never happen, just for debugging purposes";
         newLiveVariables.addAll(assignedVariable);
         return state.addLiveVariables(newLiveVariables);
 
-        // when there is a field reference or an array access, and the assigned variable
-        // was live before, we need to let it also be live afterwards
+        // when there is a field reference, an array access or a pointer expression,
+        // and the assigned variable was live before, we need to let it also be
+        // live afterwards
       } else if (leftHandSide instanceof CFieldReference
-          || leftHandSide instanceof CArraySubscriptExpression) {
+          || leftHandSide instanceof CArraySubscriptExpression
+          || leftHandSide instanceof CPointerExpression) {
         return state.addLiveVariables(newLiveVariables);
 
         // no special case here, the assigned variable is not live anymore
       } else {
         return state.removeAndAddLiveVariables(assignedVariable, newLiveVariables);
       }
+
+      // if the leftHandSide is not life, but there is a pointer dereference
+      // we need to make the leftHandSide life. Thus afterwards everything from
+      // this statement is life.
+    } else if ((leftHandSide instanceof CFieldReference
+                        && (((CFieldReference)leftHandSide).isPointerDereference()
+                           || ((CFieldReference)leftHandSide).getFieldOwner() instanceof CPointerExpression))
+                || leftHandSide instanceof CArraySubscriptExpression
+                || leftHandSide instanceof CPointerExpression) {
+      newLiveVariables.addAll(assignedVariable);
+      return state.addLiveVariables(newLiveVariables);
 
       // assigned variable is not live, so we do not need to make the
       // rightHandSideVariables live
@@ -438,8 +452,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       boolean retVal =  assumeGlobalVariablesAreAlwaysLive
                         && decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal();
-
-      retVal = retVal || decl.getType().getCanonicalType() instanceof CPointerType;
       retVal = retVal || variableClassification.getAddressedVariables().contains(decl.getQualifiedName());
 
       return retVal;
