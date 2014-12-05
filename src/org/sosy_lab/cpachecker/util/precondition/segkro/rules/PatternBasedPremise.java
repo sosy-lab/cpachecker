@@ -23,14 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection;
 
 
-public class ExistentialRule extends AbstractRule {
+public class PatternBasedPremise implements Premise {
 
-  public ExistentialRule(FormulaManagerView pFm, Solver pSolver) {
-    super(pFm, pSolver);
+  private final SmtAstPatternSelection patternSelection;
+
+  public PatternBasedPremise(SmtAstPatternSelection pPatternSelection) {
+    super();
+    patternSelection = pPatternSelection;
+  }
+
+  public SmtAstPatternSelection getPatternSelection() {
+    return patternSelection;
   }
 
 }

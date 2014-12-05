@@ -21,16 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import java.util.List;
+
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 
-public class ExistentialRule extends AbstractRule {
+public interface Concluding {
 
-  public ExistentialRule(FormulaManagerView pFm, Solver pSolver) {
-    super(pFm, pSolver);
-  }
+  public BooleanFormula concludeFromAtoms (List<BooleanFormula> pAtomPredicates);
 
 }

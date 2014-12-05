@@ -30,7 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,7 +42,7 @@ import com.google.common.collect.Sets;
  */
 public class SubstitutionRule extends AbstractRule {
 
-  public SubstitutionRule(FormulaManager pFm, Solver pSolver) {
+  public SubstitutionRule(FormulaManagerView pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

@@ -23,15 +23,53 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
+public class EliminationRule extends PatternBasedRule {
 
-public class EliminationRule extends AbstractRule {
-
-  public EliminationRule(FormulaManager pFm, Solver pSolver) {
+  public EliminationRule(FormulaManagerView pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
+
+  @Override
+  protected void setupPatterns() {
+    IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
+
+    premises.add(new PatternBasedPremise(
+        withDefaultBinding("c1",  zero,
+          or(
+              match(">=",
+                  match("+",
+                      match("*",
+                          matchAnyBind("c1"),
+                          matchAnyBind("eX")),
+                      matchAnyBind("e1")),
+                  matchNullary("0")),
+              match(">=",
+                  matchAnyBind("e1"),
+                  matchNullary("0"))))));
+
+    premises.add(new PatternBasedPremise(
+        withDefaultBinding("c2",  zero,
+          or(
+              match(">=",
+                  match("+",
+                      match("*",
+                          match("-",
+                              matchNullary("0"),
+                              matchAnyBind("c2")),
+                          matchAnyBind("eX")),
+                      matchAnyBind("e2")),
+                  matchNullary("0")),
+              match(">=",
+                  matchAnyBind("e2"),
+                  matchNullary("0"))))));
+  }
+
 
 }

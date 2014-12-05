@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RulesetFactory;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -77,6 +78,11 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _errorTrace;
 
+  @Override
+  protected Solvers solverToUse() {
+    return Solvers.Z3;
+  }
+
   @Before
   public void setUp() throws Exception {
     mgrv = new FormulaManagerView(mgr, config, logger);
@@ -87,7 +93,7 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
     Solver solver = new Solver(mgrv, factory);
     List<Rule> rules = Lists.newArrayList();
     rules = RulesetFactory.createRuleset(mgr, solver);
-    enp = new ExtractNewPreds(rules);
+    enp = new ExtractNewPreds(mgrv, rules);
 
     setupTestdata();
   }

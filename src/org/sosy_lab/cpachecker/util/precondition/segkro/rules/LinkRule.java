@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public class LinkRule extends AbstractRule {
 
-  public LinkRule(FormulaManager pFm, Solver pSolver) {
+  public LinkRule(FormulaManagerView pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

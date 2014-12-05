@@ -28,8 +28,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -41,7 +41,7 @@ import com.google.common.collect.Sets;
  */
 public class EquivalenceRule extends AbstractRule {
 
-  public EquivalenceRule(FormulaManager pFm, Solver pSolver) {
+  public EquivalenceRule(FormulaManagerView pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

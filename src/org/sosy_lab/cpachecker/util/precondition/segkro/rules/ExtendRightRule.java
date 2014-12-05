@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public class ExtendRightRule extends AbstractRule {
 
-  public ExtendRightRule(FormulaManager pFm, Solver pSolver) {
+  public ExtendRightRule(FormulaManagerView pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

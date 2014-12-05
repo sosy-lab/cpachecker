@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import java.util.List;
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -35,37 +34,40 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public abstract class AbstractRule implements Rule {
+public class RuleEngine implements Concluding {
 
-  protected final FormulaManagerView fm;
-  protected final Solver solver;
-  protected final List<Premise> premises;
+  private List<Rule> rules;
 
-  public AbstractRule(FormulaManagerView pFm, Solver pSolver) {
-    this.fm = pFm;
-    this.solver = pSolver;
-    this.premises = Lists.newArrayList();
+  public RuleEngine(FormulaManagerView pFm, Solver pSolver) {
+    rules = Lists.newArrayList();
+
+    rules.add(new EliminationRule(pFm, pSolver));
+    rules.add(new EquivalenceRule(pFm, pSolver));
+    rules.add(new UniverifyRule(pFm, pSolver));
+    rules.add(new SubstitutionRule(pFm, pSolver));
+    rules.add(new LinkRule(pFm, pSolver));
+    rules.add(new ExistentialRule(pFm, pSolver));
+    rules.add(new ExtendLeftRule(pFm, pSolver));
+    rules.add(new ExtendRightRule(pFm, pSolver));
+  }
+
+  public ImmutableList<Rule> getRules() {
+    return ImmutableList.copyOf(rules);
   }
 
   @Override
-  public String getRuleName() {
-    return getClass().getSimpleName();
+  public BooleanFormula concludeFromAtoms(List<BooleanFormula> pAtomPredicates) {
+    return null;
   }
 
-  @Override
-  public Set<BooleanFormula> apply(BooleanFormula pInput) {
-    throw new UnsupportedOperationException("Implement me in the child class if needed!");
+  /**
+   *
+   * @param pAtomPredicates
+   * @param pRule
+   * @return    List of atomic predicates
+   */
+  public List<BooleanFormula> concludeWithSingleRule(List<BooleanFormula> pAtomPredicates, Rule pRule) {
+    return null;
   }
-
-  @Override
-  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
-    throw new UnsupportedOperationException("Implement me in the child class if needed!");
-  }
-
-  @Override
-  public ImmutableList<Premise> getPremises() {
-    return ImmutableList.copyOf(premises);
-  }
-
 
 }

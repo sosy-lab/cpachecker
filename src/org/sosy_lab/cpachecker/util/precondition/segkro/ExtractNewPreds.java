@@ -24,15 +24,19 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Ints;
@@ -43,7 +47,8 @@ import com.google.common.primitives.Ints;
  */
 public class ExtractNewPreds {
 
-  private final List<Rule> rules;
+  private final FormulaManagerView mgrv;
+  private final RuleEngine ruleEngine;
 
   private Ordering<Integer> ordering = new Ordering<Integer>() {
     @Override
@@ -52,75 +57,88 @@ public class ExtractNewPreds {
     }
   };
 
-  public ExtractNewPreds(List<Rule> pRules) {
-    this.rules = pRules;
+  public ExtractNewPreds(FormulaManagerView pMgrv, RuleEngine ruleEngine) {
+    this.ruleEngine = Preconditions.checkNotNull(ruleEngine);
+    this.mgrv = Preconditions.checkNotNull(pMgrv);
   }
 
-  private List<BooleanFormula> extractAtoms(BooleanFormula pInputFormula) {
-    final List<BooleanFormula> atoms = Lists.newArrayList();
-
-    return atoms;
+  private Collection<BooleanFormula> extractAtoms(BooleanFormula pInputFormula) {
+    return mgrv.extractAtoms(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
-  private List<BooleanFormula> extractNewPreds(List<BooleanFormula> pSbaseAtoms) {
+  @VisibleForTesting
+  private boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {
+    return f1.equals(f2); // TODO: Test this!!
+  }
+
+  @VisibleForTesting
+  private boolean containsPredicateFrom(List<BooleanFormula> pToCheck, Collection<BooleanFormula> pFrom) {
+    for (BooleanFormula f: pFrom) {
+      if (pToCheck.contains(f)) {
+        return true; // TODO: Test this!!
+      }
+    }
+    return false;
+  }
+
+  private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) {
     final List<BooleanFormula> result = Lists.newArrayList();
-    final List<BooleanFormula> l = Lists.newArrayList();
-    final LinkedList<BooleanFormula> lPrime = Lists.newLinkedList();
+    final List<BooleanFormula> resultPredicates = Lists.newArrayList();
+    final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
 
     // Start with the list of basic predicates.
     //    This predicates have (initially) the LOWEST PRIORITY!!!
 
-    lPrime.addAll(pSbaseAtoms);
+    resultPredicatesPrime.addAll(pBasePredicates);
 
     // Keep applying the rules until no new predicates get produced
     do {
-      l.clear();
-      l.addAll(lPrime);
+      resultPredicates.clear();
+      resultPredicates.addAll(resultPredicatesPrime);
 
-      for (Rule r: rules) {
-        // We have to iterate over a tuple that is element of l^k.
-
-        int k = 1; // r.getPremises().size();
-        if (k == 3-2) {
-          throw new UnsupportedOperationException("Fixme");
-        }
-
-        List<List<BooleanFormula>> dimensions = new ArrayList<>(k);
-
-        for (int i=0; i<k; i++) {
-          dimensions.add(l);
+      for (Rule rule: ruleEngine.getRules()) {
+        // We have to iterate over a tuple that is element of resultPredicates^premiseCount.
+        //
+        // Example: For a rule with 3 premises, we iterate over
+        //    the cross product resultPredicates^3:
+        //      resultPredicates × resultPredicates × resultPredicates
+        //
+        final int premiseCount = rule.getPremises().size();
+        final List<List<BooleanFormula>> dimensions = new ArrayList<>(premiseCount);
+        for (int i=0; i<premiseCount; i++) {
+          dimensions.add(resultPredicates);
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          boolean existsTnotInSb = false;
+          final boolean tupleContainsAnyNoneBasePredicate = containsPredicateFrom(tuple, pBasePredicates);
 
-          for (BooleanFormula t: tuple) {
-            if (!pSbaseAtoms.contains(t)) {
-              existsTnotInSb = true;
-            }
+          // The rules ELIM and EQ are only applied to the base predicates!!
+          final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;
 
-            // The rules ELIM and EQ are only applied to the base predicates!!
-            boolean isElimOrEq = r instanceof EliminationRule || r instanceof EquivalenceRule;
+          if (!isElimOrEq || tupleContainsAnyNoneBasePredicate) {
+            // Conclude new, general, predicates.
+            List<BooleanFormula> s = ruleEngine.concludeWithSingleRule(tuple, rule);
 
-            if (!isElimOrEq || existsTnotInSb) {
-              // Store predicates according to their priority.
-              //    Put the new predicates (that is more general than the predicates in the premise)
-              //    ahead of the predicates that were used as premise.
-              Set<BooleanFormula> s = r.apply(t);
-              List<Integer> positions = Lists.newArrayList();
+            // Store predicates according to their priority.
+            //    Put the new predicates (that are more general than the predicates in the premise)
+            //    after the predicates that were used as premise
+            //  (the predicate with the highest priority is on the end of the list)
 
-              for (int j=0; j<k; j++) {
-                if (equalFormula(l.get(j), tuple.get(j))) {
-                  positions.add(j); // TODO: This might be wrong
+            // Maximal position of a predicate from the tuple in 'resultPredicates'
+            List<Integer> positions = Lists.newArrayList();
+            for (int posInResult=0; posInResult<resultPredicates.size(); posInResult++) {
+              for (BooleanFormula tf: tuple) {
+                if (equalFormula(resultPredicates.get(posInResult), tf)) {
+                  positions.add(posInResult);
                 }
               }
-              // TODO
-              int pos = ordering.max(positions);
-              for (BooleanFormula p: s) {
-                if (!lPrime.contains(p)) {
-                  // insert p after position pos in lPrime
-                  lPrime.add(pos+1, p);
-                }
+            }
+            final int maxPosInResult = ordering.max(positions);
+
+            for (BooleanFormula p: s) {
+              if (!resultPredicatesPrime.contains(p)) {
+                // insert p after position pos in lPrime
+                resultPredicatesPrime.add(maxPosInResult+1, p);
               }
             }
           }
@@ -128,7 +146,7 @@ public class ExtractNewPreds {
       }
 
       // Fix-point iteration: Until now new predicates are produced.
-    } while(l.equals(lPrime)); // TODO: Does this compare what was intended?
+    } while(resultPredicates.equals(resultPredicatesPrime)); // TODO: Does this compare what was intended?
 
     // Store new predicates according to their priority
     return result;
@@ -151,12 +169,8 @@ public class ExtractNewPreds {
   public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) {
     // Start with the list of basic predicates
     //  (extracted from the conjunctive formula)
-    List<BooleanFormula> atoms = extractAtoms(pConjunctiveFormula);
+    Collection<BooleanFormula> atoms = extractAtoms(pConjunctiveFormula);
     return extractNewPreds(atoms);
-  }
-
-  private boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {
-    return f1.equals(f2); // TODO
   }
 
 }

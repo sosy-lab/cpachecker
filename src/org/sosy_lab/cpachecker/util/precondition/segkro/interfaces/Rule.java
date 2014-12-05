@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
+import com.google.common.collect.ImmutableList;
+
 public interface Rule {
 
   /**
@@ -52,4 +54,6 @@ public interface Rule {
    *        Set of boolean formulas (predicates) that can be concluded based on the rule.
    */
   public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates);
+
+  public ImmutableList<Premise> getPremises();
 }
