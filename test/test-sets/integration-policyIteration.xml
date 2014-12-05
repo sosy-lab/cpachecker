@@ -24,6 +24,13 @@
         <option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>
     </rundefinition>
 
+    <rundefinition name="octagons">
+        <sourcefiles>
+            <include>../programs/policyiteration/octagons/*.c</include>
+        </sourcefiles>
+        <option name ="-setprop">cpa.stator.policy.generateOctagons=true</option>
+    </rundefinition>
+
 
     <columns>
         <column title="total">Total time for CPA algorithm</column>

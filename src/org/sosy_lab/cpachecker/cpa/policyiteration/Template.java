@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 /**
@@ -11,12 +11,12 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 public class Template {
 
   final LinearExpression linearExpression;
-  final ASimpleDeclaration declaration;
+  final Type type;
 
   public Template(LinearExpression pLinearExpression,
-      ASimpleDeclaration pDeclaration) {
+      Type pType) {
     linearExpression = pLinearExpression;
-    declaration = pDeclaration;
+    type = pType;
   }
 
   @Override
