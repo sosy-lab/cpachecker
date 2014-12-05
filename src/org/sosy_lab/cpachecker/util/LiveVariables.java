@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -267,7 +269,10 @@ public class LiveVariables {
         // we need only one loop head for each loop, as we are doing a merge
         // afterwards during the analysis, and we do never stop besides when
         // there is coverage (we have no target states)
-        if (l.getOutgoingEdges().isEmpty()) {
+        // additionally we have to remove all functionCallEdges from the outgoing
+        // edges because the LoopStructure is not able to say that loops with
+        // function calls inside have no outgoing edges
+        if (from(l.getOutgoingEdges()).filter(not(instanceOf(FunctionCallEdge.class))).isEmpty()) {
           CFANode functionHead = l.getLoopHeads().iterator().next();
           analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead),
                                        analysisParts.cpa.getInitialPrecision(functionHead));
@@ -333,6 +338,7 @@ public class LiveVariables {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");
+    configBuilder.setOption("analysis.traversal.useCallstack", "true");
     configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
     configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
                                                + "cpa.callstack.CallstackCPABackwards,"
