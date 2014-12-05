@@ -153,8 +153,7 @@ public class Rational implements Comparable<Rational>{
   }
 
   public Rational minus(Rational b) {
-    Rational a = this;
-    return a.plus(b.negate());
+    return plus(b.negate());
   }
 
   public Rational divides(Rational b) {
@@ -195,9 +194,8 @@ public class Rational implements Comparable<Rational>{
 
   @Override
   public int compareTo(Rational b) {
-    Rational a = this;
-    BigInteger lhs = a.num.multiply(b.den);
-    BigInteger rhs = a.den.multiply(b.num);
+    BigInteger lhs = num.multiply(b.den);
+    BigInteger rhs = den.multiply(b.num);
     return lhs.subtract(rhs).signum();
   }
 
