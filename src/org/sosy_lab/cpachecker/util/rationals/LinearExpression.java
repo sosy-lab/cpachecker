@@ -28,10 +28,7 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 /**
  * Simple <i>sparse</i> implementation for <i>homogeneous</i> linear expression
@@ -128,25 +125,22 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
    */
   @Override
   public String toString() {
-    Iterable<String> stream = Iterables.transform(
-        this,
-        new Function<Entry<String, Rational>, String>() {
-          @Override
-          public String apply(Entry<String, Rational> monomial) {
-            Rational coeff = monomial.getValue();
-            String var = monomial.getKey();
-            if (coeff.equals(Rational.ONE)) {
-              return var;
-            } else if (coeff.equals(Rational.NEG_ONE)) {
-              return String.format("-%s", var);
-            }
-            return String.format(
-                "%s%s", coeff, var);
-          }
-        }
-    );
-
-    return Joiner.on(" + ").join(stream);
+    StringBuilder b = new StringBuilder();
+    for (Entry<String, Rational> monomial : this) {
+      if (b.length() != 0) {
+        b.append(" + ");
+      }
+      Rational coeff = monomial.getValue();
+      String var = monomial.getKey();
+      if (coeff == Rational.ONE) {
+        b.append(var);
+      } else if (coeff == Rational.NEG_ONE) {
+        b.append("-").append(var);
+      } else {
+        b.append(coeff.toString()).append(var);
+      }
+    }
+    return b.toString();
   }
 
   @Override
