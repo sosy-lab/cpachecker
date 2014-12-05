@@ -34,10 +34,6 @@ import com.google.common.collect.Lists;
 
 public class FormulaUtils {
 
-  public static boolean isInconsistent(BooleanFormula pF1, BooleanFormula pF2) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
   public static boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {
     // TODO: Implement a cache!
     return f1.equals(f2); // TODO: Test this!!

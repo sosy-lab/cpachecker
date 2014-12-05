@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
+import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.substractEqualFromulasFrom;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -58,6 +58,10 @@ public class MinCorePrio implements InterpolationWithCandidates {
     bmgr = mgrv.getBooleanFormulaManager();
   }
 
+  private boolean isInconsistent(BooleanFormula pF1, BooleanFormula pF2) throws SolverException, InterruptedException {
+    return solver.isUnsat(bmgr.and(pF1, pF2));
+  }
+
   /**
    * Computes a minimal set of predicates that describes pConjunction
    * so that it is still inconsistent with pArbitraryFormula.
@@ -70,7 +74,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
    * @throws SolverException
    */
   @Override
-  public BooleanFormula getInterpolants(BooleanFormula pConjunction, BooleanFormula pArbitraryFormula, List<BooleanFormula> pCandidates)
+  public BooleanFormula getInterpolant(BooleanFormula pConjunction, BooleanFormula pArbitraryFormula, List<BooleanFormula> pCandidates)
       throws SolverException, InterruptedException {
 
     Preconditions.checkArgument(isInconsistent(pConjunction, pArbitraryFormula));
@@ -87,17 +91,21 @@ public class MinCorePrio implements InterpolationWithCandidates {
       // TODO: It might be sufficient to substract based of the identity
 
       // At least one predicate must remain as result
-      List<BooleanFormula> resultPredicatesMinusF = substractEqualFromulasFrom(resultPredicates, Collections.<BooleanFormula>singleton(f));
+      List<BooleanFormula> resultPredicatesMinusF = substractEqualFromulasFrom(
+          resultPredicates,
+          Collections.<BooleanFormula>singleton(f));
       if (resultPredicatesMinusF.isEmpty()) {
         return f;
       }
 
       // Check if removing the predicate from the set 'resultpredicates'
       //    maintains the inconsistency with pArbitraryFormula
-      BooleanFormula phiPrimePrime = bmgr.and(resultPredicatesMinusF);
-      boolean stillInconsistent = solver.isUnsat(bmgr.and(phiPrimePrime, pArbitraryFormula));
+      boolean stillInconsistent = isInconsistent(
+          bmgr.and(resultPredicatesMinusF),
+          pArbitraryFormula);
+
       if (stillInconsistent) {
-        // Remove the predicate if it does not contribute to the infeasibility.
+        // Remove the predicate if it does not contribute to the inconsistency
         resultPredicates.remove(f);
       }
     }
