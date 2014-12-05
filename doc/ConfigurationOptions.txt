@@ -1466,11 +1466,18 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Ignore the template type and encode with a rational variable
+cpa.stator.policy.encodeTemplatesAsRationals = false
+
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = 1
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
+
+# Generate octagon templates for all combinations of variables. This can be
+# expensive.
+cpa.stator.policy.generateOctagons = false
 
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
