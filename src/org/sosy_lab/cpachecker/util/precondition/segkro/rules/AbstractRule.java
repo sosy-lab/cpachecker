@@ -30,18 +30,18 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public abstract class AbstractRule implements Rule {
 
-  protected final FormulaManagerView fm;
+  protected final FormulaManager fm;
   protected final Solver solver;
   protected final List<Premise> premises;
 
-  public AbstractRule(FormulaManagerView pFm, Solver pSolver) {
+  public AbstractRule(FormulaManager pFm, Solver pSolver) {
     this.fm = pFm;
     this.solver = pSolver;
     this.premises = Lists.newArrayList();

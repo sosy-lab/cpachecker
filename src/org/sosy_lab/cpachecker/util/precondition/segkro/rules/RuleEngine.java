@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -38,7 +38,7 @@ public class RuleEngine implements Concluding {
 
   private List<Rule> rules;
 
-  public RuleEngine(FormulaManagerView pFm, Solver pSolver) {
+  public RuleEngine(FormulaManager pFm, Solver pSolver) {
     rules = Lists.newArrayList();
 
     rules.add(new EliminationRule(pFm, pSolver));

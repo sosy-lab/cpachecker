@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RulesetFactory;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -47,6 +44,7 @@ import com.google.common.collect.Lists;
 public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
+  private RuleEngine rulesEngine;
 
   private FormulaManagerView mgrv;
   private ArrayFormulaManagerView afm;
@@ -74,9 +72,9 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
   private BooleanFormula _i0_LESS_al0;
   private IntegerFormula _a1_at_i2;
 
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _safeTrace;
+  private BooleanFormula _safeTrace;
+  private BooleanFormula _errorTrace;
 
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _errorTrace;
 
   @Override
   protected Solvers solverToUse() {
@@ -91,9 +89,8 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
 
     Solver solver = new Solver(mgrv, factory);
-    List<Rule> rules = Lists.newArrayList();
-    rules = RulesetFactory.createRuleset(mgr, solver);
-    enp = new ExtractNewPreds(mgrv, rules);
+    rulesEngine = new RuleEngine(mgr, solver);
+    enp = new ExtractNewPreds(mgr, mgrv, rulesEngine);
 
     setupTestdata();
   }

@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public class EliminationRule extends PatternBasedRule {
 
-  public EliminationRule(FormulaManagerView pFm, Solver pSolver) {
+  public EliminationRule(FormulaManager pFm, Solver pSolver) {
     super(pFm, pSolver);
   }
 

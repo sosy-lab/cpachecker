@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -47,6 +48,7 @@ import com.google.common.primitives.Ints;
  */
 public class ExtractNewPreds {
 
+  private final FormulaManager mgr;
   private final FormulaManagerView mgrv;
   private final RuleEngine ruleEngine;
 
@@ -57,8 +59,9 @@ public class ExtractNewPreds {
     }
   };
 
-  public ExtractNewPreds(FormulaManagerView pMgrv, RuleEngine ruleEngine) {
+  public ExtractNewPreds(FormulaManager pMgr, FormulaManagerView pMgrv, RuleEngine ruleEngine) {
     this.ruleEngine = Preconditions.checkNotNull(ruleEngine);
+    this.mgr = Preconditions.checkNotNull(pMgr);
     this.mgrv = Preconditions.checkNotNull(pMgrv);
   }
 
@@ -117,7 +120,7 @@ public class ExtractNewPreds {
 
           if (!isElimOrEq || tupleContainsAnyNoneBasePredicate) {
             // Conclude new, general, predicates.
-            List<BooleanFormula> s = ruleEngine.concludeWithSingleRule(tuple, rule);
+            List<BooleanFormula> concluded = ruleEngine.concludeWithSingleRule(tuple, rule);
 
             // Store predicates according to their priority.
             //    Put the new predicates (that are more general than the predicates in the premise)
@@ -135,7 +138,7 @@ public class ExtractNewPreds {
             }
             final int maxPosInResult = ordering.max(positions);
 
-            for (BooleanFormula p: s) {
+            for (BooleanFormula p: concluded) {
               if (!resultPredicatesPrime.contains(p)) {
                 // insert p after position pos in lPrime
                 resultPredicatesPrime.add(maxPosInResult+1, p);

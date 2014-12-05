@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 
 public abstract class PatternBasedRule extends AbstractRule {
 
-  public PatternBasedRule(FormulaManagerView pFm, Solver pSolver) {
+  public PatternBasedRule(FormulaManager pFm, Solver pSolver) {
     super(pFm, pSolver);
     setupPatterns();
   }
