@@ -23,14 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -42,12 +47,14 @@ public class Refine {
   private final InterpolationWithCandidates ipc;
   private final FormulaManager mgr;
   private final FormulaManagerView mgrv;
+  private BooleanFormulaManagerView bmgr;
 
   public Refine(ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr, FormulaManagerView pMgrv) {
     enp = pEnp;
     ipc = pIpc;
     mgr = pMgr;
     mgrv = pMgrv;
+    bmgr = mgrv.getBooleanFormulaManager();
   }
 
   private BooleanFormula wpFromPath(PathFormula pPath) {
@@ -60,7 +67,7 @@ public class Refine {
 
   private BooleanFormula foo(BooleanFormula pF, BooleanFormula pCounterF) throws SolverException, InterruptedException {
     List<BooleanFormula> p = enp.extractNewPreds(pF);
-    BooleanFormula f = mgrv.getBooleanFormulaManager().and(p);
+    BooleanFormula f = bmgr.and(pF, bmgr.and(p));
     return ipc.getInterpolant(f, pCounterF, p);
   }
 
@@ -77,20 +84,50 @@ public class Refine {
     return null;
   }
 
-  private List<BooleanFormula> predsFromTrace(ARGPath pPath) {
+  private List<BooleanFormula> subst(List<BooleanFormula> pFormulas) {
+    ArrayList<BooleanFormula> result = Lists.newArrayList();
+    for (BooleanFormula f: pFormulas) {
+      result.add(subst(f));
+    }
+    return result;
+  }
+
+  private BooleanFormula getPathStatePrecondition(ARGPath pPath, ARGState pStateInPath) {
+    return null;
+  }
+
+  private List<BooleanFormula> predsFromTrace(ARGPath pPath, BooleanFormula pPrecond) throws SolverException, InterruptedException {
     List<BooleanFormula> result = Lists.newArrayList();
+
+    // TODO: It might be possible to use this code to also derive the predicate for the first sate.
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...
-//    for (ARGState state: pPath.asStatesList()) {
-//      BooleanFormula f;
-//      List<BooleanFormula> p = enp.extractNewPreds(f);
-//      BooleanFormula f = mgrv.getBooleanFormulaManager().and(p);
-//      ipc.getInterpolant(subst(f), fc, p);
-//
-//    }
+
+    final PathIterator it = pPath.pathIterator();
+    BooleanFormula counterStatePrecond = pPrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
+
+    while (it.hasNext()) {
+      it.advance();
+      final CFAEdge transition = it.getIncomingEdge(); // TODO: Depends on the direction of the analysis. Check this
+      final ARGState state = it.getAbstractState();
+
+      BooleanFormula statePrecond = getPathStatePrecondition(pPath, state);
+      List<BooleanFormula> p = enp.extractNewPreds(statePrecond);
+      statePrecond = bmgr.and(statePrecond, bmgr.and(p));
+
+      counterStatePrecond = computeCounterPrecondition(transition, counterStatePrecond);
+      pPrecond = ipc.getInterpolant(subst(statePrecond), counterStatePrecond, subst(p));
+
+      result.addAll(atoms(pPrecond));
+    }
 
     return result;
+  }
+
+  private BooleanFormula computeCounterPrecondition(CFAEdge pTransition, BooleanFormula pCounterStatePrecond) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   public Collection<BooleanFormula> refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination) throws SolverException, InterruptedException {
@@ -111,9 +148,9 @@ public class Refine {
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    preds.addAll(predsFromTrace(pTraceToViolation));
+    preds.addAll(predsFromTrace(pTraceToViolation, pcViolation));
     // -- along the trace to the termination state...
-    preds.addAll(predsFromTrace(pTraceToValidTermination));
+    preds.addAll(predsFromTrace(pTraceToValidTermination, pcValid));
 
     return preds;
   }
