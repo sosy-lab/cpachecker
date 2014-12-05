@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
+import static org.sosy_lab.cpachecker.util.precondition.segkro.FormulaUtils.*;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -36,7 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -69,21 +70,6 @@ public class ExtractNewPreds {
     return mgrv.extractAtoms(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
-  @VisibleForTesting
-  private boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {
-    return f1.equals(f2); // TODO: Test this!!
-  }
-
-  @VisibleForTesting
-  private boolean containsPredicateFrom(List<BooleanFormula> pToCheck, Collection<BooleanFormula> pFrom) {
-    for (BooleanFormula f: pFrom) {
-      if (pToCheck.contains(f)) {
-        return true; // TODO: Test this!!
-      }
-    }
-    return false;
-  }
-
   private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) {
     final List<BooleanFormula> result = Lists.newArrayList();
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
@@ -113,7 +99,7 @@ public class ExtractNewPreds {
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          final boolean tupleContainsAnyNoneBasePredicate = containsPredicateFrom(tuple, pBasePredicates);
+          final boolean tupleContainsAnyNoneBasePredicate = containsFormulasFrom(tuple, pBasePredicates);
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;
