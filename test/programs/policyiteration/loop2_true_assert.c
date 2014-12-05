@@ -7,6 +7,5 @@ int main() {
     sum += 1;
   }
 
-  // TODO: with integers we should be able to assert equality.
-  assert(i <= 1001);
+  assert(i == 1001);
 }

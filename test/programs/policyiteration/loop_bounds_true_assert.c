@@ -6,6 +6,6 @@ int main() {
   for (i = 0; i<100000; i++) {
     sum++;
   }
-  assert(i <= 100000);
+  assert(i == 100000);
   return 0;
 }

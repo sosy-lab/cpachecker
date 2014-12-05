@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
  * Converts a set of invariants to the pretty text representation.
  */
 public class PolicyDotWriter {
-  public String toDOTLabel(Map<LinearExpression, PolicyBound> data) {
+  public String toDOTLabel(Map<Template, PolicyBound> data) {
     StringBuilder b = new StringBuilder();
     b.append("\n");
 
@@ -27,7 +27,9 @@ public class PolicyDotWriter {
         = new HashMap<>();
     Map<LinearExpression, Rational> equal = new HashMap<>();
 
-    toSort.putAll(data);
+    for (Map.Entry<Template, PolicyBound> e : data.entrySet()) {
+      toSort.put(e.getKey().linearExpression, e.getValue());
+    }
     while (toSort.size() > 0) {
       LinearExpression template, negTemplate;
       template = toSort.keySet().iterator().next();

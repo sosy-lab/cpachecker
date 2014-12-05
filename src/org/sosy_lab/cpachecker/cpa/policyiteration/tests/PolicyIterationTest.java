@@ -103,7 +103,7 @@ public class PolicyIterationTest {
         .put("cfa.findLiveVariables", "true")
 
         // integers break some tests
-        .put("cpa.predicate.encodeBitvectorAs", "Rational")
+//        .put("cpa.predicate.encodeBitvectorAs", "Rational")
 
 //        .put("cpa.conditions.path.assignments.hardThreshold", "1")
 //        .put("cpa.conditions.path.assignments.softThreshold", "2")
