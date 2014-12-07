@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Operand for a {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint}.
@@ -45,8 +44,8 @@ public class ConstraintOperand {
     return formula;
   }
 
-  public Formula transformToFormula(FormulaCreator<? extends Formula> pFormulaCreator) {
-    return pFormulaCreator.transform(formula);
+  public <T> T accept(ConstraintVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
   @Override

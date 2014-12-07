@@ -198,13 +198,13 @@ public class ConstraintsTransferRelation
 
   private BooleanFormula getConjunction(ConstraintsState pState) {
     final Set<Constraint> constraints = pState.getConstraints();
-    final FormulaCreator<?> formulaCreator = new BooleanFormulaCreator(formulaManager);
+    final ConstraintVisitor<Formula> formulaCreator = new BooleanFormulaCreator(formulaManager);
     Formula completeFormula = null;
     Formula currFormula;
 
     for (Constraint currConstraint : constraints) {
 
-      currFormula = formulaCreator.transform(currConstraint);
+      currFormula = currConstraint.accept(formulaCreator);
 
       if (completeFormula == null) {
         completeFormula = currFormula;

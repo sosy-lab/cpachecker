@@ -30,6 +30,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Add;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BinaryNot;
@@ -39,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Divide;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
@@ -65,7 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * Creator for {@link BooleanFormula}s.
  */
 public class BooleanFormulaCreator
-    implements FormulaCreator<Formula>, InvariantsFormulaVisitor<Value, Formula> {
+    implements ConstraintVisitor<Formula>, InvariantsFormulaVisitor<Value, Formula> {
 
   private static final boolean SIGNED = true;
 
@@ -73,37 +75,6 @@ public class BooleanFormulaCreator
 
   public BooleanFormulaCreator(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
-  }
-
-  @Override
-  public Formula transform(Constraint pConstraint) {
-    return pConstraint.transformToFormula(this);
-  }
-
-  @Override
-  public Formula transform(InvariantsFormula<Value> pFormula) {
-    return pFormula.accept(this);
-  }
-
-  @Override
-  public BooleanFormula createLess(ConstraintOperand pOperand1, ConstraintOperand pOperand2) {
-    return formulaManager.makeLessThan(pOperand1.transformToFormula(this), pOperand2.transformToFormula(this), SIGNED);
-  }
-
-  @Override
-  public BooleanFormula createLessOrEqual(ConstraintOperand pOperand1, ConstraintOperand pOperand2) {
-    return formulaManager.makeLessOrEqual(pOperand1.transformToFormula(this), pOperand2.transformToFormula(this),
-        SIGNED);
-  }
-
-  @Override
-  public BooleanFormula createEqual(ConstraintOperand pOperand1, ConstraintOperand pOperand2) {
-    return formulaManager.makeEqual(pOperand1.transformToFormula(this), pOperand2.transformToFormula(this));
-  }
-
-  @Override
-  public BooleanFormula createNot(Formula pFormula) {
-    return (BooleanFormula) formulaManager.makeNot(pFormula);
   }
 
   @Override
@@ -288,5 +259,89 @@ public class BooleanFormulaCreator
   @Override
   public BooleanFormula visit(Variable<Value> pVariable) {
     return formulaManager.makeVariable(FormulaType.BooleanType, pVariable.getName());
+  }
+
+  @Override
+  public Formula visit(LessConstraint pConstraint) {
+    final FinalFormulaCreator creator = new FinalFormulaCreator() {
+
+      @Override
+      public Formula create(Formula pLeft, Formula pRight) {
+        return formulaManager.makeLessThan(pLeft, pRight, SIGNED);
+      }
+    };
+
+    return transformConstraint(pConstraint, creator);
+  }
+
+  /**
+   * Transforms a given constraint to a {@link Formula}.
+   *
+   * <p>The type of the resulting formula depends on the given
+   * {@link FinalFormulaCreator} object, not the concrete type of the constraint. All other characteristics depend on the
+   * constraint, though.
+   *
+   * @param pConstraint the constraint whose attributes are used for creating the formula
+   * @param pCreator the creator that decides what kind of formula is created
+   *
+   * @return a formula based on the given parameters.
+   */
+  // This is done so everything around the concrete formula creation does not have to be redundant
+  private Formula transformConstraint(Constraint pConstraint, FinalFormulaCreator pCreator) {
+    final Formula op1 = pConstraint.getLeftOperand().accept(this);
+    final Formula op2 = pConstraintf.getRightOperand().accept(this);
+
+    Formula finalFormula = pCreator.create(op1, op2);
+
+    if (!pConstraint.isPositiveConstraint()) {
+      finalFormula = createNot(finalFormula);
+    }
+
+    return finalFormula;
+  }
+
+  private BooleanFormula createNot(Formula pFormula) {
+    return (BooleanFormula) formulaManager.makeNot(pFormula);
+  }
+
+  @Override
+  public Formula visit(LessOrEqualConstraint pConstraint) {
+    final FinalFormulaCreator creator = new FinalFormulaCreator() {
+
+      @Override
+      public Formula create(Formula pLeft, Formula pRight) {
+        return formulaManager.makeLessOrEqual(pLeft, pRight, SIGNED);
+      }
+    };
+
+    return transformConstraint(pConstraint, creator);
+  }
+
+  @Override
+  public Formula visit(EqualConstraint pConstraint) {
+    final FinalFormulaCreator creator = new FinalFormulaCreator() {
+
+      @Override
+      public Formula create(Formula pLeft, Formula pRight) {
+        return formulaManager.makeEqual(pLeft, pRight);
+      }
+    };
+
+    return transformConstraint(pConstraint, creator);
+  }
+
+  @Override
+  public Formula visit(ConstraintOperand pConstraintOperand) {
+    return pConstraintOperand.getFormula().accept(this);
+  }
+
+  /**
+   * Creates a new formula based on two given formulas.
+   *
+   * The created formula depends on the implementation.
+   * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.
+   */
+  private interface FinalFormulaCreator {
+    Formula create(Formula pLeft, Formula pRight);
   }
 }

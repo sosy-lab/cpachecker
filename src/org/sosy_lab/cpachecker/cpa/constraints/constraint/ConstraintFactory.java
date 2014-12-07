@@ -91,7 +91,6 @@ public class ConstraintFactory {
       CExpression pRightExpression, boolean pIsPositive) throws UnrecognizedCodeException {
     ConstraintOperand leftOperand;
     ConstraintOperand rightOperand;
-    Constraint.Operator operator;
     boolean isPositive = pIsPositive;
 
     leftOperand = createOperand(pLeftExpression);
@@ -105,9 +104,10 @@ public class ConstraintFactory {
     switch (pOperator) {
       case NOT_EQUALS:
         isPositive = !isPositive;
+        // $FALL-THROUGH$
       case EQUALS:
-        operator = Constraint.Operator.EQUAL;
-        break;
+        return new EqualConstraint(leftOperand, rightOperand, isPositive);
+
       case GREATER_EQUAL: {
         ConstraintOperand swap = leftOperand;
         leftOperand = rightOperand;
@@ -115,8 +115,8 @@ public class ConstraintFactory {
       }
       // $FALL-THROUGH$
       case LESS_EQUAL:
-        operator = Constraint.Operator.LESS_EQUAL;
-        break;
+        return new LessOrEqualConstraint(leftOperand, rightOperand, isPositive);
+
       case GREATER_THAN: {
         ConstraintOperand swap = leftOperand;
         leftOperand = rightOperand;
@@ -124,14 +124,12 @@ public class ConstraintFactory {
       }
       // $FALL-THROUGH$
       case LESS_THAN:
-        operator = Constraint.Operator.LESS;
-        break;
+        return new LessConstraint(leftOperand, rightOperand, isPositive);
+
       default:
         // TODO: Change to correct exception type (UnrecognizedCCodeException, probably)
         throw new AssertionError("Operation " + pOperator + " not allowed as assume.");
     }
-
-    return new Constraint(leftOperand, operator, rightOperand, isPositive);
   }
 
   public Constraint createPositiveConstraint(JExpression pLeftExpression, JBinaryExpression.BinaryOperator pOperator,
@@ -148,7 +146,6 @@ public class ConstraintFactory {
       JExpression pRightExpression, boolean pIsPositive) throws UnrecognizedCodeException {
     ConstraintOperand leftOperand;
     ConstraintOperand rightOperand;
-    Constraint.Operator operator;
     boolean isPositive = pIsPositive;
 
     leftOperand = createOperand(pLeftExpression);
@@ -161,9 +158,10 @@ public class ConstraintFactory {
     switch (pOperator) {
       case NOT_EQUALS:
         isPositive = !isPositive;
+        // $FALL-THROUGH$
       case EQUALS:
-        operator = Constraint.Operator.EQUAL;
-        break;
+        return new EqualConstraint(leftOperand, rightOperand, isPositive);
+
       case GREATER_EQUAL: {
         ConstraintOperand swap = leftOperand;
         leftOperand = rightOperand;
@@ -171,8 +169,8 @@ public class ConstraintFactory {
       }
       // $FALL-THROUGH$
       case LESS_EQUAL:
-        operator = Constraint.Operator.LESS_EQUAL;
-        break;
+        return new LessOrEqualConstraint(leftOperand, rightOperand, isPositive);
+
       case GREATER_THAN: {
         ConstraintOperand swap = leftOperand;
         leftOperand = rightOperand;
@@ -180,15 +178,12 @@ public class ConstraintFactory {
       }
       // $FALL-THROUGH$
       case LESS_THAN:
-        operator = Constraint.Operator.LESS;
-        break;
+        return new LessConstraint(leftOperand, rightOperand, isPositive);
+
       default:
         // TODO: Change to correct exception type (UnrecognizedCCodeException, probably)
         throw new AssertionError("Operation " + pOperator + " not allowed as assume.");
     }
-
-
-    return new Constraint(leftOperand, operator, rightOperand, isPositive);
   }
 
   private ConstraintOperand createOperand(AExpression pExpression) throws UnrecognizedCodeException {

@@ -24,55 +24,20 @@
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-
-import com.google.common.base.Optional;
 
 /**
  * A single constraint.
  *
- * <p>A constraint consists of two values and one of the
- * following operators that describes the relation between these values:
- * <ul>
- *   <li>less-than (<)</li>
- *   <li>less-than-or-equal-to (<=)</li>
- *   <li>equals</li>
- * </ul></p>
+ * <p>A constraint describes a relation between two {@link ConstraintOperand}s that has to be true or false,
+ * depending on the constraint.</p>
  *
- * <p>Example: '2 < 5'</p>
+ * <p>Possible examples would be relations like <code>'5 < 10'</code> or <code>'n == 10'</code></p>
  */
-public class Constraint implements Value {
+public abstract class Constraint implements Value {
 
-  public Formula transformToFormula(FormulaCreator<? extends Formula> pFormulaCreator) {
-    Formula formula;
-
-    switch (operator) {
-      case LESS:
-        formula = pFormulaCreator.createLess(leftOperand, rightOperand);
-        break;
-      case LESS_EQUAL:
-        formula = pFormulaCreator.createLessOrEqual(leftOperand, rightOperand);
-        break;
-      case EQUAL:
-        formula = pFormulaCreator.createEqual(leftOperand, rightOperand);
-        break;
-      default:
-        throw new AssertionError("Unhandled operator " + operator);
-    }
-
-    if (!positiveConstraint) {
-      formula = pFormulaCreator.createNot(formula);
-    }
-
-    return formula;
-  }
-
-  public enum Operator { LESS, LESS_EQUAL, EQUAL }
-
-  private final Operator operator;
   private final ConstraintOperand leftOperand;
   private final ConstraintOperand rightOperand;
 
@@ -82,24 +47,47 @@ public class Constraint implements Value {
    * Creates a new <code>Constraint</code> object with the given operator and operand.
    *
    * @param pLeftOperand the left operand of the constraint
-   * @param pOperator the operator of the constraint
    * @param pRightOperand the right operand of the constraint
    */
-  Constraint(ConstraintOperand pLeftOperand, Operator pOperator, ConstraintOperand pRightOperand) {
-
-    operator = pOperator;
+  Constraint(ConstraintOperand pLeftOperand, ConstraintOperand pRightOperand) {
     leftOperand = pLeftOperand;
     rightOperand = pRightOperand;
     positiveConstraint = true;
   }
 
-  Constraint(ConstraintOperand pLeftOperand, Operator pOperator, ConstraintOperand pRightOperand, boolean pIsPositive) {
-    operator = pOperator;
+  Constraint(ConstraintOperand pLeftOperand, ConstraintOperand pRightOperand, boolean pIsPositive) {
     leftOperand = pLeftOperand;
     rightOperand = pRightOperand;
     positiveConstraint = pIsPositive;
   }
 
+  /**
+   * Accepts the given {@link ConstraintVisitor}.
+   *
+   * @param pVisitor the visitor to accept
+   * @param <T> the return type of the given visitor
+   *
+   * @return the value returned by the visitor's visit method
+   */
+  public abstract <T> T accept(ConstraintVisitor<T> pVisitor);
+
+  public ConstraintOperand getLeftOperand() {
+    return leftOperand;
+  }
+
+  public ConstraintOperand getRightOperand() {
+    return rightOperand;
+  }
+
+  /**
+   * Returns whether this constraint is positive.
+   * Not positive (that is, negative) constraints represent a NOT.
+   *
+   * @return <code>true</code> if this constraint is positive, <code>false</code> otherwise.
+   */
+  public boolean isPositiveConstraint() {
+    return positiveConstraint;
+  }
 
   public boolean includes(Constraint pOtherConstraint) {
     return false;
@@ -110,6 +98,7 @@ public class Constraint implements Value {
     return thisRange.includes(otherRange);*/
   }
 
+  /*
   /**
    * Merges this condition with the given condition.
    *
@@ -118,6 +107,7 @@ public class Constraint implements Value {
    *    conditions, if their intersection is knowingly not empty.
    *    Returns an empty <code>Optional</code> instance, otherwise
    */
+  /*
   public Optional<Value> mergeWith(Constraint pOtherConstraint) {
     Constraint newConstraint;
 
@@ -140,13 +130,14 @@ public class Constraint implements Value {
             || (pCond1.leftOperand.equals(pCond2.leftOperand) && pCond1.rightOperand.equals(pCond2.rightOperand)
               && (op1 == Operator.EQUAL || op2 == Operator.EQUAL)));
   }
+  */
 
   @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
 
-    } else if (!(o instanceof Constraint)) {
+    } else if (!(o.getClass().equals(getClass()))) {
       return false;
 
     } else {
@@ -154,14 +145,13 @@ public class Constraint implements Value {
 
       return positiveConstraint == that.positiveConstraint
           && leftOperand.equals(that.leftOperand)
-          && operator == that.operator
           && rightOperand.equals(that.rightOperand);
     }
   }
 
   @Override
   public int hashCode() {
-    int result = operator.hashCode();
+    int result = getClass().hashCode();
 
     result = 2 * result + (positiveConstraint ? 1 : 0);
     result = 31 * result + leftOperand.hashCode();
@@ -178,19 +168,7 @@ public class Constraint implements Value {
       sb.append("not (");
     }
 
-    switch (operator) {
-      case LESS:
-        sb.append(leftOperand).append(" < ").append(rightOperand);
-        break;
-      case LESS_EQUAL:
-        sb.append(leftOperand).append(" <= ").append(rightOperand);
-        break;
-      case EQUAL:
-        sb.append(leftOperand).append(" == ").append(rightOperand);
-        break;
-      default:
-        throw new AssertionError("Unhandled operator: " + operator);
-    }
+    sb.append(leftOperand).append(" " + getOperatorAsString() + " ").append(rightOperand);
 
     if (!positiveConstraint) {
       sb.append(")");
@@ -198,6 +176,13 @@ public class Constraint implements Value {
 
     return sb.toString();
   }
+
+  /**
+   * Returns the constraint's operator as a string.
+   *
+   * @return the constraint operator's string representation
+   */
+  protected abstract String getOperatorAsString();
 
   @Override
   public boolean isNumericValue() {

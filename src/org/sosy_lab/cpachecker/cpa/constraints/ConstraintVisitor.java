@@ -25,26 +25,22 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.EqualConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessConstraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.LessOrEqualConstraint;
 
 /**
- * Creator for formulas. Allows creation of formulas from {@link Constraint}s.
+ * Visitor for {@link Constraint} objects.
  *
- * @param FormulaType
+ * @param T return type of visit methods
  */
-public interface FormulaCreator<FormulaType extends Formula> {
+public interface ConstraintVisitor<T> {
 
-  FormulaType transform(Constraint pConstraint);
+  T visit(LessConstraint pConstraint);
 
-  FormulaType transform(InvariantsFormula<Value> pFormula);
+  T visit(LessOrEqualConstraint pConstraint);
 
-  FormulaType createLess(ConstraintOperand pOperand1, ConstraintOperand pOperand2);
+  T visit(EqualConstraint pConstraint);
 
-  FormulaType createLessOrEqual(ConstraintOperand pOperand1, ConstraintOperand pOperand2);
-
-  FormulaType createEqual(ConstraintOperand pOperand1, ConstraintOperand pOperand2);
-
-  FormulaType createNot(Formula pFormula);
+  T visit(ConstraintOperand pConstraintOperand);
 }
