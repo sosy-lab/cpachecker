@@ -289,7 +289,7 @@ public class BooleanFormulaCreator
   // This is done so everything around the concrete formula creation does not have to be redundant
   private Formula transformConstraint(Constraint pConstraint, FinalFormulaCreator pCreator) {
     final Formula op1 = pConstraint.getLeftOperand().accept(this);
-    final Formula op2 = pConstraintf.getRightOperand().accept(this);
+    final Formula op2 = pConstraint.getRightOperand().accept(this);
 
     Formula finalFormula = pCreator.create(op1, op2);
 
