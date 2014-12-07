@@ -73,6 +73,10 @@ public class SymbolicIdentifier implements SymbolicValue {
     return new SymbolicIdentifier(nextId++, pType);
   }
 
+  public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
   public Type getType() {
     return type;
   }

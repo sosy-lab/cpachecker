@@ -54,8 +54,12 @@ public class SymbolicFormula implements SymbolicValue {
     formula = pFormula;
   }
 
-  protected InvariantsFormula<Value> getFormula() {
+  public InvariantsFormula<Value> getFormula() {
     return formula;
+  }
+
+  public <T> T accept(SymbolicValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
   @Override

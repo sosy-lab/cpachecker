@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.value.type.symbolic;
 
-import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 
 /**
- * Marker interface for symbolic values.
+ * Visitor for {@link SymbolicValue}s.
  *
- * Each class implementing this interface should provide an <code>equals(Object)</code> method
- * that allows checks for equality of symbolic values.
+ * @param T return type of visit methods
  */
-public interface SymbolicValue extends Value {
+public interface SymbolicValueVisitor<T> {
 
-  <T> T accept(SymbolicValueVisitor<T> pVisitor);
+  T visit(SymbolicIdentifier pValue);
+
+  T visit(SymbolicFormula pValue);
 }

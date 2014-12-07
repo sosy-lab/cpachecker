@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Divide;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicIdentifier;
@@ -66,8 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 /**
  * Creator for {@link BooleanFormula}s.
  */
-public class BooleanFormulaCreator
-    implements ConstraintVisitor<Formula>, InvariantsFormulaVisitor<Value, Formula> {
+public class BooleanFormulaCreator implements FormulaCreator {
 
   private static final boolean SIGNED = true;
 
@@ -128,14 +127,23 @@ public class BooleanFormulaCreator
     } else if (constantValue instanceof BooleanValue) {
       return booleanFormulaManager.makeBoolean(((BooleanValue) constantValue).isTrue());
 
-    } else if (constantValue instanceof SymbolicIdentifier) {
-      FormulaType<?> formulaType = getFormulaType(((SymbolicIdentifier) constantValue).getType());
-      Formula formula = formulaManager.makeVariable(formulaType, constantValue.toString());
-      return formula;
-    } else if (constantValue instanceof SymbolicFormula) {
-      // TODO
+    } else if (constantValue instanceof SymbolicValue) {
+      return ((SymbolicValue) constantValue).accept(this);
+
     }
 
+    return null; // if we can't handle it, 'abort'
+  }
+
+  @Override
+  public Formula visit(SymbolicIdentifier pValue) {
+    FormulaType<?> formulaType = getFormulaType(pValue.getType());
+
+    return formulaManager.makeVariable(formulaType, pValue.toString());
+  }
+
+  @Override
+  public Formula visit(SymbolicFormula pValue) {
     return null;
   }
 

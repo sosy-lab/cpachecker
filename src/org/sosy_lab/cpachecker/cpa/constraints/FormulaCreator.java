@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.type;
+package org.sosy_lab.cpachecker.cpa.constraints;
 
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueVisitor;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
 
 /**
- * Marker interface for symbolic values.
- *
- * Each class implementing this interface should provide an <code>equals(Object)</code> method
- * that allows checks for equality of symbolic values.
+ * Class for creating {@link Formula}s out of {@link Constraint}s
  */
-public interface SymbolicValue extends Value {
-
-  <T> T accept(SymbolicValueVisitor<T> pVisitor);
+public interface FormulaCreator extends ConstraintVisitor<Formula>, InvariantsFormulaVisitor<Value, Formula>,
+    SymbolicValueVisitor<Formula> {
 }
