@@ -144,7 +144,7 @@ public class BooleanFormulaCreator implements FormulaCreator {
 
   @Override
   public Formula visit(SymbolicFormula pValue) {
-    return null;
+    return pValue.getFormula().accept(this);
   }
 
   private FormulaType<?> getFormulaType(Type pType) {
