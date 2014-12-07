@@ -122,7 +122,8 @@ public class BooleanFormulaCreator implements FormulaCreator {
     BooleanFormulaManagerView booleanFormulaManager = formulaManager.getBooleanFormulaManager();
 
     if (constantValue.isNumericValue()) {
-      return formulaManager.makeNumber(FormulaType.BooleanType, ((NumericValue) constantValue).longValue());
+
+      return formulaManager.makeNumber(FormulaType.IntegerType, ((NumericValue) constantValue).longValue());
 
     } else if (constantValue instanceof BooleanValue) {
       return booleanFormulaManager.makeBoolean(((BooleanValue) constantValue).isTrue());
