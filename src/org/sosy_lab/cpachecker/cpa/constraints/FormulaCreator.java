@@ -32,7 +32,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 /**
  * Class for creating {@link Formula}s out of {@link Constraint}s
+ *
+ * @param T concrete {@link Formula} type the implementation creates
  */
-public interface FormulaCreator extends ConstraintVisitor<Formula>, InvariantsFormulaVisitor<Value, Formula>,
-    SymbolicValueVisitor<Formula> {
+public interface FormulaCreator<T extends Formula> extends ConstraintVisitor<T>, InvariantsFormulaVisitor<Value, T>,
+    SymbolicValueVisitor<T> {
 }
