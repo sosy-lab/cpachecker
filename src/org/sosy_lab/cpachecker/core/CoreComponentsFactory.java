@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
+  public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
+
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
@@ -236,7 +238,7 @@ public class CoreComponentsFactory {
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa,
       @Nullable final MainCPAStatistics stats,
-      boolean composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     if (stats != null) {
       stats.cpaCreationTime.start();
@@ -248,9 +250,15 @@ public class CoreComponentsFactory {
         return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
       }
 
-      ConfigurableProgramAnalysis cpa
-        = composeWithSpecificationCPAs
-          ? cpaFactory.buildCPAs(cfa) : cpaFactory.buildCPAs(cfa, null);
+      final ConfigurableProgramAnalysis cpa;
+      switch (composeWithSpecificationCPAs) {
+      case TARGET_SPEC:
+        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
+      case BACKWARD_TO_ENTRY_SPEC:
+        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
+      default:
+        cpa = cpaFactory.buildCPAs(cfa, null);
+      }
 
       if (stats != null && cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

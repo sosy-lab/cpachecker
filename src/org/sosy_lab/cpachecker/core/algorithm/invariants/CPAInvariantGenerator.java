@@ -118,7 +118,7 @@ public class CPAInvariantGenerator implements InvariantGenerator {
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAs(cfa);
+    invariantCPAs = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
     invariantAlgorithm = CPAAlgorithm.create(invariantCPAs, logger, invariantConfig, shutdownNotifier);
     this.reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     reached = reachedSetFactory.create();

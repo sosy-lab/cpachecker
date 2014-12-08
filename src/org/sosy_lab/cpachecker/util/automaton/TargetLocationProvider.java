@@ -82,7 +82,7 @@ public class TargetLocationProvider {
 
       Configuration configuration = configurationBuilder.build();
       CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
+      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
 
       ReachedSet reached = reachedSetFactory.create();
       reached.add(cpa.getInitialState(pRootNode), cpa.getInitialPrecision(pRootNode));

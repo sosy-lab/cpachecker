@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
@@ -209,9 +210,12 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
-        ConfigurableProgramAnalysis cpa = factory.createCPA(
-            cfa, stats,
-            !initialStatesFor.contains(CFANodeType.TARGET));
+        final ConfigurableProgramAnalysis cpa;
+        if (initialStatesFor.contains(CFANodeType.TARGET)) {
+          cpa = factory.createCPA(cfa, stats, SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC);
+        } else {
+          cpa = factory.createCPA(cfa, stats, SpecAutomatonCompositionType.TARGET_SPEC);
+        }
         GlobalInfo.getInstance().storeCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);

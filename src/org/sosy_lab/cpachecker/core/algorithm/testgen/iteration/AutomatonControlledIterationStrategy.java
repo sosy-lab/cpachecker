@@ -144,7 +144,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
       CPABuilder localBuilder =
           new CPABuilder(lConfig, logger, ShutdownNotifier.createWithParent(shutdownNotifier), reachedSetFactory);
 
-      currentCPA = localBuilder.buildCPAs(cfa);
+      currentCPA = localBuilder.buildCPAWithSpecAutomatas(cfa);
 
       if (getModel().getAlgorithm() instanceof CPAAlgorithm) {
         return CPAAlgorithm.create(currentCPA, logger, lConfig, shutdownNotifier);

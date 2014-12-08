@@ -413,7 +413,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     singleLogger.log(Level.FINE, "Creating CPAs");
 
     CPABuilder builder = new CPABuilder(pConfig, singleLogger, singleShutdownNotifier, pReachedSetFactory);
-    ConfigurableProgramAnalysis cpa = builder.buildCPAs(cfa);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAWithSpecAutomatas(cfa);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());

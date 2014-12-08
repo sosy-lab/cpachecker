@@ -298,7 +298,7 @@ public class LiveVariables {
       ConfigurableProgramAnalysis cpa = new CPABuilder(config,
                                                        logger,
                                                        shutdownNotifier,
-                                                       reachedFactory).buildCPAs(cfa);
+                                                       reachedFactory).buildCPAWithSpecAutomatas(cfa);
       Algorithm algorithm = CPAAlgorithm.create(cpa,
                                                 logger,
                                                 config,
