@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -164,5 +167,10 @@ class ImmutableCFA implements CFA {
   @Override
   public Language getLanguage() {
     return language;
+  }
+
+  @Override
+  public Set<CFADynamicNodeClassification> getDynamicNodeTypes(CFANode pForNode) {
+    return Collections.emptySet();
   }
 }

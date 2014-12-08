@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
+import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -179,5 +180,10 @@ public class MutableCFA implements CFA {
   @Override
   public Language getLanguage() {
       return language;
+  }
+
+  @Override
+  public Set<CFADynamicNodeClassification> getDynamicNodeTypes(CFANode pForNode) {
+    return null;
   }
 }

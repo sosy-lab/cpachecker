@@ -31,6 +31,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -49,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -62,8 +64,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -119,41 +123,12 @@ public class CPAchecker {
       description="stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  public static enum InitialStatesFor {
-    /**
-     * Function entry node of the entry function
-     */
-    ENTRY,
-
-    /**
-     * Set of function entry nodes of all functions.
-     */
-    FUNCTION_ENTRIES,
-
-    /**
-     * All locations that are possible targets of the analysis.
-     */
-    TARGET,
-
-    /**
-     * Function exit node of the entry function.
-     */
-    EXIT,
-
-    /**
-     * All function exit nodes of all functions and all loop heads of endless loops.
-     */
-    FUNCTION_SINKS,
-
-    /**
-     * All function exit nodes of the entry function, and all loop heads of endless loops.
-     */
-    PROGRAM_SINKS
-  }
-
   @Option(secure=true, name="initialStatesFor",
-      description="What CFA nodes should be the starting point of the analysis?")
-  private InitialStatesFor initialStatesFor = InitialStatesFor.ENTRY;
+      description="What different types of CFA nodes should be the starting point of the analysis?")
+  private EnumSet<CFADynamicNodeClassification> initialStatesFor = EnumSet.of(CFADynamicNodeClassification.ENTRY);
+  @Option(secure=true,
+      description="Partition the set reached based of the type the initial states?")
+  private boolean partitionBasedOnInitialType = false;
 
   @Option(secure=true, name="algorithm.CBMC",
       description="use CBMC as an external tool from CPAchecker")
@@ -240,7 +215,7 @@ public class CPAchecker {
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(
             cfa, stats,
-            initialStatesFor != InitialStatesFor.TARGET);
+            !initialStatesFor.contains(CFADynamicNodeClassification.TARGET));
         GlobalInfo.getInstance().storeCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
@@ -421,6 +396,27 @@ public class CPAchecker {
     return Result.TRUE;
   }
 
+  private void putToReached(
+      final CFADynamicNodeClassification pPartition,
+      final Set<? extends CFANode> pLocations,
+      final ReachedSet reached,
+      final ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+
+    for (CFANode loc: pLocations) {
+      AbstractState initialState = cpa.getInitialState(loc);
+      Precision initialPrecision = cpa.getInitialPrecision(loc);
+
+      if (partitionBasedOnInitialType) {
+        AutomatonState atmtState = AbstractStates.extractStateByType(initialState, AutomatonState.class);
+        if (atmtState == null) {
+          throw new InvalidConfigurationException("State space partitioning requires an appropriate composed abstract state!");
+        }
+      }
+
+      reached.add(initialState, initialPrecision);
+    }
+  }
+
   private void initializeReachedSet(
       final ReachedSet reached,
       final ConfigurableProgramAnalysis cpa,
@@ -429,48 +425,65 @@ public class CPAchecker {
 
     logger.log(Level.FINE, "Creating initial reached set");
 
-    ImmutableSet<? extends CFANode> initialLocations = null;
+    for (CFADynamicNodeClassification sf: initialStatesFor) {
+      switch (sf) {
+      case ENTRY:
+        putToReached(
+            sf,
+            ImmutableSet.of(analysisEntryFunction),
+            reached, cpa);
+        break;
 
-    switch (initialStatesFor) {
-    case ENTRY:
-      initialLocations = ImmutableSet.of(analysisEntryFunction);
-      break;
-    case EXIT:
-      initialLocations = ImmutableSet.of(analysisEntryFunction.getExitNode());
-      break;
-    case FUNCTION_ENTRIES:
-      initialLocations = ImmutableSet.copyOf(cfa.getAllFunctionHeads());
-      break;
-    case FUNCTION_SINKS:
-      initialLocations = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()))
-                                                        .addAll(getAllFunctionExitNodes(cfa))
-                                                        .build();
-      break;
-    case PROGRAM_SINKS:
-      Builder<CFANode> builder = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()));
-      if (cfa.getAllNodes().contains(analysisEntryFunction.getExitNode())) {
-        builder.add(analysisEntryFunction.getExitNode());
+      case EXIT:
+        putToReached(
+            sf,
+            ImmutableSet.of(analysisEntryFunction.getExitNode()),
+            reached, cpa);
+        break;
+
+      case FUNCTION_ENTRY:
+        putToReached(
+            sf,
+            ImmutableSet.copyOf(cfa.getAllFunctionHeads()),
+            reached, cpa);
+        break;
+
+      case FUNCTION_SINK:
+        putToReached(
+            sf,
+            ImmutableSet.<CFANode>builder()
+                .addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()))
+                .addAll(getAllFunctionExitNodes(cfa))
+                .build(),
+            reached, cpa);
+        break;
+
+      case PROGRAM_SINK:
+        Builder<CFANode> builder = ImmutableSet.<CFANode>builder().addAll(getAllEndlessLoopHeads(cfa.getLoopStructure().get()));
+        if (cfa.getAllNodes().contains(analysisEntryFunction.getExitNode())) {
+          builder.add(analysisEntryFunction.getExitNode());
+        }
+        putToReached(
+             sf,
+             builder.build(),
+             reached, cpa);
+        break;
+
+      case TARGET:
+        TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
+        putToReached(
+            sf,
+            tlp.tryGetAutomatonTargetLocations(analysisEntryFunction),
+            reached, cpa);
+        break;
+      default:
+        throw new AssertionError("Unhandled case statement: " + initialStatesFor);
+
       }
-       initialLocations = builder.build();
-      break;
-    case TARGET:
-      TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, cfa);
-      initialLocations = tlp.tryGetAutomatonTargetLocations(analysisEntryFunction);
-      break;
-    default:
-      throw new AssertionError("Unhandled case statement: " + initialStatesFor);
-
     }
 
-    if (initialLocations == null) {
+    if (!reached.hasWaitingState()) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
-    }
-
-    for (CFANode loc: initialLocations) {
-      AbstractState initialState = cpa.getInitialState(loc);
-      Precision initialPrecision = cpa.getInitialPrecision(loc);
-
-      reached.add(initialState, initialPrecision);
     }
   }
 
