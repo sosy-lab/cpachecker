@@ -56,7 +56,12 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
 
-  @Option(secure=true, name="pathFocusing",
+  // TODO: this doesn't work
+  @Option(secure=true,
+      description="Call [simplify] on the formulas resulting from the C code")
+  private boolean simplifyFormulas = true;
+
+  @Option(secure=true,
       description="Perform abstraction only at the nodes from the cut-set.")
   private boolean pathFocusing = true;
 
@@ -184,6 +189,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       prev = pfmgr.makeAnd(prev, branchConstraint);
     }
 
+    PathFormula outF = pfmgr.makeAnd(prev, edge);
+    if (simplifyFormulas) {
+      outF = new PathFormula(
+          fmgr.simplify(outF.getFormula()),
+          outF.getSsa(), outF.getPointerTargetSet(), outF.getLength());
+    }
 
     PolicyState out = PolicyState.ofIntermediate(
         edge.getSuccessor(),
@@ -194,7 +205,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // nevertheless.
         Sets.union(templateManager.templatesForNode(node),
             oldState.getTemplates()),
-        pfmgr.makeAnd(prev, edge),
+        outF,
         leafs
     );
 
@@ -330,9 +341,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PathFormula oldPath = iOldState.getPathFormula();
 
       // Just return the old state if it covers the new state.
-      if (checkCovering(iOldState, iNewState)) {
-        return newState;
-      }
+//      if (checkCovering(iOldState, iNewState)) {
+//
+//        // TODO: wait I believe this is buggy and might 'cause further issues.
+//
+//        // What about the case when the two nodes have the same parent, but they
+//        // have chosen different branches to arrive to their destination?
+//        // What do we do in that case than, huh?
+//        return newState;
+//      }
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
@@ -677,10 +694,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether {@code newState} is covered by {@code oldState}
    */
+  @SuppressWarnings("unused")
   private boolean checkCovering(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
+    // TODO: this doesn't produce expected results if the parent is the same,
+    // need to check that the DAG is the same as well.
 
     Set<CFANode> allLeafs = new HashSet<>(oldState.getLeafs().size());
     allLeafs.addAll(newState.getLeafs().keySet());
@@ -715,7 +735,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       } else if (oldS == null) {
         builder.put(n, newS);
       } else {
-        assert newS.equals(oldS);
+        // TODO:
+//        assert newS.equals(oldS);
         builder.put(n, newS);
       }
     }
