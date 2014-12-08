@@ -32,10 +32,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
-import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFANodeClassification;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -158,9 +158,11 @@ public class MutableCFA implements CFA {
   }
 
   public ImmutableCFA makeImmutableCFA(
-      Optional<VariableClassification> pVarClassification) {
+      Optional<VariableClassification> pVarClassification,
+      Optional<CFANodeClassification> pNodeClassification) {
+
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        loopStructure, pVarClassification, liveVariables, language);
+        loopStructure, pVarClassification, pNodeClassification, liveVariables, language);
   }
 
   @Override
@@ -183,7 +185,7 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Set<CFADynamicNodeClassification> getDynamicNodeTypes(CFANode pForNode) {
-    return null;
+  public Optional<CFANodeClassification> getNodeClassification() {
+    return Optional.absent();
   }
 }

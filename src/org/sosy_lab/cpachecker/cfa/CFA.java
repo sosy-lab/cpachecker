@@ -27,10 +27,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFANodeClassification;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -66,7 +66,7 @@ public interface CFA {
 
   Optional<LiveVariables> getLiveVariables();
 
-  Set<CFADynamicNodeClassification> getDynamicNodeTypes(CFANode pForNode);
+  Optional<CFANodeClassification> getNodeClassification();
 
   Language getLanguage();
 }

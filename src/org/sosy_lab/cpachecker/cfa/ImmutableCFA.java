@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.model.CFADynamicNodeClassification;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFANodeClassification;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -56,6 +54,7 @@ class ImmutableCFA implements CFA {
   private final FunctionEntryNode mainFunction;
   private final Optional<LoopStructure> loopStructure;
   private final Optional<VariableClassification> varClassification;
+  private final Optional<CFANodeClassification> nodeClassification;
   private final Optional<LiveVariables> liveVariables;
   private final Language language;
 
@@ -66,6 +65,7 @@ class ImmutableCFA implements CFA {
       FunctionEntryNode pMainFunction,
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
+      Optional<CFANodeClassification> pNodeClassification,
       Optional<LiveVariables> pLiveVariables,
       Language pLanguage) {
 
@@ -75,6 +75,7 @@ class ImmutableCFA implements CFA {
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
     varClassification = pVarClassification;
+    nodeClassification = pNodeClassification;
     liveVariables = pLiveVariables;
     language = pLanguage;
 
@@ -88,6 +89,7 @@ class ImmutableCFA implements CFA {
     mainFunction = null;
     loopStructure = Optional.absent();
     varClassification = Optional.absent();
+    nodeClassification = Optional.absent();
     liveVariables = Optional.absent();
     language = pLanguage;
   }
@@ -170,7 +172,7 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Set<CFADynamicNodeClassification> getDynamicNodeTypes(CFANode pForNode) {
-    return Collections.emptySet();
+  public Optional<CFANodeClassification> getNodeClassification() {
+    return nodeClassification;
   }
 }
