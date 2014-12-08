@@ -44,6 +44,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
@@ -161,7 +162,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownNotifier).start();
 
       CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, lLogger, lShutdownNotifier);
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, true);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));

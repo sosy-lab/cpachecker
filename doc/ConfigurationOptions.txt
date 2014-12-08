@@ -200,6 +200,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# comma-separated list of files with specifications that should be used 
+# in a backwards analysis; used if the full analysis consists of a forward
+# AND a backward part!
+# (see config/specification/ for examples)
+backwardSpecification = no default value
+
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
 bdd.javabdd.cacheRatio = 0.1
