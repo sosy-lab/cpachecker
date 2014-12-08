@@ -36,11 +36,23 @@ public class AppliedCustomInstruction {
   private final CFANode ciStartNode;
   private final ImmutableSet<CFANode> ciEndNode;
 
+  /**
+   * Constructor of AppliedCustomInstruction.
+   * Creates a AppliedCustomInstruction with a start node and a set of endNodes
+   * @param pCiStartNode CFANode
+   * @param pCiEndNode ImmutableSet
+   */
   public AppliedCustomInstruction (final CFANode pCiStartNode, final ImmutableSet<CFANode> pCiEndNode){
     ciStartNode = pCiStartNode;
     ciEndNode = pCiEndNode;
   }
 
+  /**
+   * Compares the given AbstractState pState to ciStartNode
+   * @param pState AbstractState
+   * @return true if pState equals ciStartNode, false if not.
+   * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
+   */
   public boolean isStartState (AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
@@ -50,6 +62,12 @@ public class AppliedCustomInstruction {
     return locState.equals(ciStartNode);
   }
 
+  /**
+   * Compares the given AbstractState pState to ciStartNode
+   * @param pState AbstractState
+   * @return true if pState equals ciEndNode, false if not.
+   * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
+   */
   public boolean isEndState (AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {

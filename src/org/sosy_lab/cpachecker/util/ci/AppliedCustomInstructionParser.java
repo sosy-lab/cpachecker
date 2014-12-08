@@ -41,6 +41,13 @@ import com.google.common.collect.ImmutableSet;
 
 public class AppliedCustomInstructionParser {
 
+  /**
+   * Creates a ImmutableMap if the file contains all reqiered data, null if not
+   * @param file Path of the file to be read
+   * @return ImmutableMap containing a startNode (key) and a set of endNodes (value).
+   * @throws IOException if the file doesn't contain all required data.
+   * @throws AppliedCustomInstructionParsingFailedException
+   */
   public ImmutableMap<CFANode, AppliedCustomInstruction> parse (Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException {
 
@@ -64,6 +71,13 @@ public class AppliedCustomInstructionParser {
     return null;
   }
 
+  /**
+   * Creates a new CFANode with respect to the given parameters
+   * @param pNodeID String
+   * @param cfaInfo CFAInfo
+   * @return a new CFANode with respect to the given parameters
+   * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
+   */
   public CFANode getCFANode (String pNodeID, CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
     try{
       return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
@@ -73,6 +87,12 @@ public class AppliedCustomInstructionParser {
     }
   }
 
+  /**
+   * Creates a ImmutableSet out of the given String[].
+   * @param pNodes String[]
+   * @return Immutable Set of CFANodes out of the String[]
+   * @throws AppliedCustomInstructionParsingFailedException
+   */
   public ImmutableSet<CFANode> getCFANodes (String[] pNodes) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (int i=0; i<pNodes.length; i++) {
@@ -81,10 +101,17 @@ public class AppliedCustomInstructionParser {
     return builder.build();
   }
 
+  /**
+   * Checks if all nodes out of the given set can be reached from the given pNode.
+   * @param pNode CFANode
+   * @param pSet Set of CFANodes
+   * @return true if all nodes out of the given set can be reached from the given pNode, false if not.
+   * @throws AppliedCustomInstructionParsingFailedException if the given node or set is null.
+   */
   private boolean sanityCheckCIApplication (CFANode pNode, Set<CFANode> pSet)
         throws AppliedCustomInstructionParsingFailedException {
 
-    if (pNode == null) {
+    if (pNode == null || pSet == null) {
       throw new AppliedCustomInstructionParsingFailedException
         ("The CFANode "+pNode+" is null, that is no valid value for sanityCheckCIApplication");
     }

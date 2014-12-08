@@ -35,10 +35,21 @@ public class CustomInstructionApplications {
 
   private final ImmutableMap<CFANode, AppliedCustomInstruction> cis;
 
+  /**
+   * Constructor of CustomInstructionApplications
+   * @param pCis ImmutableMap
+   */
   public CustomInstructionApplications(final ImmutableMap<CFANode, AppliedCustomInstruction> pCis) {
     cis = pCis;
   }
 
+  /**
+   * Checks if the ImmutableMap cis contains the given CFANode
+   * (after it is extracted out of the AbstractState)
+   * @param pState AbstractState
+   * @return true if cis contains the given node
+   * @throws CPAException if the given node can't be extracted
+   */
   public boolean isStartState(final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
@@ -47,10 +58,24 @@ public class CustomInstructionApplications {
     return cis.containsKey(locState);
   }
 
+  /**
+   * Checks if the given AbstractState pIsEnd is an endNode of the given AbsractState pCISart
+   * @param pIsEnd AbstractState
+   * @param pCIStart AbstractState
+   * @return true if pIsEnd is an endNode of pCISart
+   * @throws CPAException
+   */
   public boolean isEndState(final AbstractState pIsEnd, final AbstractState pCIStart) throws CPAException {
     return isEndState(pIsEnd, AbstractStates.extractLocation(pCIStart));
   }
 
+  /**
+   * Checks if the given AbstractState pIsEnd is an endNode of the given CFANode pCISart
+   * @param pIsEnd AbstractState
+   * @param pCIStart CFANode
+   * @return true if pIsEnd is an endNode of pCISart
+   * @throws CPAException
+   */
   public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart) throws CPAException {
     return cis.get(pCIStart).isEndState(pIsEnd);
   }
