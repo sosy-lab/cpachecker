@@ -10,7 +10,8 @@ int main() {
     x += y;
     y += x;
 
-    // TODO: support ">=" as well.
-    if (x > 10 || y > 10) break;
+    if (x >= 10 || y >= 10) break;
   }
+
+  assert(y >= 10);
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -41,12 +42,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -94,6 +97,7 @@ public class LiveVariables {
   private final Set<ASimpleDeclaration> globalVariables;
   private final VariableClassification variableClassification;
   private final EvaluationStrategy evaluationStrategy;
+  private final Language language;
 
   /** For efficient access to the string representation of the declarations
    * we use these maps additionally.
@@ -104,11 +108,13 @@ public class LiveVariables {
   private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
                         VariableClassification pVariableClassification,
                         Set<ASimpleDeclaration> pGlobalVariables,
-                        EvaluationStrategy pEvaluationStrategy) {
+                        EvaluationStrategy pEvaluationStrategy,
+                        Language pLanguage) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
     evaluationStrategy = pEvaluationStrategy;
+    language = pLanguage;
 
     globalVariablesStrings = FluentIterable.from(globalVariables).transform(new Function<ASimpleDeclaration, String>() {
       @Override
@@ -126,15 +132,11 @@ public class LiveVariables {
     String varName = variable.getQualifiedName();
 
     if (globalVariables.contains(variable)
-        || variableClassification.getAddressedVariables().contains(varName)
+        || (language == Language.C
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
-
-      // irrelevant variables from variable classification can be considered
-      // as not being live
-    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
-      return false;
     }
 
     // check if a variable is live at a given point
@@ -143,15 +145,11 @@ public class LiveVariables {
 
   public boolean isVariableLive(final String varName, CFANode location) {
     if (globalVariablesStrings.contains(varName)
-        || variableClassification.getAddressedVariables().contains(varName)
+        || (language == Language.C
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
-
-      // irrelevant variables from variable classification can be considered
-      // as not being live
-    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
-      return false;
     }
 
     // check if a variable is live at a given point
@@ -162,28 +160,43 @@ public class LiveVariables {
     return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
   }
 
-  public static Optional<LiveVariables> create(VariableClassification variableClassification,
-                                       List<Pair<ADeclaration, String>> globalsList,
-                                       final MutableCFA pCFA,
-                                       final LogManager logger,
-                                       final ShutdownNotifier shutdownNotifier,
-                                       final Configuration config) throws InvalidConfigurationException {
+  public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
+                                               final List<Pair<ADeclaration, String>> globalsList,
+                                               final MutableCFA pCFA,
+                                               final LogManager logger,
+                                               final ShutdownNotifier shutdownNotifier,
+                                               final Configuration config) throws InvalidConfigurationException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
     checkNotNull(logger);
     checkNotNull(shutdownNotifier);
 
+    // we cannot make any assumptions about c programs where we do not know
+    // about the addressed variables
+    if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
+      return Optional.absent();
+    }
+
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(Optional.of(variableClassification), Optional.<CFANodeClassification>absent());
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification, Optional.<CFANodeClassification>absent());
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
+    return create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy);
+  }
+
+  private static Optional<LiveVariables> create0(final VariableClassification variableClassification,
+                                                 final List<Pair<ADeclaration, String>> globalsList,
+                                                 final LogManager logger,
+                                                 final ShutdownNotifier shutdownNotifier,
+                                                 final CFA cfa,
+                                                 final EvaluationStrategy eval) throws AssertionError {
     // prerequisites for creating the live variables
     Set<ASimpleDeclaration> globalVariables;
-    switch (liveVarConfig.evaluationStrategy) {
+    switch (eval) {
     case FUNCTION_WISE: globalVariables = FluentIterable.from(globalsList)
                                                         .transform(DECLARATION_FILTER)
                                                         .filter(notNull())
@@ -193,27 +206,32 @@ public class LiveVariables {
       break;
     case GLOBAL: globalVariables = Collections.emptySet(); break;
     default:
-      throw new AssertionError("Unhandled case statement: " + liveVarConfig.evaluationStrategy);
+      throw new AssertionError("Unhandled case statement: " + eval);
     }
 
-    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, liveVarConfig.evaluationStrategy);
+    Optional<AnalysisParts> parts = getNecessaryAnalysisComponents(cfa, logger, shutdownNotifier, eval);
     Multimap<CFANode, ASimpleDeclaration> liveVariables = null;
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), liveVarConfig.evaluationStrategy);
+      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), eval);
     }
 
     // when the analysis did not finish or could even not be created we return
-    // an absent optional
-    if (liveVariables == null) {
+    // an absent optional, but before we try the function-wise analysis if we
+    // did not yet use it
+    if (liveVariables == null && eval != EvaluationStrategy.FUNCTION_WISE) {
+      logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
+      return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, EvaluationStrategy.FUNCTION_WISE);
+    } else if (liveVariables == null) {
       return Optional.absent();
     }
 
     return Optional.of(new LiveVariables(liveVariables,
                                          variableClassification,
                                          globalVariables,
-                                         liveVarConfig.evaluationStrategy));
+                                         eval,
+                                         cfa.getLanguage()));
   }
 
   private final static Function<Pair<ADeclaration, String>, ASimpleDeclaration> DECLARATION_FILTER =
@@ -254,7 +272,10 @@ public class LiveVariables {
         // we need only one loop head for each loop, as we are doing a merge
         // afterwards during the analysis, and we do never stop besides when
         // there is coverage (we have no target states)
-        if (l.getOutgoingEdges().isEmpty()) {
+        // additionally we have to remove all functionCallEdges from the outgoing
+        // edges because the LoopStructure is not able to say that loops with
+        // function calls inside have no outgoing edges
+        if (from(l.getOutgoingEdges()).filter(not(instanceOf(FunctionCallEdge.class))).isEmpty()) {
           CFANode functionHead = l.getLoopHeads().iterator().next();
           analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead),
                                        analysisParts.cpa.getInitialPrecision(functionHead));
@@ -320,6 +341,7 @@ public class LiveVariables {
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOption("analysis.traversal.order", "BFS");
     configBuilder.setOption("analysis.traversal.usePostorder", "true");
+    configBuilder.setOption("analysis.traversal.useCallstack", "true");
     configBuilder.setOption("cpa", "cpa.composite.CompositeCPA");
     configBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPABackwardsNoTargets,"
                                                + "cpa.callstack.CallstackCPABackwards,"

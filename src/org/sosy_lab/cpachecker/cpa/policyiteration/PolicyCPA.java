@@ -128,10 +128,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-    LinearConstraintManager lcmgr = new LinearConstraintManager(formulaManager,
-        logger);
     TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa);
+        logger, config, cfa, formulaManager);
 
     statistics = new PolicyIterationStatistics(config);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
@@ -139,7 +137,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
             pathFormulaManager, formulaManager, config, logger,
             cfa,
             realFormulaManager,
-            lcmgr,
+            templateManager,
             formulaManagerFactory,
             shutdownNotifier,
             statistics
@@ -148,10 +146,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
-        cfa, pathFormulaManager, lcmgr,
-        formulaManager.getBooleanFormulaManager(),
+        cfa, pathFormulaManager,
         formulaManagerFactory, logger, shutdownNotifier,
-        formulaManager.getRationalFormulaManager(),
         templateManager, valueDeterminationFormulaManager,
         statistics);
 
@@ -161,7 +157,6 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    
   }
 
   @Override

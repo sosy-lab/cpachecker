@@ -1,38 +1,46 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
+
+import com.google.common.base.Objects;
 
 /**
  * Wrapper for a template.
- *
- * TODO: use a type for formula creation.
  */
-public class Template {
-
+public final class Template {
   final LinearExpression linearExpression;
-  final ASimpleDeclaration declaration;
+  final CSimpleType type;
 
   public Template(LinearExpression pLinearExpression,
-      ASimpleDeclaration pDeclaration) {
+      CSimpleType pType) {
     linearExpression = pLinearExpression;
-    declaration = pDeclaration;
+    type = pType;
   }
 
   @Override
   public boolean equals(Object o) {
-    return o != null &&
-          o.getClass() == getClass() &&
-        linearExpression.equals(((Template)o).linearExpression);
+    if (this == o) {
+      return true;
+    }
+    if (o == null) {
+      return false;
+    }
+    if (o.getClass() != this.getClass()) {
+      return false;
+    }
+    Template other = (Template) o;
+    return linearExpression.equals(other.linearExpression) &&
+        type.equals(other.type);
   }
 
   @Override
   public int hashCode() {
-    return linearExpression.hashCode();
+    return Objects.hashCode(linearExpression, type);
   }
 
   @Override
   public String toString() {
-    return linearExpression.toString();
+    return String.format("%s (%s)", linearExpression.toString(), type);
   }
 }

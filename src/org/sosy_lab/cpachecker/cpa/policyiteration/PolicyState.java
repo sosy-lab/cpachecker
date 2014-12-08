@@ -31,16 +31,16 @@ public abstract class PolicyState implements AbstractState, Graphable {
   protected final ImmutableSet<Template> templates;
 
   public static final class PolicyAbstractedState extends PolicyState
-        implements Iterable<Entry<LinearExpression, PolicyBound>> {
+        implements Iterable<Entry<Template, PolicyBound>> {
     /**
      * Finite bounds for templates.
      */
-    private final ImmutableMap<LinearExpression, PolicyBound> abstraction;
+    private final ImmutableMap<Template, PolicyBound> abstraction;
     private final PointerTargetSet pointerTargetSet;
 
     private PolicyAbstractedState(CFANode pNode,
         Set<Template> pTemplates,
-        Map<LinearExpression, PolicyBound> pAbstraction,
+        Map<Template, PolicyBound> pAbstraction,
         PointerTargetSet pPointerTargetSet) {
       super(pNode, pTemplates);
       abstraction = ImmutableMap.copyOf(pAbstraction);
@@ -48,24 +48,23 @@ public abstract class PolicyState implements AbstractState, Graphable {
     }
 
     public PolicyAbstractedState withUpdates(
-        Map<LinearExpression, PolicyBound> updates,
-        Set<LinearExpression> unbounded,
+        Map<Template, PolicyBound> updates,
+        Set<Template> unbounded,
         Set<Template> newTemplates) {
 
-      ImmutableMap.Builder<LinearExpression, PolicyBound> builder =
+      ImmutableMap.Builder<Template, PolicyBound> builder =
           ImmutableMap.builder();
 
       for (Template template : newTemplates) {
-        LinearExpression expr = template.linearExpression;
-        if (unbounded.contains(expr)) {
+        if (unbounded.contains(template)) {
           continue;
         }
-        if (updates.containsKey(expr)) {
-          builder.put(expr, updates.get(expr));
+        if (updates.containsKey(template)) {
+          builder.put(template, updates.get(template));
         } else {
-          PolicyBound v = abstraction.get(expr);
+          PolicyBound v = abstraction.get(template);
           if (v != null) {
-            builder.put(expr, abstraction.get(expr));
+            builder.put(template, abstraction.get(template));
           }
         }
       }
@@ -81,7 +80,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
      * @return {@link PolicyBound} for the given {@link LinearExpression}
      * <code>e</code> or an empty optional if it is unbounded.
      */
-    public Optional<PolicyBound> getBound(LinearExpression e) {
+    public Optional<PolicyBound> getBound(Template e) {
       return Optional.fromNullable(abstraction.get(e));
     }
 
@@ -106,7 +105,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
     }
 
     @Override
-    public Iterator<Entry<LinearExpression, PolicyBound>> iterator() {
+    public Iterator<Entry<Template, PolicyBound>> iterator() {
       return abstraction.entrySet().iterator();
     }
 
@@ -194,7 +193,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
    * Factory methods.
    */
   public static PolicyAbstractedState ofAbstraction(
-      Map<LinearExpression, PolicyBound> data,
+      Map<Template, PolicyBound> data,
       Set<Template> templates,
       CFANode node,
       PointerTargetSet pPointerTargetSet
@@ -232,7 +231,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
    */
   public static PolicyState empty(CFANode node) {
     return ofAbstraction(
-        ImmutableMap.<LinearExpression, PolicyBound>of(),
+        ImmutableMap.<Template, PolicyBound>of(),
         ImmutableSet.<Template>of(), // templates
         node, // node
         PointerTargetSet.emptyPointerTargetSet()

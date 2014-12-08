@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -88,11 +89,11 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
     logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
 
-    if (!cfa.getVarClassification().isPresent()) {
+    if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
       throw new AssertionError("Without information of the variable classification"
           + " the live variables analysis cannot be used.");
     }
-    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification().get(), pConfig);
+    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification(), pConfig, cfa.getLanguage());
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();

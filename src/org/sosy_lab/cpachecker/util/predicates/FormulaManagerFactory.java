@@ -97,8 +97,8 @@ public class FormulaManagerFactory {
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(secure=true, description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.")
-  private Solvers solver = Solvers.MATHSAT5;
+  @Option(secure=true, description="Which SMT solver to use.")
+  private Solvers solver = Solvers.SMTINTERPOL;
 
   @Option(secure=true, description="Which solver to use specifically for interpolation (default is to use the main one).")
   private Solvers interpolationSolver = null;

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
@@ -57,7 +56,12 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
 
-  @Option(secure=true, name="pathFocusing",
+  // TODO: this doesn't work
+  @Option(secure=true,
+      description="Call [simplify] on the formulas resulting from the C code")
+  private boolean simplifyFormulas = true;
+
+  @Option(secure=true,
       description="Perform abstraction only at the nodes from the cut-set.")
   private boolean pathFocusing = true;
 
@@ -71,13 +75,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
-  private final LinearConstraintManager lcmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerFactory formulaManagerFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
       rfmgr;
+  private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula, NumeralFormula.IntegerFormula>
+      ifmgr;
   private final TemplateManager templateManager;
   private final ValueDeterminationFormulaManager vdfmgr;
   private final PolicyIterationStatistics statistics;
@@ -87,12 +92,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       FormulaManagerView pFormulaManager,
       CFA pCfa,
       PathFormulaManager pPfmgr,
-      LinearConstraintManager pLcmgr,
-      BooleanFormulaManager pBfmgr,
       FormulaManagerFactory pFormulaManagerFactory,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula> pRfmgr,
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics)
@@ -101,12 +103,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     fmgr = pFormulaManager;
     cfa = pCfa;
     pfmgr = pPfmgr;
-    lcmgr = pLcmgr;
-    bfmgr = pBfmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
     formulaManagerFactory = pFormulaManagerFactory;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    rfmgr = pRfmgr;
+    rfmgr = fmgr.getRationalFormulaManager();
+    ifmgr = fmgr.getIntegerFormulaManager();
     templateManager = pTemplateManager;
     vdfmgr = pValueDeterminationFormulaManager;
     statistics = pStatistics;
@@ -187,6 +189,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       prev = pfmgr.makeAnd(prev, branchConstraint);
     }
 
+    PathFormula outF = pfmgr.makeAnd(prev, edge);
+    if (simplifyFormulas) {
+      outF = new PathFormula(
+          fmgr.simplify(outF.getFormula()),
+          outF.getSsa(), outF.getPointerTargetSet(), outF.getLength());
+    }
 
     PolicyState out = PolicyState.ofIntermediate(
         edge.getSuccessor(),
@@ -197,7 +205,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // nevertheless.
         Sets.union(templateManager.templatesForNode(node),
             oldState.getTemplates()),
-        pfmgr.makeAnd(prev, edge),
+        outF,
         leafs
     );
 
@@ -276,8 +284,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       PolicyAbstractedState aNewState = newState.asAbstracted();
       PolicyAbstractedState aOldState = oldState.asAbstracted();
-      for (Entry<LinearExpression, PolicyBound> entry : aOldState) {
-        LinearExpression template = entry.getKey();
+      for (Entry<Template, PolicyBound> entry : aOldState) {
+        Template template = entry.getKey();
         PolicyBound oldBound = entry.getValue();
 
         Optional<PolicyBound> newBound = aNewState.getBound(template);
@@ -333,9 +341,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PathFormula oldPath = iOldState.getPathFormula();
 
       // Just return the old state if it covers the new state.
-      if (checkCovering(iOldState, iNewState)) {
-        return newState;
-      }
+//      if (checkCovering(iOldState, iNewState)) {
+//
+//        // TODO: wait I believe this is buggy and might 'cause further issues.
+//
+//        // What about the case when the two nodes have the same parent, but they
+//        // have chosen different branches to arrive to their destination?
+//        // What do we do in that case than, huh?
+//        return newState;
+//      }
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
@@ -348,13 +362,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyAbstractedState aNewState = newState.asAbstracted();
     PolicyAbstractedState aOldState = oldState.asAbstracted();
 
-    Map<LinearExpression, PolicyBound> updated = new HashMap<>();
-    Set<LinearExpression> unbounded = new HashSet<>();
+    Map<Template, PolicyBound> updated = new HashMap<>();
+    Set<Template> unbounded = new HashSet<>();
 
     // Simple join:
     // Pick the biggest bound, and keep the biggest trace to match.
-    for (Template templateWrapper : allTemplates) {
-      LinearExpression template = templateWrapper.linearExpression;
+    for (Template template : allTemplates) {
       Optional<PolicyBound> oldValue, newValue;
       oldValue = aOldState.getBound(template);
       newValue = aNewState.getBound(template);
@@ -407,7 +420,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private boolean shouldPerformValueDetermination(
       CFANode node,
-      Map<LinearExpression, PolicyBound> updated) {
+      Map<Template, PolicyBound> updated) {
     if (!node.isLoopStart()) {
       return false;
     }
@@ -459,7 +472,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final CFANode node = state.getNode();
     final PathFormula p = state.getPathFormula();
 
-    ImmutableMap.Builder<LinearExpression, PolicyBound> abstraction
+    ImmutableMap.Builder<Template, PolicyBound> abstraction
         = ImmutableMap.builder();
 
     try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
@@ -467,13 +480,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       shutdownNotifier.shutdownIfNecessary();
 
-      for (Template templateWrapper : state.getTemplates()) {
-        LinearExpression template = templateWrapper.linearExpression;
+      for (Template template : state.getTemplates()) {
 
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
         NumeralFormula objective =
-            lcmgr.linearExpressionToFormula(template, p.getSsa());
+            templateManager.toFormula(template, p.getSsa());
 
         solver.push();
         solver.maximize(objective);
@@ -603,13 +615,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     SSAMap ssa = SSAMap.emptySSAMap();
     List<BooleanFormula> tokens = new ArrayList<>();
-    for (Entry<LinearExpression, PolicyBound> entry : abstractState) {
-      LinearExpression template = entry.getKey();
+    for (Entry<Template, PolicyBound> entry : abstractState) {
+      Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
-      BooleanFormula constraint = rfmgr.lessOrEquals(
-          lcmgr.linearExpressionToFormula(template, ssa),
-          rfmgr.makeNumber(bound.bound.toString())
-      );
+
+      NumeralFormula t = templateManager.toFormula(template, ssa);
+
+      BooleanFormula constraint;
+      if (templateManager.shouldUseRationals(template)) {
+        constraint = rfmgr.lessOrEquals(
+            t, rfmgr.makeNumber(bound.bound.toString())
+        );
+      } else {
+        assert bound.bound.isIntegral() : bound.bound;
+        constraint = ifmgr.lessOrEquals(
+            (NumeralFormula.IntegerFormula)t,
+            ifmgr.makeNumber(bound.bound.toString())
+        );
+      }
       tokens.add(constraint);
     }
     BooleanFormula constraint = bfmgr.and(tokens);
@@ -628,7 +651,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private Map<CFANode, PolicyAbstractedState> findRelated(
       PolicyAbstractedState newState,
       CFANode focusedNode,
-      Map<LinearExpression, PolicyBound> updated) {
+      Map<Template, PolicyBound> updated) {
 
     Map<CFANode, PolicyAbstractedState> out = new HashMap<>();
     Set<CFANode> visited = Sets.newHashSet();
@@ -651,8 +674,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       out.put(node, state);
 
-      for (Map.Entry<LinearExpression, PolicyBound> entry : state) {
-        LinearExpression template = entry.getKey();
+      for (Map.Entry<Template, PolicyBound> entry : state) {
+        Template template = entry.getKey();
         PolicyBound bound = entry.getValue();
 
         // Do not follow the edges which are associated with the focused node
@@ -671,10 +694,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether {@code newState} is covered by {@code oldState}
    */
+  @SuppressWarnings("unused")
   private boolean checkCovering(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
+    // TODO: this doesn't produce expected results if the parent is the same,
+    // need to check that the DAG is the same as well.
 
     Set<CFANode> allLeafs = new HashSet<>(oldState.getLeafs().size());
     allLeafs.addAll(newState.getLeafs().keySet());
@@ -709,7 +735,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       } else if (oldS == null) {
         builder.put(n, newS);
       } else {
-        assert newS.equals(oldS);
+        // TODO:
+//        assert newS.equals(oldS);
         builder.put(n, newS);
       }
     }

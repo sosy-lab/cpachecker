@@ -28,10 +28,7 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 /**
  * Simple <i>sparse</i> implementation for <i>homogeneous</i> linear expression
@@ -78,16 +75,7 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
    * Subtract {@code other} linear expression.
    */
   public LinearExpression sub(LinearExpression other) {
-    return new LinearExpression(ImmutableMapMerger.merge(
-        data,
-        other.data,
-        new ImmutableMapMerger.MergeFunc<String, Rational>() {
-          @Override
-          public Rational apply(String var, Rational a, Rational b) {
-            return a.minus(b);
-          }
-        }
-    ));
+    return add(other.negate());
   }
 
   /**
@@ -106,6 +94,7 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
     ));
   }
 
+  @SuppressWarnings("unused")
   public Rational getCoeff(String variable) {
     Rational out = data.get(variable);
     if (out == null) {
@@ -136,30 +125,33 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
    */
   @Override
   public String toString() {
-    Iterable<String> stream = Iterables.transform(
-        this,
-        new Function<Entry<String, Rational>, String>() {
-          @Override
-          public String apply(Entry<String, Rational> monomial) {
-            Rational coeff = monomial.getValue();
-            String var = monomial.getKey();
-            if (coeff.equals(Rational.ONE)) {
-              return var;
-            } else if (coeff.equals(Rational.NEG_ONE)) {
-              return String.format("-%s", var);
-            }
-            return String.format(
-                "%s%s", coeff, var);
-          }
-        }
-    );
-
-    return Joiner.on(" + ").join(stream);
+    StringBuilder b = new StringBuilder();
+    for (Entry<String, Rational> monomial : this) {
+      if (b.length() != 0) {
+        b.append(" + ");
+      }
+      Rational coeff = monomial.getValue();
+      String var = monomial.getKey();
+      if (coeff == Rational.ONE) {
+        b.append(var);
+      } else if (coeff == Rational.NEG_ONE) {
+        b.append("-").append(var);
+      } else {
+        b.append(coeff.toString()).append(var);
+      }
+    }
+    return b.toString();
   }
 
   @Override
   public boolean equals(Object object) {
-    if (!(object instanceof LinearExpression)) {
+    if (object == this) {
+      return true;
+    }
+    if (object == null) {
+      return false;
+    }
+    if (object.getClass() != this.getClass()) {
       return false;
     }
     LinearExpression other = (LinearExpression) object;

@@ -284,7 +284,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     pf = pfmgrBwd.makeAnd(pf, a_to_b);
 
-    Assert.assertEquals("(= x@10 (+ x@11 1.0))", pf.toString());
+    Assert.assertEquals("(= x@10 (+ x@11 1))", pf.toString());
   }
 
   @Test
@@ -331,7 +331,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
-    Assert.assertEquals("(= x@11 (+ x@10 1.0))", pf.toString());
+    Assert.assertEquals("(= x@11 (+ x@10 1))", pf.toString());
   }
 
 

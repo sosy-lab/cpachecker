@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.value.ComponentAwarePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -68,13 +67,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "Both delegate to the component cpas, but agree only allows "
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
-
-    @Option(secure=true, toUppercase=true, values={"COMPOSITE", "COMPONENT"},
-    description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
-      + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
-      + "and only delegates to each component's precision adjustment operator individually, "
-      + "the COMPONENT strategy operates with knowledge about all components.")
-    private String precAdjust = "COMPOSITE";
 
     @Option(secure=true,
     description="inform Composite CPA if it is run in a predicated analysis because then it must"
@@ -159,20 +151,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if (options.precAdjust.equals("COMPONENT")) {
-        compositePrecisionAdjustment = new ComponentAwarePrecisionAdjustment(
-            precisionAdjustments.build(),
-            getConfiguration(),
-            cfa
-            );
-
+      if (simplePrec) {
+        compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
-        if (simplePrec) {
-          compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
-        } else {
-          compositePrecisionAdjustment =
-              new CompositePrecisionAdjustment(precisionAdjustments.build());
-        }
+        compositePrecisionAdjustment =
+            new CompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,

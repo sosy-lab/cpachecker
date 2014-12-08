@@ -671,13 +671,6 @@ cpa.composite.inPredicatedAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# which precision adjustment strategy to use (COMPOSITE or COMPONENT)
-# While the COMPOSITE strategy keeps the domain knowledge seperated, and only
-# delegates to each component's precision adjustment operator individually,
-# the COMPONENT strategy operates with knowledge about all components.
-cpa.composite.precAdjust = "COMPOSITE"
-  allowed values: [COMPOSITE, COMPONENT]
-
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -993,7 +986,7 @@ cpa.predicate.enableBlockreducer = false
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance.
-cpa.predicate.encodeBitvectorAs = RATIONAL
+cpa.predicate.encodeBitvectorAs = INTEGER
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
@@ -1239,8 +1232,8 @@ cpa.predicate.revealAllocationTypeFromLhs = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
-# Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver.
-cpa.predicate.solver = MATHSAT5
+# Which SMT solver to use.
+cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Export solver queries in Smtlib format into a file.
@@ -1477,17 +1470,27 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Ignore the template type and encode with a rational variable
+cpa.stator.policy.encodeTemplatesAsRationals = false
+
 # Value to substitute for the epsilon
 cpa.stator.policy.epsilon = 1
 
 # Generate templates for the lower bounds of each variable
 cpa.stator.policy.generateLowerBound = true
 
+# Generate octagon templates for all combinations of variables. This can be
+# expensive.
+cpa.stator.policy.generateOctagons = false
+
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
+
+# Call [simplify] on the formulas resulting from the C code
+cpa.stator.policy.simplifyFormulas = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

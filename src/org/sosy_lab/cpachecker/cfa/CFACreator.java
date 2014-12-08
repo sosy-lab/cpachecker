@@ -452,10 +452,11 @@ private boolean classifyNodes = false;
       }
 
       // create the live variables if the variable classification is present
-      if (findLiveVariables && varClassification.isPresent()) {
-        cfa.setLiveVariables(LiveVariables.create(varClassification.get(),
+      if (findLiveVariables &&
+          (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+        cfa.setLiveVariables(LiveVariables.create(varClassification,
                                                   c.getGlobalDeclarations(),
-                                                  cfa,logger, shutdownNotifier,
+                                                  cfa, logger, shutdownNotifier,
                                                   config));
       }
 

@@ -1,5 +1,17 @@
 Changes since CPAchecker 1.3.4
 ------------------------------
+* The default configuration of the predicate analysis is now more precise:
+  it uses integers to approximate int variables instead of rationals,
+  and counterexamples found by it are double-checked with the value analysis.
+  Overflows and bit operators like shifts are still not handled,
+  the (slower) configuration -predicateAnalysis-bitprecise
+  can be used for this.
+
+* The default SMT solver is now SMTInterpol,
+  which is written in Java and available on all platforms.
+  MathSAT5 continues to be used for configurations
+  that SMTInterpol does not support.
+
 * The SMT solver Princess (http://www.philipp.ruemmer.org/princess.shtml)
   has been integrated into CPAchecker's predicate analysis
   and can be selected with cpa.predicate.solver=princess
