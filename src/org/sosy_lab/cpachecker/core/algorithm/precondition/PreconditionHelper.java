@@ -36,16 +36,39 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 
-public class PreconditionUtils {
+public final class PreconditionHelper {
+
+  private final FormulaManagerView mgrv;
+  private final BooleanFormulaManagerView bmgr;
+
+  public PreconditionHelper(FormulaManagerView pMgrv) {
+    this.mgrv = pMgrv;
+    this.bmgr = pMgrv.getBooleanFormulaManager();
+  }
+
+  static final Function<PredicateAbstractState, PathFormula> GET_BLOCK_FORMULA
+    = new Function<PredicateAbstractState, PathFormula>() {
+      @Override
+      public PathFormula apply(PredicateAbstractState e) {
+        assert e.isAbstractionState();
+        return e.getAbstractionFormula().getBlockFormula();
+      }
+    };
 
   static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath.asStatesList())
@@ -67,14 +90,42 @@ public class PreconditionUtils {
     return result;
   }
 
-  public static BooleanFormula getPreconditionOfPath(FormulaManagerView mgrv, @Nonnull ARGPath pPath) {
+  public BooleanFormula uninstanciatePathFormula(PathFormula pPf)
+      throws SolverException, InterruptedException {
+
+    return mgrv.uninstantiate(
+        PredicateVariableElimination.eliminateDeadVariables(mgrv, pPf.getFormula(), pPf.getSsa()));
+  }
+
+  public BooleanFormula getPathPrecond(ARGPath pPath) {
+    ImmutableList<PathFormula> r = from(pPath.asStatesList())
+        .transform(toState(PredicateAbstractState.class))
+        .transform(GET_BLOCK_FORMULA)
+        .toList();
     return null;
   }
 
-  public static BooleanFormula getPreconditionFromReached(FormulaManagerView mgrv, @Nonnull ReachedSet pReached, PreconditionPartition pPartition) {
+  public List<BooleanFormula> getPrecondsAlongPath(ARGPath pPath) {
+    ImmutableList<PathFormula> r = from(pPath.asStatesList())
+        .transform(toState(PredicateAbstractState.class))
+        .transform(GET_BLOCK_FORMULA)
+        .toList();
+    return null;
+  }
+
+
+  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath) {
+    return null;
+  }
+
+  public BooleanFormula getPathStatePrecondition(ARGPath pPath, ARGState pStateInPath) {
+    return null;
+  }
+
+  public BooleanFormula getPreconditionFromReached(@Nonnull ReachedSet pReached, PreconditionPartition pPartition) {
     Preconditions.checkNotNull(pReached);
 
-    BooleanFormula conjunctiveWp = mgrv.getBooleanFormulaManager().makeBoolean(true);
+    BooleanFormula conjunctiveWp = bmgr.makeBoolean(true);
 
     // Also for backwards analysis can exist multiple target states (for the same CFA location)
     FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);

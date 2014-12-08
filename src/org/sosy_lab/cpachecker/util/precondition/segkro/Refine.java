@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,11 +34,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
@@ -54,8 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public class Refine {
@@ -66,18 +60,12 @@ public class Refine {
   private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
   private final PathFormulaManager pmgrFwd;
-
-  private static final Function<PredicateAbstractState, PathFormula> GET_BLOCK_FORMULA
-    = new Function<PredicateAbstractState, PathFormula>() {
-        @Override
-        public PathFormula apply(PredicateAbstractState e) {
-          assert e.isAbstractionState();
-          return e.getAbstractionFormula().getBlockFormula();
-        }
-      };
+  private final PreconditionHelper helper;
 
   public Refine(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdown, CFA pCfa,
-      ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr, FormulaManagerView pMgrv) throws InvalidConfigurationException {
+      ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr, FormulaManagerView pMgrv)
+          throws InvalidConfigurationException {
+
     enp = pEnp;
     ipc = pIpc;
     mgr = pMgr;
@@ -86,6 +74,7 @@ public class Refine {
     pmgrFwd = new PathFormulaManagerImpl(
         pMgrv, pConfig, pLogger, pShutdown,
         pCfa, AnalysisDirection.FORWARD);
+    helper = new PreconditionHelper(pMgrv);
   }
 
   private Collection<BooleanFormula> atoms(BooleanFormula pF) {
@@ -98,27 +87,6 @@ public class Refine {
     return ipc.getInterpolant(f, pCounterF, p);
   }
 
-  @VisibleForTesting
-  private BooleanFormula uninstanciatePathFormula(PathFormula pPf) throws SolverException, InterruptedException {
-    return mgrv.uninstantiate(
-        PredicateVariableElimination.eliminateDeadVariables(mgrv, pPf.getFormula(), pPf.getSsa()));
-  }
-
-  private BooleanFormula getPathPrecond(ARGPath pPath) {
-    ImmutableList<PathFormula> r = from(pPath.asStatesList())
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
-    return null;
-  }
-
-  private List<BooleanFormula> getPrecondsAlongPath(ARGPath pPath) {
-    ImmutableList<PathFormula> r = from(pPath.asStatesList())
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
-    return null;
-  }
 
   private BooleanFormula subst(BooleanFormula pF) {
     return null;
@@ -132,9 +100,6 @@ public class Refine {
     return result;
   }
 
-  private BooleanFormula getPathStatePrecondition(ARGPath pPath, ARGState pStateInPath) {
-    return null;
-  }
 
   private List<BooleanFormula> predsFromTrace(ARGPath pPath, BooleanFormula pPrecond) throws SolverException, InterruptedException, CPATransferException {
     List<BooleanFormula> result = Lists.newArrayList();
@@ -152,7 +117,7 @@ public class Refine {
       final CFAEdge transition = it.getIncomingEdge(); // TODO: Depends on the direction of the analysis. Check this
       final ARGState state = it.getAbstractState();
 
-      BooleanFormula statePrecond = getPathStatePrecondition(pPath, state);
+      BooleanFormula statePrecond = helper.getPathStatePrecondition(pPath, state);
       List<BooleanFormula> p = enp.extractNewPreds(statePrecond);
       statePrecond = bmgr.and(statePrecond, bmgr.and(p));
 
@@ -182,13 +147,13 @@ public class Refine {
 
     final PathFormula transferPf = pmgrFwd.makeAnd(pf, pTransition);
 
-    return uninstanciatePathFormula(transferPf);
+    return helper.uninstanciatePathFormula(transferPf);
   }
 
   public Collection<BooleanFormula> refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination) throws SolverException, InterruptedException, CPATransferException {
     // Compute the WP for both traces
-    BooleanFormula pcViolation = getPathPrecond(pTraceToViolation);
-    BooleanFormula pcValid = getPathPrecond(pTraceToValidTermination);
+    BooleanFormula pcViolation = helper.getPathPrecond(pTraceToViolation);
+    BooleanFormula pcValid = helper.getPathPrecond(pTraceToValidTermination);
 
     // "Enrich" the WPs with more general predicates
     pcViolation = interpolate(pcViolation, pcValid);

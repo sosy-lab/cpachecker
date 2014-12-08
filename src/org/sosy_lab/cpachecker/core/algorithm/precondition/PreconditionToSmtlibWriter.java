@@ -48,21 +48,22 @@ import com.google.common.base.Preconditions;
 public class PreconditionToSmtlibWriter implements PreconditionWriter {
 
   private final FormulaManagerView fmgr;
+  private final PreconditionHelper helper;
 
   public PreconditionToSmtlibWriter(CFA pCfa, Configuration pConfig, LogManager pLogger, FormulaManagerView pFormulaManager)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
     fmgr = pFormulaManager;
+    helper = new PreconditionHelper(fmgr);
   }
 
   public void writePrecondition(@Nonnull Appendable pWriteTo, @Nonnull ReachedSet pReached) throws IOException, CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pWriteTo);
 
     BooleanFormula precondition = fmgr.simplify(
-        fmgr.makeNot(PreconditionUtils.getPreconditionFromReached(
-            fmgr, pReached,
-            PreconditionPartition.VIOLATING)));
+        fmgr.makeNot(helper.getPreconditionFromReached(
+            pReached, PreconditionPartition.VIOLATING)));
 
     // Write the formula in the SMT-LIB2 format to the target stream
     fmgr.dumpFormula(precondition).appendTo(pWriteTo);
