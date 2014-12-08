@@ -29,9 +29,11 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -130,8 +132,7 @@ public class ExpressionToFormulaVisitor {
     }
 
     final ValueAnalysisState state = valueState.get();
-    final String identifier = pIastIdExpression.getName();
-    final MemoryLocation memLoc = MemoryLocation.valueOf(functionName, identifier, 0);
+    final MemoryLocation memLoc = getMemoryLocation(pIastIdExpression.getDeclaration());
 
     final Value idValue = state.getValueFor(memLoc);
 
@@ -140,6 +141,15 @@ public class ExpressionToFormulaVisitor {
     }
 
     return InvariantsFormulaManager.INSTANCE.asConstant(idValue);
+  }
+
+  private MemoryLocation getMemoryLocation(ASimpleDeclaration pDeclaration) {
+    if (pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal()) {
+      return MemoryLocation.valueOf(pDeclaration.getName());
+
+    } else {
+      return MemoryLocation.valueOf(functionName, pDeclaration.getName(), 0);
+    }
   }
 
   public InvariantsFormula<Value> visit(AIntegerLiteralExpression pIastIntegerLiteralExpression)
