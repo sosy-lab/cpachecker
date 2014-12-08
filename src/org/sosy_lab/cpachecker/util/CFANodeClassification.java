@@ -75,7 +75,11 @@ public class CFANodeClassification {
     /**
      * All function exit nodes of the entry function, and all loop heads of endless loops.
      */
-    PROGRAM_SINK
+    PROGRAM_SINK;
+
+    public static CFANodeType typeFromString(final String pNodeTypeString) {
+      return valueOf(pNodeTypeString);
+    }
   }
 
   private final Multimap<CFANode, CFANodeType> classification;
@@ -166,6 +170,11 @@ public class CFANodeClassification {
       }
     }
     return loopHeads;
+  }
+
+  public boolean isClassifiedAs(CFANode pLocationNode, String pQueriedClass) {
+    final CFANodeType queried = CFANodeType.typeFromString(pQueriedClass);
+    return classificationInverse.get(queried).contains(pLocationNode);
   }
 
 }

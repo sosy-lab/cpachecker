@@ -442,14 +442,11 @@ private boolean classifyNodes = false;
 
       // compute a classification of the CFA nodes
       final Optional<CFANodeClassification> nodeClassification;
-      if (classifyNodes) {
-        final TargetLocationProvider tlp = new TargetLocationProvider(
-            rsf, shutdownNotifier, logger, config, cfa);
-        nodeClassification = Optional.of(
-            CFANodeClassification.build(logger, cfa.getMainFunction(), tlp, cfa));
-      } else {
-        nodeClassification = Optional.absent();
-      }
+      // TODO: This is not always required!!
+      final TargetLocationProvider tlp = new TargetLocationProvider(
+          rsf, shutdownNotifier, logger, config, cfa);
+      nodeClassification = Optional.of(
+          CFANodeClassification.build(logger, cfa.getMainFunction(), tlp, cfa));
 
       // create the live variables if the variable classification is present
       if (findLiveVariables &&
