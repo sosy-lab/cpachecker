@@ -57,9 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -220,7 +218,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
     if (statement instanceof AExpressionAssignmentStatement) {
-      return handleAssignments((CAssignment) statement);
+      return handleAssignments((AAssignment) statement);
 
       // no changes as there is no assignment, thus we can return the last state
     } else if (statement instanceof AExpressionStatement) {
@@ -255,7 +253,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     // check all variables of the rightHandsides, they should be live afterwards
     // if the leftHandSide is live
     if (assignment instanceof AExpressionAssignmentStatement) {
-      newLiveVariables.addAll(handleExpression((CExpression) assignment.getRightHandSide()));
+      newLiveVariables.addAll(handleExpression((AExpression) assignment.getRightHandSide()));
 
     } else if (assignment instanceof AFunctionCallAssignmentStatement){
       AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
@@ -389,7 +387,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
       boolean isLeftHandsideLive = isLeftHandSideLive(((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
-      LiveVariablesState returnState = handleAssignments((CAssignment) summaryExpr);
+      LiveVariablesState returnState = handleAssignments((AAssignment) summaryExpr);
       if (isLeftHandsideLive) {
         returnState = returnState.addLiveVariables(Collections.singleton(retVal));
       }
