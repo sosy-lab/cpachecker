@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,13 +40,19 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
+import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
+import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
 
@@ -66,8 +74,13 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
   private final ReachedSetFactory reachedSetFactory;
   private final Algorithm wrappedAlgorithm;
   private final FormulaManagerView mgrv;
+  private final FormulaManager mgr;
   private final PredicateCPA predcpa;
   private final LogManager logger;
+  private final Solver solver;
+
+  private final Refine refiner;
+  private final RuleEngine ruleEngine;
 
   public PreconditionRefinerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
@@ -84,6 +97,15 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         "The CPA must be composed of a predicate analysis in order to provide a precondition!");
 
     mgrv = predcpa.getFormulaManager();
+    mgr = predcpa.getRealFormulaManager();
+    solver = predcpa.getSolver();
+
+    ruleEngine = new RuleEngine(mgr, solver);
+    refiner = new Refine(
+          pConfig, pLogger, pShutdownNotifier, pCfa,
+          new ExtractNewPreds(mgr, mgrv, ruleEngine),
+          new MinCorePrio(mgr, mgrv, solver),
+          mgr, mgrv);
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet) {
@@ -98,6 +120,20 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         PreconditionPartition.VALID);
   }
 
+  private ARGPath getViolationTrace(ReachedSet pReachedSet) {
+//    from(pReachedSet)
+//    .filter(IS_TARGET_STATE)
+//    .toSet();
+//
+//    ARGUtils.getOnePathTo()
+    return null;
+  }
+
+  private ARGPath getValidTrace(ReachedSet pReachedSet) {
+    return null;
+  }
+
+
   private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) {
     return false;
   }
@@ -108,15 +144,18 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
     boolean result = true;
 
+    // Copy the initial set of reached states
     final ReachedSet initialReachedSet = reachedSetFactory.create();
     ReachedSetUtils.addReachedStatesToOtherReached(pReachedSet, initialReachedSet);
 
     do {
+      // Run the CPA algorithm
       result &= wrappedAlgorithm.run(pReachedSet);
 
-      // Use one set of reached states! Separate state space using a specification automaton!
-      BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
-      BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
+      // We use one set of reached states
+      //    ... and separate the state space using an automaton!
+      final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
+      final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
 
       if (isDisjoint(pcViolation, pcValid)) {
         // TODO: Provide the result somehow
@@ -125,14 +164,24 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification
-      PathFormula traceViolation;
+      final ARGPath traceViolation = getViolationTrace(pReachedSet);
       // ... and one to the location that represents the exit location
-      PathFormula traceValid;
+      final ARGPath traceValid = getValidTrace(pReachedSet);
 
       // Check the disjointness of the WP for the two traces...
+      final BooleanFormula pcViolatingTrace = PreconditionUtils.getPreconditionOfPath(mgrv, traceViolation);
+      final BooleanFormula pcValidTrace = PreconditionUtils.getPreconditionOfPath(mgrv, traceValid);
+
+      if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
+
+      }
 
       // Refine the precision so that the
       // abstraction on the two traces is disjoint
+      Collection<BooleanFormula> newPredicates = refiner.refine(traceViolation, traceValid);
+
+      // Add the predicates to the precision
+      // TODO: Location-specific?
 
 
       // Restart with the initial set of reached states

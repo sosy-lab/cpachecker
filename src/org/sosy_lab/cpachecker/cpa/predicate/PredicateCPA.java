@@ -254,6 +254,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return formulaManager;
   }
 
+  public FormulaManager getRealFormulaManager() {
+    return realFormulaManager;
+  }
+
   public PathFormulaManager getPathFormulaManager() {
     return pathFormulaManager;
   }

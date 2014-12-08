@@ -67,6 +67,10 @@ public class PreconditionUtils {
     return result;
   }
 
+  public static BooleanFormula getPreconditionOfPath(FormulaManagerView mgrv, @Nonnull ARGPath pPath) {
+    return null;
+  }
+
   public static BooleanFormula getPreconditionFromReached(FormulaManagerView mgrv, @Nonnull ReachedSet pReached, PreconditionPartition pPartition) {
     Preconditions.checkNotNull(pReached);
 
