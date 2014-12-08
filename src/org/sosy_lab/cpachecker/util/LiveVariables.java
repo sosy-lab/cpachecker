@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -96,6 +97,7 @@ public class LiveVariables {
   private final Set<ASimpleDeclaration> globalVariables;
   private final VariableClassification variableClassification;
   private final EvaluationStrategy evaluationStrategy;
+  private final Language language;
 
   /** For efficient access to the string representation of the declarations
    * we use these maps additionally.
@@ -106,11 +108,13 @@ public class LiveVariables {
   private LiveVariables(Multimap<CFANode, ASimpleDeclaration> pLiveVariables,
                         VariableClassification pVariableClassification,
                         Set<ASimpleDeclaration> pGlobalVariables,
-                        EvaluationStrategy pEvaluationStrategy) {
+                        EvaluationStrategy pEvaluationStrategy,
+                        Language pLanguage) {
     liveVariables = pLiveVariables;
     globalVariables = pGlobalVariables;
     variableClassification = pVariableClassification;
     evaluationStrategy = pEvaluationStrategy;
+    language = pLanguage;
 
     globalVariablesStrings = FluentIterable.from(globalVariables).transform(new Function<ASimpleDeclaration, String>() {
       @Override
@@ -128,15 +132,11 @@ public class LiveVariables {
     String varName = variable.getQualifiedName();
 
     if (globalVariables.contains(variable)
-        || variableClassification.getAddressedVariables().contains(varName)
+        || (language == Language.C
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
-
-      // irrelevant variables from variable classification can be considered
-      // as not being live
-    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
-      return false;
     }
 
     // check if a variable is live at a given point
@@ -145,15 +145,11 @@ public class LiveVariables {
 
   public boolean isVariableLive(final String varName, CFANode location) {
     if (globalVariablesStrings.contains(varName)
-        || variableClassification.getAddressedVariables().contains(varName)
+        || (language == Language.C
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
             && !varName.startsWith(location.getFunctionName()))) {
       return true;
-
-      // irrelevant variables from variable classification can be considered
-      // as not being live
-    } else if (!variableClassification.getRelevantVariables().contains(varName)) {
-      return false;
     }
 
     // check if a variable is live at a given point
@@ -164,7 +160,7 @@ public class LiveVariables {
     return ImmutableSet.<ASimpleDeclaration>builder().addAll(liveVariables.get(node)).addAll(globalVariables).build();
   }
 
-  public static Optional<LiveVariables> create(final VariableClassification variableClassification,
+  public static Optional<LiveVariables> create(final Optional<VariableClassification> variableClassification,
                                                final List<Pair<ADeclaration, String>> globalsList,
                                                final MutableCFA pCFA,
                                                final LogManager logger,
@@ -176,14 +172,20 @@ public class LiveVariables {
     checkNotNull(logger);
     checkNotNull(shutdownNotifier);
 
+    // we cannot make any assumptions about c programs where we do not know
+    // about the addressed variables
+    if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
+      return Optional.absent();
+    }
+
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(Optional.of(variableClassification));
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
     LiveVariablesConfiguration liveVarConfig = new LiveVariablesConfiguration(config);
 
-    return create0(variableClassification, globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy);
+    return create0(variableClassification.orNull(), globalsList, logger, shutdownNotifier, cfa, liveVarConfig.evaluationStrategy);
   }
 
   private static Optional<LiveVariables> create0(final VariableClassification variableClassification,
@@ -228,7 +230,8 @@ public class LiveVariables {
     return Optional.of(new LiveVariables(liveVariables,
                                          variableClassification,
                                          globalVariables,
-                                         eval));
+                                         eval,
+                                         cfa.getLanguage()));
   }
 
   private final static Function<Pair<ADeclaration, String>, ASimpleDeclaration> DECLARATION_FILTER =
