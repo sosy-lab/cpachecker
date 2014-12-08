@@ -86,11 +86,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
- * This transferrelation computes the live variables for each location.
- *
- * Note that alias information is currently not used, thus, the analysis may be
- * imprecise e.g. if a pointer pointing to a variable is dereferenced and a new
- * value is assigned.
+ * This transferrelation computes the live variables for each location. For C-Programs
+ * addressed variables (e.g. &a) are considered as being always live.
  */
 @Options(prefix="cpa.liveVar")
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
