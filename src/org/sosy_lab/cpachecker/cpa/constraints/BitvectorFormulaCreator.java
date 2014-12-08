@@ -161,6 +161,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
         case LONG:
         case FLOAT:
         case DOUBLE:
+        case UNSPECIFIED:
           return BITVECTOR_TYPE_DEFAULT;
         default:
           throw new AssertionError("Unhandled type " + pType);
@@ -170,6 +171,7 @@ public class BitvectorFormulaCreator implements FormulaCreator<Formula> {
         case BOOL:
         case CHAR:
         case INT:
+        case UNSPECIFIED:
         case FLOAT:
         case DOUBLE:
           return BITVECTOR_TYPE_DEFAULT;
