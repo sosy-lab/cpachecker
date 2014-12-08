@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,48 +40,48 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -94,6 +95,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
   private final Multimap<CFANode, ASimpleDeclaration> liveVariables = HashMultimap.<CFANode, ASimpleDeclaration>create();
   private final VariableClassification variableClassification;
+  private final Language language;
 
   @Option(secure=true, description="With this option the handling of global variables"
       + " during the analysis can be fine-tuned. For example while doing a function-wise"
@@ -102,9 +104,18 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       + " variables being live.")
   private boolean assumeGlobalVariablesAreAlwaysLive = true;
 
-  public LiveVariablesTransferRelation(VariableClassification pVarClass, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
-    variableClassification = pVarClass;
+  public LiveVariablesTransferRelation(Optional<VariableClassification> pVarClass,
+                                       Configuration pConfig,
+                                       Language pLang) throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    if (pLang == Language.C) {
+      variableClassification = pVarClass.get();
+    } else {
+      variableClassification = null;
+    }
+
+    language = pLang;
   }
 
   @Override
@@ -132,31 +143,19 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * Returns a collection of all variable names which occur in expression
    */
-  private Collection<ASimpleDeclaration> handleExpression(CExpression expression) {
-    Set<CIdExpression> result = expression.accept(new CIdExpressionCollectingVisitor());
-
-    return FluentIterable.from(result).transform(new Function<CIdExpression, ASimpleDeclaration>() {
-      @Override
-      public ASimpleDeclaration apply(CIdExpression exp) {
-        return exp.getDeclaration();
-      }}).toSet();
+  private Collection<ASimpleDeclaration> handleExpression(AExpression expression) {
+    return acceptAll(expression);
   }
 
   /**
    * Returns a collection of the variable names in the leftHandSide
    */
-  private Collection<ASimpleDeclaration> handleLeftHandSide(CExpression pLeftHandSide) {
-    Set<CIdExpression> result = pLeftHandSide.accept(new LeftHandSideIdExpressionVisitor());
-
-    return FluentIterable.from(result).transform(new Function<CIdExpression, ASimpleDeclaration>() {
-      @Override
-      public ASimpleDeclaration apply(CIdExpression exp) {
-        return exp.getDeclaration();
-      }}).toSet();
+  private Collection<ASimpleDeclaration> handleLeftHandSide(AExpression pLeftHandSide) {
+    return acceptLeft(pLeftHandSide);
   }
 
   @Override
-  protected  LiveVariablesState handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected  LiveVariablesState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     // all variables in assumption become live
@@ -164,17 +163,17 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+  protected LiveVariablesState handleDeclarationEdge(ADeclarationEdge cfaEdge, ADeclaration decl)
       throws CPATransferException {
 
     // we do only care about variable declarations
-    if (!(decl instanceof CVariableDeclaration)) {
+    if (!(decl instanceof AVariableDeclaration)) {
       return state;
     }
 
-    CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+    AVariableDeclaration varDecl = (AVariableDeclaration) decl;
     Collection<ASimpleDeclaration> deadVar = Collections.singleton((ASimpleDeclaration)varDecl);
-    CInitializer init = varDecl.getInitializer();
+    AInitializer init = varDecl.getInitializer();
 
     // there is no initializer thus we only have to remove the initialized variable
     // from the live variables
@@ -193,7 +192,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This method computes the variables that are used for initializing an other
    * variable from a given initializer.
    */
-  private Collection<ASimpleDeclaration> getVariablesUsedForInitialization(CInitializer init) throws CPATransferException {
+  private Collection<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer init) throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (init instanceof CDesignatedInitializer) {
       return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
@@ -209,8 +208,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       return readVars;
 
 
-    } else if (init instanceof CInitializerExpression) {
-      return handleExpression(((CInitializerExpression) init).getExpression());
+    } else if (init instanceof AInitializerExpression) {
+      return handleExpression(((AInitializerExpression) init).getExpression());
 
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
@@ -218,21 +217,21 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
+  protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
-    if (statement instanceof CExpressionAssignmentStatement) {
+    if (statement instanceof AExpressionAssignmentStatement) {
       return handleAssignments((CAssignment) statement);
 
       // no changes as there is no assignment, thus we can return the last state
-    } else if (statement instanceof CExpressionStatement) {
+    } else if (statement instanceof AExpressionStatement) {
       return state;
 
-    } else if (statement instanceof CFunctionCallAssignmentStatement) {
-      return handleAssignments((CAssignment) statement);
+    } else if (statement instanceof AFunctionCallAssignmentStatement) {
+      return handleAssignments((AAssignment) statement);
 
-    } else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof AFunctionCallStatement) {
 
-      CFunctionCallStatement funcStmt = (CFunctionCallStatement) statement;
+      AFunctionCallStatement funcStmt = (AFunctionCallStatement) statement;
       return state.addLiveVariables(getVariablesUsedAsParameters(funcStmt
                                                                   .getFunctionCallExpression()
                                                                   .getParameterExpressions()));
@@ -242,9 +241,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
   }
 
-  private LiveVariablesState handleAssignments(CAssignment assignment) {
+  private LiveVariablesState handleAssignments(AAssignment assignment) {
     final Collection<ASimpleDeclaration> newLiveVariables = new HashSet<>();
-    final CLeftHandSide leftHandSide = assignment.getLeftHandSide();
+    final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
     final Collection<ASimpleDeclaration> assignedVariable = handleLeftHandSide(leftHandSide);
     final Collection<ASimpleDeclaration> allLeftHandSideVariables = handleExpression(leftHandSide);
     final Collection<ASimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariable)));
@@ -255,11 +254,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // check all variables of the rightHandsides, they should be live afterwards
     // if the leftHandSide is live
-    if (assignment instanceof CExpressionAssignmentStatement) {
+    if (assignment instanceof AExpressionAssignmentStatement) {
       newLiveVariables.addAll(handleExpression((CExpression) assignment.getRightHandSide()));
 
-    } else if (assignment instanceof CFunctionCallAssignmentStatement){
-      CFunctionCallAssignmentStatement funcStmt = (CFunctionCallAssignmentStatement) assignment;
+    } else if (assignment instanceof AFunctionCallAssignmentStatement){
+      AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
       newLiveVariables.addAll(getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions()));
 
     } else {
@@ -275,7 +274,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       // if the lefthandSide is live all variables on the rightHandSide
       // have to get live, parameters of function calls always have to get live,
       // because the function needs those for assigning their variables
-    } else if (assignment instanceof CFunctionCallAssignmentStatement
+    } else if (assignment instanceof AFunctionCallAssignmentStatement
               || isLeftHandSideLive(leftHandSide)) {
 
       // for example an array access *(arr + offset) = 2;
@@ -287,7 +286,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
         // and the assigned variable was live before, we need to let it also be
         // live afterwards
       } else if (leftHandSide instanceof CFieldReference
-          || leftHandSide instanceof CArraySubscriptExpression
+          || leftHandSide instanceof AArraySubscriptExpression
           || leftHandSide instanceof CPointerExpression) {
         return state.addLiveVariables(newLiveVariables);
 
@@ -302,7 +301,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     } else if ((leftHandSide instanceof CFieldReference
                         && (((CFieldReference)leftHandSide).isPointerDereference()
                            || ((CFieldReference)leftHandSide).getFieldOwner() instanceof CPointerExpression))
-                || leftHandSide instanceof CArraySubscriptExpression
+                || leftHandSide instanceof AArraySubscriptExpression
                 || leftHandSide instanceof CPointerExpression) {
       newLiveVariables.addAll(assignedVariable);
       return state.addLiveVariables(newLiveVariables);
@@ -317,33 +316,31 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * This method checks if a leftHandSide variable is always live.
    */
-  private boolean isAlwaysLive(CLeftHandSide expression) {
-    Collection<CIdExpression> tmp = expression.accept(new LeftHandSideIdExpressionVisitor());
-    return FluentIterable.<CIdExpression>from(tmp).anyMatch(ALWAYS_LIVE_PREDICATE);
+  private boolean isAlwaysLive(ALeftHandSide expression) {
+    return from(acceptLeft(expression)).anyMatch(ALWAYS_LIVE_PREDICATE);
   }
 
   /**
    * This method checks if a leftHandSide variable is live at a given location,
    * this means it either is always live, or it is live in the current state.
    */
-  private boolean isLeftHandSideLive(CLeftHandSide expression) {
-    Collection<CIdExpression> tmp = expression.accept(new LeftHandSideIdExpressionVisitor());
-    return FluentIterable.<CIdExpression>from(tmp).anyMatch(LOCALLY_LIVE_PREDICATE);
+  private boolean isLeftHandSideLive(ALeftHandSide expression) {
+    return from(acceptLeft(expression)).anyMatch(LOCALLY_LIVE_PREDICATE);
   }
 
   /**
    * This method returns the variables that are used in a given list of CExpressions.
    */
-  private Collection<ASimpleDeclaration> getVariablesUsedAsParameters(List<CExpression> parameters) {
+  private Collection<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
     Collection<ASimpleDeclaration> newLiveVars = new ArrayList<>();
-    for (CExpression expression : parameters) {
+    for (AExpression expression : parameters) {
       newLiveVars.addAll(handleExpression(expression));
     }
     return newLiveVars;
   }
 
   @Override
-  protected LiveVariablesState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+  protected LiveVariablesState handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
     // this is an empty return statement (return;)
     if (!cfaEdge.asAssignment().isPresent()) {
@@ -354,8 +351,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-      List<CExpression> arguments, List<CParameterDeclaration> parameters,
+  protected LiveVariablesState handleFunctionCallEdge(FunctionCallEdge cfaEdge,
+      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
@@ -364,14 +361,14 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      */
 
     Collection<ASimpleDeclaration> variablesInArguments = new ArrayList<>();
-    for (CExpression arg : arguments) {
+    for (AExpression arg : arguments) {
       variablesInArguments.addAll(handleExpression(arg));
     }
 
     // we can safely remove the parameters from the live variables as the function
     // starts at this edge.
     Collection<ASimpleDeclaration> parameterVars = new ArrayList<>(parameters.size());
-    for (CParameterDeclaration decl : parameters) {
+    for (AParameterDeclaration decl : parameters) {
       parameterVars.add(decl);
     }
 
@@ -379,8 +376,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+  protected LiveVariablesState handleFunctionReturnEdge(FunctionReturnEdge cfaEdge,
+      FunctionSummaryEdge fnkCall, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
@@ -389,8 +386,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      */
 
     // we can remove the assigned variable from the live variables
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      boolean isLeftHandsideLive = isLeftHandSideLive(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+    if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
+      boolean isLeftHandsideLive = isLeftHandSideLive(((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       LiveVariablesState returnState = handleAssignments((CAssignment) summaryExpr);
       if (isLeftHandsideLive) {
@@ -405,13 +402,13 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
-    CFunctionCall functionCall = cfaEdge.getExpression();
-    if (functionCall instanceof CFunctionCallAssignmentStatement) {
-      return handleAssignments((CAssignment) functionCall);
+  protected LiveVariablesState handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
+    AFunctionCall functionCall = cfaEdge.getExpression();
+    if (functionCall instanceof AFunctionCallAssignmentStatement) {
+      return handleAssignments((AAssignment) functionCall);
 
-    } else if (functionCall instanceof CFunctionCallStatement) {
-      CFunctionCallStatement funcStmt = (CFunctionCallStatement) functionCall;
+    } else if (functionCall instanceof AFunctionCallStatement) {
+      AFunctionCallStatement funcStmt = (AFunctionCallStatement) functionCall;
       return state.addLiveVariables(getVariablesUsedAsParameters(funcStmt
                                                                   .getFunctionCallExpression()
                                                                   .getParameterExpressions()));
@@ -447,14 +444,17 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * variable is always live either if it is addressed or if it is a global variable
    */
-  private final Predicate<CIdExpression> ALWAYS_LIVE_PREDICATE = new Predicate<CIdExpression>() {
-    @Override
-    public boolean apply(CIdExpression pInput) {
-      CSimpleDeclaration decl = pInput.getDeclaration();
+  private final Predicate<ASimpleDeclaration> ALWAYS_LIVE_PREDICATE = new Predicate<ASimpleDeclaration>() {
 
+    @Override
+    public boolean apply(ASimpleDeclaration decl) {
       boolean retVal =  assumeGlobalVariablesAreAlwaysLive
-                        && decl instanceof CVariableDeclaration && ((CVariableDeclaration) decl).isGlobal();
-      retVal = retVal || variableClassification.getAddressedVariables().contains(decl.getQualifiedName());
+                        && decl instanceof AVariableDeclaration && ((AVariableDeclaration) decl).isGlobal();
+
+      // in case this is a C Program we need to check if the variable is addressed
+      if (language == Language.C) {
+        retVal = retVal || variableClassification.getAddressedVariables().contains(decl.getQualifiedName());
+      }
 
       return retVal;
     }};
@@ -463,11 +463,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      * a variable is locally live either if it is globally live or if it
      * is live in the current state
      */
-  private final Predicate<CIdExpression> LOCALLY_LIVE_PREDICATE =
-        or(ALWAYS_LIVE_PREDICATE, new Predicate<CIdExpression>() {
+  private final Predicate<ASimpleDeclaration> LOCALLY_LIVE_PREDICATE =
+        or(ALWAYS_LIVE_PREDICATE, new Predicate<ASimpleDeclaration>() {
                   @Override
-                  public boolean apply(CIdExpression pInput) {
-                      return state.contains(pInput.getDeclaration());
+                  public boolean apply(ASimpleDeclaration decl) {
+                      return state.contains(decl);
                   }});
 
 
@@ -475,10 +475,33 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
    * we do only want the IdExpressions inside the ArrayExpression.
    */
-  private static final class LeftHandSideIdExpressionVisitor extends CIdExpressionCollectingVisitor {
+  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
     @Override
-    public Set<CIdExpression> visit(CArraySubscriptExpression pE) throws RuntimeException {
-      return pE.getArrayExpression().accept(this);
+    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) throws RuntimeException {
+      return pE.getArrayExpression().<Set<ASimpleDeclaration>,
+                                      Set<ASimpleDeclaration>,
+                                      Set<ASimpleDeclaration>,
+                                      RuntimeException,
+                                      RuntimeException,
+                                      LeftHandSideIdExpressionVisitor>accept_(this);
     }
+  }
+
+  private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
+    return exp.<Set<ASimpleDeclaration>,
+                Set<ASimpleDeclaration>,
+                Set<ASimpleDeclaration>,
+                RuntimeException,
+                RuntimeException,
+                LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
+  }
+
+  private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
+    return exp.<Set<ASimpleDeclaration>,
+                Set<ASimpleDeclaration>,
+                Set<ASimpleDeclaration>,
+                RuntimeException,
+                RuntimeException,
+                DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
   }
 }
