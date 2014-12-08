@@ -1485,6 +1485,9 @@ cpa.stator.policy.generateUpperBound = true
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
 
+# Call [simplify] on the formulas resulting from the C code
+cpa.stator.policy.simplifyFormulas = true
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
