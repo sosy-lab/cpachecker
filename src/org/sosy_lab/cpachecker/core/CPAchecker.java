@@ -426,11 +426,13 @@ public class CPAchecker {
     ImmutableMultimap<CFANodeClassification.CFANodeType, ? extends CFANode> nodesPerType = nc.getNodesForTypeMap();
 
     for (CFANodeType nodeType: nodesPerType.keys()) {
-      putToReached(
-          nodeType,
-          nodesPerType.get(nodeType),
-          reached,
-          cpa);
+      if (initialStatesFor.contains(nodeType)) {
+        putToReached(
+            nodeType,
+            nodesPerType.get(nodeType),
+            reached,
+            cpa);
+      }
     }
 
     if (!reached.hasWaitingState()) {
