@@ -78,18 +78,23 @@ public class CFANodeClassification {
     PROGRAM_SINK
   }
 
-  private final Multimap<? extends CFANode, CFANodeType> classification;
+  private final Multimap<CFANode, CFANodeType> classification;
+  private final Multimap<CFANodeType, CFANode> classificationInverse;
 
   private CFANodeClassification() {
     this.classification = HashMultimap.create();
+    this.classificationInverse = HashMultimap.create();
   }
 
   private void putNodesForType(CFANodeType pType, Set<? extends CFANode> pNodes) {
-
+    for (CFANode u: pNodes) {
+      classification.put(u, pType);
+      classificationInverse.put(pType, u);
+    }
   }
 
-  public ImmutableMultimap<CFANodeType, ? extends CFANode> getNodesForTypeMap() {
-    return null;
+  public ImmutableMultimap<CFANodeType, CFANode> getNodesForTypeMap() {
+    return ImmutableMultimap.copyOf(classificationInverse);
   }
 
   public static CFANodeClassification build(
