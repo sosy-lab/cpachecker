@@ -23,17 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public abstract class PatternBasedRule extends AbstractRule {
 
-  public PatternBasedRule(FormulaManager pFm, Solver pSolver) {
-    super(pFm, pSolver);
+  public PatternBasedRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+    super(pFm, pFmv, pSolver);
     setupPatterns();
   }
 
   protected abstract void setupPatterns();
+
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+    return true;
+  }
 
 }

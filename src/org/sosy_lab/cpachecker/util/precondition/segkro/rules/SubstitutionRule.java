@@ -23,59 +23,57 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Implementation of the "SUB" inference rule:
  *    Substitution of equalities.
  */
-public class SubstitutionRule extends AbstractRule {
+public class SubstitutionRule extends PatternBasedRule {
 
-  public SubstitutionRule(FormulaManager pFm, Solver pSolver) {
-    super(pFm, pSolver);
-  }
-
-  private boolean equalFormulas(Formula f1, Formula f2) {
-    throw new UnsupportedOperationException("Implement me");
-  }
-
-  private Map<Formula, Formula> getEqualitiesFrom(BooleanFormula f) {
-    throw new UnsupportedOperationException("Implement me");
+  public SubstitutionRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+    super(pFm, pFmv, pSolver);
   }
 
   @Override
-  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
+  protected void setupPatterns() {
+    premises.add(new PatternBasedPremise(or(
+        match("select",
+            matchAnyBind("a"),
+            matchNullaryBind("x"))
+        )));
 
-    Set<BooleanFormula> result = Sets.newHashSet();
-    Map<Formula, Formula> varEqualExpressionMap = Maps.newHashMap();
-
-    // Create an index of the equalities
-    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
-      varEqualExpressionMap.putAll(getEqualitiesFrom(conjunctive));
-    }
-
-    // Perform the substitution
-    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
-      BooleanFormula substResult = fm.getUnsafeFormulaManager().substitute(conjunctive, varEqualExpressionMap);
-      result.add(substResult);
-    }
-
-    return result;
+    premises.add(new PatternBasedPremise(or(
+        match("=",
+            matchNullaryBind("x"),
+            matchAnyBind("e"))
+        )));
   }
 
-  @Override
-  public Set<BooleanFormula> apply(BooleanFormula pInput) {
-    return apply(Lists.newArrayList(pInput));
-  }
+
+//  @Override
+//  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
+//
+//    Set<BooleanFormula> result = Sets.newHashSet();
+//    Map<Formula, Formula> varEqualExpressionMap = Maps.newHashMap();
+//
+//    // Create an index of the equalities
+//    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
+//      varEqualExpressionMap.putAll(getEqualitiesFrom(conjunctive));
+//    }
+//
+//    // Perform the substitution
+//    for (BooleanFormula conjunctive: pConjunctiveInputPredicates) {
+//      BooleanFormula substResult = fm.getUnsafeFormulaManager().substitute(conjunctive, varEqualExpressionMap);
+//      result.add(substResult);
+//    }
+//
+//    return result;
+//  }
+
 }

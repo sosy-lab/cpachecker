@@ -93,13 +93,14 @@ public class ExtractNewPreds {
         //      resultPredicates × resultPredicates × resultPredicates
         //
         final int premiseCount = rule.getPremises().size();
+        assert premiseCount != 0;
         final List<List<BooleanFormula>> dimensions = new ArrayList<>(premiseCount);
         for (int i=0; i<premiseCount; i++) {
           dimensions.add(resultPredicates);
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          final boolean tupleContainsAnyNoneBasePredicate = containsFormulasFrom(tuple, pBasePredicates);
+          final boolean tupleContainsAnyNoneBasePredicate = !containsFormulasFrom(tuple, pBasePredicates);
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;

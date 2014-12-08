@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -38,17 +39,17 @@ public class RuleEngine implements Concluding {
 
   private List<Rule> rules;
 
-  public RuleEngine(FormulaManager pFm, Solver pSolver) {
+  public RuleEngine(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
     rules = Lists.newArrayList();
 
-    rules.add(new EliminationRule(pFm, pSolver));
-    rules.add(new EquivalenceRule(pFm, pSolver));
-    rules.add(new UniverifyRule(pFm, pSolver));
-    rules.add(new SubstitutionRule(pFm, pSolver));
-    rules.add(new LinkRule(pFm, pSolver));
-    rules.add(new ExistentialRule(pFm, pSolver));
-    rules.add(new ExtendLeftRule(pFm, pSolver));
-    rules.add(new ExtendRightRule(pFm, pSolver));
+    rules.add(new EliminationRule(pFm, pFmv, pSolver));
+    rules.add(new EquivalenceRule(pFm, pFmv, pSolver));
+    rules.add(new UniverifyRule(pFm, pFmv, pSolver));
+    rules.add(new SubstitutionRule(pFm, pFmv, pSolver));
+    rules.add(new LinkRule(pFm, pFmv, pSolver));
+    rules.add(new ExistentialRule(pFm, pFmv, pSolver));
+    rules.add(new ExtendLeftRule(pFm, pFmv, pSolver));
+    rules.add(new ExtendRightRule(pFm, pFmv, pSolver));
   }
 
   public ImmutableList<Rule> getRules() {

@@ -103,7 +103,7 @@ public class RulesTest0 extends SolverBasedTest0 {
     BooleanFormula check = bmgr.and(premise, _c2_times_e1_minus_c1_times_e2_GEQ_0);
     assertFalse(solver.isUnsat(check));
 
-    EliminationRule elimRule = new EliminationRule(mgr, solver);
+    EliminationRule elimRule = new EliminationRule(mgr, mgrv, solver);
     Set<BooleanFormula> concluded = elimRule.apply(Lists.newArrayList(_c1_GT_0, _c2_GT_0, _c1_times_ex_plus_e1_GEQ_0, _minus_c2_times_ex_plus_e2_GEQ_0));
   }
 

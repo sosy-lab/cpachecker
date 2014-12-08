@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternB
 
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Implementation of the "EQ" inference rule:
@@ -34,8 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
  */
 public class EquivalenceRule extends PatternBasedRule {
 
-  public EquivalenceRule(FormulaManager pFm, Solver pSolver) {
-    super(pFm, pSolver);
+  public EquivalenceRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+    super(pFm, pFmv, pSolver);
   }
 
   @Override

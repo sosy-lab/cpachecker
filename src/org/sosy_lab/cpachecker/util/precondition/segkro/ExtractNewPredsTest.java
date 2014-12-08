@@ -74,6 +74,8 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
 
   private BooleanFormula _safeTrace;
   private BooleanFormula _errorTrace;
+  private IntegerFormula _0;
+  private IntegerFormula _1;
 
 
   @Override
@@ -89,7 +91,7 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
 
     Solver solver = new Solver(mgrv, factory);
-    rulesEngine = new RuleEngine(mgr, solver);
+    rulesEngine = new RuleEngine(mgr, mgrv, solver);
     enp = new ExtractNewPreds(mgr, mgrv, rulesEngine);
 
     setupTestdata();
@@ -100,8 +102,8 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
     IntegerFormula _i1 = mgrv.makeVariable(NumeralType.IntegerType, "i1");
     IntegerFormula _i2 = mgrv.makeVariable(NumeralType.IntegerType, "i2");
     IntegerFormula _al0 = mgrv.makeVariable(NumeralType.IntegerType, "al0");
-    IntegerFormula _0 = ifm.makeNumber(0);
-    IntegerFormula _1 = ifm.makeNumber(1);
+    _0 = ifm.makeNumber(0);
+    _1 = ifm.makeNumber(1);
 
     ArrayFormula<IntegerFormula, IntegerFormula> _a0 = afm.makeArray("a0", NumeralType.IntegerType, NumeralType.IntegerType);
     ArrayFormula<IntegerFormula, IntegerFormula> _a1 = afm.makeArray("a1", NumeralType.IntegerType, NumeralType.IntegerType);
@@ -151,12 +153,37 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testOnSafeTrace() {
-    enp.extractNewPreds(_safeTrace);
+  public void testOnSafeTrace1() {
+    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    IntegerFormula _i = ifm.makeVariable("i");
+    BooleanFormula _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
+    BooleanFormula _i_plus_1_LESSEQ_al = ifm.lessOrEquals(ifm.add(_i, _1), _0);
+    BooleanFormula _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
+
+    BooleanFormula _safeWp1 = bfm.and(Lists.newArrayList(
+        _b_at_i_NOTEQ_0,        // b[i] != 0
+        _i_plus_1_LESSEQ_al,    // i+1 <= al
+        _b_at_i_plus_1_EQ_0));  // b[i+1] == 0
+
+    //  (and
+    //      (not (= (select b i) 0))
+    //      (<= (+ i 1) 0)
+    //      (= (select b (+ i 1)) 0))
+
+    // Application of rules EXISTS and EXISTS_RIGHT?
+
+    enp.extractNewPreds(_safeWp1);
   }
 
   @Test
   public void testOnErrorTrace() {
+    //    (and (= i2 0)
+    //        (not (= (select b0 i2) 0))
+    //        (>= i2 al0)
+    //        (= (select a1 i2) (select b0 i2))
+    //        (= i1 (+ i2 1))
+    //        (= (select b0 i1) 0)
+    //        (>= i1 al0)
     enp.extractNewPreds(_errorTrace);
   }
 

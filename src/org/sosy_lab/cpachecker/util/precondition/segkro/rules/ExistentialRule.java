@@ -23,14 +23,55 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
-public class ExistentialRule extends AbstractRule {
+public class ExistentialRule extends PatternBasedRule {
 
-  public ExistentialRule(FormulaManager pFm, Solver pSolver) {
-    super(pFm, pSolver);
+  public ExistentialRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+    super(pFm, pFmv, pSolver);
+  }
+
+  @Override
+  protected void setupPatterns() {
+    premises.add(new PatternBasedPremise(or(
+          match(
+              matchAnyBind("e"),
+              match("select",
+                  matchAnyBind("a"),
+                  matchAnyBind("j")))
+        )));
+    premises.add(new PatternBasedPremise(or(
+        match("not",
+            match(
+                matchAnyBind("e"),
+                match("select",
+                    matchAnyBind("a"),
+                    matchAnyBind("j"))))
+        )));
+  }
+
+  @Override
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+    Formula i = pAssignment.get("i");
+    Formula j = pAssignment.get("j");
+
+    assert i instanceof IntegerFormula;
+    assert j instanceof IntegerFormula;
+
+    BooleanFormula lt = fmv.getIntegerFormulaManager().lessThan((IntegerFormula) i, (IntegerFormula) j);
+
+    return solver.isUnsat(fmv.makeNot(lt));
   }
 
 }
