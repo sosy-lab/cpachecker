@@ -110,7 +110,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     solver = predcpa.getSolver();
 
     helper = new PreconditionHelper(mgrv);
-    ruleEngine = new RuleEngine(mgr, mgrv, solver);
+    ruleEngine = new RuleEngine(logger, mgr, mgrv, solver);
     refiner = new Refine(
           pConfig, pLogger, pShutdownNotifier, pCfa,
           new ExtractNewPreds(mgr, mgrv, ruleEngine),

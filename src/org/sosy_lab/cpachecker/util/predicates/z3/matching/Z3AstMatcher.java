@@ -36,11 +36,13 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -58,26 +60,28 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
   private LogManager logger;
 
-  public Z3AstMatcher(LogManager pLogger, Z3FormulaManager pFm, FormulaCreator<Long, Long, Long> pFormulaCreator) {
+  public Z3AstMatcher(LogManager pLogger, FormulaManager pFm) {
     this.logger = pLogger;
-    this.ctx = pFm.getEnvironment();
-    this.fm = pFm;
-    this.fmc = pFormulaCreator;
+    this.fm = (Z3FormulaManager) pFm;
+    this.ctx = fm.getEnvironment();
+    this.fmc = fm.getFormulaCreator();
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
+
+    defineCommutative("=");
 
     defineFunctionAliases("*", Sets.newHashSet("Integer__*_", "Real__*_"));
   }
 
   @Override
-  public SmtAstMatchResult perform(SmtAstPattern pP, Formula pF) {
-    SmtAstPatternSelection sel = SmtAstPatternBuilder.and(pP);
-    return perform(sel, pF);
+  public SmtAstMatchResult perform(SmtAstPattern pP, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
+    final SmtAstPatternSelection sel = SmtAstPatternBuilder.and(pP);
+    return perform(sel, pF, bBindingRestrictions);
   }
 
   @Override
-  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF) {
+  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
     return internalPerform(pPatternSelection, pF, Sets.<Long>newTreeSet());
   }
 
@@ -323,6 +327,16 @@ public class Z3AstMatcher implements SmtAstMatcher {
   @Override
   public void defineFunctionAliases(String pFunctionName, Set<String> pAliases) {
     functionAliases.putAll(pFunctionName, pAliases);
+  }
+
+  @Override
+  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF) {
+    return perform(pPattern, pF, Optional.<Multimap<String, Formula>>absent());
+  }
+
+  @Override
+  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF) {
+    return perform(pPatternSelection, pF, Optional.<Multimap<String, Formula>>absent());
   }
 
 }

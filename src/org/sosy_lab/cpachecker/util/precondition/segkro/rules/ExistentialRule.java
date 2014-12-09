@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -33,26 +34,45 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 public class ExistentialRule extends PatternBasedRule {
 
-  public ExistentialRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    super(pFm, pFmv, pSolver);
+  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+  private final QuantifiedFormulaManagerView qfm;
+  private final ArrayFormulaManagerView afm;
+  private BooleanFormulaManagerView bfm;
+
+  public ExistentialRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pFm, pFmv, pSolver, pMatcher);
+
+    bfm = pFmv.getBooleanFormulaManager();
+    ifm = pFmv.getIntegerFormulaManager();
+    qfm = pFmv.getQuantifiedFormulaManager();
+    afm = pFmv.getArrayFormulaManager();
   }
 
   @Override
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(or(
-          match(
+          matchBind("f",
               matchAnyBind("e"),
               match("select",
                   matchAnyBind("a"),
-                  matchAnyBind("j")))
+                  matchAnyBind("i")))
         )));
+
     premises.add(new PatternBasedPremise(or(
-        match("not",
+        matchBind("not", "nf",
             match(
                 matchAnyBind("e"),
                 match("select",
@@ -63,15 +83,43 @@ public class ExistentialRule extends PatternBasedRule {
 
   @Override
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
-    Formula i = pAssignment.get("i");
-    Formula j = pAssignment.get("j");
+    final Formula i = pAssignment.get("i");
+    final Formula j = pAssignment.get("j");
 
     assert i instanceof IntegerFormula;
     assert j instanceof IntegerFormula;
 
-    BooleanFormula lt = fmv.getIntegerFormulaManager().lessThan((IntegerFormula) i, (IntegerFormula) j);
+    BooleanFormula lt = ifm.lessThan((IntegerFormula) i, (IntegerFormula) j);
 
     return solver.isUnsat(fmv.makeNot(lt));
+  }
+
+  @Override
+  protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+
+    // There might be more than one valid (symbolic) assignment; this method gets called for every possible assignment
+
+    final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
+    final BooleanFormula nf = (BooleanFormula) pAssignment.get("nf");
+    final IntegerFormula i = (IntegerFormula) pAssignment.get("i");
+    final IntegerFormula j = (IntegerFormula) pAssignment.get("j");
+
+    final IntegerFormula x = ifm.makeVariable("x");
+
+    Map<Formula, Formula> transformation = Maps.newHashMap();
+    transformation.put(i, x);
+    transformation.put(j, x);
+
+    final BooleanFormula fPrime = fm.getUnsafeFormulaManager().substitute(f, transformation);
+    final BooleanFormula nfPrime = fm.getUnsafeFormulaManager().substitute(nf, transformation);
+
+    final BooleanFormula xConstraint =  bfm.and(
+        ifm.greaterOrEquals(x, i),
+        ifm.lessOrEquals(x, j));
+
+    return Lists.newArrayList(
+        qfm.exists(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)),
+        qfm.exists(Lists.newArrayList(x), bfm.and(nfPrime, xConstraint)));
   }
 
 }

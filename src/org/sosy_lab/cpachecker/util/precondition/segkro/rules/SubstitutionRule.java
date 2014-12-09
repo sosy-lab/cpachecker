@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternB
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 
 /**
@@ -36,8 +37,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  */
 public class SubstitutionRule extends PatternBasedRule {
 
-  public SubstitutionRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    super(pFm, pFmv, pSolver);
+  public SubstitutionRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pFm, pFmv, pSolver, pMatcher);
   }
 
   @Override

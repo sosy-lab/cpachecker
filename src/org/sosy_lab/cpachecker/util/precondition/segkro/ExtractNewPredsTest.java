@@ -91,7 +91,7 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
 
     Solver solver = new Solver(mgrv, factory);
-    rulesEngine = new RuleEngine(mgr, mgrv, solver);
+    rulesEngine = new RuleEngine(logger, mgr, mgrv, solver);
     enp = new ExtractNewPreds(mgr, mgrv, rulesEngine);
 
     setupTestdata();

@@ -25,31 +25,35 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import java.util.List;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 public class RuleEngine implements Concluding {
 
-  private List<Rule> rules;
+  private final List<Rule> rules;
 
-  public RuleEngine(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+  public RuleEngine(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+    final SmtAstMatcher matcher = new Z3AstMatcher(pLogger, pFm);
+
     rules = Lists.newArrayList();
-
-    rules.add(new EliminationRule(pFm, pFmv, pSolver));
-    rules.add(new EquivalenceRule(pFm, pFmv, pSolver));
-    rules.add(new UniverifyRule(pFm, pFmv, pSolver));
-    rules.add(new SubstitutionRule(pFm, pFmv, pSolver));
-    rules.add(new LinkRule(pFm, pFmv, pSolver));
-    rules.add(new ExistentialRule(pFm, pFmv, pSolver));
-    rules.add(new ExtendLeftRule(pFm, pFmv, pSolver));
-    rules.add(new ExtendRightRule(pFm, pFmv, pSolver));
+    rules.add(new EliminationRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new EquivalenceRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new UniverifyRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new SubstitutionRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new LinkRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new ExistentialRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new ExtendLeftRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new ExtendRightRule(pFm, pFmv, pSolver, matcher));
   }
 
   public ImmutableList<Rule> getRules() {

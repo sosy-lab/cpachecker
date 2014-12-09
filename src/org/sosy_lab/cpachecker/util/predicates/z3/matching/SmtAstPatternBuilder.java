@@ -78,6 +78,13 @@ public class SmtAstPatternBuilder {
         and(argumentMatchers));
   }
 
+  public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.of(pBindMatchTo),
+        and(argumentMatchers));
+  }
+
   /**
    * The same as described in {@link #match}, but binds the matching formula to a variable.
    */

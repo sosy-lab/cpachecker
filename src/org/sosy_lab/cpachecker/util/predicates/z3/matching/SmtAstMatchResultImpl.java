@@ -87,4 +87,9 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
     return String.format("VarBindings: %s", variableBindings.toString());
   }
 
+  @Override
+  public void appendBindingsTo(Multimap<String, Formula> pTarget) {
+    pTarget.putAll(variableBindings);
+  }
+
 }

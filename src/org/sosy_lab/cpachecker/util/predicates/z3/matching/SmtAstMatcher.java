@@ -27,11 +27,16 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Multimap;
+
 
 public interface SmtAstMatcher {
 
   public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF);
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF);
+  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
+  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
 
   // a+b  <-->  b+a
   public void defineCommutative(String pFunctionName);

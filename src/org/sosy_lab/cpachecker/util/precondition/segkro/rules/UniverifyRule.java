@@ -26,11 +26,12 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 
 public class UniverifyRule extends AbstractRule {
 
-  public UniverifyRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    super(pFm, pFmv, pSolver);
+  public UniverifyRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pFm, pFmv, pSolver, pMatcher);
   }
 }

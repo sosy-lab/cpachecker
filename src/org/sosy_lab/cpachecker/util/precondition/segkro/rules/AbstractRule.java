@@ -23,15 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -41,12 +44,14 @@ public abstract class AbstractRule implements Rule {
   protected final FormulaManager fm;
   protected final FormulaManagerView fmv;
   protected final Solver solver;
+  protected final SmtAstMatcher matcher;
   protected final List<Premise> premises;
 
-  public AbstractRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
+  public AbstractRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
     this.fm = pFm;
     this.fmv = pFmv;
     this.solver = pSolver;
+    this.matcher = pMatcher;
     this.premises = Lists.newArrayList();
   }
 
@@ -61,7 +66,12 @@ public abstract class AbstractRule implements Rule {
   }
 
   @Override
-  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates) {
+  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) {
+    throw new UnsupportedOperationException("Implement me in the child class if needed!");
+  }
+
+  @Override
+  public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException {
     throw new UnsupportedOperationException("Implement me in the child class if needed!");
   }
 

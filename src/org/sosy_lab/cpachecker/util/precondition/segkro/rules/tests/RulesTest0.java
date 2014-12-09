@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
+package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static org.junit.Assert.*;
 
@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
@@ -53,10 +55,12 @@ public class RulesTest0 extends SolverBasedTest0 {
 
   private Solver solver;
   private FormulaManagerView mgrv;
+  private Z3AstMatcher matcher;
 
   @Before
   public void setup() throws InvalidConfigurationException {
     mgrv = new FormulaManagerView(mgr, config, logger);
+    matcher = new Z3AstMatcher(logger, mgr);
     solver = new Solver(mgrv, factory);
   }
 
@@ -103,7 +107,7 @@ public class RulesTest0 extends SolverBasedTest0 {
     BooleanFormula check = bmgr.and(premise, _c2_times_e1_minus_c1_times_e2_GEQ_0);
     assertFalse(solver.isUnsat(check));
 
-    EliminationRule elimRule = new EliminationRule(mgr, mgrv, solver);
+    EliminationRule elimRule = new EliminationRule(mgr, mgrv, solver, matcher);
     Set<BooleanFormula> concluded = elimRule.apply(Lists.newArrayList(_c1_GT_0, _c2_GT_0, _c1_times_ex_plus_e1_GEQ_0, _minus_c2_times_ex_plus_e2_GEQ_0));
   }
 

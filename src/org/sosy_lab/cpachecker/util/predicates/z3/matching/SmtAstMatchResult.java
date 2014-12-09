@@ -29,6 +29,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Multimap;
 
 
 public interface SmtAstMatchResult {
@@ -40,6 +41,8 @@ public interface SmtAstMatchResult {
   public Collection<String> getBoundVariables();
 
   public Collection<Formula> getVariableBindings(String pVariableName);
+
+  public void appendBindingsTo(Multimap<String, Formula> pTarget);
 
   public boolean matches();
 
@@ -54,6 +57,8 @@ public interface SmtAstMatchResult {
     public Collection<Formula> getVariableBindings(String pString) { return Collections.emptySet(); }
     @Override
     public Collection<String> getBoundVariables() { return Collections.emptySet(); }
+    @Override
+    public void appendBindingsTo(Multimap<String, Formula> pTarget) { }
   };
 
 }

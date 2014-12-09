@@ -29,12 +29,13 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 
 public class EliminationRule extends PatternBasedRule {
 
-  public EliminationRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    super(pFm, pFmv, pSolver);
+  public EliminationRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pFm, pFmv, pSolver, pMatcher);
   }
 
   @Override

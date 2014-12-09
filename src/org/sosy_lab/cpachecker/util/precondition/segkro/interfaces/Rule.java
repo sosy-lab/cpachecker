@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
@@ -43,7 +45,7 @@ public interface Rule {
    * @param pInput  An arbitrary boolean formula
    * @return  Set of boolean formulas (predicates) that can be concluded based on the rule.
    */
-  public Set<BooleanFormula> apply(BooleanFormula pInput);
+  public Set<BooleanFormula> apply(BooleanFormula pInput) throws SolverException, InterruptedException;
 
   /**
    * Apply the rule and return a set of boolean formulas that can be concluded from the input.
@@ -53,7 +55,9 @@ public interface Rule {
    * @return
    *        Set of boolean formulas (predicates) that can be concluded based on the rule.
    */
-  public Set<BooleanFormula> apply(List<BooleanFormula> pConjunctiveInputPredicates);
+  public Set<BooleanFormula> apply(Collection<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException;
+
+  public Set<BooleanFormula> applyWithInputRelatingPremises(List<BooleanFormula> pConjunctiveInputPredicates) throws SolverException, InterruptedException;
 
   public ImmutableList<Premise> getPremises();
 }
