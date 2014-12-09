@@ -31,6 +31,10 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/pointers/pointer_read_true_assert.c");
   }
 
+  @Test public void checkPointerReadFail() throws Exception {
+    check("test/programs/policyiteration/pointers/pointer_read_false_assert.c");
+  }
+
   @Test public void checkPointerWrite() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_write_false_assert.c");
   }
@@ -83,8 +87,9 @@ public class PolicyIterationTest {
 
   private Map<String, String> getProperties() {
     return (ImmutableMap.<String, String>builder()
-        .put("cpa", "cpa.arg.ARGCPA")
-        .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
+//        .put("cpa", "cpa.arg.ARGCPA")
+//        .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
+        .put("cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             Joiner.on(", ").join(ImmutableList.of(
                 "cpa.location.LocationCPA",
@@ -102,7 +107,6 @@ public class PolicyIterationTest {
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
 
-        // integers break some tests
 //        .put("cpa.predicate.encodeBitvectorAs", "Rational")
 
 //        .put("cpa.conditions.path.assignments.hardThreshold", "1")

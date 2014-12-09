@@ -46,8 +46,10 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -56,7 +58,6 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationManager implements IPolicyIterationManager {
 
-  // TODO: this doesn't work
   @Option(secure=true,
       description="Call [simplify] on the formulas resulting from the C code")
   private boolean simplifyFormulas = true;
@@ -69,14 +70,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
 
-  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final FormulaManagerView fmgr;
 
   @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
-  private final FormulaManagerFactory formulaManagerFactory;
+  private final FormulaManagerFactory fmgrF;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
@@ -104,7 +104,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     cfa = pCfa;
     pfmgr = pPfmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    formulaManagerFactory = pFormulaManagerFactory;
+    fmgrF = pFormulaManagerFactory;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     rfmgr = fmgr.getRationalFormulaManager();
@@ -164,17 +164,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
+    CFANode oldNode = edge.getPredecessor();
     PathFormula prev;
-    ImmutableMap<CFANode, PolicyAbstractedState> leafs;
+    Multimap<CFANode, CFANode> trace = HashMultimap.create();
 
     if (oldState.isAbstract()) {
       PolicyAbstractedState aOldState = oldState.asAbstracted();
       prev = abstractStateToPathFormula(aOldState);
-      leafs = ImmutableMap.of(edge.getPredecessor(), aOldState);
     } else {
       PolicyIntermediateState iOldState = oldState.asIntermediate();
       prev = oldState.asIntermediate().getPathFormula();
-      leafs = iOldState.getLeafs();
+      trace.putAll(iOldState.getTrace());
     }
 
     if (node.getNumEnteringEdges() > 1) {
@@ -184,9 +184,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           String.format(SELECTION_VAR_TEMPLATE, node.getNodeNumber()));
       BooleanFormula branchConstraint = rfmgr.equal(
           branchVar,
-          rfmgr.makeNumber(edge.getPredecessor().getNodeNumber())
+          rfmgr.makeNumber(oldNode.getNodeNumber())
       );
       prev = pfmgr.makeAnd(prev, branchConstraint);
+      trace.put(node, oldNode);
     }
 
     PathFormula outF = pfmgr.makeAnd(prev, edge);
@@ -206,8 +207,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Sets.union(templateManager.templatesForNode(node),
             oldState.getTemplates()),
         outF,
-        leafs
-    );
+
+        // Redundant variable for path identification.
+        trace);
 
     // NOTE: the abstraction computation and the global update is delayed
     // until the {@code strengthen} call.
@@ -266,44 +268,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
   }
 
-  /**
-   * @return {@code newState <= oldState}
-   */
-  @Override
-  public boolean isLessOrEqual(PolicyState newState, PolicyState oldState)
-      throws CPATransferException, InterruptedException {
-    Preconditions.checkState(newState.isAbstract() == oldState.isAbstract(),
-        "Abstraction state of two states associated with the same node should " +
-            "match");
-
-    boolean isAbstract = newState.isAbstract();
-
-    if (!isAbstract) {
-      return  oldState.asIntermediate().getPathFormula()
-              .equals(newState.asIntermediate().getPathFormula());
-    } else {
-      PolicyAbstractedState aNewState = newState.asAbstracted();
-      PolicyAbstractedState aOldState = oldState.asAbstracted();
-      for (Entry<Template, PolicyBound> entry : aOldState) {
-        Template template = entry.getKey();
-        PolicyBound oldBound = entry.getValue();
-
-        Optional<PolicyBound> newBound = aNewState.getBound(template);
-
-        if (!newBound.isPresent()) {
-
-          // New bound is infinity, old bound is not, not covered.
-          return false;
-        } else if (newBound.get().bound.compareTo(oldBound.bound) > 0) {
-
-          // Note that the trace obtained is irrelevant.
-          return false;
-        }
-      }
-      return true;
-    }
-  }
-
   @Override
   public PolicyState join(PolicyState newState, PolicyState oldState)
       throws CPATransferException, InterruptedException, SolverException {
@@ -339,23 +303,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState iOldState = oldState.asIntermediate();
       PathFormula newPath = iNewState.getPathFormula();
       PathFormula oldPath = iOldState.getPathFormula();
+      Multimap<CFANode, CFANode> trace = HashMultimap.create();
 
-      // Just return the old state if it covers the new state.
-//      if (checkCovering(iOldState, iNewState)) {
-//
-//        // TODO: wait I believe this is buggy and might 'cause further issues.
-//
-//        // What about the case when the two nodes have the same parent, but they
-//        // have chosen different branches to arrive to their destination?
-//        // What do we do in that case than, huh?
-//        return newState;
-//      }
+      trace.putAll(iNewState.getTrace());
+      trace.putAll(iOldState.getTrace());
+
+      // Special logic for checking after the value determination:
+      // if two states utilize the same traces (come from the same parent nodes)
+      // the new state after the value determination will strictly dominate
+      // the old one.
+      // Note that the comparison order is reverse of the usual
+      // (in #isLessOrEqual).
+      if (checkCovering(iOldState, iNewState)) {
+        return newState;
+      }
 
       // No value determination, no abstraction, simply join incoming edges
       // and the tracked templates.
       return PolicyState.ofIntermediate(
-          node, allTemplates, pfmgr.makeOr(newPath, oldPath),
-          mergeLeafs(iNewState.getLeafs(), iOldState.getLeafs())
+          node, allTemplates,
+          pfmgr.makeOr(newPath, oldPath),
+          trace
       );
     }
 
@@ -446,8 +414,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     PathFormula p = state.getPathFormula();
 
-    try (ProverEnvironment solver
-            = formulaManagerFactory.newProverEnvironment(false, false)) {
+    try (ProverEnvironment solver = fmgrF.newProverEnvironment(false, false)) {
       solver.push(p.getFormula());
       if (solver.isUnsat()) {
         return false;
@@ -475,7 +442,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     ImmutableMap.Builder<Template, PolicyBound> abstraction
         = ImmutableMap.builder();
 
-    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
+    try (OptEnvironment solver = fmgrF.newOptEnvironment()) {
       solver.addConstraint(p.getFormula());
 
       shutdownNotifier.shutdownIfNecessary();
@@ -694,52 +661,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * @return Whether {@code newState} is covered by {@code oldState}
    */
-  @SuppressWarnings("unused")
   private boolean checkCovering(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
-    // TODO: this doesn't produce expected results if the parent is the same,
-    // need to check that the DAG is the same as well.
 
-    Set<CFANode> allLeafs = new HashSet<>(oldState.getLeafs().size());
-    allLeafs.addAll(newState.getLeafs().keySet());
-    allLeafs.addAll(oldState.getLeafs().keySet());
-    for (CFANode n : allLeafs) {
-      PolicyAbstractedState oldS = oldState.getLeafs().get(n);
-      PolicyAbstractedState newS = newState.getLeafs().get(n);
-      if (oldS == null) {
-        return false;
-      }
-      if (newS != null && !isLessOrEqual(newS, oldS)) {
+    // Check trace.
+    for (Entry<CFANode, CFANode> e : newState.getTrace().entries()) {
+      if (!oldState.getTrace().containsEntry(e.getKey(), e.getValue())) {
         return false;
       }
     }
     return true;
-  }
-
-  private ImmutableMap<CFANode, PolicyAbstractedState> mergeLeafs(
-      ImmutableMap<CFANode, PolicyAbstractedState> newLeafs,
-      ImmutableMap<CFANode, PolicyAbstractedState> oldLeafs
-  ) {
-    Set<CFANode> allLeafs = new HashSet<>(newLeafs.size());
-    ImmutableMap.Builder<CFANode, PolicyAbstractedState> builder =
-        ImmutableMap.builder();
-    allLeafs.addAll(newLeafs.keySet());
-    allLeafs.addAll(oldLeafs.keySet());
-    for (CFANode n : allLeafs) {
-      PolicyAbstractedState newS = newLeafs.get(n);
-      PolicyAbstractedState oldS = oldLeafs.get(n);
-      if (newS == null) {
-        builder.put(n, oldS);
-      } else if (oldS == null) {
-        builder.put(n, newS);
-      } else {
-        // TODO:
-//        assert newS.equals(oldS);
-        builder.put(n, newS);
-      }
-    }
-    return builder.build();
   }
 }

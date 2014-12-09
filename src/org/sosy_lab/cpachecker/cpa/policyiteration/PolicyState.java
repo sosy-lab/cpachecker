@@ -15,7 +15,9 @@ import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 /**
  * Abstract state for policy iteration: bounds on each expression (from the
@@ -131,24 +133,24 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
   public static final class PolicyIntermediateState extends PolicyState {
     private final PathFormula pathFormula;
-    private final ImmutableMap<CFANode, PolicyAbstractedState> leafs;
+    private final ImmutableMultimap<CFANode, CFANode> trace;
 
     private PolicyIntermediateState(
         CFANode pNode,
         Set<Template> pTemplates,
         PathFormula pPathFormula,
-        Map<CFANode, PolicyAbstractedState> pLeafs) {
+        Multimap<CFANode, CFANode> pTrace) {
       super(pNode, pTemplates);
       pathFormula = pPathFormula;
-      leafs = ImmutableMap.copyOf(pLeafs);
+      trace = ImmutableMultimap.copyOf(pTrace);
     }
 
     public PathFormula getPathFormula() {
       return pathFormula;
     }
 
-    public ImmutableMap<CFANode, PolicyAbstractedState> getLeafs() {
-      return leafs;
+    public ImmutableMultimap<CFANode, CFANode> getTrace() {
+      return trace;
     }
 
     @Override
@@ -158,7 +160,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
     @Override
     public String toDOTLabel() {
-      return pathFormula.toString();
+      return pathFormula.toString() + "\n" + trace.toString();
     }
 
     @Override
@@ -205,13 +207,13 @@ public abstract class PolicyState implements AbstractState, Graphable {
       CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Map<CFANode, PolicyAbstractedState> pLeafs
+      Multimap<CFANode, CFANode> pTrace
   ) {
     return new PolicyIntermediateState(
         node,
         pTemplates,
         pPathFormula,
-        pLeafs);
+        pTrace);
   }
 
   /**

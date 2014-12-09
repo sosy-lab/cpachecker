@@ -32,20 +32,20 @@ public class TemplateManager {
   private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
       NumeralFormula.IntegerFormula> ifmgr;
 
-  @Option(secure=true, name="generateLowerBound",
+  @Option(secure=true,
       description="Generate templates for the lower bounds of each variable")
   private boolean generateLowerBound = true;
 
-  @Option(secure=true, name="generateUpperBound",
+  @Option(secure=true,
       description="Generate templates for the upper bounds of each variable")
   private boolean generateUpperBound = true;
 
-  @Option(secure=true, name="generateOctagons",
+  @Option(secure=true,
       description="Generate octagon templates for all combinations of variables. " +
           "This can be expensive.")
   private boolean generateOctagons = false;
 
-  @Option(secure=true, name="encodeTemplatesAsRationals",
+  @Option(secure=true,
       description="Ignore the template type and encode with a rational variable")
   private boolean encodeTemplatesAsRationals = false;
 
@@ -191,10 +191,8 @@ public class TemplateManager {
     if (encodeTemplatesAsRationals) {
       return true;
     }
-    for (Map.Entry<String, Rational> e : template.linearExpression) {
-      if (!e.getValue().isIntegral()) {
-        return false;
-      }
+    if (!template.linearExpression.isIntegral()) {
+      return true;
     }
     switch (template.type.getType()) {
       case BOOL:

@@ -115,13 +115,16 @@ public class PolicyCPA
     );
   }
 
+  /**
+   * We only keep one abstract state per node.
+   * {@code #isLessOrEqual} is called after the merge, but as our
+   * merge is always joining two states {@code #isLessOrEqual} should
+   * always return {@code true}.
+   */
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    return policyIterationManager.isLessOrEqual(
-        (PolicyState) state1,
-        (PolicyState) state2
-    );
+    return true;
   }
 
   @Override
