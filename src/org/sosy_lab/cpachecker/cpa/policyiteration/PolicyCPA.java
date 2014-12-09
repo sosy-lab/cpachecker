@@ -43,68 +43,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  * New version of policy iteration, now with path focusing.
  */
 @Options(prefix="cpa.policy")
-public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
-  private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+public class PolicyCPA
+    extends SingleEdgeTransferRelation
+    implements ConfigurableProgramAnalysis, StatisticsProvider, AbstractDomain {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final PolicyIterationStatistics statistics;
   private final IPolicyIterationManager policyIterationManager;
-
-  public static class DelegateAbstractDomain implements AbstractDomain {
-    private final IPolicyIterationManager policyIterationManager;
-
-    public DelegateAbstractDomain(IPolicyIterationManager pPolicyIterationManager) {
-      policyIterationManager = pPolicyIterationManager;
-    }
-
-    @Override
-    public AbstractState join(AbstractState state1, AbstractState state2)
-        throws CPAException, InterruptedException {
-     return policyIterationManager.join(
-         (PolicyState) state1,
-         (PolicyState) state2
-     );
-    }
-
-    @Override
-    public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
-        throws CPAException, InterruptedException {
-      return policyIterationManager.isLessOrEqual(
-          (PolicyState) state1,
-          (PolicyState) state2
-      );
-    }
-  }
-  
-  public static class DelegateTransferRelation extends SingleEdgeTransferRelation {
-    private final IPolicyIterationManager policyIterationManager;
-
-    public DelegateTransferRelation(
-        IPolicyIterationManager pPolicyIterationManager) {
-      policyIterationManager = pPolicyIterationManager;
-
-    }
-
-
-    @Override
-    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-        AbstractState state, Precision precision, CFAEdge cfaEdge)
-        throws CPATransferException, InterruptedException {
-      return policyIterationManager.getAbstractSuccessors(
-          (PolicyState) state, cfaEdge
-      );
-    }
-
-    @Override
-    public Collection<? extends AbstractState> strengthen(AbstractState state,
-        List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
-        Precision precision) throws CPATransferException, InterruptedException {
-      return policyIterationManager.strengthen(
-          (PolicyState) state, otherStates, cfaEdge);
-    }
-  }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -128,10 +74,10 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-    TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa, formulaManager);
 
     statistics = new PolicyIterationStatistics(config);
+    TemplateManager templateManager = new TemplateManager(
+        logger, config, cfa, formulaManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             pathFormulaManager, formulaManager, config, logger,
@@ -142,7 +88,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
             shutdownNotifier,
             statistics
         );
-    
+
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
@@ -150,12 +96,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
         formulaManagerFactory, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics);
-
-    abstractDomain = new DelegateAbstractDomain(policyIterationManager);
-    transferRelation = new DelegateTransferRelation(policyIterationManager);
-
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopSepOperator(abstractDomain);
+    mergeOperator = new MergeJoinOperator(this);
+    stopOperator = new StopSepOperator(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -165,13 +107,48 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
   }
 
   @Override
+  public AbstractState join(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return policyIterationManager.join(
+        (PolicyState) state1,
+        (PolicyState) state2
+    );
+  }
+
+  @Override
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return policyIterationManager.isLessOrEqual(
+        (PolicyState) state1,
+        (PolicyState) state2
+    );
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    return policyIterationManager.getAbstractSuccessors(
+        (PolicyState) state, cfaEdge
+    );
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState state,
+      List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
+      Precision precision) throws CPATransferException, InterruptedException {
+    return policyIterationManager.strengthen(
+        (PolicyState)state, otherStates, cfaEdge);
+  }
+
+  @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return this;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return this;
   }
 
   @Override
