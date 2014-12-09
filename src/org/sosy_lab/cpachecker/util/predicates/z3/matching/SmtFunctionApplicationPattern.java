@@ -75,7 +75,7 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
   public String toString() {
     String functionText = function.isPresent() ? function.get().toString() : "?";
     String bindToText = bindMatchTo.isPresent() ? bindMatchTo.get().toString() : "-";
-    return String.format("%s | %s | %d args", functionText, bindToText, argumentPatterns.getPatterns().size());
+    return String.format("%s | %s | %d args %s", functionText, bindToText, argumentPatterns.getPatterns().size(), argumentPatterns.getRelationship().toString());
   }
 
   @Override

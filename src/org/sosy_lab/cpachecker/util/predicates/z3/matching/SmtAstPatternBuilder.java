@@ -104,7 +104,7 @@ public class SmtAstPatternBuilder {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
-        and());
+        dontcare());
   }
 
   /**
@@ -114,7 +114,7 @@ public class SmtAstPatternBuilder {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>of(pBindMatchTo),
-        and());
+        dontcare());
   }
 
   /**
@@ -171,6 +171,14 @@ public class SmtAstPatternBuilder {
         Arrays.asList(pDisjuncts),
         Collections.<String,Formula>emptyMap());
   }
+
+  public static SmtAstPatternSelection dontcare() {
+    return new SmtAstPatternSelectionImpl(
+        LogicalConnection.DONTCARE,
+        Collections.<SmtAstPattern>emptyList(),
+        Collections.<String,Formula>emptyMap());
+  }
+
 
   public static SmtAstPatternSelection none(SmtAstPattern... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(

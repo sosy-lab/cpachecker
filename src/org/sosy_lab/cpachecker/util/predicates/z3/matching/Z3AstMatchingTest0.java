@@ -31,8 +31,11 @@ import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -70,6 +73,17 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   private BooleanFormula _f_and_of_foo;
   private SmtAstPatternSelection elimPremisePattern1;
   private SmtAstPatternSelection elimPremisePattern2;
+  private IntegerFormula _i;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_NOTEQ_0;
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _i_plus_1_LESSEQ_al;
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_plus_1_EQ_0;
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _0_EQ_b_at_i_plus_1_;
+
+  @Override
+  protected Solvers solverToUse() {
+    return Solvers.Z3;
+  }
 
   @Before
   public void setupEnvironment() throws Exception {
@@ -131,6 +145,13 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
             _i1_EQUALS_1_plus_a1,
             _not_j1_EQUALS_minus1,
             _j1_EQUALS_j2_plus_a1));
+
+    _i = imgr.makeVariable("i");
+    _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+    _b_at_i_NOTEQ_0 = bmgr.not(imgr.equal(amgr.select(_b, _i), _0));
+    _i_plus_1_LESSEQ_al = imgr.lessOrEquals(imgr.add(_i, _1), _0);
+    _b_at_i_plus_1_EQ_0 = imgr.equal(amgr.select(_b, imgr.add(_i, _1)), _0);
+    _0_EQ_b_at_i_plus_1_ = imgr.equal(_0, amgr.select(_b, imgr.add(_i, _1)));
   }
 
   public void setupTestPatterns() {
@@ -140,7 +161,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
               match(">=",
                   match("+",
                       match("*",
-                          matchAnyBind("c1"),
+                          matchNullaryBind("c1"),
                           matchAnyBind("eX")),
                       matchAnyBind("e1")),
                   matchNullary("0")),
@@ -156,7 +177,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
                       match("*",
                           match("-",
                               matchNullary("0"),
-                              matchAnyBind("c2")),
+                              matchNullaryBind("c2")),
                           matchAnyBind("eX")),
                       matchAnyBind("e2")),
                   matchNullary("0")),
@@ -232,7 +253,13 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   @Test
   public void testLinearCombi2() {
     final SmtAstMatchResult result1 = matcher.perform(elimPremisePattern1, _minus_c2_times_ex_plus_e2_GEQ_0);
-    assertThat(result1.matches()).isFalse();
+    assertThat(result1.matches()).isTrue();
+  }
+
+  @Test
+  public void testLinearCombi5() {
+    final SmtAstMatchResult result1 = matcher.perform(elimPremisePattern2, _c1_times_ex_plus_e1_GEQ_0);
+    assertThat(result1.matches()).isTrue();
   }
 
   @Test
@@ -247,6 +274,36 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   public void testLinearCombi4() {
     final SmtAstMatchResult result3 = matcher.perform(elimPremisePattern2, _minus_c2_times_ex_plus_e2_GEQ_0);
     assertThat(result3.matches()).isTrue();
+  }
+
+  @Test
+  public void t1() {
+    SmtAstPatternSelection p1 = or(
+        matchBind("f",
+            matchAnyBind("e"),
+            match("select",
+                matchAnyBind("a"),
+                matchAnyBind("i"))));
+
+    SmtAstMatchResult r = matcher.perform(p1, _0_EQ_b_at_i_plus_1_);
+    assertThat(r.matches()).isTrue();
+  }
+
+  @Test
+  public void t2() {
+    SmtAstPatternSelection p2 = or(
+      matchBind("not", "nf",
+          match(
+              matchAnyBind("e"),
+              match("select",
+                  matchAnyBind("a"),
+                  matchAnyBind("j")))));
+
+    SmtAstMatchResult r = matcher.perform(p2, _b_at_i_NOTEQ_0);
+    assertThat(r.matches()).isTrue();
+
+    SmtAstMatchResult rz = matcher.perform(p2, _0_EQ_b_at_i_plus_1_);
+    assertThat(rz.matches()).isFalse();
   }
 
 }

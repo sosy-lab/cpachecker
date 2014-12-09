@@ -92,4 +92,11 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
     pTarget.putAll(variableBindings);
   }
 
+  public void addSubResults (SmtAstMatchResult pSubResults) {
+    SmtAstMatchResultImpl sr = (SmtAstMatchResultImpl) pSubResults;
+
+    this.argumentPatternMatches.putAll(sr.argumentPatternMatches);
+    this.variableBindings.putAll(sr.variableBindings);
+  }
+
 }

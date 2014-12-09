@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.collect.Lists;
 
 
-public class ExtractNewPredsTest extends SolverBasedTest0 {
+public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
   private ExtractNewPreds enp;
   private RuleEngine rulesEngine;

@@ -35,11 +35,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public interface SmtAstPatternSelection extends Iterable<SmtAstPattern> {
 
   public static enum LogicalConnection {
-    AND, OR, NONE;
+    AND, OR, NONE, DONTCARE;
 
     public boolean isAnd() { return this == AND; }
     public boolean isOr() { return this == OR; }
     public boolean isNone() { return this == NONE; }
+    public boolean isDontCare() { return this == DONTCARE; }
   }
 
   public List<SmtAstPattern> getPatterns();
