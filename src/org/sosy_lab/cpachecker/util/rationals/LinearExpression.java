@@ -1,54 +1,39 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
 package org.sosy_lab.cpachecker.util.rationals;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.sosy_lab.cpachecker.util.ImmutableMapMerger;
-
-import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
 /**
  * Simple <i>sparse</i> implementation for <i>homogeneous</i> linear expression
  * of the form $\Sigma a_i  x_i$, where $x_i$ is a set of variables and $a_i$
  * is a set of constants.
+ *
+ * Every constant stored has to have a non-zero value.
  */
 public class LinearExpression implements Iterable<Entry<String, Rational>> {
-  private final ImmutableMap<String, Rational> data;
+  private final PersistentMap<String, Rational> data;
   private int hashCache = 0;
 
-  private LinearExpression(ImmutableMap<String, Rational> data) {
+  private LinearExpression(PersistentMap<String, Rational> data) {
     this.data = data;
   }
 
   public static LinearExpression empty() {
-    return new LinearExpression(ImmutableMap.<String, Rational>of());
+    return new LinearExpression(
+        PathCopyingPersistentTreeMap.<String, Rational>of());
   }
 
   public static LinearExpression pair(String var, Rational coeff) {
-    return new LinearExpression(ImmutableMap.of(var, coeff));
+    if (coeff.equals(Rational.ZERO)) {
+      return empty();
+    }
+    return new LinearExpression(
+        PathCopyingPersistentTreeMap.<String, Rational>of().
+            putAndCopy(var, coeff)
+    );
   }
 
   public static LinearExpression ofVariable(String var) {
@@ -59,16 +44,21 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
    * Add {@code other} linear expression.
    */
   public LinearExpression add(LinearExpression other) {
-    return new LinearExpression(ImmutableMapMerger.merge(
-        data,
-        other.data,
-        new ImmutableMapMerger.MergeFunc<String, Rational>() {
-          @Override
-          public Rational apply(String var, Rational a, Rational b) {
-            return a.plus(b);
-          }
-        }
-    ));
+    PersistentMap<String, Rational> newData = data;
+    for (Entry<String, Rational> e : other.data.entrySet()) {
+      String var = e.getKey();
+      Rational oldValue = newData.get(var);
+      Rational newValue = e.getValue();
+      if (oldValue != null) {
+        newValue = newValue.plus(oldValue);
+      }
+      if (newValue.equals(Rational.ZERO)) {
+        newData = newData.removeAndCopy(var);
+      } else {
+        newData = newData.putAndCopy(var, newValue);
+      }
+    }
+    return new LinearExpression(newData);
   }
 
   /**
@@ -81,20 +71,24 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
   /**
    * Multiply the linear expression by {@code constant}.
    */
-  public LinearExpression multByConst(final Rational constant) {
-    return new LinearExpression(ImmutableMapMerger.merge(
-        data,
-        data,
-        new ImmutableMapMerger.MergeFunc<String, Rational>() {
-          @Override
-          public Rational apply(String var, Rational a, Rational b) {
-            return a.times(constant);
-          }
-        }
-    ));
+  public LinearExpression multByConst(Rational constant) {
+    PersistentMap<String, Rational> newData =
+        PathCopyingPersistentTreeMap.of();
+    if (constant.equals(Rational.ZERO)) {
+      return empty();
+    }
+    for (Entry<String, Rational> e : data.entrySet()) {
+      newData = newData.putAndCopy(e.getKey(), e.getValue().times(constant));
+    }
+    return new LinearExpression(newData);
+  }
+  /**
+   * Negate the linear expression.
+   */
+  public LinearExpression negate() {
+    return multByConst(Rational.NEG_ONE);
   }
 
-  @SuppressWarnings("unused")
   public Rational getCoeff(String variable) {
     Rational out = data.get(variable);
     if (out == null) {
@@ -104,14 +98,22 @@ public class LinearExpression implements Iterable<Entry<String, Rational>> {
   }
 
   /**
-   * Negate the linear expression.
+   * @return Number of variables with non-zero coefficients.
    */
-  public LinearExpression negate() {
-    return multByConst(Rational.NEG_ONE);
-  }
-
   public int size() {
     return data.size();
+  }
+
+  /**
+   * @return Whether all coefficients are integral.
+   */
+  public boolean isIntegral() {
+    for (Entry<String, Rational> e : this) {
+      if (!e.getValue().isIntegral()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
