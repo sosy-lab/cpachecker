@@ -378,10 +378,10 @@ class RunExecutor():
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
-        try:
-            logging.debug("executeRun: setting up CCgoups.")
-            (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
+        logging.debug("executeRun: setting up CCgoups.")
+        (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
+        try:
             logging.debug("executeRun: executing tool.")
             (returnvalue, wallTime, cpuTime, energy) = \
                 self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
