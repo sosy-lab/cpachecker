@@ -57,14 +57,12 @@ class KillProcessOnOomThread(threading.Thread):
 
     @param cgroup: The memory cgroup the process is in
     @param process: The process instance to kill
-    @param memlimit: The memory limit in MB
     """
-    def __init__(self, cgroup, process, memlimit):
+    def __init__(self, cgroup, process):
         super(KillProcessOnOomThread, self).__init__()
         self.daemon = True
         self._finished = threading.Event()
         self._process = process
-        self._memlimit = memlimit
         self._cgroup = cgroup
 
         ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)

@@ -248,7 +248,7 @@ class RunExecutor():
 
             if MEMLIMIT in rlimits:
                 try:
-                    oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p, rlimits[MEMLIMIT])
+                    oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p)
                     oomThread.start()
                 except OSError as e:
                     logging.critical("OSError {0} during setup of OomEventListenerThread: {1}.".format(e.errno, e.strerror))
