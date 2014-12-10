@@ -34,7 +34,6 @@ import subprocess
 import time
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
-import cloudRunexecutor as CloudRunExecutor
 from . import filewriter as filewriter
 from . import util as Util
 
