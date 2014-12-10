@@ -378,20 +378,24 @@ class RunExecutor():
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
-        logging.debug("executeRun: setting up CCgoups.")
-        (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
+        try:
+            logging.debug("executeRun: setting up CCgoups.")
+            (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
 
-        logging.debug("executeRun: executing tool.")
-        (returnvalue, wallTime, cpuTime, energy) = \
-            self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
+            logging.debug("executeRun: executing tool.")
+            (returnvalue, wallTime, cpuTime, energy) = \
+                self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
 
-        logging.debug("executeRun: getting exact measures.")
-        (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
+            logging.debug("executeRun: getting exact measures.")
+            (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
 
-        logging.debug("executeRun: cleaning up CGroups.")
-        for cgroup in set(cgroups.values()):
-            # Need the set here to delete each cgroup only once.
-            removeCgroup(cgroup)
+        finally: # always try to cleanup cgroups, even on sys.exit()
+            logging.debug("executeRun: cleaning up CGroups.")
+            for cgroup in set(cgroups.values()):
+                # Need the set here to delete each cgroup only once.
+                removeCgroup(cgroup)
+
+        # if exception is thrown, skip the rest, otherwise perform normally
 
         reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
