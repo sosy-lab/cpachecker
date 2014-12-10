@@ -1256,6 +1256,14 @@ cpa.predicate.solver.useLogger = false
 cpa.predicate.solver.z3.logger.target = Z3
   allowed values: [Z3, MATHSAT5]
 
+# Ordering for objectives in the optimization context
+cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+cpa.predicate.solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
 
@@ -1487,6 +1495,10 @@ cpa.stator.policy.pathFocusing = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
+
+# Perform formula slicing after abstractions to propagate the pointer
+# information
+cpa.stator.policy.sliceFormulasForPointers = true
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
