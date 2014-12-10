@@ -39,13 +39,15 @@ import resource
 import threading
 import time
 
-from .benchmarkDataStructures import CORELIMIT
+from .benchmarkDataStructures import CORELIMIT, MEMLIMIT
 from .runexecutor import RunExecutor
 from . import util as Util
 
 
 WORKER_THREADS = []
 STOPPED_BY_INTERRUPT = False
+
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
@@ -175,10 +177,15 @@ class _Worker(threading.Thread):
             myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
             myCpus = map(lambda i: allCpus[i], range(myCpusStart, myCpusEnd + 1))
 
+        memlimit = None
+        if MEMLIMIT in benchmark.rlimits:
+            memlimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
+
         (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
                 myCpus=myCpus,
+                memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
                 runningDir=benchmark.workingDirectory(),
                 maxLogfileSize=benchmark.config.maxLogfileSize)

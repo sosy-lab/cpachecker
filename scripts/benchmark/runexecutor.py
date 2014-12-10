@@ -34,7 +34,7 @@ import sys
 import threading
 import time
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
+from .benchmarkDataStructures import TIMELIMIT, SOFTTIMELIMIT
 from . import util as Util
 from .cgroups import *
 from . import filewriter
@@ -101,12 +101,12 @@ class RunExecutor():
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
 
-    def _setupCGroups(self, args, rlimits, myCpus=None):
+    def _setupCGroups(self, args, myCpus, memlimit):
         """
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
-        @param rlimits: the resource limits, used for the cgroups
         @param myCpus: None or a list of the CPU cores to use
+        @param memlimit: None or memory limit in bytes
         @return cgroups: a map of all the necessary cgroups for the following execution.
                          Please add the process of the following execution to all those cgroups!
         """
@@ -132,15 +132,14 @@ class RunExecutor():
             logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
 
         # Setup memory limit
-        if MEMLIMIT in rlimits:
+        if memlimit is not None:
             if not MEMORY in cgroups:
                 sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
 
             cgroupMemory = cgroups[MEMORY]
-            memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
 
             limitFile = 'memory.limit_in_bytes'
-            writeFile(memlimit, cgroupMemory, limitFile)
+            writeFile(str(memlimit), cgroupMemory, limitFile)
 
             swapLimitFile = 'memory.memsw.limit_in_bytes'
             # We need swap limit because otherwise the kernel just starts swapping
@@ -152,7 +151,7 @@ class RunExecutor():
                     sys.exit('Kernel misses feature for accounting swap memory (memory.memsw.limit_in_bytes file does not exist in memory cgroup), but machine has swap.')
             else:
                 try:
-                    writeFile(memlimit, cgroupMemory, swapLimitFile)
+                    writeFile(str(memlimit), cgroupMemory, swapLimitFile)
                 except IOError as e:
                     if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
                         sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
@@ -164,7 +163,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir):
+    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, memlimit, environments, runningDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -246,7 +245,7 @@ class RunExecutor():
                 timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits, p, myCpuCount)
                 timelimitThread.start()
 
-            if MEMLIMIT in rlimits:
+            if memlimit is not None:
                 try:
                     oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p)
                     oomThread.start()
@@ -352,7 +351,7 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpus=None, environments={}, runningDir=None, maxLogfileSize=-1):
+    def executeRun(self, args, rlimits, outputFileName, myCpus=None, memlimit=None, environments={}, runningDir=None, maxLogfileSize=-1):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -360,6 +359,7 @@ class RunExecutor():
         @param rlimits: the resource limits
         @param outputFileName: the file where the output should be written to
         @param myCpus: None or a list of the CPU cores to use
+        @param memlimit: None or memory limit in bytes
         @param environments: special environments for running the command
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
@@ -378,13 +378,17 @@ class RunExecutor():
             except NotImplementedError:
                 myCpuCount = 1
 
+        if memlimit is not None:
+            if memlimit <= 0:
+                sys.exit("Invalid memory limit {0}.".format(memlimit))
+
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, rlimits, myCpus)
+        cgroups = self._setupCGroups(args, myCpus, memlimit)
 
         try:
             logging.debug("executeRun: executing tool.")
             (returnvalue, wallTime, cpuTime, energy) = \
-                self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir)
+                self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, memlimit, environments, runningDir)
 
             logging.debug("executeRun: getting exact measures.")
             (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
