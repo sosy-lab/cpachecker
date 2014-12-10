@@ -125,6 +125,7 @@ public class ValueAnalysisFeasibilityChecker {
       throws CPAException, InterruptedException {
 
     List<ARGPath> prefixes = new ArrayList<>();
+    boolean performAbstraction = precision.allowsAbstraction();
 
     try {
       MutableARGPath currentPrefix = new MutableARGPath();
@@ -151,13 +152,15 @@ public class ValueAnalysisFeasibilityChecker {
         // extract singleton successor state
         next = Iterables.getOnlyElement(successors);
 
-        // some variables might be blacklisted or tracked by BDDs,
-        // so do abstraction computation here
-        for (MemoryLocation memoryLocation : next.getTrackedMemoryLocations()) {
-          if (!precision.isTracking(memoryLocation,
-              next.getTypeForMemoryLocation(memoryLocation),
-              iterator.getOutgoingEdge().getSuccessor())) {
-            next.forget(memoryLocation);
+        // some variables might be blacklisted or tracked by BDDs
+        // so perform abstraction computation here
+        if(performAbstraction) {
+          for (MemoryLocation memoryLocation : next.getTrackedMemoryLocations()) {
+            if (!precision.isTracking(memoryLocation,
+                next.getTypeForMemoryLocation(memoryLocation),
+                iterator.getOutgoingEdge().getSuccessor())) {
+              next.forget(memoryLocation);
+            }
           }
         }
 
