@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,6 +70,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -175,21 +179,39 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
     }
 
-    Map<ARGState, VariableTrackingPrecision> refinementInformation = new HashMap<>();
+    Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
+      List<Precision> precisions = new ArrayList<>(2);
 
-      // join the precisions of the subtree of this roots into a single precision
-      final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, root);
+      // merge the value precisions of the subtree, and refine it
+      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
+          .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
 
-      refinementInformation.put(root, subTreePrecision.withIncrement(interpolationTree.extractPrecisionIncrement(root)));
+      // merge the predicate precisions of the subtree, if available
+      if(isPredicatePrecisionAvailable(pReached, root)) {
+        precisions.add(mergePredictePrecisionsForSubgraph(root, pReached));
+      }
+
+      refinementInformation.put(root, precisions);
     }
 
-    for (Map.Entry<ARGState, VariableTrackingPrecision> info : refinementInformation.entrySet()) {
-      pReached.removeSubtree(info.getKey(), info.getValue(), VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+    for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+      if(isPredicatePrecisionAvailable(pReached, info.getKey())) {
+        precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
+      }
+
+      pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
 
     totalTime.stop();
     return true;
+  }
+
+  private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
+    return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), PredicatePrecision.class) != null;
   }
 
   private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
@@ -228,20 +250,60 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
-  private VariableTrackingPrecision joinSubtreePrecisions(final ARGReachedSet pReached, ARGState pRoot) {
+  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(final ARGState pRefinementRoot,
+      final ARGReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState child : getNonCoveredStatesInSubgraph(pRoot)) {
-      uniquePrecisions.add(extractPrecision(pReached, child));
+    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      uniquePrecisions.add(extractValuePrecision(pReached, descendant));
     }
 
     // join all unique precisions into a single precision
-    VariableTrackingPrecision joinedPrecision = Iterables.getLast(uniquePrecisions);
+    VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
     for (VariableTrackingPrecision precision : uniquePrecisions) {
-      joinedPrecision = joinedPrecision.join(precision);
+      mergedPrecision = mergedPrecision.join(precision);
     }
 
-    return joinedPrecision;
+    return mergedPrecision;
+  }
+
+  /**
+   * Merge all predicate precisions in the subgraph below the refinement root
+   * into a new predicate precision
+   *
+   * @return a new predicate precision containing all predicate precision from
+   * the subgraph below the refinement root.
+   */
+  private PredicatePrecision mergePredictePrecisionsForSubgraph(final ARGState pRefinementRoot,
+      final ARGReachedSet pReached) {
+
+    PredicatePrecision mergedPrecision = PredicatePrecision.empty();
+
+    // find all distinct precisions to merge them
+    Set<PredicatePrecision> uniquePrecisions = Sets.newIdentityHashSet();
+    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+      uniquePrecisions.add(extractPredicatePrecision(pReached, descendant));
+    }
+
+    for (PredicatePrecision precision : uniquePrecisions) {
+      mergedPrecision = mergedPrecision.mergeWith(precision);
+    }
+
+    return mergedPrecision;
+  }
+
+  private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
+      ARGState state) {
+    return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+        .get(0);
+  }
+
+  protected final PredicatePrecision extractPredicatePrecision(final ARGReachedSet pReached,
+      ARGState state) {
+    return (PredicatePrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+        .filter(Predicates.instanceOf(PredicatePrecision.class))
+        .get(0);
   }
 
   private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
@@ -252,13 +314,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       }
     }
     return subgraph;
-  }
-
-  private VariableTrackingPrecision extractPrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-        .get(0);
   }
 
   private boolean isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
@@ -362,7 +417,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     if (refinementCounter > 0) {
       out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
       out.println("Total number of targets found:    " + String.format(Locale.US, "%9d", targetCounter));
-      out.println("Total time for refinement:            " + totalTime);
+      out.println("Time for completing refinement:       " + totalTime);
 
       pathInterpolator.printStatistics(out, pResult, pReached);
     }

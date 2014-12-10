@@ -54,6 +54,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -81,6 +83,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -467,7 +470,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
+    List<Precision> precisions = new ArrayList<>(2);
+    List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
+
+    precisions.add(newPrecision);
+    precisionTypes.add(Predicates.instanceOf(PredicatePrecision.class));
+
+    if(isValuePrecisionAvailable(pReached, refinementRoot)) {
+      precisions.add(mergeAllValuePrecisionsFromSubgraph(refinementRoot, reached));
+      precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+    }
+
+    pReached.removeSubtree(refinementRoot, precisions, precisionTypes);
 
     assert (refinementCount > 0) || reached.size() == 1;
 
@@ -544,6 +558,33 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
     }
     return newPrecision;
+  }
+
+  private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
+    return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), VariableTrackingPrecision.class) != null;
+  }
+
+  private VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
+      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+    VariableTrackingPrecision rootPrecision = Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot),
+        VariableTrackingPrecision.class);
+
+    // find all distinct precisions to merge them
+    Set<Precision> precisions = Sets.newIdentityHashSet();
+    for (ARGState state : refinementRoot.getSubgraph()) {
+      if (!state.isCovered()) {
+        // covered states are not in reached set
+        precisions.add(reached.getPrecision(state));
+      }
+    }
+
+    for (Precision prec : precisions) {
+      rootPrecision = rootPrecision.join(Precisions.extractPrecisionByType(prec,
+          VariableTrackingPrecision.class));
+    }
+
+    return rootPrecision;
   }
 
   @Override
