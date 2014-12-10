@@ -111,7 +111,7 @@ class RunExecutor():
             totalCpuCount = len(self.cpus)
             myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
             myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
-            myCpus = ','.join(map(str, map(lambda i: self.cpus[i], range(myCpusStart, myCpusEnd + 1))))
+            myCpus = map(lambda i: self.cpus[i], range(myCpusStart, myCpusEnd + 1))
         return self._setupCGroups0(args, rlimits, myCpus)
 
     def _setupCGroups0(self, args, rlimits, myCpus=None):
@@ -119,39 +119,30 @@ class RunExecutor():
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
         @param rlimits: the resource limits, used for the cgroups
-        @param myCpus: None or a comma separated list (as string!) of the CPU cores to use
+        @param myCpus: None or a list of the CPU cores to use
         @return cgroups: a map of all the necessary cgroups for the following execution.
                          Please add the process of the following execution to all those cgroups!
-        @return myCpuCount: None or the number of CPU cores to use
         """
       
         # Setup cgroups, need a single call to createCgroup() for all subsystems
         subsystems = [CPUACCT, MEMORY]
-        if CORELIMIT in rlimits and myCpus is not None:
+        if myCpus is not None:
             subsystems.append(CPUSET)
 
         cgroups = createCgroup(self.cgroupsParents, *subsystems)
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
-        try:
-            myCpuCount = multiprocessing.cpu_count()
-        except NotImplementedError:
-            myCpuCount = 1
-
         # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
-        if CORELIMIT in rlimits and myCpus is not None:
-            myCpuCount = rlimits[CORELIMIT]
-
+        if myCpus is not None:
             if CPUSET not in cgroups:
                 sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-            if myCpuCount <= 0:
-                sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
 
             cgroupCpuset = cgroups[CPUSET]
-            writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
-            myCpus = readFile(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpus))
+            myCpusStr = ','.join(map(str, myCpus))
+            writeFile(myCpusStr, cgroupCpuset, 'cpuset.cpus')
+            myCpusStr = readFile(cgroupCpuset, 'cpuset.cpus')
+            logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
 
         # Setup memory limit
         if MEMLIMIT in rlimits:
@@ -183,7 +174,7 @@ class RunExecutor():
             memlimit = readFile(cgroupMemory, limitFile)
             logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
-        return (cgroups, myCpuCount)
+        return cgroups
 
 
     def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, environments, runningDir):
@@ -386,8 +377,18 @@ class RunExecutor():
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
-        logging.debug("executeRun: setting up CCgoups.")
-        (cgroups, myCpuCount) = self._setupCGroups(args, rlimits, myCpuIndex)
+        if CORELIMIT in rlimits:
+            myCpuCount = rlimits[CORELIMIT]
+            if myCpuCount <= 0:
+                sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
+        else:
+            try:
+                myCpuCount = multiprocessing.cpu_count()
+            except NotImplementedError:
+                myCpuCount = 1
+
+        logging.debug("executeRun: setting up Cgroups.")
+        cgroups = self._setupCGroups(args, rlimits, myCpuIndex)
 
         try:
             logging.debug("executeRun: executing tool.")
