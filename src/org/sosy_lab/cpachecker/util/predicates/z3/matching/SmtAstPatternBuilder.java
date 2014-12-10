@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
@@ -93,6 +94,13 @@ public class SmtAstPatternBuilder {
         Optional.<Comparable<?>>of(pFunction),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
+  }
+
+  public static SmtAstPattern matchAnyBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.of(pBindMatchTo),
+        or(argumentMatchers));
   }
 
   /**
@@ -195,6 +203,14 @@ public class SmtAstPatternBuilder {
         pSelection.getRelationship(),
         pSelection.getPatterns(),
         defaultBindings);
+  }
+
+  public static SmtAstPattern matchExistsQuant(Set<String> pQuantifiedVariableBoundAs, SmtAstPatternSelection pBodyMatchers) {
+    return null;
+  }
+
+  public static SmtAstPattern matchInSubtree(SmtAstPatternSelection pBodyMatchers) {
+    return null;
   }
 
 }

@@ -23,39 +23,38 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
-import java.io.PrintStream;
+import java.io.IOException;
 
 
 public class SmtAstPatternPrinter {
 
-  public static void print(PrintStream pOut, SmtAstPattern pPattern) {
+  public static void print(Appendable pOut, SmtAstPattern pPattern) throws IOException {
     internalPrint(pOut, pPattern, 0);
   }
 
-  public static void print(PrintStream pOut, SmtAstPatternSelection pPattern) {
+  public static void print(Appendable pOut, SmtAstPatternSelection pPattern) throws IOException {
     internalPrint(pOut, pPattern, 0);
   }
 
 
-  private static void internalPrint(PrintStream pOut, SmtAstPatternSelection pPattern, int pDepth) {
-    pOut.println(String.format("%s", pPattern.getRelationship()));
+  private static void internalPrint(Appendable pOut, SmtAstPatternSelection pPattern, int pDepth) throws IOException {
+    pOut.append(String.format("%s\n", pPattern.getRelationship()));
     for (SmtAstPattern elementPattern: pPattern) {
       internalPrint(pOut, elementPattern, pDepth+1);
     }
   }
 
-  private static void internalPrint(PrintStream pOut, SmtAstPattern pPattern, int pDepth) {
+  private static void internalPrint(Appendable pOut, SmtAstPattern pPattern, int pDepth) throws IOException {
     if (pPattern instanceof SmtFunctionApplicationPattern) {
       SmtFunctionApplicationPattern pApp = (SmtFunctionApplicationPattern) pPattern;
 
       String ident = String.format("%" + Integer.valueOf(1 + pDepth * 4) + "s", "");
-      pOut.println(String.format("%s%s", ident, pApp.toString()));
+      pOut.append(String.format("%s%s\n", ident, pApp.toString()));
 
       for (SmtAstPattern argP: pApp.getArgumentPatterns(false)) {
         internalPrint(pOut, argP, pDepth+1);
       }
     }
-    pOut.flush();
   }
 
 }

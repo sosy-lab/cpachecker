@@ -34,11 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
@@ -47,18 +43,8 @@ import com.google.common.collect.Maps;
 
 public class ExistentialRule extends PatternBasedRule {
 
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
-  private final QuantifiedFormulaManagerView qfm;
-  private final ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-
   public ExistentialRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
     super(pFm, pFmv, pSolver, pMatcher);
-
-    bfm = pFmv.getBooleanFormulaManager();
-    ifm = pFmv.getIntegerFormulaManager();
-    qfm = pFmv.getQuantifiedFormulaManager();
-    afm = pFmv.getArrayFormulaManager();
   }
 
   @Override

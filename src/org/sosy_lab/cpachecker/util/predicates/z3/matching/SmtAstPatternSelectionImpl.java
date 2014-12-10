@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,13 @@ public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
   @Override
   public Map<String, Formula> getDefaultBindings() {
     return defaultBindings;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    try { SmtAstPatternPrinter.print(sb, this); } catch (IOException e) {}
+    return sb.toString();
   }
 
 }
