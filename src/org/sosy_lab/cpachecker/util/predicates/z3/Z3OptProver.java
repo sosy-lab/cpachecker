@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 public class Z3OptProver implements OptEnvironment {
@@ -44,17 +43,11 @@ public class Z3OptProver implements OptEnvironment {
   private long z3context;
   private long z3optContext;
 
-  private Optional<Integer> objectiveHandle;
-  private Optional<Boolean> isMaximization;
-
   public Z3OptProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
-
-    objectiveHandle = Optional.absent();
-    isMaximization = Optional.absent();
   }
 
   @Override
@@ -64,43 +57,27 @@ public class Z3OptProver implements OptEnvironment {
   }
 
   @Override
-  public void maximize(Formula objective) {
-    Z3Formula z3Objective = (Z3Formula) objective;
-    int handle = optimize_maximize(
+  public int maximize(Formula objective) {
+    Z3Formula z3Objective = (Z3Formula)objective;
+    return optimize_maximize(
         z3context, z3optContext, z3Objective.getExpr());
-    objectiveHandle = Optional.of(handle);
-    isMaximization = Optional.of(true);
   }
 
   @Override
-  public void minimize(Formula objective) {
+  public int minimize(Formula objective) {
     Z3Formula z3Objective = (Z3Formula) objective;
-    int handle = optimize_minimize(
+    return optimize_minimize(
         z3context, z3optContext, z3Objective.getExpr());
-    objectiveHandle = Optional.of(handle);
-    isMaximization = Optional.of(false);
   }
 
   @Override
-  public OptStatus check()
-      throws InterruptedException, SolverException {
-    Preconditions.checkState(objectiveHandle.isPresent());
-
+  public OptStatus check() throws InterruptedException, SolverException {
     int status = optimize_check(z3context, z3optContext);
     if (status == Z3_LBOOL.Z3_L_FALSE.status) {
       return OptStatus.UNSAT;
     } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
       return OptStatus.UNDEF;
     } else {
-
-      long out = optimize_get_upper(z3context, z3optContext,
-          objectiveHandle.get());
-      String outS = ast_to_string(z3context, out);
-
-      // We use contains because we'll get negative infinity for minimization.
-      if (outS.contains(Z3_INFINITY_REPRESENTATION)) {
-        return OptStatus.UNBOUNDED;
-      }
       return OptStatus.OPT;
     }
   }
@@ -116,32 +93,21 @@ public class Z3OptProver implements OptEnvironment {
   }
 
   @Override
-  public Rational upper(int epsilon) {
-    Preconditions.checkState(objectiveHandle.isPresent());
-    int idx = objectiveHandle.get();
-
-    long ast = optimize_get_upper(z3context, z3optContext, idx);
-
-    return rationalFromZ3AST(replaceEpsilon(ast, epsilon));
-  }
-
-  @Override
-  public Rational lower(int epsilon) {
-    Preconditions.checkState(objectiveHandle.isPresent());
-    int idx = objectiveHandle.get();
-    long ast = optimize_get_lower(z3context, z3optContext, idx);
-
-    return rationalFromZ3AST(
-        replaceEpsilon(ast, epsilon));
-  }
-
-  @Override
-  public Rational value(int epsilon) {
-    Preconditions.checkState(isMaximization.isPresent());
-    if(isMaximization.get()) {
-      return upper(epsilon);
+  public Optional<Rational> upper(int handle, int epsilon) {
+    long ast = optimize_get_upper(z3context, z3optContext, handle);
+    if (isInfinity(ast)) {
+      return Optional.absent();
     }
-    return lower(epsilon);
+    return Optional.of(rationalFromZ3AST(replaceEpsilon(ast, epsilon)));
+  }
+
+  @Override
+  public Optional<Rational> lower(int handle, int epsilon) {
+    long ast = optimize_get_lower(z3context, z3optContext, handle);
+    if (isInfinity(ast)) {
+      return Optional.absent();
+    }
+    return Optional.of(rationalFromZ3AST(replaceEpsilon(ast, epsilon)));
   }
 
   @Override
@@ -150,11 +116,23 @@ public class Z3OptProver implements OptEnvironment {
     return Z3Model.parseZ3Model(mgr, z3context, z3model);
   }
 
+  void setParam(String key, String value) {
+    long keySymbol = mk_string_symbol(z3context, key);
+    long valueSymbol = mk_string_symbol(z3context, value);
+    long params = mk_params(z3context);
+    params_set_symbol(z3context, params, keySymbol, valueSymbol);
+    optimize_set_params(z3context, z3optContext, params);
+  }
+
   @Override
   public void close() {
     optimize_dec_ref(z3context, z3optContext);
     z3context = 0;
     z3optContext = 0;
+  }
+
+  private boolean isInfinity(long ast) {
+    return ast_to_string(z3context, ast).contains(Z3_INFINITY_REPRESENTATION);
   }
 
   /**

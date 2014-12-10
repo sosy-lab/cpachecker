@@ -86,8 +86,6 @@ public class PolicyIterationTest {
 
   private Map<String, String> getProperties() {
     return (ImmutableMap.<String, String>builder()
-//        .put("cpa", "cpa.arg.ARGCPA")
-//        .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
         .put("cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             Joiner.on(", ").join(ImmutableList.of(
@@ -95,19 +93,16 @@ public class PolicyIterationTest {
                 "cpa.callstack.CallstackCPA",
 //                "cpa.conditions.path.PathConditionsCPA",
 //                "cpa.value.ValueAnalysisCPA",
-                "cpa.pointer2.PointerCPA",
+//                "cpa.pointer2.PointerCPA",
                 "cpa.policyiteration.PolicyCPA"
             ))
         )
         .put("cpa.predicate.solver", "Z3")
-        .put("log.consoleLevel", "FINE")
+        .put("log.consoleLevel", "INFO")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-
-//        .put("cpa.predicate.encodeBitvectorAs", "Rational")
-
 //        .put("cpa.conditions.path.assignments.hardThreshold", "1")
 //        .put("cpa.conditions.path.assignments.softThreshold", "2")
 //        .put("cpa.conditions.path.condition", "AssignmentsInPathCondition")

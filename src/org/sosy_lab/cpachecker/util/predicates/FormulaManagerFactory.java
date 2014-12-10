@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.princess.PrincessInterpolatingPro
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3OptProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -210,7 +209,7 @@ public class FormulaManagerFactory {
     OptEnvironment environment;
     switch (solver) {
         case Z3:
-            environment = new Z3OptProver((Z3FormulaManager) fmgr);
+            environment = ((Z3FormulaManager) fmgr).newOptProver();
             break;
         default:
             throw new AssertionError("Only Z3 supports the optimization interface");

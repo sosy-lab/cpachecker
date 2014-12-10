@@ -72,9 +72,9 @@ public class Z3MaximizationTest {
         rfmgr.equal(x, obj)
       );
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(obj);
+      int handle = prover.maximize(obj);
       OptEnvironment.OptStatus response = prover.check();
-      Assert.assertEquals(OptEnvironment.OptStatus.UNBOUNDED, response);
+      Assert.assertTrue(!prover.upper(handle, 0).isPresent());
     }
   }
 
@@ -88,7 +88,7 @@ public class Z3MaximizationTest {
           rfmgr.greaterThan(x, y)
       );
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(x);
+      int handle = prover.maximize(x);
       OptEnvironment.OptStatus response = prover.check();
       Assert.assertEquals(OptEnvironment.OptStatus.UNSAT,
           response);
@@ -118,7 +118,7 @@ public class Z3MaximizationTest {
       );
 
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(obj);
+      int handle = prover.maximize(obj);
 
       // Maximize for x.
       OptEnvironment.OptStatus response = prover.check();
@@ -130,7 +130,7 @@ public class Z3MaximizationTest {
           model.toString());
 
       // Check the value.
-      Assert.assertEquals(Rational.ofString("19"), prover.value(0));
+      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
     }
   }
 
@@ -159,26 +159,26 @@ public class Z3MaximizationTest {
 
       prover.push();
 
-      prover.maximize(obj);
+      int handle = prover.maximize(obj);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.value(0)).isEqualTo(Rational.ofString("19"));
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("19"));
 
       prover.pop();
       prover.push();
 
-      prover.maximize(x);
+      handle = prover.maximize(x);
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.value(0)).isEqualTo(Rational.ofString("10"));
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("10"));
 
       prover.pop();
       prover.push();
 
-      prover.maximize(rfmgr.makeVariable("y"));
+      handle = prover.maximize(rfmgr.makeVariable("y"));
       response = prover.check();
       assertThat(response).isEqualTo(OptStatus.OPT);
-      assertThat(prover.value(0)).isEqualTo(Rational.ofString("9"));
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("9"));
 
       prover.pop();
     }

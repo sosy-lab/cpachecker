@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Optional;
+
 /**
  * Wrapper for an optimizing solver.
  */
@@ -53,15 +55,15 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public void maximize(Formula objective) {
+  public int maximize(Formula objective) {
     logger.log(Level.FINE, "Maximizing: " + objective);
-    wrapped.maximize(objective);
+    return wrapped.maximize(objective);
   }
 
   @Override
-  public void minimize(Formula objective) {
+  public int minimize(Formula objective) {
     logger.log(Level.FINE, "Minimizing: " + objective);
-    wrapped.minimize(objective);
+    return wrapped.minimize(objective);
   }
 
   @Override
@@ -84,18 +86,13 @@ public class LoggingOptEnvironment implements OptEnvironment {
   }
 
   @Override
-  public Rational upper(int epsilon) {
-    return wrapped.upper(epsilon);
+  public Optional<Rational> upper(int handle, int epsilon) {
+    return wrapped.upper(handle, epsilon);
   }
 
   @Override
-  public Rational lower(int epsilon) {
-    return wrapped.lower(epsilon);
-  }
-
-  @Override
-  public Rational value(int epsilon) {
-    return wrapped.value(epsilon);
+  public Optional<Rational> lower(int handle, int epsilon) {
+    return wrapped.lower(handle, epsilon);
   }
 
   @Override

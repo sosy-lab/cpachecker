@@ -413,11 +413,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         solver.addConstraint(constraint);
       }
 
+      Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
-        CFAEdge policyEdge = policyValue.getValue().trace;
         logger.log(Level.FINE,
-            "# Value determination: optimizing for template" , template);
+            "# Value determination: optimizing for template", template);
 
         NumeralFormula objective;
         String varName = vdfmgr.absDomainVarName(node, template);
@@ -426,27 +426,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         } else {
           objective = ifmgr.makeVariable(varName);
         }
+        int handle = solver.maximize(objective);
+        objectiveHandles.put(template, handle);
+      }
 
-        solver.push();
-        solver.maximize(objective);
+      OptEnvironment.OptStatus result = solver.check();
+      if (result != OptEnvironment.OptStatus.OPT) {
+        throw new SolverException("Unexpected solver state, " +
+            "value determination problem should be feasible");
+      }
 
-        OptEnvironment.OptStatus result = solver.check();
-        switch (result) {
-          case OPT:
-            builder.put(
-                template, PolicyBound.of(policyEdge, solver.value(EPSILON)));
-            break;
-          case UNBOUNDED:
-            unbounded.add(template);
-            break;
-          case UNSAT:
-            throw new SolverException("" +
-                "Unexpected solver state, value determination problem" +
-                " should be feasible");
-          case UNDEF:
-            throw new SolverException("Unexpected solver status");
+      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
+        Template template = policyValue.getKey();
+        CFAEdge policyEdge = policyValue.getValue().trace;
+        Optional<Rational> value =  solver.upper(objectiveHandles.get(template),
+            EPSILON);
+
+        if (value.isPresent()) {
+          builder.put(template, PolicyBound.of(policyEdge, value.get()));
+        } else {
+          unbounded.add(template);
         }
-        solver.pop();
       }
     } catch (SolverException e) {
       throw new CPATransferException("Failed maximization", e);
@@ -535,31 +535,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             templateManager.toFormula(template, p.getSsa());
 
         solver.push();
-        solver.maximize(objective);
+        int handle = solver.maximize(objective);
 
         // Generate the trace for the single template.
         OptEnvironment.OptStatus result = solver.check();
         switch (result) {
           case OPT:
-            Rational bound = solver.value(EPSILON);
-            Model model = solver.getModel();
-            MultiEdge edge = traceFromModel(node, model);
-            abstraction.put(template, new PolicyBound(edge, bound));
+            Optional<Rational> bound = solver.upper(handle, EPSILON);
+            if (bound.isPresent()) {
+              Model model = solver.getModel();
+              MultiEdge edge = traceFromModel(node, model);
+              abstraction.put(template, new PolicyBound(edge, bound.get()));
+            }
             break;
           case UNSAT:
             // Short circuit: this point is infeasible.
             return Optional.absent();
-          case UNBOUNDED:
-            // Skip the constraint: it does not give any additional
-            // information.
-            break;
           case UNDEF:
             throw new CPATransferException("Solver returned undefined status");
         }
-
         solver.pop();
       }
-
     } catch (SolverException e) {
       throw new CPATransferException("Solver error: ", e);
     }

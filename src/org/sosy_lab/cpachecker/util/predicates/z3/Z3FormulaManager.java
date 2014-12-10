@@ -49,7 +49,19 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
   boolean simplifyFormulas = false;
 
+  /** Optimization settings */
+  @Option(secure=true, description = "Engine to use for the optimization",
+    values = {"basic", "farkas", "symba"})
+  String optimizationEngine = "basic";
+
+  @Option(secure=true, description = "Ordering for objectives in the optimization" +
+      " context", values = {"lex", "pareto", "box"})
+  String objectivePrioritizationMode = "box";
+
   private final Z3SmtLogger z3smtLogger;
+
+  private static final String OPT_ENGINE_CONFIG_KEY = "engine";
+  private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
 
   private Z3FormulaManager(
       Z3FormulaCreator pFormulaCreator,
@@ -74,35 +86,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
 
     NativeLibraries.loadLibrary("z3j");
 
-    /*
-    Following method is part of the file "api_interp.cpp" from Z3.
-    It returns a default context, only some params are set.
-    We set the same params in a default context,
-    so that interpolation is possible.
-
-    Z3_context Z3_mk_interpolation_context(Z3_config cfg) {
-      if (!cfg) cfg = Z3_mk_config();
-      Z3_set_param_value(cfg, "PROOF", "true");
-      Z3_set_param_value(cfg, "MODEL", "true");
-      Z3_context ctx = Z3_mk_context(cfg);
-      Z3_del_config(cfg);
-      return ctx;
-    }
-    */
-
-    //    open_log("z3output.log"); // dumps some log in a special z3-format
-
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
     set_param_value(cfg, "PROOF", "true");
 
-    //    set_param_value(cfg, "trace", "true");
-    //    set_param_value(cfg, "trace_file_name", "z3_internal.log");
-
     // TODO add some other params, memory-limit?
-
-    // we use the new reference-counting-context,
-    // because it will be default sometimes in future, 22.03.2013
     final long context = mk_context_rc(cfg);
     del_config(cfg);
 
@@ -126,12 +114,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     smtLogger.logOption("model", "true");
     smtLogger.logOption("proof", "true");
 
-    // mathsat wants those 2 flags, they are ignored by other solvers
-//    smtLogger.logOption("produce-models", "true");
-//    smtLogger.logOption("produce-interpolants", "true");
-//    smtLogger.logBracket("set-logic QF_UFLRA");
-
-
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
 
     // Create managers
@@ -143,7 +125,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
     Z3QuantifiedFormulaManager quantifierManager = new Z3QuantifiedFormulaManager(creator);
     Z3ArrayFormulaManager arrayManager = new Z3ArrayFormulaManager(creator);
-
 
     // Set the custom error handling
     // which will throw java Exception
@@ -216,14 +197,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
     };
   }
 
+  public Z3OptProver newOptProver() {
+    Z3OptProver out = new Z3OptProver(this);
+    out.setParam(OPT_ENGINE_CONFIG_KEY, optimizationEngine);
+    out.setParam(OPT_PRIORITY_CONFIG_KEY, objectivePrioritizationMode);
+    return out;
+  }
+
   protected BooleanFormula encapsulateBooleanFormula(long t) {
     return getFormulaCreator().encapsulateBoolean(t);
   }
-
-  //  @Override
-  //  protected void finalize() {
-  //    close_log();
-  //  }
 
   /** returns a new logger with a new logfile. */
   Z3SmtLogger getSmtLogger() {
