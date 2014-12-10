@@ -29,10 +29,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 
 public class SmtAstPatternBuilder {
@@ -103,6 +105,13 @@ public class SmtAstPatternBuilder {
         or(argumentMatchers));
   }
 
+  public static SmtAstPattern matchAny(SmtAstPattern... argumentMatchers) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<String>absent(),
+        or(argumentMatchers));
+  }
+
   /**
    * Matches any function application.
    *
@@ -159,6 +168,13 @@ public class SmtAstPatternBuilder {
         and());
   }
 
+  public static SmtAstPattern matchNullaryBind(Comparable<?> pSymbol, String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>of(pSymbol),
+        Optional.<String>of(pBindMatchTo),
+        and());
+  }
+
   public static SmtAstPattern matchNullary(Comparable<?> pSymbol) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pSymbol),
@@ -209,8 +225,26 @@ public class SmtAstPatternBuilder {
     return null;
   }
 
-  public static SmtAstPattern matchInSubtree(SmtAstPatternSelection pBodyMatchers) {
-    return null;
+  public static SmtAstPattern matchForallQuant(Set<String> pQuantifiedVariableBoundAs, SmtAstPatternSelection pBodyMatchers) {
+//    return new SmtFunctionApplicationPattern(
+//        Optional.<Comparable<?>>of("forall"),
+//        Optional.<String>absent(),
+//        pBodyMatchers);
+  }
+
+  public static SmtAstPattern matchInSubtree(SmtAstPattern pPattern) {
+    if (pPattern instanceof SmtFunctionApplicationPattern) {
+      SmtFunctionApplicationPattern ap = (SmtFunctionApplicationPattern) pPattern;
+
+      Set<SmtAstMatchFlag> newFlags = Sets.newHashSet(ap.flags);
+      newFlags.add(SmtAstMatchFlag.IN_SUBTREE_RECURSIVE);
+
+      return new SmtFunctionApplicationPattern(
+          ap.function, ap.bindMatchTo, ap.argumentPatterns,
+          newFlags.toArray(new SmtAstMatchFlag[newFlags.size()]));
+    }
+
+    throw new UnsupportedOperationException("Subtree matching not (yet) available for the requested pattern class!");
   }
 
 }

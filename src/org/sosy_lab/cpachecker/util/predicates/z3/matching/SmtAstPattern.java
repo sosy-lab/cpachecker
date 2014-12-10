@@ -28,6 +28,8 @@ import com.google.common.base.Optional;
 
 public interface SmtAstPattern {
 
+  public static enum SmtAstMatchFlag { IN_SUBTREE_RECURSIVE, ALL_SATISFYING }
+
   public Optional<String> getBindMatchTo();
 
 }

@@ -64,8 +64,12 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
   private IntegerFormula _i;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
+  private BooleanFormula _NOT_b_at_i_NOTEQ_0;
+  private BooleanFormula _NOT_b_at_i_plus_1_NOTEQ_0;
   private BooleanFormula _b_at_i_NOTEQ_0;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
+  private BooleanFormula _b_at_i_EQ_0;
+  private BooleanFormula _b_at_i_plus_1_EQ_0;
 
   @Override
   protected Solvers solverToUse() {
@@ -92,8 +96,12 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     _i = ifm.makeVariable("i");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
-    _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
-    _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
+    _b_at_i_EQ_0 = ifm.equal(afm.select(_b, _i), _0);
+    _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
+    _b_at_i_NOTEQ_0 = bfm.not(_b_at_i_EQ_0);
+    _b_at_i_plus_1_NOTEQ_0 = bfm.not(_b_at_i_plus_1_EQ_0);
+    _NOT_b_at_i_NOTEQ_0 = bfm.not(bfm.not(_b_at_i_EQ_0));
+    _NOT_b_at_i_plus_1_NOTEQ_0 = bfm.not(bfm.not(_b_at_i_plus_1_EQ_0));
   }
 
   @Test
@@ -117,6 +125,56 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_b_at_i_NOTEQ_0));
 
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+    //   b[i+1] == 0
+    // ==>
+    //  forall x in [i+1] . b[x] != 0
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(_b_at_i_plus_1_EQ_0));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion4() throws SolverException, InterruptedException {
+    //     b[i] == 0
+    // ==>
+    //   forall x in [i]  . b[x] != 0
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(_b_at_i_EQ_0));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion5() throws SolverException, InterruptedException {
+    //   !(b[i+1] != 0)
+    // ==>
+    //  forall x in [i+1] . !(b[x] != 0)
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(_NOT_b_at_i_plus_1_NOTEQ_0));
+
+    assertThat(false).isTrue();
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion6() throws SolverException, InterruptedException {
+    //     !(b[i] != 0)
+    // ==>
+    //   forall x in [i]  . !(b[x] != 0)
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(_NOT_b_at_i_NOTEQ_0));
+
+    assertThat(false).isTrue();
     assertThat(result).isNotEmpty();
   }
 

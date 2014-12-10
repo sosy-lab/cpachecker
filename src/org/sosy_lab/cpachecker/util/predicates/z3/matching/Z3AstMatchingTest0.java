@@ -74,11 +74,16 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   private SmtAstPatternSelection elimPremisePattern1;
   private SmtAstPatternSelection elimPremisePattern2;
   private IntegerFormula _i;
+  private IntegerFormula _x;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_NOTEQ_0;
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _i_plus_1_LESSEQ_al;
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_plus_1_EQ_0;
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _0_EQ_b_at_i_plus_1_;
+  private BooleanFormula _b_at_i_NOTEQ_0;
+  private BooleanFormula _i_plus_1_LESSEQ_al;
+  private BooleanFormula _b_at_i_plus_1_EQ_0;
+  private BooleanFormula _0_EQ_b_at_i_plus_1_;
+  private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
+  private IntegerFormula _i_plus_1;
+  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_EQ_0;
+  private IntegerFormula _b_at_i;
 
   @Override
   protected Solvers solverToUse() {
@@ -304,6 +309,59 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
 
     SmtAstMatchResult rz = matcher.perform(p2, _0_EQ_b_at_i_plus_1_);
     assertThat(rz.matches()).isFalse();
+  }
+
+  @Test
+  public void testSubtreeMatching1() {
+    _0 = imgr.makeNumber(0);
+    _1 = imgr.makeNumber(1);
+    _i = imgr.makeVariable("i");
+    _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+
+    _i_plus_1 = imgr.add(_i, _1);
+    _b_at_i = amgr.select(_b, _i);
+    _b_at_i_EQ_0 = imgr.equal(_b_at_i, _0);
+    _b_at_i_NOTEQ_0 = bmgr.not(_b_at_i_EQ_0);
+    _b_at_i_plus_1_NOTEQ_0 = bmgr.not(imgr.equal(amgr.select(_b, _i_plus_1), _0));
+
+    SmtAstPatternSelection pattern = or(
+        matchAnyBind("f",
+            matchInSubtree(
+                matchAnyBind("x"))));
+
+    {
+      SmtAstMatchResult r = matcher.perform(pattern, _b_at_i_EQ_0);
+      assertThat(r.matches()).isTrue();
+      assertThat(r.getVariableBindings("x")).contains(_b_at_i);
+    }
+    {
+      SmtAstMatchResult r = matcher.perform(pattern, _b_at_i_NOTEQ_0);
+      assertThat(r.matches()).isTrue();
+      assertThat(r.getVariableBindings("x")).contains(_b_at_i_EQ_0);
+    }
+  }
+
+  @Test
+  public void testSubtreeMatching2() {
+    _0 = imgr.makeNumber(0);
+    _1 = imgr.makeNumber(1);
+    _i = imgr.makeVariable("i");
+    _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+
+    _i_plus_1 = imgr.add(_i, _1);
+    _b_at_i = amgr.select(_b, _i);
+    _b_at_i_EQ_0 = imgr.equal(_b_at_i, _0);
+    _b_at_i_NOTEQ_0 = bmgr.not(_b_at_i_EQ_0);
+    _b_at_i_plus_1_NOTEQ_0 = bmgr.not(imgr.equal(amgr.select(_b, _i_plus_1), _0));
+
+    SmtAstPatternSelection pattern = or(
+        matchAnyBind("f",
+            matchInSubtree(
+                matchNullaryBind("i", "x"))));
+
+    SmtAstMatchResult result = matcher.perform(pattern, _b_at_i_plus_1_NOTEQ_0);
+    assertThat(result.matches()).isTrue();
+    assertThat(result.getVariableBindings("x")).contains(_i);
   }
 
 }

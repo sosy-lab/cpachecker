@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 public class UniversalizeRule extends PatternBasedRule {
@@ -48,11 +49,37 @@ public class UniversalizeRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
-    premises.add(new PatternBasedPremise(or(
+    // (not (bar (+ a c)))
+    // (not (= (select b (+ i 1)) 0))
+    // (bar (+ a c))
+    // (= (select b (+ i 1)) 0)
+
+    // TODO: Nested arrays...
+    // TODO: Handling of deeper nestings (implementation of matchInSubtree)
+
+    premises.add(new PatternBasedPremise(
+        or(
+          matchBind("not", "f",
+              matchAny(
+                  match("select",
+                      matchAny(),
+                      matchInSubtree(
+                          matchAnyBind("i"))))),
           matchAnyBind("f",
-              matchInSubtree(
-                  and(
-                      matchNullaryBind("i")))))));
+              match("select",
+                  matchAny(),
+                  matchInSubtree(
+                      matchAnyBind("i")))),
+          matchBind("not", "f",
+              matchAny(
+                  matchAny(
+                      matchInSubtree(
+                          matchAnyBind("i"))))),
+          matchAnyBind("f",
+              matchAny(
+                  matchInSubtree(
+                      matchAnyBind("i"))))
+          )));
   }
 
   @Override
@@ -66,9 +93,15 @@ public class UniversalizeRule extends PatternBasedRule {
     final IntegerFormula i = (IntegerFormula) pAssignment.get("i");
 
     final IntegerFormula x = ifm.makeVariable("x");
+
     final BooleanFormula xConstraint =  ifm.equal(x, i);
 
+    Map<Formula, Formula> transformation = Maps.newHashMap();
+    transformation.put(i, x);
+
+    final BooleanFormula fPrime = fm.getUnsafeFormulaManager().substitute(f, transformation);
+
     return Lists.newArrayList(
-        qfm.forall(Lists.newArrayList(x), bfm.and(f, xConstraint)));
+        qfm.forall(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)));
   }
 }

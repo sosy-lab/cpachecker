@@ -55,13 +55,14 @@ public class ExtendLeftRule extends PatternBasedRule {
             and(
               matchAnyBind("f",
                   matchInSubtree(
-                      and(
-                          matchNullaryBind("x")))))))));
-
-    premises.add(new PatternBasedPremise(or(
-        match("<=",
-            matchAnyBind("i"),
-            matchAnyBind("j")))));
+                        matchNullaryBind("x"))),
+              match(">=",
+                  matchAnyBind("x"),
+                  matchAnyBind("i")),
+              match("<=",
+                  matchAnyBind("x"),
+                  matchAnyBind("j"))
+    )))));
 
     premises.add(new PatternBasedPremise(or(
         match("<=",

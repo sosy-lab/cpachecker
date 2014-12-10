@@ -70,6 +70,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     defineRotations(">", "<");
 
     defineCommutative("=");
+    defineCommutative("and"); // used in the arguments of a quantified predicate
 
     defineFunctionAliases("*", Sets.newHashSet("Integer__*_", "Real__*_"));
   }
@@ -287,7 +288,14 @@ public class Z3AstMatcher implements SmtAstMatcher {
     // Perform the matching recursively on the arguments
     Set<SmtAstPattern> argPatternsMatched = Sets.newHashSet();
 
+    if (fp.getArgumentsLogic().isOr()) {
+      //
+    }
+
     for (Formula argFormula: functionArguments) {
+      if (!itPatternsInSequence.hasNext()) {
+        break;
+      }
       final SmtAstPattern argPattern = itPatternsInSequence.next();
       final SmtAstMatchResult functionArgumentResult = internalPerform(
             argPattern,

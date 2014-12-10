@@ -30,7 +30,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.UniversalizeRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinkRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -57,7 +57,7 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
   private BooleanFormulaManagerView bfm;
   private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
-  private UniversalizeRule ur;
+  private LinkRule lr;
 
   private IntegerFormula _0;
   private IntegerFormula _1;
@@ -65,11 +65,8 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
   private IntegerFormula _x;
-  private BooleanFormula _x_EQ_i_plus_1;
+  private IntegerFormula _i_plus_1;
   private BooleanFormula _b_at_x_NOTEQ_0;
-
-  private BooleanFormula _b_at_i_NOTEQ_0;
-  private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
 
   @Override
   protected Solvers solverToUse() {
@@ -85,7 +82,7 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
     solver = new Solver(mgrv, factory);
 
     matcher = new Z3AstMatcher(logger, mgr);
-    ur = new UniversalizeRule(mgr, mgrv, solver, matcher);
+    lr = new LinkRule(mgr, mgrv, solver, matcher);
 
     setupTestData();
   }
@@ -97,8 +94,9 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
     _x = ifm.makeVariable("x");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
-    _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
-    _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
+    _i_plus_1 = ifm.add(_i, _1);
+
+    _b_at_x_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _x), _0));
   }
 
   @Test
@@ -107,10 +105,18 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
     // forall x in [i+1] . b[x] != 0
     // forall x in [i] .   b[x] != 0
 
-    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+    final BooleanFormula _FORALL_i = qmgr.forall(
+        Lists.newArrayList(_x),
+        bfm.and(_b_at_x_NOTEQ_0, ifm.equal(_x, _i)));
+
+    final BooleanFormula _FORALL_i_plus_1 = qmgr.forall(
+        Lists.newArrayList(_x),
+        bfm.and(_b_at_x_NOTEQ_0, ifm.equal(_x, _i_plus_1)));
+
+    final Set<BooleanFormula> result = lr.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _b_at_i_NOTEQ_0,
-            _b_at_i_plus_1_NOTEQ_0));
+            _FORALL_i,
+            _FORALL_i_plus_1));
 
     assertThat(result).isNotEmpty();
   }

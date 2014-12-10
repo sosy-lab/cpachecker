@@ -29,6 +29,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 public class SmtFunctionApplicationPattern implements SmtAstPattern {
@@ -36,15 +37,18 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
   public final Optional<Comparable<?>> function;
   public final Optional<String> bindMatchTo;
   public final SmtAstPatternSelection argumentPatterns;
+  public final ImmutableSet<SmtAstMatchFlag> flags;
 
   public SmtFunctionApplicationPattern(
       Optional<Comparable<?>> pFunction,
       Optional<String> pBindMatchTo,
-      SmtAstPatternSelection pArgumentPatterns) {
+      SmtAstPatternSelection pArgumentPatterns,
+      SmtAstMatchFlag...pFlags) {
 
     this.function = pFunction;
     this.bindMatchTo = pBindMatchTo;
     this.argumentPatterns = pArgumentPatterns;
+    this.flags = ImmutableSet.copyOf(pFlags);
   }
 
   @Override
