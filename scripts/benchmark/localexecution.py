@@ -39,7 +39,7 @@ import resource
 import threading
 import time
 
-from .benchmarkDataStructures import CORELIMIT, MEMLIMIT
+from .benchmarkDataStructures import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from .runexecutor import RunExecutor
 from . import util as Util
 
@@ -184,6 +184,8 @@ class _Worker(threading.Thread):
         (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
+                hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
+                softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
                 myCpus=myCpus,
                 memlimit=memlimit,
                 environments=benchmark.getEnvironments(),

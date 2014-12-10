@@ -34,7 +34,6 @@ import sys
 import threading
 import time
 
-from .benchmarkDataStructures import TIMELIMIT, SOFTTIMELIMIT
 from . import util as Util
 from .cgroups import *
 from . import filewriter
@@ -163,7 +162,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, rlimits, outputFileName, cgroups, myCpuCount, memlimit, environments, runningDir):
+    def _execute(self, args, rlimits, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, runningDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -172,9 +171,9 @@ class RunExecutor():
             os.setpgrp() # make subprocess to group-leader
             os.nice(5) # increase niceness of subprocess
 
-            if TIMELIMIT in rlimits:
+            if hardtimelimit is not None:
                 # Also use ulimit for CPU time limit as a fallback if cgroups are not available
-                resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
+                resource.setrlimit(resource.RLIMIT_CPU, (hardtimelimit, hardtimelimit))
 
             # put us into the cgroup(s)
             pid = os.getpid()
@@ -239,10 +238,10 @@ class RunExecutor():
             with self.SUB_PROCESSES_LOCK:
                 self.SUB_PROCESSES.add(p)
 
-            if TIMELIMIT in rlimits and CPUACCT in cgroups:
+            if hardtimelimit is not None and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits, p, myCpuCount)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, p, myCpuCount)
                 timelimitThread.start()
 
             if memlimit is not None:
@@ -351,18 +350,31 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpus=None, memlimit=None, environments={}, runningDir=None, maxLogfileSize=-1):
+    def executeRun(self, args, rlimits, outputFileName,
+                   hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
+                   environments={}, runningDir=None, maxLogfileSize=-1):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
         @param args: the command line to run
         @param rlimits: the resource limits
         @param outputFileName: the file where the output should be written to
+        @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
+        @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param environments: special environments for running the command
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
+
+        if hardtimelimit is not None:
+            if hardtimelimit <= 0:
+                sys.exit("Invalid time limit {0}.".format(hardtimelimit))
+        if softtimelimit is not None:
+            if softtimelimit <= 0:
+                sys.exit("Invalid soft time limit {0}.".format(softtimelimit))
+            if hardtimelimit is None:
+                sys.exit("Soft time limit without hard time limit is not implemented.")
 
         if myCpus is not None:
             if self.cpus is None:
@@ -388,7 +400,9 @@ class RunExecutor():
         try:
             logging.debug("executeRun: executing tool.")
             (returnvalue, wallTime, cpuTime, energy) = \
-                self._execute(args, rlimits, outputFileName, cgroups, myCpuCount, memlimit, environments, runningDir)
+                self._execute(args, rlimits, outputFileName, cgroups,
+                              hardtimelimit, softtimelimit, myCpuCount, memlimit,
+                              environments, runningDir)
 
             logging.debug("executeRun: getting exact measures.")
             (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
@@ -502,12 +516,12 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, rlimits, process, cpuCount=1):
+    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, process, cpuCount=1):
         super(_TimelimitThread, self).__init__()
         self.daemon = True
         self.cgroupCpuacct = cgroupCpuacct
-        self.timelimit = rlimits[TIMELIMIT]
-        self.softtimelimit = rlimits.get(SOFTTIMELIMIT, self.timelimit)
+        self.timelimit = hardtimelimit
+        self.softtimelimit = softtimelimit or hardtimelimit
         self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
