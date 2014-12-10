@@ -183,7 +183,7 @@ class _Worker(threading.Thread):
 
         (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
-                run.getCmdline(), benchmark.rlimits, run.logFile,
+                run.getCmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
                 softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
                 myCpus=myCpus,

@@ -162,7 +162,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, rlimits, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, runningDir):
+    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, runningDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -350,14 +350,13 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName,
+    def executeRun(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
                    environments={}, runningDir=None, maxLogfileSize=-1):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
         @param args: the command line to run
-        @param rlimits: the resource limits
         @param outputFileName: the file where the output should be written to
         @param hardtimelimit: None or the CPU time in seconds after which the tool is forcefully killed.
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
@@ -400,7 +399,7 @@ class RunExecutor():
         try:
             logging.debug("executeRun: executing tool.")
             (returnvalue, wallTime, cpuTime, energy) = \
-                self._execute(args, rlimits, outputFileName, cgroups,
+                self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, myCpuCount, memlimit,
                               environments, runningDir)
 
