@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.value.refinement")
 public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
@@ -175,10 +177,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     Map<ARGState, VariableTrackingPrecision> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
-      Collection<ARGState> targetsReachableFromRoot = interpolationTree.getTargetsInSubtree(root);
 
       // join the precisions of the subtree of this roots into a single precision
-      final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, targetsReachableFromRoot);
+      final VariableTrackingPrecision subTreePrecision = joinSubtreePrecisions(pReached, root);
 
       refinementInformation.put(root, subTreePrecision.withIncrement(interpolationTree.extractPrecisionIncrement(root)));
     }
@@ -227,17 +228,30 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
   }
 
-  private VariableTrackingPrecision joinSubtreePrecisions(final ARGReachedSet pReached,
-      Collection<ARGState> targetsReachableFromRoot) {
-
-    VariableTrackingPrecision precision = extractPrecision(pReached, Iterables.getLast(targetsReachableFromRoot));
-    // join precisions of all target states
-    for (ARGState target : targetsReachableFromRoot) {
-      VariableTrackingPrecision precisionOfTarget = extractPrecision(pReached, target);
-      precision = precision.join(precisionOfTarget);
+  private VariableTrackingPrecision joinSubtreePrecisions(final ARGReachedSet pReached, ARGState pRoot) {
+    // get all unique precisions from the subtree
+    Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
+    for (ARGState child : getNonCoveredStatesInSubgraph(pRoot)) {
+      uniquePrecisions.add(extractPrecision(pReached, child));
     }
 
-    return precision;
+    // join all unique precisions into a single precision
+    VariableTrackingPrecision joinedPrecision = Iterables.getLast(uniquePrecisions);
+    for (VariableTrackingPrecision precision : uniquePrecisions) {
+      joinedPrecision = joinedPrecision.join(precision);
+    }
+
+    return joinedPrecision;
+  }
+
+  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+    Collection<ARGState> subgraph = new HashSet<>();
+    for(ARGState state : pRoot.getSubgraph()) {
+      if(!state.isCovered()) {
+        subgraph.add(state);
+      }
+    }
+    return subgraph;
   }
 
   private VariableTrackingPrecision extractPrecision(final ARGReachedSet pReached,
