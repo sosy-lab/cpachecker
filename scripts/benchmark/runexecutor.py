@@ -34,7 +34,7 @@ import sys
 import threading
 import time
 
-from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT, CORELIMIT
+from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from . import util as Util
 from .cgroups import *
 from . import filewriter
@@ -69,7 +69,6 @@ class RunExecutor():
         (e.g., for better error message handling).
         """
         self.cgroupsParents = {} # contains the roots of all cgroup-subsystems
-        self.cpus = [] # list of available CPU cores
 
         initCgroup(self.cgroupsParents, CPUACCT)
         if not self.cgroupsParents[CPUACCT]:
@@ -83,9 +82,11 @@ class RunExecutor():
 
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
+            self.cpus = None # to indicate that we cannot limit cores
             logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
         else:
             # Read available cpus:
+            self.cpus = [] # list of available CPU cores
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
             for cpu in cpuStr.split(','):
                 cpu = cpu.split('-')
@@ -96,25 +97,11 @@ class RunExecutor():
                     self.cpus.extend(range(int(start), int(end)+1))
                 else:
                     logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
-    
+
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
 
-    def _setupCGroups(self, args, rlimits, myCpuIndex=None):
-        myCpus = None
-        if CORELIMIT in rlimits and myCpuIndex is not None:
-            myCpuCount = rlimits[CORELIMIT]
-            if not self.cpus:
-                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
-            if myCpuCount > len(self.cpus):
-                sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(self.cpus)))
-            totalCpuCount = len(self.cpus)
-            myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
-            myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
-            myCpus = map(lambda i: self.cpus[i], range(myCpusStart, myCpusEnd + 1))
-        return self._setupCGroups0(args, rlimits, myCpus)
-
-    def _setupCGroups0(self, args, rlimits, myCpus=None):
+    def _setupCGroups(self, args, rlimits, myCpus=None):
         """
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
@@ -365,22 +352,26 @@ class RunExecutor():
         return (cpuTime, memUsage)
 
 
-    def executeRun(self, args, rlimits, outputFileName, myCpuIndex=None, environments={}, runningDir=None, maxLogfileSize=-1):
+    def executeRun(self, args, rlimits, outputFileName, myCpus=None, environments={}, runningDir=None, maxLogfileSize=-1):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
         @param args: the command line to run
         @param rlimits: the resource limits
         @param outputFileName: the file where the output should be written to
-        @param myCpuIndex: None or the number of the first CPU core to use
+        @param myCpus: None or a list of the CPU cores to use
         @param environments: special environments for running the command
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
-        if CORELIMIT in rlimits:
-            myCpuCount = rlimits[CORELIMIT]
-            if myCpuCount <= 0:
-                sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
+        if myCpus is not None:
+            if self.cpus is None:
+                sys.exit("Cannot limit CPU cores without cpuset cgroup")
+            myCpuCount = len(myCpus)
+            if myCpuCount == 0:
+                sys.exit("Cannot execute run without any CPU core")
+            if not set(myCpus).issubset(self.cpus):
+                sys.exit("Cores {0} are not allowed to be used".format(set(myCpus).difference(self.cpus)))
         else:
             try:
                 myCpuCount = multiprocessing.cpu_count()
@@ -388,7 +379,7 @@ class RunExecutor():
                 myCpuCount = 1
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, rlimits, myCpuIndex)
+        cgroups = self._setupCGroups(args, rlimits, myCpus)
 
         try:
             logging.debug("executeRun: executing tool.")

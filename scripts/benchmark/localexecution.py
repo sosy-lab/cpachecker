@@ -39,6 +39,7 @@ import resource
 import threading
 import time
 
+from .benchmarkDataStructures import CORELIMIT
 from .runexecutor import RunExecutor
 from . import util as Util
 
@@ -158,12 +159,26 @@ class _Worker(threading.Thread):
         It also calls functions for output before and after the run.
         """
         self.outputHandler.outputBeforeRun(run)
-
         benchmark = run.runSet.benchmark
+
+        # calculate cores to use
+        myCpus = None
+        if CORELIMIT in benchmark.rlimits:
+            allCpus = self.runExecutor.cpus
+            if not allCpus:
+                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
+            myCpuCount = benchmark.rlimits[CORELIMIT]
+            totalCpuCount = len(allCpus)
+            if myCpuCount > totalCpuCount:
+                sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, totalCpuCount))
+            myCpusStart = (self.numberOfThread * myCpuCount) % totalCpuCount
+            myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
+            myCpus = map(lambda i: allCpus[i], range(myCpusStart, myCpusEnd + 1))
+
         (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), benchmark.rlimits, run.logFile,
-                myCpuIndex=self.numberOfThread,
+                myCpus=myCpus,
                 environments=benchmark.getEnvironments(),
                 runningDir=benchmark.workingDirectory(),
                 maxLogfileSize=benchmark.config.maxLogfileSize)
