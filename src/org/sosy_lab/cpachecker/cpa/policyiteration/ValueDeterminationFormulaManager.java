@@ -1,7 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -9,7 +8,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -18,17 +16,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -37,7 +31,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 
 // TODO: don't perform namespacing if the node has only one incoming edge.
@@ -50,27 +43,20 @@ public class ValueDeterminationFormulaManager {
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final LogManager logger;
-  private final FormulaManagerFactory formulaManagerFactory;
-  private final PolicyIterationStatistics statistics;
   private final int threshold;
 
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String TEMPLATE_PREFIX = "[%s]_";
-  private final ShutdownNotifier shutdownNotifier;
   private final TemplateManager templateManager;
 
-  @SuppressWarnings("unused")
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
       FormulaManagerView fmgr,
-      Configuration config,
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      TemplateManager pTemplateManager,
-      FormulaManagerFactory pFormulaManagerFactory,
-      ShutdownNotifier pShutdownNotifier,
-      PolicyIterationStatistics pStatistics) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager
+  ) throws InvalidConfigurationException{
 
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
@@ -80,9 +66,6 @@ public class ValueDeterminationFormulaManager {
     this.logger = logger;
     this.formulaManager = rfmgr;
     templateManager = pTemplateManager;
-    formulaManagerFactory = pFormulaManagerFactory;
-    shutdownNotifier = pShutdownNotifier;
-    statistics = pStatistics;
 
     threshold = getThreshold(cfa);
   }
@@ -207,72 +190,6 @@ public class ValueDeterminationFormulaManager {
   /**
    * Perform the associated maximization.
    */
-  PolicyAbstractedState valueDeterminationMaximization(
-      PolicyAbstractedState prevState,
-      Set<Template> templates,
-      Map<Template, PolicyBound> updated,
-      CFANode node,
-      List<BooleanFormula> pValueDeterminationConstraints,
-      int epsilon
-  )
-      throws InterruptedException, CPATransferException {
-
-    ImmutableMap.Builder<Template, PolicyBound> builder = ImmutableMap.builder();
-    Set<Template> unbounded = new HashSet<>();
-
-    // Maximize for each template subject to the overall constraints.
-    statistics.valueDeterminationSolverTimer.start();
-    statistics.valueDetCalls++;
-    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-      shutdownNotifier.shutdownIfNecessary();
-
-      for (BooleanFormula constraint : pValueDeterminationConstraints) {
-        solver.addConstraint(constraint);
-      }
-
-      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
-        Template template = policyValue.getKey();
-        CFAEdge policyEdge = policyValue.getValue().trace;
-        logger.log(Level.FINE,
-            "# Value determination: optimizing for template" , template);
-
-        NumeralFormula objective;
-        String varName = absDomainVarName(node, template);
-        if (templateManager.shouldUseRationals(template)) {
-          objective = rfmgr.makeVariable(varName);
-        } else {
-          objective = ifmgr.makeVariable(varName);
-        }
-
-        solver.push();
-        solver.maximize(objective);
-
-        OptEnvironment.OptStatus result = solver.check();
-        switch (result) {
-          case OPT:
-            builder.put(
-                template, PolicyBound.of(policyEdge, solver.value(epsilon)));
-            break;
-          case UNBOUNDED:
-            unbounded.add(template);
-            break;
-          case UNSAT:
-            throw new SolverException("" +
-                "Unexpected solver state, value determination problem" +
-                " should be feasible");
-          case UNDEF:
-            throw new SolverException("Unexpected solver status");
-        }
-        solver.pop();
-      }
-    } catch (SolverException e) {
-      throw new CPATransferException("Failed maximization", e);
-    } finally {
-      statistics.valueDeterminationSolverTimer.stop();
-    }
-
-    return prevState.withUpdates(builder.build(), unbounded, templates);
-  }
 
   /**
    * Create a path formula for the edge, specifying <i>both</i> custom

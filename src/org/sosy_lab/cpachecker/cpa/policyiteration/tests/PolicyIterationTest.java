@@ -63,12 +63,11 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/loop_nested_false_assert.c");
   }
 
-// TODO
-//  @Test public void checkPastAbstractionTrue() throws Exception {
-//    check("test/programs/policyiteration/pointers/pointer_past_abstraction_true_assert.c");
-//  }
+  @Test public void checkPointerPastAbstractionTrue() throws Exception {
+    check("test/programs/policyiteration/pointers/pointer_past_abstraction_true_assert.c");
+  }
 
-  @Test public void checkPastAbstractionFalse() throws Exception {
+  @Test public void checkPointerPastAbstractionFalse() throws Exception {
     check("test/programs/policyiteration/pointers/pointer_past_abstraction_false_assert.c");
   }
 

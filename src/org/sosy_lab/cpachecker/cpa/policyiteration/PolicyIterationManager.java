@@ -86,6 +86,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final TemplateManager templateManager;
   private final ValueDeterminationFormulaManager vdfmgr;
   private final PolicyIterationStatistics statistics;
+  private final FormulaSlicingManager formulaSlicingManager;
 
   public PolicyIterationManager(
       Configuration config,
@@ -112,6 +113,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     templateManager = pTemplateManager;
     vdfmgr = pValueDeterminationFormulaManager;
     statistics = pStatistics;
+    formulaSlicingManager = new FormulaSlicingManager(pLogger, pFormulaManager,
+        fmgrF.getFormulaManager().getUnsafeFormulaManager(), bfmgr);
 
     /** Compute the cache for nodes */
     ImmutableMap.Builder<Integer, CFANode> nodeMapBuilder = ImmutableMap.builder();
@@ -154,7 +157,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   @Override
   public PolicyState getInitialState(CFANode pNode) {
-    PolicyState initial = PolicyState.empty(pNode);
+    PolicyState initial = PolicyState.empty(pNode, pfmgr.makeEmptyPathFormula());
     abstractStates.put(pNode, initial);
     return initial;
   }
@@ -355,7 +358,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     PolicyAbstractedState stateWithUpdates =
-        aOldState.withUpdates(updated, unbounded, allTemplates);
+        aOldState.withUpdates(updated, unbounded, allTemplates,
+            aOldState.getPathFormula());
     logger.log(Level.FINE, "# State with updates: ", stateWithUpdates);
 
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -372,11 +376,83 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       List<BooleanFormula> constraints = vdfmgr.valueDeterminationFormula(
           related, node, updated);
 
-      return vdfmgr.valueDeterminationMaximization(
+      return valueDeterminationMaximization(
           aOldState,
           allTemplates,
-          updated, node, constraints, EPSILON);
+          updated,
+          node,
+          constraints
+      );
     }
+  }
+
+  PolicyAbstractedState valueDeterminationMaximization(
+      PolicyAbstractedState prevState,
+      Set<Template> templates,
+      Map<Template, PolicyBound> updated,
+      CFANode node,
+      List<BooleanFormula> pValueDeterminationConstraints
+  )
+      throws InterruptedException, CPATransferException {
+
+    ImmutableMap.Builder<Template, PolicyBound> builder = ImmutableMap.builder();
+    Set<Template> unbounded = new HashSet<>();
+
+    // Maximize for each template subject to the overall constraints.
+    statistics.valueDeterminationSolverTimer.start();
+    statistics.valueDetCalls++;
+    try (OptEnvironment solver = fmgrF.newOptEnvironment()) {
+      shutdownNotifier.shutdownIfNecessary();
+
+      for (BooleanFormula constraint : pValueDeterminationConstraints) {
+        solver.addConstraint(constraint);
+      }
+
+      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
+        Template template = policyValue.getKey();
+        CFAEdge policyEdge = policyValue.getValue().trace;
+        logger.log(Level.FINE,
+            "# Value determination: optimizing for template" , template);
+
+        NumeralFormula objective;
+        String varName = vdfmgr.absDomainVarName(node, template);
+        if (templateManager.shouldUseRationals(template)) {
+          objective = rfmgr.makeVariable(varName);
+        } else {
+          objective = ifmgr.makeVariable(varName);
+        }
+
+        solver.push();
+        solver.maximize(objective);
+
+        OptEnvironment.OptStatus result = solver.check();
+        switch (result) {
+          case OPT:
+            builder.put(
+                template, PolicyBound.of(policyEdge, solver.value(EPSILON)));
+            break;
+          case UNBOUNDED:
+            unbounded.add(template);
+            break;
+          case UNSAT:
+            throw new SolverException("" +
+                "Unexpected solver state, value determination problem" +
+                " should be feasible");
+          case UNDEF:
+            throw new SolverException("Unexpected solver status");
+        }
+        solver.pop();
+      }
+    } catch (SolverException e) {
+      throw new CPATransferException("Failed maximization", e);
+    } finally {
+      statistics.valueDeterminationSolverTimer.stop();
+    }
+
+    // TODO: we use the formula from the "prev" state.
+    // Is it always correct?
+    return prevState.withUpdates(builder.build(), unbounded, templates,
+        prevState.getPathFormula());
   }
 
   /**
@@ -396,7 +472,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // At least one of updated values comes from inside the loop.
     LoopStructure.Loop l = loopStructure.get(node);
     for (PolicyBound bound : updated.values()) {
-
       CFAEdge edge = bound.trace;
       assert edge.getSuccessor() == node;
       if (l.getLoopNodes().contains(edge.getPredecessor())) {
@@ -470,7 +545,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             // Short circuit: this point is infeasible.
             return Optional.absent();
           case UNBOUNDED:
-            // Skip the constraint: it does not return any additional
+            // Skip the constraint: it does not give any additional
             // information.
             break;
           case UNDEF:
@@ -483,14 +558,52 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } catch (SolverException e) {
       throw new CPATransferException("Solver error: ", e);
     }
-    // Optimize for the template subject to the
-    // constraints introduced by {@code p}.
 
     return Optional.of(PolicyState.ofAbstraction(
         abstraction.build(),
         state.getTemplates(),
         node,
-        p.getPointerTargetSet()));
+        p
+    ));
+  }
+
+  private PathFormula abstractStateToPathFormula(PolicyAbstractedState abstractState) {
+    SSAMap ssa = abstractState.getPathFormula().getSsa();
+    List<BooleanFormula> tokens = new ArrayList<>();
+    for (Entry<Template, PolicyBound> entry : abstractState) {
+      Template template = entry.getKey();
+      PolicyBound bound = entry.getValue();
+
+      NumeralFormula t = templateManager.toFormula(template, ssa);
+
+      BooleanFormula constraint;
+      if (templateManager.shouldUseRationals(template)) {
+        constraint = rfmgr.lessOrEquals(
+            t, rfmgr.makeNumber(bound.bound.toString())
+        );
+      } else {
+        assert bound.bound.isIntegral();
+        constraint = ifmgr.lessOrEquals(
+            (NumeralFormula.IntegerFormula)t,
+            ifmgr.makeNumber(bound.bound.toString())
+        );
+      }
+      tokens.add(constraint);
+    }
+    BooleanFormula constraint = bfmgr.and(tokens);
+
+    BooleanFormula extraBit = abstractState.getPathFormula().getFormula();
+
+    // TODO: check that it is correct, that is, invariant under the loop.
+    BooleanFormula pointerData = formulaSlicingManager.filterPointers(extraBit);
+
+    constraint = bfmgr.and(constraint, pointerData);
+
+    return new PathFormula(
+        constraint, ssa,
+        abstractState.getPathFormula().getPointerTargetSet(),
+        0
+    );
   }
 
   /**
@@ -552,6 +665,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
+   *
+   * @return Whether to compute the abstraction when creating a new
+   * state associated with <code>node</code>.
+   */
+  private boolean shouldPerformAbstraction(CFANode node) {
+    return !pathFocusing || node.isLoopStart();
+  }
+
+  /**
    * @return {@link CFAEdge} object connecting the node <code>fromNodeNo</code>
    * to the node <code>toNodeNo</code>.
    */
@@ -565,50 +687,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     throw new IllegalArgumentException(
         "Pair of nodes corresponds to the non-existent edge: " +
-    fromNodeNo + "->" + toNodeNo);
-  }
-
-  /**
-   *
-   * @return Whether to compute the abstraction when creating a new
-   * state associated with <code>node</code>.
-   */
-  private boolean shouldPerformAbstraction(CFANode node) {
-    return !pathFocusing || node.isLoopStart();
-  }
-
-  private PathFormula abstractStateToPathFormula(
-      PolicyAbstractedState abstractState) {
-
-    SSAMap ssa = SSAMap.emptySSAMap();
-    List<BooleanFormula> tokens = new ArrayList<>();
-    for (Entry<Template, PolicyBound> entry : abstractState) {
-      Template template = entry.getKey();
-      PolicyBound bound = entry.getValue();
-
-      NumeralFormula t = templateManager.toFormula(template, ssa);
-
-      BooleanFormula constraint;
-      if (templateManager.shouldUseRationals(template)) {
-        constraint = rfmgr.lessOrEquals(
-            t, rfmgr.makeNumber(bound.bound.toString())
-        );
-      } else {
-        assert bound.bound.isIntegral() : bound.bound;
-        constraint = ifmgr.lessOrEquals(
-            (NumeralFormula.IntegerFormula)t,
-            ifmgr.makeNumber(bound.bound.toString())
-        );
-      }
-      tokens.add(constraint);
-    }
-    BooleanFormula constraint = bfmgr.and(tokens);
-
-    return new PathFormula(
-        constraint, ssa,
-        abstractState.getPointerTargetSet(),
-        0
-    );
+            fromNodeNo + "->" + toNodeNo);
   }
 
   /**
@@ -641,7 +720,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       out.put(node, state);
 
-      for (Map.Entry<Template, PolicyBound> entry : state) {
+      for (Entry<Template, PolicyBound> entry : state) {
         Template template = entry.getKey();
         PolicyBound bound = entry.getValue();
 
@@ -665,8 +744,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
   ) throws CPATransferException, InterruptedException {
-
-    // Check trace.
     for (Entry<CFANode, CFANode> e : newState.getTrace().entries()) {
       if (!oldState.getTrace().containsEntry(e.getKey(), e.getValue())) {
         return false;

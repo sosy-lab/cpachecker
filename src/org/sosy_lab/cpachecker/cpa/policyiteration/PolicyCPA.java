@@ -80,13 +80,10 @@ public class PolicyCPA
         logger, config, cfa, formulaManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
-            pathFormulaManager, formulaManager, config, logger,
+            pathFormulaManager, formulaManager, logger,
             cfa,
             realFormulaManager,
-            templateManager,
-            formulaManagerFactory,
-            shutdownNotifier,
-            statistics
+            templateManager
         );
 
     policyIterationManager = new PolicyIterationManager(
