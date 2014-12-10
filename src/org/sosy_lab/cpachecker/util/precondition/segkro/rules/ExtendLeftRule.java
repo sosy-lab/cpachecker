@@ -23,16 +23,69 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+
+import java.util.Collection;
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-public class ExtendLeftRule extends AbstractRule {
+
+public class ExtendLeftRule extends PatternBasedRule {
 
   public ExtendLeftRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
     super(pFm, pFmv, pSolver, pMatcher);
   }
 
+  @Override
+  protected void setupPatterns() {
+    premises.add(new PatternBasedPremise(or(
+        matchExistsQuant(
+            Sets.newHashSet("x"),
+            and(
+              matchAnyBind("f",
+                  matchInSubtree(
+                      and(
+                          matchNullaryBind("x")))))))));
+
+    premises.add(new PatternBasedPremise(or(
+        match("<=",
+            matchAnyBind("i"),
+            matchAnyBind("j")))));
+
+    premises.add(new PatternBasedPremise(or(
+        match("<=",
+            matchAnyBind("k"),
+            matchAnyBind("i")))));
+  }
+
+  @Override
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+    return true;
+  }
+
+  @Override
+  protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+    final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
+    final IntegerFormula j = (IntegerFormula) pAssignment.get("j");
+    final IntegerFormula k = (IntegerFormula) pAssignment.get("k");
+    final IntegerFormula x = (IntegerFormula) pAssignment.get("x");
+
+    final BooleanFormula xConstraint =  bfm.and(
+        ifm.greaterOrEquals(x, k),
+        ifm.lessOrEquals(x, j));
+
+    return Lists.newArrayList(
+        qfm.exists(Lists.newArrayList(x), bfm.and(f, xConstraint)));
+  }
 }
