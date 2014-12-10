@@ -30,7 +30,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.SubstitutionRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.UniversalizeRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -48,25 +48,27 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.collect.Lists;
 
 
-public class SubstitutionRuleTest0 extends SolverBasedTest0 {
+public class LinkRuleTest0 extends SolverBasedTest0 {
 
-  private SmtAstMatcher matcher;
   private Solver solver;
+  private SmtAstMatcher matcher;
   private FormulaManagerView mgrv;
   private ArrayFormulaManagerView afm;
   private BooleanFormulaManagerView bfm;
   private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
-  private SubstitutionRule sr;
+  private UniversalizeRule ur;
 
   private IntegerFormula _0;
   private IntegerFormula _1;
   private IntegerFormula _i;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
-  private BooleanFormula _x_EQ_i_plus_1;
   private IntegerFormula _x;
+  private BooleanFormula _x_EQ_i_plus_1;
   private BooleanFormula _b_at_x_NOTEQ_0;
+
+  private BooleanFormula _b_at_i_NOTEQ_0;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
 
   @Override
@@ -83,7 +85,7 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
     solver = new Solver(mgrv, factory);
 
     matcher = new Z3AstMatcher(logger, mgr);
-    sr = new SubstitutionRule(mgr, mgrv, solver, matcher);
+    ur = new UniversalizeRule(mgr, mgrv, solver, matcher);
 
     setupTestData();
   }
@@ -95,27 +97,22 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
     _x = ifm.makeVariable("x");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
-    _x_EQ_i_plus_1 = ifm.equal(_x, ifm.add(_i, _1));
-    _b_at_x_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _x), _0));
+    _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
     _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
   }
 
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
-    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(
+
+    // forall x in [i+1] . b[x] != 0
+    // forall x in [i] .   b[x] != 0
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _x_EQ_i_plus_1,
-            _b_at_x_NOTEQ_0));
+            _b_at_i_NOTEQ_0,
+            _b_at_i_plus_1_NOTEQ_0));
+
     assertThat(result).isNotEmpty();
-  }
-
-  @Test
-  public void testConclusion2() {
-    // b[i+1] != 0
-    //     al == i+1
-    //==>
-    //  b[al] != 0
-
   }
 
 }

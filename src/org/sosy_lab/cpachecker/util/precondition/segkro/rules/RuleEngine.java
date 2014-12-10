@@ -48,7 +48,7 @@ public class RuleEngine implements Concluding {
     rules = Lists.newArrayList();
     rules.add(new EliminationRule(pFm, pFmv, pSolver, matcher));
     rules.add(new EquivalenceRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new UniverifyRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new UniversalizeRule(pFm, pFmv, pSolver, matcher));
     rules.add(new SubstitutionRule(pFm, pFmv, pSolver, matcher));
     rules.add(new LinkRule(pFm, pFmv, pSolver, matcher));
     rules.add(new ExistentialRule(pFm, pFmv, pSolver, matcher));
