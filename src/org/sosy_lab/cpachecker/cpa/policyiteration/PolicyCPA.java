@@ -85,6 +85,11 @@ public class PolicyCPA
             realFormulaManager,
             templateManager
         );
+    FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
+        logger, formulaManager,
+        realFormulaManager.getUnsafeFormulaManager(),
+        realFormulaManager.getBooleanFormulaManager(),
+        shutdownNotifier);
 
     policyIterationManager = new PolicyIterationManager(
         config,
@@ -92,7 +97,8 @@ public class PolicyCPA
         cfa, pathFormulaManager,
         formulaManagerFactory, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
-        statistics);
+        statistics,
+        formulaSlicingManager);
     mergeOperator = new MergeJoinOperator(this);
     stopOperator = new StopSepOperator(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();

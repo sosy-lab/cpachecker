@@ -66,6 +66,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       description="Perform abstraction only at the nodes from the cut-set.")
   private boolean pathFocusing = true;
 
+  @Option(secure=true,
+    description="Perform formula slicing after abstractions to propagate the" +
+        " pointer information")
+  private boolean sliceFormulasForPointers = true;
+
   @Option(secure=true, name="epsilon",
       description="Value to substitute for the epsilon")
   private int EPSILON = 1;
@@ -98,7 +103,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       ShutdownNotifier pShutdownNotifier,
       TemplateManager pTemplateManager,
       ValueDeterminationFormulaManager pValueDeterminationFormulaManager,
-      PolicyIterationStatistics pStatistics)
+      PolicyIterationStatistics pStatistics,
+      FormulaSlicingManager pFormulaSlicingManager)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationManager.class);
     fmgr = pFormulaManager;
@@ -113,8 +119,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     templateManager = pTemplateManager;
     vdfmgr = pValueDeterminationFormulaManager;
     statistics = pStatistics;
-    formulaSlicingManager = new FormulaSlicingManager(pLogger, pFormulaManager,
-        fmgrF.getFormulaManager().getUnsafeFormulaManager(), bfmgr);
+    formulaSlicingManager = pFormulaSlicingManager;
 
     /** Compute the cache for nodes */
     ImmutableMap.Builder<Integer, CFANode> nodeMapBuilder = ImmutableMap.builder();
@@ -567,7 +572,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     ));
   }
 
-  private PathFormula abstractStateToPathFormula(PolicyAbstractedState abstractState) {
+  /**
+   * @return Representation of an {@code abstractState} as a {@link PathFormula}.
+   */
+  private PathFormula abstractStateToPathFormula(
+      PolicyAbstractedState abstractState) throws  InterruptedException {
+
     SSAMap ssa = abstractState.getPathFormula().getSsa();
     List<BooleanFormula> tokens = new ArrayList<>();
     for (Entry<Template, PolicyBound> entry : abstractState) {
@@ -594,10 +604,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     BooleanFormula extraBit = abstractState.getPathFormula().getFormula();
 
-    // TODO: check that it is correct, that is, invariant under the loop.
-    BooleanFormula pointerData = formulaSlicingManager.filterPointers(extraBit);
-
-    constraint = bfmgr.and(constraint, pointerData);
+    // TODO: check that it is correct, that is,
+    // pointer information stays invariant under the loop.
+    if (sliceFormulasForPointers) {
+      BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
+          extraBit);
+      constraint = bfmgr.and(constraint, pointerData);
+    }
 
     return new PathFormula(
         constraint, ssa,
