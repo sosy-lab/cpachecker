@@ -97,7 +97,7 @@ def main(argv=None):
     logging.info('Writing output to ' + options.output)
 
     # actual run execution
-    (wallTime, cpuTime, memUsage, exitCode, energy) = \
+    (wallTime, cpuTime, memUsage, exitCode, reason, energy) = \
         executor.executeRun(args=options.args,
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
@@ -114,6 +114,8 @@ def main(argv=None):
     exitSignal = exitCode % 128
 
     # output results
+    if reason:
+        print("terminationreason=" + str(reason))
     print("exitcode=" + str(exitCode))
     if (exitSignal == 0) or (returnValue != 0):
         print("returnvalue=" + str(returnValue))

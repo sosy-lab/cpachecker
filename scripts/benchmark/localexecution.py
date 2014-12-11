@@ -187,7 +187,7 @@ class _Worker(threading.Thread):
         elif maxLogfileSize == -1:
             maxLogfileSize = None
 
-        (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
+        (run.wallTime, run.cpuTime, memUsage, returnvalue, terminationReason, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), run.logFile,
                 hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
