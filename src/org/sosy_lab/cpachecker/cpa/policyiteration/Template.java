@@ -9,10 +9,10 @@ import com.google.common.base.Objects;
  * Wrapper for a template.
  */
 public final class Template {
-  final LinearExpression linearExpression;
+  final LinearExpression<String> linearExpression;
   final CSimpleType type;
 
-  public Template(LinearExpression pLinearExpression,
+  public Template(LinearExpression<String> pLinearExpression,
       CSimpleType pType) {
     linearExpression = pLinearExpression;
     type = pType;

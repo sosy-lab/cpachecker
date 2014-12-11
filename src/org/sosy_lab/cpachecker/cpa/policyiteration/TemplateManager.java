@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
@@ -119,15 +120,15 @@ public class TemplateManager {
   }
 
   public NumeralFormula toFormula(
-      Template template, SSAMap pSSAMap
+      Template template, PathFormula pPathFormula
   ) {
-    return toFormula(template, pSSAMap, "");
+    return toFormula(template, pPathFormula, "");
   }
 
   public NumeralFormula toFormula(
-      Template template, SSAMap pSSAMap, String customPrefix
+      Template template, PathFormula pPathFormula, String customPrefix
   ) {
-
+    SSAMap pSSAMap = pPathFormula.getSsa();
     boolean useRationals = shouldUseRationals(template);
     NumeralFormula sum = null;
     for (Map.Entry<String, Rational> entry : template.linearExpression) {

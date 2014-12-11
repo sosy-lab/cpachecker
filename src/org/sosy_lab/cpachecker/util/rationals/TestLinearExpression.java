@@ -7,7 +7,7 @@ import static com.google.common.truth.Truth.assertThat;
 public class TestLinearExpression {
 
   @Test public void testInstantiation() {
-    LinearExpression x;
+    LinearExpression<String> x;
     x = LinearExpression.empty();
     assertThat(x.size()).isEqualTo(0);
 
@@ -24,7 +24,7 @@ public class TestLinearExpression {
   }
 
   @Test public void testAdd() {
-    LinearExpression x;
+    LinearExpression<String> x;
     x = LinearExpression.pair("x", Rational.ofString("5"));
     x = x.add(LinearExpression.pair("x", Rational.ofString("8")));
     x = x.add(LinearExpression.pair("y", Rational.ofString("2")));
@@ -38,7 +38,7 @@ public class TestLinearExpression {
   }
 
   @Test public void testSub() {
-    LinearExpression x;
+    LinearExpression<String> x;
     x = LinearExpression.pair("x", Rational.ofString("5"));
     x = x.add(LinearExpression.pair("y", Rational.ofString("3")));
     x = x.sub(LinearExpression.pair("x", Rational.ofString("5")));
@@ -52,7 +52,7 @@ public class TestLinearExpression {
   }
 
   @Test public void testMultiplication() {
-    LinearExpression x;
+    LinearExpression<String> x;
     x = LinearExpression.pair("x", Rational.ofString("5"));
     x = x.multByConst(Rational.ZERO);
     assertThat(x.size()).isEqualTo(0);
@@ -66,7 +66,7 @@ public class TestLinearExpression {
   }
 
   @Test public void testNegation() {
-    LinearExpression x;
+    LinearExpression<String> x;
     x = LinearExpression.pair("x", Rational.ofString("5"));
     x = x.add(LinearExpression.pair("y", Rational.ofString("3")));
     x = x.negate();
@@ -76,7 +76,7 @@ public class TestLinearExpression {
   }
 
   @Test public void testEquality() {
-    LinearExpression x, y;
+    LinearExpression<String> x, y;
     x = LinearExpression.pair("x", Rational.ofString("6"));
     y = LinearExpression.pair("x", Rational.ofString("3"));
     y = y.add(LinearExpression.pair("x", Rational.ofString("3")));

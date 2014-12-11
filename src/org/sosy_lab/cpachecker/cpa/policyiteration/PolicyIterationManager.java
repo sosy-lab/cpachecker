@@ -237,11 +237,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       if (shouldPerformAbstraction(toNode) && !state.isAbstract()) {
         PolicyIntermediateState iState = state.asIntermediate();
 
+        logger.log(Level.FINE, ">>> Abstraction from formula", iState.getPathFormula());
+        logger.log(Level.FINE, "SSA: ", iState.getPathFormula().getSsa());
         Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
         if (!abstraction.isPresent()) {
           return Collections.emptyList();
         }
         state = abstraction.get();
+        logger.log(Level.FINE, ">>> Abstraction produced state: ", state);
       }
     } finally {
       abstractStates.put(toNode, state);
@@ -371,7 +374,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return stateWithUpdates;
 
     } else {
-      logger.log(Level.FINE, "# Value Determination launched");
 
       Map<CFANode, PolicyAbstractedState> related =
           findRelated(stateWithUpdates, node, updated);
@@ -381,13 +383,15 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       List<BooleanFormula> constraints = vdfmgr.valueDeterminationFormula(
           related, node, updated);
 
-      return valueDeterminationMaximization(
+      PolicyAbstractedState out = valueDeterminationMaximization(
           aOldState,
           allTemplates,
           updated,
           node,
           constraints
       );
+      logger.log(Level.FINE, ">>> Value determination out state: ", out);
+      return out;
     }
   }
 
@@ -416,8 +420,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Map<Template, Integer> objectiveHandles = new HashMap<>(updated.size());
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
-        logger.log(Level.FINE,
-            "# Value determination: optimizing for template", template);
 
         NumeralFormula objective;
         String varName = vdfmgr.absDomainVarName(node, template);
@@ -432,13 +434,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       OptEnvironment.OptStatus result = solver.check();
       if (result != OptEnvironment.OptStatus.OPT) {
-        throw new SolverException("Unexpected solver state, " +
+        throw new CPATransferException("Unexpected solver state, " +
             "value determination problem should be feasible");
       }
 
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         Template template = policyValue.getKey();
-        CFAEdge policyEdge = policyValue.getValue().trace;
+        MultiEdge policyEdge = policyValue.getValue().trace;
         Optional<Rational> value =  solver.upper(objectiveHandles.get(template),
             EPSILON);
 
@@ -449,7 +451,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         }
       }
     } catch (SolverException e) {
-      throw new CPATransferException("Failed maximization", e);
+      throw new CPATransferException("Failed maximization ", e);
     } finally {
       statistics.valueDeterminationSolverTimer.stop();
     }
@@ -531,10 +533,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
+        // TODO: this is considerably more complicated for pointers
         NumeralFormula objective =
-            templateManager.toFormula(template, p.getSsa());
+            templateManager.toFormula(template, p);
 
         solver.push();
+        logger.log(Level.FINE, "Optimizing for ", objective);
         int handle = solver.maximize(objective);
 
         // Generate the trace for the single template.
@@ -547,9 +551,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               MultiEdge edge = traceFromModel(node, model);
               abstraction.put(template, new PolicyBound(edge, bound.get()));
             }
+            logger.log(Level.FINE, "Got bound: ", bound);
             break;
           case UNSAT:
             // Short circuit: this point is infeasible.
+            logger.log(Level.FINE, "Got UNSAT");
             return Optional.absent();
           case UNDEF:
             throw new CPATransferException("Solver returned undefined status");
@@ -580,7 +586,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      NumeralFormula t = templateManager.toFormula(template, ssa);
+      NumeralFormula t = templateManager.toFormula(template,
+          abstractState.getPathFormula());
 
       BooleanFormula constraint;
       if (templateManager.shouldUseRationals(template)) {

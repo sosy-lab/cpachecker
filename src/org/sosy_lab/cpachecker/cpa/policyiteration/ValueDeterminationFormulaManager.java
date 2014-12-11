@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,13 +30,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
 
 
-// TODO: don't perform namespacing if the node has only one incoming edge.
-// why don't we namespace on edges instead of namespacing on templates?
 public class ValueDeterminationFormulaManager {
+
+  /** Dependencies */
   private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
@@ -43,11 +45,14 @@ public class ValueDeterminationFormulaManager {
   private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final LogManager logger;
+  private final TemplateManager templateManager;
+
+  /** Private variables. */
   private final int threshold;
 
+  /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String TEMPLATE_PREFIX = "[%s]_";
-  private final TemplateManager templateManager;
 
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
@@ -92,21 +97,29 @@ public class ValueDeterminationFormulaManager {
       CFANode toNode = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
+      Set<String> visitedEdges = new HashSet<>();
 
-      // Type is lost at that point...
-      // Can we have a mapping from templates to policy bound?
       for (Entry<Template, PolicyBound> incoming : state.asAbstracted()) {
         Template template = incoming.getKey();
-        String templatePrefix = String.format(TEMPLATE_PREFIX, template);
+        PolicyBound bound = incoming.getValue();
+
+        // Prefix the constraints by the edges.
+        // We encode the whole paths, as things might differ inside the path.
+        String edgePrefix = String.format(
+            TEMPLATE_PREFIX, bound.toPathString());
 
         if (toNode == focusedNode && !updated.containsKey(template)) {
 
-          // Insert the invariant from the previous constraints.
-          // Do not follow the trace.
-          PolicyBound bound = incoming.getValue();
-
+          // Insert the invariant from the previous constraint.
           NumeralFormula templateFormula = templateManager.toFormula(
-              template, SSAMap.emptySSAMap(), templatePrefix);
+              template,
+              new PathFormula(
+                  bfmgr.makeBoolean(true),
+                  SSAMap.emptySSAMap(),
+                  PointerTargetSet.emptyPointerTargetSet(),
+                  0
+              ),
+              edgePrefix);
           BooleanFormula constraint;
           if (bound.bound.isIntegral() && templateFormula instanceof IntegerFormula) {
             constraint = ifmgr.lessOrEquals(
@@ -132,11 +145,15 @@ public class ValueDeterminationFormulaManager {
               trace,
               toNodeNo,
               toNodePrimeNo,
-              templatePrefix
+              edgePrefix
           );
           BooleanFormula edgeFormula = edgePathFormula.getFormula();
 
-          if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
+          // Optimization.
+          if (!(edgeFormula.equals(bfmgr.makeBoolean(true))
+                || visitedEdges.contains(edgePrefix))) {
+
+            // Check for visited.
             constraints.add(edgeFormula);
           }
           if (policy.get(fromNode) == null) {
@@ -144,30 +161,8 @@ public class ValueDeterminationFormulaManager {
             continue;
           }
 
-          for (Entry<Template, PolicyBound> fromEntry : policy.get(fromNode)) {
-            Template fromTemplate = fromEntry.getKey();
-
-            // Add input constraints on the edge variables.
-            NumeralFormula edgeInput = templateManager.toFormula(
-                fromTemplate,
-                SSAMap.emptySSAMap().withDefault(toNodeNo),
-                templatePrefix
-            );
-
-            BooleanFormula f;
-            String varName = absDomainVarName(fromNode, fromTemplate);
-            if (edgeInput instanceof IntegerFormula) {
-              f = ifmgr.lessOrEquals((IntegerFormula)edgeInput,
-                  ifmgr.makeVariable(varName));
-            } else {
-              f = rfmgr.lessOrEquals(edgeInput, rfmgr.makeVariable(varName));
-            }
-
-            constraints.add(f);
-          }
-
           NumeralFormula outExpr = templateManager.toFormula(
-              template, edgePathFormula.getSsa(), templatePrefix);
+              template, edgePathFormula, edgePrefix);
           String varName = absDomainVarName(toNode, template);
           BooleanFormula outConstraint;
 
@@ -182,6 +177,7 @@ public class ValueDeterminationFormulaManager {
           logger.log(Level.FINE, "Output constraint = ", outConstraint);
           constraints.add(outConstraint);
         }
+        visitedEdges.add(edgePrefix);
       }
     }
     return constraints;
