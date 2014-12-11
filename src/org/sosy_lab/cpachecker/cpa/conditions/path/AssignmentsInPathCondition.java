@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -75,6 +78,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+
+    if(softThreshold == -1) {
+      logger.log(Level.INFO, AssignmentsInPathCondition.class.getSimpleName() + " in use"
+          + " with softThreshold set to infinite (-1), so only state information will be collected,"
+          + " while no thresholds will be enforced.");
+    }
   }
 
   @Override
@@ -196,6 +205,22 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     @Override
     public String toString() {
       return mapping.toString() + " [max: " + maximum + "]";
+    }
+
+    /**
+     * This method return those memory locations that exceed the hard threshold
+     *
+     * @return the memory locations that exceed the hard threshold
+     */
+    public Set<MemoryLocation> getMemoryLocationsExceedingHardThreshold() {
+      Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();
+      for (MemoryLocation memoryLocation : mapping.keys()) {
+        if(mapping.size() > hardThreshold) {
+          exceedingMemoryLocations.add(memoryLocation);
+        }
+      }
+
+      return exceedingMemoryLocations;
     }
   }
 }
