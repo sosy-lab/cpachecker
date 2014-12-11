@@ -71,10 +71,16 @@ public class Z3AstMatcher implements SmtAstMatcher {
   protected static class QuantifiedVariable {
     final FormulaType<?> variableType;
     final String nameInFormula;
+    final int deBruijnIndex;
 
-    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula) {
+    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula, int pDeBruijnIndex) {
       variableType = pVariableType;
       nameInFormula = pNameInFormula;
+      deBruijnIndex = pDeBruijnIndex;
+    }
+
+    public String getDeBruijnName() {
+      return "?" + deBruijnIndex;
     }
   }
 
@@ -224,11 +230,21 @@ public class Z3AstMatcher implements SmtAstMatcher {
           : QuantifierType.EXISTS;
 
       BooleanFormula bodyFormula = (BooleanFormula) encapsulateAstAsFormula(get_quantifier_body(ctx, ast));
-      ArrayList<QuantifiedVariable> boundVariables = getQuantifiedVariables(ast);
 
-      return handleQuantification(
+      ArrayList<QuantifiedVariable> boundVariables = getQuantifiedVariables(ast);
+      int stackElementsBeforeRecursion = pQuantifiedVariables.size();
+      for (QuantifiedVariable v: boundVariables) {
+        pQuantifiedVariables.push(v.getDeBruijnName());
+      }
+      SmtAstMatchResult r = handleQuantification(
           pRootFormula, pQuantifiedVariables, result,
           qp, quantifierType, boundVariables, bodyFormula);
+
+      while (pQuantifiedVariables.size() > stackElementsBeforeRecursion) {
+        pQuantifiedVariables.pop();
+      }
+
+      return r;
 
     case Z3_VAR_AST: // -------------------------------------------------
     case Z3_SORT_AST:
@@ -242,15 +258,21 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
   private ArrayList<QuantifiedVariable> getQuantifiedVariables(final long ast) {
     final ArrayList<QuantifiedVariable> quantifiedVariables = Lists.newArrayList();
+
+    final int quantWeight = get_quantifier_weight(ctx, ast);
     final int boundCount = get_quantifier_num_bound(ctx, ast);
+
     for (int b=0; b<boundCount; b++) {
       long boundVariableSort = get_quantifier_bound_sort(ctx, ast, b);
       FormulaType<?> boundVariableType = ((Z3FormulaCreator) fmc).getFormulaTypeFromSort(boundVariableSort);
       String boundVariableName = get_symbol_string(ctx, get_quantifier_bound_name(ctx, ast, b));
 
+      int deBruijnIndex = quantWeight-b;
+
       quantifiedVariables.add(new QuantifiedVariable(
           boundVariableType,
-          boundVariableName));
+          boundVariableName,
+          deBruijnIndex));
     }
     return quantifiedVariables;
   }

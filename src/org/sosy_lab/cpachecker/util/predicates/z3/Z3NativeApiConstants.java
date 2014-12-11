@@ -30,6 +30,10 @@ public class Z3NativeApiConstants {
 
   /** returns, if the function of the expression is the given operation. */
   public static boolean isOP(long z3context, long expr, int op) {
+    if (!is_app(z3context, expr)) {
+      return false;
+    }
+
     long decl = get_app_decl(z3context, expr);
     return get_decl_kind(z3context, decl) == op;
   }
