@@ -121,7 +121,7 @@ public final class AbstractionManager {
 
       result =
           new AbstractionPredicate(absVar, symbVar, atom,
-              numberOfPredicates); // TODO
+              numberOfPredicates);
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
