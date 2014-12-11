@@ -46,7 +46,6 @@ CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
 
-_BYTE_FACTOR = 1000 # byte in kilobyte
 _WALLTIME_LIMIT_OVERHEAD = 30 # seconds
 
 
@@ -56,6 +55,7 @@ class RunExecutor():
         self.PROCESS_KILLED = False
         self.SUB_PROCESSES_LOCK = threading.Lock() # needed, because we kill the process asynchronous
         self.SUB_PROCESSES = set()
+        self._terminationReason = None
 
         self._initCGroups()
 
@@ -162,7 +162,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, runningDir):
+    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, workingDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -174,6 +174,8 @@ class RunExecutor():
             if hardtimelimit is not None:
                 # Also use ulimit for CPU time limit as a fallback if cgroups are not available
                 resource.setrlimit(resource.RLIMIT_CPU, (hardtimelimit, hardtimelimit))
+                # TODO: using ulimit allows the tool to be killed because of timelimit
+                # without the termination reason to be properly set
 
             # put us into the cgroup(s)
             pid = os.getpid()
@@ -224,7 +226,7 @@ class RunExecutor():
         try:
             p = subprocess.Popen(args,
                                  stdout=outputFile, stderr=outputFile,
-                                 env=runningEnv, cwd=runningDir,
+                                 env=runningEnv, cwd=workingDir,
                                  preexec_fn=preSubprocess)
 
         except OSError as e:
@@ -241,12 +243,13 @@ class RunExecutor():
             if hardtimelimit is not None and CPUACCT in cgroups:
                 # Start a timer to periodically check timelimit with cgroup
                 # if the tool uses subprocesses and ulimit does not work.
-                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, p, myCpuCount)
+                timelimitThread = _TimelimitThread(cgroups[CPUACCT], hardtimelimit, softtimelimit, p, myCpuCount, self._setTerminationReason)
                 timelimitThread.start()
 
             if memlimit is not None:
                 try:
-                    oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p)
+                    oomThread = oomhandler.KillProcessOnOomThread(cgroups[MEMORY], p,
+                                                                  self._setTerminationReason)
                     oomThread.start()
                 except OSError as e:
                     logging.critical("OSError {0} during setup of OomEventListenerThread: {1}.".format(e.errno, e.strerror))
@@ -352,7 +355,7 @@ class RunExecutor():
 
     def executeRun(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
-                   environments={}, runningDir=None, maxLogfileSize=-1):
+                   environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -363,6 +366,8 @@ class RunExecutor():
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param environments: special environments for running the command
+        @param workingDir: None or a directory which the execution should use as working directory
+        @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
@@ -374,6 +379,8 @@ class RunExecutor():
                 sys.exit("Invalid soft time limit {0}.".format(softtimelimit))
             if hardtimelimit is None:
                 sys.exit("Soft time limit without hard time limit is not implemented.")
+            if softtimelimit > hardtimelimit:
+                sys.exit("Soft time limit cannot be larger than the hard time limit.")
 
         if myCpus is not None:
             if self.cpus is None:
@@ -393,6 +400,16 @@ class RunExecutor():
             if memlimit <= 0:
                 sys.exit("Invalid memory limit {0}.".format(memlimit))
 
+        if workingDir:
+            if not os.path.exists(workingDir):
+                sys.exit("Working directory {0} does not exist.".format(workingDir))
+            if not os.path.isdir(workingDir):
+                sys.exit("Working directory {0} is not a directory.".format(workingDir))
+            if not os.access(workingDir, os.X_OK):
+                sys.exit("Permission denied for working directory {0}.".format(workingDir))
+
+        self._terminationReason = None
+
         logging.debug("executeRun: setting up Cgroups.")
         cgroups = self._setupCGroups(args, myCpus, memlimit)
 
@@ -401,7 +418,7 @@ class RunExecutor():
             (returnvalue, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, myCpuCount, memlimit,
-                              environments, runningDir)
+                              environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")
             (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)
@@ -414,34 +431,37 @@ class RunExecutor():
 
         # if exception is thrown, skip the rest, otherwise perform normally
 
-        reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
+        _reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
         if returnvalue not in [0,1]:
             logging.debug("executeRun: analysing output for crash-info.")
-            getDebugOutputAfterCrash(outputFileName)
+            _getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
                       .format(returnvalue, wallTime, cpuTime, memUsage, energy))
 
-        return (wallTime, cpuTime, memUsage, returnvalue, energy)
+        return (wallTime, cpuTime, memUsage, returnvalue, self._terminationReason, energy)
 
+    def _setTerminationReason(self, reason):
+        self._terminationReason = reason
 
     def kill(self):
+        self._setTerminationReason('killed')
         self.PROCESS_KILLED = True
         with self.SUB_PROCESSES_LOCK:
             for process in self.SUB_PROCESSES:
                 logging.warn('Killing process {0} forcefully.'.format(process.pid))
                 Util.killProcess(process.pid)
 
-def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
+
+def _reduceFileSizeIfNecessary(fileName, maxSize):
     """
     This function shrinks a file.
     We remove only the middle part of a file,
     the file-start and the file-end remain unchanged.
     """
-    if maxLogfileSize == -1: return # disabled, nothing to do
+    if maxSize is None: return # disabled, nothing to do
 
-    maxSize = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
     fileSize = os.path.getsize(fileName)
     if fileSize < (maxSize + 500): return # not necessary
 
@@ -473,33 +493,45 @@ def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
             inputFile.readline() # jump to end of current line so that we truncate at line boundaries
 
             # Copy C over B
-            currentLine = inputFile.readline()
-            while currentLine:
-                outputFile.write(currentLine)
-                currentLine = inputFile.readline()
+            _copyAllLinesFromTo(inputFile, outputFile)
 
             outputFile.truncate()
 
 
-def getDebugOutputAfterCrash(outputFileName):
+def _copyAllLinesFromTo(inputFile, outputFile):
+    """
+    Copy all lines from an input file object to an output file object.
+    """
+    currentLine = inputFile.readline()
+    while currentLine:
+        outputFile.write(currentLine)
+        currentLine = inputFile.readline()
+
+
+def _getDebugOutputAfterCrash(outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
-    with more information. We append this file to the log.
+    with more information (hs_err_pid_*). We append this file to the log.
+    The format that we expect is a line
+    "# An error report file with more information is saved as:"
+    and the file name of the dump file on the next line.
     """
-    next = False
-    with open(outputFileName, 'r') as outputFile:
+    foundDumpFile = False
+    with open(outputFileName, 'r+') as outputFile:
         for line in outputFile:
-            if next:
+            if foundDumpFile:
                 try:
-                    dumpFile = line.strip(' #\n')
-                    Util.appendFileToFile(dumpFile, outputFileName)
-                    os.remove(dumpFile)
+                    dumpFileName = line.strip(' #\n')
+                    outputFile.seek(0, os.SEEK_END) # jump to end of log file
+                    with open(dumpFileName, 'r') as dumpFile:
+                        _copyAllLinesFromTo(dumpFile, outputFile)
+                    os.remove(dumpFileName)
                 except IOError as e:
                     logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
                 break
             if unicode(line, errors='ignore').startswith('# An error report file with more information is saved as:'):
                 logging.debug('Going to append error report file')
-                next = True
+                foundDumpFile = True
 
 
 def _readCpuTime(cgroupCpuacct):
@@ -515,7 +547,8 @@ class _TimelimitThread(threading.Thread):
     Thread that periodically checks whether the given process has already
     reached its timelimit. After this happens, the process is terminated.
     """
-    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, process, cpuCount=1):
+    def __init__(self, cgroupCpuacct, hardtimelimit, softtimelimit, process, cpuCount=1,
+                 callbackFn=lambda reason: None):
         super(_TimelimitThread, self).__init__()
         self.daemon = True
         self.cgroupCpuacct = cgroupCpuacct
@@ -524,6 +557,7 @@ class _TimelimitThread(threading.Thread):
         self.latestKillTime = time.time() + self.timelimit + _WALLTIME_LIMIT_OVERHEAD
         self.cpuCount = cpuCount
         self.process = process
+        self.callback = callbackFn
         self.finished = threading.Event()
 
     def run(self):
@@ -542,17 +576,20 @@ class _TimelimitThread(threading.Thread):
             logging.debug("TimelimitThread for process {0}: used CPU time: {1}, remaining CPU time: {2}, remaining wall time: {3}."
                           .format(self.process.pid, usedCpuTime, remainingCpuTime, remainingWallTime))
             if remainingCpuTime <= 0:
+                self.callback('cputime')
                 logging.debug('Killing process {0} due to CPU time timeout.'.format(self.process.pid))
                 Util.killProcess(self.process.pid)
                 self.finished.set()
                 return
             if remainingWallTime <= 0:
+                self.callback('walltime')
                 logging.warning('Killing process {0} due to wall time timeout.'.format(self.process.pid))
                 Util.killProcess(self.process.pid)
                 self.finished.set()
                 return
 
             if (self.softtimelimit - usedCpuTime) <= 0:
+                self.callback('cputime-soft')
                 # soft time limit violated, ask process to terminate
                 Util.killProcess(self.process.pid, signal.SIGTERM)
                 self.softtimelimit = self.timelimit
