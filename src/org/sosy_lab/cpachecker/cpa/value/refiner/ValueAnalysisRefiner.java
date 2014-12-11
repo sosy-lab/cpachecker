@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -385,11 +386,20 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * @return the target states
    */
   private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
-    Set<ARGState> targets = from(pReached.asReachedSet())
+
+    Iterable<? extends AbstractState> candidates = pReached.asReachedSet();
+
+    if(AbstractStates.isTargetState(pReached.asReachedSet().getLastState())) {
+      logger.log(Level.FINEST, "Last state in reached set is a target state, so assuming non-global refinement");
+      candidates = Collections.singleton((ARGState)pReached.asReachedSet().getLastState());
+    }
+
+    Set<ARGState> targets = from(candidates)
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE).toSet();
 
     assert !targets.isEmpty();
+
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
 
     targetCounter = targetCounter + targets.size();
