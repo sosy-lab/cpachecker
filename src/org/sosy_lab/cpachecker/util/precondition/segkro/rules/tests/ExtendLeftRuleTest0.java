@@ -30,7 +30,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinkRule;
+import org.sosy_lab.cpachecker.util.precondition.segkro.rules.ExtendLeftRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.collect.Lists;
 
 
-public class LinkRuleTest0 extends SolverBasedTest0 {
+public class ExtendLeftRuleTest0 extends SolverBasedTest0 {
 
   private Solver solver;
   private SmtAstMatcher matcher;
@@ -57,18 +57,18 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
   private BooleanFormulaManagerView bfm;
   private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
-  private LinkRule lr;
+  private ExtendLeftRule elr;
 
   private IntegerFormula _0;
-  private IntegerFormula _1;
   private IntegerFormula _i;
+  private IntegerFormula _j;
+  private IntegerFormula _x;
+
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
-  private IntegerFormula _x;
-  private IntegerFormula _i_plus_1;
   private BooleanFormula _b_at_x_NOTEQ_0;
-  private IntegerFormula _j;
   private IntegerFormula _k;
+
 
   @Override
   protected Solvers solverToUse() {
@@ -84,21 +84,18 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
     solver = new Solver(mgrv, factory);
 
     matcher = new Z3AstMatcher(logger, mgr, mgrv);
-    lr = new LinkRule(mgr, mgrv, solver, matcher);
+    elr = new ExtendLeftRule(mgr, mgrv, solver, matcher);
 
     setupTestData();
   }
 
   private void setupTestData() {
     _0 = ifm.makeNumber(0);
-    _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
     _j = ifm.makeVariable("j");
-    _k = ifm.makeVariable("k");
     _x = ifm.makeVariable("x");
+    _k = ifm.makeVariable("k");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-
-    _i_plus_1 = ifm.add(_i, _1);
 
     _b_at_x_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _x), _0));
   }
@@ -106,31 +103,46 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
 
-    // forall x in [i+1] . b[x] != 0
-    // forall x in [i] .   b[x] != 0
+    BooleanFormula _x_range = bfm.and(
+        ifm.greaterOrEquals(_x, _i),
+        ifm.lessOrEquals(_x, _j));
 
-    final BooleanFormula _FORALL_i = qmgr.forall(
+    BooleanFormula _right_ext = ifm.lessOrEquals(_j, _k);
+
+    BooleanFormula _EXISTS_x = qmgr.exists(
         Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _j),
-              ifm.lessOrEquals(_x, _i)
-            )));
+        bfm.and(Lists.newArrayList(
+            _b_at_x_NOTEQ_0,
+            _x_range)));
 
-    final BooleanFormula _FORALL_i_plus_1 = qmgr.forall(
-        Lists.newArrayList(_x),
-        bfm.and(
-            Lists.newArrayList(
-              _b_at_x_NOTEQ_0,
-              ifm.greaterOrEquals(_x, _i_plus_1),
-              ifm.lessOrEquals(_x, _k)
-            )));
-
-    final Set<BooleanFormula> result = lr.applyWithInputRelatingPremises(
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _FORALL_i,
-            _FORALL_i_plus_1));
+            _EXISTS_x,
+            _right_ext));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion2() throws SolverException, InterruptedException {
+
+    BooleanFormula _x_range = bfm.and(
+        ifm.greaterOrEquals(_x, _i),
+        ifm.lessOrEquals(_x, _j));
+
+    BooleanFormula _right_ext = ifm.lessOrEquals(_j, _k);
+
+    BooleanFormula _EXISTS_x = qmgr.exists(
+        Lists.newArrayList(_x),
+        bfm.and(Lists.newArrayList(
+            _b_at_x_NOTEQ_0,
+            ifm.equal(_x, _i),
+            _x_range)));
+
+    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            _EXISTS_x,
+            _right_ext));
 
     assertThat(result).isNotEmpty();
   }

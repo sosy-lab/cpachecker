@@ -29,6 +29,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 
@@ -43,6 +44,8 @@ public interface SmtAstMatchResult {
   public Collection<Formula> getVariableBindings(String pVariableName);
 
   public Collection<String> getFormulaBindings(Formula pFormula);
+
+  public ImmutableMultimap<SmtAstPattern, Formula> getMatchings();
 
   public void appendBindingsTo(Multimap<String, Formula> pTarget);
 
@@ -63,6 +66,8 @@ public interface SmtAstMatchResult {
     public void appendBindingsTo(Multimap<String, Formula> pTarget) { }
     @Override
     public Collection<String> getFormulaBindings(Formula pFormula) { return Collections.emptySet(); }
+    @Override
+    public ImmutableMultimap<SmtAstPattern, Formula> getMatchings() {return ImmutableMultimap.of(); }
   };
 
 }

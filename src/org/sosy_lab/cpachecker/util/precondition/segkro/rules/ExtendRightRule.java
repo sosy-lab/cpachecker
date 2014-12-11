@@ -53,21 +53,7 @@ public class ExtendRightRule extends PatternBasedRule {
     premises.add(new PatternBasedPremise(or(
         matchExistsQuant(
             and(
-              matchBind("f",
-                  or(
-                      matchAny(
-                          match("select",
-                              matchAny(),
-                              matchInSubtree(
-                                  matchAnyBind("x")))),
-                      match("select",
-                          matchAny(),
-                          matchInSubtree(
-                              matchAnyBind("x"))),
-                      matchAny(
-                          matchAny(
-                              matchInSubtree(
-                                  matchAnyBind("x")))))),
+              GenericPatterns.f_of_x("f", "x"),
               match(">=",
                   matchAnyBind(quantified("x")),
                   matchAnyBind("i")),

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.io.IOException;
 import java.util.Set;
 
 import org.junit.Before;
@@ -113,9 +114,20 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
 
     SmtAstMatchResult r1 = matcher.perform(pp1.getPatternSelection(), _0_EQ_b_at_i_plus_1);
     assertThat(r1.matches()).isTrue();
+    assertThat(r1.getBoundVariables().size()).isEqualTo(2);
+  }
+
+  @Test
+  public void testPremise1a() throws SolverException, InterruptedException, IOException {
+
+    Premise p1 = er.getPremises().get(0);
+    assertThat(p1).isInstanceOf(PatternBasedPremise.class);
+    PatternBasedPremise pp1 = (PatternBasedPremise) p1;
 
     SmtAstMatchResult r2 = matcher.perform(pp1.getPatternSelection(), _b_at_i_plus_1_EQ_0);
     assertThat(r2.matches()).isTrue();
+
+    assertThat(r2.getBoundVariables().size()).isEqualTo(2);
   }
 
   @Test
@@ -129,11 +141,14 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
       SmtAstMatchResult result = matcher.perform(pp2.getPatternSelection(), _b_at_i_plus_1_EQ_0);
       assertThat(result.matches()).isFalse();
     }
+
     {
       SmtAstMatchResult result = matcher.perform(pp2.getPatternSelection(), _b_at_i_plus_1_NOTEQ_0);
       assertThat(result.matches()).isTrue();
     }
   }
+
+
 
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
@@ -141,6 +156,7 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
         Lists.newArrayList(
             _b_at_i_plus_1_EQ_0,
             _b_at_i_NOTEQ_0));
+
     assertThat(result).isEmpty();
   }
 

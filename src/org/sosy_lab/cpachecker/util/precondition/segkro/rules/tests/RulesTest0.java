@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,8 +55,6 @@ public class RulesTest0 extends SolverBasedTest0 {
     solver = new Solver(mgrv, factory);
   }
 
-
-
   @Test
   public void testSubstitution1() {
     IntegerFormula _x = mgrv.makeVariable(NumeralType.IntegerType, "x");
@@ -75,31 +71,6 @@ public class RulesTest0 extends SolverBasedTest0 {
 
     // Check
 
-  }
-
-  @Test
-  public void testExist1() {
-    assertTrue(false);
-  }
-
-  @Test
-  public void testExtendLeft1() {
-    assertTrue(false);
-  }
-
-  @Test
-  public void testExtendRight1() {
-    assertTrue(false);
-  }
-
-  @Test
-  public void testLink1() {
-    assertTrue(false);
-  }
-
-  @Test
-  public void testUniv1() {
-    assertTrue(false);
   }
 
 }

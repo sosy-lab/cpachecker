@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 public class SmtAstMatchResultImpl implements SmtAstMatchResult {
@@ -105,6 +106,11 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
   @Override
   public Collection<String> getFormulaBindings(Formula pFormula) {
     return variableBindingsReverse.get(pFormula);
+  }
+
+  @Override
+  public ImmutableMultimap<SmtAstPattern, Formula> getMatchings() {
+    return ImmutableMultimap.copyOf(argumentPatternMatches);
   }
 
 }

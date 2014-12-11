@@ -51,9 +51,7 @@ public class ExtendLeftRule extends PatternBasedRule {
     premises.add(new PatternBasedPremise(or(
         matchExistsQuant(
             and(
-              matchAnyBind("f",
-                  matchInSubtree(
-                        matchNullaryBind(quantified("x")))),
+              GenericPatterns.f_of_x("f", "x"),
               match(">=",
                   matchAnyBind(quantified("x")),
                   matchAnyBind("i")),

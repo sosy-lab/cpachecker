@@ -113,9 +113,24 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return matchSelectionOnOneFormula(pF, new Stack<String>(), pPatternSelection);
   }
 
+//  private void debugLogFromUnitTesting(Object... pDescription) {
+//    for (Object o : pDescription) {
+//      out.print(o.toString());
+//      out.print(" ");
+//    }
+//    out.println();
+//  }
+
   private SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
+//    debugLogFromUnitTesting(ObjectArrays.concat("FAILED MATCH", pDescription));
     logger.log(Level.ALL, ObjectArrays.concat("FAILED MATCH", pDescription));
     return SmtAstMatchResult.NOMATCH_RESULT;
+  }
+
+  private SmtAstMatchResult wrapPositiveMatchResult(SmtAstMatchResult pResult, Object... pDescription) {
+//    debugLogFromUnitTesting(ObjectArrays.concat("MATCH SUCCESS", pDescription));
+    logger.log(Level.ALL, ObjectArrays.concat("MATCH SUCCESS", pDescription));
+    return pResult;
   }
 
   private SmtAstMatchResult matchSelectionOnOneFormula(
@@ -140,7 +155,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
 
       if (r.matches() && pPatternSelection.getRelationship().isOr()) {
-        return r;
+        return wrapPositiveMatchResult(r, "OR logic");
       }
 
       if (r.matches()) {
@@ -158,7 +173,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       return newMatchFailedResult("No match but ANY should!");
     }
 
-    return aggregatedResult;
+    return wrapPositiveMatchResult(aggregatedResult, "Late return");
   }
 
   private SmtAstMatchResult internalPerform(
@@ -236,7 +251,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       for (QuantifiedVariable v: boundVariables) {
         pQuantifiedVariables.push(v.getDeBruijnName());
       }
-      SmtAstMatchResult r = handleQuantification(
+      final SmtAstMatchResult r = handleQuantification(
           pRootFormula, pQuantifiedVariables, result,
           qp, quantifierType, boundVariables, bodyFormula);
 
@@ -391,7 +406,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     result.setMatchingRootFormula(pRootFormula);
 
     if (logic.isDontCare()) {
-      return result;
+      return wrapPositiveMatchResult(result, "Dont care");
     }
 
     // Perform the matching recursively on the arguments
@@ -436,7 +451,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       return newMatchFailedResult("No match but ALL should!");
     }
 
-    return result;
+    return wrapPositiveMatchResult(result, "Last in matchFormulaChildsInSequence");
   }
 
   private boolean isExpectedFunctionSumbol(Comparable<?> pExpectedSymbol, Comparable<?> pFound) {
