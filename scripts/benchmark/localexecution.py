@@ -181,6 +181,12 @@ class _Worker(threading.Thread):
         if MEMLIMIT in benchmark.rlimits:
             memlimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
 
+        maxLogfileSize = benchmark.config.maxLogfileSize
+        if maxLogfileSize:
+            maxLogfileSize *= _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
+        elif maxLogfileSize == -1:
+            maxLogfileSize = None
+
         (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
             self.runExecutor.executeRun(
                 run.getCmdline(), run.logFile,
@@ -190,7 +196,7 @@ class _Worker(threading.Thread):
                 memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
                 runningDir=benchmark.workingDirectory(),
-                maxLogfileSize=benchmark.config.maxLogfileSize)
+                maxLogfileSize=maxLogfileSize)
         run.values['memUsage'] = memUsage
         run.values['energy'] = energy
 

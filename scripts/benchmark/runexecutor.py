@@ -352,7 +352,7 @@ class RunExecutor():
 
     def executeRun(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
-                   environments={}, runningDir=None, maxLogfileSize=-1):
+                   environments={}, runningDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -363,6 +363,7 @@ class RunExecutor():
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param environments: special environments for running the command
+        @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
 
@@ -414,7 +415,7 @@ class RunExecutor():
 
         # if exception is thrown, skip the rest, otherwise perform normally
 
-        reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
+        _reduceFileSizeIfNecessary(outputFileName, maxLogfileSize)
 
         if returnvalue not in [0,1]:
             logging.debug("executeRun: analysing output for crash-info.")
@@ -433,15 +434,14 @@ class RunExecutor():
                 logging.warn('Killing process {0} forcefully.'.format(process.pid))
                 Util.killProcess(process.pid)
 
-def reduceFileSizeIfNecessary(fileName, maxLogfileSize=-1):
+def _reduceFileSizeIfNecessary(fileName, maxSize):
     """
     This function shrinks a file.
     We remove only the middle part of a file,
     the file-start and the file-end remain unchanged.
     """
-    if maxLogfileSize == -1: return # disabled, nothing to do
+    if maxSize is None: return # disabled, nothing to do
 
-    maxSize = maxLogfileSize * _BYTE_FACTOR * _BYTE_FACTOR # as MB, we assume: #char == #byte
     fileSize = os.path.getsize(fileName)
     if fileSize < (maxSize + 500): return # not necessary
 
