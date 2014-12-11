@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.truth.Truth.*;
 
-import java.util.List;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,8 +48,8 @@ import com.google.common.collect.Lists;
 public class SolverTheoriesTest extends SolverBasedTest0 {
 
   @Parameters(name="{0}")
-  public static List<Object[]> getAllSolvers() {
-    return allSolversAsParameters();
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
   }
 
   @Parameter(0)

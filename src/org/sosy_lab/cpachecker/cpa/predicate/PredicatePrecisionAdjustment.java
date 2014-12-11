@@ -27,9 +27,9 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
@@ -140,16 +139,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
-      // the basic precision
-      Collection<AbstractionPredicate> locInstancePreds = precision.getPredicates(loc, newLocInstance);
-
-      // union of the predicates that should be considered for computing the abstraction
-      Collection<AbstractionPredicate> toConsiderPreds = ImmutableList.<AbstractionPredicate>builder()
-          .addAll(locInstancePreds).build();
+      Set<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(
-          loc, abstractionFormula, pathFormula, toConsiderPreds);
+          loc, abstractionFormula, pathFormula, preds);
     } finally {
       computingAbstractionTime.stop();
     }

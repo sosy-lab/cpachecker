@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -169,16 +170,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       return false;
     }
 
-    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = obtainInterpolants(targets);
 
-    while (interpolationTree.hasNextPathForInterpolation()) {
-      performInterpolation(interpolationTree);
-    }
+    refineUsingInterpolants(pReached, interpolationTree);
 
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
-    }
+    totalTime.stop();
+    return true;
+  }
 
+  private void refineUsingInterpolants(final ARGReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       List<Precision> precisions = new ArrayList<>(2);
@@ -205,16 +205,27 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
+  }
 
-    totalTime.stop();
-    return true;
+  private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
+      InterruptedException {
+    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+
+    while (interpolationTree.hasNextPathForInterpolation()) {
+      performPathInterpolation(interpolationTree);
+    }
+
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+    }
+    return interpolationTree;
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
     return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), PredicatePrecision.class) != null;
   }
 
-  private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
+  private void performPathInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
     if (errorPath == null) {
@@ -385,11 +396,20 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * @return the target states
    */
   private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
-    Set<ARGState> targets = from(pReached.asReachedSet())
+
+    Iterable<? extends AbstractState> candidates = pReached.asReachedSet();
+
+    if(AbstractStates.isTargetState(pReached.asReachedSet().getLastState())) {
+      logger.log(Level.FINEST, "Last state in reached set is a target state, so assuming non-global refinement");
+      candidates = Collections.singleton((ARGState)pReached.asReachedSet().getLastState());
+    }
+
+    Set<ARGState> targets = from(candidates)
         .transform(AbstractStates.toState(ARGState.class))
         .filter(AbstractStates.IS_TARGET_STATE).toSet();
 
     assert !targets.isEmpty();
+
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
 
     targetCounter = targetCounter + targets.size();

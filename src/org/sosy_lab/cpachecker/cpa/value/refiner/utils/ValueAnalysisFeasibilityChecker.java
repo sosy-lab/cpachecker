@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -38,12 +40,14 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -127,6 +131,8 @@ public class ValueAnalysisFeasibilityChecker {
     List<ARGPath> prefixes = new ArrayList<>();
     boolean performAbstraction = precision.allowsAbstraction();
 
+    Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
+
     try {
       MutableARGPath currentPrefix = new MutableARGPath();
       ValueAnalysisState next = pInitial;
@@ -164,6 +170,10 @@ public class ValueAnalysisFeasibilityChecker {
           }
         }
 
+        for(MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
+          next.forget(exceedingMemoryLocation);
+        }
+
         iterator.advance();
       }
 
@@ -177,6 +187,18 @@ public class ValueAnalysisFeasibilityChecker {
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {
+    UniqueAssignmentsInPathConditionState assignments =
+        AbstractStates.extractStateByType(path.getLastState(),
+        UniqueAssignmentsInPathConditionState.class);
+
+    if(assignments == null) {
+      return Collections.emptySet();
+    }
+
+    return assignments.getMemoryLocationsExceedingHardThreshold();
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)

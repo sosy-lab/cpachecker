@@ -27,8 +27,6 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static org.junit.Assert.*;
 
-import java.util.List;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,8 +48,8 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 public class SolverStackTest extends SolverBasedTest0 {
 
   @Parameters(name="{0}")
-  public static List<Object[]> getAllSolvers() {
-    return allSolversAsParameters();
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
   }
 
   @Parameter(0)
