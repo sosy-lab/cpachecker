@@ -25,23 +25,32 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
 
+import java.util.Collection;
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
+import com.google.common.collect.Lists;
+
 
 public class EliminationRule extends PatternBasedRule {
 
+  private final IntegerFormula zero;
+
   public EliminationRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
     super(pFm, pFmv, pSolver, pMatcher);
+    zero = fm.getIntegerFormulaManager().makeNumber(0);
   }
 
   @Override
   protected void setupPatterns() {
-    IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
-
     premises.add(new PatternBasedPremise(
         withDefaultBinding("c1",  zero,
           or(
@@ -71,6 +80,26 @@ public class EliminationRule extends PatternBasedRule {
               match(">=",
                   matchAnyBind("e2"),
                   matchNullary("0"))))));
+  }
+
+  @Override
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+    return true;
+  }
+
+  @Override
+  protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+    final IntegerFormula c1 = (IntegerFormula) pAssignment.get("c1");
+    final IntegerFormula c2 = (IntegerFormula) pAssignment.get("c2");
+    final IntegerFormula e1 = (IntegerFormula) pAssignment.get("e1");
+    final IntegerFormula e2 = (IntegerFormula) pAssignment.get("e2");
+
+    return Lists.newArrayList(
+        ifm.greaterOrEquals(
+            ifm.subtract(
+                ifm.multiply(c2, e1),
+                ifm.multiply(c1, e2)),
+            zero));
   }
 
 
