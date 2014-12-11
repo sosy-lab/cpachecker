@@ -165,7 +165,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
     @Override
     public String toDOTLabel() {
-      return pathFormula.toString() + "\n" + trace.toString();
+      return pathFormula.toString() + "\n" + pathFormula.getSsa().toString();
     }
 
     @Override
