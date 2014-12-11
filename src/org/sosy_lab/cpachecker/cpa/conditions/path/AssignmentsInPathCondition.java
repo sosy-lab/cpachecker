@@ -101,16 +101,15 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     UniqueAssignmentsInPathConditionState current = (UniqueAssignmentsInPathConditionState)pElement;
 
-    if (!precise && pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      return current;
+    maxNumberOfAssignments = Math.max(maxNumberOfAssignments, current.getMaximum());
+
+    if (precise || pEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      return new UniqueAssignmentsInPathConditionState(current.maximum, HashMultimap.create(current.mapping));
     }
 
-    UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(current.maximum,
-        HashMultimap.create(current.mapping));
-
-    maxNumberOfAssignments  = Math.max(maxNumberOfAssignments, successor.getMaximum());
-
-    return successor;
+    else {
+      return current;
+    }
   }
 
   @Override
