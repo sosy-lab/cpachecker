@@ -82,24 +82,32 @@ class RunExecutor():
         cgroupCpuset = self.cgroupsParents[CPUSET]
         if not cgroupCpuset:
             self.cpus = None # to indicate that we cannot limit cores
-            logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
+            self.memoryNodes = None # to indicate that we cannot limit cores
+            logging.warning("Cannot limit the number of CPU cores/memory nodes without cpuset cgroup.")
         else:
-            # Read available cpus:
+            # Read available cpus/memory nodes:
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
             try:
                 self.cpus = Util.parseIntList(cpuStr)
             except ValueError as e:
                 logging.warning("Could not read available CPU cores from kernel: {0}".format(e.strerror))
-
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
+            memsStr = readFile(cgroupCpuset, 'cpuset.mems')
+            try:
+                self.memoryNodes = Util.parseIntList(memsStr)
+            except ValueError as e:
+                logging.warning("Could not read available memory nodes from kernel: {0}".format(e.strerror))
+            logging.debug("List of available memory nodes is {0}.".format(self.memoryNodes))
 
-    def _setupCGroups(self, args, myCpus, memlimit):
+
+    def _setupCGroups(self, args, myCpus, memlimit, memoryNodes):
         """
         This method creates the CGroups for the following execution.
         @param args: the command line to run, used only for logging
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
+        @param memoryNodes: None or a list of memory nodes of a NUMA system to use
         @return cgroups: a map of all the necessary cgroups for the following execution.
                          Please add the process of the following execution to all those cgroups!
         """
@@ -113,7 +121,7 @@ class RunExecutor():
 
         logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
-        # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
+        # Setup cpuset cgroup if necessary to limit the CPU cores/memory nodes to be used.
         if myCpus is not None:
             if CPUSET not in cgroups:
                 sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
@@ -123,6 +131,16 @@ class RunExecutor():
             writeFile(myCpusStr, cgroupCpuset, 'cpuset.cpus')
             myCpusStr = readFile(cgroupCpuset, 'cpuset.cpus')
             logging.debug('Executing {0} with cpu cores [{1}].'.format(args, myCpusStr))
+
+        if memoryNodes is not None:
+            if CPUSET not in cgroups:
+                sys.exit("Cannot restrict the memory nodes because cgroups are not available.")
+
+            cgroupCpuset = cgroups[CPUSET]
+            writeFile(','.join(map(str, memoryNodes)), cgroupCpuset, 'cpuset.mems')
+            memoryNodesStr = readFile(cgroupCpuset, 'cpuset.mems')
+            logging.debug('Executing {0} with memory nodes [{1}].'.format(args, memoryNodesStr))
+
 
         # Setup memory limit
         if memlimit is not None:
@@ -348,7 +366,7 @@ class RunExecutor():
 
 
     def executeRun(self, args, outputFileName,
-                   hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
+                   hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None, memoryNodes=None,
                    environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
@@ -359,6 +377,7 @@ class RunExecutor():
         @param softtimelimit: None or the CPU time in seconds after which the tool is sent a kill signal.
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
+        @param memoryNodes: None or a list of memory nodes in a NUMA system to use
         @param environments: special environments for running the command
         @param workingDir: None or a directory which the execution should use as working directory
         @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
@@ -394,6 +413,14 @@ class RunExecutor():
             if memlimit <= 0:
                 sys.exit("Invalid memory limit {0}.".format(memlimit))
 
+        if memoryNodes is not None:
+            if self.memoryNodes is None:
+                sys.exit("Cannot restrict memory nodes without cpuset cgroup")
+            if len(memoryNodes) == 0:
+                sys.exit("Cannot execute run without any memory node")
+            if not set(memoryNodes).issubset(self.memoryNodes):
+                sys.exit("Memory nodes {0} are not allowed to be used".format(list(set(memoryNodes).difference(self.memoryNodes))))
+
         if workingDir:
             if not os.path.exists(workingDir):
                 sys.exit("Working directory {0} does not exist.".format(workingDir))
@@ -405,7 +432,7 @@ class RunExecutor():
         self._terminationReason = None
 
         logging.debug("executeRun: setting up Cgroups.")
-        cgroups = self._setupCGroups(args, myCpus, memlimit)
+        cgroups = self._setupCGroups(args, myCpus, memlimit, None)
 
         try:
             logging.debug("executeRun: executing tool.")

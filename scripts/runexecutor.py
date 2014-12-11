@@ -58,6 +58,8 @@ def main(argv=None):
                         help='"soft" CPU time limit in seconds')
     parser.add_argument("--cores", type=util.parseIntList, metavar="N,M-K",
                         help="the list of CPU cores to use")
+    parser.add_argument("--memoryNodes", type=util.parseIntList, metavar="N,M-K",
+                        help="the list of memory nodes to use")
     parser.add_argument("--dir", metavar="DIR",
                         help="working directory for executing the command (default is current directory)")
     verbosity = parser.add_mutually_exclusive_group()
@@ -107,6 +109,7 @@ def main(argv=None):
                             softtimelimit=options.softtimelimit,
                             myCpus=options.cores,
                             memlimit=options.memlimit,
+                            memoryNodes=options.memoryNodes,
                             environments=env,
                             workingDir=options.dir,
                             maxLogfileSize=options.maxOutputSize)
