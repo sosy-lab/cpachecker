@@ -375,6 +375,8 @@ class RunExecutor():
                 sys.exit("Invalid soft time limit {0}.".format(softtimelimit))
             if hardtimelimit is None:
                 sys.exit("Soft time limit without hard time limit is not implemented.")
+            if softtimelimit > hardtimelimit:
+                sys.exit("Soft time limit cannot be larger than the hard time limit.")
 
         if myCpus is not None:
             if self.cpus is None:
