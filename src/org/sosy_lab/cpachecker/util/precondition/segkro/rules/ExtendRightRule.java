@@ -48,12 +48,26 @@ public class ExtendRightRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
+    // (exists ((x Int)) (and (not (= (select b x) 0)) (>= x i) (<= x j)))
+
     premises.add(new PatternBasedPremise(or(
         matchExistsQuant(
             and(
-              matchAnyBind("f",
-                  matchInSubtree(
-                        matchNullaryBind(quantified("x")))),
+              matchBind("f",
+                  or(
+                      matchAny(
+                          match("select",
+                              matchAny(),
+                              matchInSubtree(
+                                  matchAnyBind("x")))),
+                      match("select",
+                          matchAny(),
+                          matchInSubtree(
+                              matchAnyBind("x"))),
+                      matchAny(
+                          matchAny(
+                              matchInSubtree(
+                                  matchAnyBind("x")))))),
               match(">=",
                   matchAnyBind(quantified("x")),
                   matchAnyBind("i")),

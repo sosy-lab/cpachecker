@@ -299,6 +299,12 @@ public class Z3AstMatcher implements SmtAstMatcher {
         pRootFormula, pQuantifiedVariables,
         bodyConjuncts, pQp.quantorBodyMatchers, false);
 
+    if (!bodyMatchingResult.matches() && bodyConjuncts.size() > 0) {
+      bodyMatchingResult = matchFormulaChildsInSequence(
+          pRootFormula, pQuantifiedVariables,
+          bodyConjuncts, pQp.quantorBodyMatchers, true);
+    }
+
     if (bodyMatchingResult.matches()) {
       pResult.addSubResults(bodyMatchingResult);
       return pResult;
@@ -348,11 +354,13 @@ public class Z3AstMatcher implements SmtAstMatcher {
     boolean initialReverseMatching = considerArgumentsInReverse;
 
     SmtAstMatchResult argumentMatchingResult = matchFormulaChildsInSequence(
-        pFunctionRootFormula, pBoundQuantifiedVariables, pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
+        pFunctionRootFormula, pBoundQuantifiedVariables,
+        pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
 
     if (!argumentMatchingResult.matches() && isCommutative(functionSymbol)) {
       argumentMatchingResult = matchFormulaChildsInSequence(
-          pFunctionRootFormula, pBoundQuantifiedVariables, pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
+          pFunctionRootFormula, pBoundQuantifiedVariables,
+          pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
     }
 
     if (argumentMatchingResult.matches()) {
