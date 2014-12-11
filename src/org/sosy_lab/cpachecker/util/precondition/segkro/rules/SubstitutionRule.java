@@ -57,10 +57,30 @@ public class SubstitutionRule extends PatternBasedRule {
             matchNullaryBind("x"),
             matchAnyBind("e"))
         )));
-    premises.add(new PatternBasedPremise(or(
-        matchAnyBind("f",
-            matchNullaryBind("x"))
-        )));
+
+    premises.add(new PatternBasedPremise(
+        or(
+          matchBind("not", "f",
+              matchAny(
+                  match("select",
+                      matchAny(),
+                      matchInSubtree(
+                          matchAnyBind("x"))))),
+          matchAnyBind("f",
+              match("select",
+                  matchAny(),
+                  matchInSubtree(
+                      matchAnyBind("x")))),
+          matchBind("not", "f",
+              matchAny(
+                  matchAny(
+                      matchInSubtree(
+                          matchAnyBind("x"))))),
+          matchAnyBind("f",
+              matchAny(
+                  matchInSubtree(
+                      matchAnyBind("x"))))
+          )));
   }
 
   @Override
