@@ -57,15 +57,13 @@ class KillProcessOnOomThread(threading.Thread):
 
     @param cgroup: The memory cgroup the process is in
     @param process: The process instance to kill
-    @param callbackFn: A one-argument function that is called in case of OOM with a string for the reason as argument
     """
-    def __init__(self, cgroup, process, callbackFn=lambda reason: None):
+    def __init__(self, cgroup, process):
         super(KillProcessOnOomThread, self).__init__()
         self.daemon = True
         self._finished = threading.Event()
         self._process = process
         self._cgroup = cgroup
-        self._callback = callbackFn
 
         ofd = os.open(os.path.join(cgroup, 'memory.oom_control'), os.O_WRONLY)
         try:
@@ -86,8 +84,8 @@ class KillProcessOnOomThread(threading.Thread):
                 # but we don't care.
                 try:
                     os.write(ofd, '1'.encode('ascii'))
-                except OSError as e:
-                    logging.debug("Failed to disable kernel-side OOM killer: error {0} ({1})".format(e.errno, e.strerror))
+                except OSError:
+                    pass
             except EnvironmentError as e:
                 os.close(self._efd)
                 raise e
@@ -101,7 +99,6 @@ class KillProcessOnOomThread(threading.Thread):
             # If read returned, this means the kernel sent us an event.
             # It does so either on OOM or if the cgroup is removed.
             if not self._finished.is_set():
-                self._callback('memory')
                 logging.debug('Killing process {0} due to out-of-memory event from kernel.'.format(self._process.pid))
                 util.killProcess(self._process.pid)
                 # Also kill all children of subprocesses directly.
