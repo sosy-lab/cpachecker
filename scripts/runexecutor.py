@@ -33,6 +33,7 @@ import argparse
 import logging
 import benchmark.runexecutor
 import signal
+from benchmark import util
 
 _BYTE_FACTOR = 1000 # byte in kilobyte
 
@@ -55,6 +56,8 @@ def main(argv=None):
                         help="CPU time limit in seconds")
     parser.add_argument("--softtimelimit", type=int, metavar="SECONDS",
                         help='"soft" CPU time limit in seconds')
+    parser.add_argument("--cores", type=util.parseIntList, metavar="N,M-K",
+                        help="the list of CPU cores to use")
     parser.add_argument("--dir", metavar="DIR",
                         help="working directory for executing the command (default is current directory)")
     verbosity = parser.add_mutually_exclusive_group()
@@ -102,6 +105,7 @@ def main(argv=None):
                             outputFileName=options.output,
                             hardtimelimit=options.timelimit,
                             softtimelimit=options.softtimelimit,
+                            myCpus=options.cores,
                             memlimit=options.memlimit,
                             environments=env,
                             workingDir=options.dir,
