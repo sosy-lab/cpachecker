@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 
 public class ExtendRightRule extends PatternBasedRule {
@@ -51,16 +50,15 @@ public class ExtendRightRule extends PatternBasedRule {
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(or(
         matchExistsQuant(
-            Sets.newHashSet("x"),
             and(
               matchAnyBind("f",
                   matchInSubtree(
-                        matchNullaryBind("x"))),
+                        matchNullaryBind(quantified("x")))),
               match(">=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   matchAnyBind("i")),
               match("<=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   matchAnyBind("j"))
     )))));
 
@@ -80,7 +78,7 @@ public class ExtendRightRule extends PatternBasedRule {
     final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
     final IntegerFormula i = (IntegerFormula) pAssignment.get("i");
     final IntegerFormula k = (IntegerFormula) pAssignment.get("k");
-    final IntegerFormula x = (IntegerFormula) pAssignment.get("x");
+    final IntegerFormula x = (IntegerFormula) pAssignment.get(quantified("x"));
 
     final BooleanFormula xConstraint =  bfm.and(
         ifm.greaterOrEquals(x, i),

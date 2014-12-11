@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 
 public class LinkRule extends PatternBasedRule {
@@ -51,33 +50,31 @@ public class LinkRule extends PatternBasedRule {
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(or(
         matchForallQuant(
-            Sets.newHashSet("x"),
             and(
               matchAnyBind("f",
                   matchInSubtree(
-                        matchNullaryBind("x"))),
+                        matchNullaryBind(quantified("x")))),
               match(">=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   matchAnyBind("j")),
               match("<=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   matchAnyBind("i"))
     )))));
 
     premises.add(new PatternBasedPremise(or(
         matchForallQuant(
-            Sets.newHashSet("x"),
             and(
               matchAnyBind("f",
                   matchInSubtree(
-                        matchNullaryBind("x"))),
+                        matchNullaryBind(quantified("x")))),
               match(">=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   match("+",
                       matchAnyBind("i"),
                       matchNullary("1"))),
               match("<=",
-                  matchAnyBind("x"),
+                  matchAnyBind(quantified("x")),
                   matchAnyBind("k"))
     )))));
   }

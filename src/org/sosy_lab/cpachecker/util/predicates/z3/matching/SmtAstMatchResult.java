@@ -42,6 +42,8 @@ public interface SmtAstMatchResult {
 
   public Collection<Formula> getVariableBindings(String pVariableName);
 
+  public Collection<String> getFormulaBindings(Formula pFormula);
+
   public void appendBindingsTo(Multimap<String, Formula> pTarget);
 
   public boolean matches();
@@ -59,6 +61,8 @@ public interface SmtAstMatchResult {
     public Collection<String> getBoundVariables() { return Collections.emptySet(); }
     @Override
     public void appendBindingsTo(Multimap<String, Formula> pTarget) { }
+    @Override
+    public Collection<String> getFormulaBindings(Formula pFormula) { return Collections.emptySet(); }
   };
 
 }

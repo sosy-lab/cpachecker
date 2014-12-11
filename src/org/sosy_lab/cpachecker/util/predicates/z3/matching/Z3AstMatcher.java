@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -67,13 +68,13 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   private Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
-  protected static class BoundVariable {
+  protected static class QuantifiedVariable {
     final FormulaType<?> variableType;
-    final String variableName;
+    final String nameInFormula;
 
-    public BoundVariable(FormulaType<?> pVariableType, String pVariableName) {
+    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula) {
       variableType = pVariableType;
-      variableName = pVariableName;
+      nameInFormula = pNameInFormula;
     }
   }
 
@@ -101,7 +102,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
   @Override
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
-    return matchSelectionOnOneFormula(pPatternSelection, pF);
+    return matchSelectionOnOneFormula(pF, new Stack<String>(), pPatternSelection);
   }
 
   private SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
@@ -109,14 +110,17 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
-  private SmtAstMatchResult matchSelectionOnOneFormula(final SmtAstPatternSelection pPatternSelection, final Formula pF) {
+  private SmtAstMatchResult matchSelectionOnOneFormula(
+      final Formula pF,
+      final Stack<String> pQuantifiedVariables,
+      final SmtAstPatternSelection pPatternSelection) {
     // TODO: Cache the match result
 
     int matches = 0;
     SmtAstMatchResultImpl aggregatedResult = new SmtAstMatchResultImpl();
 
     for (SmtAstPattern p: pPatternSelection) {
-      SmtAstMatchResult r = internalPerform(p, pF);
+      SmtAstMatchResult r = internalPerform(pF, pQuantifiedVariables, p);
       matches = matches + (r.matches() ? 1 : 0);
 
       if (r.matches() && pPatternSelection.getRelationship().isNone()) {
@@ -149,13 +153,17 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return aggregatedResult;
   }
 
-  private SmtAstMatchResult internalPerform(final SmtAstPattern pP, final Formula pRootFormula) {
+  private SmtAstMatchResult internalPerform(
+      final Formula pRootFormula,
+      final Stack<String> pQuantifiedVariables,
+      final SmtAstPattern pP) {
 
     final SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
     result.setMatchingRootFormula(pRootFormula);
 
     if (pP.getBindMatchTo().isPresent()) {
-      result.putBoundVaribale(pP.getBindMatchTo().get(), pRootFormula);
+      final String bindMatchTo = pP.getBindMatchTo().get();
+      result.putBoundVaribale(bindMatchTo, pRootFormula);
     }
 
     final long ast = fm.extractInfo(pRootFormula);
@@ -180,6 +188,17 @@ public class Z3AstMatcher implements SmtAstMatcher {
         functionParameterCount = get_app_num_args(ctx, ast);
       }
 
+      if (functionParameterCount == 0) {
+        if (pP.getBindMatchTo().isPresent()) {
+          final String bindMatchTo = pP.getBindMatchTo().get();
+          if (bindMatchTo.startsWith(".")) {
+            if (!pQuantifiedVariables.contains(functionSymbol)) {
+              return newMatchFailedResult("Variable not quantified");
+            }
+          }
+        }
+      }
+
       final ArrayList<Formula> functionArguments = Lists.newArrayList();
       for (int i=0; i<functionParameterCount; i++) {
         final long argAst = get_app_arg(ctx, ast, i);
@@ -187,7 +206,9 @@ public class Z3AstMatcher implements SmtAstMatcher {
         functionArguments.add(argFormula);
       }
 
-      return handleFunctionApplication(pRootFormula, result, fp, functionSymbol, functionArguments);
+      return handleFunctionApplication(
+          pRootFormula, pQuantifiedVariables, result,
+          fp, functionSymbol, functionArguments);
 
     case Z3_QUANTIFIER_AST: // -------------------------------------------------
       if (!(pP instanceof SmtQuantificationPattern)) {
@@ -201,9 +222,11 @@ public class Z3AstMatcher implements SmtAstMatcher {
           : QuantifierType.EXISTS;
 
       BooleanFormula bodyFormula = (BooleanFormula) encapsulateAstAsFormula(get_quantifier_body(ctx, ast));
-      ArrayList<BoundVariable> boundVariables = getBoundVariables(ast);
+      ArrayList<QuantifiedVariable> boundVariables = getQuantifiedVariables(ast);
 
-      return handleQuantification(pRootFormula, result, qp, quantifierType, boundVariables, bodyFormula);
+      return handleQuantification(
+          pRootFormula, pQuantifiedVariables, result,
+          qp, quantifierType, boundVariables, bodyFormula);
 
     case Z3_VAR_AST: // -------------------------------------------------
     case Z3_SORT_AST:
@@ -212,22 +235,22 @@ public class Z3AstMatcher implements SmtAstMatcher {
       break;
     }
 
-    return SmtAstMatchResult.NOMATCH_RESULT;
+    return newMatchFailedResult("Unknown structure (or elements) of formula!");
   }
 
-  private ArrayList<BoundVariable> getBoundVariables(final long ast) {
-    final ArrayList<BoundVariable> boundVariables = Lists.newArrayList();
+  private ArrayList<QuantifiedVariable> getQuantifiedVariables(final long ast) {
+    final ArrayList<QuantifiedVariable> quantifiedVariables = Lists.newArrayList();
     final int boundCount = get_quantifier_num_bound(ctx, ast);
     for (int b=0; b<boundCount; b++) {
       long boundVariableSort = get_quantifier_bound_sort(ctx, ast, b);
       FormulaType<?> boundVariableType = ((Z3FormulaCreator) fmc).getFormulaTypeFromSort(boundVariableSort);
       String boundVariableName = get_symbol_string(ctx, get_quantifier_bound_name(ctx, ast, b));
 
-      boundVariables.add(new BoundVariable(
+      quantifiedVariables.add(new QuantifiedVariable(
           boundVariableType,
           boundVariableName));
     }
-    return boundVariables;
+    return quantifiedVariables;
   }
 
   private Formula encapsulateAstAsFormula(final long ast) {
@@ -237,13 +260,20 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return f;
   }
 
-  private SmtAstMatchResult handleQuantification(Formula pRootFormula, SmtAstMatchResultImpl pResult,
-      SmtQuantificationPattern pQp, QuantifierType pQuantifierType, ArrayList<BoundVariable> pBoundVariables,
-      BooleanFormula pBodyFormula) {
+  private SmtAstMatchResult handleQuantification(
+      final Formula pRootFormula,
+      final Stack<String> pQuantifiedVariables,
+      final SmtAstMatchResultImpl pResult,
+      final SmtQuantificationPattern pQp,
+      final QuantifierType pQuantifierType,
+      final ArrayList<QuantifiedVariable> pBoundVariables,
+      final BooleanFormula pBodyFormula) {
 
     final List<BooleanFormula> bodyConjuncts = Lists.newArrayList(fmv.extractAtoms(pBodyFormula, false, true));
 
-    SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(pRootFormula, bodyConjuncts, pQp.quantorBodyMatchers, false);
+    SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(
+        pRootFormula, pQuantifiedVariables,
+        bodyConjuncts, pQp.quantorBodyMatchers, false);
 
     if (bodyMatchingResult.matches()) {
       pResult.addSubResults(bodyMatchingResult);
@@ -256,6 +286,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
   private SmtAstMatchResult handleFunctionApplication(
       final Formula pFunctionRootFormula,
+      final Stack<String> pBoundQuantifiedVariables,
       final SmtAstMatchResultImpl result,
       final SmtFunctionApplicationPattern fp,
       final String functionSymbol,
@@ -265,19 +296,19 @@ public class Z3AstMatcher implements SmtAstMatcher {
     // We might consider the reversion version of the function
     boolean considerArgumentsInReverse = false; // TODO: Add support for cases where NOT fp.function.isPresent()
     if (fp.function.isPresent()) {
-      boolean isExpectedFunction = isExpectedFunctionSumbol(fp.function.get(), functionSymbol);
+      boolean isExpectedFunctApp = isExpectedFunctionSumbol(fp.function.get(), functionSymbol);
 
-      if (!isExpectedFunction) {
+      if (!isExpectedFunctApp) {
         Comparable<?> functionSymbolRotated = functionRotations.get(functionSymbol);
         if (functionSymbolRotated != null) {
           if (isExpectedFunctionSumbol(fp.function.get(), functionSymbolRotated)) {
-            isExpectedFunction = true;
+            isExpectedFunctApp = true;
             considerArgumentsInReverse = true;
           }
         }
       }
 
-      if (!isExpectedFunction) {
+      if (!isExpectedFunctApp) {
         return newMatchFailedResult("Function missmatch!", fp.function.get(), functionSymbol);
       }
     }
@@ -293,11 +324,11 @@ public class Z3AstMatcher implements SmtAstMatcher {
     boolean initialReverseMatching = considerArgumentsInReverse;
 
     SmtAstMatchResult argumentMatchingResult = matchFormulaChildsInSequence(
-        pFunctionRootFormula, pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
+        pFunctionRootFormula, pBoundQuantifiedVariables, pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
 
     if (!argumentMatchingResult.matches() && isCommutative(functionSymbol)) {
       argumentMatchingResult = matchFormulaChildsInSequence(
-          pFunctionRootFormula, pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
+          pFunctionRootFormula, pBoundQuantifiedVariables, pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
     }
 
     if (argumentMatchingResult.matches()) {
@@ -311,6 +342,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
   private SmtAstMatchResult matchFormulaChildsInSequence(
       final Formula pRootFormula,
+      final Stack<String> pBoundQuantifiedVariables,
       final List<? extends Formula> pChildFormulas,
       final SmtAstPatternSelection pChildPatterns,
       boolean pConsiderPatternsInReverse) {
@@ -339,8 +371,9 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
       final SmtAstPattern argPattern = pItPatternsInSequence.next();
       final SmtAstMatchResult functionArgumentResult = internalPerform(
-            argPattern,
-            childFormula);
+            childFormula,
+            pBoundQuantifiedVariables,
+            argPattern);
 
       if (functionArgumentResult.matches()) {
         argPatternsMatched.add(argPattern);

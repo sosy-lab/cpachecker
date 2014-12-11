@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -39,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaMan
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
-
 
 public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
@@ -153,7 +157,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testOnSafeTrace1() {
+  public void testOnSafeTrace1() throws SolverException, InterruptedException {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _i = ifm.makeVariable("i");
     BooleanFormula _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
@@ -172,11 +176,12 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
     // Application of rules EXISTS and EXISTS_RIGHT?
 
-    enp.extractNewPreds(_safeWp1);
+    List<BooleanFormula> result = enp.extractNewPreds(_safeWp1);
+    assertThat(result).isNotEmpty();
   }
 
   @Test
-  public void testOnErrorTrace() {
+  public void testOnErrorTrace() throws SolverException, InterruptedException {
     //    (and (= i2 0)
     //        (not (= (select b0 i2) 0))
     //        (>= i2 al0)
@@ -184,7 +189,8 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     //        (= i1 (+ i2 1))
     //        (= (select b0 i1) 0)
     //        (>= i1 al0)
-    enp.extractNewPreds(_errorTrace);
+    List<BooleanFormula> result = enp.extractNewPreds(_errorTrace);
+    assertThat(result).isNotEmpty();
   }
 
 }

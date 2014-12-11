@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
@@ -70,7 +71,7 @@ public class ExtractNewPreds {
     return mgrv.extractAtoms(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
-  private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) {
+  private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
     final List<BooleanFormula> result = Lists.newArrayList();
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
@@ -107,7 +108,8 @@ public class ExtractNewPreds {
 
           if (!isElimOrEq || tupleContainsAnyNoneBasePredicate) {
             // Conclude new, general, predicates.
-            List<BooleanFormula> concluded = ruleEngine.concludeWithSingleRule(tuple, rule);
+            Collection<BooleanFormula> concluded = rule.applyWithInputRelatingPremises(tuple);
+            assert concluded != null;
 
             // Store predicates according to their priority.
             //    Put the new predicates (that are more general than the predicates in the premise)
@@ -155,8 +157,10 @@ public class ExtractNewPreds {
    *          Formula consists of a conjunction of atoms; disjunctions are not considered explicitly.
    *
    * @return  List of predicates in ascending order (predicates with higher priority first)
+   * @throws InterruptedException
+   * @throws SolverException
    */
-  public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) {
+  public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) throws SolverException, InterruptedException {
     // Start with the list of basic predicates
     //  (extracted from the conjunctive formula)
     Collection<BooleanFormula> atoms = extractAtoms(pConjunctiveFormula);

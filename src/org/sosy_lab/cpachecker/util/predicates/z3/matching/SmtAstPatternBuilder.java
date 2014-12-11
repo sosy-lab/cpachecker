@@ -31,6 +31,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
@@ -221,17 +222,18 @@ public class SmtAstPatternBuilder {
         defaultBindings);
   }
 
-  public static SmtAstPattern matchExistsQuant(Set<String> pQuantifiedVariableBoundAs, SmtAstPatternSelection pBodyMatchers) {
-    return null;
+  public static SmtAstPattern matchExistsQuant(SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.EXISTS),
+        Optional.<String>absent(),
+        pBodyMatchers);
   }
 
-  public static SmtAstPattern matchForallQuant(Set<String> pQuantifiedVariableBoundAs, SmtAstPatternSelection pBodyMatchers) {
-//    return new SmtFunctionApplicationPattern(
-//        Optional.<Comparable<?>>of("forall"),
-//        Optional.<String>absent(),
-//        pBodyMatchers);
-
-    return null;
+  public static SmtAstPattern matchForallQuant(SmtAstPatternSelection pBodyMatchers) {
+    return new SmtQuantificationPattern(
+        Optional.of(QuantifierType.FORALL),
+        Optional.<String>absent(),
+        pBodyMatchers);
   }
 
   public static SmtAstPattern matchInSubtree(SmtAstPattern pPattern) {
@@ -247,6 +249,10 @@ public class SmtAstPatternBuilder {
     }
 
     throw new UnsupportedOperationException("Subtree matching not (yet) available for the requested pattern class!");
+  }
+
+  public static String quantified(String pVariableName) {
+    return "." + pVariableName;
   }
 
 }

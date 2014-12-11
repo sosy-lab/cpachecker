@@ -36,11 +36,13 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
 
   private final Multimap<SmtAstPattern, Formula> argumentPatternMatches;
   private final Multimap<String, Formula> variableBindings;
+  private final Multimap<Formula, String> variableBindingsReverse;
   private Formula matchingRootFormula;
 
   public SmtAstMatchResultImpl() {
     this.argumentPatternMatches = HashMultimap.create();
     this.variableBindings = HashMultimap.create();
+    this.variableBindingsReverse = HashMultimap.create();
   }
 
   public void putMatchingArgumentFormula(SmtAstPattern pArgumentPattern, Formula pMatchingFormula) {
@@ -53,6 +55,7 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
 
   public void putBoundVaribale(String pVariable, Formula pBoundFormula) {
     variableBindings.put(pVariable, pBoundFormula);
+    variableBindingsReverse.put(pBoundFormula, pVariable);
   }
 
   @Override
@@ -97,6 +100,11 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
 
     this.argumentPatternMatches.putAll(sr.argumentPatternMatches);
     this.variableBindings.putAll(sr.variableBindings);
+  }
+
+  @Override
+  public Collection<String> getFormulaBindings(Formula pFormula) {
+    return variableBindingsReverse.get(pFormula);
   }
 
 }
