@@ -85,17 +85,11 @@ class RunExecutor():
             logging.warning("Cannot limit the number of CPU cores without cpuset cgroup.")
         else:
             # Read available cpus:
-            self.cpus = [] # list of available CPU cores
             cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
-            for cpu in cpuStr.split(','):
-                cpu = cpu.split('-')
-                if len(cpu) == 1:
-                    self.cpus.append(int(cpu[0]))
-                elif len(cpu) == 2:
-                    start, end = cpu
-                    self.cpus.extend(range(int(start), int(end)+1))
-                else:
-                    logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
+            try:
+                self.cpus = Util.parseIntList(cpuStr)
+            except ValueError as e:
+                logging.warning("Could not read available CPU cores from kernel: {0}".format(e.strerror))
 
             logging.debug("List of available CPU cores is {0}.".format(self.cpus))
 
@@ -389,7 +383,7 @@ class RunExecutor():
             if myCpuCount == 0:
                 sys.exit("Cannot execute run without any CPU core")
             if not set(myCpus).issubset(self.cpus):
-                sys.exit("Cores {0} are not allowed to be used".format(set(myCpus).difference(self.cpus)))
+                sys.exit("Cores {0} are not allowed to be used".format(list(set(myCpus).difference(self.cpus))))
         else:
             try:
                 myCpuCount = multiprocessing.cpu_count()

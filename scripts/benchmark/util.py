@@ -162,6 +162,25 @@ def formatNumber(number, numberOfDigits):
     return "%.{0}f".format(numberOfDigits) % number
 
 
+def parseIntList(s):
+    """
+    Parse a comma-separated list of strings.
+    The list may additionally contain ranges such as "1-5",
+    which will be expanded into "1,2,3,4,5".
+    """
+    result = []
+    for item in s.split(','):
+        item = item.strip().split('-')
+        if len(item) == 1:
+            result.append(int(item[0]))
+        elif len(item) == 2:
+            start, end = item
+            result.extend(range(int(start), int(end)+1))
+        else:
+            raise ValueError("invalid range: '{0}'".format(s))
+    return result
+
+
 def expandFileNamePattern(pattern, baseDir):
     """
     Expand a file name pattern containing wildcards, environment variables etc.
