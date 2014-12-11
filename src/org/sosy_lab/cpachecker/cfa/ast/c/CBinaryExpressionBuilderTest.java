@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
@@ -50,12 +49,8 @@ import com.google.common.collect.ImmutableList;
 public class CBinaryExpressionBuilderTest {
 
   @Parameters(name="{0}")
-  public static List<Object[]> getMachineModels() {
-    List<Object[]> result = new ArrayList<>();
-    for (MachineModel model : MachineModel.values()) {
-      result.add(new Object[] { model });
-    }
-    return result;
+  public static Object[] getMachineModels() {
+    return MachineModel.values();
   }
 
   @Parameter(0)

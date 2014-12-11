@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 public class MachineModelTest {
 
   @Parameters(name="{4}: {0}")
-  public static List<Object[]> machineModels() {
+  public static Object[][] machineModels() {
     Object[][] types = new Object[][] {
         // type          // size in bits // min value // max value
         {CNumericTypes.BOOL,          8,           0L,          1L},
@@ -64,7 +63,7 @@ public class MachineModelTest {
       }
     }
 
-    return Arrays.asList(result);
+    return result;
   }
 
   @Parameter(0)

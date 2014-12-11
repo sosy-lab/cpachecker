@@ -25,14 +25,10 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -89,18 +85,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification="test code")
 public abstract class SolverBasedTest0 {
-
-  /**
-   * Return a list of all solvers in a format suitable for a
-   * {@link Parameters} method.
-   */
-  protected static List<Object[]> allSolversAsParameters() {
-    List<Object[]> result = new ArrayList<>();
-    for (Solvers solver : Solvers.values()) {
-      result.add(new Object[] { solver });
-    }
-    return result;
-  }
 
   protected Configuration config;
   protected final LogManager logger = TestLogManager.getInstance();
