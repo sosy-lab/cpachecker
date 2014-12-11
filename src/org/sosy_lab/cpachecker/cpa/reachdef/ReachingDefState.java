@@ -488,12 +488,21 @@ public class ReachingDefState implements AbstractState, Serializable,
   private String createStringOfMap(Map<String, Set<DefinitionPoint>> map) {
     StringBuilder sb = new StringBuilder();
     sb.append(" [");
+
+    boolean first=true;
+
     for (Entry<String, Set<DefinitionPoint>> entry : map.entrySet()) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+
       sb.append(" (");
       sb.append(entry.getKey());
       sb.append(": [");
       Joiner.on("; ").appendTo(sb, entry.getValue());
-      sb.append("]), ");
+      sb.append("])");
     }
     sb.append("]");
     return sb.toString();
