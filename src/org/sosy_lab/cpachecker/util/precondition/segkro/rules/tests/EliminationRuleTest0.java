@@ -33,14 +33,10 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -53,21 +49,8 @@ public class EliminationRuleTest0 extends SolverBasedTest0 {
   private SmtAstMatcher matcher;
   private Solver solver;
   private FormulaManagerView mgrv;
-  private ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
   private EliminationRule er;
-
-  private IntegerFormula _0;
-  private IntegerFormula _1;
-  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
-  private IntegerFormula _i;
-  private BooleanFormula _b_at_i_plus_1_EQ_0;
-  private BooleanFormula _b_at_i_NOTEQ_0;
-  private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
-  private BooleanFormula _b_at_i_EQ_0;
-  private BooleanFormula _0_EQ_b_at_i_plus_1;
 
   @Override
   protected Solvers solverToUse() {
@@ -77,27 +60,10 @@ public class EliminationRuleTest0 extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     mgrv = new FormulaManagerView(mgr, config, logger);
-    afm = mgrv.getArrayFormulaManager();
-    bfm = mgrv.getBooleanFormulaManager();
-    ifm = mgrv.getIntegerFormulaManager();
     solver = new Solver(mgrv, factory);
 
     matcher = new Z3AstMatcher(logger, mgr, mgrv);
     er = new EliminationRule(mgr, mgrv, solver, matcher);
-
-    setupTestData();
-  }
-
-  private void setupTestData() {
-    _0 = ifm.makeNumber(0);
-    _1 = ifm.makeNumber(1);
-    _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-    _i = ifm.makeVariable("i");
-
-    _b_at_i_EQ_0 = ifm.equal(_0, afm.select(_b, _i));
-    _0_EQ_b_at_i_plus_1 = ifm.equal(_0, afm.select(_b, ifm.add(_i, _1)));
-    _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
-    _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
   }
 
   @Test
@@ -111,8 +77,6 @@ public class EliminationRuleTest0 extends SolverBasedTest0 {
     IntegerFormula _0 = imgr.makeNumber(0);
 
     // Formulas for the premise
-    BooleanFormula _c1_GT_0 = imgr.greaterThan(_c1, _0);
-    BooleanFormula _c2_GT_0 = imgr.greaterThan(_c2, _0);
     BooleanFormula _c1_times_ex_plus_e1_GEQ_0
       = imgr.greaterOrEquals(
           imgr.add(
