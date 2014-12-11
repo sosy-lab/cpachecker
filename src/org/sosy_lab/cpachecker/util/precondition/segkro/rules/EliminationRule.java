@@ -42,15 +42,14 @@ import com.google.common.collect.Lists;
 
 public class EliminationRule extends PatternBasedRule {
 
-  private final IntegerFormula zero;
-
   public EliminationRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
     super(pFm, pFmv, pSolver, pMatcher);
-    zero = fm.getIntegerFormulaManager().makeNumber(0);
   }
 
   @Override
   protected void setupPatterns() {
+    final IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
+
     premises.add(new PatternBasedPremise(
         withDefaultBinding("c1",  zero,
           or(
@@ -89,6 +88,7 @@ public class EliminationRule extends PatternBasedRule {
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+    final IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
     final IntegerFormula c1 = (IntegerFormula) pAssignment.get("c1");
     final IntegerFormula c2 = (IntegerFormula) pAssignment.get("c2");
     final IntegerFormula e1 = (IntegerFormula) pAssignment.get("e1");

@@ -23,16 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
-import static org.junit.Assert.*;
-
-import java.util.ArrayList;
-import java.util.Set;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
@@ -62,53 +58,6 @@ public class RulesTest0 extends SolverBasedTest0 {
     mgrv = new FormulaManagerView(mgr, config, logger);
     matcher = new Z3AstMatcher(logger, mgr, mgrv);
     solver = new Solver(mgrv, factory);
-  }
-
-  @Test
-  public void testElim1() throws SolverException, InterruptedException {
-
-    IntegerFormula _c1 = mgrv.makeVariable(NumeralType.IntegerType, "c1");
-    IntegerFormula _c2 = mgrv.makeVariable(NumeralType.IntegerType, "c2");
-    IntegerFormula _e1 = mgrv.makeVariable(NumeralType.IntegerType, "e1");
-    IntegerFormula _e2 = mgrv.makeVariable(NumeralType.IntegerType, "e2");
-    IntegerFormula _eX = mgrv.makeVariable(NumeralType.IntegerType, "eX");
-    IntegerFormula _0 = imgr.makeNumber(0);
-
-    // Formulas for the premise
-    BooleanFormula _c1_GT_0 = imgr.greaterThan(_c1, _0);
-    BooleanFormula _c2_GT_0 = imgr.greaterThan(_c2, _0);
-    BooleanFormula _c1_times_ex_plus_e1_GEQ_0
-      = imgr.greaterOrEquals(
-          imgr.add(
-              imgr.multiply(_c1, _eX),
-              _e1),
-          _0);
-    BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0
-      = imgr.greaterOrEquals(
-          imgr.add(
-              imgr.multiply(
-                  imgr.subtract(_0, _c2),
-                  _eX),
-              _e2),
-          _0);
-
-    // The formula that is expected as conclusion
-    BooleanFormula _c2_times_e1_minus_c1_times_e2_GEQ_0
-      = imgr.greaterOrEquals(
-          imgr.subtract(
-              imgr.multiply(_c2, _e1),
-              imgr.multiply(_c1, _e2)),
-          _0);
-
-    // Check if the expected conclusion is implied by the conjunction of the premises
-    ArrayList<BooleanFormula> premiseList = Lists.newArrayList(bmgr.not(_c1_GT_0), bmgr.not(_c2_GT_0), _c1_times_ex_plus_e1_GEQ_0, _minus_c2_times_ex_plus_e2_GEQ_0);
-    BooleanFormula premise = bmgr.and(premiseList);
-
-    BooleanFormula check = bmgr.and(premise, _c2_times_e1_minus_c1_times_e2_GEQ_0);
-    assertFalse(solver.isUnsat(check));
-
-    EliminationRule elimRule = new EliminationRule(mgr, mgrv, solver, matcher);
-    Set<BooleanFormula> concluded = elimRule.apply(Lists.newArrayList(_c1_GT_0, _c2_GT_0, _c1_times_ex_plus_e1_GEQ_0, _minus_c2_times_ex_plus_e2_GEQ_0));
   }
 
   @Test
