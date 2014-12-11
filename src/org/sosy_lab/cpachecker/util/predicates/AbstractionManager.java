@@ -24,9 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -61,54 +65,27 @@ import com.google.common.collect.Maps;
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
 
-  public static interface AbstractionPredicatesMXBean {
-
-    int getNumberOfPredicates();
-
-    String getPredicates();
-  }
-
-  private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
-
-    public AbstractionPredicatesMBean() {
-      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
-      register();
-    }
-
-    @Override
-    public int getNumberOfPredicates() {
-      return numberOfPredicates;
-    }
-
-    @Override
-    public String getPredicates() {
-      // TODO this may run into a ConcurrentModificationException
-      return Joiner.on('\n').join(absVarToPredicate.values());
-    }
-  }
-
-  private volatile int numberOfPredicates = 0;
-
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
-
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate = Maps.newHashMap();
   // and the mapping symbolic variable -> predicate
   private final Map<BooleanFormula, AbstractionPredicate> symbVarToPredicate = Maps.newHashMap();
   // and the mapping atom -> predicate
   private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
-
+  // and the mapping varID -> predicate
+  private final Map<Integer, AbstractionPredicate> varIDToPredicate = Maps
+      .newHashMap();
+  private final Map<Region, BooleanFormula> toConcreteCache;
+  private volatile int numberOfPredicates = 0;
   @Option(secure=true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
-
-  private final Map<Region, BooleanFormula> toConcreteCache;
-
   private BooleanFormulaManagerView bfmgr;
 
   public AbstractionManager(RegionManager pRmgr, FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+      Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this, AbstractionManager.class);
     logger = pLogger;
     rmgr = pRmgr;
@@ -129,22 +106,81 @@ public final class AbstractionManager {
   }
 
   /**
-   * creates a Predicate from the Boolean symbolic variable (var) and
-   * the atom that defines it
+   * creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it
    */
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
+
     if (result == null) {
-      BooleanFormula symbVar = fmgr.createPredicateVariable("PRED"+numberOfPredicates++);
+      BooleanFormula symbVar =
+          fmgr.createPredicateVariable("PRED" + numberOfPredicates);
       Region absVar = rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", symbVar, "and atom", atom);
 
-      result = new AbstractionPredicate(absVar, symbVar, atom);
+      result =
+          new AbstractionPredicate(absVar, symbVar, atom,
+              numberOfPredicates); // TODO
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
+      varIDToPredicate.put(numberOfPredicates, result);
+      numberOfPredicates++;
+
+      int[][] similarities =
+          new int[numberOfPredicates][numberOfPredicates];
+      for (int i = 0; i < similarities.length; i++) {
+        for (int j = 0; j < similarities[i].length; j++) {
+          Set<String> firstPredVars =
+              fmgr.extractVariableNames(varIDToPredicate.get(i)
+                  .getSymbolicAtom());
+          Set<String> secondPredVars =
+              fmgr.extractVariableNames(varIDToPredicate.get(j)
+                  .getSymbolicAtom());
+          firstPredVars.retainAll(secondPredVars);
+          similarities[i][j] = firstPredVars.size();
+        }
+      }
+
+      List<ArrayList<Integer>> partitions = new ArrayList<>();
+      int[] setIds = new int[numberOfPredicates];
+      int nextSetId = 1;
+      for (int i = 0; i < setIds.length; i++) {
+        int thisSetID;
+        ArrayList<Integer> thisPartition = new ArrayList<>();
+        if (setIds[i] == 0) {
+          setIds[i] = nextSetId;
+          thisSetID = nextSetId++;
+          thisPartition = new ArrayList<>();
+          partitions.add(thisPartition);
+          thisPartition.add(i);
+        } else {
+          thisSetID = setIds[i];
+        }
+        for (int j = i + 1; j < similarities[i].length; j++) {
+          if (similarities[i][j] > 0) {
+            setIds[j] = thisSetID;
+            thisPartition.add(j);
+          }
+        }
+      }
+      Collections.sort(partitions, new Comparator<ArrayList<Integer>>() {
+
+        @Override
+        public int compare(ArrayList<Integer> pArg0,
+            ArrayList<Integer> pArg1) {
+          return pArg0.size() - pArg1.size();
+        }
+
+      });
+
+      ArrayList<Integer> order = new ArrayList<>(numberOfPredicates);
+      for (ArrayList<Integer> list : partitions) {
+        order.addAll(list);
+      }
+
+      rmgr.setVarOrder(order);
     }
     return result;
   }
@@ -158,20 +194,25 @@ public final class AbstractionManager {
 
   /**
    * Get predicate corresponding to a variable.
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
+   *
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate
+   * earlier.
    * @return a Predicate
    */
   private AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
-    if (result == null) { throw new IllegalArgumentException(var
-        + " seems not to be a formula corresponding to a single predicate variable."); }
+    if (result == null) {
+      throw new IllegalArgumentException(
+          var
+              + " seems not to be a formula corresponding to a single predicate variable.");
+    }
     return result;
   }
 
   /**
-   * Given an abstract formula (which is a BDD over the predicates), build
-   * its concrete representation (which is a symbolic formula corresponding
-   * to the BDD, in which each predicate is replaced with its definition)
+   * Given an abstract formula (which is a BDD over the predicates), build its concrete representation (which is a
+   * symbolic formula corresponding to the BDD,
+   * in which each predicate is replaced with its definition)
    */
   public BooleanFormula toConcrete(Region af) {
     if (rmgr instanceof SymbolicRegionManager) {
@@ -265,20 +306,20 @@ public final class AbstractionManager {
   }
 
   /**
-   * checks whether the data region represented by f1
-   * is a subset of that represented by f2
+   * checks whether the data region represented by f1 is a subset of that represented by f2
+   *
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
+  public boolean entails(Region f1, Region f2) throws SolverException,
+      InterruptedException {
     return rmgr.entails(f1, f2);
   }
 
   /**
-   * Return the set of predicates that occur in a a region.
-   * In some cases, this method also returns the predicate 'false'
-   * in the set.
+   * Return the set of predicates that occur in a a region. In some cases, this method also returns the predicate
+   * 'false' in the set.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();
@@ -324,6 +365,35 @@ public final class AbstractionManager {
 
   public RegionCreator getRegionCreator() {
     return new RegionCreator();
+  }
+
+  public static interface AbstractionPredicatesMXBean {
+
+    int getNumberOfPredicates();
+
+    String getPredicates();
+  }
+
+  private class AbstractionPredicatesMBean extends AbstractMBean implements
+      AbstractionPredicatesMXBean {
+
+    public AbstractionPredicatesMBean() {
+      super(
+          "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
+          logger);
+      register();
+    }
+
+    @Override
+    public int getNumberOfPredicates() {
+      return numberOfPredicates;
+    }
+
+    @Override
+    public String getPredicates() {
+      // TODO this may run into a ConcurrentModificationException
+      return Joiner.on('\n').join(absVarToPredicate.values());
+    }
   }
 
   public class RegionCreator {

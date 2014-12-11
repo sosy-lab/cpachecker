@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
@@ -146,7 +147,7 @@ public interface RegionManager {
    *         branch and the else branch
    */
   public Triple<Region, Region, Region>
-      getIfThenElse(Region f);
+  getIfThenElse(Region f);
 
   /**
    * Prints some information about the RegionManager.
@@ -162,6 +163,8 @@ public interface RegionManager {
    * Return a new {@link RegionBuilder} instance.
    */
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
+
+  public void setVarOrder(ArrayList<Integer> pOrder);
 
   /**
    * A stateful region builder for regions that are disjunctions

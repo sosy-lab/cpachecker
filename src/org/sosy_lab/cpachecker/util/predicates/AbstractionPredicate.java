@@ -36,16 +36,20 @@ public class AbstractionPredicate {
   private final Region abstractVariable;
   private final BooleanFormula symbolicVariable;
   private final BooleanFormula symbolicAtom;
+  private final int variableNumber;
 
   AbstractionPredicate(Region pAbstractVariable,
-      BooleanFormula pSymbolicVariable, BooleanFormula pSymbolicAtom) {
+      BooleanFormula pSymbolicVariable, BooleanFormula pSymbolicAtom,
+      int variableNumber) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);
     symbolicAtom = Preconditions.checkNotNull(pSymbolicAtom);
+    this.variableNumber = variableNumber;
   }
 
   /**
    * Returns an formula representing this predicate.
+   *
    * @return an abstract formula
    */
   public Region getAbstractVariable() {
@@ -80,5 +84,9 @@ public class AbstractionPredicate {
   @Override
   public String toString() {
     return abstractVariable + " <-> " + symbolicVariable + " <-> " + symbolicAtom;
+  }
+
+  public int getVariableNumber() {
+    return variableNumber;
   }
 }

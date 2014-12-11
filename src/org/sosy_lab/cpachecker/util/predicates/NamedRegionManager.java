@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -51,15 +52,12 @@ import com.google.common.collect.HashBiMap;
  */
 public class NamedRegionManager implements RegionManager {
 
-  private final RegionManager delegate;
-
-  private final BiMap<String, Region> regionMap = HashBiMap.create();
-
   private static final String ANONYMOUS_PREDICATE = "__anon_pred";
-  private int anonymousPredicateCounter = 0;
-
+  private final RegionManager delegate;
+  private final BiMap<String, Region> regionMap = HashBiMap.create();
   /** counter needed for nodes in dot-output */
   int nodeCounter;
+  private int anonymousPredicateCounter = 0;
 
   public NamedRegionManager(RegionManager pDelegate) {
     delegate = checkNotNull(pDelegate);
@@ -243,6 +241,11 @@ public class NamedRegionManager implements RegionManager {
   @Override
   public RegionBuilder builder(ShutdownNotifier pShutdownNotifier) {
     return delegate.builder(pShutdownNotifier);
+  }
+
+  @Override
+  public void setVarOrder(ArrayList<Integer> pOrder) {
+
   }
 
   @Override
