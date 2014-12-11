@@ -45,7 +45,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -113,14 +112,14 @@ public class PredicatePrecision implements Precision {
   /**
    * Return a map view of the location-specific predicates of this precision.
    */
-  public SetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
+  public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
     return mLocalPredicates;
   }
 
   /**
    * Return a map view of the function-specific predicates of this precision.
    */
-  public SetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+  public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
     return mFunctionPredicates;
   }
 
