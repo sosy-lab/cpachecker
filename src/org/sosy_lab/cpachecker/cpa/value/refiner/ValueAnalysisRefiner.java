@@ -170,16 +170,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
       return false;
     }
 
-    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+    ValueAnalysisInterpolationTree interpolationTree = obtainInterpolants(targets);
 
-    while (interpolationTree.hasNextPathForInterpolation()) {
-      performInterpolation(interpolationTree);
-    }
+    refineUsingInterpolants(pReached, interpolationTree);
 
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
-    }
+    totalTime.stop();
+    return true;
+  }
 
+  private void refineUsingInterpolants(final ARGReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     for (ARGState root : interpolationTree.obtainRefinementRoots(restartStrategy)) {
       List<Precision> precisions = new ArrayList<>(2);
@@ -206,16 +205,27 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
+  }
 
-    totalTime.stop();
-    return true;
+  private ValueAnalysisInterpolationTree obtainInterpolants(Collection<ARGState> targets) throws CPAException,
+      InterruptedException {
+    ValueAnalysisInterpolationTree interpolationTree = new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+
+    while (interpolationTree.hasNextPathForInterpolation()) {
+      performPathInterpolation(interpolationTree);
+    }
+
+    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL") && !exportInterpolationTree.equals("ALWAYS")) {
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+    }
+    return interpolationTree;
   }
 
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
     return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), PredicatePrecision.class) != null;
   }
 
-  private void performInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
+  private void performPathInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException, InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
     if (errorPath == null) {
