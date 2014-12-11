@@ -161,7 +161,7 @@ class RunExecutor():
         return cgroups
 
 
-    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, runningDir):
+    def _execute(self, args, outputFileName, cgroups, hardtimelimit, softtimelimit, myCpuCount, memlimit, environments, workingDir):
         """
         This method executes the command line and waits for the termination of it. 
         """
@@ -223,7 +223,7 @@ class RunExecutor():
         try:
             p = subprocess.Popen(args,
                                  stdout=outputFile, stderr=outputFile,
-                                 env=runningEnv, cwd=runningDir,
+                                 env=runningEnv, cwd=workingDir,
                                  preexec_fn=preSubprocess)
 
         except OSError as e:
@@ -351,7 +351,7 @@ class RunExecutor():
 
     def executeRun(self, args, outputFileName,
                    hardtimelimit=None, softtimelimit=None, myCpus=None, memlimit=None,
-                   environments={}, runningDir=None, maxLogfileSize=None):
+                   environments={}, workingDir=None, maxLogfileSize=None):
         """
         This function executes a given command with resource limits,
         and writes the output to a file.
@@ -362,6 +362,7 @@ class RunExecutor():
         @param myCpus: None or a list of the CPU cores to use
         @param memlimit: None or memory limit in bytes
         @param environments: special environments for running the command
+        @param workingDir: None or a directory which the execution should use as working directory
         @param maxLogfileSize: None or a number of bytes to which the output of the tool should be truncated approximately if there is too much output.
         @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
         """
@@ -395,6 +396,14 @@ class RunExecutor():
             if memlimit <= 0:
                 sys.exit("Invalid memory limit {0}.".format(memlimit))
 
+        if workingDir:
+            if not os.path.exists(workingDir):
+                sys.exit("Working directory {0} does not exist.".format(workingDir))
+            if not os.path.isdir(workingDir):
+                sys.exit("Working directory {0} is not a directory.".format(workingDir))
+            if not os.access(workingDir, os.X_OK):
+                sys.exit("Permission denied for working directory {0}.".format(workingDir))
+
         logging.debug("executeRun: setting up Cgroups.")
         cgroups = self._setupCGroups(args, myCpus, memlimit)
 
@@ -403,7 +412,7 @@ class RunExecutor():
             (returnvalue, wallTime, cpuTime, energy) = \
                 self._execute(args, outputFileName, cgroups,
                               hardtimelimit, softtimelimit, myCpuCount, memlimit,
-                              environments, runningDir)
+                              environments, workingDir)
 
             logging.debug("executeRun: getting exact measures.")
             (cpuTime, memUsage) = self._getExactMeasures(cgroups, returnvalue, wallTime, cpuTime)

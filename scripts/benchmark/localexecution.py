@@ -195,7 +195,7 @@ class _Worker(threading.Thread):
                 myCpus=myCpus,
                 memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
-                runningDir=benchmark.workingDirectory(),
+                workingDir=benchmark.workingDirectory(),
                 maxLogfileSize=maxLogfileSize)
         run.values['memUsage'] = memUsage
         run.values['energy'] = energy

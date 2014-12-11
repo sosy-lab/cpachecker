@@ -104,7 +104,7 @@ def main(argv=None):
                             softtimelimit=options.softtimelimit,
                             memlimit=options.memlimit,
                             environments=env,
-                            runningDir=options.dir,
+                            workingDir=options.dir,
                             maxLogfileSize=options.maxOutputSize)
 
     # exitCode is a special number:
