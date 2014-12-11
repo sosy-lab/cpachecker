@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,6 +72,10 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @IntegerOption(min=-1)
   private int hardThreshold = -1;
 
+  @Option(secure=true, description="This option determines if there should be a single assignment state per transition (more precise)"
+      + " or per path segment between assume edges (more efficient).")
+  private boolean precise = true;
+
   /**
    * the maximal number of assignments over all variables for all elements seen to far
    */
@@ -93,7 +98,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pElement, CFAEdge pEdge) {
-    UniqueAssignmentsInPathConditionState current   = (UniqueAssignmentsInPathConditionState)pElement;
+
+    UniqueAssignmentsInPathConditionState current = (UniqueAssignmentsInPathConditionState)pElement;
+
+    if (!precise && pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
+      return current;
+    }
 
     UniqueAssignmentsInPathConditionState successor = new UniqueAssignmentsInPathConditionState(current.maximum,
         HashMultimap.create(current.mapping));
@@ -120,7 +130,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     out.println("Threshold value (soft):     " + softThreshold);
     out.println("Threshold value (hard):     " + hardThreshold);
     out.println("Max. number of assignments: " + maxNumberOfAssignments);
-
   }
 
   public class UniqueAssignmentsInPathConditionState implements AbstractState, AvoidanceReportingState {

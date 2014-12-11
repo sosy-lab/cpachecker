@@ -701,6 +701,11 @@ cpa.conditions.global.time.wall.hardlimit = -1
 # it is contained in the precision.
 cpa.conditions.path.assignments.hardThreshold = -1
 
+# This option determines if there should be a single assignment state per
+# transition (more precise) or per path segment between assume edges (more
+# efficient).
+cpa.conditions.path.assignments.precise = true
+
 # This option sets the soft threshold for assignments (-1 for infinite). The
 # semantics are that variables are tracked up to this threshold, even if not
 # being contained in the precison yet, and are removed once there are more
