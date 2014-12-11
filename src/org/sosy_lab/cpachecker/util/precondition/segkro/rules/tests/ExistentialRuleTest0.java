@@ -99,6 +99,7 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
 
     _b_at_i_EQ_0 = ifm.equal(_0, afm.select(_b, _i));
     _0_EQ_b_at_i_plus_1 = ifm.equal(_0, afm.select(_b, ifm.add(_i, _1)));
+    _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
     _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
     _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
   }
@@ -124,8 +125,14 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
     assertThat(p2).isInstanceOf(PatternBasedPremise.class);
     PatternBasedPremise pp2 = (PatternBasedPremise) p2;
 
-    SmtAstMatchResult result = matcher.perform(pp2.getPatternSelection(), _b_at_i_plus_1_EQ_0);
-    assertThat(result.matches()).isTrue();
+    {
+      SmtAstMatchResult result = matcher.perform(pp2.getPatternSelection(), _b_at_i_plus_1_EQ_0);
+      assertThat(result.matches()).isFalse();
+    }
+    {
+      SmtAstMatchResult result = matcher.perform(pp2.getPatternSelection(), _b_at_i_plus_1_NOTEQ_0);
+      assertThat(result.matches()).isTrue();
+    }
   }
 
   @Test
