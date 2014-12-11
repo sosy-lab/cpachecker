@@ -447,7 +447,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
     if (argPatternsMatched.size() != pChildPatterns.getPatterns().size()
         && logic.isAnd()) {
-      assert false; // might be dead code
+      // assert false; // might be dead code
       return newMatchFailedResult("No match but ALL should!");
     }
 

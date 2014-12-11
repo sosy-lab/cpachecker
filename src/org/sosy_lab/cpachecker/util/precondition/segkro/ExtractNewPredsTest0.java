@@ -174,7 +174,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     //      (<= (+ i 1) 0)
     //      (= (select b (+ i 1)) 0))
 
-    // Application of rules EXISTS and EXISTS_RIGHT?
+    // Application of rules EXISTS and EXTEND_RIGHT?
 
     List<BooleanFormula> result = enp.extractNewPreds(_safeWp1);
     assertThat(result).isNotEmpty();

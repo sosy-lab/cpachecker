@@ -72,7 +72,6 @@ public class ExtractNewPreds {
   }
 
   private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
-    final List<BooleanFormula> result = Lists.newArrayList();
     final List<BooleanFormula> resultPredicates = Lists.newArrayList();
     final LinkedList<BooleanFormula> resultPredicatesPrime = Lists.newLinkedList();
 
@@ -138,10 +137,10 @@ public class ExtractNewPreds {
       }
 
       // Fix-point iteration: Until now new predicates are produced.
-    } while(resultPredicates.equals(resultPredicatesPrime)); // TODO: Does this compare what was intended?
+    } while(!resultPredicates.equals(resultPredicatesPrime)); // TODO: Does this compare what was intended?
 
     // Store new predicates according to their priority
-    return result;
+    return resultPredicates;
   }
 
   /**
