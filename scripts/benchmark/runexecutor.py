@@ -419,7 +419,7 @@ class RunExecutor():
 
         if returnvalue not in [0,1]:
             logging.debug("executeRun: analysing output for crash-info.")
-            getDebugOutputAfterCrash(outputFileName)
+            _getDebugOutputAfterCrash(outputFileName)
 
         logging.debug("executeRun: Run execution returns with code {0}, walltime={1}, cputime={2}, memory={3}, energy={4}"
                       .format(returnvalue, wallTime, cpuTime, memUsage, energy))
@@ -473,33 +473,45 @@ def _reduceFileSizeIfNecessary(fileName, maxSize):
             inputFile.readline() # jump to end of current line so that we truncate at line boundaries
 
             # Copy C over B
-            currentLine = inputFile.readline()
-            while currentLine:
-                outputFile.write(currentLine)
-                currentLine = inputFile.readline()
+            _copyAllLinesFromTo(inputFile, outputFile)
 
             outputFile.truncate()
 
 
-def getDebugOutputAfterCrash(outputFileName):
+def _copyAllLinesFromTo(inputFile, outputFile):
+    """
+    Copy all lines from an input file object to an output file object.
+    """
+    currentLine = inputFile.readline()
+    while currentLine:
+        outputFile.write(currentLine)
+        currentLine = inputFile.readline()
+
+
+def _getDebugOutputAfterCrash(outputFileName):
     """
     Segmentation faults and some memory failures reference a file 
-    with more information. We append this file to the log.
+    with more information (hs_err_pid_*). We append this file to the log.
+    The format that we expect is a line
+    "# An error report file with more information is saved as:"
+    and the file name of the dump file on the next line.
     """
-    next = False
-    with open(outputFileName, 'r') as outputFile:
+    foundDumpFile = False
+    with open(outputFileName, 'r+') as outputFile:
         for line in outputFile:
-            if next:
+            if foundDumpFile:
                 try:
-                    dumpFile = line.strip(' #\n')
-                    Util.appendFileToFile(dumpFile, outputFileName)
-                    os.remove(dumpFile)
+                    dumpFileName = line.strip(' #\n')
+                    outputFile.seek(0, os.SEEK_END) # jump to end of log file
+                    with open(dumpFileName, 'r') as dumpFile:
+                        _copyAllLinesFromTo(dumpFile, outputFile)
+                    os.remove(dumpFileName)
                 except IOError as e:
                     logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
                 break
             if unicode(line, errors='ignore').startswith('# An error report file with more information is saved as:'):
                 logging.debug('Going to append error report file')
-                next = True
+                foundDumpFile = True
 
 
 def _readCpuTime(cgroupCpuacct):

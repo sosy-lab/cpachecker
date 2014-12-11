@@ -200,18 +200,6 @@ def getFiles(paths):
     return result if changed else paths
 
 
-def appendFileToFile(sourcename, targetname):
-    source = open(sourcename, 'r')
-    try:
-        target = open(targetname, 'a')
-        try:
-            target.writelines(source.readlines())
-        finally:
-            target.close()
-    finally:
-        source.close()
-
-
 def findExecutable(program, fallback=None, exitOnError=True):
     def isExecutable(programPath):
         return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
