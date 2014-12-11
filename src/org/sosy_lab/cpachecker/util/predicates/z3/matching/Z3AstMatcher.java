@@ -92,6 +92,8 @@ public class Z3AstMatcher implements SmtAstMatcher {
     defineCommutative("and"); // used in the arguments of a quantified predicate
 
     defineFunctionAliases("*", Sets.newHashSet("Integer__*_", "Real__*_"));
+    defineFunctionAliases("-", Sets.newHashSet("Integer__-_", "Real__-_"));
+    defineFunctionAliases("+", Sets.newHashSet("Integer__+_", "Real__+_"));
   }
 
   @Override

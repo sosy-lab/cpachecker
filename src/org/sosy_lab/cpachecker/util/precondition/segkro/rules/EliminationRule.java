@@ -82,7 +82,8 @@ public class EliminationRule extends PatternBasedRule {
   }
 
   @Override
-  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment)
+      throws SolverException, InterruptedException {
     return true;
   }
 

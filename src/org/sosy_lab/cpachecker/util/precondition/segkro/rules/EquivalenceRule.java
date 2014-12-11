@@ -25,10 +25,19 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
 
+import java.util.Collection;
+import java.util.Map;
+
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+
+import com.google.common.collect.Lists;
 
 /**
  * Implementation of the "EQ" inference rule:
@@ -44,21 +53,36 @@ public class EquivalenceRule extends PatternBasedRule {
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(
         and(
-        match(">=",
-            match('-',
-                matchNullaryBind("x"),
-                matchAnyBind("e")),
-            matchNullary("0"))
-        )));
+          match(">=",
+              match("-",
+                  matchNullaryBind("x"),
+                  matchAnyBind("e")),
+              matchNullary("0"))
+          )));
 
     premises.add(new PatternBasedPremise(
         and(
-        match(">=",
-            match('+',
-                match("-", matchNullary("0"), matchNullaryBind("x")),
-                matchAnyBind("e")),
-            matchNullary("0"))
-        )));
+          match(">=",
+              match("+",
+                  match("-", matchNullary("0"), matchNullaryBind("x")),
+                  matchAnyBind("e")),
+              matchNullary("0"))
+          )));
+
   }
 
+  @Override
+  protected boolean satisfiesConstraints(Map<String, Formula> pAssignment)
+      throws SolverException, InterruptedException {
+    return true;
+  }
+
+  @Override
+  protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
+    final IntegerFormula e = (IntegerFormula) pAssignment.get("e");
+    final IntegerFormula x = (IntegerFormula) pAssignment.get("x");
+
+    return Lists.newArrayList(
+        ifm.equal(x, e));
+  }
 }
