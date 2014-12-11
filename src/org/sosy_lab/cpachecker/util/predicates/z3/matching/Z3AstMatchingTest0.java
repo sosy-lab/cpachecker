@@ -31,12 +31,14 @@ import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
@@ -97,9 +99,10 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     setupTestPatterns();
   }
 
-  public void setupMatcher() {
+  public void setupMatcher() throws InvalidConfigurationException {
+    FormulaManagerView fmv = new FormulaManagerView(mgr, config, logger);
     Z3FormulaManager zfm =(Z3FormulaManager) mgr;
-    matcher = new Z3AstMatcher(logger, zfm);
+    matcher = new Z3AstMatcher(logger, zfm, fmv);
   }
 
   public void setupTestFormulas() throws Exception {

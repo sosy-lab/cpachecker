@@ -29,17 +29,23 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -54,15 +60,27 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private final long ctx;
   private final Z3FormulaManager fm;
   private final FormulaCreator<Long, Long, Long> fmc;
+  private final LogManager logger;
+  private final FormulaManagerView fmv;
 
   private Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
   private Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   private Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
-  private LogManager logger;
 
-  public Z3AstMatcher(LogManager pLogger, FormulaManager pFm) {
+  protected static class BoundVariable {
+    final FormulaType<?> variableType;
+    final String variableName;
+
+    public BoundVariable(FormulaType<?> pVariableType, String pVariableName) {
+      variableType = pVariableType;
+      variableName = pVariableName;
+    }
+  }
+
+  public Z3AstMatcher(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv) {
     this.logger = pLogger;
     this.fm = (Z3FormulaManager) pFm;
+    this.fmv = pFmv;
     this.ctx = fm.getEnvironment();
     this.fmc = fm.getFormulaCreator();
 
@@ -83,7 +101,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
   @Override
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
-    return internalPerform(pPatternSelection, pF);
+    return matchSelectionOnOneFormula(pPatternSelection, pF);
   }
 
   private SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
@@ -91,7 +109,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
-  private SmtAstMatchResult internalPerform(final SmtAstPatternSelection pPatternSelection, final Formula pF) {
+  private SmtAstMatchResult matchSelectionOnOneFormula(final SmtAstPatternSelection pPatternSelection, final Formula pF) {
     // TODO: Cache the match result
 
     int matches = 0;
@@ -132,7 +150,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
   }
 
   private SmtAstMatchResult internalPerform(final SmtAstPattern pP, final Formula pRootFormula) {
-    final long ast = fm.extractInfo(pRootFormula);
+
     final SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
     result.setMatchingRootFormula(pRootFormula);
 
@@ -140,14 +158,15 @@ public class Z3AstMatcher implements SmtAstMatcher {
       result.putBoundVaribale(pP.getBindMatchTo().get(), pRootFormula);
     }
 
+    final long ast = fm.extractInfo(pRootFormula);
     final int astKind = get_ast_kind(ctx, ast);
+
     switch (astKind) {
     case Z3_NUMERAL_AST: // handle this as an unary function
-    case Z3_APP_AST:  // k-nary function
+    case Z3_APP_AST:  // k-nary function // -------------------------------------------------
       if (!(pP instanceof SmtFunctionApplicationPattern)) {
         return newMatchFailedResult("No function application!");
       }
-
       SmtFunctionApplicationPattern fp = (SmtFunctionApplicationPattern) pP;
 
       final String functionSymbol;
@@ -157,59 +176,90 @@ public class Z3AstMatcher implements SmtAstMatcher {
         functionSymbol = ast_to_string(ctx, ast);
         functionParameterCount = 0;
       } else {
-        final long functionDeclaration = get_app_decl(ctx, ast);
-        functionSymbol = Z3NativeApiHelpers.getDeclarationSymbolText(ctx, functionDeclaration);
+        functionSymbol = Z3NativeApiHelpers.getDeclarationSymbolText(ctx, get_app_decl(ctx, ast));
         functionParameterCount = get_app_num_args(ctx, ast);
       }
 
-      return handleFunctionApplication(pRootFormula, ast, result, fp, functionSymbol, functionParameterCount);
-    case Z3_VAR_AST:
-    break;
-    case Z3_QUANTIFIER_AST:
-      // Z3_is_quantifier_forall
-      // Z3_get_quantifier_weight
-      // Z3_get_quantifier_body
-      // Z3_get_quantifier_num_bound
-      // Z3_get_quantifier_bound_name
-      // Z3_get_quantifier_bound_sort
-      // Z3_get_quantifier_body
-      int boundCount = get_quantifier_num_bound(ctx, ast);
-      for (int b=0; b<boundCount; b++) {
-
+      final ArrayList<Formula> functionArguments = Lists.newArrayList();
+      for (int i=0; i<functionParameterCount; i++) {
+        final long argAst = get_app_arg(ctx, ast, i);
+        final Formula argFormula = encapsulateAstAsFormula(argAst);
+        functionArguments.add(argFormula);
       }
-      //long bodyAst = get_quantifier_body(ctx, ast);
 
-      // TODO
+      return handleFunctionApplication(pRootFormula, result, fp, functionSymbol, functionArguments);
 
-      break;
+    case Z3_QUANTIFIER_AST: // -------------------------------------------------
+      if (!(pP instanceof SmtQuantificationPattern)) {
+        return newMatchFailedResult("No function application!");
+      }
+      SmtQuantificationPattern qp = (SmtQuantificationPattern) pP;
+
+      SmtQuantificationPattern.QuantifierType quantifierType
+        = is_quantifier_forall(ctx, ast)
+          ? QuantifierType.FORALL
+          : QuantifierType.EXISTS;
+
+      BooleanFormula bodyFormula = (BooleanFormula) encapsulateAstAsFormula(get_quantifier_body(ctx, ast));
+      ArrayList<BoundVariable> boundVariables = getBoundVariables(ast);
+
+      return handleQuantification(pRootFormula, result, qp, quantifierType, boundVariables, bodyFormula);
+
+    case Z3_VAR_AST: // -------------------------------------------------
     case Z3_SORT_AST:
-      // Z3_get_sort_kind
-      // ...
-      break;
-    case Z3_FUNC_DECL_AST:  // search for Z3_func_decl in the API doc
-      // Z3_get_decl_num_parameters
-      // Z3_get_decl_parameter_kind
-      // Z3_get_domain
-      // Z3_get_range
-      // Z3_get_arity
-      // ...
-      break;
-
+    case Z3_FUNC_DECL_AST:
     default:
-      // Unknown AST (Z3_UNKNOWN_AST)
       break;
     }
 
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
+  private ArrayList<BoundVariable> getBoundVariables(final long ast) {
+    final ArrayList<BoundVariable> boundVariables = Lists.newArrayList();
+    final int boundCount = get_quantifier_num_bound(ctx, ast);
+    for (int b=0; b<boundCount; b++) {
+      long boundVariableSort = get_quantifier_bound_sort(ctx, ast, b);
+      FormulaType<?> boundVariableType = ((Z3FormulaCreator) fmc).getFormulaTypeFromSort(boundVariableSort);
+      String boundVariableName = get_symbol_string(ctx, get_quantifier_bound_name(ctx, ast, b));
+
+      boundVariables.add(new BoundVariable(
+          boundVariableType,
+          boundVariableName));
+    }
+    return boundVariables;
+  }
+
+  private Formula encapsulateAstAsFormula(final long ast) {
+    inc_ref(ctx, ast); // TODO: This should be done within 'FormulaCreator.encapsulate'
+    FormulaType<?> formulaType = fmc.getFormulaType(ast);
+    Formula f = fmc.encapsulate(formulaType, ast);
+    return f;
+  }
+
+  private SmtAstMatchResult handleQuantification(Formula pRootFormula, SmtAstMatchResultImpl pResult,
+      SmtQuantificationPattern pQp, QuantifierType pQuantifierType, ArrayList<BoundVariable> pBoundVariables,
+      BooleanFormula pBodyFormula) {
+
+    final List<BooleanFormula> bodyConjuncts = Lists.newArrayList(fmv.extractAtoms(pBodyFormula, false, true));
+
+    SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(pRootFormula, bodyConjuncts, pQp.quantorBodyMatchers, false);
+
+    if (bodyMatchingResult.matches()) {
+      pResult.addSubResults(bodyMatchingResult);
+      return pResult;
+    } else {
+      // Encodes the reason for the failure
+      return bodyMatchingResult;
+    }
+  }
+
   private SmtAstMatchResult handleFunctionApplication(
       final Formula pFunctionRootFormula,
-      final long ast,
       final SmtAstMatchResultImpl result,
       final SmtFunctionApplicationPattern fp,
       final String functionSymbol,
-      final int functionParameterCount) {
+      final ArrayList<Formula> pFunctionArguments) {
 
     // ---------------------------------------------
     // We might consider the reversion version of the function
@@ -235,32 +285,19 @@ public class Z3AstMatcher implements SmtAstMatcher {
     // ---------------------------------------------
     // in case of AND, the number of arguments must match
     if (fp.getArgumentsLogic().isAnd()) {
-      if (fp.getArgumentPatternCount() != functionParameterCount) {
+      if (fp.getArgumentPatternCount() != pFunctionArguments.size()) {
         return SmtAstMatchResult.NOMATCH_RESULT;
       }
     }
 
-    // ---------------------------------------------
-    // Get the given arguments of the function as formula
-    final ArrayList<Formula> functionArguments = Lists.newArrayList();
-    for (int i=0; i<functionParameterCount; i++) {
-      final long argAst = get_app_arg(ctx, ast, i);
-      final FormulaType<?> argFormulaType = fmc.getFormulaType(argAst);
-      final Formula argFormula = fmc.encapsulate(argFormulaType, argAst);
-      inc_ref(ctx, argAst); // TODO: This should be done within 'FormulaCreator.encapsulate'
-
-      functionArguments.add(argFormula);
-    }
-
-
     boolean initialReverseMatching = considerArgumentsInReverse;
 
-    SmtAstMatchResult argumentMatchingResult = matchFunctionArgumentsInSequence(
-        pFunctionRootFormula, fp, functionArguments, fp.getArgumentPatternIterator(initialReverseMatching));
+    SmtAstMatchResult argumentMatchingResult = matchFormulaChildsInSequence(
+        pFunctionRootFormula, pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
 
     if (!argumentMatchingResult.matches() && isCommutative(functionSymbol)) {
-      argumentMatchingResult = matchFunctionArgumentsInSequence(
-          pFunctionRootFormula, fp, functionArguments, fp.getArgumentPatternIterator(!initialReverseMatching));
+      argumentMatchingResult = matchFormulaChildsInSequence(
+          pFunctionRootFormula, pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
     }
 
     if (argumentMatchingResult.matches()) {
@@ -272,60 +309,64 @@ public class Z3AstMatcher implements SmtAstMatcher {
     }
   }
 
-  private SmtAstMatchResult matchFunctionArgumentsInSequence(
-      final Formula applicationFormula,
-      final SmtFunctionApplicationPattern fp,
-      final ArrayList<Formula> functionArguments,
-      Iterator<SmtAstPattern> itPatternsInSequence) {
+  private SmtAstMatchResult matchFormulaChildsInSequence(
+      final Formula pRootFormula,
+      final List<? extends Formula> pChildFormulas,
+      final SmtAstPatternSelection pChildPatterns,
+      boolean pConsiderPatternsInReverse) {
+
+    final LogicalConnection logic = pChildPatterns.getRelationship();
+    final Iterator<SmtAstPattern> pItPatternsInSequence;
+    if (pConsiderPatternsInReverse) {
+      pItPatternsInSequence = Lists.reverse(pChildPatterns.getPatterns()).iterator();
+    } else {
+      pItPatternsInSequence = pChildPatterns.iterator();
+    }
 
     SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
-    result.setMatchingRootFormula(applicationFormula);
+    result.setMatchingRootFormula(pRootFormula);
 
-    if (fp.getArgumentsLogic().isDontCare()) {
+    if (logic.isDontCare()) {
       return result;
     }
 
     // Perform the matching recursively on the arguments
     Set<SmtAstPattern> argPatternsMatched = Sets.newHashSet();
 
-    if (fp.getArgumentsLogic().isOr()) {
-      //
-    }
-
-    for (Formula argFormula: functionArguments) {
-      if (!itPatternsInSequence.hasNext()) {
+    for (Formula childFormula: pChildFormulas) {
+      if (!pItPatternsInSequence.hasNext()) {
         break;
       }
-      final SmtAstPattern argPattern = itPatternsInSequence.next();
+      final SmtAstPattern argPattern = pItPatternsInSequence.next();
       final SmtAstMatchResult functionArgumentResult = internalPerform(
             argPattern,
-            argFormula);
+            childFormula);
 
       if (functionArgumentResult.matches()) {
         argPatternsMatched.add(argPattern);
-        result.putMatchingArgumentFormula(argPattern, argFormula);
+        result.putMatchingArgumentFormula(argPattern, childFormula);
         for (String boundVar: functionArgumentResult.getBoundVariables()) {
           for (Formula varBinding : functionArgumentResult.getVariableBindings(boundVar)) {
             result.putBoundVaribale(boundVar, varBinding);
           }
         }
 
-        if (fp.getArgumentsLogic().isNone()) {
+        if (logic.isNone()) {
           return newMatchFailedResult("Match but NONE should!");
         }
 
-      } else if (fp.getArgumentsLogic().isAnd()) {
+      } else if (logic.isAnd()) {
         return newMatchFailedResult("No match but ALL should!");
       }
 
       if (argPatternsMatched.isEmpty()
-          && fp.getArgumentsLogic().isOr()) {
+          && logic.isOr()) {
         return newMatchFailedResult("No match but ANY should!");
       }
     }
 
-    if (argPatternsMatched.size() != fp.getArgumentPatternCount()
-        && fp.getArgumentsLogic().isAnd()) {
+    if (argPatternsMatched.size() != pChildPatterns.getPatterns().size()
+        && logic.isAnd()) {
       assert false; // might be dead code
       return newMatchFailedResult("No match but ALL should!");
     }

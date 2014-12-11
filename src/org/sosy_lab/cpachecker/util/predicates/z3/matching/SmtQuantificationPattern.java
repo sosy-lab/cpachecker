@@ -28,7 +28,7 @@ import com.google.common.base.Optional;
 
 public class SmtQuantificationPattern implements SmtAstPattern {
 
-  private static enum QuantifierType { FORALL, EXISTS }
+  public static enum QuantifierType { FORALL, EXISTS }
 
   public final Optional<QuantifierType> matchQuantificationWithType;
   public final Optional<String> bindMatchTo;

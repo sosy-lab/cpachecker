@@ -85,7 +85,7 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
     solver = new Solver(mgrv, factory);
 
-    matcher = new Z3AstMatcher(logger, mgr);
+    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     er = new ExistentialRule(mgr, mgrv, solver, matcher);
 
     setupTestData();

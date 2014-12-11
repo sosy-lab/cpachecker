@@ -37,7 +37,7 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
   public final Optional<Comparable<?>> function;
   public final Optional<String> bindMatchTo;
   public final SmtAstPatternSelection argumentPatterns;
-  public final ImmutableSet<SmtAstMatchFlag> flags;
+  public final ImmutableSet<SmtAstMatchFlag> flags; // TODO: Move the flags to SmtAstPatternSelection
 
   public SmtFunctionApplicationPattern(
       Optional<Comparable<?>> pFunction,

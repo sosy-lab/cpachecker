@@ -81,7 +81,7 @@ public class LinkRuleTest0 extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
     solver = new Solver(mgrv, factory);
 
-    matcher = new Z3AstMatcher(logger, mgr);
+    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     lr = new LinkRule(mgr, mgrv, solver, matcher);
 
     setupTestData();

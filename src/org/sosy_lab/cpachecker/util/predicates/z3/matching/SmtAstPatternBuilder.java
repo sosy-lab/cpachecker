@@ -230,6 +230,8 @@ public class SmtAstPatternBuilder {
 //        Optional.<Comparable<?>>of("forall"),
 //        Optional.<String>absent(),
 //        pBodyMatchers);
+
+    return null;
   }
 
   public static SmtAstPattern matchInSubtree(SmtAstPattern pPattern) {

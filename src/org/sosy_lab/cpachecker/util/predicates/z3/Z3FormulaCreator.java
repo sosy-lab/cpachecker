@@ -83,7 +83,7 @@ public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
     return super.getFormulaType(pFormula);
   }
 
-  private FormulaType<?> getFormulaTypeFromSort(Long pSort) {
+  public FormulaType<?> getFormulaTypeFromSort(Long pSort) {
     long z3context = getEnv();
     long sortKind = get_sort_kind(z3context, pSort);
     if (sortKind == Z3_BOOL_SORT) {

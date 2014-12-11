@@ -43,7 +43,7 @@ public class RuleEngine implements Concluding {
   private final List<Rule> rules;
 
   public RuleEngine(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    final SmtAstMatcher matcher = new Z3AstMatcher(pLogger, pFm);
+    final SmtAstMatcher matcher = new Z3AstMatcher(pLogger, pFm, pFmv);
 
     rules = Lists.newArrayList();
     rules.add(new EliminationRule(pFm, pFmv, pSolver, matcher));

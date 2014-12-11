@@ -60,7 +60,7 @@ public class RulesTest0 extends SolverBasedTest0 {
   @Before
   public void setup() throws InvalidConfigurationException {
     mgrv = new FormulaManagerView(mgr, config, logger);
-    matcher = new Z3AstMatcher(logger, mgr);
+    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     solver = new Solver(mgrv, factory);
   }
 
