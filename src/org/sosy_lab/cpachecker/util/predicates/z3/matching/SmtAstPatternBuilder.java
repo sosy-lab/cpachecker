@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPattern.SmtAstMatchFlag;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
@@ -64,6 +65,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern match(Comparable<?> pFunction, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         and(argumentMatchers));
   }
@@ -78,6 +80,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern match(SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         and(argumentMatchers));
   }
@@ -85,6 +88,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
   }
@@ -92,6 +96,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchBind(String pBindMatchTo, SmtAstPatternSelection pPatternSelection) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         pPatternSelection);
   }
@@ -102,6 +107,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchBind(Comparable<?> pFunction, String pBindMatchTo, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
   }
@@ -112,6 +118,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchAnyBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.of(pBindMatchTo),
         and(argumentMatchers));
   }
@@ -122,6 +129,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchAny(SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         and(argumentMatchers));
   }
@@ -134,6 +142,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchAnyWithAnyArgs() {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         dontcare());
   }
@@ -144,6 +153,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchAnyWithAnyArgsBind(String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>of(pBindMatchTo),
         dontcare());
   }
@@ -158,6 +168,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchIfNot(Comparable<?> pFunction, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pFunction),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         none(argumentMatchers));
   }
@@ -171,6 +182,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchIfNot(SmtAstPattern... pMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         none(pMatchers));
   }
@@ -178,6 +190,20 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchNullaryBind(String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>absent(),
+        Optional.<String>of(pBindMatchTo),
+        and());
+  }
+
+  public static SmtAstPattern matchVariableBind(String pBindMatchTo) {
+    return new SmtFunctionApplicationPattern(
+        Optional.<Comparable<?>>absent(),
+        Optional.<SmtFormulaMatcher>of(new SmtFormulaMatcher() {
+          @Override
+          public boolean formulaMatches(FormulaManager pMgr, Formula pF) {
+            return pMgr.getUnsafeFormulaManager().isVariable(pF);
+          }
+        }),
         Optional.<String>of(pBindMatchTo),
         and());
   }
@@ -185,6 +211,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchNullaryBind(Comparable<?> pSymbol, String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pSymbol),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>of(pBindMatchTo),
         and());
   }
@@ -192,6 +219,7 @@ public class SmtAstPatternBuilder {
   public static SmtAstPattern matchNullary(Comparable<?> pSymbol) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>of(pSymbol),
+        Optional.<SmtFormulaMatcher>absent(),
         Optional.<String>absent(),
         and());
   }
@@ -258,6 +286,7 @@ public class SmtAstPatternBuilder {
 
       return new SmtFunctionApplicationPattern(
           ap.function,
+          ap.customFormulaMatcher,
           ap.bindMatchTo,
           ap.argumentPatterns,
           newFlags.toArray(new SmtAstMatchFlag[newFlags.size()]));

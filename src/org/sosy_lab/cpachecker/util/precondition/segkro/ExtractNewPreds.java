@@ -105,31 +105,38 @@ public class ExtractNewPreds {
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;
 
-          if (!isElimOrEq || tupleContainsAnyNoneBasePredicate) {
+          if ((!isElimOrEq) || tupleContainsAnyNoneBasePredicate) {
             // Conclude new, general, predicates.
             Collection<BooleanFormula> concluded = rule.applyWithInputRelatingPremises(tuple);
-            assert concluded != null;
 
-            // Store predicates according to their priority.
-            //    Put the new predicates (that are more general than the predicates in the premise)
-            //    after the predicates that were used as premise
-            //  (the predicate with the highest priority is on the end of the list)
+            if (!concluded.isEmpty()) {
+              // Store predicates according to their priority.
+              //    Put the new predicates (that are more general than the predicates in the premise)
+              //    after the predicates that were used as premise
+              //  (the predicate with the highest priority is on the end of the list)
 
-            // Maximal position of a predicate from the tuple in 'resultPredicates'
-            List<Integer> positions = Lists.newArrayList();
-            for (int posInResult=0; posInResult<resultPredicates.size(); posInResult++) {
-              for (BooleanFormula tf: tuple) {
-                if (equalFormula(resultPredicates.get(posInResult), tf)) {
-                  positions.add(posInResult);
+//              System .out.println("++++++++++++++++++++++++++++++++++++++++");
+//              System .out.println(rule.getRuleName());
+//              System .out.println(tuple);
+//              System .out.println("    >    >    >    >   >");
+//              System .out.println(concluded);
+
+              // Maximal position of a predicate from the tuple in 'resultPredicates'
+              List<Integer> positions = Lists.newArrayList();
+              for (int posInResult=0; posInResult<resultPredicates.size(); posInResult++) {
+                for (BooleanFormula tf: tuple) {
+                  if (equalFormula(resultPredicates.get(posInResult), tf)) {
+                    positions.add(posInResult);
+                  }
                 }
               }
-            }
-            final int maxPosInResult = ordering.max(positions);
+              final int maxPosInResult = ordering.max(positions);
 
-            for (BooleanFormula p: concluded) {
-              if (!resultPredicatesPrime.contains(p)) {
-                // insert p after position pos in lPrime
-                resultPredicatesPrime.add(maxPosInResult+1, p);
+              for (BooleanFormula p: concluded) {
+                if (!resultPredicatesPrime.contains(p)) {
+                  // insert p after position pos in lPrime
+                  resultPredicatesPrime.add(maxPosInResult+1, p);
+                }
               }
             }
           }

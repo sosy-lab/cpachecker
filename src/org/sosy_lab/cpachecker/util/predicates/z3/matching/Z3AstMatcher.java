@@ -200,6 +200,12 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
       SmtFunctionApplicationPattern fp = (SmtFunctionApplicationPattern) pP;
 
+      if (fp.customFormulaMatcher.isPresent()) {
+        if (!fp.customFormulaMatcher.get().formulaMatches(fm, pRootFormula)) {
+          return newMatchFailedResult("Custom matcher not matched!");
+        }
+      }
+
       final String functionSymbol;
       final int functionParameterCount;
 

@@ -38,9 +38,11 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
   public final Optional<String> bindMatchTo;
   public final SmtAstPatternSelection argumentPatterns;
   public final ImmutableSet<SmtAstMatchFlag> flags; // TODO: Move the flags to SmtAstPatternSelection
+  public final Optional<SmtFormulaMatcher> customFormulaMatcher;
 
   public SmtFunctionApplicationPattern(
       Optional<Comparable<?>> pFunction,
+      Optional<SmtFormulaMatcher> pCustomFormulaMatcher,
       Optional<String> pBindMatchTo,
       SmtAstPatternSelection pArgumentPatterns,
       SmtAstMatchFlag...pFlags) {
@@ -48,6 +50,7 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
     this.function = pFunction;
     this.bindMatchTo = pBindMatchTo;
     this.argumentPatterns = pArgumentPatterns;
+    this.customFormulaMatcher = pCustomFormulaMatcher;
     this.flags = ImmutableSet.copyOf(pFlags);
   }
 
