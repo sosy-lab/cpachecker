@@ -165,7 +165,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         _i0_LESS_al0));
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testOnSafeTrace1() throws SolverException, InterruptedException {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _i = ifm.makeVariable("i");
@@ -189,7 +189,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testOnErrorTrace() throws SolverException, InterruptedException {
     //   (and (= i2 0)
     //        (not (= (select b0 i2) 0))
@@ -206,7 +206,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testOnErrorWp1() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         ifm.greaterOrEquals(ifm.add(_i, _1), _al),                // i+1 >= al
@@ -219,7 +219,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testOnErrorWp2() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         ifm.greaterOrEquals(_1, _al),               // 1 >= al
@@ -233,7 +233,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   }
 
 
-  @Test(timeout=5000)
+  @Test
   public void testOnErrorWp3() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
@@ -245,7 +245,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=5000)
+  @Test
   public void testOnErrorWp4() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         bfm.not(ifm.equal(afm.select(_b, _0), _0)), // b[0] != 0

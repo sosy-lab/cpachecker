@@ -67,8 +67,8 @@ public class ExtractNewPreds {
     this.mgrv = Preconditions.checkNotNull(pMgrv);
   }
 
-  private Collection<BooleanFormula> extractAtoms(BooleanFormula pInputFormula) {
-    return mgrv.extractAtoms(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
+  private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {
+    return mgrv.extractLiterals(pInputFormula, false, false); // TODO: check the argument 'conjunctionsOnly'
   }
 
   private List<BooleanFormula> extractNewPreds(Collection<BooleanFormula> pBasePredicates) throws SolverException, InterruptedException {
@@ -115,11 +115,11 @@ public class ExtractNewPreds {
               //    after the predicates that were used as premise
               //  (the predicate with the highest priority is on the end of the list)
 
-//              System .out.println("++++++++++++++++++++++++++++++++++++++++");
-//              System .out.println(rule.getRuleName());
-//              System .out.println(tuple);
-//              System .out.println("    >    >    >    >   >");
-//              System .out.println(concluded);
+              System .out.println("++++++++++++++++++++++++++++++++++++++++");
+              System .out.println(rule.getRuleName());
+              System .out.println(tuple);
+              System .out.println("    >    >    >    >   >");
+              System .out.println(concluded);
 
               // Maximal position of a predicate from the tuple in 'resultPredicates'
               List<Integer> positions = Lists.newArrayList();
@@ -169,8 +169,8 @@ public class ExtractNewPreds {
   public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) throws SolverException, InterruptedException {
     // Start with the list of basic predicates
     //  (extracted from the conjunctive formula)
-    Collection<BooleanFormula> atoms = extractAtoms(pConjunctiveFormula);
-    return extractNewPreds(atoms);
+    Collection<BooleanFormula> literals = extractLiterals(pConjunctiveFormula);
+    return extractNewPreds(literals);
   }
 
 }

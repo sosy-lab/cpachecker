@@ -50,12 +50,12 @@ public class ExistentialRule extends PatternBasedRule {
   @Override
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(or(
-        GenericPatterns.f_of_x("f", "i")
+        GenericPatterns.f_of_x("f", "j")
         )));
 
     premises.add(new PatternBasedPremise(or(
         matchBind("not", "nf",
-            GenericPatterns.f_of_x("fx", "j"))
+            GenericPatterns.f_of_x("fx", "i"))
         )));
   }
 
