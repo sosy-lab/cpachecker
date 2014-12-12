@@ -128,10 +128,10 @@ public class LinearExpression<T> implements Iterable<Entry<T, Rational>> {
   public String toString() {
     StringBuilder b = new StringBuilder();
     for (Entry<T, Rational> monomial : this) {
-      if (b.length() != 0) {
+      Rational coeff = monomial.getValue();
+      if (b.length() != 0 && coeff.signum() >= 0) {
         b.append(" + ");
       }
-      Rational coeff = monomial.getValue();
       T var = monomial.getKey();
       if (coeff == Rational.ONE) {
         b.append(var);

@@ -186,6 +186,13 @@ public class Rational implements Comparable<Rational>{
   }
 
   /**
+   * @return -1, 0 or 1, representing the sign of the rational number.
+   */
+  public int signum() {
+    return num.signum();
+  }
+
+  /**
    * @return  String of the form num/den.
    */
   @Override
