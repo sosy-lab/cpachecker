@@ -79,7 +79,7 @@ public class MinCorePrio implements InterpolationWithCandidates {
 
     Preconditions.checkArgument(isInconsistent(pConjunction, pArbitraryFormula));
 
-    Collection<BooleanFormula> resultPredicates = mgrv.extractAtoms(pConjunction, false, false);
+    Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pConjunction, false, false);
     List<BooleanFormula> candidatesPrime = Lists.newLinkedList();
 
     candidatesPrime.addAll(resultPredicates);
