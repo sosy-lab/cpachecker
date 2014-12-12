@@ -23,10 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.base.Equivalence;
+
 /**
  * Helper methods for CType instances.
  */
 public final class CTypes {
+
+  private static class CanonicalCTypeEquivalence extends Equivalence<CType> {
+    private static final CanonicalCTypeEquivalence INSTANCE = new CanonicalCTypeEquivalence();
+
+    @Override
+    protected boolean doEquivalent(CType pA, CType pB) {
+      return pA.getCanonicalType().equals(pB.getCanonicalType());
+    }
+
+    @Override
+    protected int doHash(CType pT) {
+      return pT.getCanonicalType().hashCode();
+    }
+  }
+
+  /**
+   * Return an {@link Equivalence} based on the canonical type,
+   * i.e., two types are defined as equal if their canonical types are equal.
+   */
+  public static Equivalence<CType> canonicalTypeEquivalence() {
+    return CanonicalCTypeEquivalence.INSTANCE;
+  }
 
   /**
    * Return a copy of a given type that has the "const" flag not set.
@@ -100,7 +124,7 @@ public final class CTypes {
       return type;
     }
 
-    if (type.isConst()) {
+    if (type.isVolatile()) {
       return type;
     }
     @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
@@ -164,48 +188,53 @@ public final class CTypes {
     public CTypedefType visit(CTypedefType t) {
       return new CTypedefType(constValue, t.isVolatile(), t.getName(), t.getRealType());
     }
+
+    @Override
+    public CType visit(CVoidType t) {
+      return CVoidType.create(constValue, t.isVolatile());
+    }
   }
 
   private static enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
     FALSE(false),
     TRUE(true);
 
-    private final boolean constValue;
+    private final boolean volatileValue;
 
-    private ForceVolatileVisitor(boolean pConstValue) {
-      constValue = pConstValue;
+    private ForceVolatileVisitor(boolean pVolatileValue) {
+      volatileValue = pVolatileValue;
     }
 
     // Make sure to always return instances of exactly the same classes!
 
     @Override
     public CArrayType visit(CArrayType t) {
-      return new CArrayType(t.isConst(), constValue, t.getType(), t.getLength());
+      return new CArrayType(t.isConst(), volatileValue, t.getType(), t.getLength());
     }
 
     @Override
     public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(t.isConst(), constValue, t.getKind(), t.getMembers(), t.getName());
+      return new CCompositeType(t.isConst(), volatileValue, t.getKind(), t.getMembers(), t.getName());
     }
 
     @Override
     public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(t.isConst(), constValue, t.getKind(), t.getName(), t.getRealType());
+      return new CElaboratedType(t.isConst(), volatileValue, t.getKind(), t.getName(), t.getRealType());
     }
 
     @Override
     public CEnumType visit(CEnumType t) {
-      return new CEnumType(t.isConst(), constValue, t.getEnumerators(), t.getName());
+      return new CEnumType(t.isConst(), volatileValue, t.getEnumerators(), t.getName());
     }
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(t.isConst(), constValue, t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      return new CFunctionType(t.isConst(), volatileValue, t.getReturnType(), t.getParameters(), t.takesVarArgs());
     }
 
     @Override
     public CPointerType visit(CPointerType t) {
-      return new CPointerType(t.isConst(), constValue, t.getType());
+      return new CPointerType(t.isConst(), volatileValue, t.getType());
     }
 
     @Override
@@ -215,12 +244,17 @@ public final class CTypes {
 
     @Override
     public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(t.isConst(), constValue, t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(), t.isImaginary(), t.isLongLong());
+      return new CSimpleType(t.isConst(), volatileValue, t.getType(), t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(), t.isImaginary(), t.isLongLong());
     }
 
     @Override
     public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(t.isConst(), constValue, t.getName(), t.getRealType());
+      return new CTypedefType(t.isConst(), volatileValue, t.getName(), t.getRealType());
+    }
+
+    @Override
+    public CType visit(CVoidType t) {
+      return CVoidType.create(t.isConst(), volatileValue);
     }
   }
 }

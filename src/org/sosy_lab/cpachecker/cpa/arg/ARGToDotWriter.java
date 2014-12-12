@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static org.sosy_lab.common.Appenders.appendTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -38,11 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.seplogic.SeplogicState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
@@ -152,6 +144,7 @@ public class ARGToDotWriter {
       }
 
       sb.append(determineNode(currentElement));
+      sb.append(determineStateHint(currentElement));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getStateId());
@@ -169,19 +162,20 @@ public class ARGToDotWriter {
   }
 
   private static String determineEdge(final Predicate<? super Pair<ARGState, ARGState>> highlightEdge,
-                                      final ARGState currentElement, final ARGState child) {
+                                      final ARGState state, final ARGState succesorState) {
     final StringBuilder builder = new StringBuilder();
-    builder.append(currentElement.getStateId()).append(" -> ").append(child.getStateId());
+    builder.append(state.getStateId()).append(" -> ").append(succesorState.getStateId());
     builder.append(" [");
 
-    if (currentElement.getChildren().contains(child)) {
-      final CFAEdge edge = currentElement.getEdgeToChild(child);
+    if (state.getChildren().contains(succesorState)) {
+      final CFAEdge edge = state.getEdgeToChild(succesorState);
+
       if (edge == null) {
         // there is no direct edge between the nodes, use a dummy-edge
         builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
       } else {
         // edge exists, use info from edge
-        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
+        boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
         if (colored) {
           builder.append("color=\"red\" ");
         }
@@ -193,9 +187,9 @@ public class ARGToDotWriter {
         builder.append("\"");
       }
       builder.append(" id=\"");
-      builder.append(currentElement.getStateId());
+      builder.append(state.getStateId());
       builder.append(" -> ");
-      builder.append(child.getStateId());
+      builder.append(succesorState.getStateId());
       builder.append("\"");
     }
 
@@ -228,6 +222,53 @@ public class ARGToDotWriter {
     sb.append("}\n");
   }
 
+  private static String escapeLabelString(final String rawString) {
+    return rawString;
+  }
+
+  private static String determineStateHint(final ARGState currentElement) {
+
+    final String stateNodeId = Integer.toString(currentElement.getStateId());
+    final String hintNodeId = stateNodeId + "hint";
+
+    String hintLabel = "";
+//    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
+//    if (abstraction != null && abstraction.isAbstractionState()) {
+//      final StringBuilder labelBuilder = new StringBuilder();
+//      labelBuilder.append(abstraction.getAbstractionFormula().asFormula().toString());
+//      hintLabel = labelBuilder.toString();
+//    }
+
+    final StringBuilder builder = new StringBuilder();
+
+    if (hintLabel != "") {
+      builder.append(" {");
+      builder.append(" rank=same;\n");
+
+      builder.append(" ");
+      builder.append(stateNodeId);
+      builder.append(";\n");
+
+      builder.append(" \"");
+      builder.append(hintNodeId);
+      builder.append("\" [label=\"");
+      builder.append(escapeLabelString(hintLabel));
+      builder.append("\", shape=box, style=filled, fillcolor=gray];\n");
+
+      builder.append(" ");
+      builder.append(stateNodeId);
+      builder.append(" -> ");
+      builder.append("\"");
+      builder.append(hintNodeId);
+      builder.append("\"");
+      builder.append(" [arrowhead=none, color=gray, style=solid]");
+      builder.append(";\n");
+
+      builder.append(" }\n");
+    }
+
+    return builder.toString();
+  }
 
   private static String determineNode(final ARGState currentElement) {
     final StringBuilder builder = new StringBuilder();
@@ -260,40 +301,10 @@ public class ARGToDotWriter {
       }
     }
 
-    for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
-      if (!state.getInternalStateName().equals("Init")) {
-        builder.append("\\n");
-        builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
-        builder.append(": ");
-        builder.append(state.getInternalStateName());
-      }
-    }
+    builder.append("\\n");
+    builder.append(currentElement.toDOTLabel());
 
-    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-    if (abstraction != null && abstraction.isAbstractionState()) {
-      builder.append("\\n");
-      builder.append(abstraction.getAbstractionFormula());
-    }
-
-    ValueAnalysisState explicit = AbstractStates.extractStateByType(currentElement, ValueAnalysisState.class);
-    if (explicit != null) {
-      builder.append("\\n");
-      builder.append(explicit.toCompactString());
-    }
-
-    RTTState rtt = AbstractStates.extractStateByType(currentElement, RTTState.class);
-    if (rtt != null) {
-      builder.append("\\n");
-      appendTo(builder, rtt);
-    }
-
-    SeplogicState sls = AbstractStates.extractStateByType(currentElement, SeplogicState.class);
-    if (sls != null) {
-      builder.append("\\n");
-      builder.append(sls.toString().replaceAll("\\*", "\\\\n*"));
-    }
-
-    return builder.toString();
+    return builder.toString().trim();
   }
 
   private static String determineColor(ARGState currentElement) {
@@ -308,7 +319,7 @@ public class ARGToDotWriter {
       return "orange";
     }
 
-    if (ARGUtils.IMPORTANT_FOR_ANALYSIS.apply(currentElement)) {
+    if (currentElement.shouldBeHighlighted()) {
       return "cornflowerblue";
     }
 

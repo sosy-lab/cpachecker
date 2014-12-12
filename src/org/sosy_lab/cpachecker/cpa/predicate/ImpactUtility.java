@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -71,11 +72,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 @Options(prefix="cpa.predicate.refinement")
 final class ImpactUtility {
 
-  @Option(description="If an abstraction is computed during refinement, "
+  @Option(secure=true, description="If an abstraction is computed during refinement, "
       + "use only the interpolant as input, not the concrete block.")
   private boolean abstractInterpolantOnly = false;
 
-  @Option(description="Actually compute an abstraction, "
+  @Option(secure=true, description="Actually compute an abstraction, "
       + "otherwise just convert the interpolants to BDDs as they are.")
   private boolean doAbstractionComputation = false;
 
@@ -120,7 +121,8 @@ final class ImpactUtility {
    * @return True if the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
-      final ARGState s, final AbstractionFormula lastAbstraction) throws InterruptedException {
+      final ARGState s, final AbstractionFormula lastAbstraction)
+          throws SolverException, InterruptedException {
     checkState(!requiresPreviousBlockAbstraction()
         || lastAbstraction != null);
 

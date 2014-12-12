@@ -54,9 +54,19 @@ public interface FormulaManager {
   BooleanFormulaManager getBooleanFormulaManager();
 
   /**
+   * Returns the Array-Theory.
+   */
+  ArrayFormulaManager getArrayFormulaManager();
+
+  /**
    * Returns the Bitvector-Theory.
    */
   BitvectorFormulaManager getBitvectorFormulaManager();
+
+  /**
+   * Returns the Floating-Point-Theory.
+   */
+  FloatingPointFormulaManager getFloatingPointFormulaManager();
 
   /**
    * Returns the Function-Theory.
@@ -67,6 +77,11 @@ public interface FormulaManager {
    * Returns some unsafe traverse methods.
    */
   UnsafeFormulaManager getUnsafeFormulaManager();
+
+  /**
+   * Returns the interface for handling quantifiers.
+   */
+  QuantifiedFormulaManager getQuantifiedFormulaManager();
 
   /**
    * Returns the type of the given Formula.
@@ -83,10 +98,6 @@ public interface FormulaManager {
   // Instead implement the format in the View
   public BooleanFormula parse(String s) throws IllegalArgumentException;
 
-  /**
-   * Returns the Interface-Class of the given Formula. For example BitvectorFormula.class.
-   */
-  public <T extends Formula> Class<T> getInterface(T pInstance);
   /**
    * Create string representation of a formula in a format which may be dumped
    * to a file. To get a String, simply call {@link Object#toString()}

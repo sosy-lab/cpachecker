@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
@@ -41,7 +42,7 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
 
   private final List<CFAEdgeWithAssignments> edgesWithAssignment;
 
-  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, List<IAssignment> pAssignments,
+  private CFAMultiEdgeWithAssignments(MultiEdge pEdge, List<AAssignment> pAssignments,
       List<CFAEdgeWithAssignments> pEdges, String pComments) {
     super(pEdge, pAssignments, pComments);
     edgesWithAssignment = ImmutableList.copyOf(pEdges);
@@ -57,16 +58,19 @@ public final class CFAMultiEdgeWithAssignments extends CFAEdgeWithAssignments im
   }
 
   public static final CFAMultiEdgeWithAssignments valueOf(MultiEdge pEdge, List<CFAEdgeWithAssignments> pEdges) {
-
-    List<IAssignment> assignments = new ArrayList<>();
+    // In MultiEdges, it is possible to write the same variable multiple times.
+    // This would produce illegal assumptions,
+    // thus we filter out assignments with equal left-hand side.
+    LinkedHashMap<ALeftHandSide, AAssignment> assignments = new LinkedHashMap<>();
 
     for (CFAEdgeWithAssignments edge : pEdges) {
-      /*In MultiEdges, it is possible to write the same variable multiple times.
-       *This means, the order of the statements is essential.*/
-      assignments.addAll(edge.getAssignments());
+      for (AAssignment assignment : edge.getAssignments()) {
+        assignments.put(assignment.getLeftHandSide(), assignment);
+      }
     }
 
     /*Comments only make sense in the exact location of an path*/
-    return new CFAMultiEdgeWithAssignments(pEdge, assignments, pEdges, null);
+    return new CFAMultiEdgeWithAssignments(pEdge,
+        ImmutableList.copyOf(assignments.values()), pEdges, null);
   }
 }

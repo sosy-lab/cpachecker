@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFieldReference extends AExpression implements CLeftHandSide {
+public final class CFieldReference extends AbstractExpression implements CLeftHandSide {
 
   private final String         name;
   private final CExpression owner;

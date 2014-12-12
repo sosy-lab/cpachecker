@@ -65,74 +65,74 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
   private StatisticsStateFactory factory;
   private StatisticsCPAStatistics stats;
 
-  @Option(name="metric.nodeCount",
+  @Option(secure=true, name="metric.nodeCount",
       description="count the number of traversed nodes.")
   private boolean nodeCount = true;
 
-  @Option(name="metric.gotoCount",
+  @Option(secure=true, name="metric.gotoCount",
       description="count the number of traversed gotos.")
   private boolean gotoCount = true;
 
-  @Option(name="metric.assumeCount",
+  @Option(secure=true, name="metric.assumeCount",
       description="count the number of traversed assume statements.")
   private boolean assumeCount = true;
 
-  @Option(name="metric.loopCount",
+  @Option(secure=true, name="metric.loopCount",
       description="count the number of traversed loops.")
   private boolean loopCount = true;
-  @Option(name="metric.functionCallCount",
+  @Option(secure=true, name="metric.functionCallCount",
       description="count the number of traversed function calls.")
   private boolean functionCallCount = true;
-  @Option(name="metric.branchCount",
+  @Option(secure=true, name="metric.branchCount",
       description="count the number of traversed edges with more then one outgoing edge.")
   private boolean branchCount = true;
-  @Option(name="metric.jumpCount",
+  @Option(secure=true, name="metric.jumpCount",
       description="count the number of traversed jumps.")
   private boolean jumpCount = true;
-  @Option(name="metric.functionDefCount",
+  @Option(secure=true, name="metric.functionDefCount",
       description="count the number of traversed function definitions.")
   private boolean functionDefCount = true;
-  @Option(name="metric.localVariablesCount",
+  @Option(secure=true, name="metric.localVariablesCount",
       description="count the number of traversed local variable definitions.")
   private boolean localVariablesCount = true;
-  @Option(name="metric.globalVariablesCount",
+  @Option(secure=true, name="metric.globalVariablesCount",
       description="count the number of traversed global variable definitions.")
   private boolean globalVariablesCount = true;
-  @Option(name="metric.structVariablesCount",
+  @Option(secure=true, name="metric.structVariablesCount",
       description="count the number of traversed variable definitions with a complex structure type.")
   private boolean structVariablesCount = true;
-  @Option(name="metric.pointerVariablesCount",
+  @Option(secure=true, name="metric.pointerVariablesCount",
       description="count the number of traversed variable definitions with pointer type.")
   private boolean pointerVariablesCount = true;
-  @Option(name="metric.arrayVariablesCount",
+  @Option(secure=true, name="metric.arrayVariablesCount",
       description="count the number of traversed variable definitions with array type.")
   private boolean arrayVariablesCount = true;
 
-  @Option(name="metric.bitwiseOperationCount",
+  @Option(secure=true, name="metric.bitwiseOperationCount",
       description="count the number of traversed bitwise operations.")
   private boolean bitwiseOperationCount = true;
 
-  @Option(name="metric.arithmeticOperationCount",
+  @Option(secure=true, name="metric.arithmeticOperationCount",
       description="count the number of traversed arithmetic operations.")
   private boolean arithmeticOperationCount = true;
 
-  @Option(name="metric.integerVariablesCount",
+  @Option(secure=true, name="metric.integerVariablesCount",
       description="count the number of traversed variable definitions with integer type.")
   private boolean integerVariablesCount = true;
 
-  @Option(name="metric.floatVariablesCount",
+  @Option(secure=true, name="metric.floatVariablesCount",
       description="count the number of traversed variable definitions with floating type (float or double).")
   private boolean floatVariablesCount = true;
 
-  @Option(name="metric.dereferenceCount",
+  @Option(secure=true, name="metric.dereferenceCount",
       description="count the number of traversed dereference operations.")
   private boolean dereferenceCount = true;
 
-  @Option(name="analysis",
+  @Option(secure=true, name="analysis",
       description="set this to true when you only want to do a code analysis. If StatisticsCPA is combined with other CPAs to do queries use false.")
   private boolean isAnalysis = true;
 
-  @Option(name="mergeSep", values={"sep", "join"},
+  @Option(secure=true, name="mergeSep", values={"sep", "join"},
       description="which merge operator to use for StatisticsCPA? Ignored when analysis is set to true")
   private String mergeType = "sep";
 
@@ -163,59 +163,59 @@ public class StatisticsCPA implements StatisticsProvider, ConfigurableProgramAna
     if (nodeCount) {
       factory.addProvider(SimpleIntProviderFactory.getEdgeCountProvider(defMerge));
     }
-    if (gotoCount){
+    if (gotoCount) {
       factory.addProvider(SimpleIntProviderFactory.getGotoCountProvider(defMerge));
     }
-    if (loopCount){
+    if (loopCount) {
       factory.addProvider(SimpleIntProviderFactory.getLoopCountProvider(cfa, defMerge));
     }
-    if (functionCallCount){
+    if (functionCallCount) {
       factory.addProvider(SimpleIntProviderFactory.getFunctionCallCountProvider(defMerge));
     }
-    if (branchCount){
+    if (branchCount) {
       factory.addProvider(SimpleIntProviderFactory.getBranchCountProvider(defMerge));
     }
-    if (jumpCount){
+    if (jumpCount) {
       factory.addProvider(SimpleIntProviderFactory.getJumpCountProvider(defMerge));
     }
-    if (functionDefCount){
+    if (functionDefCount) {
       factory.addProvider(SimpleIntProviderFactory.getFunctionDefCountProvider(defMerge));
     }
-    if (localVariablesCount){
+    if (localVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getLocalVariablesCountProvider(defMerge));
     }
-    if (globalVariablesCount){
+    if (globalVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getGlobalVariablesCountProvider(defMerge));
     }
-    if (structVariablesCount){
+    if (structVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getStructVariablesCountProvider(defMerge));
     }
-    if (pointerVariablesCount){
+    if (pointerVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getPointerVariablesCountProvider(defMerge));
     }
-    if (arrayVariablesCount){
+    if (arrayVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getArrayVariablesCountProvider(defMerge));
     }
-    if (bitwiseOperationCount){
+    if (bitwiseOperationCount) {
       factory.addProvider(SimpleIntProviderFactory.getBitwiseOperationCountProvider(defMerge));
     }
-    if (arithmeticOperationCount){
+    if (arithmeticOperationCount) {
       factory.addProvider(SimpleIntProviderFactory.getArithmeticOperationCountProvider(defMerge));
     }
-    if (integerVariablesCount){
+    if (integerVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getIntegerVariablesCountProvider(defMerge));
     }
-    if (floatVariablesCount){
+    if (floatVariablesCount) {
       factory.addProvider(SimpleIntProviderFactory.getFloatVariablesCountProvider(defMerge));
     }
-    if (dereferenceCount){
+    if (dereferenceCount) {
       factory.addProvider(SimpleIntProviderFactory.getDereferenceCountProvider(defMerge));
     }
-    if (assumeCount){
+    if (assumeCount) {
       factory.addProvider(SimpleIntProviderFactory.getAssumeCountProvider(defMerge));
     }
 
-    this.stats = new StatisticsCPAStatistics(config, this);
+    this.stats = new StatisticsCPAStatistics(config, pLogger, this);
 
     MergeOperator mergeOp = null;
     if (isAnalysis || mergeType.equals("sep")) {

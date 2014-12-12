@@ -130,7 +130,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -146,13 +145,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class ASTConverter {
+class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
   private static final int FIRST = 0;
-
-  private static final int SECOND = 1;
 
   private final LogManager logger;
 
@@ -267,10 +264,11 @@ public class ASTConverter {
   }
 
   /**
-   * Returns the temporary Variable, which holds the
-   * result of the conditional statement
+   * Returns the latest temporary variable. This variable holds the
+   * result of the last processed conditional statement.
    *
-   * @return
+   * @return a {@link JIdExpression} representing the temporary variable of the last processed
+   *         conditional statement
    */
   public JIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
@@ -302,10 +300,19 @@ public class ASTConverter {
     return forInitDeclarations.size();
   }
 
+  // Returns a fully qualified name for the given variable using the current scope information
   private String getQualifiedName(String var) {
-    return scope.getCurrentClassType().getName()
-        + "_" + scope.getCurrentMethodName()
-        + "::" + var;
+
+    /* Old way of creating qualified names - this includes the class name twice.
+     * But ValueAnalysisState.MemoryLocation uses names equal to the uncommented code below.
+     * As long as no need for the upper format exists, the lower one should be used to prevent
+     * the need of workarounds.
+     */
+    // return scope.getCurrentClassType().getName()
+    //    + "_" + scope.getCurrentMethodName()
+    //    + "::" + var;
+
+    return scope.getCurrentMethodName() + "::" + var;
   }
 
   private JType convert(ITypeBinding pTypeBinding) {
@@ -329,7 +336,7 @@ public class ASTConverter {
    * of the JDT AST to a MethodDeclaration of the CFA AST
    *
    *
-   * @param Method Declaration to be coverted.
+   * @param md method declaration to be converted.
    * @return CFA AST of Method Declaration
    */
   public JMethodDeclaration convert(final MethodDeclaration md) {
@@ -399,7 +406,7 @@ public class ASTConverter {
   /**
    * Converts a List of Field Declaration into the intern AST.
    *
-   * @param field Declarations given to be transformed.
+   * @param fd declaration to be transformed.
    * @return intern AST of the Field Declarations.
    */
   public List<JDeclaration> convert(FieldDeclaration fd) {
@@ -539,7 +546,7 @@ public class ASTConverter {
    * Converts JDT SingleVariableDeclaration into an AST.
    *
    *
-   * @param vds JDT SingleVariableDeclaration to be transformed
+   * @param d JDT SingleVariableDeclaration to be transformed
    * @return AST representing given Parameter
    */
   public JDeclaration convert(SingleVariableDeclaration d) {
@@ -595,8 +602,8 @@ public class ASTConverter {
  * put into a side assignment and can subsequently be fetched
  * with getNextSideAssignment().
  *
- * @param Given expression to be transformed.
- * @return an side effect free AST representing the given parameter.
+ * @param e expression to be transformed.
+ * @return a side effect free AST representing the given parameter.
  */
   public JExpression convertExpressionWithoutSideEffects(Expression e) {
 
@@ -701,14 +708,14 @@ public class ASTConverter {
       return new JExpressionStatement(getFileLocation(s), (JExpression) node);
 
     } else {
-      throw new AssertionError();
+      throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
     }
   }
 
   /**
    * Transforms a JDT SuperConstructorInvocation into the intern AST.
    *
-   * @param SuperConstructorInvocation to be transformed.
+   * @param sCI SuperConstructorInvocation to be transformed.
    * @return AST representing given parameter.
    */
   public JStatement convert(final SuperConstructorInvocation sCI) {
@@ -838,6 +845,7 @@ public class ASTConverter {
     //TODO  All Expression Implementation
 
     if (e == null) {
+      logger.log(Level.FINE, "Expression to convert is null");
       return null;
     }
 
@@ -895,19 +903,19 @@ public class ASTConverter {
       return convert((TypeLiteral)e);
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
+    default:
+      logger.log(Level.WARNING, "Expression of type " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
+      return null;
     }
-
-    logger.log(Level.WARNING, "Expression of typ " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
-    return null;
   }
 
   private JAstNode convert(SuperMethodInvocation e) {
 
-    boolean canBeResolve = e.resolveMethodBinding() != null;
+    boolean canBeResolved = e.resolveMethodBinding() != null;
 
     JClassOrInterfaceType declaringClassType = null;
 
-    if (canBeResolve) {
+    if (canBeResolved) {
       declaringClassType = (JClassOrInterfaceType) convert(e.resolveMethodBinding().getDeclaringClass());
       scope.registerClass(e.resolveMethodBinding().getDeclaringClass());
     }
@@ -928,7 +936,7 @@ public class ASTConverter {
 
     ModifierBean mb = null;
 
-    if (canBeResolve) {
+    if (canBeResolved) {
       mb = ModifierBean.getModifiers(e.resolveMethodBinding());
     }
 
@@ -949,7 +957,7 @@ public class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolve) {
+      if (canBeResolved) {
         declaration = scope.createExternMethodDeclaration(
             convertMethodType(e.resolveMethodBinding()),
             methodName.toASTString(),
@@ -966,7 +974,7 @@ public class ASTConverter {
       JMethodInvocationExpression miv =
           new JMethodInvocationExpression(getFileLocation(e), convert(e.resolveTypeBinding()), methodName, params, declaration);
 
-      if (canBeResolve) {
+      if (canBeResolved) {
 
         JType type = miv.getDeclaringType();
 
@@ -1065,70 +1073,77 @@ public class ASTConverter {
     assert type instanceof JClassOrInterfaceType : "There are other types for this expression?";
 
     JIdExpression referenceVariable = (JIdExpression) leftOperand;
-    JClassOrInterfaceType instanceCompatible = (JClassOrInterfaceType) type;
     JRunTimeTypeEqualsType firstCond = null;
 
-
-
-    List<JClassType> subClassTypes;
-
-    if (instanceCompatible instanceof JInterfaceType) {
-
-      Set<JClassType> subClassTypeSet = ((JInterfaceType) instanceCompatible).getAllKnownImplementingClassesOfInterface();
-
-      subClassTypes =  transformSetToList(subClassTypeSet);
-
+    List<JClassType> subClassTypes = getSubClassTypes((JClassOrInterfaceType) type);
+    if (type instanceof JInterfaceType) {
       if (subClassTypes.isEmpty()) {
         return new JBooleanLiteralExpression(fileloc, false);
-      } else if (subClassTypes.size() == 1) {
-        return convertClassRunTimeCompileTimeAccord(fileloc,
-          referenceVariable, subClassTypes.get(FIRST)); }
+      }
 
-    } else if (instanceCompatible instanceof JClassType) {
-
-      Set<JClassType> subClassSet = ((JClassType) instanceCompatible).getAllSubTypesOfClass();
-
-      subClassTypes = transformSetToList(subClassSet);
-
-      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, instanceCompatible);
-      if (subClassTypes.isEmpty()) { return firstCond; }
+    } else if (type instanceof JClassType) {
+      firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
+          (JClassOrInterfaceType) type);
 
     } else {
-      throw new AssertionError();
+      // Through assertions above, instanceCompatible has to be a sub type of JClassOrInterfaceType
+      // already. So the only case this error is thrown is if a new sub type of JClassOrInterfaceType
+      // would be implemented.
+      throw new AssertionError("The right hand side of an instanceof expression has to be a class" +
+          " or interface type");
     }
 
-    JBinaryExpression firstOrConnection;
+    return createInstanceofExpression(referenceVariable, subClassTypes,
+        convert(e.resolveTypeBinding()), fileloc, firstCond);
+  }
 
+  private List<JClassType> getSubClassTypes(JClassOrInterfaceType pType) {
+    Set<JClassType> subClassTypeSet;
 
-    if (firstCond == null) {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), convertClassRunTimeCompileTimeAccord(fileloc,
-              referenceVariable, subClassTypes.get(FIRST)), convertClassRunTimeCompileTimeAccord(
-              fileloc, referenceVariable, subClassTypes.get(SECOND)),
-              JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(SECOND);
-      subClassTypes.remove(FIRST);
+    assert pType instanceof JInterfaceType || pType instanceof JClassType;
+    if (pType instanceof JInterfaceType) {
+      subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
     } else {
-      firstOrConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), firstCond,
-              convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable,
-                  subClassTypes.get(FIRST)), JBinaryExpression.BinaryOperator.CONDITIONAL_OR);
-      subClassTypes.remove(FIRST);
+      subClassTypeSet = ((JClassType) pType).getAllSubTypesOfClass();
     }
 
-    JBinaryExpression nextConnection = firstOrConnection;
+    return transformSetToList(subClassTypeSet);
+  }
 
-    for (JClassType subType : subClassTypes) {
-      JRunTimeTypeEqualsType cond =
-          convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, subType);
-      nextConnection =
-          new JBinaryExpression(fileloc, convert(e.resolveTypeBinding()), nextConnection, cond,
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation) {
+
+    final JRunTimeTypeEqualsType firstCond = convertClassRunTimeCompileTimeAccord(pLocation,
+        pLeftOperand, pClassTypes.remove(FIRST));
+
+    return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType,
+        pLocation, firstCond);
+  }
+
+  private JExpression createInstanceofExpression(JIdExpression pLeftOperand,
+      List<JClassType> pClassTypes,
+      JType pExpressionType,
+      FileLocation pLocation,
+      @Nullable JRunTimeTypeEqualsType pFirstCondition) {
+
+    if (pFirstCondition == null) {
+      return createInstanceofExpression(pLeftOperand, pClassTypes, pExpressionType, pLocation);
+    }
+
+    JRunTimeTypeEqualsType newCondition;
+    JExpression currentCondition = pFirstCondition;
+
+    for (JClassType currentSubType : pClassTypes) {
+      newCondition = convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, currentSubType);
+      currentCondition =
+          new JBinaryExpression(pLocation, pExpressionType, currentCondition, newCondition,
               BinaryOperator.CONDITIONAL_OR);
     }
 
-    return nextConnection;
+    return currentCondition;
   }
-
 
   private List<JClassType> transformSetToList(Set<JClassType> pSubClassTypeSet) {
     List<JClassType> result = new ArrayList<>(pSubClassTypeSet.size());
@@ -1171,7 +1186,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1187,7 +1202,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1195,7 +1210,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
     return new JFieldAccess(idExpIdentifier.getFileLocation(),
@@ -1250,16 +1265,15 @@ public class ASTConverter {
         declaration =
             new JConstructorDeclaration(getFileLocation(cIC),
                 convertConstructorType(binding), name, simpleName,
-                new LinkedList<JParameterDeclaration>(),
+                new ArrayList<JParameterDeclaration>(),
                 mb.getVisibility(), mb.isStrictFp(),
                 (JClassType) getDeclaringClassType(binding));
 
       } else {
-
         declaration =
             new JConstructorDeclaration(getFileLocation(cIC), JConstructorType.createUnresolvableConstructorType(), name,
                 simpleName, new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE, false,
-                (JClassType) getDeclaringClassType(binding));
+                JClassType.createUnresolvableType());
       }
     }
 
@@ -1293,6 +1307,7 @@ public class ASTConverter {
   private JAstNode convert(ArrayInitializer initializer) {
 
     if (initializer == null) {
+      logger.log(Level.FINE, "Array initializer to convert is null");
       return null;
     }
 
@@ -1397,7 +1412,7 @@ public class ASTConverter {
 
     if (!(identifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAcces could not be preoccessed.", e);
+        "Identifier of FieldAccess could not be processed.", e);
     }
 
     JIdExpression idExpIdentifier = (JIdExpression) identifier;
@@ -1413,7 +1428,7 @@ public class ASTConverter {
 
     if (!(qualifier instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(
-        "Qualifier of FieldAcces could not be proccessed.", e);
+        "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
@@ -1421,7 +1436,7 @@ public class ASTConverter {
 
     if (!(decl instanceof JFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
-        "Identifier of FieldAccess no Field.", e);
+        "Identifier of FieldAccess does not identify a field.", e);
     }
 
 
@@ -1610,7 +1625,7 @@ public class ASTConverter {
 
     if (!vb.isField()) {
       throw new CFAGenerationRuntimeException("Declaration of Variable "
-        + e.getIdentifier() + " not found. \n", e);
+        + e.getIdentifier() + " not found.", e);
     }
 
     String name = NameConverter.convertName(vb);
@@ -1635,7 +1650,7 @@ public class ASTConverter {
     JLeftHandSide leftHandSide =
         (JLeftHandSide) convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
-    BinaryOperator op = convert(e.getOperator());
+    BinaryOperator op = convert(e.getOperator(), leftHandSide.getExpressionType());
 
     if (op == null) {
       // a = b
@@ -1677,13 +1692,60 @@ public class ASTConverter {
     }
   }
 
+  // pType is the type of the operands of the operation
+  private BinaryOperator convert(Assignment.Operator op, JType type) {
+    // will be used if the type doesn't fit the operator
+    final String invalidTypeMsg = "Invalid type '" + type + "' for assignment with binary operation.";
 
-  private BinaryOperator convert(Assignment.Operator op) {
+    JBasicType basicType;
 
+    if (type instanceof JSimpleType) {
+      basicType = ((JSimpleType) type).getType();
+    } else {
+      basicType = null;
+    }
 
     if (op.equals(Assignment.Operator.ASSIGN)) {
       return null;
-    } else if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
+
+    } else if (basicType != null) {
+      switch (basicType) {
+      case BOOLEAN:
+        return convertBooleanOperator(op); // might throw CFAGenerationRuntimeException
+
+      case BYTE:
+      case SHORT:
+      case INT:
+      case LONG:
+      case DOUBLE:
+      case FLOAT:
+        return convertNumberOperator(op); // might throw CFAGenerationRuntimeException
+
+      default:
+        throw new CFAGenerationRuntimeException(invalidTypeMsg);
+      }
+
+    } else {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
+    }
+  }
+
+  private BinaryOperator convertBooleanOperator(Assignment.Operator op) {
+    if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
+      return BinaryOperator.LOGICAL_AND;
+    } else if (op.equals(Assignment.Operator.BIT_OR_ASSIGN)) {
+      return BinaryOperator.LOGICAL_OR;
+    } else if (op.equals(Assignment.Operator.BIT_XOR_ASSIGN)) {
+      return BinaryOperator.LOGICAL_XOR;
+
+    } else {
+      throw new CFAGenerationRuntimeException("Invalid operator " + op
+          + " for boolean assignment");
+    }
+  }
+
+  private BinaryOperator convertNumberOperator(Assignment.Operator op) {
+    if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
       return BinaryOperator.BINARY_AND;
     } else if (op.equals(Assignment.Operator.BIT_OR_ASSIGN)) {
       return BinaryOperator.BINARY_OR;
@@ -1705,11 +1767,11 @@ public class ASTConverter {
       return BinaryOperator.MODULO;
     } else if (op.equals(Assignment.Operator.TIMES_ASSIGN)) {
       return BinaryOperator.MULTIPLY;
-    } else {
-      logger.log(Level.SEVERE, "Did not find Operator");
-      return null;
-    }
 
+    } else {
+      throw new CFAGenerationRuntimeException("Invalid operator " + op
+          + " for number assignment.");
+    }
   }
 
   private JExpression convert(BooleanLiteral e) {
@@ -1733,7 +1795,7 @@ public class ASTConverter {
 
 
     return new JUnaryExpression(fileLoc, convert(e.resolveTypeBinding()),
-                                            operand, convertUnaryOperator(op));
+                                            operand, convert(op));
   }
 
   private JAstNode convert(PostfixExpression e) {
@@ -1790,7 +1852,7 @@ public class ASTConverter {
 
 
 
-  private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
+  private UnaryOperator convert(PrefixExpression.Operator op) {
 
     if (op.equals(PrefixExpression.Operator.NOT)) {
       return UnaryOperator.NOT;
@@ -1811,17 +1873,18 @@ public class ASTConverter {
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
-
-    BinaryOperator op = convertBinaryOperator(e.getOperator());
+    assert leftHandSide != null;
 
     JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightOperand());
-
     assert rightHandSide != null;
-    assert leftHandSide != null;
+
+    final JType leftHandType = leftHandSide.getExpressionType();
+    final JType rightHandType = rightHandSide.getExpressionType();
+    BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
-    // a x b x c is being translated to (((a x b) x c) x d)
+    // a x b x c x d is being translated to (((a x b) x c) x d)
     if (e.hasExtendedOperands()) {
 
       @SuppressWarnings("unchecked")
@@ -1836,8 +1899,48 @@ public class ASTConverter {
     return binaryExpression;
   }
 
-  private BinaryOperator convertBinaryOperator(InfixExpression.Operator op) {
+  // pType is the type of the operands of the operation
+  private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
+    final String invalidTypeMsg = "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";
+    JBasicType basicTypeOp1 = null;
+    JBasicType basicTypeOp2 = null;
 
+    if (pOp1Type instanceof JSimpleType) {
+      basicTypeOp1 = ((JSimpleType) pOp1Type).getType();
+    }
+
+    if (pOp2Type instanceof JSimpleType) {
+      basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
+    }
+
+    if (basicTypeOp1 == null || basicTypeOp2 == null) {
+      if (op.equals(InfixExpression.Operator.EQUALS)) {
+        return BinaryOperator.EQUALS;
+      } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+        return BinaryOperator.NOT_EQUALS;
+      } else {
+        throw new CFAGenerationRuntimeException(invalidTypeMsg);
+      }
+    } else if (isNumericCompatible(basicTypeOp1) && isNumericCompatible(basicTypeOp2)) {
+      return convertNumericOperator(op);
+    } else if (isBooleanCompatible(basicTypeOp1) && isBooleanCompatible(basicTypeOp2)) {
+      return convertBooleanOperator(op);
+    } else {
+      throw new CFAGenerationRuntimeException(invalidTypeMsg);
+    }
+  }
+
+  private boolean isNumericCompatible(JBasicType pType) {
+    return pType != null
+        && (pType.isIntegerType() || pType.isFloatingPointType() || pType == JBasicType.UNSPECIFIED);
+  }
+
+  private boolean isBooleanCompatible(JBasicType pType) {
+    return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
+
+  }
+
+  private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {
     if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
@@ -1846,18 +1949,8 @@ public class ASTConverter {
       return BinaryOperator.DIVIDE;
     } else if (op.equals(InfixExpression.Operator.TIMES)) {
       return BinaryOperator.MULTIPLY;
-    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
-      return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.REMAINDER)) {
       return BinaryOperator.MODULO;
-    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
-      return BinaryOperator.CONDITIONAL_AND;
-    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
-      return BinaryOperator.CONDITIONAL_OR;
-    } else if (op.equals(InfixExpression.Operator.AND)) {
-      return BinaryOperator.LOGICAL_AND;
-    } else if (op.equals(InfixExpression.Operator.OR)) {
-      return BinaryOperator.LOGICAL_OR;
     } else if (op.equals(InfixExpression.Operator.GREATER)) {
       return BinaryOperator.GREATER_THAN;
     } else if (op.equals(InfixExpression.Operator.LESS)) {
@@ -1873,12 +1966,42 @@ public class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
     } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
-     return BinaryOperator.NOT_EQUALS;
+      return BinaryOperator.NOT_EQUALS;
+    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
+      return BinaryOperator.EQUALS;
+    } else if (op.equals(InfixExpression.Operator.AND)) {
+        return BinaryOperator.BINARY_AND;
+    } else if (op.equals(InfixExpression.Operator.OR)) {
+        return BinaryOperator.BINARY_OR;
+    } else if (op.equals(InfixExpression.Operator.XOR)) {
+        return BinaryOperator.BINARY_XOR;
     } else {
       throw new CFAGenerationRuntimeException(
-          "Cold not proccess Operator:" + op.toString());
+        "Could not proccess Operator: " + op.toString());
     }
   }
+
+  private BinaryOperator convertBooleanOperator(InfixExpression.Operator op) {
+    if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
+      return BinaryOperator.CONDITIONAL_AND;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
+      return BinaryOperator.CONDITIONAL_OR;
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
+      return BinaryOperator.NOT_EQUALS;
+    } else if (op.equals(InfixExpression.Operator.EQUALS)) {
+      return BinaryOperator.EQUALS;
+    } else if (op.equals(InfixExpression.Operator.AND)) {
+      return BinaryOperator.LOGICAL_AND;
+    } else if (op.equals(InfixExpression.Operator.OR)) {
+      return BinaryOperator.LOGICAL_OR;
+    } else if (op.equals(InfixExpression.Operator.XOR)) {
+      return BinaryOperator.LOGICAL_XOR;
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Could not proccess Operator: " + op.toString());
+    }
+  }
+
 
   private JExpression convert(NumberLiteral e) {
     FileLocation fileLoc = getFileLocation(e);
@@ -1895,8 +2018,10 @@ public class ASTConverter {
 
     case DOUBLE:
       return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr, e));
+
+    default:
+      return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
     }
-    return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
   }
 
 
@@ -1914,7 +2039,7 @@ public class ASTConverter {
         // TODO handle hex floating point literals that are too large for Double
         value = BigDecimal.valueOf(Double.parseDouble(valueStr));
       } catch (NumberFormatException nfe2) {
-        throw new CFAGenerationRuntimeException("illegal floating point literal");
+        throw new CFAGenerationRuntimeException("Illegal floating point literal", nfe2);
       }
     }
     return value;
@@ -1922,16 +2047,10 @@ public class ASTConverter {
 
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {
-    int last = s.length() - 1;
-    int bits = 32;
+    assert !s.endsWith("l") && !s.endsWith("L");
 
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
-      last--;
-      bits = 64;
-    }
+    final BigInteger result;
 
-    s = s.substring(0, last + 1);
-    BigInteger result;
     try {
       if (s.startsWith("0x") || s.startsWith("0X")) {
         // this should be in hex format, remove "0x" from the string
@@ -1947,18 +2066,21 @@ public class ASTConverter {
       } else {
         result = new BigInteger(s, 10);
       }
-    } catch (NumberFormatException _) {
-      throw new CFAGenerationRuntimeException("invalid number");
+    } catch (NumberFormatException e1) {
+      throw new CFAGenerationRuntimeException("Invalid int [" + s + "]", e1);
     }
-    check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
-    // clear the bits that don't fit in the type
-    // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
-    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
-    result = result.and(mask);
-    assert result.bitLength() <= bits;
+    check(isInIntegerRange(result), "Invalid int [" + s + "]", e);
 
     return result;
+  }
+
+  private boolean isInIntegerRange(BigInteger value) {
+    final BigInteger smallestPossibleValue = BigInteger.valueOf(Integer.MIN_VALUE);
+    final BigInteger biggestPossibleValue = BigInteger.valueOf(Integer.MAX_VALUE);
+
+    return value.compareTo(smallestPossibleValue) >= 0
+        && value.compareTo(biggestPossibleValue) <= 0;
   }
 
 
@@ -1968,7 +2090,8 @@ public class ASTConverter {
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
     if (!(iterable instanceof JIdExpression)) {
-      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly proccessed." , pExpr);
+      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly processed.",
+          pExpr);
     }
 
     FileLocation fileLoc = getFileLocation(pExpr);
@@ -2042,7 +2165,7 @@ public class ASTConverter {
 
     JSimpleDeclaration param =
         scope.lookupVariable(NameConverter.convertName(
-                              formalParameter.resolveBinding()));
+            formalParameter.resolveBinding()));
 
     if (param == null) {
       throw new CFAGenerationRuntimeException(
@@ -2093,9 +2216,8 @@ public class ASTConverter {
    * Converts a Expression into the intern AST which is required to
    * give a boolean Type back.
    *
-   *
-   * @param e a Expression with a boolean type
-   * @return Intern AST representing JDT Expression
+   * @param e an expression with a boolean type
+   * @return intern AST representing JDT expression
    */
   public JExpression convertBooleanExpression(Expression e) {
 
@@ -2125,7 +2247,6 @@ public class ASTConverter {
   /**
    * Checks if the given Expression returns a Value of
    *  boolean Type.
-   *
    *
    * @param e Expression to be checked
    * @return True, iff Type of Expression is boolean, else False.
@@ -2163,9 +2284,13 @@ public class ASTConverter {
       JClassOrInterfaceType classType) {
 
     if (methodInvocation instanceof JReferencedMethodInvocationExpression) {
-      return new JRunTimeTypeEqualsType(fileloc, new JVariableRunTimeType(fileloc,
-          ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable()),
-          classType);
+      JIdExpression referencedVariable =
+          ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable();
+
+      JRunTimeTypeExpression methodReturnType = new JVariableRunTimeType(fileloc, referencedVariable);
+
+      return new JRunTimeTypeEqualsType(fileloc, methodReturnType, classType);
+
     } else {
       return new JRunTimeTypeEqualsType(fileloc,
           new JThisExpression(fileloc, methodInvocation.getDeclaringType()), classType);
@@ -2188,9 +2313,9 @@ public class ASTConverter {
   /**
    * Creates a default Constructor AST for a class represented by the class Binding.
    *
-   *
-   * @param classBinding represents a Class for which the Constructor be constructed.
-   * @return An AST for the default Constructor.
+   * @param classBinding representation of the class a constructor should be constructed for
+   * @return a {@link JMethodDeclaration} representing the default constructor of the given class
+   *         binding
    */
   public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
 
@@ -2240,70 +2365,29 @@ public class ASTConverter {
       return getModifiers(imb.getModifiers());
     }
 
-
-
-
-
     public static ModifierBean getModifiers(int modifiers) {
 
+      boolean isFinal = Modifier.isFinal(modifiers);
+      boolean isStatic = Modifier.isStatic(modifiers);
+      boolean isVolatile = Modifier.isVolatile(modifiers);
+      boolean isTransient = Modifier.isTransient(modifiers);
+      boolean isNative = Modifier.isNative(modifiers);
+      boolean isAbstract = Modifier.isAbstract(modifiers);
+      boolean isStrictFp = Modifier.isStrictfp(modifiers);
+      boolean isSynchronized = Modifier.isSynchronized(modifiers);
+
       VisibilityModifier visibility = null;
-      boolean isFinal = false;
-      boolean isStatic = false;
-      boolean isVolatile = false;
-      boolean isTransient = false;
-      boolean isNative = false;
-      boolean isAbstract = false;
-      boolean isStrictFp = false;
-      boolean isSynchronized = false;
-
-
-
-      // Check all possible bit constants
-      for (int bitMask = 1; bitMask < 2049; bitMask = bitMask << 1) {
-
-        // Check if n-th bit of modifiers is 1
-        switch (modifiers & bitMask) {
-
-        case Modifier.FINAL:
-          isFinal = true;
-          break;
-        case Modifier.STATIC:
-          isStatic = true;
-          break;
-        case Modifier.VOLATILE:
-          isVolatile = true;
-          break;
-        case Modifier.TRANSIENT:
-          isTransient = true;
-          break;
-        case Modifier.PUBLIC:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PUBLIC;
-          break;
-        case Modifier.PROTECTED:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PROTECTED;
-          break;
-        case Modifier.PRIVATE:
-          assert visibility == null : "Can only declare one Visibility Modifier";
-          visibility = VisibilityModifier.PRIVATE;
-          break;
-        case Modifier.NATIVE:
-          isNative = true;
-          break;
-        case Modifier.ABSTRACT:
-          isAbstract = true;
-          break;
-        case Modifier.STRICTFP:
-          isStrictFp = true;
-          break;
-        case Modifier.SYNCHRONIZED:
-          isSynchronized = true;
-          break;
-        }
+      if (Modifier.isPublic(modifiers)) {
+        visibility = VisibilityModifier.PUBLIC;
       }
-
-      // If no Visibility Modifier is selected, it is None
+      if (Modifier.isProtected(modifiers)) {
+        assert visibility == null : "Can only declare one Visibility Modifier";
+        visibility = VisibilityModifier.PROTECTED;
+      }
+      if (Modifier.isPrivate(modifiers)) {
+        assert visibility == null : "Can only declare one Visibility Modifier";
+        visibility = VisibilityModifier.PRIVATE;
+      }
       if (visibility == null) {
         visibility = VisibilityModifier.NONE;
       }

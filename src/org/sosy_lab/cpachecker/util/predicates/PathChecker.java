@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 /**
  * This class can check feasibility of a simple path using an SMT solver.
@@ -72,7 +74,8 @@ public class PathChecker {
     machineModel = pMachineModel;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath)
+      throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
 
@@ -88,7 +91,13 @@ public class PathChecker {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
         Model model = getModel(thmProver);
-        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model));
+
+        Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(pPath, ssaMaps, model);
+
+        CFAPathWithAssignments pathWithAssignments = pathAndTerms.getFirst();
+        Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
+
+        model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }
@@ -134,7 +143,7 @@ public class PathChecker {
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public CFAPathWithAssignments extractVariableAssignment(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
       List<SSAMap> pSsaMaps, Model pModel) throws InterruptedException {
 
     AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);
@@ -142,7 +151,7 @@ public class PathChecker {
     return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
   }
 
-  private <T> Model getModel(ProverEnvironment thmProver) {
+  private Model getModel(ProverEnvironment thmProver) {
     try {
       return thmProver.getModel();
     } catch (SolverException e) {

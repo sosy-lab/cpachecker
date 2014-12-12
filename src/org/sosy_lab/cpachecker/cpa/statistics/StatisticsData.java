@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,15 +30,18 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+
 /**
  * A simple wrapper around the management of a Map<StatisticsProvider, StatisticsDataProvider> field.
  * All instances of this class are immutable.
  */
 public class StatisticsData implements Iterable<Entry<StatisticsProvider, StatisticsDataProvider>> {
-  private Map<StatisticsProvider, StatisticsDataProvider> data;
+  private final Map<StatisticsProvider, StatisticsDataProvider> data;
 
   public StatisticsData(Set<StatisticsProvider> propertyProviders) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = new HashMap<>(propertyProviders.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(propertyProviders.size());
     for (StatisticsProvider providerEntry : propertyProviders) {
       dataProvider.put(providerEntry, providerEntry.createDataProvider());
     }
@@ -50,13 +52,9 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
     this.data = data;
   }
 
-  public StatisticsDataProvider getProperty(String pProperty) {
-    throw new UnsupportedOperationException("Querying is currently not implemented.");
-  }
-
   public StatisticsData mergeState(StatisticsData state2) {
     assert data.size() == state2.data.size() : "sized and properties have to match";
-    Map<StatisticsProvider, StatisticsDataProvider> merged = new HashMap<>(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> merged = Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
       merged.put(providerEntry.getKey(), providerEntry.getValue().mergePath(state2.data.get(providerEntry.getKey())));
     }
@@ -64,7 +62,7 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
   }
 
   public StatisticsData getNextState(CFAEdge node) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = new HashMap<>(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
       StatisticsProvider key = providerEntry.getKey();
       StatisticsDataProvider value = providerEntry.getValue();
@@ -76,29 +74,6 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
 
   @Override
   public Iterator<Entry<StatisticsProvider, StatisticsDataProvider>> iterator() {
-    return new ReadonlyIterator<>(data.entrySet().iterator());
+    return Iterators.unmodifiableIterator(data.entrySet().iterator());
   }
-
-  public static class ReadonlyIterator<T> implements Iterator<T> {
-    private Iterator<T> wrapped;
-    public ReadonlyIterator(Iterator<T> wrapped) {
-      this.wrapped = wrapped;
-    }
-    @Override
-    public boolean hasNext() {
-      return this.wrapped.hasNext();
-    }
-
-    @Override
-    public T next() {
-      return this.wrapped.next();
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("remove not supported!");
-    }
-
-  }
-
 }

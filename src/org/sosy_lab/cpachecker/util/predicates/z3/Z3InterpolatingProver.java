@@ -24,16 +24,18 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToLong;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
@@ -141,7 +143,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
 
     assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
-    BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
+    BooleanFormula f = mgr.encapsulateBooleanFormula(itps[0]);
 
     // cleanup
     dec_ref(z3context, fA);
@@ -151,9 +153,52 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   }
 
   @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<Long>> partitionedFormulas) {
+
+    final long[] interpolationFormulas = new long[partitionedFormulas.size()];
+
+    for (int i = 0; i < interpolationFormulas.length; i++) {
+      long partition = mk_and(z3context, Longs.toArray(partitionedFormulas.get(i)));
+      inc_ref(z3context, partition);
+      interpolationFormulas[i] = partition;
+    }
+
+    // n groups -> n-1 interpolants
+    final long[] itps = new long[interpolationFormulas.length - 1];
+    Arrays.fill(itps, 1); // initialize with value != 0
+
+    PointerToLong labels = new PointerToLong();
+    PointerToLong model = new PointerToLong();
+
+    // next lines are not needed due to a direct implementation in the C-code.
+    //    long options = mk_params(z3context);
+    //    inc_ref(z3context, options);
+    //    int[] parents = new int[0]; // this line is not working
+    long[] theory = new long[0]; // do we need a theory?
+
+    smtLogger.logSeqInterpolation(interpolationFormulas);
+
+    // get interpolant of groups
+    int isSat = interpolateSeq(z3context, interpolationFormulas, itps, model, labels, 0, theory);
+
+    assert isSat != Z3_LBOOL.Z3_L_TRUE.status;
+
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (long itp : itps) {
+      result.add(mgr.encapsulateBooleanFormula(itp));
+    }
+
+    // cleanup
+    for (long partition : interpolationFormulas) {
+      dec_ref(z3context, partition);
+    }
+
+    return result;
+  }
+
+  @Override
   public Model getModel() {
-    Z3Model modelCreator = new Z3Model(mgr, z3context, z3solver);
-    return modelCreator.createZ3Model();
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override

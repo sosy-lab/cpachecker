@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -78,6 +77,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa,
       InvariantGenerator pInvariantGenerator) {
+
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
@@ -88,9 +88,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException, InterruptedException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
@@ -102,8 +102,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         element = computeAbstraction((ComputeAbstractionState)element, precision);
       }
 
-      Action action = element.isTarget() ? Action.BREAK : Action.CONTINUE;
-      return Triple.<AbstractState, Precision, Action>of(element, pPrecision, action);
+      return PrecisionAdjustmentResult.create(element, pPrecision, Action.CONTINUE);
 
     } finally {
       totalPrecTime.stop();
@@ -126,8 +125,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
     // get invariants and add them
@@ -142,6 +139,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
+      Set<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
+
+      // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(
           loc, abstractionFormula, pathFormula, preds);
     } finally {
@@ -166,7 +166,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula, abstractionLocations, element.getViolatedProperty());
+        newAbstractionFormula, abstractionLocations);
   }
 
   private void extractInvariants() throws CPAException {

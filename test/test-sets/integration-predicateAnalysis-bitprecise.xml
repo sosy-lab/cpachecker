@@ -2,11 +2,10 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="5000" cpuCores="2">
   <!-- try to make it more deterministic -->
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
+  <option name="-setprop">cpa.predicate.solver.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
 
   <option name="-heap">2000M</option>
-  <option name="-timelimit">1min</option>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
@@ -24,8 +23,6 @@
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-      <exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem16_50_true-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_6_true-unreach-call.cil.c</exclude>
@@ -39,11 +36,10 @@
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
     </sourcefiles>
+    <sourcefiles>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    </sourcefiles>
     <option name="-predicateAnalysis-bitprecise"/>
   </rundefinition>
-
-  <columns>
-    <column title="total">time for CPAchecker</column>
-    <column title="cpa time">time for CPA algorithm</column>
-  </columns>
 </benchmark>

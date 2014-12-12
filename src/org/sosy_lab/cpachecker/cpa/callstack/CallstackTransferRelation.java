@@ -36,39 +36,39 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 @Options(prefix="cpa.callstack")
-public class CallstackTransferRelation implements TransferRelation {
+public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(name="depth", description = "depth of recursion bound")
-  private int recursionBoundDepth = 0;
+  @Option(secure=true, name="depth", description = "depth of recursion bound")
+  protected int recursionBoundDepth = 0;
 
-  @Option(name="skipRecursion", description = "Skip recursion (this is unsound)." +
+  @Option(secure=true, name="skipRecursion", description = "Skip recursion (this is unsound)." +
       " Treat function call as a statement (the same as for functions without bodies)")
-  private boolean skipRecursion = false;
+  protected boolean skipRecursion = false;
 
-  @Option(description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
+  @Option(secure=true, description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
       " Imprecise function pointer tracking often lead to false recursions.")
-  private boolean skipFunctionPointerRecursion = false;
+  protected boolean skipFunctionPointerRecursion = false;
 
-  @Option(description = "Skip recursion if it happens only by going via a void function (this is unsound).")
-  private boolean skipVoidRecursion = false;
+  @Option(secure=true, description = "Skip recursion if it happens only by going via a void function (this is unsound).")
+  protected boolean skipVoidRecursion = false;
 
-  private final LogManagerWithoutDuplicates logger;
+  protected final LogManagerWithoutDuplicates logger;
 
   public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
@@ -76,16 +76,20 @@ public class CallstackTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pEdge)
       throws CPATransferException {
-    CallstackState element = (CallstackState) pElement;
 
-    switch (pCfaEdge.getEdgeType()) {
+    final CallstackState e = (CallstackState) pElement;
+    final CFANode pred = pEdge.getPredecessor();
+    final CFANode succ = pEdge.getSuccessor();
+    final String predFunction = pred.getFunctionName();
+    final String succFunction = succ.getFunctionName();
+
+    switch (pEdge.getEdgeType()) {
     case StatementEdge: {
-      if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
-        if (!shouldGoByFunctionSummaryStatement(element, summary)) {
+      if (pEdge instanceof CFunctionSummaryStatementEdge) {
+        if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
           // should go by function call and skip the current edge
           return Collections.emptySet();
         }
@@ -93,16 +97,15 @@ public class CallstackTransferRelation implements TransferRelation {
       }
       break;
     }
+
     case AssumeEdge: {
-      String predecessorFunctionName = pCfaEdge.getPredecessor().getFunctionName();
-      String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
-      boolean successorIsInCallstackContext = successorFunctionName.equals(element.getCurrentFunction());
-      boolean isArtificialPCVEdge = pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge;
-      boolean isSuccessorAritificialPCNode = successorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-      boolean isPredecessorAritificialPCNode = predecessorFunctionName.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-      boolean isFunctionTransition = !successorFunctionName.equals(predecessorFunctionName);
+      boolean successorIsInCallstackContext = succFunction.equals(e.getCurrentFunction());
+      boolean isArtificialPCVEdge = pEdge instanceof ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = succFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !succFunction.equals(predFunction);
       if (!successorIsInCallstackContext
-          && !element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+          && !e.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
           && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
               || isPredecessorAritificialPCNode && isFunctionTransition)) {
         /*
@@ -116,54 +119,52 @@ public class CallstackTransferRelation implements TransferRelation {
       }
       break;
     }
-    case FunctionCallEdge: {
-        String functionName = pCfaEdge.getSuccessor().getFunctionName();
 
-        if (hasRecursion(element, functionName)) {
-          if (skipRecursiveFunctionCall(element, (FunctionCallEdge)pCfaEdge)) {
+    case FunctionCallEdge: {
+        final String calledFunction = succ.getFunctionName();
+        final CFANode callerNode = pred;
+
+        if (hasRecursion(e, calledFunction)) {
+          if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {
             // skip recursion, don't enter function
             logger.logOnce(Level.WARNING, "Skipping recursive function call from",
-                pCfaEdge.getPredecessor().getFunctionName(), "to", functionName);
+                pred.getFunctionName(), "to", calledFunction);
             return Collections.emptySet();
           } else {
             // recursion is unsupported
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
-            throw new UnsupportedCCodeException("recursion", pCfaEdge);
+            throw new UnsupportedCCodeException("recursion", pEdge);
           }
         } else {
           // regular function call
-          CFANode callNode = pCfaEdge.getPredecessor();
-          return Collections.singleton(new CallstackState(element, functionName, callNode));
+          return Collections.singleton(new CallstackState(e, calledFunction, callerNode));
         }
       }
+
     case FunctionReturnEdge: {
-        FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
-
-        String calledFunction = cfaEdge.getPredecessor().getFunctionName();
-        String callerFunction = cfaEdge.getSuccessor().getFunctionName();
-
-        CFANode returnNode = cfaEdge.getSuccessor();
-        CFANode callNode = returnNode.getEnteringSummaryEdge().getPredecessor();
-
+        final String calledFunction = predFunction;
+        final String callerFunction = succFunction;
+        final CFANode callNode = succ.getEnteringSummaryEdge().getPredecessor();
         final CallstackState returnElement;
 
-        assert calledFunction.equals(element.getCurrentFunction()) || element.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+        assert calledFunction.equals(e.getCurrentFunction()) || e.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 
-        if (!isWildcardState(element)) {
+        if (!isWildcardState(e)) {
 
-          if (!callNode.equals(element.getCallNode())) {
+          if (!callNode.equals(e.getCallNode())) {
             // this is not the right return edge
             return Collections.emptySet();
           }
-          returnElement = element.getPreviousState();
+          returnElement = e.getPreviousState();
 
           assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         } else {
-          returnElement = element;
+          returnElement = e;
         }
 
         return Collections.singleton(returnElement);
       }
+
     default:
       break;
     }
@@ -179,7 +180,7 @@ public class CallstackTransferRelation implements TransferRelation {
    * @return {@code true} if the given state should be treated as a wildcard,
    * {@code false} otherwise.
    */
-  private boolean isWildcardState(CallstackState pState) {
+  protected boolean isWildcardState(CallstackState pState) {
     return pState.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
   }
 
@@ -191,7 +192,7 @@ public class CallstackTransferRelation implements TransferRelation {
     return null;
   }
 
-  private boolean skipRecursiveFunctionCall(final CallstackState element,
+  protected boolean skipRecursiveFunctionCall(final CallstackState element,
       final FunctionCallEdge callEdge) {
     if (skipRecursion) {
       return true;
@@ -205,7 +206,7 @@ public class CallstackTransferRelation implements TransferRelation {
     return false;
   }
 
-  private boolean hasRecursion(final CallstackState element, final String functionName) {
+  protected boolean hasRecursion(final CallstackState element, final String functionName) {
     CallstackState e = element;
     int counter = 0;
     while (e != null) {
@@ -220,7 +221,7 @@ public class CallstackTransferRelation implements TransferRelation {
     return false;
   }
 
-  private boolean hasFunctionPointerRecursion(final CallstackState element,
+  protected boolean hasFunctionPointerRecursion(final CallstackState element,
       final FunctionCallEdge pCallEdge) {
     if (pCallEdge.getRawStatement().startsWith("pointer call(")) { // Hack, see CFunctionPointerResolver
       return true;
@@ -245,7 +246,7 @@ public class CallstackTransferRelation implements TransferRelation {
     throw new AssertionError();
   }
 
-  private boolean hasVoidRecursion(final CallstackState element,
+  protected boolean hasVoidRecursion(final CallstackState element,
       final FunctionCallEdge pCallEdge) {
     if (pCallEdge.getSummaryEdge().getExpression() instanceof AFunctionCallStatement) {
       return true;
@@ -270,14 +271,14 @@ public class CallstackTransferRelation implements TransferRelation {
     throw new AssertionError();
   }
 
-  private boolean shouldGoByFunctionSummaryStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
+  protected boolean shouldGoByFunctionSummaryStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
     String functionName = sumEdge.getFunctionName();
     FunctionCallEdge callEdge = findOutgoingCallEdge(sumEdge.getPredecessor());
     assert functionName.equals(callEdge.getSuccessor().getFunctionName());
     return hasRecursion(element, functionName) && skipRecursiveFunctionCall(element, callEdge);
   }
 
-  private FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
+  protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
     for (CFAEdge edge : leavingEdges(predNode)) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return (FunctionCallEdge)edge;

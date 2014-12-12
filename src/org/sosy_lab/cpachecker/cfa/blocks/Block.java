@@ -80,6 +80,9 @@ public class Block {
 
   @Override
   public String toString() {
-    return "Block (CallNodes: " + callNodes + ")";
+    return "Block " +
+            "(CallNodes: " + callNodes + ") " +
+            "(Nodes: " + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]") + ") " +
+            "(ReturnNodes: " + returnNodes + ")";
   }
 }

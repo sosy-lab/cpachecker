@@ -20,6 +20,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if "VERIFICATION SUCCESSFUL" in output:
             assert returncode == 0
             status = result.STATUS_TRUE_PROP

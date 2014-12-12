@@ -142,8 +142,7 @@ public class SMGJoinFieldsTest {
       Assert.assertTrue(hv.getOffset() == 14 || hv.getOffset() == 18);
       if (hv.getOffset() == 14) {
         Assert.assertTrue(hv.getSizeInBytes(MachineModel.LINUX64) == 2);
-      }
-      else {
+      } else {
         Assert.assertTrue(hv.getSizeInBytes(MachineModel.LINUX64) == 4);
       }
     }
@@ -226,8 +225,7 @@ public class SMGJoinFieldsTest {
     for (SMGEdgeHasValue edge : filter.filterSet(hvSet)) {
       if (edge.getOffset() == 0) {
         seenZero = true;
-      }
-      else if (edge.getOffset() == 2) {
+      } else if (edge.getOffset() == 2) {
         seenTwo = true;
       }
       Assert.assertTrue(edge.getOffset() == 0 || edge.getOffset() == 2);
@@ -326,7 +324,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void differentSizeCheckTest(){
+  public void differentSizeCheckTest() {
     SMGRegion obj1 = new SMGRegion(8, "Object 1");
     SMGRegion obj2 = new SMGRegion(12, "Object 2");
     SMG smg1 = new SMG(MachineModel.LINUX64);
@@ -470,7 +468,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void nonMemberObjectTest1(){
+  public void nonMemberObjectTest1() {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 
@@ -483,7 +481,7 @@ public class SMGJoinFieldsTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void nonMemberObjectTest2(){
+  public void nonMemberObjectTest2() {
     SMG smg1 = new SMG(MachineModel.LINUX64);
     SMG smg2 = new SMG(MachineModel.LINUX32);
 

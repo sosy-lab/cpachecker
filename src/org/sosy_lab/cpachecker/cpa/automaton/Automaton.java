@@ -32,6 +32,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
+    justification = "consistent Unix-style line endings")
 public class Automaton {
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.

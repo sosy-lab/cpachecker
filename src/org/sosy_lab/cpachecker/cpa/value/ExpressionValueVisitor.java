@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -77,8 +79,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, boolean pSymbolicValues) {
     super(pFunctionName, pMachineModel, pLogger);
-    this.state = pState;
-    this.symbolicValues = pSymbolicValues;
+    state = pState;
+    symbolicValues = pSymbolicValues;
   }
 
   /* additional methods */
@@ -95,24 +97,23 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   /** Heuristic to avoid generating too many symbolic values for the same file location. */
   private static Map<FileLocation, Integer> numberOfSymbolsGenerated = new HashMap<>();
-  private final int maxNumberOfSymbolsGenerated = 200;
+  private static final int MAX_NUMBER_OF_SYMBOLS_GENERATED = 200;
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-    if(this.symbolicValues) {
+    if (symbolicValues) {
       // Only generate a symbolic value if we haven't already generated many symbolic
       // values for this location.
       FileLocation key = pIastFunctionCallExpression.getFileLocation();
       int generatedSymbols = 0;
-      if(numberOfSymbolsGenerated.containsKey(key)) {
+      if (numberOfSymbolsGenerated.containsKey(key)) {
         generatedSymbols = numberOfSymbolsGenerated.get(key);
       }
 
-      if(generatedSymbols < maxNumberOfSymbolsGenerated) {
+      if (generatedSymbols < MAX_NUMBER_OF_SYMBOLS_GENERATED) {
         numberOfSymbolsGenerated.put(key,  generatedSymbols + 1);
-        SymbolicValueFormula formula = new SymbolicValueFormula(
-            new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
-        return formula;
+       return new SymbolicValueFormula(
+           new SymbolicValueFormula.SymbolicValue(pIastFunctionCallExpression.toASTString()));
       }
     }
 
@@ -226,7 +227,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       Value subscriptValue = subscript.accept(evv);
 
-      if(!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
+      if (!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
         return null;
       }
 
@@ -267,7 +268,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       Integer offset = getFieldOffset(ownerType, fieldName);
 
-      if(offset == null) {
+      if (offset == null) {
         return null;
       }
 
@@ -326,7 +327,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
-      if(isGlobal) {
+      if (isGlobal) {
         return MemoryLocation.valueOf(idExp.getName(), 0);
       } else {
         return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName(), 0);

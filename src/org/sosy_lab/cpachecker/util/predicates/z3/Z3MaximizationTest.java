@@ -23,67 +23,164 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import java.util.List;
+
 import org.junit.Assert;
-import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.rationals.ExtendedRational;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
+
+import com.google.common.collect.ImmutableList;
+import static com.google.common.truth.Truth.assertThat;
 
 
 /**
- * Tests for the opti-z3 branch.
+ * Tests for the maximization using the Z3 opt branch.
  */
 public class Z3MaximizationTest {
 
-  /**
-   * Tests only get to run if Z3 can be loaded.
-   */
-  public void loadZ3() {
-    try {
-      NativeLibraries.loadLibrary("z3j");
-    } catch (UnsatisfiedLinkError t) {
-      Assume.assumeNoException("libfoci.so is needed for Z3 to load", t);
+  private Z3FormulaManager mgr;
+  private Z3RationalFormulaManager rfmgr;
+  private Z3BooleanFormulaManager bfmgr;
+
+  @Before
+  public void loadZ3() throws Exception {
+    NativeLibraries.loadLibrary("z3j");
+    Configuration config = Configuration.defaultConfiguration();
+    LogManager logger = TestLogManager.getInstance();
+    mgr = Z3FormulaManager.create(logger, config, null);
+    rfmgr = (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
+    bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
+  }
+
+  @Test public void testUnbounded() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, obj;
+      x = rfmgr.makeVariable("x");
+      obj = rfmgr.makeVariable("obj");
+      List<BooleanFormula> constraints = ImmutableList.of(
+        rfmgr.greaterOrEquals(x, rfmgr.makeNumber("10")),
+        rfmgr.equal(x, obj)
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      int handle = prover.maximize(obj);
+      OptEnvironment.OptStatus response = prover.check();
+      Assert.assertTrue(!prover.upper(handle, 0).isPresent());
     }
   }
 
-  @Test
-  public void testMaximization() throws
-      InvalidConfigurationException,
-      SolverException, InterruptedException {
+  @Test public void testUnfeasible() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, y;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessThan(x, y),
+          rfmgr.greaterThan(x, y)
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      int handle = prover.maximize(x);
+      OptEnvironment.OptStatus response = prover.check();
+      Assert.assertEquals(OptEnvironment.OptStatus.UNSAT,
+          response);
+    }
+  }
 
-    loadZ3();
-    Configuration config = Configuration.defaultConfiguration();
-    Z3FormulaManager mgr = Z3FormulaManager.create(null, config);
-    Z3RationalFormulaManager rfmgr =
-        (Z3RationalFormulaManager) mgr.getRationalFormulaManager();
+  @Test public void testOptimal() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
 
-    try (ProverEnvironment prover = new Z3TheoremProver(mgr)) {
+      RationalFormula x, y, obj;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      obj = rfmgr.makeVariable("obj");
 
-      NumeralFormula.RationalFormula x = rfmgr.makeVariable("x");
-      NumeralFormula.RationalFormula ten = rfmgr.makeNumber("10");
+      /*
+        real x, y, obj
+        x <= 10
+        y <= 15
+        obj = x + y
+        x - y >= 1
+       */
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
+          rfmgr.equal(obj, rfmgr.add(x, y)),
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
+      );
 
-      // Assert x <= 10.
-      BooleanFormula f = rfmgr.lessOrEquals(x, ten);
-      prover.push(f);
+      prover.addConstraint(bfmgr.and(constraints));
+      int handle = prover.maximize(obj);
 
       // Maximize for x.
-      ProverEnvironment.OptResult response = prover.isOpt(x, true);
+      OptEnvironment.OptStatus response = prover.check();
 
-      Assert.assertEquals(response, ProverEnvironment.OptResult.OPT);
+      Assert.assertEquals(OptEnvironment.OptStatus.OPT, response);
+
+      Model model = prover.getModel();
+      Assert.assertEquals("obj : Real: 19\nx : Real: 10\ny : Real: 9",
+          model.toString());
 
       // Check the value.
-      Model model = prover.getModel();
+      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
+    }
+  }
 
-      ExtendedRational value = (ExtendedRational) model.get(new Model.Constant("x", Model.TermType.Real));
+  @Test public void testSwitchingObjectives() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, y, obj;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      obj = rfmgr.makeVariable("obj");
 
-      Assert.assertEquals(value, ExtendedRational.ofString("10"));
+      /*
+        real x, y, obj
+        x <= 10
+        y <= 15
+        obj = x + y
+        x - y >= 1
+       */
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
+          rfmgr.equal(obj, rfmgr.add(x, y)),
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      OptStatus response;
+
+      prover.push();
+
+      int handle = prover.maximize(obj);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("19"));
+
+      prover.pop();
+      prover.push();
+
+      handle = prover.maximize(x);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("10"));
+
+      prover.pop();
+      prover.push();
+
+      handle = prover.maximize(rfmgr.makeVariable("y"));
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("9"));
+
+      prover.pop();
     }
   }
 

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableMap;
  * (i.e., outside of functions).
  * Allows to register functions, types and global variables.
  */
-class GlobalScope extends Scope {
+class GlobalScope extends AbstractScope {
 
   private final Map<String, CSimpleDeclaration> globalVars;
   private final Map<String, CFunctionDeclaration> functions;
@@ -179,7 +179,7 @@ class GlobalScope extends Scope {
 
     if (globalVars.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of global variable "
-          + name + " from line " + globalVars.get(name).getFileLocation().getStartingLineNumber()
+          + name + " from " + globalVars.get(name).getFileLocation()
           + " is reused as function declaration", declaration);
     }
 
@@ -191,14 +191,15 @@ class GlobalScope extends Scope {
     assert declaration instanceof CVariableDeclaration
         || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
+    assert  !(declaration.getType().getCanonicalType() instanceof CFunctionType)
+        : "Tried to register a variable with the type of a function: " + declaration;
 
     String name = declaration.getOrigName();
     assert name != null;
 
     if (functions.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Name of function "
-          + name + " from line " + functions.get(name).getFileLocation().getStartingLineNumber()
+          + name + " from " + functions.get(name).getFileLocation()
           + " is reused as identifier in global scope", declaration);
     }
 
@@ -261,8 +262,8 @@ class GlobalScope extends Scope {
         // declaring struct twice is not allowed, even with equal signatures
         if (oldType.getClass() == type.getClass()) {
           throw new CFAGenerationRuntimeException("Redeclaring " + name
-              + " in line " + declaration.getFileLocation().getStartingLineNumber()
-              + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber());
+              + " in " + declaration.getFileLocation()
+              + ", originally declared in " + oldDeclaration.getFileLocation());
         }
       }
 
@@ -376,7 +377,7 @@ class GlobalScope extends Scope {
       }
 
       List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(((CCompositeType)oldType).getMembers().size());
-      for(CCompositeTypeMemberDeclaration decl : ((CCompositeType) oldType).getMembers()) {
+      for (CCompositeTypeMemberDeclaration decl : ((CCompositeType) oldType).getMembers()) {
         if (!(decl.getType() instanceof CPointerType)) {
           newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
         } else {
@@ -445,9 +446,9 @@ class GlobalScope extends Scope {
 
       if (!type.getCanonicalType().equals(oldType.getCanonicalType())) {
         throw new CFAGenerationRuntimeException("Redeclaring " + name
-            + " in line " + declaration.getFileLocation().getStartingLineNumber()
+            + " in " + declaration.getFileLocation()
             + " with type " + type.toASTString("")
-            + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
+            + ", originally declared in " + oldDeclaration.getFileLocation()
             + " with type " + oldType.toASTString(""));
       }
       // redundant typedef, ignore it

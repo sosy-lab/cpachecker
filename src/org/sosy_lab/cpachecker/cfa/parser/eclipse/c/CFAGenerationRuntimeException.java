@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemHolder;
@@ -31,6 +32,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 
 /**
@@ -50,8 +52,9 @@ class CFAGenerationRuntimeException extends RuntimeException {
     super(cause.getMessage(), cause);
   }
 
-  public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
-    this(astNode == null ? msg : createMessage(msg, astNode));
+  public CFAGenerationRuntimeException(String msg, IASTNode astNode,
+      Function<String, String> niceFileNameFunction) {
+    this(astNode == null ? msg : createMessage(msg, astNode, niceFileNameFunction));
   }
 
   public CFAGenerationRuntimeException(String msg, CAstNode astNode) {
@@ -59,15 +62,47 @@ class CFAGenerationRuntimeException extends RuntimeException {
       (astNode.getFileLocation() + ": " + msg + ": " + astNode.toASTString()));
   }
 
-  public CFAGenerationRuntimeException(IASTProblem problem) {
-    this(createMessage(problem.getMessage(), problem));
+  public CFAGenerationRuntimeException(IASTProblem problem,
+      Function<String, String> niceFileNameFunction) {
+    this(createMessage(problem.getMessage(), problem, niceFileNameFunction));
   }
 
-  public <P extends IASTProblemHolder & IASTNode> CFAGenerationRuntimeException(P problem) {
-    this(createMessage(problem.getProblem().getMessage(), problem));
+  public <P extends IASTProblemHolder & IASTNode> CFAGenerationRuntimeException(
+      P problem, Function<String, String> niceFileNameFunction) {
+    this(createMessage(problem.getProblem().getMessage(), problem, niceFileNameFunction));
   }
 
-  private static String createMessage(String msg, IASTNode node) {
+  private static String createMessage(String msg, IASTNode node,
+      Function<String, String> niceFileNameFunction) {
+    StringBuilder sb = new StringBuilder();
+
+    IASTFileLocation fileLocation = node.getFileLocation();
+    String fileName = niceFileNameFunction.apply(fileLocation.getFileName());
+    if (!fileName.isEmpty()) {
+      sb.append(fileName);
+      sb.append(", ");
+    }
+    if (fileLocation.getEndingLineNumber() != fileLocation.getStartingLineNumber()) {
+      sb.append("lines ");
+      sb.append(fileLocation.getStartingLineNumber());
+      sb.append("-");
+      sb.append(fileLocation.getEndingLineNumber());
+    } else {
+      sb.append("line ");
+      sb.append(fileLocation.getStartingLineNumber());
+    }
+    sb.append(": ");
+
+    if (Strings.isNullOrEmpty(msg)) {
+      sb.append("Problem");
+    } else {
+      sb.append(msg);
+    }
+    sb.append(": ");
+
+    String rawSignature = node.getRawSignature();
+    sb.append(rawSignature);
+
     // search the ast node for the whole statement / declaration / line
     IASTNode fullLine = node;
     while ((fullLine != null)
@@ -76,18 +111,6 @@ class CFAGenerationRuntimeException extends RuntimeException {
 
       fullLine = fullLine.getParent();
     }
-
-    String rawSignature = node.getRawSignature();
-    StringBuilder sb = new StringBuilder();
-    if (Strings.isNullOrEmpty(msg)) {
-      sb.append("Problem");
-    } else {
-      sb.append(msg);
-    }
-    sb.append(" in line ");
-    sb.append(node.getFileLocation().getStartingLineNumber());
-    sb.append(": ");
-    sb.append(rawSignature);
 
     if (fullLine != null && fullLine != node) {
       String lineRawSignature = fullLine.getRawSignature();

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
@@ -31,16 +33,10 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -49,8 +45,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginDescriptor;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -80,6 +78,37 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
+  /**
+   * Implements a match on the label after the current CFAEdge.
+   * The eval method returns false if there is no label following the CFAEdge.
+   */
+  static class MatchLabelExact implements AutomatonBoolExpr {
+
+    private final String label;
+
+    public MatchLabelExact(String pLabel) {
+      label = checkNotNull(pLabel);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
+      if (successorNode instanceof CLabelNode) {
+        if (label.equals(((CLabelNode)successorNode).getLabel())) {
+          return CONST_TRUE;
+        } else {
+          return CONST_FALSE;
+        }
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH LABEL \"" + label + "\"";
+    }
+  }
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
@@ -264,36 +293,98 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static abstract class OnRelevantEdgesBoolExpr implements AutomatonBoolExpr {
-    protected boolean handleAsEpsilonEdge(CFAEdge edge) {
-      if (edge instanceof BlankEdge) {
-        return true;
-      } else if (edge instanceof CFunctionReturnEdge) {
-        return true;
-      } else if (edge instanceof CDeclarationEdge) {
-        CDeclarationEdge declEdge = (CDeclarationEdge) edge;
-        CDeclaration decl = declEdge.getDeclaration();
-        if (decl instanceof CFunctionDeclaration) {
-          return true;
-        } else if (decl instanceof CTypeDeclaration) {
-          return true;
-        } else if (decl instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-          if (varDecl.getInitializer() == null) {
-            return true;
-          }
+  static class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr operandExpression;
+
+    MatchAllSuccessorEdgesBoolExpr(AutomatonBoolExpr pOperandExpression) {
+      Preconditions.checkNotNull(pOperandExpression);
+      operandExpression = pOperandExpression;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+        return CONST_TRUE;
+      }
+      ResultValue<Boolean> result = null;
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+        result = operandExpression.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                cfaEdge,
+                pArgs.getLogger()));
+        if (result.canNotEvaluate() || !result.getValue()) {
+          return result;
         }
       }
-
-      return false;
+      assert result != null;
+      return result;
     }
+
+    @Override
+    public String toString() {
+      return String.format("MATCH FORALL SUCCESSOR EDGES (%s)", operandExpression);
+    }
+
   }
 
-  static class MatchPathRelevantEdgesBoolExpr extends OnRelevantEdgesBoolExpr {
+  static class MatchAnySuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+
+    private final AutomatonBoolExpr operandExpression;
+
+    MatchAnySuccessorEdgesBoolExpr(AutomatonBoolExpr pOperandExpression) {
+      Preconditions.checkNotNull(pOperandExpression);
+      operandExpression = pOperandExpression;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+        return CONST_FALSE;
+      }
+      ResultValue<Boolean> result = null;
+      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+        result = operandExpression.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                cfaEdge,
+                pArgs.getLogger()));
+        if (!result.canNotEvaluate() && result.getValue()) {
+          return result;
+        }
+      }
+      assert result != null;
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("MATCH EXISTS SUCCESSOR EDGE (%s)", operandExpression);
+    }
+
+  }
+
+  static interface OnRelevantEdgesBoolExpr extends AutomatonBoolExpr {
+
+    // Marker interface
+
+  }
+
+  static enum MatchPathRelevantEdgesBoolExpr implements OnRelevantEdgesBoolExpr {
+
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
+      if (FileLocation.DUMMY.equals(pArgs.getCfaEdge().getFileLocation())) {
+        return CONST_FALSE;
+      }
+      return AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge()) ? CONST_FALSE : CONST_TRUE;
     }
 
     @Override
@@ -303,12 +394,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static class MatchNonEmptyEdgeTokens extends OnRelevantEdgesBoolExpr {
+  static class MatchNonEmptyEdgeTokens implements OnRelevantEdgesBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       Set<Integer> edgeTokens;
-      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
         edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
@@ -324,7 +415,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static abstract class MatchEdgeTokens extends OnRelevantEdgesBoolExpr {
+  static abstract class MatchEdgeTokens implements OnRelevantEdgesBoolExpr {
 
     protected final Set<Comparable<Integer>> matchTokens;
 
@@ -339,7 +430,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       boolean match = false;
 
       Set<Integer> edgeTokens;
-      if (handleAsEpsilonEdge(pArgs.getCfaEdge())) {
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
         edgeTokens = Collections.emptySet();
       } else {
         edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
@@ -452,7 +543,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(pArgs.getCfaEdge());
+      return eval(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
+    }
+
+    protected boolean eval(CFAEdge edge) {
+      Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
       for (FileLocation l: fileLocs) {
         boolean matches = true;
         if (matchOriginFileName.isPresent()) {
@@ -461,12 +556,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
             matches = false;
           }
         }
-        if (matches && l.getStartingLineInOrigin() == matchStartingLineInOrigin) {
-          return CONST_TRUE;
+        if (matches && l.getStartingLineNumber() <= matchStartingLineInOrigin && l.getEndingLineNumber() >= matchStartingLineInOrigin) {
+          return true;
         }
       }
-
-      return CONST_FALSE;
+      return false;
     }
 
     @Override
@@ -474,6 +568,73 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH ORIGIN STARTING LINE " + matchStartingLineInOrigin;
     }
 
+  }
+
+  static class MatchEdgeLinesInOrigin implements AutomatonBoolExpr {
+    MatchStartingLineInOrigin start;
+    MatchStartingLineInOrigin end;
+
+    public MatchEdgeLinesInOrigin(OriginDescriptor startingLine, OriginDescriptor endingLine, boolean pBMatchExtractedBaseName) {
+      start = new MatchStartingLineInOrigin(startingLine, pBMatchExtractedBaseName);
+      end = new MatchStartingLineInOrigin(endingLine, pBMatchExtractedBaseName);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return eval(pArgs.getCfaEdge())?CONST_TRUE:CONST_FALSE;
+    }
+
+    protected boolean eval(CFAEdge edge) {
+      boolean startMatched = start.eval(edge);
+      if(startMatched) {
+        CFANode next = edge.getSuccessor();
+        boolean endMatched = false;
+        for (CFAEdge e : CFAUtils.leavingEdges(next)) {
+          if(end.eval(e)) {
+            endMatched = true;
+            break;
+          }
+        }
+        return endMatched;
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH EDGE ORIGIN STARTING LINE " + start.matchStartingLineInOrigin
+          + ", ENDING LINE " + end.matchStartingLineInOrigin;
+    }
+  }
+
+  static class ExistsMatchingEdgeLinesInOrigin implements AutomatonBoolExpr {
+    MatchEdgeLinesInOrigin matchEdge;
+
+    public ExistsMatchingEdgeLinesInOrigin(OriginDescriptor startingLine, OriginDescriptor endingLine, boolean pBMatchExtractedBaseName) {
+      matchEdge = new MatchEdgeLinesInOrigin(startingLine, endingLine, pBMatchExtractedBaseName);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return eval(pArgs.getCfaEdge())?CONST_TRUE:CONST_FALSE;
+    }
+
+    protected boolean eval(CFAEdge edge) {
+      CFANode curr = edge.getPredecessor();
+      for (CFAEdge e : CFAUtils.leavingEdges(curr)) {
+        if(matchEdge.eval(e)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return "EXISTS MATCHING EDGE ORIGIN STARTING LINE " + matchEdge.start.matchStartingLineInOrigin
+          + ", ENDING LINE " + matchEdge.end.matchStartingLineInOrigin;
+    }
   }
 
   /**

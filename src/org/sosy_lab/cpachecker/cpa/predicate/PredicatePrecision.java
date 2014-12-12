@@ -33,6 +33,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Function;
@@ -44,7 +45,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -66,8 +66,8 @@ public class PredicatePrecision implements Precision {
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
 
-  private final int id = idCounter++;
-  private static int idCounter = 0;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final int id = idGenerator.getFreshId();
 
   public PredicatePrecision(
       Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
@@ -112,14 +112,14 @@ public class PredicatePrecision implements Precision {
   /**
    * Return a map view of the location-specific predicates of this precision.
    */
-  public SetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
+  public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
     return mLocalPredicates;
   }
 
   /**
    * Return a map view of the function-specific predicates of this precision.
    */
-  public SetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+  public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
     return mFunctionPredicates;
   }
 
@@ -317,7 +317,7 @@ public class PredicatePrecision implements Precision {
       return true;
     } else if (pObj == null) {
       return false;
-    } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
+    } else if (!(pObj.getClass().equals(this.getClass()))) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;

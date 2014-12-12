@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -70,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -85,9 +85,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
-public enum PointerTransferRelation implements TransferRelation {
+public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
-  INSTANCE;
+  static final TransferRelation INSTANCE = new PointerTransferRelation();
 
   /**
    * Base name of the variable that is introduced to pass results from
@@ -96,8 +96,9 @@ public enum PointerTransferRelation implements TransferRelation {
   private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
     PointerState pointerState = (PointerState) pState;
     PointerState resultState = getAbstractSuccessor(pointerState, pPrecision, pCfaEdge);
     return resultState == null ? Collections.<AbstractState>emptySet() : Collections.<AbstractState>singleton(resultState);
@@ -237,86 +238,6 @@ public enum PointerTransferRelation implements TransferRelation {
     CInitializer initializer = declaration.getInitializer();
     if (initializer != null) {
       LocationSet rhs = initializer.accept(new CInitializerVisitor<LocationSet, UnrecognizedCCodeException>() {
-
-        @Override
-        public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastBinaryExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastCastExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastCharLiteralExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-            throws UnrecognizedCCodeException {
-          return asLocations(pIastFloatLiteralExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-            throws UnrecognizedCCodeException {
-          return asLocations(pIastIntegerLiteralExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
-            throws UnrecognizedCCodeException {
-          return asLocations(pIastStringLiteralExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastTypeIdExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
-            throws UnrecognizedCCodeException {
-          return asLocations(pCTypeIdInitializerExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastUnaryExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CImaginaryLiteralExpression pIastLiteralExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastLiteralExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-            throws UnrecognizedCCodeException {
-          return asLocations(pIastArraySubscriptExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-          return asLocations(pIastFieldReference, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
-          return asLocations(pIastIdExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-          return asLocations(pPointerExpression, pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-          return asLocations(pComplexCastExpression, pState, 1);
-        }
 
         @Override
         public LocationSet visit(CInitializerExpression pInitializerExpression) throws UnrecognizedCCodeException {
@@ -486,12 +407,6 @@ public enum PointerTransferRelation implements TransferRelation {
 
       @Override
       public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression)
-          throws UnrecognizedCCodeException {
         return LocationSetBot.INSTANCE;
       }
 

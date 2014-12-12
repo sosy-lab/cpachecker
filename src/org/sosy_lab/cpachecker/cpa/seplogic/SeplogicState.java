@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.seplogic;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -170,7 +172,8 @@ public class SeplogicState implements AbstractState, Cloneable, Targetable {
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    return null;
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    checkState(isTarget());
+    return "";
   }
 }

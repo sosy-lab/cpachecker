@@ -27,10 +27,12 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class is used to represent the partial concrete memory of a C program at a statement
@@ -38,7 +40,7 @@ import com.google.common.collect.ImmutableMap;
  * the left hand side expressions in the assignments along the path.
  *
  * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge}
- * along an Error Path {@link ARGPath} to create an object of
+ * along an Error Path {@link MutableARGPath} to create an object of
  * the concrete state path {@link ConcreteStatePath}. The allocator class
  * {@link AssignmentToEdgeAllocator} uses this object to create
  * an error path {@link CFAPathWithAssignments} where every assignment,
@@ -46,6 +48,10 @@ import com.google.common.collect.ImmutableMap;
  *
  */
 public final class ConcreteState {
+
+  private static final ConcreteState EMPTY_CONCRETE_STATE = new ConcreteState();
+
+
 
   private final Map<LeftHandSide, Object> variables;
   private final Map<String, Memory> allocatedMemory;
@@ -71,6 +77,19 @@ public final class ConcreteState {
     allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
     variables = ImmutableMap.copyOf(pVariables);
     memoryNameAllocator = pMemoryName;
+  }
+
+  private ConcreteState() {
+    variableAddressMap = ImmutableMap.of();
+    allocatedMemory = ImmutableMap.of();
+    variables = ImmutableMap.of();
+    memoryNameAllocator = new MemoryName() {
+
+      @Override
+      public String getMemoryName(CRightHandSide pExp, Address pAddress) {
+        return "";
+      }
+    };
   }
 
   /**
@@ -159,6 +178,7 @@ public final class ConcreteState {
   }
 
   @Override
+  @SuppressFBWarnings("EQ_UNUSUAL")
   public boolean equals(Object obj) {
     throw new UnsupportedOperationException();
   }
@@ -168,5 +188,15 @@ public final class ConcreteState {
     return "variables=" + variables
         + System.lineSeparator() + "allocatedMemory=" + allocatedMemory
         + System.lineSeparator() + " variableAddressMap=" + variableAddressMap;
+  }
+
+  /**
+   *
+   * Return an Empty Concrete State.
+   *
+   * @return an empty concrete State.
+   */
+  public static ConcreteState empty() {
+    return EMPTY_CONCRETE_STATE;
   }
 }

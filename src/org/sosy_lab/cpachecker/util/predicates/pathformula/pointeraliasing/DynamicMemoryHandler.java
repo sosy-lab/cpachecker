@@ -34,10 +34,10 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -48,25 +48,24 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTargetPattern;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -77,6 +76,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.point
 class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
+
+  private static final String MALLOC_INDEX_SEPARATOR = "#";
+
+  // The counter that guarantees a unique name for each allocated memory region.
+  private static final UniqueIdGenerator dynamicAllocationCounter = new UniqueIdGenerator();
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
@@ -222,22 +226,19 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CNumericTypes.VOID, length);
+        newType = new CArrayType(false, false, CVoidType.VOID, length);
       } else {
         newType = null;
       }
     }
     Formula address;
     if (newType != null) {
-      final CType newBaseType = CTypeUtils.getBaseType(newType);
-      final String newBase = makeAllocVariableName(functionName, newType, newBaseType);
+      final String newBase = makeAllocVariableName(functionName, newType);
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName,
-                                                            CNumericTypes.VOID,
-                                                            CPointerType.POINTER_TO_VOID);
+      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID);
       pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                          size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                       parameter.getExpressionType(),
@@ -300,11 +301,12 @@ class DynamicMemoryHandler {
     return result;
   }
 
-  private String makeAllocVariableName(final String functionName,
-                               final CType type,
-                               final CType baseType) {
-    final String allocVariableName = functionName + "_" + CToFormulaConverterWithPointerAliasing.getUFName(type);
-    return  allocVariableName + CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR + RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
+  static String makeAllocVariableName(final String functionName, final CType type) {
+    return functionName
+        + "_"
+        + CToFormulaConverterWithPointerAliasing.getUFName(type)
+        + MALLOC_INDEX_SEPARATOR
+        + dynamicAllocationCounter.getFreshId();
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {
@@ -430,7 +432,7 @@ class DynamicMemoryHandler {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
                           new CArrayType(false,
                                          false,
-                                         CNumericTypes.VOID,
+                                         CVoidType.VOID,
                                          size),
                           baseVariable);
     }
@@ -445,7 +447,7 @@ class DynamicMemoryHandler {
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
         !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariables(rhsExpression.asValue().getValue());
+      final Set<String> rhsVariables = conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (String variable : rhsVariables) {
         if (PointerTargetSet.isBaseName(variable)) {
@@ -583,6 +585,10 @@ class DynamicMemoryHandler {
     }
     // Now iterate over the variable used in the LHS
     for (final Map.Entry<String, CType> usedPointer : lhsUsedDeferredAllocationPointers.entrySet()) {
+      // Don't consider deferred allocation pointers that were already handled in the RHS
+      if (rhsUsedDeferredAllocationPointers.containsKey(usedPointer.getKey())) {
+        continue;
+      }
       if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // *((int *)__tmp) = 5;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
@@ -660,8 +666,7 @@ class DynamicMemoryHandler {
    * declared in current function scope from tracking after returning from the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
-    String prefix = CtoFormulaConverter.scoped("", function);
-    SortedSet<String> localVariables = Collections3.subSetWithPrefix(pts.getDeferredAllocationVariables(), prefix);
+    SortedSet<String> localVariables = CFAUtils.filterVariablesOfFunction(pts.getDeferredAllocationVariables(), function);
 
     for (final String variable : localVariables) {
       handleDeferredAllocationPointerRemoval(variable, true);

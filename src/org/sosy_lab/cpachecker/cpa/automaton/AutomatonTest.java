@@ -23,25 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestResults;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -51,7 +43,7 @@ public class AutomatonTest {
 
   // Specification Tests
   @Test
-  public void CyclicInclusionTest() throws Exception {
+  public void cyclicInclusionTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",       CPAS_UNINITVARS,
         "specification",           "test/config/automata/tmpSpecification.spc",
@@ -63,13 +55,13 @@ public class AutomatonTest {
       String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
       "#include tmpSpecification.spc \n";
       Files.writeFile(tmpSpc, content);
-      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      Assert.assertTrue(results.isSafe());
-      assertThat(results.getLog(), containsString("test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
-      Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+      results.assertIsSafe();
+      assertThat(results.getLog()).contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");
+      assertThat(tmpSpc.delete()).named("deletion of temporary specification successful").isTrue();
   }
   @Test
-  public void IncludeSpecificationTest() throws Exception {
+  public void includeSpecificationTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",        CPAS_UNINITVARS,
         "specification",            "test/config/automata/defaultSpecificationForTesting.spc",
@@ -77,28 +69,28 @@ public class AutomatonTest {
         "analysis.stopAfterError", "FALSE"
       );
 
-      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      assertThat(results.getLog(), containsString("Automaton: Uninitialized return value"));
-      assertThat(results.getLog(), containsString("Automaton: Uninitialized variable used"));
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+      assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
+      assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
 /*
       results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
-      assertThat(results.getLog(), containsString("Found a DOUBLE_FREE"));
-      assertThat(results.getLog(), containsString("Found an INVALID_FREE"));
-      assertThat(results.getLog(), containsString("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
-      assertThat(results.getLog(), containsString("Found a Memory Leak"));
-      assertThat(results.getLog(), containsString("Found an UNSAFE_DEREFERENCE"));
+      assertThat(results.getLog()).contains("Found a DOUBLE_FREE"));
+      assertThat(results.getLog()).contains("Found an INVALID_FREE"));
+      assertThat(results.getLog()).contains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
+      assertThat(results.getLog()).contains("Found a Memory Leak"));
+      assertThat(results.getLog()).contains("Found an UNSAFE_DEREFERENCE"));
 */
   }
   @Test
-  public void SpecificationAndNoCompositeTest() throws Exception {
+  public void specificationAndNoCompositeTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "cpa",              "cpa.location.LocationCPA",
         "log.consoleLevel", "INFO",
         "specification",    "test/config/automata/LockingAutomatonAll.txt");
 
-      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog(), containsString("Option specification gave specification automata, but no CompositeCPA was used"));
-      Assert.assertEquals(CPAcheckerResult.Result.NOT_YET_STARTED, results.getCheckerResult().getResult());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+      assertThat(results.getLog()).contains("Option specification gave specification automata, but no CompositeCPA was used");
+      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
   }
   @Test
   public void modificationTestWithSpecification() throws Exception {
@@ -108,15 +100,15 @@ public class AutomatonTest {
         "log.consoleLevel",    "INFO",
         "cpa.value.threshold", "10");
 
-      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog(), containsString("MODIFIED"));
-      assertThat(results.getLog(), containsString("Modification successful"));
-      Assert.assertTrue(results.isSafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+      assertThat(results.getLog()).contains("MODIFIED");
+      assertThat(results.getLog()).contains("Modification successful");
+      results.assertIsSafe();
   }
 
   //Automaton Tests
   @Test
-  public void MatchEndOfProgramTest() throws Exception {
+  public void matchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",       "cpa.location.LocationCPA",
         "specification",           "test/config/automata/PrintLastStatementAutomaton.spc",
@@ -124,10 +116,10 @@ public class AutomatonTest {
         "analysis.stopAfterError", "TRUE"
       );
 
-      TestResults results = run(prop, "test/programs/simple/loop1.c");
-      assertThat(results.getLog(), containsString("Last statement is \"return (0);\""));
-      assertThat(results.getLog(), containsString("Last statement is \"return (-1);\""));
-      Assert.assertTrue(results.isSafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
+      assertThat(results.getLog()).contains("Last statement is \"return (0);\"");
+      assertThat(results.getLog()).contains("Last statement is \"return (-1);\"");
+      results.assertIsSafe();
   }
   @Test
   public void failIfNoAutomatonGiven() throws Exception {
@@ -136,9 +128,9 @@ public class AutomatonTest {
         "log.consoleLevel",    "INFO",
         "cpa.value.threshold", "10");
 
-      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      Assert.assertEquals(CPAcheckerResult.Result.NOT_YET_STARTED, results.getCheckerResult().getResult());
-      assertThat(results.getLog(), containsString("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!"));
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+      assertThat(results.getCheckerResult().getResult()).isEqualTo(Result.NOT_YET_STARTED);
+      assertThat(results.getLog()).contains("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
   }
 
   @Test
@@ -149,10 +141,10 @@ public class AutomatonTest {
         "log.consoleLevel",        "INFO",
         "cpa.value.threshold",     "10");
 
-      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      assertThat(results.getLog(), containsString("MODIFIED"));
-      assertThat(results.getLog(), containsString("Modification successful"));
-      Assert.assertTrue(results.isSafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
+      assertThat(results.getLog()).contains("MODIFIED");
+      assertThat(results.getLog()).contains("Modification successful");
+      results.assertIsSafe();
   }
 
   @Test
@@ -164,9 +156,9 @@ public class AutomatonTest {
         "cpa.value.threshold",     "10"
       );
 
-      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/modificationExample.c");
       // check for stack trace
-      assertThat(results.getLog(), containsString("Error: Invalid configuration (The transition \"MATCH "));
+      assertThat(results.getLog()).contains("Error: Invalid configuration (The transition \"MATCH ");
   }
 
   @Test
@@ -179,10 +171,10 @@ public class AutomatonTest {
       );
 
 
-      TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
-      assertThat(results.getLog(), containsString("Systemcall in line 14 with userid 2"));
-      assertThat(results.getLog(), containsString("going to ErrorState on edge \"system(40);\""));
-      Assert.assertTrue(results.isUnsafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/simple_setuid_test.c");
+      assertThat(results.getLog()).contains("Systemcall in line 14 with userid 2");
+      assertThat(results.getLog()).contains("going to ErrorState on edge \"system(40);\"");
+      results.assertIsUnsafe();
   }
   @Test
   public void uninitVarsTest() throws Exception {
@@ -194,9 +186,9 @@ public class AutomatonTest {
         "analysis.stopAfterError",     "FALSE"
       );
 
-      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      assertThat(results.getLog(), containsString("Automaton: Uninitialized return value"));
-      assertThat(results.getLog(), containsString("Automaton: Uninitialized variable used"));
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
+      assertThat(results.getLog()).contains("Automaton: Uninitialized return value");
+      assertThat(results.getLog()).contains("Automaton: Uninitialized variable used");
   }
 
   @Test
@@ -208,8 +200,8 @@ public class AutomatonTest {
         "cpa.automaton.dotExportFile", OUTPUT_FILE
       );
 
-      TestResults results = run(prop, "test/programs/simple/locking_correct.c");
-      Assert.assertTrue(results.isSafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_correct.c");
+      results.assertIsSafe();
   }
 
   @Test
@@ -220,8 +212,8 @@ public class AutomatonTest {
         "log.consoleLevel",        "INFO"
       );
 
-      TestResults results = run(prop, "test/programs/simple/locking_incorrect.c");
-      Assert.assertTrue(results.isUnsafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/locking_incorrect.c");
+      results.assertIsUnsafe();
   }
 
   @Test
@@ -233,12 +225,12 @@ public class AutomatonTest {
         "cpa.value.threshold",     "2000"
       );
 
-      TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
-      assertThat(results.getLog(), containsString("st==3 after Edge st = 3;"));
-      assertThat(results.getLog(), containsString("st==1 after Edge st = 1;"));
-      assertThat(results.getLog(), containsString("st==2 after Edge st = 2;"));
-      assertThat(results.getLog(), containsString("st==4 after Edge st = 4;"));
-      Assert.assertTrue(results.isSafe());
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/ex2.cil.c");
+      assertThat(results.getLog()).contains("st==3 after Edge st = 3;");
+      assertThat(results.getLog()).contains("st==1 after Edge st = 1;");
+      assertThat(results.getLog()).contains("st==2 after Edge st = 2;");
+      assertThat(results.getLog()).contains("st==4 after Edge st = 4;");
+      results.assertIsSafe();
   }
 
   @Test
@@ -249,12 +241,12 @@ public class AutomatonTest {
         "log.consoleLevel",        "FINER"
       );
 
-      TestResults results = run(prop, "test/programs/simple/functionCall.c");
-      assertThat(results.getLog(), containsString("i'm in Main after Edge int y;"));
-      assertThat(results.getLog(), containsString("i'm in f after Edge y = f()"));
-      assertThat(results.getLog(), containsString("i'm in f after Edge int x;"));
-      assertThat(results.getLog(), containsString("i'm in Main after Edge return"));
-      assertThat(results.getLog(), containsString("i'm in Main after Edge ERROR:"));
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/functionCall.c");
+      assertThat(results.getLog()).contains("i'm in Main after Edge int y;");
+      assertThat(results.getLog()).contains("i'm in f after Edge y = f()");
+      assertThat(results.getLog()).contains("i'm in f after Edge int x;");
+      assertThat(results.getLog()).contains("i'm in Main after Edge return");
+      assertThat(results.getLog()).contains("i'm in Main after Edge ERROR:");
   }
 
   @Test
@@ -267,48 +259,9 @@ public class AutomatonTest {
         "cpa.value.threshold" ,               "2000"
       );
 
-      TestResults results = run(prop, "test/programs/simple/loop1.c");
-      assertThat(results.getLog(), containsString("A: Matched i in line 13 x=2"));
-      assertThat(results.getLog(), containsString("B: A increased to 2 And i followed "));
-      Assert.assertTrue(results.isSafe());
-  }
-
-  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
-    Configuration config = Configuration.builder()
-                                        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
-                                        .setOptions(pProperties)
-                                        .build();
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    LogManager logger = new BasicLogManager(config, stringLogHandler);
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-    return new TestResults(stringLogHandler.getLog(), results);
-  }
-
-  private static class TestResults {
-    private String log;
-    private CPAcheckerResult checkerResult;
-    public TestResults(String pLog, CPAcheckerResult pCheckerResult) {
-      super();
-      log = pLog;
-      checkerResult = pCheckerResult;
-    }
-    public String getLog() {
-      return log;
-    }
-    public CPAcheckerResult getCheckerResult() {
-      return checkerResult;
-    }
-    boolean isSafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
-    }
-    boolean isUnsafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
-    }
-    @Override
-    public String toString() {
-      return log;
-    }
+      TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
+      assertThat(results.getLog()).contains("A: Matched i in line 13 x=2");
+      assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
+      results.assertIsSafe();
   }
 }

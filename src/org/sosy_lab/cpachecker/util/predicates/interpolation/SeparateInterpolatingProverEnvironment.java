@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -64,7 +66,7 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws InterruptedException, SolverException {
     return itpEnv.isUnsat();
   }
 
@@ -74,9 +76,19 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA) {
+  public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
     return mainFmgr.parse(itpFmgr.dumpFormula(itpF).toString());
+  }
+
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> pFormulasOfA) {
+    final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(pFormulasOfA);
+    final List<BooleanFormula> result = new ArrayList<>();
+    for (BooleanFormula itp : itps) {
+      result.add(mainFmgr.parse(itpFmgr.dumpFormula(itp).toString()));
+    }
+    return result;
   }
 
   @Override

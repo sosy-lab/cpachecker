@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -101,9 +102,19 @@ public class BDDPartitionOrderer {
     // edges, that are reachable from both branches, are independent from the assumption
     SetView<CFAEdge> distinctEdges = Sets.symmetricDifference(reachable1, reachable2);
     for (CFAEdge edge : distinctEdges) {
-      Partition part = varClass.getPartitionForEdge(edge);
-      if (part != null) {
-        graph.put(assPartition, part);
+      if (edge instanceof FunctionCallEdge) {
+        final FunctionCallEdge funcCall = (FunctionCallEdge) edge;
+        for (int i = 0; i < funcCall.getArguments().size(); i++) {
+          final Partition part = varClass.getPartitionForParameterOfEdge(funcCall, i);
+          if (part != null) {
+            graph.put(assPartition, part);
+          }
+        }
+      } else {
+        final Partition part = varClass.getPartitionForEdge(edge);
+        if (part != null) {
+          graph.put(assPartition, part);
+        }
       }
     }
   }

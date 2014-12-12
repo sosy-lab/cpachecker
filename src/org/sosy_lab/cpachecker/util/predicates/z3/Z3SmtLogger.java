@@ -31,40 +31,36 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathCounterTemplate;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.FileWriteMode;
 
-public class Z3SmtLogger {
+class Z3SmtLogger {
 
   @Options(prefix="cpa.predicate.solver.z3.logger")
   private static class Z3Settings {
 
-    @Option(description = "Export solver queries in Smtlib format into a file.")
-    private boolean logAllQueries = false;
+    private final @Nullable PathCounterTemplate basicLogfile;
 
-    @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path basicLogfile = Paths.get("z3smtlog.%d.smt2");
-    private static int logfileCounter = 0;
-
-    @Option(description = "Export solver queries in Smtlib2 format, " +
+    @Option(secure=true, description = "Export solver queries in Smtlib2 format, " +
             "there are small differences for different solvers, " +
             "choose target-solver.",
             values = { Z3, MATHSAT5 }, toUppercase = true)
     private String target = Z3;
 
-    private Z3Settings(Configuration config) throws InvalidConfigurationException {
+    private Z3Settings(Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
       config.inject(this);
+      basicLogfile = logfile;
     }
   }
 
@@ -81,17 +77,16 @@ public class Z3SmtLogger {
   private int itpIndex = 0; // each interpolation gets its own index
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
-  public Z3SmtLogger(long z3context, Configuration config) throws InvalidConfigurationException {
-    this(z3context, new Z3Settings(config));
+  Z3SmtLogger(long z3context, Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
+    this(z3context, new Z3Settings(config, logfile));
   }
 
   private Z3SmtLogger(long pZ3context, Z3Settings pSettings) {
     z3context = pZ3context;
     settings = pSettings;
 
-    if (settings.logAllQueries && settings.basicLogfile != null) {
-      String filename = String.format(settings.basicLogfile.toAbsolutePath().getPath(), Z3Settings.logfileCounter++);
-      this.logfile = Paths.get(filename);
+    if (settings.basicLogfile != null) {
+      this.logfile = settings.basicLogfile.getFreshPath();
       log("", false); // create or clean the file
     } else {
       this.logfile = null;
@@ -119,13 +114,14 @@ public class Z3SmtLogger {
   public void logFunctionDeclaration(long symbol, long[] inputTypes, long returnType) {
     if (logfile == null) { return; }
     if (declarations.add(symbol)) {
-      String s = "declare-fun " + get_symbol_string(z3context, symbol) + " (";
+      StringBuilder s = new StringBuilder();
+      s.append("declare-fun ").append(get_symbol_string(z3context, symbol)).append(" (");
       for (long it : inputTypes) {
-        s += sort_to_string(z3context, it) + " ";
+        s.append(sort_to_string(z3context, it)).append(" ");
       }
-      s += ") " + sort_to_string(z3context, returnType);
+      s.append(") ").append(sort_to_string(z3context, returnType));
 
-      logBracket(s);
+      logBracket(s.toString());
     }
   }
   public void logPush(int n) {
@@ -159,6 +155,8 @@ public class Z3SmtLogger {
       logBracket("assert (! " + formula + " :interpolation-group " + name + ")");
       interpolationFormulas.put(expr, name);
       break;
+    default:
+      throw new AssertionError();
     }
   }
 
@@ -178,27 +176,54 @@ public class Z3SmtLogger {
       long conjunctionA, long conjunctionB) {
     if (logfile == null) { return; }
 
-    String itpQuery = null;
+    StringBuilder itpQuery = new StringBuilder();
     switch (settings.target) {
     case Z3:
-      itpQuery = "get-interpolant " + ast_to_string(z3context, conjunctionA)
-          + " " + ast_to_string(z3context, conjunctionB);
+      itpQuery.append("get-interpolant ")
+              .append(ast_to_string(z3context, conjunctionA))
+              .append(" ")
+              .append(ast_to_string(z3context, conjunctionB));
       break;
 
     case MATHSAT5:
-      itpQuery = "get-interpolant (";
+      itpQuery.append("get-interpolant (");
 
       for (long f : formulasOfA) {
         Preconditions.checkArgument(interpolationFormulas.containsKey(f));
-        itpQuery += interpolationFormulas.get(f) + " ";
+        itpQuery.append(interpolationFormulas.get(f)).append(" ");
       }
 
-      itpQuery += ")";
+      itpQuery.append(")");
       break;
+    default:
+      throw new AssertionError();
     }
 
     logCheck(); // TODO remove check?
-    logBracket(itpQuery);
+    logBracket(itpQuery.toString());
+  }
+
+  public void logSeqInterpolation(long[] interpolationFormulas) {
+    if (logfile == null) { return; }
+
+    StringBuilder itpQuery = new StringBuilder();
+    switch (settings.target) {
+    case Z3:
+      itpQuery.append("get-interpolants ");
+      for (long f : interpolationFormulas) {
+        itpQuery.append(ast_to_string(z3context, f));
+      }
+      break;
+
+    case MATHSAT5:
+      throw new AssertionError("not supported via SMT-input/output??");
+
+    default:
+      throw new AssertionError();
+    }
+
+    logCheck(); // TODO remove check?
+    logBracket(itpQuery.toString());
   }
 
   public void logBracket(String s) {
@@ -214,7 +239,7 @@ public class Z3SmtLogger {
         logfile.asCharSink(Charset.defaultCharset()).write(s);
       }
     } catch (IOException e) {
-      throw new AssertionError("IO-Error in smtlogfile");
+      throw new AssertionError("IO-Error in smtlogfile", e);
     }
   }
 

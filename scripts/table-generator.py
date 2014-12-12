@@ -58,6 +58,8 @@ TEMPLATE_ENCODING = 'UTF-8'
 
 LOG_VALUE_EXTRACT_PATTERN = re.compile(': *([^ :]*)')
 
+DEFAULT_TIME_PRECISION = 3
+
 class Util:
     """
     This Class contains some useful functions for Strings, Files and Lists.
@@ -121,9 +123,16 @@ class Util:
             pos -= 1
         return (s[:pos], s[pos:])
 
+    @staticmethod
+    def removeUnit(s):
+        """
+        Remove a unit from a number string, or return the full string if it is not a number.
+        """
+        (prefix, suffix) = Util.splitNumberAndUnit(s)
+        return suffix if prefix == '' else prefix
 
     @staticmethod
-    def formatNumber(value, numberOfDigits):
+    def formatNumber(s, numberOfDigits):
         """
         If the value is a number (or number plus one char),
         this function returns a string-representation of the number
@@ -133,13 +142,29 @@ class Util:
         If the value is no number, it is returned unchanged.
         """
         # if the number ends with "s" or another unit, remove it
-        value, suffix = Util.splitNumberAndUnit((value or '').strip())
+        value, suffix = Util.splitNumberAndUnit((str(s) or '').strip())
         try:
             floatValue = float(value)
-            value = "{value:.{width}f}".format(width=numberOfDigits, value=floatValue)
+            return "{value:.{width}f}{suffix}".format(width=numberOfDigits, value=floatValue, suffix=suffix)
         except ValueError: # if value is no float, don't format it
-            pass
-        return value + suffix
+            return s
+
+
+    @staticmethod
+    def formatValue(value, column):
+        """
+        Format a value nicely for human-readable output (including rounding).
+        """
+        if not value:
+            return '-'
+
+        numberOfDigits = column.numberOfDigits
+        if numberOfDigits is None and column.title.lower().endswith('time'):
+            numberOfDigits = DEFAULT_TIME_PRECISION
+
+        if numberOfDigits is None:
+            return value
+        return Util.formatNumber(value, numberOfDigits)
 
 
     @staticmethod
@@ -256,7 +281,9 @@ def parseTableDefinitionFile(file, allColumns):
                 result.append(resultsFile, parseResultsFile(resultsFile), allColumns)
 
         if result.filelist:
-            result.attributes['name'] = [unionTag.get('title', unionTag.get('name', result.attributes['name']))]
+            name = unionTag.get('title', unionTag.get('name'))
+            if name:
+                result.attributes['name'] = name
             runSetResults.append(result)
 
     return runSetResults
@@ -419,7 +446,7 @@ def insertLogFileNames(resultFile, resultElem):
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
-        sourcefile.logfile = logFolder + logFileName
+        sourcefile.set('logfile', logFolder + logFileName)
 
 def getDefaultLogFolder(resultElem):
     return logFolder
@@ -466,7 +493,7 @@ def mergeFilelists(runSetResults, filenames):
             fileResult = dic.get(filename)
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
-                fileResult.logfile = None
+                fileResult.set('logfile', None)
                 fileResult.set('name', filename)
                 print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
@@ -559,7 +586,7 @@ class RunResult:
 
                 else: # collect values from logfile
                     if logfileLines is None: # cache content
-                        logfileLines = readLogfileLines(sourcefileTag.logfile)
+                        logfileLines = readLogfileLines(sourcefileTag.get('logfile'))
 
                     value = getValueFromLogfile(logfileLines, column.pattern)
 
@@ -568,7 +595,7 @@ class RunResult:
 
             values.append(value)
 
-        return RunResult(status, category, sourcefileTag.logfile, listOfColumns, values)
+        return RunResult(status, category, sourcefileTag.get('logfile'), listOfColumns, values)
 
 
 class Row:
@@ -755,8 +782,8 @@ def getStatsOfRunSet(runResults):
             sum, correct, wrongTrue, wrongFalse, wrongProperty = getStatsOfNumberColumn(values, statusList, column.title)
             score = ''
 
-        if (sum.sum, correct.sum, wrongTrue.sum, wrongFalse.sum) == (0,0,0,0,0):
-            (sum, correct, wrongTrue, wrongFalse) = (None, None, None, None, None)
+        if (sum.sum, correct.sum, wrongTrue.sum, wrongFalse.sum) == (0,0,0,0):
+            (sum, correct, wrongTrue, wrongFalse) = (None, None, None, None)
 
         sumRow.append(sum)
         correctRow.append(correct)
@@ -764,6 +791,19 @@ def getStatsOfRunSet(runResults):
         wrongFalseRow.append(wrongFalse)
         wrongPropertyRow.append(wrongProperty)
         scoreRow.append(score)
+
+    def replaceIrrelevant(row):
+        count = row[0]
+        if not count or not count.sum:
+            for i in range(1, len(row)):
+                row[i] = None
+
+    replaceIrrelevant(sumRow)
+    replaceIrrelevant(correctRow)
+    replaceIrrelevant(wrongTrueRow)
+    replaceIrrelevant(wrongFalseRow)
+    replaceIrrelevant(wrongPropertyRow)
+    replaceIrrelevant(scoreRow)
 
     return (sumRow, correctRow, wrongTrueRow, wrongFalseRow, wrongPropertyRow, scoreRow)
 
@@ -787,7 +827,7 @@ class StatValue:
         return StatValue(sum(values),
                          min    = min(values),
                          max    = max(values),
-                         avg    = sum(values) / len(values),
+                         avg    = float("{:.3f}".format(sum(values) / len(values))),
                          median = sorted(values)[len(values)//2],
                          )
 
@@ -854,6 +894,36 @@ def getStatsOfNumberColumn(values, categoryList, columnTitle):
             )
 
 
+def getRegressionCount(rows, ignoreFlappingTimeouts): # for options.dumpCounts
+
+    columns = rowsToColumns(rows)
+    if len(columns) < 2:
+        return 0 # no regressions with only one run
+
+    timeouts = set()
+    for runResults in columns[:-1]:
+        timeouts |= set(index for (index, runResult) in enumerate(runResults) if runResult.status == 'TIMEOUT')
+
+    def isFlappingTimeout(index, oldResult, newResult):
+        return index in timeouts \
+            and oldResult.status != 'TIMEOUT' \
+            and newResult.status == 'TIMEOUT'
+
+    def ignoreRegression(oldResult, newResult):
+        return oldResult.status == 'TIMEOUT' and newResult.status == 'OUT OF MEMORY' \
+            or oldResult.status == 'OUT OF MEMORY' and newResult.status == 'TIMEOUT'
+
+    regressions = 0
+    for index, (oldResult, newResult) in enumerate(zip(columns[-2], columns[-1])):
+        # regression can be only if result is different and new result is not correct
+        if oldResult.status != newResult.status and newResult.category != result.CATEGORY_CORRECT:
+
+            if not (ignoreFlappingTimeouts and isFlappingTimeout(index, oldResult, newResult)) \
+                    and not ignoreRegression(oldResult, newResult):
+                regressions += 1
+    return regressions
+
+
 def getCounts(rows): # for options.dumpCounts
     countsList = []
 
@@ -902,11 +972,15 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
 
     head = getTableHead(runSetResults, commonPrefix)
     runSetsData = [runSetResult.attributes for runSetResult in runSetResults]
-    runSetsColumns = [[column.title for column in runSet.columns] for runSet in runSetResults]
+    runSetsColumns = [[column for column in runSet.columns] for runSet in runSetResults]
+    runSetsColumnTitles = [[column.title for column in runSet.columns] for runSet in runSetResults]
 
     templateNamespace={'flatten': Util.flatten,
                        'json': Util.json,
                        'relpath': os.path.relpath,
+                       'formatValue': Util.formatValue,
+                       'splitNumberAndUnit': Util.splitNumberAndUnit,
+                       'removeUnit': Util.removeUnit,
                        }
 
     def writeTable(type, title, rows):
@@ -935,6 +1009,7 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
                         foot=stats,
                         runSets=runSetsData,
                         columns=runSetsColumns,
+                        columnTitles=runSetsColumnTitles,
                         lib_url=options.libUrl,
                         baseDir=outputPath,
                         ))
@@ -994,9 +1069,18 @@ def main(args=None):
         dest="outputName",
         help="Base name of the created output files."
     )
+    parser.add_argument("--ignore-erroneous-benchmarks",
+        action="store_true",
+        dest="ignoreErrors",
+        help="Ignore results where the was an error during benchmarking."
+    )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
-        help="Print summary statistics for the good, bad, and unknown counts."
+        help="Print summary statistics for regressions and the good, bad, and unknown counts."
+    )
+    parser.add_argument("--ignore-flapping-timeout-regressions",
+        action="store_true", dest="ignoreFlappingTimeouts",
+        help="For the regression-count statistics, do not count regressions to timeouts if the file already had timeouts before."
     )
     parser.add_argument("-c", "--common",
         action="store_true", dest="common",
@@ -1071,10 +1155,19 @@ def main(args=None):
     if not outputPath:
         outputPath = '.'
 
+    if options.ignoreErrors:
+        filteredRunSets = []
+        for runSet in runSetResults:
+            if 'error' in runSet.attributes:
+                print('Ignoring benchmark {0} because of error: {1}'
+                      .format(", ".join(set(runSet.attributes['name'])),
+                              ", ".join(set(runSet.attributes['error']))))
+            else:
+                filteredRunSets.append(runSet)
+        runSetResults = filteredRunSets
+
     if not runSetResults:
-        print ('\nError! No file with benchmark results found.')
-        if options.xmltablefile:
-            print ('Please check the filenames in your XML-file.')
+        print ('\nError! No benchmark results found.')
         exit()
 
     print ('merging results ...')
@@ -1100,6 +1193,7 @@ def main(args=None):
     print ('done')
 
     if options.dumpCounts: # print some stats for Buildbot
+        print ("REGRESSIONS {}".format(getRegressionCount(rows, options.ignoreFlappingTimeouts)))
         countsList = getCounts(rows)
         print ("STATS")
         for counts in countsList:

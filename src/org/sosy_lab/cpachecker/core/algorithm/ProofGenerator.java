@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 @Options
 public class ProofGenerator {
 
-  @Option(
+  @Option(secure=true,
       name = "pcc.strategy",
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
   private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -36,7 +36,6 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.base.Joiner;
 
@@ -109,7 +108,7 @@ public final class PointerTargetSet implements Serializable {
     private final String fieldName;
   }
 
-  public static String getBaseName(final String name){
+  public static String getBaseName(final String name) {
     return BASE_PREFIX + name;
   }
 

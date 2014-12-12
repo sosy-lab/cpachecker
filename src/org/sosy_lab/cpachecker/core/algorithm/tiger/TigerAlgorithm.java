@@ -124,6 +124,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
+import com.google.common.base.Predicates;
+
 @Options(prefix = "tiger")
 public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
 
@@ -589,7 +591,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       if (reusePredicates && reusedPrecision != null) {
         for (AbstractState lWaitlistElement : reachedSet.getWaitlist()) {
           Precision lOldPrecision = reachedSet.getPrecision(lWaitlistElement);
-          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, reusedPrecision, PredicatePrecision.class);
+          Precision lNewPrecision = Precisions.replaceByType(lOldPrecision, reusedPrecision, Predicates.instanceOf(PredicatePrecision.class));
 
           reachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
@@ -825,8 +827,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 testsuite.addTestCase(testcase, pGoal);
 
                 // TODO Alex?
-                for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
-                  if (stateEdgePair.getSecond().equals(criticalEdge)) {
+                //for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
+                for (CFAEdge lCFAEdge : cex.getTargetPath().asEdgesList()) {
+                  //if (stateEdgePair.getSecond().equals(criticalEdge)) {
+                  if (lCFAEdge.equals(criticalEdge)) {
                     logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
                   }
                 }

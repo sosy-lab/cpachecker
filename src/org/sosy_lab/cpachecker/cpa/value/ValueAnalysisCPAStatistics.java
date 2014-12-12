@@ -35,27 +35,23 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision.RefinablePrecision;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.collect.HashMultimap;
-
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
-  @Option(description="target file to hold the exported precision")
+  @Option(secure=true, description="target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
@@ -105,7 +101,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    * @param reached the set of reached states.
    */
   private void exportPrecision(ReachedSet reached) {
-    RefinablePrecision consolidatedPrecision = getConsolidatedPrecision(reached);
+    VariableTrackingPrecision consolidatedPrecision = getConsolidatedPrecision(reached);
     try (Writer writer = Files.openOutputFile(precisionFile)) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
@@ -119,16 +115,15 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    * @param reached the set of reached states
    * @return the join over precisions of states in the reached set
    */
-  private RefinablePrecision getConsolidatedPrecision(ReachedSet reached) {
-    RefinablePrecision joinedPrecision = null;
+  private VariableTrackingPrecision getConsolidatedPrecision(ReachedSet reached) {
+    VariableTrackingPrecision joinedPrecision = null;
     for (Precision precision : reached.getPrecisions()) {
       if (precision instanceof WrapperPrecision) {
-        ValueAnalysisPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ValueAnalysisPrecision.class);
+        VariableTrackingPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(VariableTrackingPrecision.class);
         if (joinedPrecision == null) {
-          joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, MemoryLocation>create());
-        }
-        else {
-          joinedPrecision.join(prec.getRefinablePrecision());
+          joinedPrecision = prec;
+        } else {
+          joinedPrecision = joinedPrecision.join(prec);
         }
       }
     }

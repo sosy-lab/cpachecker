@@ -34,51 +34,51 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.predicate")
 public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOptions {
 
-  @Option(description = "Memory allocation functions of which all parameters but the first should be ignored.")
+  @Option(secure=true, description = "Memory allocation functions of which all parameters but the first should be ignored.")
   private ImmutableSet<String> memoryAllocationFunctionsWithSuperfluousParameters = ImmutableSet.of(
       "__kmalloc", "kmalloc", "kzalloc");
 
-  @Option(description = "The function used to model successful heap object allocation. " +
+  @Option(secure=true, description = "The function used to model successful heap object allocation. " +
                         "This is only used, when pointer analysis with UFs is enabled.")
   private String successfulAllocFunctionName = "__VERIFIER_successful_alloc";
 
-  @Option(description = "The function used to model successful heap object allocation with zeroing. " +
+  @Option(secure=true, description = "The function used to model successful heap object allocation with zeroing. " +
                         "This is only used, when pointer analysis with UFs is enabled.")
   private String successfulZallocFunctionName = "__VERIFIER_successful_zalloc";
 
-  @Option(description = "Setting this to true makes memoryAllocationFunctions always return a valid pointer.")
+  @Option(secure=true, description = "Setting this to true makes memoryAllocationFunctions always return a valid pointer.")
   private boolean memoryAllocationsAlwaysSucceed = false;
 
-  @Option(description = "Enable the option to allow detecting the allocation type by type " +
+  @Option(secure=true, description = "Enable the option to allow detecting the allocation type by type " +
                         "of the LHS of the assignment, e.g. char *arr = malloc(size) is detected as char[size]")
   private boolean revealAllocationTypeFromLhs = true;
 
-  @Option(description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
+  @Option(secure=true, description = "Use deferred allocation heuristic that tracks void * variables until the actual type " +
                         "of the allocation is figured out.")
   private boolean deferUntypedAllocations = true;
 
-  @Option(description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
+  @Option(secure=true, description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
                         "regardless of whether they were ever really used in code.")
   private int maxPreFilledAllocationSize = 0;
 
-  @Option(description = "The default size in bytes for memory allocations when the value cannot be determined.")
+  @Option(secure=true, description = "The default size in bytes for memory allocations when the value cannot be determined.")
   private int defaultAllocationSize = 4;
 
-  @Option(description = "The default length for arrays when the real length cannot be determined.")
+  @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
   private int defaultArrayLength = 20;
 
-  @Option(description = "The maximum length for arrays (elements beyond this will be ignored).")
+  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored).")
   private int maxArrayLength = 20;
 
-  @Option(description = "Function that is used to free allocated memory.")
+  @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
-  @Option(description = "When a string literal initializer is encountered, initialize the contents of the char array "
+  @Option(secure=true, description = "When a string literal initializer is encountered, initialize the contents of the char array "
                       + "with the contents of the string literal instead of just assigning a fresh non-det address "
                       + "to it")
   private boolean handleStringLiteralInitializers = false;
 
-  @Option(description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
+  @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
@@ -86,11 +86,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
   }
 
-  public boolean hasSuperfluousParameters(final String name) {
+  boolean hasSuperfluousParameters(final String name) {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
-  public boolean isDynamicMemoryFunction(final String name) {
+  boolean isDynamicMemoryFunction(final String name) {
     return isSuccessfulAllocFunctionName(name)
         || isSuccessfulZallocFunctionName(name)
         || isMemoryAllocationFunction(name)
@@ -98,63 +98,63 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         || isMemoryFreeFunction(name);
   }
 
-  public boolean isSuccessfulAllocFunctionName(final String name) {
+  boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }
 
-  public boolean isSuccessfulZallocFunctionName(final String name) {
+  boolean isSuccessfulZallocFunctionName(final String name) {
     return successfulZallocFunctionName.equals(name);
   }
 
-  public boolean isDynamicAllocVariableName(final String name) {
+  boolean isDynamicAllocVariableName(final String name) {
     return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
   }
 
-  public String getSuccessfulAllocFunctionName() {
+  String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }
 
-  public String getSuccessfulZallocFunctionName() {
+  String getSuccessfulZallocFunctionName() {
     return successfulZallocFunctionName;
   }
 
-  public boolean makeMemoryAllocationsAlwaysSucceed() {
+  boolean makeMemoryAllocationsAlwaysSucceed() {
     return memoryAllocationsAlwaysSucceed;
   }
 
-  public boolean revealAllocationTypeFromLHS() {
+  boolean revealAllocationTypeFromLHS() {
     return revealAllocationTypeFromLhs;
   }
 
-  public boolean deferUntypedAllocations() {
+  boolean deferUntypedAllocations() {
     return deferUntypedAllocations;
   }
 
-  public int maxPreFilledAllocationSize() {
+  int maxPreFilledAllocationSize() {
     return maxPreFilledAllocationSize;
   }
 
-  public int defaultAllocationSize() {
+  int defaultAllocationSize() {
     return defaultAllocationSize;
   }
 
-  public int defaultArrayLength() {
+  int defaultArrayLength() {
     return defaultArrayLength;
   }
 
-  public int maxArrayLength() {
+  int maxArrayLength() {
     return maxArrayLength;
   }
 
-  public boolean isMemoryFreeFunction(final String name) {
+  boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
   }
 
-  public boolean handleStringLiteralInitializers() {
+  boolean handleStringLiteralInitializers() {
     return handleStringLiteralInitializers;
   }
 
-  public boolean handleImplicitInitialization() {
+  boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
   }
 }

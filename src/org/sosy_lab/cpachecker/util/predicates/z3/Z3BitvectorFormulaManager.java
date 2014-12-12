@@ -30,13 +30,11 @@ import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
-import com.google.common.base.Preconditions;
-
 class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Long, Long> {
 
   private final long z3context;
 
-  protected Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
+  Z3BitvectorFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }
@@ -68,19 +66,13 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
 
   @Override
   protected Long makeBitvectorImpl(int pLength, BigInteger pI) {
-    return makeBitvectorImpl(pLength, pI.toString());
-  }
-
-  @Override
-  public Long makeBitvectorImpl(int pLength, String pI) {
     long sort = mk_bv_sort(z3context, pLength);
-    return mk_numeral(z3context, pI, sort);
+    return mk_numeral(z3context, pI.toString(), sort);
   }
-
 
   @Override
   public Long makeVariableImpl(int length, String varName) {
-    long type = getFormulaCreator().getBittype(length);
+    long type = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(type, varName);
   }
 
@@ -122,26 +114,6 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
-  public boolean isNot(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BNOT);
-  }
-
-  @Override
-  public boolean isAnd(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BAND);
-  }
-
-  @Override
-  public boolean isOr(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BOR);
-  }
-
-  @Override
-  public boolean isXor(Long pBits) {
-    return isOP(z3context, pBits, Z3_OP_BXOR);
-  }
-
-  @Override
   public Long negate(Long pNumber) {
     return mk_bvneg(z3context, pNumber);
   }
@@ -172,6 +144,11 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
     } else {
       return mk_bvurem(z3context, pNumber1, pNumber2);
     }
+  }
+
+  @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return mk_true(z3context);
   }
 
   @Override
@@ -213,80 +190,10 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long, Lo
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BNOT);
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BADD);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BSUB);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_BSDIV);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_BUDIV);
-    }
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_BSREM);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_BUREM);
-    }
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_BMUL);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
-    return isOP(z3context, pNumber, Z3_OP_EQ);
-  }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber, boolean signed) {
-    return isLessThan(pNumber, signed);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber, boolean signed) {
-    return isLessOrEquals(pNumber, signed);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_SLT);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_ULT);
-    }
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber, boolean signed) {
-    if (signed) {
-      return isOP(z3context, pNumber, Z3_OP_SLEQ);
-    } else {
-      return isOP(z3context, pNumber, Z3_OP_ULEQ);
-    }
-  }
-
-  @Override
-  public int getLength(Long pParam) {
-    long sort = get_sort(z3context, pParam);
-    Preconditions.checkArgument(get_sort_kind(z3context, sort) == Z3_BV_SORT);
-    return get_bv_sort_size(z3context, sort);
+    return isOP(z3context, pNumber, Z3_OP_EQ)
+        && get_app_num_args(z3context, pNumber) == 2
+        && get_sort(z3context, get_app_arg(z3context, pNumber, 0)) == Z3_BV_SORT
+        && get_sort(z3context, get_app_arg(z3context, pNumber, 1)) == Z3_BV_SORT;
   }
 }

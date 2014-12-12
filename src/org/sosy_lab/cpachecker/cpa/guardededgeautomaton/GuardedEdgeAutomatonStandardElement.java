@@ -65,12 +65,8 @@ public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonSta
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    if (isTarget()) {
-      return ViolatedProperty.OTHER; // TODO is this appropriate?
-    }
-
-    throw new IllegalStateException();
+  public String getViolatedPropertyDescription() {
+    return "";
   }
 
 }

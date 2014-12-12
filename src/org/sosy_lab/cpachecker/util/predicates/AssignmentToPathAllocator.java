@@ -62,6 +62,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 
@@ -73,7 +74,6 @@ public class AssignmentToPathAllocator {
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -94,17 +94,22 @@ public class AssignmentToPathAllocator {
   }
 
   /**
-   * Provide a path with concrete values (like a test case)
+   * Provide a path with concrete values (like a test case).
+   * Additionally, provides the information, at which {@link CFAEdge} edge which
+   * {@link AssignableTerm} terms have been assigned.
    */
-  public CFAPathWithAssignments allocateAssignmentsToPath(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssignments, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
       Model pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
 
-    // create concrete state path, also remember used assignable term for legacy function
+    // create concrete state path, also remember at wich edge which terms were used.
     Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> concreteStatePath = createConcreteStatePath(pPath,
         pModel, pSSAMaps, pMachineModel);
 
-    return CFAPathWithAssignments.valueOf(concreteStatePath.getFirst(), logger, pMachineModel,
-        concreteStatePath.getSecond());
+    // create the concrete error path.
+    CFAPathWithAssignments pathWithAssignments =
+        CFAPathWithAssignments.of(concreteStatePath.getFirst(), logger, pMachineModel);
+
+    return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
   }
 
 
@@ -236,11 +241,10 @@ public class AssignmentToPathAllocator {
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
 
-    Map<String, Memory> memory = new HashMap<>(pMemory.size());
+    Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
 
-    for (String heapName : pMemory.keySet()) {
-      Map<Address, Object> heapValues = pMemory.get(heapName);
-      Memory heap = new Memory(heapName, heapValues);
+    for (Map.Entry<String, Map<Address, Object>> heapObject : pMemory.entrySet()) {
+      Memory heap = new Memory(heapObject.getKey(), heapObject.getValue());
       memory.put(heap.getName(), heap);
     }
 
@@ -351,16 +355,16 @@ public class AssignmentToPathAllocator {
         Function function = (Function) term;
         String name = getName(function);
 
-        if(functionEnvoirment.containsKey(name)) {
+        if (functionEnvoirment.containsKey(name)) {
 
           boolean replaced = false;
 
           Set<Assignment> assignments = new HashSet<>(functionEnvoirment.get(name));
 
-          for(Assignment oldAssignment : assignments) {
+          for (Assignment oldAssignment : assignments) {
             Function oldFunction = (Function) oldAssignment.getTerm();
 
-            if(isLessSSA(oldFunction, function)) {
+            if (isLessSSA(oldFunction, function)) {
 
               //update functionEnvoirment for subsequent calculation
               functionEnvoirment.remove(name, oldAssignment);
@@ -372,7 +376,7 @@ public class AssignmentToPathAllocator {
             }
           }
 
-          if(!replaced) {
+          if (!replaced) {
             functionEnvoirment.put(name, assignment);
             addHeapValue(memory, assignment);
           }
@@ -392,6 +396,11 @@ public class AssignmentToPathAllocator {
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
+
+      if (address == null) {
+        return;
+      }
+
       heap.remove(address);
     } else {
       throw new AssertionError();
@@ -411,6 +420,11 @@ public class AssignmentToPathAllocator {
 
     if (function.getArity() == 1) {
       Address address = Address.valueOf(function.getArgument(FIRST));
+
+      if(address == null) {
+        return;
+      }
+
       Object value = pFunctionAssignment.getValue();
       heap.put(address, value);
     } else {
@@ -431,6 +445,10 @@ public class AssignmentToPathAllocator {
         Object addressValue = pModel.get(constant);
 
         Address address = Address.valueOf(addressValue);
+
+        if (address == null) {
+          continue;
+        }
 
         //TODO ugly, refactor?
         String constantName = name.substring(ADDRESS_PREFIX.length());

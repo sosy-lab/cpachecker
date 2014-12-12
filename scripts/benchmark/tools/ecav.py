@@ -14,7 +14,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = result.STATUS_UNKNOWN
-        for line in output.splitlines():
+        for line in output:
             if line.startswith('0 safe, 1 unsafe'):
                 status = result.STATUS_FALSE_REACH
             elif line.startswith('1 safe, 0 unsafe'):

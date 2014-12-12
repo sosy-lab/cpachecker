@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
@@ -62,23 +63,23 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 @Options(prefix="cpa.conditions.path")
 public class PathConditionsCPA implements ConfigurableProgramAnalysis, AdjustableConditionCPA, StatisticsProvider {
 
-  @Option(description="The condition", name="condition", required=true)
+  @Option(secure=true, description="The condition", name="condition", required=true)
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.conditions.path")
   private Class<? extends PathCondition> conditionClass;
 
   private final PathCondition condition;
 
   private final AbstractDomain domain = new FlatLatticeDomain();
-  private final TransferRelation transfer = new TransferRelation() {
+  private final TransferRelation transfer = new SingleEdgeTransferRelation() {
       @Override
-      public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision,
-          CFAEdge pCfaEdge) {
-        return Collections.singleton(condition.getAbstractSuccessor(pElement, pCfaEdge));
+      public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+          AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+        return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
       }
 
       @Override
-      public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-          List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+      public Collection<? extends AbstractState> strengthen(AbstractState pState,
+          List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
         return null;
       }
     };

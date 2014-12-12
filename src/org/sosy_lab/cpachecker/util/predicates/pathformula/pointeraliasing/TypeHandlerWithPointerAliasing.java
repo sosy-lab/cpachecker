@@ -55,7 +55,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
       FormulaManagerView pFmgr, FormulaEncodingWithPointerAliasingOptions pOptions) {
-    super(pLogger, pMachineModel, pFmgr);
+    super(pLogger, pOptions, pMachineModel, pFmgr);
 
     sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);
   }
@@ -86,7 +86,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @param memberName
    * @return
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     Multiset<String> multiset = offsets.get(compositeType);

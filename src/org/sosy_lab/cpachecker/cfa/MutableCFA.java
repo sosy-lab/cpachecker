@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -33,11 +35,11 @@ import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
 
@@ -48,6 +50,8 @@ public class MutableCFA implements CFA {
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Language language;
+  private Optional<LoopStructure> loopStructure = Optional.absent();
+  private Optional<LiveVariables> liveVariables = Optional.absent();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -66,17 +70,17 @@ public class MutableCFA implements CFA {
     assert functions.get(mainFunction.getFunctionName()) == mainFunction;
   }
 
-  void addNode(CFANode pNode) {
+  public void addNode(CFANode pNode) {
     assert functions.containsKey(pNode.getFunctionName());
     allNodes.put(pNode.getFunctionName(), pNode);
   }
 
-  void clear() {
+  public void clear() {
     functions.clear();
     allNodes.clear();
   }
 
-  void removeNode(CFANode pNode) {
+  public void removeNode(CFANode pNode) {
     SortedSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
     functionNodes.remove(pNode);
@@ -136,23 +140,40 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Optional<ImmutableMultimap<String, Loop>> getLoopStructure() {
-    return Optional.absent();
+  public Optional<LoopStructure> getLoopStructure() {
+    return loopStructure;
+  }
+
+  public void setLoopStructure(Optional<LoopStructure> pLoopStructure) {
+    loopStructure = checkNotNull(pLoopStructure);
   }
 
   @Override
   public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    if (loopStructure.isPresent()) {
+      return Optional.of(loopStructure.get().getAllLoopHeads());
+    }
     return Optional.absent();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
-      Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language);
+  public ImmutableCFA makeImmutableCFA(
+      Optional<VariableClassification> pVarClassification) {
+    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
+        loopStructure, pVarClassification, liveVariables, language);
   }
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
     return Optional.absent();
+  }
+
+  @Override
+  public Optional<LiveVariables> getLiveVariables() {
+    return liveVariables;
+  }
+
+  public void setLiveVariables(Optional<LiveVariables> pLiveVariables) {
+    liveVariables = pLiveVariables;
   }
 
   @Override

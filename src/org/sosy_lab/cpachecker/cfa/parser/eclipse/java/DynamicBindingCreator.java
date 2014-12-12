@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -66,7 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
  * This class models the dynamic Bindings of Java in a CFA.
  *
  */
-public class DynamicBindingCreator {
+class DynamicBindingCreator {
 
 
   private final ASTConverter astCreator;
@@ -110,8 +109,8 @@ public class DynamicBindingCreator {
     trackOverridenMethods(cfAs);
     completeMethodBindings();
 
-    for (String functionName : cfAs.keySet()) {
-      insertBindings(cfAs.get(functionName));
+    for (Map.Entry<String, FunctionEntryNode> functionEntry : cfAs.entrySet()) {
+      insertBindings(functionEntry.getValue());
     }
   }
 
@@ -119,11 +118,16 @@ public class DynamicBindingCreator {
 
     Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
-    for (String functionName : cfAs.keySet()) {
+    for (Map.Entry<String, FunctionEntryNode> entry : cfAs.entrySet()) {
+      String functionName = entry.getKey();
+      FunctionEntryNode currEntryNode = entry.getValue();
+      MethodDeclaration currMethod = allParsedMethodDeclaration.get(functionName);
+
       assert allParsedMethodDeclaration.containsKey(functionName);
+
       // Constructors and default Constructors can't be overriden
-      if (!(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor()) ) {
-        trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
+      if (!(currMethod == null  || currMethod.isConstructor()) ) {
+        trackOverridenMethods(currMethod, currEntryNode);
       }
     }
   }

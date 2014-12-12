@@ -44,7 +44,7 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
     }
 
   },
-  
+
   /**
    * The division operator for dividing simple intervals by compound states.
    */

@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpalien" timelimit="60" hardtimelimit="90" memlimit="1000" cpuCores="1">
+<benchmark tool="cpalien" timelimit="60" hardtimelimit="70" memlimit="1000" cpuCores="1">
   <option name="-noout"/>
   <option name="-heap">512M</option>
-  <option name="-timelimit">1min</option>
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
@@ -23,7 +22,7 @@
 
   <sourcefiles name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-    <option name="-sv-comp14"/>
+    <option name="-sv-comp15"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </sourcefiles>
   <rundefinition/>

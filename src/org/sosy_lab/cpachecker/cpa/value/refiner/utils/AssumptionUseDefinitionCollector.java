@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -60,8 +61,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Helper class that collects the set of variables on which all assume edges in the given path depend on (i.e. the transitive closure).
@@ -81,6 +86,11 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
    * the set of variables for which to find the referencing ones
    */
   private final Set<String> dependingVariables = new HashSet<>();
+
+  /**
+   * after the assumption closure has been determined, this value states at which offset all dependencies are resolved
+   */
+  private int dependenciesResolvedOffset = 0;
 
   /**
    * the last traversed function return edge - needed as we go backwards through the edges to obtain the
@@ -109,6 +119,12 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
     for (int i = path.size() - 1; i >= 0; i--) {
       CFAEdge edge = path.get(i);
       collectVariables(edge, collectedVariables);
+
+      if(Iterables.getLast(path).getEdgeType() == CFAEdgeType.AssumeEdge
+          && dependingVariables.isEmpty()) {
+        dependenciesResolvedOffset = i;
+        return collectedVariables;
+      }
     }
 
     // for full paths, the set of depending variables always has be empty at this point,
@@ -129,8 +145,12 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
    * @param path the path to analyze
    * @return the mapping of location to referenced variables in the given path
    */
-  public Set<String> obtainUseDefInformation(ARGPath pFullArgPath) {
+  public Set<String> obtainUseDefInformation(MutableARGPath pFullArgPath) {
     return obtainUseDefInformation(from(pFullArgPath).transform(Pair.<CFAEdge>getProjectionToSecond()).toList());
+  }
+
+  public int getDependenciesResolvedOffset() {
+    return dependenciesResolvedOffset;
   }
 
   /**
@@ -179,8 +199,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
    * @param collectedVariables the mapping of collected variables
    */
   private void collectVariables(CFAEdge edge, Set<String> collectedVariables) {
-    String currentFunction = edge.getPredecessor().getFunctionName();
-
     switch (edge.getEdgeType()) {
     case BlankEdge:
     case CallToReturnEdge:
@@ -194,21 +212,19 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
 
-      if (declaration.getName() != null) {
-        String variableName = declaration.getName();
+      if(declaration instanceof CVariableDeclaration) {
+        if (declaration.getName() != null) {
+          String variableName = declaration.getQualifiedName();
 
-        if(!declaration.isGlobal()) {
-          variableName = scoped(variableName, currentFunction);
-        }
+          if (dependingVariables.contains(variableName)) {
+            dependingVariables.remove(variableName);
+            collectedVariables.add(variableName);
 
-        if (dependingVariables.contains(variableName)) {
-          dependingVariables.remove(variableName);
-          collectedVariables.add(variableName);
-
-          if(((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
-            CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
-            if(initializer != null) {
-              collectVariables(edge, initializer.getExpression());
+            if (((CVariableDeclaration)declaration).getInitializer() instanceof CInitializerExpression) {
+              CInitializerExpression initializer = ((CInitializerExpression)((CVariableDeclaration)declaration).getInitializer());
+              if (initializer != null) {
+                collectVariables(edge, initializer.getExpression());
+              }
             }
           }
         }
@@ -219,7 +235,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
         CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
 
         // for cases where error path ends with a return statement
-        if(previousFunctionReturnEdge == null) {
+        if (previousFunctionReturnEdge == null) {
           break;
         }
 
@@ -229,17 +245,25 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
         if (functionCall instanceof CFunctionCallAssignmentStatement) {
           CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
-          String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), previousFunctionReturnEdge.getSuccessor().getFunctionName());
 
-          if (dependingVariables.contains(assignedVariable)) {
-            dependingVariables.remove(assignedVariable);
+          if(funcAssign.getLeftHandSide() instanceof CIdExpression) {
+            String assignedVariable = ((CIdExpression)(funcAssign.getLeftHandSide())).getDeclaration().getQualifiedName();
 
-            collectedVariables.add(assignedVariable);
-            // also add special FUNCTION_RETURN_VAR as relevant variable
-            collectedVariables.add(VariableClassification.createFunctionReturnVariable(returnStatementEdge.getPredecessor().getFunctionName()));
+            if (dependingVariables.contains(assignedVariable)) {
+              dependingVariables.remove(assignedVariable);
 
-            if (returnStatementEdge.getExpression().isPresent()) {
-              collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
+              collectedVariables.add(assignedVariable);
+
+              // also add special function return variable as relevant variable
+              Optional<? extends AVariableDeclaration> returnVarName = returnStatementEdge.
+                  getSuccessor().getEntryNode().getReturnVariable();
+              if(returnVarName.isPresent()) {
+                collectedVariables.add(returnVarName.get().getQualifiedName());
+              }
+
+              if (returnStatementEdge.getExpression().isPresent()) {
+                collectVariables(returnStatementEdge, returnStatementEdge.getExpression().get());
+              }
             }
           }
         }
@@ -273,12 +297,15 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
       CStatementEdge statementEdge = (CStatementEdge)edge;
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
-        String assignedVariable = scoped(assignment.getLeftHandSide().toASTString(), currentFunction);
 
-        if (dependingVariables.contains(assignedVariable)) {
-          dependingVariables.remove(assignedVariable);
-          collectedVariables.add(assignedVariable);
-          collectVariables(statementEdge, assignment.getRightHandSide());
+        if(assignment.getLeftHandSide() instanceof CIdExpression) {
+          String assignedVariable = ((CIdExpression)(assignment.getLeftHandSide())).getDeclaration().getQualifiedName();
+
+          if (dependingVariables.contains(assignedVariable)) {
+            dependingVariables.remove(assignedVariable);
+            collectedVariables.add(assignedVariable);
+            collectVariables(statementEdge, assignment.getRightHandSide());
+          }
         }
       }
       break;
@@ -287,7 +314,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
       List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
 
       // process MultiEdges also in reverse order
-      for(int i = edges.size() - 1; i >= 0; i--) {
+      for (int i = edges.size() - 1; i >= 0; i--) {
         collectVariables(edges.get(i), collectedVariables);
       }
       break;
@@ -305,21 +332,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
   }
 
   /**
-   * This method prefixes the name of a non-global variable with a given function name.
-   *
-   * @param variableName the variable name
-   * @param functionName the function name
-   * @return the prefixed variable name
-   */
-  private String scoped(String variableName, String functionName) {
-    if (globalVariables.contains(variableName)) {
-      return variableName;
-    } else {
-      return functionName + "::" + variableName;
-    }
-  }
-
-  /**
    * This method delegates the collecting job to the CollectVariablesVisitor.
    *
    * @param edge the edge to analyze
@@ -334,10 +346,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
    */
   private class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
                                                implements CRightHandSideVisitor<Void, RuntimeException> {
-    /**
-     * the current assignment edge
-     */
-    private final CFAEdge currentEdge;
 
     /**
      * This method acts as the constructor of the class.
@@ -346,16 +354,16 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
      * @param collectedVariables the mapping of locations to variable names up to the current edge
      */
     public CollectVariablesVisitor(CFAEdge currentEdge) {
-      this.currentEdge = currentEdge;
     }
 
     private void collectVariables(String variableName) {
-      dependingVariables.add(scoped(variableName, currentEdge.getPredecessor().getFunctionName()));
+      dependingVariables.add(variableName);
     }
 
     @Override
     public Void visit(CIdExpression pE) {
-      collectVariables(pE.getName());
+      collectVariables(pE.getDeclaration().getQualifiedName());
+
       return null;
     }
 
@@ -396,6 +404,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "bug in FindBugs")
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
@@ -405,6 +414,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
         //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
+        break;
       }
 
       return null;

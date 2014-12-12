@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.ArrayList;
@@ -34,10 +34,18 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 public class CFunctionType extends AFunctionType implements CType {
+
+  public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
+    return new CFunctionType(false, false, checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
+  }
+
+  public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);
 
   private boolean   isConst;
   private boolean   isVolatile;
@@ -77,13 +85,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()),
-                       new Function<CType, String>() {
-                         @Override
-                         public String apply(final CType pInput) {
-                           return pInput.toString();
-                         }
-                       });
+    return toASTString(Strings.nullToEmpty(getName()), Functions.toStringFunction());
   }
 
   @Override
@@ -97,7 +99,7 @@ public class CFunctionType extends AFunctionType implements CType {
                         });
   }
 
-  public String toASTString(final String pDeclarator, final Function<CType, String> pTypeToString) {
+  public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {
     final StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {

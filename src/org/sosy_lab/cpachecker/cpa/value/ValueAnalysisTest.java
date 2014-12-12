@@ -25,17 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestResults;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -48,13 +40,15 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.value.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "ValueAnalysisCPA.precision.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
         "cpa.composite.precAdjust", "COMPONENT",
         "log.consoleLevel", "FINER"
       );
 
-      TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      Assert.assertTrue(results.isUnsafe());
+      TestResults results = CPATestRunner.run(
+          prop,
+          "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+      results.assertIsUnsafe();
   }
   @Test
   public void ignoreVariablesTest2() throws Exception {
@@ -63,53 +57,12 @@ public class ValueAnalysisTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
         "specification",     "config/specification/default.spc",
-        "cpa.value.variableBlacklist", "somethingElse"
+        "ValueAnalysisCPA.precision.variableBlacklist", "somethingElse"
       );
 
-      TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      Assert.assertTrue(results.isSafe());
-  }
-  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
-    Configuration config = Configuration.builder()
-      .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
-      .setOptions(pProperties).build();
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    LogManager logger = new BasicLogManager(config, stringLogHandler);
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownNotifier);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-    return new TestResults(stringLogHandler.getLog(), results);
-  }
-
-  private static class TestResults {
-    private String log;
-    private CPAcheckerResult checkerResult;
-    public TestResults(String pLog, CPAcheckerResult pCheckerResult) {
-      super();
-      log = pLog;
-      checkerResult = pCheckerResult;
-    }
-    @SuppressWarnings("unused")
-    public String getLog() {
-      return log;
-    }
-    @SuppressWarnings("unused")
-    public CPAcheckerResult getCheckerResult() {
-      return checkerResult;
-    }
-    @SuppressWarnings("unused")
-    boolean logContains(String pattern) {
-     return log.contains(pattern);
-    }
-    boolean isSafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.TRUE);
-    }
-    boolean isUnsafe() {
-      return checkerResult.getResult().equals(CPAcheckerResult.Result.FALSE);
-    }
-    @Override
-    public String toString() {
-      return log;
-    }
+      TestResults results = CPATestRunner.run(
+          prop,
+          "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+      results.assertIsSafe();
   }
 }

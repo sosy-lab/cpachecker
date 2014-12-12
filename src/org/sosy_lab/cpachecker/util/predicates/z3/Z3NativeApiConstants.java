@@ -234,4 +234,11 @@ public class Z3NativeApiConstants {
   public static final int Z3_OP_DT_RECOGNISER = 2049;
   public static final int Z3_OP_DT_ACCESSOR = 2050;
   public static final int Z3_OP_UNINTERPRETED = 2051;
+
+  // Z3_ast_print_mode
+  public static final int Z3_PRINT_SMTLIB_FULL = 0;
+  public static final int Z3_PRINT_LOW_LEVEL = 1;
+  public static final int Z3_PRINT_SMTLIB_COMPLIANT = 2;
+  public static final int Z3_PRINT_SMTLIB2_COMPLIANT = 3;
+
 }

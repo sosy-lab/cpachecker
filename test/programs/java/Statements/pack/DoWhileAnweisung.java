@@ -8,9 +8,9 @@ public class DoWhileAnweisung {
     int startDoWhile;
 
     do {
-    int startDoWhileBlock;
-    int endDoWhileBlock;
-    }while(condition);
+      int startDoWhileBlock;
+      int endDoWhileBlock;
+    } while (condition);
 
     int endDoWhile;
   }

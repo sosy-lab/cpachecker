@@ -79,4 +79,8 @@ public class NoOpReducer implements Reducer {
     return pReducedState;
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState, CFANode exitLocation) {
+    return expandedState;
+  }
 }

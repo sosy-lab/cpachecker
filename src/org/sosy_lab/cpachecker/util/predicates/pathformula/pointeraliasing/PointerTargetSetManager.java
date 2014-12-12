@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
-import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.VOID;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -59,10 +59,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.pointerTarget.PointerTarget;
 
 import com.google.common.collect.ImmutableList;
 
@@ -75,13 +75,13 @@ public class PointerTargetSetManager {
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
   static final CType getFakeBaseType(int size) {
-    return CTypeUtils.simplifyType(new CArrayType(false, false, CNumericTypes.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
+    return CTypeUtils.simplifyType(new CArrayType(false, false, CVoidType.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
                                                                                         CNumericTypes.SIGNED_CHAR,
                                                                                         BigInteger.valueOf(size))));
   }
 
   static final boolean isFakeBaseType(final CType type) {
-    return type instanceof CArrayType && ((CArrayType) type).getType().equals(VOID);
+    return type instanceof CArrayType && ((CArrayType) type).getType() instanceof CVoidType;
   }
 
   private static final String getUnitedFieldBaseName(final int index) {
@@ -107,15 +107,13 @@ public class PointerTargetSetManager {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public Pair<Triple<BooleanFormula, BooleanFormula, BooleanFormula>, PointerTargetSet>
+  public MergeResult<PointerTargetSet>
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
                                    final SSAMap resultSSA) throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
-      return Pair.of(
-          Triple.of(bfmgr.makeBoolean(true), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true)),
-          PointerTargetSet.emptyPointerTargetSet());
+      return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
     Triple<PersistentSortedMap<String, CType>,
@@ -153,12 +151,6 @@ public class PointerTargetSetManager {
     final BooleanFormula basesMergeFormula;
     if (pts1.lastBase == null && pts2.lastBase == null ||
         pts1.lastBase != null && (pts2.lastBase == null || pts1.lastBase.equals(pts2.lastBase))) {
-      // The next check doesn't really hold anymore due to possible base unions, but these cases are suspicious
-      assert pts1.lastBase == null ||
-             pts2.lastBase == null ||
-             isFakeBaseType(pts1.bases.get(pts1.lastBase)) ||
-             isFakeBaseType(pts2.bases.get(pts2.lastBase)) ||
-             pts1.bases.get(pts1.lastBase).equals(pts2.bases.get(pts2.lastBase));
       lastBase = pts1.lastBase;
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
       // Nothing to do, as there were no divergence with regard to base allocations
@@ -167,10 +159,8 @@ public class PointerTargetSetManager {
       basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
     } else {
       final CType fakeBaseType = getFakeBaseType(0);
-      final String fakeBaseName = FAKE_ALLOC_FUNCTION_NAME +
-                                  CToFormulaConverterWithPointerAliasing.getUFName(fakeBaseType) +
-                                  CToFormulaConverterWithPointerAliasing.FRESH_INDEX_SEPARATOR +
-                                  RealPointerTargetSetBuilder.getNextDynamicAllocationIndex();
+      final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType);
       mergedBases =
         Triple.of(mergedBases.getFirst(),
                   mergedBases.getSecond(),
@@ -200,7 +190,7 @@ public class PointerTargetSetManager {
       resultPTS = resultPTSBuilder.build();
     }
 
-    return Pair.of(Triple.of(mergeFormula1, mergeFormula2, basesMergeFormula), resultPTS);
+    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, basesMergeFormula);
   }
 
   private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(final PointerTargetSet pts1,
@@ -368,7 +358,7 @@ public class PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
-    return ffmgr.createFuncAndCall(ufName, index, returnType, ImmutableList.of(address));
+    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
   }
 
 
@@ -378,7 +368,7 @@ public class PointerTargetSetManager {
    * @param cType
    * @return
    */
-  public int getSize(CType cType) {
+  int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
@@ -388,7 +378,7 @@ public class PointerTargetSetManager {
    * @param memberName
    * @return
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 

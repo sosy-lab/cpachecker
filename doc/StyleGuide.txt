@@ -9,15 +9,24 @@ Further guidelines that are very worth reading:
 - Guava User Guide: https://code.google.com/p/guava-libraries/wiki/GuavaExplained
 - Google's Java style guide: http://google-styleguide.googlecode.com/svn/trunk/javaguide.html
 
+Some additional information can be found in other files
+in this directory, e.g. Logging.txt and Test.txt.
+
 We suggest to use Eclipse for development,
 as several parts of this guide are incorporated into the Eclipse project configuration
 (indentation, spaces instead of tabs, no trailing whitespaces).
 If you do not use Eclipse, please ensure manually that you follow this guide,
 or configure your editor/IDE to behave similarly.
-Also Eclipse shows more warnings than javac, and these warnings should be taken care of.
+Also Eclipse shows more warnings than javac, and these warnings should be taken care of
+(make sure to create .factorypath as explained in doc/Developing.txt).
 
+Also check for warnings from the compiler (e.g., warnings for annotation usage),
+and from FindBugs.
+
+We want to keep CPAchecker free of warnings!
 
 Code Formatting:
+- Check Google's Java style guide mentioned above!
 - No tabs in source code!
 - 2 spaces for indentation per level.
 - No trailing white spaces.
@@ -25,7 +34,9 @@ Code Formatting:
   it destroys a lot of meaningful manual formatting.
 - A block is always surrounded by braces, e.g., if (...) { ...block... }.
 - Before { and after } there is one space.
-- The { is not on a new line.
+- The { is not on a new line (K&R style braces).
+- All statements are on separate lines, no two statements at the same line,
+  even in case like if (...) { return; }
 - There is no white space between method/constructor name and parenthesis,
   but there is one space between between keywords and parenthesis. Example:
   func();
@@ -47,6 +58,14 @@ Code Formatting:
 - There is no blank line required between fields,
   but there is between fields and other members,
   and between unrelated groups of fields.
+- Do not align field declarations,
+  this gets mis-aligned soon on refactorings anyway.
+  Example:
+    int foo = -2;
+    long x = 3;
+  and NOT:
+    int  foo = -2;
+    long x   =  3;
 
 Spelling:
 - Try to avoid typos.
@@ -89,6 +108,9 @@ Design:
   (https://code.google.com/p/guava-libraries/wiki/ImmutableCollectionsExplained).
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
+- Avoid boolean parameters. They carry no semantics
+  and make it hard to understand for the reader what effect they have
+  (cf. http://martinfowler.com/bliki/FlagArgument.h.tml)
 
 Configuration options:
 - Only use the @Option scheme so your options are automatically type-checked
@@ -152,10 +174,22 @@ Coding:
   Strings do not need copying, and for other uses there is the valueOf() method.
 - Avoid Cloneable and clone(), use copy constructors instead if you need them
   (you don't if you use immutable classes).
-- When using our LogManager, don't concatenate log messages with +,
-  pass each part as a separate argument (concatenation will be done only if necessary).
 - Never swallow an exception.
   If throwing another exception, add the original one as the cause.
-  If logging, either use logUserException()
-  (if the exception text should be shown to the user)
-  or logDebugException() (in all other cases).
+  If logging, use the appropriate logger methods (c.f. doc/Logging.txt).
+- Always put @Override when implementing an overriding method
+  (Eclipse does this automatically).
+
+
+Automatic code cleanup:
+- Most automatic code formatters are not able to follow these rules,
+  thus use them carefully. The following is a list of possibilities
+  to enforce some of these rules automatically:
+- No tabs: Eclipse configuration, SVN commit hook
+- No trailing whitespaces: Eclipse configuration applied automatically on save
+- Always use braces: Eclipse Code Cleanup
+- Opening brace on same line: sed '$!N;s%\(else\|)\) *\n *{%\1 {%;P;D' -i src/**/*.java
+- else on same line: sed '$!N;s%} *\n *else %} else %;P;D' -i src/**/*.java; sed '$!N;N;s%\( *\)}\n\n *else %\n\1} else %;P;D' -i src/**/*.java
+- Space after keyword: sed -e 's%^\( *}\? *\(assert\|else\|if\|for\|while\|switch\|try\|catch\|finally\)\)\([({]\)%\1 \3%' -i src/**/*.java
+- Space before keyword: sed -e 's%^\( *}\)\(else\|catch\|finally\) %\1 \2 %' -i src/**/*.java
+- Space between ) and {: sed 's%){$%) {%' -i src/**/*.java

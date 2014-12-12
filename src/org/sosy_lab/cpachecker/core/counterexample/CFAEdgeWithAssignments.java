@@ -23,33 +23,61 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 /**
- * Contains the concrete values of assignments {@link IAssignment} for a
+ * Contains the concrete values of assignments {@link AAssignment} for a
  * given statement, which is represented as cfa edge {@link CFAEdge},
  * in the error path.
  */
 public class CFAEdgeWithAssignments {
 
   private final CFAEdge edge;
-  private final List<IAssignment> assignments;
+  private final List<AAssignment> assignments;
   private final String comment;
 
-  public CFAEdgeWithAssignments(CFAEdge pEdge, List<IAssignment> pAssignments, @Nullable String pComment) {
+  public CFAEdgeWithAssignments(CFAEdge pEdge, List<AAssignment> pAssignments, @Nullable String pComment) {
     assert pAssignments != null;
     edge = pEdge;
     assignments = pAssignments;
     comment = pComment;
   }
 
-  public List<IAssignment> getAssignments() {
+  private CFAEdgeWithAssignments(CFAEdgeWithAssignments pEdgeWA, CFAEdgeWithAssignments pEdgeWA2) {
+    assert pEdgeWA.edge.equals(pEdgeWA2.edge);
+
+    edge = pEdgeWA.edge;
+
+    List<AAssignment> assignments1 = pEdgeWA.getAssignments();
+    List<AAssignment> assignments2 = pEdgeWA2.getAssignments();
+
+    List<AAssignment> result = new ArrayList<>(pEdgeWA.assignments);
+
+    for (AAssignment assignment2 : assignments2) {
+      if (!assignments1.contains(assignment2)) {
+
+        //TODO ugly, ignoring addresses
+        if (!(assignment2.getLeftHandSide().getExpressionType() instanceof CPointerType)
+            && !(assignment2.getLeftHandSide().getExpressionType() instanceof CArrayType)) {
+          result.add(assignment2);
+        }
+      }
+    }
+
+    comment = pEdgeWA.comment;
+    assignments = result;
+  }
+
+  public List<AAssignment> getAssignments() {
     return assignments;
   }
 
@@ -66,9 +94,9 @@ public class CFAEdgeWithAssignments {
 
     StringBuilder result = new StringBuilder();
 
-    for (IAssignment assignment : assignments) {
+    for (AAssignment assignment : assignments) {
       if (assignment instanceof CAssignment) {
-        result.append(assignment.toASTString());
+        result.append(((CAssignment) assignment).accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
         return null;
       }
@@ -77,6 +105,13 @@ public class CFAEdgeWithAssignments {
     return result.toString();
   }
 
+  /**
+   * Print code for user output only. Typedefs are not resolved.
+   * Should not be parsed.
+   *
+   * @param numberOfTabsPerLine the number of tabs per line.
+   * @return pretty-printed code
+   */
   @Nullable
   public String prettyPrintCode(int numberOfTabsPerLine) {
 
@@ -86,7 +121,7 @@ public class CFAEdgeWithAssignments {
 
     StringBuilder result = new StringBuilder();
 
-    for (IAssignment assignment : assignments) {
+    for (AAssignment assignment : assignments) {
       if (assignment instanceof CAssignment) {
         for (int c = 0; c < numberOfTabsPerLine; c++) {
           result.append("\t");
@@ -101,6 +136,27 @@ public class CFAEdgeWithAssignments {
     return result.toString();
   }
 
+  public String prettyPrint() {
+    String assignments = this.prettyPrintCode(0);
+    String comment = this.getComment();
+
+    String result = "";
+
+    if (assignments != null) {
+      result = assignments;
+    }
+
+    if (comment != null) {
+      result = result + comment;
+    }
+
+    return result;
+  }
+
+  public String printForHTML() {
+    return prettyPrint().replace(System.lineSeparator(), "\n");
+  }
+
   @Override
   public String toString() {
     return edge.toString() + " " + assignments.toString();
@@ -109,5 +165,9 @@ public class CFAEdgeWithAssignments {
   @Nullable
   public String getComment() {
     return comment;
+  }
+
+  public CFAEdgeWithAssignments mergeEdge(CFAEdgeWithAssignments pEdge) {
+    return new CFAEdgeWithAssignments(this, pEdge);
   }
 }

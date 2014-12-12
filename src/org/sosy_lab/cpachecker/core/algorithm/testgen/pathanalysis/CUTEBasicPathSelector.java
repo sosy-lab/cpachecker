@@ -41,7 +41,8 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -73,13 +74,12 @@ public class CUTEBasicPathSelector implements PathSelector {
   @Override
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath,
       ReachedSet reachedStates)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    ARGPath newARGPath = new ARGPath();
-    newARGPath.addAll(pExecutedPath);
+    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
     PathInfo pathInfo = new PathInfo(newARGPath.size());
     //    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
     /*
@@ -102,8 +102,7 @@ public class CUTEBasicPathSelector implements PathSelector {
     Iterator<Pair<ARGState, CFAEdge>> descendingPathElements =
         Iterators.consumingIterator(newARGPath.descendingIterator());
 
-    while (descendingPathElements.hasNext())
-    {
+    while (descendingPathElements.hasNext()) {
       pathInfo.increaseNodeCount();
       currentElement = descendingPathElements.next();
       CFAEdge edge = currentElement.getSecond();
@@ -142,15 +141,13 @@ public class CUTEBasicPathSelector implements PathSelector {
        * (DART: the j = -1 case)
        */
       //      if(pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge))
-      if (isVisited(currentElement, oldElement, otherEdge.get()))
-      {
+      if (isVisited(currentElement, oldElement, otherEdge.get())) {
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastElement = currentElement;
         continue;
       }
 
-      if (lastElement == null)
-      {
+      if (lastElement == null) {
         /*
          * if the last element is not set, we encountered a branching node where both paths are infeasible
          * for the current value mapping or both successors were handled already with a previous iteration.
@@ -182,15 +179,13 @@ public class CUTEBasicPathSelector implements PathSelector {
        * check if path is feasible. If it's not continue to identify another decision node
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
-      if (!traceInfo.isSpurious())
-      {
+      if (!traceInfo.isSpurious()) {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         //        pathValidator.handleValidPath(newARGPath, traceInfo);
         branchingHistory.resetTo(newARGPath);
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
-      }
-      else {
+        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
+      } else {
         lastElement = currentElement;
         logger.logf(Level.FINER, "path candidate is infeasible");
         //        pathValidator.handleSpuriousPath(newPath);
@@ -205,14 +200,11 @@ public class CUTEBasicPathSelector implements PathSelector {
 
 
   private boolean isVisited(Pair<ARGState, CFAEdge> currentElement, Pair<CFAEdge, Boolean> oldElement, CFAEdge otherEdge) {
-    if (oldElement != null)
-    {
+    if (oldElement != null) {
       logger.log(Level.FINER, "Matching path length. Possibly handled this branch earlier");
       if (branchingHistory.isVisited(otherEdge, oldElement)) {
         return true;
-      }
-      else
-      {
+      } else {
         logger.log(Level.FINER, "Same path length but not in predicted section.");
         return false;
       }
@@ -223,14 +215,12 @@ public class CUTEBasicPathSelector implements PathSelector {
 
   private Pair<CFAEdge, Boolean> handleNextNode(long currentPathSize, CFAEdge edge,
       Pair<CFAEdge, Boolean> oldElement) {
-    if (branchingHistory.getCurrentDepths() > currentPathSize + 1)
-    {
+    if (branchingHistory.getCurrentDepths() > currentPathSize + 1) {
       branchingHistory.consumeUntilSameSize(currentPathSize);
       logger.logf(Level.FINER, "comsumed until %d %d (%d)", currentPathSize, branchingHistory.getCurrentDepths(),
           branchingHistory.getPathDepths());
     }
-    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize))
-    {
+    if (branchingHistory.isPathCandidateForPredictedSection(edge, currentPathSize)) {
       branchingHistory.hasNext();
       oldElement = branchingHistory.next();
       logger.logf(Level.FINER, "Is path candidate for predicted section");
@@ -241,9 +231,9 @@ public class CUTEBasicPathSelector implements PathSelector {
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException,
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException,
       InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList());
+    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
   }
 
   public class PathInfo {
@@ -316,8 +306,7 @@ public class CUTEBasicPathSelector implements PathSelector {
     }
 
     public void consumeUntilSameSize(long pCurrentSizeOfPath) {
-      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths)
-      {
+      while (edgeHistory.hasNext() && (pCurrentSizeOfPath + 1) < currentDepths) {
         next();
       }
     }
@@ -326,7 +315,7 @@ public class CUTEBasicPathSelector implements PathSelector {
       return pCurrentPathLength < currentDepths;
     }
 
-    public void resetTo(ARGPath argPath) {
+    public void resetTo(MutableARGPath argPath) {
       descendingEdgePath = Iterators.transform(argPath.descendingIterator(), Pair.<CFAEdge> getProjectionToSecond());
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 
@@ -346,8 +335,7 @@ public class CUTEBasicPathSelector implements PathSelector {
 
       //      Pair<CFAEdge, Boolean> oldEdge = edgeHistory.next();
       assert oldEdge.getFirst().getPredecessor().equals(edgeToCheck.getPredecessor()) : "Illegal State of history. Wrong edge executed.";
-      if (oldEdge.getSecond() == null)
-      {
+      if (oldEdge.getSecond() == null) {
         logger.log(Level.FINER, "Didn't find a 'visited' match. Not a branching edge or a skipped edge.");
         return false;
       }

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -39,7 +40,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -96,16 +97,16 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all static field declarations
    * @return global declarations
    */
-  public List<Pair<IADeclaration, String>> getStaticFieldDeclarations() {
+  public List<Pair<ADeclaration, String>> getStaticFieldDeclarations() {
 
     Map<String, JFieldDeclaration> staticFieldDeclarations
                                   = scope.getStaticFieldDeclarations();
 
-    List<Pair<IADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
+    List<Pair<ADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
 
-    for (String declName : staticFieldDeclarations.keySet()) {
-      IADeclaration declaration = staticFieldDeclarations.get(declName);
-      result.add(Pair.of(declaration, declName));
+    for (Entry<String, JFieldDeclaration> entry : staticFieldDeclarations.entrySet()) {
+      ADeclaration declaration = entry.getValue();
+      result.add(Pair.of(declaration, entry.getKey()));
     }
 
     return result;
@@ -178,7 +179,7 @@ class CFABuilder extends ASTVisitor {
     //
     if (astCreator.numberOfPreSideAssignments() > 0) {
       throw new CFAGenerationRuntimeException(
-        "Initializer of field variable has side effect", fd); }
+        "Initializer of field variable has side effect.", fd); }
 
     return SKIP_CHILDREN;
   }
@@ -263,7 +264,7 @@ class CFABuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED)
         || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      throw new CFAGenerationRuntimeException("Syntaxerror in " + problem.toString() +"\n", problem);
+      throw new CFAGenerationRuntimeException("Syntax error." , problem);
     }
   }
 }

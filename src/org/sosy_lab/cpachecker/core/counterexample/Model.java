@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -42,8 +43,10 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 /**
@@ -61,6 +64,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     Uninterpreted,
     Integer,
     Real,
+    FloatingPoint,
     Bitvector;
   }
 
@@ -240,7 +244,9 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   private final Map<AssignableTerm, Object> mModel;
+
   private final CFAPathWithAssignments assignments;
+  private final Multimap<CFAEdge, AssignableTerm> assignableTermsPerCFAEdge;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
@@ -254,16 +260,26 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   private Model() {
     mModel = ImmutableMap.of();
     assignments = new CFAPathWithAssignments();
+    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
     assignments = new CFAPathWithAssignments();
+    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public Model(Map<AssignableTerm, Object> content, CFAPathWithAssignments pAssignments) {
     mModel = ImmutableMap.copyOf(content);
     assignments = pAssignments;
+    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
+  }
+
+  public Model(Map<AssignableTerm, Object> content, CFAPathWithAssignments pAssignments,
+      Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
+    mModel = ImmutableMap.copyOf(content);
+    assignments = pAssignments;
+    assignableTermsPerCFAEdge = pAssignableTermsPerCFAEdge;
   }
 
   /**
@@ -277,13 +293,45 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   /**
-   * Return a path that indicates which terms where assigned at which edge.
+   * Return a new model that is equal to the current one,
+   * but additionally has information about when each variable was assigned,
+   * and which
+   * @see Model#getAssignedTermsPerEdge()
+   */
+  public Model withAssignmentInformation(CFAPathWithAssignments pAssignments,
+      Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
+    checkState(assignments.isEmpty());
+    return new Model(mModel, pAssignments);
+  }
+
+  /**
+   * Return a path that indicates which variables where assigned which values at
+   * what edge. Note that not every value for every variable is available.
+   */
+  @Nullable
+  public CFAPathWithAssignments getCFAPathWithAssignments() {
+    return assignments;
+  }
+
+  /**
+   * Return a path that indicates which terms were assigned at which edge.
    * Note that it is not guaranteed that this is information is present for
    * all terms, thus <code>this.getAssignedTermsPerEdge().getAllAssignedTerms()</code> may
    * be smaller than <code>this.keySet()</code> (but not larger).
    */
-  public CFAPathWithAssignments getAssignedTermsPerEdge() {
-    return assignments;
+  public Multimap<CFAEdge, AssignableTerm> getAssignedTermsPerEdge() {
+    return assignableTermsPerCFAEdge;
+  }
+
+  /**
+   * Returns a collection of {@link AssignableTerm}} terms that were assigned a the given
+   * {@link CFAEdge} edge.
+   *
+   * @param pEdge All terms that were assigned at this edge are returned-
+   * @return A collection of terms assigned at the given edge.
+   */
+  public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
+    return assignableTermsPerCFAEdge.get(pEdge);
   }
 
   @Nullable

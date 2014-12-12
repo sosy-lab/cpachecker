@@ -66,31 +66,31 @@ import com.google.common.base.Splitter;
  *
  */
 @Options
-public class EclipseJavaParser implements Parser {
+class EclipseJavaParser implements Parser {
 
-  @Option(name ="java.encoding",
+  @Option(secure=true, name ="java.encoding",
       description="use the following encoding for java files")
   private Charset encoding = StandardCharsets.UTF_8;
 
-  @Option(name ="java.version",
+  @Option(secure=true, name ="java.version",
       description="Specifies the java version of source code accepted")
   private String version = JavaCore.VERSION_1_7;
 
-  @Option(name ="java.sourcepath",
+  @Option(secure=true, name ="java.sourcepath",
       description="Specify the source code path to " +
           "search for java class or interface definitions")
   private String javaSourcepath = "";
 
-  @Option(name ="java.classpath",
+  @Option(secure=true, name ="java.classpath",
       description="Specify the class code path to " +
           "search for java class or interface definitions")
   private String javaClasspath = "";
 
-  @Option(name="java.exportTypeHierarchy",
+  @Option(secure=true, name="java.exportTypeHierarchy",
       description="export TypeHierarchy as .dot file")
   private boolean exportTypeHierarchy = true;
 
-  @Option(name="java.typeHierarchyFile",
+  @Option(secure=true, name="java.typeHierarchyFile",
       description="export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");

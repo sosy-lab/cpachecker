@@ -26,12 +26,13 @@ package org.sosy_lab.cpachecker.cpa.programcounter;
 import java.math.BigInteger;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.collect.ImmutableSet;
 
 
-public class ProgramCounterState implements AbstractState {
+public class ProgramCounterState implements AbstractState, LatticeAbstractState<ProgramCounterState> {
 
   private static final ProgramCounterState TOP = new ProgramCounterState();
 
@@ -57,6 +58,11 @@ public class ProgramCounterState implements AbstractState {
 
   public boolean containsValue(BigInteger pValue) {
     return isTop() || this.values.contains(pValue);
+  }
+
+  @Override
+  public boolean isLessOrEqual(ProgramCounterState other) {
+    return other.containsAll(this);
   }
 
   public boolean containsAll(ProgramCounterState pOther) {
@@ -98,7 +104,8 @@ public class ProgramCounterState implements AbstractState {
     return new ProgramCounterState(ImmutableSet.<BigInteger>builder().addAll(values).add(pValue).build());
   }
 
-  public ProgramCounterState insertAll(ProgramCounterState pOther) {
+  @Override
+  public ProgramCounterState join(ProgramCounterState pOther) {
     if (isTop() || pOther.isTop()) {
       return TOP;
     }

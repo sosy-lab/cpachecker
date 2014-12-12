@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
 
-  @Option(description="whether to include the symbolic path formula in the "
+  @Option(secure=true, description="whether to include the symbolic path formula in the "
     + "coverage checks or do only the fast abstract checks")
   private boolean symbolicCoverageCheck = false;
 

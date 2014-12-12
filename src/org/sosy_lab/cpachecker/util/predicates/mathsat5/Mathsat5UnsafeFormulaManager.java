@@ -44,11 +44,6 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
-  public Formula encapsulateUnsafe(Long pL) {
-    return new Mathsat5Formula(pL);
-  }
-
-  @Override
   public boolean isAtom(Long t) {
     return msat_term_is_atom(msatEnv, t);
   }
@@ -56,6 +51,20 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   @Override
   public int getArity(Long pT) {
     return msat_term_arity(pT);
+  }
+
+  @Override
+  public Formula getArg(Formula pF, int pN) {
+    long f = Mathsat5FormulaManager.getMsatTerm(pF);
+    long arg = msat_term_get_arg(f, pN);
+    if (msat_is_fp_roundingmode_type(msatEnv, msat_term_get_type(arg))) {
+      // We have terms that are of type fp_roundingmode
+      // (for example, arguments to floating-point arithmetic operators),
+      // but we do not want to work with them.
+      // So we just return an untyped formula here.
+      return new Mathsat5Formula(f) { };
+    }
+    return super.getArg(pF, pN);
   }
 
   @Override
@@ -115,4 +124,13 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
     return msat_term_is_number(msatEnv, pT);
   }
 
+  @Override
+  protected Long substitute(Long expr, List<Long> substituteFrom, List<Long> substituteTo) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Long simplify(Long pF) {
+    throw new UnsupportedOperationException();
+  }
 }

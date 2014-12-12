@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  */
 public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
 
+  private final AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
+
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
   private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> integerManager;
@@ -49,13 +51,15 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
-  private final AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager;
+  private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
 
-  private final FormulaCreator<TFormulaInfo> formulaCreator;
+  private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
-  private final TEnv environment;
+  private final AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager;
+
+  private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
   /**
    * Builds a solver from the given theory implementations
@@ -67,17 +71,23 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
    * @param bitvectorManager the bitvector theory
    */
   protected AbstractFormulaManager(
-      TEnv pEnvironment,
-      FormulaCreator<TFormulaInfo> pFormulaCreator,
+      FormulaCreator<TFormulaInfo, TType, TEnv> pFormulaCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
-      AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> functionManager,
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
       AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager) {
+      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
+      AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
+      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
+      AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
+
+    this.arrayManager = arrayManager;
+
+    this.quantifiedManager = quantifiedManager;
 
     this.functionManager = functionManager;
 
@@ -89,9 +99,9 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
     this.bitvectorManager = bitvectorManager;
 
-    this.unsafeManager = unsafeManager;
+    this.floatingPointManager = floatingPointManager;
 
-    this.environment = pEnvironment;
+    this.unsafeManager = unsafeManager;
 
     this.formulaCreator = pFormulaCreator;
 
@@ -101,42 +111,15 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
             || (integerManager != null && integerManager.getFormulaCreator() != formulaCreator)
             || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
+        || (floatingPointManager != null && floatingPointManager.getFormulaCreator() != formulaCreator)
         ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
     }
 
   }
 
-  protected FormulaCreator<TFormulaInfo> getFormulaCreator() {
+  public final FormulaCreator<TFormulaInfo, TType, TEnv> getFormulaCreator() {
     return formulaCreator;
-  }
-
-  public TEnv getEnvironment() {
-    return environment;
-  }
-
-  @SuppressWarnings("unchecked")
-  public static <T extends Formula> Class<T> getInterfaceHelper(T instance) {
-    checkNotNull(instance);
-    Class<?> c ;
-    if (instance instanceof BooleanFormula) {
-      c = BooleanFormula.class;
-    } else if (instance instanceof IntegerFormula) {
-      c = IntegerFormula.class;
-    } else if (instance instanceof RationalFormula) {
-      c = RationalFormula.class;
-    } else if (instance instanceof BitvectorFormula) {
-      c = BitvectorFormula.class;
-    } else {
-      throw new IllegalArgumentException("Invalid instance: " + instance.getClass());
-    }
-
-    return (Class<T>) c;
-  }
-
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
-    return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
 
   @Override
@@ -171,21 +154,32 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   }
 
   @Override
-  public AbstractFunctionFormulaManager<TFormulaInfo, TType, TEnv> getFunctionFormulaManager() {
+  public FloatingPointFormulaManager getFloatingPointFormulaManager() {
+    if (floatingPointManager == null) {
+      throw new UnsupportedOperationException();
+    }
+    return floatingPointManager;
+  }
+
+  @Override
+  public AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> getFunctionFormulaManager() {
     return functionManager;
   }
 
   @Override
   public AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> getUnsafeFormulaManager() {
-
     return unsafeManager;
   }
 
-  @SuppressWarnings("unchecked")
-  protected TFormulaInfo getTerm(Formula f) {
-    return ((AbstractFormula<TFormulaInfo>)f).getFormulaInfo();
+  @Override
+  public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
+    return quantifiedManager;
   }
 
+  @Override
+  public ArrayFormulaManager getArrayFormulaManager() {
+    return arrayManager;
+  }
 
   public abstract Appender dumpFormula(TFormulaInfo t);
 
@@ -194,25 +188,18 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
     return dumpFormula(formulaCreator.extractInfo(t));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
-    checkNotNull(formula);
-    Class<T> clazz = getInterface(formula);
-    FormulaType<?> t;
-    if (clazz==BooleanFormula.class) {
-      t = booleanManager.getFormulaType();
-    } else if (clazz == IntegerFormula.class) {
-      t = integerManager.getFormulaType();
-    } else if (clazz == RationalFormula.class) {
-      t = rationalManager.getFormulaType();
-    } else if (clazz == BitvectorFormula.class) {
-      int size = bitvectorManager.getLength((BitvectorFormula)formula);
-      t = bitvectorManager.getFormulaType(size);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-    return (FormulaType<T>) t;
+  public final <T extends Formula> FormulaType<T> getFormulaType(T formula) {
+    return formulaCreator.getFormulaType(checkNotNull(formula));
   }
 
+  // Utility methods that are handy for subclasses
+
+  public final TEnv getEnvironment() {
+    return getFormulaCreator().getEnv();
+  }
+
+  public final TFormulaInfo extractInfo(Formula f) {
+    return formulaCreator.extractInfo(f);
+  }
 }

@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 
-class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
+class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   public Mathsat5FormulaCreator(final Long msatEnv) {
     super(msatEnv,
@@ -53,27 +55,87 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     return Mathsat5FormulaManager.getMsatTerm(pT);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Long getBittype(int pBitwidth) {
+  public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    long env = getEnv();
+    if (pFormula instanceof BitvectorFormula) {
+      long type = msat_term_get_type(extractInfo(pFormula));
+      checkArgument(msat_is_bv_type(env, type),
+          "BitvectorFormula with actual type " + msat_type_repr(type) + ": " + pFormula);
+      return (FormulaType<T>) FormulaType.getBitvectorTypeWithSize(
+          msat_get_bv_type_size(env, type));
+
+    } else if (pFormula instanceof FloatingPointFormula) {
+      long type = msat_term_get_type(extractInfo(pFormula));
+      checkArgument(msat_is_fp_type(env, type),
+          "FloatingPointFormula with actual type " + msat_type_repr(type) + ": " + pFormula);
+      return (FormulaType<T>)FormulaType.getFloatingPointType(
+          msat_get_fp_type_exp_width(env, type),
+          msat_get_fp_type_mant_width(env, type));
+    }
+    return super.getFormulaType(pFormula);
+  }
+
+  @Override
+  public FormulaType<?> getFormulaType(Long pFormula) {
+    long env = getEnv();
+    long type = msat_term_get_type(pFormula);
+    if (msat_is_bool_type(env, type)) {
+      return FormulaType.BooleanType;
+    } else if (msat_is_integer_type(env, type)) {
+      return FormulaType.IntegerType;
+    } else if (msat_is_rational_type(env, type)) {
+      return FormulaType.RationalType;
+    } else if (msat_is_bv_type(env, type)) {
+      return FormulaType.getBitvectorTypeWithSize(msat_get_bv_type_size(env, type));
+    } else if (msat_is_fp_type(env, type)) {
+      return FormulaType.getFloatingPointType(
+          msat_get_fp_type_exp_width(env, type),
+          msat_get_fp_type_mant_width(env, type));
+    }
+    throw new IllegalArgumentException("Unknown formula type " + msat_type_repr(type) + " for term " + msat_term_repr(pFormula));
+  }
+
+  @Override
+  public Long getBitvectorType(int pBitwidth) {
     return msat_get_bv_type(getEnv(), pBitwidth);
+  }
+
+  @Override
+  public Long getFloatingPointType(FloatingPointType pType) {
+    return msat_get_fp_type(getEnv(), pType.getExponentSize(), pType.getMantissaSize());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
-    Mathsat5Formula f;
-    if (pClazz == BitvectorFormula.class) {
-      f = new Mathsat5BitvectorFormula(pTerm);
-    } else if (pClazz == IntegerFormula.class) {
-      f = new Mathsat5IntegerFormula(pTerm);
-    } else if (pClazz == RationalFormula.class) {
-      f = new Mathsat5RationalFormula(pTerm);
-    } else if (pClazz == BooleanFormula.class) {
-      f = new Mathsat5BooleanFormula(pTerm);
-    } else {
-      throw new IllegalArgumentException("invalid interface type: " + pClazz);
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, Long pTerm) {
+    if (pType.isBooleanType()) {
+      return (T)new Mathsat5BooleanFormula(pTerm);
+    } else if (pType.isIntegerType()) {
+      return (T)new Mathsat5IntegerFormula(pTerm);
+    } else if (pType.isRationalType()) {
+      return (T)new Mathsat5RationalFormula(pTerm);
+    } else if (pType.isBitvectorType()) {
+      return (T)new Mathsat5BitvectorFormula(pTerm);
+    } else if (pType.isFloatingPointType()) {
+      return (T)new Mathsat5FloatingPointFormula(pTerm);
     }
-    return (T)f;
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
   }
 
+  @Override
+  public BooleanFormula encapsulateBoolean(Long pTerm) {
+    return new Mathsat5BooleanFormula(pTerm);
+  }
+
+  @Override
+  public BitvectorFormula encapsulateBitvector(Long pTerm) {
+    return new Mathsat5BitvectorFormula(pTerm);
+  }
+
+  @Override
+  protected FloatingPointFormula encapsulateFloatingPoint(Long pTerm) {
+    return new Mathsat5FloatingPointFormula(pTerm);
+  }
 }

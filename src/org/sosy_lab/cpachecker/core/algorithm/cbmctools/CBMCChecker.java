@@ -46,6 +46,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -72,19 +73,19 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private final Timer cbmcTime = new Timer();
 
-  @Option(name = "cbmc.dumpCBMCfile",
+  @Option(secure=true, name = "cbmc.dumpCBMCfile",
       description = "File name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified. "
       + "If specified, the file name should end with '.i' because otherwise CBMC runs the pre-processor on the file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path cbmcFile;
 
-  @Option(name="cbmc.timelimit",
+  @Option(secure=true, name="cbmc.timelimit",
       description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
         defaultUserUnit=TimeUnit.MILLISECONDS,
         min=0)
-  private int timelimit = 0; // milliseconds
+  private TimeSpan timelimit = TimeSpan.ofMillis(0);
 
   private final MachineModel machineModel;
 
@@ -156,7 +157,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add(cFile.getAbsolutePath());
 
       cbmc = new CBMCExecutor(logger, cbmcArgs);
-      exitCode = cbmc.join(timelimit);
+      exitCode = cbmc.join(timelimit.asMillis());
 
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);

@@ -119,4 +119,9 @@ public class BDDReducer implements Reducer {
     // TODO what to do?
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
+
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState, CFANode exitLocation) {
+    throw new UnsupportedOperationException("not implemented");
+  }
 }

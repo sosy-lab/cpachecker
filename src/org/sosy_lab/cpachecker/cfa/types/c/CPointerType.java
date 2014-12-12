@@ -28,7 +28,8 @@ import java.util.Objects;
 
 public final class CPointerType implements CType {
 
-  public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CNumericTypes.VOID);
+  public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CVoidType.VOID);
+  public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 
   private final CType type;
   private boolean   isConst;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 
 public class LocationCPABackwards implements ConfigurableProgramAnalysis {
 
@@ -48,13 +51,13 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPABackwards(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, true);
+  public LocationCPABackwards(CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.BACKWARD, pConfig);
     transferRelation = new LocationTransferRelationBackwards(stateFactory);
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(true);
+    return new LocationCPAFactory(LocationStateType.BACKWARD);
   }
 
   @Override

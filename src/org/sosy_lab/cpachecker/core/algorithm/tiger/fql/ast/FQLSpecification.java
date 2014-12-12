@@ -173,8 +173,6 @@ public class FQLSpecification {
       pParseResult = lParser.parse().value;
     }
     catch (Exception e) {
-      System.out.println(pFQLSpecificationString);
-
       throw e;
     }
 

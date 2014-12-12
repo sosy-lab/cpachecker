@@ -125,11 +125,6 @@ public class TargetGraphUtil {
     CFAEdge[] lEdges2 = new CFAEdge[lBBEntries.size()];
     lEdges2 = lBBEntries.toArray(lEdges2);
 
-    for (int i = 0; i < lEdges2.length; i++) {
-      //System.out.println((i + 1) + ") " + lEdges[i].toString() + " --- " + lEdges2[i].toString());
-      System.out.println((i + 1) + ") " + lEdges2[i].toString());
-    }
-
     return lBBEntries;*/
     return lBasicBlockEntries;
   }

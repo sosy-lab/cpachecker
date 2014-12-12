@@ -28,7 +28,7 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -79,12 +79,12 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 16, 8, "head");
 
     SMGObject inside = new SMGRegion(16, "pointed_at");
-    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, inside, tail);
+    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, inside, tail);
 
     Integer addressOfInside = SMGValueFactory.getNewValue();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
     SMGRegion inboundPointer = new SMGRegion(8, "inbound_pointer");
-    SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, inboundPointer, addressOfInside);
+    SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);
 
     SMGObject lastFromHead = smg.getPointer(head.getValue()).getObject();
     SMGEdgeHasValue connection = null;
@@ -102,10 +102,10 @@ public class SMGSingleLinkedListFinderTest {
       smg.removeHasValueEdge(hv);
     }
 
-    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 8, lastFromHead, addressOfInside);
+    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, lastFromHead, addressOfInside);
 
     SMGRegion tailPointer = new SMGRegion(8, "tail_pointer");
-    SMGEdgeHasValue tailPointerConnection = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, 0, tailPointer, tail);
+    SMGEdgeHasValue tailPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, tailPointer, tail);
 
     smg.addGlobalObject(tailPointer);
     smg.addHasValueEdge(tailPointerConnection);

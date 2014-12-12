@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cpa.andersen;
 
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ConstraintSystem;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
-public class AndersenState implements AbstractState {
+public class AndersenState implements LatticeAbstractState<AndersenState> {
 
   /**
    * The local constraint system.
@@ -107,12 +107,14 @@ public class AndersenState implements AbstractState {
     return this.localConstraintSystem.toString();
   }
 
+  @Override
   public boolean isLessOrEqual(AndersenState pReachedState) {
     return this == pReachedState || (this.localConstraintSystem.getBaseConstraints().containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
         && this.localConstraintSystem.getSimpleConstraints().containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
         && this.localConstraintSystem.getComplexConstraints().containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
   }
 
+  @Override
   public AndersenState join(AndersenState pReachedState) {
     if (isLessOrEqual(pReachedState)) {
       return pReachedState;

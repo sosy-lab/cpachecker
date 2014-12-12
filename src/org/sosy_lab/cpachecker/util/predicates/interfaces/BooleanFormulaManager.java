@@ -31,13 +31,18 @@ import java.util.List;
  */
 public interface BooleanFormulaManager {
   /**
-   * Checks if the given formular is a boolean
+   * Checks if the given {@link Formula} is a boolean.
+   *
+   * @param pF the <code>Formula</code> to check
+   * @return <code>true</code> if the given <code>Formula</code> is boolean,
+   *         <code>false</code> otherwise
    */
   public boolean isBoolean(Formula pF);
 
-  public FormulaType<BooleanFormula> getFormulaType();
-
   /**
+   * Returns a {@link BooleanFormula} representing the given value.
+   *
+   * @param value the boolean value the returned <code>Formula</code> should represent
    * @return a Formula representing the given value
    */
   public BooleanFormula makeBoolean(boolean value);
@@ -46,18 +51,38 @@ public interface BooleanFormulaManager {
 
   /**
    * Creates a formula representing an equivalence of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 <-> f2)
+   * @param formula1 a Formula
+   * @param formula2 a Formula
+   * @return (formula1 <-> formula2)
    */
   public BooleanFormula equivalence(BooleanFormula formula1, BooleanFormula formula2);
 
+  /** Check, if the formula is of the form "a==b" with two boolean args. */
   public boolean isEquivalence(BooleanFormula formula);
 
+  /** Check, if the formula is of the form "a=>b" with two boolean args. */
   public boolean isImplication(BooleanFormula formula);
 
+  /**
+   * Check, if the formula is the formula "TRUE".
+   * This does not include a satisfiability check,
+   * but only a syntactical matching.
+   * However, depending on the SMT solver,
+   * there might be some pre-processing of formulas such that trivial cases
+   * like "1==1" are recognized and rewritten as "TRUE",
+   * and thus such formulas might also be matched.
+   */
   public boolean isTrue(BooleanFormula formula);
 
+  /**
+   * Check, if the formula is the formula "FALSE".
+   * This does not include a satisfiability check,
+   * but only a syntactical matching.
+   * However, depending on the SMT solver,
+   * there might be some pre-processing of formulas such that trivial cases
+   * like "1==2" are recognized and rewritten as "FALSE",
+   * and thus such formulas might also be matched.
+   */
   public boolean isFalse(BooleanFormula formula);
 
 
@@ -70,42 +95,47 @@ public interface BooleanFormulaManager {
    */
   public <T extends Formula> T ifThenElse(BooleanFormula cond, T f1, T f2);
 
-
+  /** Check, if the formula matches ITE(cond,t1,t2) with three args. */
   public <T extends Formula> boolean isIfThenElse(T f);
 
   /**
    * Creates a formula representing a negation of the argument.
-   * @param f a Formula
-   * @return (!f1)
+   * @param bits a Formula
+   * @return (!bits)
    */
   public BooleanFormula not(BooleanFormula bits);
 
   /**
    * Creates a formula representing an AND of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 & f2)
+   * @param bits1 a Formula
+   * @param bits2 a Formula
+   * @return (bits1 & bits2)
    */
   public BooleanFormula and(BooleanFormula bits1, BooleanFormula bits2);
   public BooleanFormula and(List<BooleanFormula> bits);
 
   /**
    * Creates a formula representing an OR of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 | f2)
+   * @param bits1 a Formula
+   * @param bits2 a Formula
+   * @return (bits1 | bits2)
    */
   public BooleanFormula or(BooleanFormula bits1, BooleanFormula bits2);
+  public BooleanFormula or(List<BooleanFormula> bits);
 
   public BooleanFormula xor(BooleanFormula bits1, BooleanFormula bits2);
 
 
+  /** Check, if the formula matches NOT(f) with one boolean arg. */
   public boolean isNot(BooleanFormula bits);
 
+  /** Check, if the formula matches AND(a,b) with two (or more) boolean args. */
   public boolean isAnd(BooleanFormula bits);
 
+  /** Check, if the formula matches OR(a,b) with two (or more) boolean args. */
   public boolean isOr(BooleanFormula bits);
 
+  /** Check, if the formula matches XOR(a,b) with two (or more) boolean args. */
   public boolean isXor(BooleanFormula bits);
 
 }

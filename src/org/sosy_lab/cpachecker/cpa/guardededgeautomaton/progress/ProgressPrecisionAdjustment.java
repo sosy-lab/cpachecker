@@ -41,9 +41,9 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
    * This method does not depend on pElements.
    */
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
     ProgressElement lElement = (ProgressElement)pElement;
     ProgressPrecision lPrecision = (ProgressPrecision)pPrecision;
 
@@ -58,10 +58,12 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
 
       Precision lAdjustedPrecision = lPrecision.remove(lElement.getTransition());
 
-      return Triple.<AbstractState, Precision, Action>of(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
+      //return Triple.<AbstractState, Precision, Action>of(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
+      return PrecisionAdjustmentResult.create(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
     }
     else {
-      return Triple.<AbstractState, Precision, Action>of(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
+      //return Triple.<AbstractState, Precision, Action>of(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
     }
   }
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.Map;
 
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -93,7 +94,7 @@ public class Solver {
   /**
    * Checks whether a formula is unsat.
    */
-  public boolean isUnsat(BooleanFormula f) throws InterruptedException {
+  public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
     satChecks++;
 
     if (bfmgr.isTrue(f)) {
@@ -122,7 +123,7 @@ public class Solver {
     }
   }
 
-  private boolean isUnsatUncached(BooleanFormula f) throws InterruptedException {
+  private boolean isUnsatUncached(BooleanFormula f) throws SolverException, InterruptedException {
     try (ProverEnvironment prover = newProverEnvironment()) {
       prover.push(f);
       return prover.isUnsat();
@@ -133,7 +134,7 @@ public class Solver {
    * Checks whether a => b.
    * The result is cached.
    */
-  public boolean implies(BooleanFormula a, BooleanFormula b) throws InterruptedException {
+  public boolean implies(BooleanFormula a, BooleanFormula b) throws SolverException, InterruptedException {
     if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
@@ -160,7 +161,9 @@ public class Solver {
       return;
     }
     try {
-      assert isUnsatUncached(unsat);
+      assert isUnsatUncached(unsat) : "formula is sat: " + unsat;
+    } catch (SolverException e) {
+      throw new AssertionError(e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }

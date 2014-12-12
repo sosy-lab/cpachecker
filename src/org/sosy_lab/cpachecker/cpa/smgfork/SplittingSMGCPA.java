@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -71,13 +72,13 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(SplittingSMGCPA.class);
   }
 
-  @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
   private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
-  @Option(name="memoryErrors", description = "Determines if memory errors are target states")
+  @Option(secure=true, name="memoryErrors", description = "Determines if memory errors are target states")
   private boolean memoryErrors = true;
 
-  @Option(name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
+  @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
 
   private final AbstractDomain abstractDomain;
@@ -94,7 +95,7 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
     machineModel = cfa.getMachineModel();
     logger = pLogger;
 
-    abstractDomain = new SMGDomain();
+    abstractDomain = DelegateAbstractDomain.<SMGState> getInstance();
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new StopSepOperator(abstractDomain);
     transferRelation = new SMGTransferRelation(config, logger, machineModel);
@@ -140,16 +141,18 @@ public class SplittingSMGCPA implements ConfigurableProgramAnalysis {
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
+    } catch (SMGInconsistentException exc) {
       logger.log(Level.SEVERE, exc.getMessage());
     }
 
-    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-      initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch(SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+    if (pNode instanceof CFunctionEntryNode) {
+      CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+      try {
+        initState.addStackFrame(functionNode.getFunctionDefinition());
+        initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
+      } catch (SMGInconsistentException exc) {
+        logger.log(Level.SEVERE, exc.getMessage());
+      }
     }
 
     return initState;

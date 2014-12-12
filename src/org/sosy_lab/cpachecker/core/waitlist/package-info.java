@@ -25,4 +25,5 @@
  * The waitlist, which stores the to-be-processed abstract states during the analysis.
  * It is also responsible for the traversal strategy.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.waitlist;

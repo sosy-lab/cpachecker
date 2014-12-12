@@ -24,30 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 public class AnonymousTypes {
-  static final public CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-  static final public CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-  static final public CSimpleType dummyVoid = new CSimpleType(false, false, CBasicType.VOID, false, false, false, false, false, false, false);
-  static final public CPointerType dummyPointer = new CPointerType(false, false, dummyVoid);
-
-  public static CFunctionType createSimpleFunctionType(CType pReturnType) {
-    return new CFunctionType(false, false, pReturnType, new ArrayList<CType>(), false);
-  }
-
   public static CType createTypeWithLength(long pSizeInBytes) {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, AnonymousTypes.dummyInt, BigInteger.valueOf(pSizeInBytes));
-    return new CArrayType(false, false, AnonymousTypes.dummyChar, arrayLen);
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBytes));
+    return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
   }
 }

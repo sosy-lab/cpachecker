@@ -2,10 +2,8 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <!-- try to make it more deterministic -->
-  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-timelimit">1min</option>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
@@ -23,14 +21,6 @@
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <exclude>../programs/benchmarks/eca/Problem03_40_true-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem04_30_true-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem06_00_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem13_40_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem15_50_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem18_00_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem18_10_false-unreach-call.c</exclude>
-      <exclude>../programs/benchmarks/eca/Problem19_38_false-unreach-call.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
     </sourcefiles>
     <sourcefiles>
@@ -40,9 +30,4 @@
     </sourcefiles>
     <option name="-predicateAnalysis"/>
   </rundefinition>
-
-  <columns>
-    <column title="total">time for CPAchecker</column>
-    <column title="cpa time">time for CPA algorithm</column>
-  </columns>
 </benchmark>

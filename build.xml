@@ -1,41 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
-<project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="CPAchecker" basedir="." default="build"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Include a file in which all properties can be overridden.
          This file won't get checked in and can be used to change properties
          locally for one machine if necessary. -->
     <property file="build.properties"/>
+    <property environment="env"/>
 
     <property name="version.base" value="1.3.4-svn"/> <!-- change here for a release -->
 
-    <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
-    <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
-    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/> <!-- URL to ivy repository. -->
+    <!-- Customization of build process. -->
+    <property name="jar.file" value="cpachecker.jar"/>
+    <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
+    <property name="junit.dir" value="output/junit"/>
+    <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+
+    <import file="build/build-ivy.xml"/>
+    <import file="build/build-compile.xml"/>
+    <import file="build/build-jar.xml"/>
+    <import file="build/build-junit.xml"/>
+    <import file="build/build-findbugs.xml"/>
+
+    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
     <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
 
-    <property environment="env"/>
-    <property name="debuglevel" value="source,lines,vars"/>
-    <property name="source.format" value="1.7"/>
-    <property name="source.dir" value="src"/>
-    <property name="class.format" value="1.7"/>
-    <property name="class.dir" value="bin"/>
-    <property name="test.report.dir" value="output/junit"/>
-    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
-
-    <antversion property="ant.version.exact"/> <!-- Define property that contains the Ant version. -->
-    <property name="ivy.lib.dir" value="${basedir}/lib/java"/>
-    <property environment="env"/>
-    <condition property="tmp.ivy.cache.dir" value="${env.IVY_CACHE_DIR}" else="${user.home}/.ivy2/cache">
-      <isset property="env.IVY_CACHE_DIR"/>
-    </condition>
-    <property name="ivy.cache.dir" location="${tmp.ivy.cache.dir}"/>
-
-    <path id="CPAchecker.classpath">
+    <path id="classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
     </path>
+
     <condition property="architecture" value="x86_64" else="x86">
         <os arch="amd64"/>
     </condition>
@@ -45,14 +42,10 @@
     <condition property="os" value="windows">
         <os family="windows"/>
     </condition>
-    <target name="init" depends="create-version-file">
-        <echo message="Building ${ant.project.name} ${version.base}"/>
-    </target>
-    <target name="create-version-file">
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <!-- Here we only write the imprecise base version. Exact version is only used for JAR files. -->
-        <echo message="${version.base}" file="${version.file}"/>
-    </target>
+
+
+    <!-- Main targets -->
+
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
@@ -62,55 +55,51 @@
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
     </target>
-    <target depends="clean" name="cleanall"/>
 
-    <property name="ivy.useVersion" value="2.3.0"/> <!-- Change version number here to use a newer version of Ivy. -->
-    <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
-    <property name="ivy.jar.file" value="ivy.jar"/>
-    <available file="${ivy.jar.dir}/${ivy.jar.file}" property="ivy.jar.present"/>
-    <available file="${ivy.lib.dir}-contrib" property="ivy.contrib.present"/>
+    <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
 
-    <!-- If necessary, download Ivy from web site so that it does not need to be installed. -->
-    <target name="bootstrap-ivy" unless="ivy.jar.present">
-        <mkdir dir="${ivy.jar.dir}"/>
-        <echo message="Downloading ivy..."/>
-    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.useVersion}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
-    </target>
+    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
 
-    <!-- Load the Ivy plugin for Ant so the Ivy tasks are available. -->
-    <target name="load-ivy" depends="bootstrap-ivy">
-        <path id="ivy.lib.path">
-            <fileset dir="${ivy.jar.dir}" includes="${ivy.jar.file}"/>
-        </path>
-        <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
-        <ivy:settings file="lib/ivysettings.xml"/>
-    </target>
-
-    <!-- Ask Ivy to get all the dependencies for us -->
-    <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
-        <echo message="Downloading and installing dependencies with Ivy..."/>
-        <ivy:resolve conf="build, runtime, test" log="download-only"/>
-        <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
-    </target>
-
-    <target name="report-dependencies" depends="resolve-dependencies" description="Generate dependencies report">
-        <ivy:report graph="false" dot="true" conf="runtime, build, test, contrib"/>
-    </target>
-
-    <!-- Update additional resources if they were downloaded previously. -->
-    <target name="update-contrib" if="ivy.contrib.present">
-        <antcall target="install-contrib"/>
-    </target>
-
-    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries" unless="ivy.disable">
-        <ivy:resolve conf="contrib" log="download-only"/>
-        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
-    </target>
-
-    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
         <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
         <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="tests" depends="unit-tests, benchmark-tests" description="Run all tests"/>
+
+
+    <!-- Auxiliary targets -->
+
+    <target name="determine-version-revision">
+        <!-- Determine full CPAchecker version including SVN revision. -->
+        <exec executable="python"
+            outputProperty="version.revision"
+            failifexecutionfails="false"
+            logError="true">
+            <arg value="scripts/determine-revision.py"/>
+            <arg value="${basedir}"/>
+        </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+            <contains string="${version.base}" substring="-svn"/>
+        </condition>
+        <echo message="${version}" file="${version.file}"/>
+    </target>
+
+    <target name="determine-version" depends="create-version-file-exact"/>
+
+    <target name="create-version-file" unless="version">
+        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version.base}" file="${version.file}"/>
+    </target>
+
+    <target name="init" depends="create-version-file">
+        <echo message="Building ${ant.project.name} ${version.base}"/>
     </target>
 
     <target name="build-subprojects">
@@ -119,35 +108,30 @@
             <ant antfile="src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/build.xml" inheritAll="false"/>
     </target>
 
+    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
 
-    <target depends="init,resolve-dependencies,build-subprojects" name="build-dependencies"/>
-
-    <target depends="build-project,build-documentation" name="build"/>
-
-    <!-- If available, we use error-prone as the compiler, cf. https://code.google.com/p/error-prone/ -->
-    <available classname="com.google.errorprone.ErrorProneAntCompilerAdapter"
-               property="javac.compiler"
-               value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
-    <target name="-warn-errorprone" unless="javac.compiler">
-        <echo level="warning">Google error-prone not detected in class path.</echo>
-        <echo level="warning">For additional compiler checks, we recommend running ant with command-line arguments "-lib lib/java/build".</echo>
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target depends="build-dependencies,-warn-errorprone" name="build-project">
+    <target name="build-project" depends="build-dependencies,-warn-errorprone">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>
         <javac debug="true"
-               debuglevel="${debuglevel}"
+               debuglevel="source,lines,vars"
                includeAntRuntime="false"
                destdir="${class.dir}"
                source="${source.format}"
                target="${class.format}"
                encoding="UTF-8">
             <src path="${source.dir}"/>
-            <classpath refid="CPAchecker.classpath"/>
-        	<!-- exclude for now since necessary JARs might not be installed -->
-        	<exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-Xlint:deprecation"/>
+            <!-- exclude for now since necessary JARs might not be installed -->
+            <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
         </javac>
     </target>
 
@@ -166,42 +150,13 @@
             output="${outputfile}" append="true"
             logError="true">
 
-            <classpath refid="CPAchecker.classpath"/>
+            <classpath refid="classpath"/>
             <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
 
             <!-- "-v" is a optional param for verbose output of OptionCollector -->
             <!-- <arg value="-v"/> -->
         </java>
         <echo message="Options collected." level="info"/>
-    </target>
-
-    <target description="Make a distributable release" depends="build,jar,zip,tar" name="dist"/>
-
-    <target name="create-version-file-exact">
-        <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="python"
-            outputProperty="version.revision"
-            failifexecutionfails="false"
-            logError="true">
-            <arg value="scripts/determine-revision.py"/>
-            <arg value="${basedir}"/>
-        </exec>
-        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
-            <contains string="${version.base}" substring="-svn"/>
-        </condition>
-        <echo message="${version}" file="${version.file}"/>
-    </target>
-
-    <target name="jar" depends="build, create-version-file-exact">
-        <jar basedir="${class.dir}/" includes="**" destfile="cpachecker.jar"
-                whenmanifestonly="fail">
-            <manifest>
-                    <attribute name="Implementation-Title" value="CPAchecker"/>
-                    <attribute name="Implementation-Version" value="${version}"/>
-                    <attribute name="Implementation-URL" value="http://cpachecker.sosy-lab.org"/>
-                <attribute name="Main-Class" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
-             </manifest>
-        </jar>
     </target>
 
     <!-- Release for Windows -->
@@ -233,100 +188,23 @@
         </tar>
     </target>
 
-    <!-- Load the JUnit plugin for Ant if it's not installed. -->
-    <condition property="ant.junit.available">
-        <typefound name="junit"/>
-    </condition>
-    <target name="load-junit" depends="resolve-dependencies" unless="ant.junit.available">
-        <taskdef name="junit"
-                 classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
-        <taskdef name="junitreport"
-                 classname="org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
-    </target>
-
-    <target description="Run all JUnit tests" depends="build, load-junit" name="unit-tests">
-        <mkdir dir="${test.report.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
-            <assertions>
-            <enable />
-            </assertions>
-            <formatter type="plain"/>
-            <formatter type="xml"/>
-            <classpath refid="CPAchecker.classpath"/>
-            <batchtest fork="true" todir="${test.report.dir}">
-                <fileset dir="${class.dir}">
-                    <include name="**/*Test.*"/>
-                    <exclude name="**/*$*Test.*"/>
-                </fileset>
-            </batchtest>
-        </junit>
-        <junitreport todir="${test.report.dir}">
-            <fileset dir="${test.report.dir}">
-                <include name="TEST-*.xml" />
-            </fileset>
-            <report format="noframes" />
-        </junitreport>
-        <move file="junit-noframes.html" tofile="JUnit.html"/>
-        <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
-    </target>
-
-    <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">
+    <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">
         <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
     </target>
 
-    <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
-
-
-    <!-- Targets for running FindBugs on CPAchecker.
-         These need a locally installed FindBugs,
-         and you need to pass -Dfindbugs.home=<PATH_TO_FINDBUGS> to ant.
-    -->
-    <target name="run-findbugs" depends="jar">
-        <delete file="FindBugs.html"/>
-        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${findbugs.home}/lib/findbugs.jar"/>
-        <findbugs home="${findbugs.home}"
-                output="xml:withMessages"
-                outputFile="FindBugs.xml"
-                excludeFilter=".settings/FindBugs.exclude.xml"
-                warningsProperty="findbugs.warnings">
-            <auxClasspath refid="CPAchecker.classpath" />
-            <sourcePath path="${source.dir}" />
-            <class location="cpachecker.jar" />
-        </findbugs>
+    <!-- Targets for downloading CPAchecker instead of building it.
+         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
+         Warning: this might overwrite local changes. -->
+    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
+        <script language="javascript"><![CDATA[
+            var revision = project.getProperty("version.revision");
+            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
+        ]]></script>
+        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
+            <patternset>
+                <include name="cpachecker.jar"/>
+            </patternset>
+        </unzip>
     </target>
-
-    <target name="findbugs-report" if="findbugs.warnings">
-        <echo>FindBugs found warnings, generating report.</echo>
-        <xslt in="FindBugs.xml" out="FindBugs.html" style="${findbugs.home}/src/xsl/fancy.xsl"/>
-    </target>
-
-    <target name="findbugs" depends="run-findbugs, findbugs-report"
-        description="Run FindBugs and generate report."/>
-
-    <target name="run-findbugs-diff" depends="jar">
-        <delete file="FindBugs.diff.html"/>
-        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${findbugs.home}/lib/findbugs.jar"/>
-        <findbugs home="${findbugs.home}"
-                output="xml:withMessages"
-                outputFile="FindBugs.diff.xml"
-                excludeFilter=".settings/FindBugs.exclude.xml"
-                warningsProperty="findbugs.newwarnings"
-                baselineBugs="FindBugs.known.xml">
-            <auxClasspath refid="CPAchecker.classpath" />
-            <sourcePath path="${source.dir}" />
-            <class location="cpachecker.jar" />
-        </findbugs>
-    </target>
-
-    <target name="findbugs-diff-report" if="findbugs.newwarnings">
-        <echo>FindBugs found new warnings, generating report.</echo>
-        <xslt in="FindBugs.diff.xml" out="FindBugs.diff.html" style="${findbugs.home}/src/xsl/fancy.xsl"/>
-    </target>
-
-    <target name="findbugs-diff" depends="run-findbugs-diff, findbugs-diff-report"
-        description="Run FindBugs and generate report with newly found warnings."/>
-
-    <target name="findbugs-full" depends="findbugs, findbugs-diff"/>
 </project>

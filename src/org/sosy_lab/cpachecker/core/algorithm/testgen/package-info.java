@@ -24,4 +24,5 @@
 /**
  * Implementation of test-case generation based on concolic testing.
  */
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
 package org.sosy_lab.cpachecker.core.algorithm.testgen;

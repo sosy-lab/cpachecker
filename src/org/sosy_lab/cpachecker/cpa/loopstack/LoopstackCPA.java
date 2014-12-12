@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,19 +36,19 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,26 +61,26 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableCollection;
 
 @Options(prefix="cpa.loopstack")
 public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
 
   private final LogManager logger;
 
-  @Option(description="threshold for unrolling loops of the program (0 is infinite)\n"
+  @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
 
-  @Option(description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
+  @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
 
-  @Option(description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
+  @Option(secure=true, description="threshold for adjusting the threshold for unrolling loops of the program (0 is infinite).\n"
   + "only relevant in combination with a non-static maximum loop iteration adjuster.")
   private int maxLoopIterationsUpperBound = 0;
 
@@ -119,7 +118,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     functionNames.add(pNode.getFunctionName());
     functionNames.add(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
     for (String functionName : functionNames) {
-      ImmutableCollection<Loop> loops = cfa.getLoopStructure().get().get(functionName);
+      Collection<Loop> loops = cfa.getLoopStructure().get().getLoopsForFunction(functionName);
       if (loops != null) {
         for (Loop l : loops) {
           if (l.getLoopNodes().contains(pNode)) {
@@ -137,7 +136,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
     if (loop != null) {
       // if loop is present, push one element on the stack for it
-      e = new LoopstackState(e, loop, 0, false);
+      e = new LoopstackState(e, loop, 1, false);
     }
     return e;
   }
@@ -203,16 +202,15 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
     }).toSet().asList();
 
-    List<Precision> waitlistPrecisions = new ArrayList<>(waitlist.size());
-    for (AbstractState s : waitlist) {
-      waitlistPrecisions.add(pReachedSet.getPrecision(s));
+    pReachedSet.removeAll(toRemove);
+    for (ARGState s : from(toRemove).filter(ARGState.class)) {
+      s.removeFromARG();
     }
 
-    pReachedSet.removeAll(waitlist);
-
     // Add the new waitlist
-    pReachedSet.addAll(Pair.zipList(waitlist, waitlistPrecisions));
-    pReachedSet.removeAll(toRemove);
+    for (AbstractState s : waitlist) {
+      pReachedSet.reAddToWaitlist(s);
+    }
   }
 
   private static interface MaxLoopIterationAdjuster {
@@ -317,7 +315,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   }
 
-  private static class DelegatingTransferRelation implements TransferRelation {
+  private static class DelegatingTransferRelation extends SingleEdgeTransferRelation {
 
     private TransferRelation delegate = null;
 
@@ -334,10 +332,11 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     }
 
     @Override
-    public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-        CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+        AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+            throws CPATransferException, InterruptedException {
       Preconditions.checkState(delegate != null);
-      return this.delegate.getAbstractSuccessors(pState, pPrecision, pCfaEdge);
+      return this.delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
     }
 
     @Override
@@ -355,7 +354,13 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    pOut.print("Bound k:" + this.maxLoopIterations);
+    pOut.println("Bound k:" + this.maxLoopIterations);
+    int maximumLoopIterationReached = 0;
+    for (AbstractState state : pReached) {
+      LoopstackState loopstackState = AbstractStates.extractStateByType(state, LoopstackState.class);
+      maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getIteration());
+    }
+    pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
   }
 
   @Override

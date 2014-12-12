@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -96,15 +95,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
-import org.sosy_lab.cpachecker.cpa.apron.precision.IApronPrecision;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import apron.DoubleScalar;
 import apron.Interval;
@@ -122,11 +123,8 @@ import apron.Texpr0UnNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Multimap;
 
-public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, IApronPrecision> {
-
-  private static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
+public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronState>, ApronState, VariableTrackingPrecision> {
 
   /**
    * This is used for making smaller and greater constraint with octagons
@@ -156,10 +154,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       throw new InvalidCFAException("OctagonCPA does not work without loop information!");
     }
 
-    Multimap<String, Loop> loops = cfa.getLoopStructure().get();
+    LoopStructure loops = cfa.getLoopStructure().get();
 
     Builder<CFANode> builder = new ImmutableSet.Builder<>();
-    for (Loop l : loops.values()) {
+    for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
           builder.addAll(l.getLoopHeads());
     }
@@ -169,7 +167,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
   boolean done = false;
 
   @Override
-  public Collection<ApronState> getAbstractSuccessors(
+  public Collection<ApronState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -182,7 +180,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     try {
       new ApronManager(Configuration.defaultConfiguration());
     } catch (InvalidConfigurationException e) {
-      e.printStackTrace();
+      throw new AssertionError(e);
     }
     done = true;
     }
@@ -288,7 +286,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       }
       Set<ApronState> possibleStates = new HashSet<>();
       for (Texpr0Node coeff : coeffs) {
-        if(truthAssumption) {
+        if (truthAssumption) {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
         } else {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
@@ -494,6 +492,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
           case PLUS:
             innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
             break;
+
+            // this cannot happen, this switch clause checks the same binary operator
+            // as the outer switch clause
+          default:
+            throw new AssertionError();
           }
 
           if (truthAssumption) {
@@ -511,7 +514,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
           break;
         default:
-          throw new CFAGenerationRuntimeException("unhandled case in switch statement: " + binExp.getOperator());
+          throw new UnrecognizedCCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -521,7 +524,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
   private Set<ApronState> handleLiteralBinExpAssumption(double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
     boolean result;
-    switch(pBinaryOperator) {
+    switch (pBinaryOperator) {
     case BINARY_AND:
     case BINARY_OR:
     case BINARY_XOR:
@@ -562,7 +565,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       result = (pLeftVal + pRightVal) != 0;
       break;
     default:
-      throw new CFAGenerationRuntimeException("unhandled switch case: " + pBinaryOperator);
+      throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if ((truthAssumption && result)
         || (!truthAssumption && !result)) {
@@ -648,7 +651,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    possibleStates.add(state.declareVariable(buildVarName(calledFunctionName, FUNCTION_RETURN_VAR),
+    possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
                                                       getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
 
     // declare all parameters as variables
@@ -658,10 +661,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
         continue;
       }
 
-      String nameOfParam = paramNames.get(i);
-      String formalParamName = buildVarName(calledFunctionName, nameOfParam);
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
 
-      if (!precision.isTracked(formalParamName, parameters.get(i).getType())) {
+      if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
       }
 
@@ -701,16 +703,16 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
       CLeftHandSide op1 = binExp.getLeftHandSide();
-      String assignedVarName = buildVarName(op1, callerFunctionName);
+      MemoryLocation assignedVarName = buildVarName(op1, callerFunctionName);
 
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
       if (!isHandleableVariable(op1)
-          || !precision.isTracked(assignedVarName, op1.getExpressionType())) {
+          || !precision.isTracking(assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      String returnVarName = buildVarName(calledFunctionName, FUNCTION_RETURN_VAR);
+      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0);
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -733,20 +735,22 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration declaration = (CVariableDeclaration) decl;
 
-      // get the variable name in the declarator
-      String variableName = declaration.getName();
-
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
       if (!isHandleAbleType(declaration.getType())) { return Collections.singleton(state); }
 
       // make the fullyqualifiedname
-      if (!decl.isGlobal()) {
-        variableName = buildVarName(functionName, variableName);
+
+      // get the variable name in the declarator
+      MemoryLocation variableName;
+      if (decl.isGlobal()) {
+        variableName = MemoryLocation.valueOf(decl.getName());
+      } else {
+        variableName = MemoryLocation.valueOf(functionName, decl.getName(), 0);
       }
 
-      if (!precision.isTracked(variableName, declaration.getType())) {
+      if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);
       }
 
@@ -823,12 +827,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       CLeftHandSide left = ((CAssignment) statement).getLeftHandSide();
       CRightHandSide right = ((CAssignment) statement).getRightHandSide();
 
-      String variableName = buildVarName(left, functionName);
+      MemoryLocation variableName = buildVarName(left, functionName);
 
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
-          || !precision.isTracked(variableName, left.getExpressionType())) {
+          || !precision.isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
         assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {
@@ -860,26 +864,14 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
     throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
   }
 
-  private String buildVarName(CLeftHandSide left, String functionName) {
+  private MemoryLocation buildVarName(CLeftHandSide left, String functionName) {
     String variableName = null;
     if (left instanceof CArraySubscriptExpression) {
       variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
-
-      if (!isGlobal(((CArraySubscriptExpression) left).getArrayExpression())) {
-        variableName = buildVarName(functionName, variableName);
-      }
     } else if (left instanceof CPointerExpression) {
       variableName = ((CPointerExpression) left).getOperand().toASTString();
-
-      if (!isGlobal(((CPointerExpression) left).getOperand())) {
-        variableName = buildVarName(functionName, variableName);
-      }
     } else if (left instanceof CFieldReference) {
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
-
-      if (!isGlobal(((CFieldReference) left).getFieldOwner())) {
-        variableName = buildVarName(functionName, variableName);
-      }
     } else {
       variableName = ((CIdExpression) left).toASTString();
 
@@ -888,7 +880,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       }
     }
 
-    return variableName;
+    if (isGlobal(left)) {
+      return MemoryLocation.valueOf(functionName, variableName, 0);
+    } else {
+      return MemoryLocation.valueOf(variableName);
+    }
   }
 
   /**
@@ -904,7 +900,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
       return Collections.singleton(state);
     }
 
-    String tempVarName = buildVarName(cfaEdge.getPredecessor().getFunctionName(), FUNCTION_RETURN_VAR);
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(), 0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -1102,7 +1098,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Set<ApronS
 
     @Override
     public Set<Texpr0Node> visit(CIdExpression e) throws CPATransferException {
-      String varName = buildVarName(e, functionName);
+      MemoryLocation varName = buildVarName(e, functionName);
       Integer varIndex = state.getVariableIndexFor(varName);
       if (varIndex == -1) { return Collections.emptySet(); }
       return Collections.singleton((Texpr0Node)new Texpr0DimNode(varIndex));

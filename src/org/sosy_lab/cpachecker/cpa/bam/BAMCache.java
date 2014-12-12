@@ -47,10 +47,10 @@ import com.google.common.base.Preconditions;
 @Options(prefix = "cpa.bam")
 public class BAMCache {
 
-  @Option(description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
+  @Option(secure=true, description = "if enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
-  @Option(description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
+  @Option(secure=true, description = "if enabled, the reached set cache is analysed for each cache miss to find the cause of the miss.")
   boolean gatherCacheMissStatistics = false;
 
   final Timer hashingTimer = new Timer();
@@ -95,7 +95,8 @@ public class BAMCache {
   public void put(AbstractState stateKey, Precision precisionKey, Block context, Collection<AbstractState> item,
                    ARGState rootOfBlock) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
-    assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash));
+    assert preciseReachedCache.get(hash) != null : "key not found in cache";
+    assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash)) : "output-states must be in reached-set";
     returnCache.put(hash, item);
     blockARGCache.put(hash, rootOfBlock);
     setLastAnalyzedBlock(hash);

@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Options;
 @Options(prefix="cpa.value")
 public class SymbolicValuesOption {
 
-  @Option(name="symbolicValues", description="enables generation of symbolic values")
+  @Option(secure=true, name="symbolicValues", description="enables generation of symbolic values")
   private boolean symbolicValues = false;
 
   public boolean areSymbolicValuesEnabled() {

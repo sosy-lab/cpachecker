@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Waitlist that implements DFS behavior with random selection of branching path.
  *
@@ -37,6 +39,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * If the last iteration added more than one state (branching case of successor computation) pop()
  * returns one of these successors at random.
  */
+@SuppressFBWarnings(value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
+    justification = "warnings is only because of casts introduced by generics")
 public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private final Random rand = new Random();
@@ -52,12 +56,10 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   public void add(AbstractState pStat) {
     super.add(pStat);
     CFANode location = AbstractStates.extractLocation(pStat);
-    if (parent == null || (!parent.hasEdgeTo(location)))
-    {
+    if (parent == null || (!parent.hasEdgeTo(location))) {
       parent = location;
       successorsOfParent = 0;
-    }
-    else {
+    } else {
       successorsOfParent++;
     }
   }
@@ -68,8 +70,8 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
     AbstractState state;
     if (waitlist.size() < 2 || successorsOfParent < 2) {
       state = waitlist.getLast();
-    } else //(successorsOnLevelCount >= 2)
-    {
+    } else {
+      // successorsOnLevelCount >= 2
       int r = rand.nextInt(successorsOfParent) + 1;
       state = waitlist.get(waitlist.size() - r);
     }

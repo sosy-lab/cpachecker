@@ -66,12 +66,12 @@ public class CParserWithLocationMapper implements CParser {
 
   private final boolean readLineDirectives;
 
-  @Option(name="locmapper.dumpTokenizedProgramToFile",
+  @Option(secure=true, name="locmapper.dumpTokenizedProgramToFile",
       description="Write the tokenized version of the input program to this file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpTokenizedProgramToFile = null;
 
-  @Option(name="parser.transformTokensToLines",
+  @Option(secure=true, name="parser.transformTokensToLines",
       description="Preprocess the given C files before parsing: Put every single token onto a new line. "
       + "Then the line number corresponds to the token number.")
   private boolean tokenizeCode = false;
@@ -214,7 +214,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      programFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      programFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);
   }
@@ -229,7 +229,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode, f.getStaticVariablePrefix()));
+      tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
 
     return realParser.parseString(tokenizedFragments, sourceOriginMapping);

@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
@@ -66,14 +65,9 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
-    return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
+    return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);
   }
 
   @Override
@@ -86,7 +80,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
-    final Term t = mgr.getTerm(f);
+    final Term t = mgr.extractInfo(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
@@ -132,7 +126,7 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
     int i = 0;
     for (BooleanFormula impF : formulas) {
 
-      importantTerms[i++] = mgr.getTerm(impF);
+      importantTerms[i++] = mgr.extractInfo(impF);
     }
 
     solveTime.start();

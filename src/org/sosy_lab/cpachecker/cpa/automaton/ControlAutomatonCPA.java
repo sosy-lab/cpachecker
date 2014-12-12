@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,13 +36,16 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -77,28 +79,28 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  @Option(name="dotExport",
+  @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(name="dotExportFile",
+  @Option(secure=true, name="dotExportFile",
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFile = Paths.get("%s.dot");
+  private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(required=false,
+  @Option(secure=true, required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
   private int breakOnTargetState = 1;
 
-  @Option(description="the maximum number of iterations performed after the initial error is found, despite the limit"
+  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
       + "given as cpa.automaton.breakOnTargetState is not yet reached")
   private int extraIterationsLimit = -1;
 
@@ -112,33 +114,38 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger, CFA cfa)
+  private final CFA cfa;
+  private final LogManager logger;
+
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
 
-    config.inject(this, ControlAutomatonCPA.class);
+    pConfig.inject(this, ControlAutomatonCPA.class);
 
-    transferRelation = new AutomatonTransferRelation(this, config, logger);
+    this.cfa = pCFA;
+    this.logger = pLogger;
+
+    transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
 
     final PrecisionAdjustment lPrecisionAdjustment;
 
     if (breakOnTargetState > 0) {
       lPrecisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
-    }
 
-    else {
+    } else {
       lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }
 
     precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
 
       @Override
-      public Triple<AbstractState, Precision, Action> prec(AbstractState pState, Precision pPrecision,
-          UnmodifiableReachedSet pStates) throws CPAException, InterruptedException {
+      public PrecisionAdjustmentResult prec(AbstractState pState, Precision pPrecision,
+          UnmodifiableReachedSet pStates, AbstractState fullState) throws CPAException, InterruptedException {
 
-        Triple<AbstractState, Precision, Action> wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates);
+        PrecisionAdjustmentResult wrappedPrec = lPrecisionAdjustment.prec(pState, pPrecision, pStates, fullState);
 
         if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-        return Triple.of(wrappedPrec.getFirst(), wrappedPrec.getSecond(), Action.BREAK);
+          return wrappedPrec.withAction(Action.BREAK);
         }
 
         return wrappedPrec;
@@ -153,9 +160,23 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     } else {
 
-      Scope scope = new CProgramScope(cfa);
+      Language language = pCFA.getLanguage();
 
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel(), scope);
+      List<Automaton> lst;
+
+      Scope scope;
+
+      switch (language) {
+      case C:
+        scope = new CProgramScope(pCFA, pLogger);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+      }
+
+      lst = AutomatonParser.parseAutomatonFile(inputFile, pConfig, pLogger, pCFA.getMachineModel(), scope, language);
+
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
       } else if (lst.size() > 1) {
@@ -166,14 +187,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
       this.automaton = lst.get(0);
     }
-    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+    pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
-      String fileName = String.format(exportFile.toAbsolutePath().getPath(), automaton.getName());
-      try (Writer w = Files.openOutputFile(Paths.get(fileName))) {
+      try (Writer w = Files.openOutputFile(exportFile.getPath(automaton.getName()))) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+        pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
     }
 
@@ -191,7 +211,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
   @Override
@@ -239,11 +259,20 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge));
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
+        pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
+  }
+
+  MachineModel getMachineModel() {
+    return cfa.getMachineModel();
+  }
+
+  LogManager getLogManager() {
+    return logger;
   }
 }

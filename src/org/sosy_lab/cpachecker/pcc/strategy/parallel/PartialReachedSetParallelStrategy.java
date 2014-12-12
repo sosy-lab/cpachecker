@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
 
-  @Option(
+  @Option(secure=true,
       description = "If enabled, distributes checking of partial elements depending on actual checking costs, else uses the number of elements")
   private boolean enableLoadDistribution = false;
 
@@ -139,13 +139,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       result = pResult;
       mutex = pMutex;
       coordination = pCoordinate;
-      assert(!enableLoadDistribution);
+      assert (!enableLoadDistribution);
       indexProvider = null;
     }
 
     public PartialChecker(final AtomicInteger pIndexProvider, final List<AbstractState> pCertificate, final Precision pInitPrec,
         final AtomicBoolean pResult, final Lock pMutex, final Semaphore pCoordinate) {
-      assert(enableLoadDistribution);
+      assert (enableLoadDistribution);
       startIndex = 0;
       certificate = pCertificate;
       initPrec = pInitPrec;
@@ -170,10 +170,10 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
             shutdownNotifier.shutdownIfNecessary();
 
             for (AbstractState succ : cpa.getTransferRelation().getAbstractSuccessors(currentStates.get(index++),
-                initPrec, null)) {
+                initPrec)) {
               if (!cpa.getStopOperator().stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)),
                   initPrec)) {
-                if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size() + currentStates.size()) {
+                if (stopAddingAtReachedSetSize && savedReachedSetSize <= certificate.size() + currentStates.size()) {
                   logger.log(Level.FINE, "Too many states recomputed");
                   abort();
                   return;
@@ -194,13 +194,13 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
         coordination.release();
 
       } catch (CPATransferException e) {
-        logger.logException(Level.FINE, e, "Computation of successors failed.");
+        logger.logUserException(Level.FINE, e, "Computation of successors failed.");
         abort();
       } catch (CPAException e) {
-        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        logger.logUserException(Level.FINE, e, "Stop check failed for successor.");
         abort();
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.logException(Level.WARNING, e, "Unknown problem");
         abort();
       }
     }

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -115,7 +116,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
    */
   @Override
   protected boolean performRefinementForState(BooleanFormula itp,
-      ARGState s) throws InterruptedException {
+      ARGState s) throws SolverException, InterruptedException {
     checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
     checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
 

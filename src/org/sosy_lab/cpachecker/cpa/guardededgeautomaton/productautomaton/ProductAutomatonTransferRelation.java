@@ -46,7 +46,13 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
 
   public ProductAutomatonTransferRelation(
       ImmutableList<TransferRelation> pTransferRelations) {
-    super(pTransferRelations);
+    //super(pTransferRelations);
+    super(pTransferRelations, true); // TODO is true correct here?
+  }
+
+  @Override
+  public Collection<CompositeState> getAbstractSuccessors(AbstractState state, Precision precision) throws CPATransferException {
+    throw new RuntimeException("TODO implement");
   }
 
   /*
@@ -56,7 +62,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
    * We do not strengthen!
    */
   @Override
-  public Collection<CompositeState> getAbstractSuccessors(
+  public Collection<CompositeState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     CompositeState lCompositeElement = (CompositeState)pElement;
@@ -71,7 +77,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = lCompositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors = lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision, pCfaEdge);
+      Collection<? extends AbstractState> componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(lCurrentElement, lCurrentPrecision, pCfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {

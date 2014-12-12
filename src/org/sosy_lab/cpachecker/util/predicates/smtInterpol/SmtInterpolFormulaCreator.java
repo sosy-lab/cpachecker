@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
+class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
   SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
@@ -39,6 +40,18 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   }
 
   @Override
+  public FormulaType<?> getFormulaType(Term pFormula) {
+    if (SmtInterpolUtil.isBoolean(pFormula)) {
+      return FormulaType.BooleanType;
+    } else if (SmtInterpolUtil.hasIntegerType(pFormula)) {
+      return FormulaType.IntegerType;
+    } else if (SmtInterpolUtil.hasRationalType(pFormula)) {
+      return FormulaType.RationalType;
+    }
+    throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  @Override
   public Term makeVariable(Sort type, String varName) {
     SmtInterpolEnvironment env = getEnv();
     env.declareFun(varName, new Sort[]{}, type);
@@ -46,7 +59,12 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   }
 
   @Override
-  public Sort getBittype(int pBitwidth) {
+  public Sort getBitvectorType(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
+  }
+
+  @Override
+  public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
+    throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
   }
 }

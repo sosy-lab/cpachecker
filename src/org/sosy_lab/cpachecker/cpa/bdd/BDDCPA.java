@@ -36,10 +36,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -54,7 +56,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -66,8 +69,8 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final NamedRegionManager manager;
   private final BitvectorManager bvmgr;
   private final PredicateManager predmgr;
-  private final BDDDomain abstractDomain;
-  private final BDDPrecision precision;
+  private final AbstractDomain abstractDomain;
+  private VariableTrackingPrecision precision;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
@@ -77,7 +80,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
-  @Option(description="mergeType")
+  @Option(secure=true, description="mergeType")
   private String merge = "join";
 
   private BDDCPA(CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
@@ -89,18 +92,22 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     cfa               = pCfa;
     shutdownNotifier  = pShutdownNotifier;
 
-    BDDRegionManager rmgr = BDDRegionManager.getInstance(config, logger);
+    RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
-    abstractDomain    = new BDDDomain();
+    abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
     stopOperator      = new StopSepOperator(abstractDomain);
     mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
-    precision         = new BDDPrecision(config, cfa.getVarClassification());
+    precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     manager           = new NamedRegionManager(rmgr);
     bvmgr             = new BitvectorManager(config, rmgr);
-    predmgr           = new PredicateManager(config, manager, precision, cfa);
+    predmgr           = new PredicateManager(config, manager, cfa);
     transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
     reducer           = new BDDReducer(manager, predmgr);
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
   }
 
   public NamedRegionManager getManager() {

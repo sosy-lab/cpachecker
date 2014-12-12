@@ -89,10 +89,10 @@ public class PredicateMapParser {
   private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
   private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
 
-  @Option(description="Apply location-specific predicates to all locations in their function")
+  @Option(secure=true, description="Apply location-specific predicates to all locations in their function")
   private boolean applyFunctionWide = false;
 
-  @Option(description="Apply location- and function-specific predicates globally (to all locations in the program)")
+  @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
 
   private final CFA cfa;

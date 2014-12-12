@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -86,7 +85,7 @@ public class SMGSingleLinkedListCandidate implements SMGAbstractionCandidate {
         }
       }
       if (edgeToFollow == null) {
-        edgeToFollow = new SMGEdgeHasValue(AnonymousTypes.dummyPointer, offset, node, newSMG.getNullValue());
+        edgeToFollow = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, offset, node, newSMG.getNullValue());
       }
 
       value = edgeToFollow.getValue();

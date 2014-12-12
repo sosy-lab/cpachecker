@@ -29,13 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -54,11 +48,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for PointerACPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 
@@ -77,7 +71,7 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
 
     config.inject(this);
 
-    abstractDomain      = new AndersenDomain();
+    abstractDomain      = DelegateAbstractDomain.<AndersenState>getInstance();
     transferRelation    = new AndersenTransferRelation(config, logger);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -87,9 +81,8 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   private MergeOperator initializeMergeOperator() {
     if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
-    }
 
-    else if (mergeType.equals("JOIN")) {
+    } else if (mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
     }
 
@@ -99,13 +92,11 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   private StopOperator initializeStopOperator() {
     if (stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("JOIN")) {
+    } else if (stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("NEVER")) {
+    } else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
     }
 

@@ -51,9 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
@@ -61,6 +58,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -70,7 +69,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    public volatile int countRefinements = 0;
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+        justification = "only one thread writes, others read")
+    private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
@@ -138,14 +139,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
-  @Option(name="refiner", required = true,
+  @Option(secure=true, name="refiner", required = true,
       description = "Which refinement algorithm to use? "
       + "(give class name, required for CEGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
   private final LogManager logger;
@@ -254,14 +255,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
         else if(mRefiner instanceof UnsoundRefiner) {
-          if(!refinedInPreviousIteration) {
+          if (!refinedInPreviousIteration) {
             break;
           }
 
-          ARGState firstChild = ((ARGState)reached.getFirstState()).getChildren().iterator().next();
-          new ARGReachedSet(reached).removeSubtree(firstChild,
-              ((UnsoundRefiner)mRefiner).getGlobalPrecision(),
-              ValueAnalysisPrecision.class);
+          ((UnsoundRefiner)mRefiner).forceRestart(reached);
           refinementSuccessful        = true;
           refinedInPreviousIteration  = false;
         }

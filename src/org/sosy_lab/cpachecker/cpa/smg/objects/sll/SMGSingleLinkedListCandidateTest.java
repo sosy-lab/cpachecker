@@ -28,7 +28,7 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -101,7 +101,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(OFFSET, onlyOutboundEdge.getOffset());
-    Assert.assertSame(AnonymousTypes.dummyPointer, onlyOutboundEdge.getType());
+    Assert.assertSame(CPointerType.POINTER_TO_VOID, onlyOutboundEdge.getType());
 
     SMGObject stopper = abstractedSmg.getPointer(onlyOutboundEdge.getValue()).getObject();
     Assert.assertTrue(stopper instanceof SMGRegion);

@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -77,11 +77,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -89,8 +88,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import com.google.common.base.Optional;
 
 @Options(prefix="cpa.interval")
-public class IntervalAnalysisTransferRelation implements TransferRelation {
-  @Option(description="decides whether one (false) or two (true) successors should be created "
+public class IntervalAnalysisTransferRelation extends SingleEdgeTransferRelation {
+  @Option(secure=true, description="decides whether one (false) or two (true) successors should be created "
     + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
   /**
@@ -100,7 +99,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
   private final Set<String> globalFieldVars = new HashSet<>();
 
-  @Option(description="at most that many intervals will be tracked per variable, -1 if number not restricted")
+  @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
 
   public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
@@ -108,7 +107,9 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException {
     Collection<? extends AbstractState> successors  = null;
 
     AbstractState successor                         = null;
@@ -210,8 +211,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
       }
-    }
-    else if (expression instanceof CFunctionCallStatement) {
+    } else if (expression instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
@@ -270,7 +270,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       Optional<CExpression> expression, CReturnStatementEdge returnEdge, CFAEdge edge)
     throws UnrecognizedCCodeException {
 
-    CExpression exp = expression.or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression exp = expression.or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(element, returnEdge.getPredecessor().getFunctionName(), edge);
 
@@ -668,15 +668,13 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       Long value = parseLiteral((CLiteralExpression)expression, cfaEdge);
 
       return (value == null) ? Interval.createUnboundInterval() : new Interval(value, value);
-    }
 
-    else if (expression instanceof CIdExpression) {
+    } else if (expression instanceof CIdExpression) {
       String varName = constructVariableName((CIdExpression)expression, functionName);
 
       return (element.contains(varName)) ? element.getInterval(varName) : Interval.createUnboundInterval();
-    }
 
-    else if (expression instanceof CCastExpression) {
+    } else if (expression instanceof CCastExpression) {
       return evaluateInterval(element, ((CCastExpression)expression).getOperand(), functionName, cfaEdge);
     } else if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExpression = (CUnaryExpression)expression;
@@ -749,16 +747,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     return pCalledFunctionName + "::" + pVariableName;
   }
 
-  private String constructVariableName(IAExpression pVariableName, String pCalledFunctionName) {
+  private String constructVariableName(AExpression pVariableName, String pCalledFunctionName) {
     if (pVariableName instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) pVariableName).getDeclaration();
         if (decl instanceof CDeclaration) {
-          if  (((CDeclaration) decl).isGlobal()){
+          if  (((CDeclaration) decl).isGlobal()) {
             return pVariableName.toASTString();
           }
       }
     }
-    if(pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())){
+    if (pVariableName instanceof CFieldReference && globalFieldVars.contains(pVariableName.toASTString())) {
       return pVariableName.toASTString();
     }
     return pCalledFunctionName + "::" + pVariableName.toASTString();

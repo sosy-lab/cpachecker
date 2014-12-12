@@ -28,26 +28,30 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssignmentEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public enum ProgramCounterTransferRelation implements TransferRelation {
+public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
 
-  INSTANCE;
+  static final TransferRelation INSTANCE = new ProgramCounterTransferRelation();
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
-      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+          throws CPATransferException, InterruptedException {
 
     ProgramCounterState state = (ProgramCounterState) pState;
 
@@ -59,7 +63,7 @@ public enum ProgramCounterTransferRelation implements TransferRelation {
             AVariableDeclaration declaration = (AVariableDeclaration) edge.getDeclaration();
             if (declaration.getQualifiedName().equals(CFASingleLoopTransformation.PROGRAM_COUNTER_VAR_NAME)) {
               if (declaration.getInitializer() instanceof AInitializerExpression) {
-                IAExpression expression = ((AInitializerExpression) declaration.getInitializer()).getExpression();
+                AExpression expression = ((AInitializerExpression) declaration.getInitializer()).getExpression();
                 if (expression instanceof AIntegerLiteralExpression) {
                   BigInteger pcValue = ((AIntegerLiteralExpression) expression).getValue();
                   state = ProgramCounterState.getStateForValue(pcValue);
@@ -70,8 +74,8 @@ public enum ProgramCounterTransferRelation implements TransferRelation {
         }
         break;
       case AssumeEdge:
-        if (pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) {
-          CFASingleLoopTransformation.ProgramCounterValueAssumeEdge edge = (CFASingleLoopTransformation.ProgramCounterValueAssumeEdge) pCfaEdge;
+        if (pCfaEdge instanceof ProgramCounterValueAssumeEdge) {
+          ProgramCounterValueAssumeEdge edge = (ProgramCounterValueAssumeEdge) pCfaEdge;
           BigInteger value = BigInteger.valueOf(edge.getProgramCounterValue());
           if (edge.getTruthAssumption()) {
             if (state.containsValue(value)) {
@@ -88,10 +92,13 @@ public enum ProgramCounterTransferRelation implements TransferRelation {
         }
         break;
       case StatementEdge:
-        if (pCfaEdge instanceof CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge) {
-          CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge edge = (CFASingleLoopTransformation.ProgramCounterValueAssignmentEdge) pCfaEdge;
+        if (pCfaEdge instanceof ProgramCounterValueAssignmentEdge) {
+          ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pCfaEdge;
           state = ProgramCounterState.getStateForValue(BigInteger.valueOf(edge.getProgramCounterValue()));
         }
+        break;
+      default:
+        // Program counter variable does not occur in other edges.
         break;
     }
     if (state == null || state.isBottom()) {

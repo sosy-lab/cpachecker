@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -56,23 +57,24 @@ import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
 
-  @Option(description="Do at most n summarizations on a node.")
+  @Option(secure=true, description="Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
 
-  @Option(description="Allow reduction of loop heads; calculate abstractions alwasy at loop heads?")
+  @Option(secure=true, description="Allow reduction of loop heads; calculate abstractions always at loop heads?")
   private boolean allowReduceLoopHeads = false;
 
-  @Option(description="Allow reduction of function entries; calculate abstractions alwasy at function entries?")
+  @Option(secure=true, description="Allow reduction of function entries; calculate abstractions always at function entries?")
   private boolean allowReduceFunctionEntries = true;
 
-  @Option(description="Allow reduction of function exits; calculate abstractions alwasy at function exits?")
+  @Option(secure=true, description="Allow reduction of function exits; calculate abstractions always at function exits?")
   private boolean allowReduceFunctionExits = true;
 
-  @Option(name="reducedCfaFile", description="write the reduced cfa to the specified file.")
+  @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
 
@@ -369,10 +371,12 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @VisibleForTesting
   void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, Writer pOut) throws IOException {
-    for (ReducedNode u: pInlinedCfa.keySet()) {
-      Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
-      for (ReducedNode v: uTarget.keySet()) {
-        for (int i=0; i<uTarget.get(v).size(); i++) {
+    for (Entry<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> outerEntry : pInlinedCfa.entrySet()) {
+      ReducedNode u = outerEntry.getKey();
+      Map<ReducedNode, Set<ReducedEdge>> uTarget = outerEntry.getValue();
+      for (Entry<ReducedNode, Set<ReducedEdge>> entry: uTarget.entrySet()) {
+        ReducedNode v = entry.getKey();
+        for (int i=0; i < entry.getValue().size(); i++) {
           pOut.append("REL\t")
               .append(getRsfEntryFor(u))
               .append('\t')
@@ -405,7 +409,7 @@ public class BlockedCFAReducer implements BlockComputer {
     }
 
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
-    Set<CFANode> result = new HashSet<>(abstractionNodes.size());
+    Set<CFANode> result = Sets.newHashSetWithExpectedSize(abstractionNodes.size());
     for (ReducedNode n : abstractionNodes) {
       result.add(n.getWrapped());
     }

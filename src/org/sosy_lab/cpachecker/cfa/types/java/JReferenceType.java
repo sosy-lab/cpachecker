@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-
+/**
+ * Marker interface for Java types that store references.
+ *
+ * Such types could be classes or interfaces, for example.
+ */
 public interface JReferenceType extends JType {
 
 }

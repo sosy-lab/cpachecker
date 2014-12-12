@@ -28,7 +28,10 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
@@ -37,31 +40,42 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 
 public class Z3TheoremProver implements ProverEnvironment {
 
-  private Z3FormulaManager mgr;
+  private final Z3FormulaManager mgr;
   private long z3context;
   private long z3solver;
   private final Z3SmtLogger smtLogger;
   private int level = 0;
+  private int track_no = 0;
 
-  public Z3TheoremProver(Z3FormulaManager mgr) {
-    this.mgr = mgr;
-    this.z3context = mgr.getEnvironment();
-    this.z3solver = mk_solver(z3context);
+  private static final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
+
+  private final Map<String, BooleanFormula> storedConstraints;
+
+  public Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+    mgr = pMgr;
+    z3context = mgr.getEnvironment();
+    z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
-    this.smtLogger = mgr.getSmtLogger();
+    smtLogger = mgr.getSmtLogger();
+    if (generateUnsatCore) {
+      storedConstraints = new HashMap<>();
+    } else {
+      storedConstraints = null;
+    }
   }
 
   @Override
   public void push(BooleanFormula f) {
+    track_no++;
     level++;
 
     Preconditions.checkArgument(z3context != 0);
@@ -73,7 +87,18 @@ public class Z3TheoremProver implements ProverEnvironment {
       inc_ref(z3context, e);
     }
 
-    solver_assert(z3context, z3solver, e);
+    if (storedConstraints != null) {
+      String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
+      // TODO: can we do with no casting?
+      Z3BooleanFormula t =
+          (Z3BooleanFormula) mgr.getBooleanFormulaManager().makeVariable(
+              varName);
+
+      solver_assert_and_track(z3context, z3solver, e, t.getExpr());
+      storedConstraints.put(varName, f);
+    } else {
+      solver_assert(z3context, z3solver, e);
+    }
 
     smtLogger.logPush(1);
     smtLogger.logAssert(e);
@@ -100,39 +125,31 @@ public class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public OptResult isOpt(Formula fvar, boolean maximize) {
-    Z3Formula var = (Z3Formula) fvar;
-    Preconditions.checkArgument(mgr.getUnsafeFormulaManager().isVariable(var),
-        "Can only maximize for a single variable.");
-
-    PointerToInt is_unbounded = new PointerToInt();
-
-    int status = solver_check_opti(
-      z3context, z3solver, is_unbounded, var.z3expr, maximize ? 1 : 0
-    );
-
-    if (status == Z3_LBOOL.Z3_L_FALSE.status) {
-      return OptResult.UNSAT;
-    } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
-      return OptResult.UNDEF;
-    } else {
-      if (is_unbounded.value != 0) {
-        return OptResult.UNBOUNDED;
-      }
-    }
-    return OptResult.OPT;
-  }
-
-  @Override
   public Model getModel() throws SolverException {
-    Z3Model model = new Z3Model(mgr, z3context, z3solver);
-    Model m = model.createZ3Model();
-    return m;
+    return Z3Model.createZ3Model(mgr, z3context, z3solver);
   }
 
   @Override
   public List<BooleanFormula> getUnsatCore() {
-    throw new UnsupportedOperationException();
+    if (storedConstraints == null) {
+      throw new UnsupportedOperationException(
+          "Option to generate the UNSAT core wasn't enabled when creating" +
+          " the prover environment."
+      );
+    }
+
+    List<BooleanFormula> constraints = new LinkedList<>();
+    long ast_vector = solver_get_unsat_core(z3context, z3solver);
+    ast_vector_inc_ref(z3context, ast_vector);
+    for (int i=0; i<ast_vector_size(z3context, ast_vector); i++) {
+      long ast = ast_vector_get(z3context, ast_vector, i);
+      BooleanFormula f = mgr.encapsulateBooleanFormula(ast);
+
+      // TODO: a proper way to get a variable name.
+      constraints.add(storedConstraints.get(f.toString()));
+    }
+    ast_vector_dec_ref(z3context, ast_vector);
+    return constraints;
   }
 
   @Override
@@ -274,9 +291,9 @@ public class Z3TheoremProver implements ProverEnvironment {
       for (long t : model) {
         if (isOP(z3context, t, Z3_OP_NOT)) {
           t = get_app_arg(z3context, t, 0);
-          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(t)));
+          builder.addNegativeRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
         } else {
-          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(t)));
+          builder.addPositiveRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
         }
       }
       builder.finishConjunction();
@@ -285,9 +302,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
       regionTime.stop();
     }
-
-    private BooleanFormula encapsulate(long pT) {
-      return mgr.encapsulate(BooleanFormula.class, pT);
-    }
   }
+
+
 }

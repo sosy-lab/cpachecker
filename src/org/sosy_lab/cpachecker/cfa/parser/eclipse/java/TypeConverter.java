@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public abstract class TypeConverter {
+abstract class TypeConverter {
 
   public final JType convert(Type t) {
 

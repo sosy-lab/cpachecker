@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -46,17 +45,15 @@ class SmtInterpolModel {
 
   private static TermType toSmtInterpolType(Sort sort) {
 
-    if (Type.BOOL.toString().equals(sort.getName())) {
-      return TermType.Boolean;
-    } else if (Type.INT.toString().equals(sort.getName())) {
-      return TermType.Integer;
-    } else if (Type.REAL.toString().equals(sort.getName())) {
-      return TermType.Real;
-
-      // TODO TermType.Uninterpreted; TermType.Bitvector;
-
-    } else {
-      throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
+    switch (sort.getName()) {
+      case "Bool":
+        return TermType.Boolean;
+      case "Int":
+        return TermType.Integer;
+      case "Real":
+        return TermType.Real;
+      default:
+        throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + sort);
     }
   }
 
@@ -134,8 +131,7 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
-    SmtInterpolEnvironment env = mgr.getEnvironment();
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);
 

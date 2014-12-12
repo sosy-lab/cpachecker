@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import org.sosy_lab.cpachecker.util.NativeLibraries;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /** This class contains the native calls for Z3.
  *
@@ -32,30 +32,193 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
  * should not be incremented. The object will be destroyed after next usage.
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
+@SuppressWarnings("unused")
 public final class Z3NativeApi {
-
-  static {
-    NativeLibraries.loadLibrary("z3j");
-  }
 
   // Helper Classes,
   // they are used during the native operations
   // and can be accessed later to get the values.
   public static class PointerToInt {
-    public int value;
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
+    int value;
   }
 
   public static class PointerToLong {
-    public long value;
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
+    long value;
   }
 
   public static class PointerToString {
-    public String value;
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
+        justification = "Read by native code")
+    String value;
   }
 
-  // OPTIMIZATION
-  public static native int solver_check_opti(
-      long context, long solver, PointerToInt unbounded, long var, int maximize);
+  /** Start optimization - Nikolaj Bjorner branch. **/
+
+  /**
+   * Create a new optimize context.
+   *
+   * User must use {@link #optimize_inc_ref}
+   * and {@link #optimize_dec_ref} to manage optimize objects.
+   * Even if the context was created using
+   * {@link #mk_context} instead of {@link #mk_context_rc}.
+   *
+   * @param context Z3_context pointer
+   * @return Z3_optimize pointer.
+   */
+  public static native long mk_optimize(long context);
+
+  /**
+   * Increment the reference counter of the optimize context.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   */
+  public static native void optimize_inc_ref(long context, long optimize);
+
+  /**
+   * Decrement the reference counter of the optimize context.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   */
+  public static native void optimize_dec_ref(long context, long optimize);
+
+  /**
+   * Add a maximization constraint.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
+   */
+  public static native int optimize_maximize(long context, long optimize, long ast);
+
+  /**
+   * Add a minimization constraint.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast arithmetical term to maximize.
+   * @return objective index
+   */
+  public static native int optimize_minimize(long context, long optimize, long ast);
+
+
+  /**
+   * Check consistency and produce optimal values.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @return status as {@link Z3NativeApiConstants.Z3_LBOOL}:
+   *   false, undefined or true.
+   */
+  public static native int optimize_check(long context, long optimize);
+
+  /**
+   * \brief Retrieve the model for the last #Z3_optimize_check
+   * The error handler is invoked if a model is not available because
+   * the commands above were not invoked for the given optimization
+   * solver, or if the result was \c Z3_L_FALSE.
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @return Z3_model pointer
+   */
+  public static native long optimize_get_model(long context, long optimize);
+
+  /**
+   * Assert hard constraint to the optimization context.
+   *
+   * @param context Z3_context pointer
+   * @param optimize Z3_optimize pointer
+   * @param ast Z3_ast imposed constraints
+   */
+  public static native void optimize_assert(
+      long context, long optimize, long ast);
+
+  /**
+   * Create a backtracking point.
+   *
+   * The optimize solver contains a set of rules, added facts and assertions.
+   * The set of rules, facts and assertions are restored upon calling {#link #optimize_pop}
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_push(long c, long d);
+
+  /**
+   * Backtrack one level.
+   * The number of calls to pop cannot exceed calls to push.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_pop(long c, long d);
+
+  /**
+   * Set parameters on optimization context.
+   *
+   * @param c Z3_context context
+   * @param o Z3_optimize optimization context
+   * @param p Z3_params parameters
+   */
+  public static native void optimize_set_params(long c, long o, long p);
+
+    /**
+     * Return the parameter description set for the given optimize object.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @return Z3_param_descrs
+     */
+    public static native long optimize_get_param_descrs(long c, long o);
+
+    /**
+     * Retrieve lower bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_lower(long c, long o, int idx);
+
+    /**
+     * Retrieve upper bound value or approximation for the i'th optimization objective.
+     *
+     * @param c Z3_context context
+     * @param o Z3_optimize optimization context
+     * @param idx index of optimization objective
+     *
+     * @return Z3_ast
+     */
+    public static native long optimize_get_upper(long c, long o, int idx);
+
+    /**
+     * @param c Z3_context context.
+     * @param o Z3_optimize optimization context.
+     * @return Current context as a string.
+     */
+    public static native String optimize_to_string(long c, long o);
+
+    /**
+     * @param c Z3_context
+     * @param t Z3_optimize
+     * @return Description of parameters accepted by optimize
+     */
+    public static native String optimize_get_help(long c, long t);
+
+    /**
+     * Retrieve statistics information from the last call to {@link #optimize_check}
+     *
+     * @return Z3_stats
+     */
+    public static native long optimize_get_statistics(long c, long d);
+
+  /** -- end optimization -- **/
 
   // CREATE CONFIGURATION
   public static native void global_param_set(String param_id, String param_value);
@@ -69,7 +232,7 @@ public final class Z3NativeApi {
 
   // CREATE CONTEXT
   public static native long mk_context(long config);
-  public static native long mk_context_rc(long context);
+  public static native long mk_context_rc(long config);
   public static native void del_context(long context);
   public static native void inc_ref(long context, long ast);
   public static native void dec_ref(long context, long ast);
@@ -151,8 +314,8 @@ public final class Z3NativeApi {
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
   public static native long mk_xor(long context, long a1, long a2);
-  private static native long mk_and(long context, int len, long[] as);
-  private static native long mk_or(long context, int len, long[] as);
+  public static native long mk_and(long context, int len, long[] as);
+  public static native long mk_or(long context, int len, long[] as);
 
   public static long mk_distinct(long context, long... as) {
     return mk_distinct(context, as.length, as);
@@ -167,7 +330,7 @@ public final class Z3NativeApi {
   }
 
   // ARITHMETIC: INTEGERS AND REALS
-  private static native long mk_add(long context, int len, long[] as);
+  public static native long mk_add(long context, int len, long[] as);
   private static native long mk_mul(long context, int len, long[] as);
   private static native long mk_sub(long context, int len, long[] as);
   public static native long mk_unary_minus(long context, long a1);
@@ -393,9 +556,44 @@ public final class Z3NativeApi {
 
   // MODIFIERS
   public static native long update_term(long context, long a1, int a2, long[] a3);
-  public static native long substitute(long context, long a1, int a2, long[] a3, long[] a4);
-  public static native long substitute_vars(long context, long a1, int a2, long[] a3);
-  public static native long translate(long context, long a1, long a2);
+
+  /**
+   * Substitute every occurrence of <code>from[i]</code> in <code>a</code>
+   * with <code>to[i]</code>, for <code>i</code> smaller than
+   * <code>num_exprs</code>.
+   * The result is the new AST. The arrays <code>from</code> and <code>to</code>
+   * must have size <code>num_exprs</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, we must have
+   * that sort of <code>from[i]</code> must be equal to sort of
+   * <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param from Change from
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute(long context, long a, int num_exprs,
+        long[] from, long[] to);
+
+  /**
+   * Substitute the free variables in <code>a</code> with the expressions in
+   * <code>to</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, the variable
+   * with de-Bruijn
+   * index <code>i</code> is replaced with term <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute_vars(long context, long a, int num_exprs,
+      long[] to);
+  public static native long translate(long contextSource, long a,
+      long contextTarget);
 
 
   // MODELS
@@ -478,9 +676,8 @@ public final class Z3NativeApi {
 
     public static native String get_smtlib_error(long context);
 
+    public static native void setInternalErrorHandler(long ctx);
 
-    // ERROR HANDLING
-    // TODO set_error_handler()
     public static native int get_error_code(long context);
     public static native void set_error(long context, int error_code);
     public static native String get_error_msg(int error_code);
@@ -648,6 +845,12 @@ public final class Z3NativeApi {
   public static native int solver_check_assumptions(long context, long solver, int len, long[] assumptions);
   public static native long solver_get_model(long context, long solver);
   public static native long solver_get_proof(long context, long solver);
+
+  /**
+   * Return the unsatisfiable core for the problem.
+   *
+   * @return Z3_ast_vector
+   */
   public static native long solver_get_unsat_core(long context, long solver);
   public static native String solver_get_reason_unknown(long context, long solver);
   public static native long solver_get_statistics(long context, long solver);

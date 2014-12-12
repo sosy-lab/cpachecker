@@ -23,51 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
-
-import com.google.common.collect.ImmutableList;
 
 
 abstract class Mathsat5NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends AbstractNumeralFormulaManager<Long, Long, Long, ParamFormulaType, ResultFormulaType> {
 
-  private final Mathsat5FunctionType<ResultFormulaType> multUfDecl;
-  protected final Mathsat5FunctionType<ResultFormulaType> divUfDecl;
-  private final Mathsat5FunctionType<ResultFormulaType> modUfDecl;
-  private final Mathsat5FunctionFormulaManager functionManager;
-
   private final long mathsatEnv;
 
   public Mathsat5NumeralFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager,
-          final Class<ResultFormulaType> pFormulaType) {
-    super(pCreator, pFormulaType);
+          Mathsat5FunctionFormulaManager functionManager) {
+    super(pCreator, functionManager);
 
     this.mathsatEnv = pCreator.getEnv();
-    this.functionManager = functionManager;
-    FormulaType<ResultFormulaType> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(formulaType + "_" + MultUfName, formulaType, formulaType, formulaType);
-    divUfDecl = functionManager.createFunction(formulaType + "_" + DivUfName, formulaType, formulaType, formulaType);
-    modUfDecl = functionManager.createFunction(formulaType + "_" + ModUfName, formulaType, formulaType, formulaType);
-
-  }
-
-  protected long makeUf(FunctionFormulaType<?> decl, long t1, long t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
-  }
-
-  private boolean isUf(Mathsat5FunctionType<?> funcDecl, Long pBits) {
-    return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 
   @Override
@@ -108,11 +83,6 @@ abstract class Mathsat5NumeralFormulaManager
   }
 
   @Override
-  public Long modulo(Long pNumber1, Long pNumber2) {
-    return makeUf(modUfDecl, pNumber1, pNumber2);
-  }
-
-  @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
     long t1 = pNumber1;
     long t2 = pNumber2;
@@ -123,7 +93,7 @@ abstract class Mathsat5NumeralFormulaManager
     } else if (msat_term_is_number(mathsatEnv, t2)) {
       result = msat_make_times(mathsatEnv, t2, t1);
     } else {
-      result = makeUf(multUfDecl, t1, t2);
+      result = super.multiply(pNumber1, pNumber2);
     }
 
     return result;
@@ -159,94 +129,7 @@ abstract class Mathsat5NumeralFormulaManager
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    boolean isMult = isMultiply(pNumber);
-    if (!isMult) {
-      return false;
-    }
-    long arg = msat_term_get_arg(pNumber, 1);
-    if (msat_term_is_number(mathsatEnv, arg)) {
-      String n = msat_term_repr(arg);
-      if (n.startsWith("(")) {
-        n = n.substring(1, n.length() - 1);
-      }
-      if (n.equals("-1")) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return msat_term_is_plus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    boolean isPlus = isAdd(pNumber);
-    if (!isPlus) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 1);
-    return isNegate(arg);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber) {
-    return isMultiply(pNumber) || isUf(divUfDecl, pNumber);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber) {
-    return isUf(modUfDecl, pNumber);
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return msat_term_is_times(mathsatEnv, pNumber) || isUf(multUfDecl, pNumber);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
     return msat_term_is_equal(mathsatEnv, pNumber);
   }
-
-  private boolean isBoolNot(long n) {
-    return msat_term_is_not(mathsatEnv, n);
-  }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber) {
-    boolean isNot = isBoolNot(pNumber);
-    if (!isNot) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 0);
-    return isLessOrEquals(arg);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber) {
-    return isLessOrEquals(pNumber);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber) {
-    boolean isNot = isBoolNot(pNumber);
-    if (!isNot) {
-      return false;
-    }
-
-    long arg = msat_term_get_arg(pNumber, 0);
-    return isLessOrEquals(arg);
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber) {
-    return msat_term_is_leq(mathsatEnv, pNumber);
-  }
-
 }

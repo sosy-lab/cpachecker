@@ -78,7 +78,12 @@ private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision) throws CPATransferException {
+    throw new RuntimeException("TODO: implement");
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 

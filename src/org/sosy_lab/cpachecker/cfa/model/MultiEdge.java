@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
- * A single edge which represents a sequence of serveral other simple edges of
+ * A single edge which represents a sequence of several other simple edges of
  * the types
  * BlankEdge
  * DeclarationEdge
@@ -107,5 +107,21 @@ public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
   @Override
   public String toString() {
     return Joiner.on('\n').join(edges);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (!super.equals(pOther)) return false;
+
+    if (!(pOther instanceof MultiEdge)) {
+      return false;
+    }
+    MultiEdge otherEdge = (MultiEdge) pOther;
+    return edges.equals(otherEdge.edges);
+  }
+
+  @Override
+  public int hashCode() {
+    return edges.hashCode();
   }
 }

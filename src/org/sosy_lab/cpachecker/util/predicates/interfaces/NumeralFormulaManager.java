@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 
 /**
  * This interface represents the Numeral-Theory
@@ -34,8 +36,25 @@ import java.math.BigInteger;
 public interface NumeralFormulaManager
         <ParamFormulaType extends NumeralFormula,
          ResultFormulaType extends NumeralFormula>  {
-  public ResultFormulaType makeNumber(long pI);
-  public ResultFormulaType makeNumber(BigInteger pI);
+
+  public ResultFormulaType makeNumber(long number);
+
+  public ResultFormulaType makeNumber(BigInteger number);
+
+  /**
+   * Create a numeric literal with a given value.
+   * Note: if the theory represented by this instance cannot handle rational numbers,
+   * the value may get rounded or otherwise represented imprecisely.
+   */
+  public ResultFormulaType makeNumber(double number);
+
+  /**
+   * Create a numeric literal with a given value.
+   * Note: if the theory represented by this instance cannot handle rational numbers,
+   * the value may get rounded or otherwise represented imprecisely.
+   */
+  public ResultFormulaType makeNumber(BigDecimal number);
+
   public ResultFormulaType makeNumber(String pI);
 
   public ResultFormulaType makeVariable(String pVar);
@@ -45,22 +64,24 @@ public interface NumeralFormulaManager
   // ----------------- Arithmetic relations, return type NumeralFormula -----------------
 
   public ResultFormulaType negate(ParamFormulaType number);
-  public boolean isNegate(ParamFormulaType number);
 
   public ResultFormulaType add(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isAdd(ParamFormulaType number);
+  public ResultFormulaType sum(List<ParamFormulaType> operands);
 
   public ResultFormulaType subtract(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isSubtract(ParamFormulaType number);
 
   public ResultFormulaType divide(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isDivide(ParamFormulaType number);
 
   public ResultFormulaType modulo(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isModulo(ParamFormulaType number);
+
+  /**
+   * Create a term stating that (n1 == n2) when using modulo arithmetic regarding mod).
+   * This is an optional operation,
+   * and instead may return `true`.
+   */
+  public BooleanFormula modularCongruence(ParamFormulaType number1, ParamFormulaType number2, long mod);
 
   public ResultFormulaType multiply(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isMultiply(ParamFormulaType number);
 
   // ----------------- Numeric relations, return type BooleanFormula -----------------
 
@@ -68,14 +89,10 @@ public interface NumeralFormulaManager
   public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isGreaterThan(BooleanFormula number);
 
   public BooleanFormula greaterOrEquals(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isGreaterOrEquals(BooleanFormula number);
 
   public BooleanFormula lessThan(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isLessThan(BooleanFormula number);
 
   public BooleanFormula lessOrEquals(ParamFormulaType number1, ParamFormulaType number2);
-  public boolean isLessOrEquals(BooleanFormula number);
 }

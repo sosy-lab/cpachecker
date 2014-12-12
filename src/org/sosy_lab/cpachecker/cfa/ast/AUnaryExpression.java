@@ -27,19 +27,19 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract class AUnaryExpression extends AExpression {
+public abstract class AUnaryExpression extends AbstractExpression {
 
-  private final IAExpression operand;
+  private final AExpression operand;
   private final AUnaryOperator  operator;
 
-  public AUnaryExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand,
+  public AUnaryExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand,
       final AUnaryOperator pOperator) {
     super(pFileLocation, pType);
     operand = pOperand;
     operator = pOperator;
   }
 
-  public IAExpression getOperand() {
+  public AExpression getOperand() {
     return operand;
   }
 

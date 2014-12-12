@@ -42,17 +42,19 @@ public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) {
+      UnmodifiableReachedSet pElements, AbstractState fullState) {
 
     ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
 
     if (lElement.isFinalState()) {
-      return Triple.of(pElement, pPrecision, Action.BREAK);
+      //return Triple.of(pElement, pPrecision, Action.BREAK);
+      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
     }
     else {
-      return Triple.of(pElement, pPrecision, Action.CONTINUE);
+      //return Triple.of(pElement, pPrecision, Action.CONTINUE);
+      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.CONTINUE);
     }
   }
 

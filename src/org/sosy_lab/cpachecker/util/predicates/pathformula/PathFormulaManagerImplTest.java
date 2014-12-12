@@ -23,22 +23,25 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.truth.Truth.assert_;
+import static org.junit.Assert.assertEquals;
+
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -47,36 +50,80 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 /**
  * Testing the custom SSA implementation.
  */
-public class PathFormulaManagerImplTest {
+public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() {
+  @SuppressWarnings("hiding")
+  private FormulaManagerView fmgr;
+  private PathFormulaManager pfmgrFwd;
+  private PathFormulaManager pfmgrBwd;
+
+  private CDeclarationEdge x_decl;
+
+  @Before
+  public void setup() throws Exception {
+    Configuration configBackwards = Configuration.builder()
+        .copyFrom(config)
+        .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
+        .build();
+
+    fmgr = new FormulaManagerView(super.mgr, config, TestLogManager.getInstance());
+
+    pfmgrFwd = new PathFormulaManagerImpl(
+        fmgr,
+        config,
+        TestLogManager.getInstance(),
+        ShutdownNotifier.create(),
+        MachineModel.LINUX32,
+        Optional.<VariableClassification>absent(),
+        AnalysisDirection.FORWARD
+        );
+
+    pfmgrBwd = new PathFormulaManagerImpl(
+        fmgr,
+        configBackwards,
+        TestLogManager.getInstance(),
+        ShutdownNotifier.create(),
+        MachineModel.LINUX32,
+        Optional.<VariableClassification>absent(),
+        AnalysisDirection.BACKWARD
+        );
+  }
+
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, TestLogManager.getInstance()
@@ -98,7 +145,7 @@ public class PathFormulaManagerImplTest {
 
     // Declaration of the variable "X".
     // Equivalent to "int x = 0".
-    CSimpleDeclaration xDeclaration = new CVariableDeclaration(
+    CVariableDeclaration xDeclaration = new CVariableDeclaration(
         FileLocation.DUMMY,
         false,
         CStorageClass.AUTO,
@@ -108,9 +155,17 @@ public class PathFormulaManagerImplTest {
         "x",
         new CInitializerExpression(
             FileLocation.DUMMY,
-            CNumericTypes.ZERO
+            CIntegerLiteralExpression.ZERO
         )
     );
+
+    x_decl = new CDeclarationEdge(
+        "int x = 0",
+        FileLocation.DUMMY,
+        a,
+        b,
+        xDeclaration
+        );
 
     // x + 1
     CExpression rhs = expressionBuilder.buildBinaryExpression(
@@ -120,7 +175,7 @@ public class PathFormulaManagerImplTest {
             "x",
             xDeclaration
         ),
-        CNumericTypes.ONE, // expression B.
+        CIntegerLiteralExpression.ONE, // expression B.
         CBinaryExpression.BinaryOperator.PLUS
     );
 
@@ -187,69 +242,207 @@ public class PathFormulaManagerImplTest {
   }
 
   private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = new CFunctionType(false, false, CNumericTypes.BOOL,
-        Collections.<CType>emptyList(), false);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
-    FunctionEntryNode main = new FunctionEntryNode(
+    FunctionEntryNode main = new CFunctionEntryNode(
         FileLocation.DUMMY,
-        name,
-        new FunctionExitNode(name),
         new CFunctionDeclaration(
             FileLocation.DUMMY, functionType, name,
             Collections.<CParameterDeclaration>emptyList()
         ),
-        Collections.<String>emptyList()
+        new FunctionExitNode(name),
+        Collections.<String>emptyList(),
+        Optional.<CVariableDeclaration>absent()
     );
 
     return main;
   }
 
-  private PathFormulaManager getPathFormulaManager(CFA cfa) throws InvalidConfigurationException {
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(), ShutdownNotifier.create());
-
-    FormulaManager formulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManagerView = new FormulaManagerView(formulaManager,
-        Configuration.defaultConfiguration(), TestLogManager.getInstance());
-
-    return new PathFormulaManagerImpl(
-        formulaManagerView,
-        Configuration.defaultConfiguration(),
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        cfa
-    );
-  }
-
   @Test
   public void testCustomSSAIdx() throws Exception {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFA cfa = data.getThird();
     CFAEdge a_to_b = data.getFirst();
-
-    PathFormulaManager pathFormulaManager = getPathFormulaManager(cfa);
 
     int customIdx = 1337;
     PathFormula p = makePathFormulaWithCustomIdx(
-        a_to_b, customIdx, pathFormulaManager);
+        a_to_b, customIdx);
 
-    // The SSA index should be incremented by one by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + 1, p.getSsa().getIndex("x"));
+    // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
+    Assert.assertEquals(customIdx + FreshValueProvider.DefaultFreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
+
+  @Test
+  public void testAssignmentSSABackward() throws Exception {
+    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
+    CFAEdge a_to_b = data.getFirst();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, a_to_b);
+
+    Assert.assertEquals("(= x@10 (+ x@11 1))", pf.toString());
+  }
+
+  @Test
+  public void testDeclarationSSABackward() throws Exception {
+    createCFA();
+
+    PathFormula pf = pfmgrBwd.makeEmptyPathFormula();
+    pf = pfmgrBwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrBwd.makeAnd(pf, x_decl);
+
+    // The SSA index must be computed without gaps!!
+    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+  }
+
+  @Test
+  public void testDeclarationSSAForward() throws Exception {
+    createCFA();
+
+    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
+    pf = pfmgrFwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrFwd.makeAnd(pf, x_decl);
+
+    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+  }
+
+  @Test
+  public void testAssignmentSSAForward() throws Exception {
+    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
+    CFAEdge a_to_b = data.getFirst();
+
+    PathFormula pf = pfmgrFwd.makeEmptyPathFormula();
+    pf = pfmgrFwd.makeNewPathFormula(pf,
+        pf.getSsa().builder()
+        .setIndex("x", CNumericTypes.INT, 10)
+        .build());
+
+    pf = pfmgrFwd.makeAnd(pf, a_to_b);
+
+    Assert.assertEquals("(= x@11 (+ x@10 1))", pf.toString());
+  }
+
 
   /**
    * Creates a {@link PathFormula} with SSA indexing starting
    * from the specified value.
    * Useful for more fine-grained control over SSA indexes.
    */
-  private static PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx,
-      PathFormulaManager pathFormulaManager) throws CPATransferException, InterruptedException {
-    PathFormula empty = pathFormulaManager.makeEmptyPathFormula();
-    PathFormula emptyWithCustomSSA = pathFormulaManager.makeNewPathFormula(
+  private PathFormula makePathFormulaWithCustomIdx(CFAEdge edge, int ssaIdx)
+      throws CPATransferException, InterruptedException {
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula emptyWithCustomSSA = pfmgrFwd.makeNewPathFormula(
         empty,
         SSAMap.emptySSAMap().withDefault(ssaIdx));
 
-    return pathFormulaManager.makeAnd(emptyWithCustomSSA, edge);
+    return pfmgrFwd.makeAnd(emptyWithCustomSSA, edge);
+  }
+
+  @Test
+  public void testEmpty() {
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula expected = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0);
+    assertEquals(expected, empty);
+  }
+
+  private PathFormula makePathFormulaWithVariable(String var, int index) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    BooleanFormula f = rfmgr.equal(rfmgr.makeVariable(var, index), rfmgr.makeNumber(0));
+
+    SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, CNumericTypes.DOUBLE, index).build();
+
+    return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
+  }
+
+  private BooleanFormula makeVariableEquality(String var, int index1, int index2) throws Exception {
+    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
+        fmgr.getRationalFormulaManager();
+
+    return rfmgr.equal(rfmgr.makeVariable(var, index2), rfmgr.makeVariable(var, index1));
+  }
+
+  // The following tests test the disjunction of the Formulas
+  // as well as the merge of the SSAMaps within makeOr().
+
+  @Test
+  public void testMakeOrBothEmpty() throws Exception {
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula result = pfmgrFwd.makeOr(empty, empty);
+
+    assertEquals(empty, result);
+  }
+
+  @Test
+  public void testMakeOrLeftEmpty() throws Exception {
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgrFwd.makeOr(empty, pf);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrRightEmpty() throws Exception {
+    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
+    PathFormula pf = makePathFormulaWithVariable("a", 2);
+
+    PathFormula result = pfmgrFwd.makeOr(pf, empty);
+
+    PathFormula expected = new PathFormula(
+        fmgr.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
+        pf.getSsa(), pf.getPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOr() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("a", 3);
+
+    PathFormula result = pfmgrFwd.makeOr(pf1, pf2);
+
+    BooleanFormula left = fmgr.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
+    BooleanFormula right = pf2.getFormula();
+
+    PathFormula expected = new PathFormula(fmgr.makeOr(left, right),
+        pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMakeOrCommutative() throws Exception {
+    PathFormula pf1 = makePathFormulaWithVariable("a", 2);
+    PathFormula pf2 = makePathFormulaWithVariable("b", 3);
+
+    PathFormula resultA = pfmgrFwd.makeOr(pf1, pf2);
+    PathFormula resultB = pfmgrFwd.makeOr(pf2, pf1);
+
+    assert_().about(BooleanFormula())
+             .that(resultA.getFormula()).isEquivalentTo(resultB.getFormula());
   }
 }

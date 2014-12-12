@@ -26,13 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.AbstractSetBasedCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -56,8 +54,7 @@ public class ABEBlockCounterexampleFilter extends AbstractSetBasedCounterexample
   @Override
   protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
     return Optional.of(
-        from(counterexample.getTargetPath())
-            .transform(Pair.<ARGState>getProjectionToFirst())
+        from(counterexample.getTargetPath().asStatesList())
             .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                                        toState(PredicateAbstractState.class)))
             .transform(AbstractStates.EXTRACT_LOCATION)

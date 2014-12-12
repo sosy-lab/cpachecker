@@ -29,13 +29,13 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CDesignatedInitializer extends AInitializer implements CInitializer {
+public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
 
   private final List<CDesignator> designators;
@@ -49,7 +49,7 @@ public class CDesignatedInitializer extends AInitializer implements CInitializer
 
   @Override
   public String toASTString() {
-      return Joiner.on("").join(from(designators).transform(CDesignator.TO_AST_STRING))
+      return from(designators).transform(CDesignator.TO_AST_STRING).join(Joiner.on(""))
           + " = " + right.toASTString();
   }
 

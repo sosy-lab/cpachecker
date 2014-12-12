@@ -41,9 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -52,7 +56,7 @@ import com.google.common.collect.ImmutableMap;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-class FunctionScope extends Scope {
+class FunctionScope extends AbstractScope {
 
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
@@ -63,7 +67,8 @@ class FunctionScope extends Scope {
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
 
 
-  private String currentFunctionName = null;
+  private CFunctionDeclaration currentFunction = null;
+  private Optional<CVariableDeclaration> returnVariable = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
@@ -95,9 +100,20 @@ class FunctionScope extends Scope {
   }
 
   public void enterFunction(CFunctionDeclaration pFuncDef) {
-    checkState(currentFunctionName == null);
-    currentFunctionName = pFuncDef.getOrigName();
-    checkArgument(functions.containsKey(currentFunctionName));
+    checkState(currentFunction == null);
+    currentFunction = checkNotNull(pFuncDef);
+    checkArgument(functions.containsKey(getCurrentFunctionName()));
+
+    if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
+      returnVariable = Optional.absent();
+    } else {
+      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+      returnVariable = Optional.of(
+          new CVariableDeclaration(currentFunction.getFileLocation(), false,
+            CStorageClass.AUTO, currentFunction.getType().getReturnType(),
+            name, name, createScopedNameOf(name), null));
+    }
   }
 
   public void enterBlock() {
@@ -193,7 +209,7 @@ class FunctionScope extends Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    return createQualifiedName(currentFunctionName, pName);
+    return createQualifiedName(getCurrentFunctionName(), pName);
   }
 
   /**
@@ -259,7 +275,7 @@ class FunctionScope extends Scope {
 
     String labelName = label.getOrigName();
 
-    if(lookupLocalLabel(labelName) != null) {
+    if (lookupLocalLabel(labelName) != null) {
       throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
     }
 
@@ -272,7 +288,7 @@ class FunctionScope extends Scope {
 
   public CLabelNode lookupLocalLabelNode(String name) {
     Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       Map<String, CLabelNode> nodes = it.next();
 
       CLabelNode node = nodes.get(name);
@@ -288,7 +304,13 @@ class FunctionScope extends Scope {
   }
 
   public String getCurrentFunctionName() {
-    return currentFunctionName;
+    checkState(currentFunction != null);
+    return currentFunction.getOrigName();
+  }
+
+  public Optional<CVariableDeclaration> getReturnVariable() {
+    checkState(returnVariable != null);
+    return returnVariable;
   }
 
   @Override

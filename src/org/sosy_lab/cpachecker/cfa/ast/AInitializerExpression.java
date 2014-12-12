@@ -27,11 +27,11 @@ import java.util.Objects;
 
 
 
-public abstract class AInitializerExpression extends AInitializer {
+public abstract class AInitializerExpression extends AbstractInitializer {
 
-  private final IAExpression expression;
+  private final AExpression expression;
 
-  public AInitializerExpression(FileLocation pFileLocation, final IAExpression pExpression) {
+  public AInitializerExpression(FileLocation pFileLocation, final AExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }
@@ -41,7 +41,7 @@ public abstract class AInitializerExpression extends AInitializer {
     return expression.toASTString();
   }
 
-  public IAExpression getExpression() {
+  public AExpression getExpression() {
     return expression;
   }
 

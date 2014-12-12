@@ -24,16 +24,16 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 
 import com.google.common.base.Optional;
 
 
 public class AStatementEdge extends AbstractCFAEdge {
 
-  protected final IAStatement statement;
+  protected final AStatement statement;
 
-  protected AStatementEdge(String pRawStatement, IAStatement pStatement,
+  protected AStatementEdge(String pRawStatement, AStatement pStatement,
       FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
@@ -45,12 +45,12 @@ public class AStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.StatementEdge;
   }
 
-  public IAStatement getStatement() {
+  public AStatement getStatement() {
     return statement;
   }
 
   @Override
-  public Optional<? extends IAStatement> getRawAST() {
+  public Optional<? extends AStatement> getRawAST() {
     return Optional.of(statement);
   }
 

@@ -83,14 +83,8 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public Long makeBitvectorImpl(int pLength, String pI) {
-    return msat_make_bv_number(mathsatEnv, pI, pLength, 10);
-  }
-
-
-  @Override
   public Long makeVariableImpl(int length, String var) {
-    long bvType = getFormulaCreator().getBittype(length);
+    long bvType = getFormulaCreator().getBitvectorType(length);
     return getFormulaCreator().makeVariable(bvType, var);
   }
 
@@ -134,26 +128,6 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public boolean isNot(Long pBits) {
-    return msat_term_is_bv_not(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isAnd(Long pBits) {
-    return msat_term_is_bv_and(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isOr(Long pBits) {
-    return msat_term_is_bv_or(mathsatEnv, pBits);
-  }
-
-  @Override
-  public boolean isXor(Long pBits) {
-    return msat_term_is_bv_xor(mathsatEnv, pBits);
-  }
-
-  @Override
   public Long negate(Long pNumber) {
     return msat_make_bv_neg(mathsatEnv, pNumber);
   }
@@ -184,6 +158,11 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
     } else {
       return msat_make_bv_urem(mathsatEnv, pNumber1, pNumber2);
     }
+  }
+
+  @Override
+  public Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return msat_make_true(mathsatEnv);
   }
 
   @Override
@@ -225,77 +204,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public boolean isNegate(Long pNumber) {
-    return msat_term_is_bv_not(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isAdd(Long pNumber) {
-    return msat_term_is_bv_plus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isSubtract(Long pNumber) {
-    return msat_term_is_bv_minus(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isDivide(Long pNumber, boolean signed) {
-    return msat_term_is_bv_sdiv(mathsatEnv, pNumber);
-  }
-
-  @Override
-  public boolean isModulo(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_srem(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_urem(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public boolean isMultiply(Long pNumber) {
-    return msat_term_is_bv_times(mathsatEnv, pNumber);
-  }
-
-  @Override
   public boolean isEqual(Long pNumber) {
     return msat_term_is_equal(mathsatEnv, pNumber);
   }
-
-  @Override
-  public boolean isGreaterThan(Long pNumber, boolean signed) {
-    return isLessThan(pNumber, signed);
-  }
-
-  @Override
-  public boolean isGreaterOrEquals(Long pNumber, boolean signed) {
-    return isLessOrEquals(pNumber, signed);
-  }
-
-  @Override
-  public boolean isLessThan(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_slt(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_ult(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public boolean isLessOrEquals(Long pNumber, boolean signed) {
-    if (signed) {
-      return msat_term_is_bv_sleq(mathsatEnv, pNumber);
-    } else {
-      return msat_term_is_bv_uleq(mathsatEnv, pNumber);
-    }
-  }
-
-  @Override
-  public int getLength(Long pParam) {
-    long type = msat_term_get_type(pParam);
-    assert msat_is_bv_type(mathsatEnv, type);
-    return msat_get_bv_type_size(mathsatEnv, type);
-  }
-
 }

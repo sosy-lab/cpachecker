@@ -29,12 +29,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 
 
@@ -83,11 +85,12 @@ public class ReachingDefinitionStorage implements Serializable {
     for (Map<String, Set<DefinitionPoint>> elem : array) {
       out.writeInt(elem.size());
 
-      for (String key : elem.keySet()) {
+      for (Entry<String, Set<DefinitionPoint>> entry : elem.entrySet()) {
+        String key = entry.getKey();
         out.writeObject(key);
 
-        out.writeInt(elem.get(key).size());
-        for (DefinitionPoint point : elem.get(key)) {
+        out.writeInt(entry.getValue().size());
+        for (DefinitionPoint point : entry.getValue()) {
           out.writeObject(point);
         }
       }
@@ -106,7 +109,7 @@ public class ReachingDefinitionStorage implements Serializable {
     for (int i = 0; i < numElem; i++) {
       numKeys = in.readInt();
 
-      map = new HashMap<>(numKeys);
+      map = Maps.newHashMapWithExpectedSize(numKeys);
       for (int j = 0; j < numKeys; j++) {
         key = (String) in.readObject();
 

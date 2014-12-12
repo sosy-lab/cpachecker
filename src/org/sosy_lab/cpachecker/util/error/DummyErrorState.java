@@ -42,8 +42,8 @@ public class DummyErrorState extends AbstractSingleWrapperState {
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    return ViolatedProperty.OTHER;
+  public String getViolatedPropertyDescription() throws IllegalStateException {
+    return "";
   }
 
   @Override

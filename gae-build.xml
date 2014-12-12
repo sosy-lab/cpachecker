@@ -2,7 +2,7 @@
 <project basedir="." default="server" name="CPAchecker on Google App Engine" xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <!-- use this to set the SDK version -->
-  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.7" />
+  <property name="gae-sdk.name" value="appengine-java-sdk-1.9.15" />
 
   <property name="specification.dir" value="${basedir}/config/specification" />
   <property name="configuration.dir" value="${basedir}/config" />
@@ -21,7 +21,7 @@
   <property name="gae-dev.debugport" value="9999" />
 
   <import file="${gae-sdk.dir}/config/user/ant-macros.xml" optional="true" />
-  <import file="build.xml" as="cpachecker" prefixSeparator="-" />
+  <import file="build.xml" as="cpachecker"/>
 
   <path id="gae.classpath">
     <pathelement path="${class.dir}" />
@@ -47,7 +47,12 @@
     </fileset>
   </path>
 
-  <target name="resolve-dependencies" depends="load-ivy, update-contrib, cpachecker-resolve-dependencies" unless="ivy.disable">
+  <condition property="ivy.target-prefix" value="cpachecker" else="ivy">
+    <antversion atleast="1.9.0"/>
+  </condition>
+
+  <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
+    <antcall target="${ivy.target-prefix}.resolve-dependencies"/>
     <ivy:resolve file="lib/ivy-gae.xml" conf="build, runtime, test" log="download-only"/>
     <ivy:retrieve sync="true" overwriteMode="different" pattern="${lib.dir.gae}/[conf]/[artifact](-[classifier]).[ext]"/>
   </target>
@@ -55,8 +60,8 @@
   <available file="${lib.dir.gae}-contrib" property="ivy.contrib.present"/>
   <target name="update-contrib" if="ivy.contrib.present">
     <antcall target="install-contrib"/>
-   </target>
-  <target name="install-contrib" depends="load-ivy, cpachecker-install-contrib" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
+  </target>
+  <target name="install-contrib" depends="load-ivy" description="Retrieve sources and docs for external libraries." unless="ivy.disable">
     <ivy:resolve file="lib/ivy-gae.xml" conf="contrib" log="download-only"/>
     <ivy:retrieve sync="true" pattern="${lib.dir.gae}-contrib/[artifact](-[classifier]).[ext]"/>
    </target>
@@ -64,7 +69,7 @@
   <target description="Run all tests" depends="unit-tests" name="tests"/>
 
   <target description="Run all JUnit tests" depends="build" name="unit-tests">
-    <mkdir dir="${test.report.dir}"/>
+    <mkdir dir="${junit.dir}"/>
     <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
       <assertions>
         <enable />
@@ -72,15 +77,15 @@
       <formatter type="plain"/>
       <formatter type="xml"/>
       <classpath refid="gae.classpath.test"/>
-      <batchtest fork="true" todir="${test.report.dir}">
+      <batchtest fork="true" todir="${junit.dir}">
         <fileset dir="${class.dir}">
           <include name="**/appengine/**/*Test.*" />
           <exclude name="**/*$*Test.*"/>
         </fileset>
       </batchtest>
     </junit>
-    <junitreport todir="${test.report.dir}">
-      <fileset dir="${test.report.dir}">
+    <junitreport todir="${junit.dir}">
+      <fileset dir="${junit.dir}">
         <include name="TEST-*.xml" />
       </fileset>
       <report format="noframes" />
@@ -143,7 +148,7 @@
     <depend srcdir="${source.dir}" destdir="${class.dir}" />
     <echo message="Compiling CPAchecker for Google App Engine"/>
     <javac debug="true"
-      debuglevel="${debuglevel}"
+      debuglevel="source,lines,vars"
       includeAntRuntime="false"
       destdir="${class.dir}"
       source="${source.format}"

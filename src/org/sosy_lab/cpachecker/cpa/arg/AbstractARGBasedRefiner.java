@@ -27,12 +27,12 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -69,13 +69,13 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     return argCpa;
   }
 
-  private static final Function<Pair<ARGState, CFAEdge>, String> pathToFunctionCalls
-        = new Function<Pair<ARGState, CFAEdge>, String>() {
+  private static final Function<CFAEdge, String> pathToFunctionCalls
+        = new Function<CFAEdge, String>() {
     @Override
-    public String apply(Pair<ARGState, CFAEdge> arg) {
+    public String apply(CFAEdge arg) {
 
-      if (arg.getSecond() instanceof CFunctionCallEdge) {
-        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg.getSecond();
+      if (arg instanceof CFunctionCallEdge) {
+        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
         return funcEdge.toString();
       } else {
         return null;
@@ -93,12 +93,12 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    final ARGPath path = computePath(lastElement, reached);
+    final @Nullable ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
+          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getInnerEdges(), pathToFunctionCalls)));
     }
 
     final CounterexampleInfo counterexample;
@@ -111,7 +111,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), null));
+      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), Model.empty()));
       throw e;
     }
 
@@ -122,8 +122,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // new targetPath must contain root and error node
       if (path != null) {
-        assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
-        assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
+        assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
+        assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
       }
 
       argCpa.addCounterexample(lastElement, counterexample);

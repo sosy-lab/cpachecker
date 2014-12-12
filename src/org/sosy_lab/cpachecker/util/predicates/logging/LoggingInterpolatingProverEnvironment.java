@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -62,17 +62,25 @@ public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingPr
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws InterruptedException, SolverException {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> formulasOfA) {
-    logger.log(Level.FINE, "formulasOfA:", Arrays.toString(formulasOfA.toArray()));
+  public BooleanFormula getInterpolant(List<T> formulasOfA) throws SolverException {
+    logger.log(Level.FINE, "formulasOfA:", formulasOfA);
     BooleanFormula bf = wrapped.getInterpolant(formulasOfA);
     logger.log(Level.FINE, "interpolant:", bf);
+    return bf;
+  }
+
+  @Override
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> formulas) {
+    logger.log(Level.FINE, "formulasOfA:", formulas);
+    List<BooleanFormula> bf = wrapped.getSeqInterpolants(formulas);
+    logger.log(Level.FINE, "interpolants:", bf);
     return bf;
   }
 

@@ -54,9 +54,14 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -68,38 +73,47 @@ import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
 @Options
-public class MainCPAStatistics implements Statistics {
+public class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
-  @Option(name="reachedSet.export",
+  @Option(secure=true, name="reachedSet.export",
       description="print reached set to text file")
-  private boolean exportReachedSet = true;
+  private boolean exportReachedSet = false;
 
-  @Option(name="reachedSet.file",
+  @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Paths.get("reached.txt");
 
-  @Option(name="coverage.export",
+  @Option(secure=true, name="reachedSet.dot",
+      description="print reached set to graph file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
+
+  @Option(secure=true, name="coverage.export",
       description="print coverage info to file")
   private boolean exportCoverage = true;
 
-  @Option(name="coverage.file",
+  @Option(secure=true, name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.%s.info");
+  private Path outputCoverageFile = Paths.get("coverage.info");
 
-  @Option(name="statistics.memory",
+  @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
@@ -107,6 +121,8 @@ public class MainCPAStatistics implements Statistics {
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
   private Thread memStatsThread;
+
+  private Collection<IterationStatistics> iterationStats;
 
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
@@ -262,12 +278,27 @@ public class MainCPAStatistics implements Statistics {
     printMemoryStatistics(out);
   }
 
+
   private void dumpReachedSet(ReachedSet reached) {
+    dumpReachedSet(reached, reachedSetFile, false);
+    dumpReachedSet(reached, reachedSetGraphDumpPath, true);
+  }
+
+  private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
-    if (exportReachedSet && outputFile != null) {
-      try (Writer w = Files.openOutputFile(outputFile)) {
-        Joiner.on('\n').appendTo(w, reached);
+    if (exportReachedSet && pOutputFile != null) {
+      try (Writer w = Files.openOutputFile(pOutputFile)) {
+
+        if (writeDotFormat) {
+
+          // Location-map specific dump.
+          dumpLocationMappedReachedSet(reached, cfa, w);
+        } else {
+
+          // Default dump.
+          Joiner.on('\n').appendTo(w, reached);
+        }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
       } catch (OutOfMemoryError e) {
@@ -275,6 +306,29 @@ public class MainCPAStatistics implements Statistics {
             "Could not write reached set to file due to memory problems");
       }
     }
+  }
+
+  private void dumpLocationMappedReachedSet(
+      final ReachedSet pReachedSet,
+      CFA cfa,
+      Appendable sb) throws IOException {
+    final ListMultimap<CFANode, AbstractState> locationIndex
+        =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
+
+    Function<CFANode, String> nodeLabelFormatter = new Function<CFANode, String>() {
+      @Override
+      public String apply(CFANode node) {
+        StringBuilder buf = new StringBuilder();
+        buf.append(node.getNodeNumber()).append("\n");
+        for (AbstractState state : locationIndex.get(node)) {
+          if (state instanceof Graphable) {
+            buf.append(((Graphable)state).toDOTLabel());
+          }
+        }
+        return buf.toString();
+      }
+    };
+    DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
   }
 
   private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -389,7 +443,7 @@ public class MainCPAStatistics implements Statistics {
       out.println("Number of functions:             " + cfa.getNumberOfFunctions());
 
       if (cfa.getLoopStructure().isPresent()) {
-        int loops = cfa.getLoopStructure().get().values().size();
+        int loops = cfa.getLoopStructure().get().getCount();
         out.println("Number of loops:                 " + loops);
       }
     }
@@ -433,5 +487,21 @@ public class MainCPAStatistics implements Statistics {
   public void setCFA(CFA pCfa) {
     Preconditions.checkState(cfa == null);
     cfa = pCfa;
+  }
+
+  @Override
+  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
+    if (iterationStats == null) {
+      iterationStats = Lists.newArrayList();
+      for (Statistics s: subStats) {
+        if (s instanceof IterationStatistics) {
+          iterationStats.add((IterationStatistics)s);
+        }
+      }
+    }
+
+    for(IterationStatistics s: iterationStats) {
+      s.printIterationStatistics(System.out, pReached);
+    }
   }
 }

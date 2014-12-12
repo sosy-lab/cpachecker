@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -44,15 +45,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -92,9 +92,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
-    if(numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
+    if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
-      switch(type.getType()) {
+      switch (type.getType()) {
         case INT:
         case CHAR: {
           return new CIntegerLiteralExpression(expr.getFileLocation(),
@@ -102,8 +102,14 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         }
         case FLOAT:
         case DOUBLE: {
-          return new CFloatLiteralExpression(expr.getFileLocation(),
-                  expr.getExpressionType(), numericResult.bigDecimalValue());
+          try {
+            return new CFloatLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), numericResult.bigDecimalValue());
+          } catch (NumberFormatException nfe) {
+            // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
+            logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
+            return expr;
+          }
         }
       }
     }
@@ -138,7 +144,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-        newExpr = binExprBuilder.buildBinaryExpression(
+        newExpr = binExprBuilder.buildBinaryExpressionUnchecked(
             op1, op2, binaryOperator);
       }
       return newExpr;

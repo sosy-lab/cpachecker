@@ -23,23 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static com.google.common.base.Preconditions.*;
-import static com.google.common.base.Predicates.*;
-import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable.ViolatedProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -56,7 +48,7 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final Set<ViolatedProperty> violatedProperties; // does not contain OTHER
+  private final String violatedPropertyDescription;
 
   private final @Nullable ReachedSet reached;
 
@@ -64,15 +56,10 @@ public class CPAcheckerResult {
 
   private @Nullable Statistics proofGeneratorStats = null;
 
-  CPAcheckerResult(Result result, Set<ViolatedProperty> pProperties,
+  CPAcheckerResult(Result result,
+        String violatedPropertyDescription,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
-    if (result == Result.FALSE) {
-      checkArgument(!pProperties.isEmpty());
-      violatedProperties = from(pProperties).filter(not(equalTo(ViolatedProperty.OTHER))).toSet();
-    } else {
-      checkArgument(pProperties.isEmpty());
-      violatedProperties = ImmutableSet.of();
-    }
+    this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.stats = stats;
@@ -124,18 +111,9 @@ public class CPAcheckerResult {
         return "UNKNOWN, incomplete analysis.";
       case FALSE:
         StringBuilder sb = new StringBuilder();
-        sb.append("FALSE. ");
-        switch (violatedProperties.size()) {
-        case 0:
-          sb.append("Property violation");
-          break;
-        case 1:
-          sb.append("Violation of property ").append(getOnlyElement(violatedProperties));
-          break;
-        default:
-          sb.append("Violation of properties ");
-          Joiner.on(" and ").appendTo(sb, violatedProperties);
-          break;
+        sb.append("FALSE. Property violation");
+        if (!violatedPropertyDescription.isEmpty()) {
+          sb.append(" (").append(violatedPropertyDescription).append(")");
         }
         sb.append(" found by chosen configuration.");
         return sb.toString();

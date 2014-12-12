@@ -52,8 +52,12 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     cStorageClass = pCStorageClass;
 
     checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
-    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
+    checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
+        "CStorageClass is %s", cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
+    // TODO enable if we do not have unnecessary temporary variables of type void anymore
+//    checkArgument(!(pType.getCanonicalType() instanceof CVoidType),
+//        "Cannot declare variable of type void: " + this);
   }
 
   @Override

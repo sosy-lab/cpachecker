@@ -166,7 +166,7 @@ class Tool(benchmark.tools.template.BaseTool):
         else:
             status = ''
 
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):
@@ -182,7 +182,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
             elif 'Could not reserve enough space for object heap' in line:
                 status = 'JAVA HEAP ERROR'
-            elif line.startswith('Error: ') and not status.startswith('ERROR'):
+            elif line.startswith('Error: ') and not status:
                 status = 'ERROR'
                 if 'Unsupported C feature (recursion)' in line:
                     status = 'ERROR (recursion)'
@@ -190,6 +190,8 @@ class Tool(benchmark.tools.template.BaseTool):
                     status = 'ERROR (threads)'
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
+            elif line.startswith('For your information: CPAchecker is currently hanging at') and status == 'ERROR (1)' and isTimeout:
+                status = 'TIMEOUT'
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
@@ -197,16 +199,17 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
                     newStatus = result.STATUS_FALSE_REACH
-                    match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
-                    if match:
+                    match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                    if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
                         newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
                 else:
-                    newStatus = result.STATUS_UNKNOWN if not status.startswith('ERROR') else None
-                if newStatus:
-                    status = newStatus if not status else "{0} ({1})".format(status, newStatus)
+                    newStatus = result.STATUS_UNKNOWN
 
-        if status == 'KILLED (UNKNOWN)':
-            status = 'KILLED'
+                if not status:
+                    status = newStatus
+                elif newStatus != result.STATUS_UNKNOWN:
+                    status = "{0} ({1})".format(status, newStatus)
+
         if not status:
             status = result.STATUS_UNKNOWN
         return status
@@ -218,7 +221,7 @@ class Tool(benchmark.tools.template.BaseTool):
             # search for the text in output and get its value,
             # stop after the first line, that contains the searched text
             column.value = "-" # default value
-            for line in output.splitlines():
+            for line in output:
                 if column.text in line:
                     startPosition = line.find(':') + 1
                     endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)

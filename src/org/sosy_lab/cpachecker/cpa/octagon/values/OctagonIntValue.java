@@ -254,7 +254,7 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
       return 0;
     } else if (val.lessThan(value)) {
       return 1;
-    } else if (val.greaterThan(value)){
+    } else if (val.greaterThan(value)) {
       return -1;
     }
     throw new AssertionError("implementation fault");

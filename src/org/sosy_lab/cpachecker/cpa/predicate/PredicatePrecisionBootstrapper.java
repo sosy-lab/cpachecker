@@ -52,12 +52,12 @@ import com.google.common.collect.ImmutableList;
 @Options(prefix="cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(name="abstraction.initialPredicates",
+  @Option(secure=true, name="abstraction.initialPredicates",
       description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(description="always check satisfiability at end of block, even if precision is empty")
+  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   private final FormulaManagerView formulaManagerView;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -102,17 +104,18 @@ class SmtInterpolUtil {
 
   /** converts a term to a number,
    * currently only Double is supported. */
-  public static double toNumber(Term t) {
+  public static Object toNumber(Term t) {
     assert isNumber(t) : "term is not a number: " + t;
 
     // ConstantTerm with Number --> "123"
     if (t instanceof ConstantTerm) {
       Object value = ((ConstantTerm) t).getValue();
       if (value instanceof Number) {
-        return ((Number) value).doubleValue();
+        return value;
       } else if (value instanceof Rational) {
-        Rational rat = (Rational) value;
-        return rat.numerator().divide(rat.denominator()).doubleValue();
+        Rational rat = (Rational)value;
+        return org.sosy_lab.cpachecker.util.rationals.Rational.of(
+            rat.numerator(), rat.denominator());
       }
 
       // ApplicationTerm with negative Number --> "-123"
@@ -120,10 +123,22 @@ class SmtInterpolUtil {
       ApplicationTerm at = (ApplicationTerm) t;
 
       if ("-".equals(at.getFunction().getName())) {
-        return - toNumber(at.getParameters()[0]);
-//      } else if ("/".equals(at.getFunction().getName())) {
-//        return toNumber(at.getParameters()[0]) /
-//          toNumber(at.getParameters()[1]);
+        Object value = toNumber(at.getParameters()[0]);
+        if (value instanceof BigDecimal) {
+          return ((BigDecimal)value).negate();
+        } else if (value instanceof BigInteger) {
+          return ((BigInteger)value).negate();
+        } else if (value instanceof Long) {
+          return -((Long)value).longValue();
+        } else if (value instanceof Integer) {
+          return -((Integer)value).intValue();
+        } else if (value instanceof Double) {
+          return -((Double)value).doubleValue();
+        } else if (value instanceof Float) {
+          return -((Float)value).floatValue();
+        } else if (value instanceof org.sosy_lab.cpachecker.util.rationals.Rational) {
+          return ((org.sosy_lab.cpachecker.util.rationals.Rational)value).negate();
+        }
       }
     }
 
@@ -132,6 +147,14 @@ class SmtInterpolUtil {
 
   public static boolean isBoolean(Term t) {
     return t.getTheory().getBooleanSort() == t.getSort();
+  }
+
+  public static boolean hasIntegerType(Term t) {
+    return t.getTheory().getNumericSort() == t.getSort();
+  }
+
+  public static boolean hasRationalType(Term t) {
+    return t.getTheory().getRealSort() == t.getSort();
   }
 
   /** t1 and t2 */
@@ -166,8 +189,13 @@ class SmtInterpolUtil {
   }
 
   /** t1 = t2 */
-  public static boolean isEqual(Term t) {
-    return isFunction(t, "=");
+  public static boolean isEquivalence(Term t) {
+    return isFunction(t, "=") && getArity(t) == 2 && isBoolean(getArg(t, 0)) && isBoolean(getArg(t, 1));
+  }
+
+  /** num1 = num2, non-boolean version */
+  public static boolean isNumeralEqual(Term t) {
+    return isFunction(t, "=") && getArity(t) == 2 && !isBoolean(getArg(t, 0)) && !isBoolean(getArg(t, 1));
   }
 
   public static boolean isFunction(Term t, String name) {
@@ -178,15 +206,6 @@ class SmtInterpolUtil {
   public static boolean isFunction(Term t, FunctionSymbol func) {
     return (t instanceof ApplicationTerm)
         && func == ((ApplicationTerm) t).getFunction();
-  }
-
-  public static Term[] getArgs(Term t) {
-    if (t instanceof ApplicationTerm) {
-      return ((ApplicationTerm) t).getParameters();
-    } else {
-      throw new IllegalArgumentException("Cannot get children of term type "
-          + t.getClass().getSimpleName() + " in term " + t.toStringDirect());
-    }
   }
 
   public static int getArity(Term t) {

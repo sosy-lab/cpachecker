@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
@@ -96,20 +95,18 @@ class Scope {
  * as creating symbolic tables to solve declarations.
  *
  * @param pFullyQualifiedMainClassName Name of the main Class of program. *
- * @param pRootPath Path to the root folder of current program.
- * @param pTypes Type Hierarchy of program created by {@link TypeHierachyCreator}
- * @param pFileOfTypes Maps types to the sourceFile they were extracted from
+ * @param pTypeHierarchy Type Hierarchy of program created by {@link TypeHierachyCreator}
  */
-  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierachy) {
+  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierarchy) {
 
     fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
     enterProgramScope();
     registeredClasses.add(fullyQualifiedMainClassName); // Register Main Class
 
-    methods = pTypeHierachy.getMethodDeclarations();
-    fields = pTypeHierachy.getFieldDeclarations();
+    methods = pTypeHierarchy.getMethodDeclarations();
+    fields = pTypeHierarchy.getFieldDeclarations();
 
-    typeHierachy = pTypeHierachy;
+    typeHierachy = pTypeHierarchy;
   }
 
   private void enterProgramScope() {
@@ -171,8 +168,8 @@ class Scope {
   }
 
   /**
-   * Indicates that the Visitor using this scope
-   * leaves current Class while traversing the JDT AST.
+   * Indicates that the visitor using this scope
+   * leaves current class while traversing the JDT AST.
    */
   public void leaveClass() {
     depth--;
@@ -181,8 +178,10 @@ class Scope {
       currentClassType = null;
     } else {
 
-      if (classStack.size() == 0) { throw new CFAGenerationRuntimeException(
-          "Could not find enclosing Class of this nested Class"); }
+      if (classStack.isEmpty()) {
+        throw new CFAGenerationRuntimeException("Could not find enclosing class of nested class "
+          + currentClassType);
+      }
 
       currentClassType = classStack.pop();
     }

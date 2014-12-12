@@ -79,18 +79,18 @@ import com.google.common.collect.Sets;
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(name="export", description="write collected assumptions to file")
+  @Option(secure=true, name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file", description="write collected assumptions to file")
+  @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionsFile = Paths.get("assumptions.txt");
 
-  @Option(name="automatonFile", description="write collected assumptions as automaton to file")
+  @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
-  @Option(description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
+  @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
@@ -137,7 +137,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
         ARGPath path = failedRefinement.getErrorPath();
-        ARGState errorState = path.getLast().getFirst();
+        ARGState errorState = path.getLastState();
         assert errorState == reached.getLastState();
 
         // old code, perhaps we can use the information from getFailurePoint()

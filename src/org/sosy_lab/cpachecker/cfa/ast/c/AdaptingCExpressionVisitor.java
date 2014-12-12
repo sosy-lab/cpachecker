@@ -102,11 +102,6 @@ public abstract class AdaptingCExpressionVisitor<R, D, X extends Exception>
   }
 
   @Override
-  public R visit(CTypeIdInitializerExpression e) throws X {
-    return convert(delegate.visit(e), e);
-  }
-
-  @Override
   public R visit(CUnaryExpression e) throws X {
     return convert(delegate.visit(e), e);
   }

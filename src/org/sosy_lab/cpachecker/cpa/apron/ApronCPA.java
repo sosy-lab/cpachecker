@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -43,8 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
-import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidCFAException;
 
 import apron.ApronException;
@@ -56,7 +55,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ApronCPA.class);
   }
 
-  @Option(name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
+  @Option(secure=true, name="initialPrecisionType", toUppercase=true, values={"STATIC_FULL", "REFINEABLE_EMPTY"},
       description="this option determines which initial precision should be used")
   private String precisionType = "STATIC_FULL";
 
@@ -96,11 +95,12 @@ public final class ApronCPA implements ConfigurableProgramAnalysis {
     this.cfa = cfa;
 
     if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = new RefineableApronPrecision(config);
+      precision = VariableTrackingPrecision.createRefineablePrecision(config,
+          VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
 
       // static full precision is default
     } else {
-      precision = new StaticFullApronPrecision();
+      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
     }
   }
 

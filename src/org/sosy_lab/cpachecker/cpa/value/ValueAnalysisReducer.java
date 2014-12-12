@@ -27,6 +27,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -48,7 +49,7 @@ public class ValueAnalysisReducer implements Reducer {
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
-    ValueAnalysisState clonedElement = expandedState.clone();
+    ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
     for (ValueAnalysisState.MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
@@ -70,13 +71,13 @@ public class ValueAnalysisReducer implements Reducer {
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    ValueAnalysisState diffElement = reducedState.clone();
+    ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
 
     for (ValueAnalysisState.MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!occursInBlock(pReducedContext, simpleName)) {
-        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar));
+        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar), rootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
         // ignore this case, the variables are part of the reduced state
@@ -84,16 +85,12 @@ public class ValueAnalysisReducer implements Reducer {
       }
     }
 
-    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
-    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
-    diffElement.addToDelta(diffElement);
-
     return diffElement;
   }
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    ValueAnalysisPrecision precision = (ValueAnalysisPrecision)pPrecision;
+    VariableTrackingPrecision precision = (VariableTrackingPrecision)pPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -104,7 +101,7 @@ public class ValueAnalysisReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     //ValueAnalysisPrecision rootPrecision = (ValueAnalysisPrecision)pRootPrecision;
-    ValueAnalysisPrecision reducedPrecision = (ValueAnalysisPrecision)pReducedPrecision;
+    VariableTrackingPrecision reducedPrecision = (VariableTrackingPrecision)pReducedPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -114,7 +111,7 @@ public class ValueAnalysisReducer implements Reducer {
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     ValueAnalysisState elementKey = (ValueAnalysisState)pElementKey;
-    ValueAnalysisPrecision precisionKey = (ValueAnalysisPrecision)pPrecisionKey;
+    VariableTrackingPrecision precisionKey = (VariableTrackingPrecision)pPrecisionKey;
 
     return Pair.of(elementKey.getConstantsMap(), precisionKey);
   }
@@ -136,4 +133,12 @@ public class ValueAnalysisReducer implements Reducer {
     return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState, AbstractState pExpandedState, CFANode exitLocation) {
+
+    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
+    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
+
+    return expandedState.rebuildStateAfterFunctionCall(rootState);
+  }
 }

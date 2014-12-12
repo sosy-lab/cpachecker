@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 /**
@@ -65,17 +64,9 @@ public class LoggingProverEnvironment implements ProverEnvironment {
   }
 
   @Override
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws SolverException, InterruptedException {
     boolean result = wrapped.isUnsat();
     logger.log(Level.FINE, "unsat-check returned:", result);
-    return result;
-  }
-
-  @Override
-  public OptResult isOpt(Formula f, boolean maximize) throws InterruptedException {
-    logger.log(Level.FINE, "starting optimization procedure");
-    OptResult result = wrapped.isOpt(f, maximize);
-    logger.log(Level.FINE, "optimization returned: ", result);
     return result;
   }
 
@@ -106,4 +97,5 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     wrapped.close();
     logger.log(Level.FINER, "closed");
   }
+
 }

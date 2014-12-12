@@ -36,13 +36,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.*;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -67,15 +61,15 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private LogManager logger;
 
-  private ReachingDefDomain domain;
+  private AbstractDomain domain;
 
   private ReachingDefTransferRelation transfer;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which merge operator to use for ReachingDefCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 
@@ -90,7 +84,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     this.logger = logger;
 
-    domain = new ReachingDefDomain();
+    domain = DelegateAbstractDomain.<ReachingDefState>getInstance();
     transfer = new ReachingDefTransferRelation(logger, shutdownNotifier);
 
     if (stopType.equals("SEP")) {

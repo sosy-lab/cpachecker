@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -34,13 +36,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -49,7 +56,7 @@ public class ValueAnalysisFeasibilityChecker {
 
   private final LogManager logger;
   private final ValueAnalysisTransferRelation transfer;
-  private final ValueAnalysisPrecision precision;
+  private final VariableTrackingPrecision precision;
 
   /**
    * This method acts as the constructor of the class.
@@ -59,11 +66,11 @@ public class ValueAnalysisFeasibilityChecker {
    * @param pInitial the initial state for starting the exploration
    * @throws InvalidConfigurationException
    */
-  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
+  public ValueAnalysisFeasibilityChecker(LogManager pLogger, CFA pCfa, Configuration config) throws InvalidConfigurationException {
     logger    = pLogger;
 
     transfer  = new ValueAnalysisTransferRelation(Configuration.builder().build(), pLogger, pCfa);
-    precision = ValueAnalysisPrecision.createDefaultPrecision();
+    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
   /**
@@ -122,39 +129,105 @@ public class ValueAnalysisFeasibilityChecker {
       throws CPAException, InterruptedException {
 
     List<ARGPath> prefixes = new ArrayList<>();
+    boolean performAbstraction = precision.allowsAbstraction();
+
+    Set<MemoryLocation> exceedingMemoryLocations = obtainExceedingMemoryLocations(path);
 
     try {
-      ARGPath currentPrefix   = new ARGPath();
+      MutableARGPath currentPrefix = new MutableARGPath();
       ValueAnalysisState next = pInitial;
 
-      for (Pair<ARGState, CFAEdge> pathElement : path) {
-        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessors(
+      PathIterator iterator = path.pathIterator();
+      while (iterator.hasNext()) {
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
             next,
             precision,
-            pathElement.getSecond());
+            iterator.getOutgoingEdge());
 
-        currentPrefix.addLast(pathElement);
+        currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
-          logger.log(Level.FINE, "found infeasible prefix: ", pathElement.getSecond(), " did not yield a successor");
-          prefixes.add(currentPrefix);
+        if (successors.isEmpty()) {
+          logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
+          prefixes.add(currentPrefix.immutableCopy());
 
-          currentPrefix = new ARGPath();
+          currentPrefix = new MutableARGPath();
           successors    = Sets.newHashSet(next);
         }
 
         // extract singleton successor state
         next = Iterables.getOnlyElement(successors);
+
+        // some variables might be blacklisted or tracked by BDDs
+        // so perform abstraction computation here
+        if(performAbstraction) {
+          for (MemoryLocation memoryLocation : next.getTrackedMemoryLocations()) {
+            if (!precision.isTracking(memoryLocation,
+                next.getTypeForMemoryLocation(memoryLocation),
+                iterator.getOutgoingEdge().getSuccessor())) {
+              next.forget(memoryLocation);
+            }
+          }
+        }
+
+        for(MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
+          next.forget(exceedingMemoryLocation);
+        }
+
+        iterator.advance();
       }
 
       // prefixes is empty => path is feasible, so add complete path
-      if(prefixes.isEmpty()) {
+      if (prefixes.isEmpty()) {
         logger.log(Level.FINE, "no infeasible prefixes found - path is feasible");
         prefixes.add(path);
       }
 
       return prefixes;
+    } catch (CPATransferException e) {
+      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+    }
+  }
+
+  private Set<MemoryLocation> obtainExceedingMemoryLocations(ARGPath path) {
+    UniqueAssignmentsInPathConditionState assignments =
+        AbstractStates.extractStateByType(path.getLastState(),
+        UniqueAssignmentsInPathConditionState.class);
+
+    if(assignments == null) {
+      return Collections.emptySet();
+    }
+
+    return assignments.getMemoryLocationsExceedingHardThreshold();
+  }
+
+  public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
+      throws CPAException, InterruptedException {
+
+    try {
+      List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
+      ValueAnalysisState next = new ValueAnalysisState();
+
+      PathIterator iterator = path.pathIterator();
+      while (iterator.hasNext()) {
+        Collection<ValueAnalysisState> successors = transfer.getAbstractSuccessorsForEdge(
+            next,
+            precision,
+            iterator.getOutgoingEdge());
+
+        if(successors.isEmpty()) {
+          return reevaluatedPath;
+        }
+
+        // extract singleton successor state
+        next = Iterables.getOnlyElement(successors);
+
+        reevaluatedPath.add(Pair.of(next, iterator.getOutgoingEdge()));
+
+        iterator.advance();
+      }
+
+      return reevaluatedPath;
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }

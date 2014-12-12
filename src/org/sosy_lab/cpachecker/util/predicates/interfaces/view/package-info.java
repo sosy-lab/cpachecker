@@ -26,5 +26,12 @@
  * interface and its related interfaces
  * that make it easier to use by client code.
  * This package can be used regardless of which SMT solver is the backend.
+ *
+ * The most important feature of this package is to replace an SMT theory
+ * with another one, simulating the semantics of the replaced theory
+ * with other theories.
+ * This can be used to allow working with {@link org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula}
+ * even if the solver does not support the theory of bitvectors.
+ * Bitvectors will then be approximated with rationals or integers.
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;

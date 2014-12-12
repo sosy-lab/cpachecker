@@ -28,11 +28,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -122,9 +123,9 @@ class SMGNodeDotVisitor implements SMGObjectVisitor {
 
 public final class SMGPlotter {
   static final public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
-    Path exportSMGFilePattern = Paths.get("smg-debug-%s.dot");
+    PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
-    Path outputFile = Paths.get(String.format(exportSMGFilePattern.toAbsolutePath().getPath(), pId));
+    Path outputFile = exportSMGFilePattern.getPath(pId);
     SMGPlotter plotter = new SMGPlotter();
 
     Files.writeFile(outputFile, plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));
@@ -237,8 +238,9 @@ public final class SMGPlotter {
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
-    for (String key : pNamespace.keySet()) {
-      SMGObject obj = pNamespace.get(key);
+    for (Entry<String, SMGRegion> entry : pNamespace.entrySet()) {
+      String key = entry.getKey();
+      SMGObject obj = entry.getValue();
 
       if (key.equals("node")) {
         // escape Node1
@@ -289,7 +291,7 @@ public final class SMGPlotter {
 
     SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
 
-    if(explicitValues.containsKey(symValue)) {
+    if (explicitValues.containsKey(symValue)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
     }
 

@@ -89,12 +89,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGExpressionEvaluator.LValueAssignmentVisitor;
@@ -106,25 +105,25 @@ import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix = "cpa.smgfork")
-public class SMGTransferRelation implements TransferRelation {
+public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
+  @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
   private Path exportSMGFilePattern = Paths.get("smg-%s.dot");
 
-  @Option(description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
+  @Option(secure=true, description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
-  @Option(description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
+  @Option(secure=true, description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = false;
 
-  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
+  @Option(secure=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
   private String exportSMG = "never";
 
-  @Option(name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
+  @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
 
-  @Option(name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
+  @Option(secure=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
   private String handleUnknownFunctions = "strict";
 
   final private LogManagerWithoutDuplicates logger;
@@ -412,7 +411,7 @@ public class SMGTransferRelation implements TransferRelation {
   private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG)){
+    if (pConfig.equals(exportSMG)) {
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
@@ -426,8 +425,9 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", cfaEdge.getCode());
@@ -524,7 +524,7 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CNumericTypes.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -1023,10 +1023,10 @@ public class SMGTransferRelation implements TransferRelation {
       listCounter++;
     }
 
-    if(pVarDecl.isGlobal()) {
+    if (pVarDecl.isGlobal()) {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
-      if(offset < sizeOfType ) {
+      if (offset < sizeOfType ) {
         pNewState.writeValue(pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO);
       }
     }
@@ -1171,11 +1171,11 @@ public class SMGTransferRelation implements TransferRelation {
         CExpression operand2 = unwrap(binExp.getOperand2());
         BinaryOperator op = binExp.getOperator();
 
-        if(operand1 instanceof CLeftHandSide) {
+        if (operand1 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
         }
 
-        if(operand2 instanceof CLeftHandSide) {
+        if (operand2 instanceof CLeftHandSide) {
           deriveFurtherInformation((CLeftHandSide) operand2, operand1, op);
         }
 
@@ -1186,14 +1186,14 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp);
 
-        if(rValue.isUnknown()) {
+        if (rValue.isUnknown()) {
           // no further information can be inferred
           return;
         }
 
         SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, exp);
 
-        if(rSymValue.isUnknown()) {
+        if (rSymValue.isUnknown()) {
           return;
         }
 
@@ -1201,7 +1201,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -1210,7 +1210,7 @@ public class SMGTransferRelation implements TransferRelation {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
           }
         } else {
-          if(op == BinaryOperator.NOT_EQUALS) {
+          if (op == BinaryOperator.NOT_EQUALS) {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
           }
@@ -1242,7 +1242,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
 
-        if(truthValue == true) {
+        if (truthValue == true) {
           return; // no further explicit Information can be derived
         }
 
@@ -1250,7 +1250,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         SMGAddress addressOfField = lValue.accept(visitor);
 
-        if(addressOfField.isUnknown()) {
+        if (addressOfField.isUnknown()) {
           return;
         }
 
@@ -1483,7 +1483,7 @@ public class SMGTransferRelation implements TransferRelation {
   private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(null, pCfaEdge.getPredecessor().getFunctionName());
+    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     SMGState newElement = new SMGState(pElement);
 
@@ -2140,7 +2140,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public final String toString() {
 
-      if(isUnknown()) {
+      if (isUnknown()) {
         return "Unkown";
       }
 

@@ -110,8 +110,8 @@ public class SourceLocationMapper {
     tokenNumberToLineNumberMap.put(tokenNumber, lineNumber);
   }
 
-  private static void collectLine (final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
-    if (loc != null) {
+  private static void collectLine(final SortedSet<Integer> target, final FileLocation loc, boolean overApproximateTokens) {
+    if (loc != null && !loc.equals(FileLocation.DUMMY)) {
       if (overApproximateTokens) {
         int lowerBound = loc.getStartingLineNumber();
         int upperBound = loc.getEndingLineNumber();
@@ -170,6 +170,24 @@ public class SourceLocationMapper {
           return -1;
         }
       }
+    }
+
+    @Override
+    public int hashCode() {
+      return 31 * (31 + column) + row;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof RowAndColumn)) {
+        return false;
+      }
+      RowAndColumn other = (RowAndColumn) obj;
+      return row == other.row
+          && column == other.column;
     }
   }
 
@@ -248,6 +266,8 @@ public class SourceLocationMapper {
       result.addAll(collectFileLocationsFrom(n));
     }
 
+    result.add(pEdge.getFileLocation());
+
     return result;
   }
 
@@ -258,6 +278,11 @@ public class SourceLocationMapper {
     for (CAstNode n: astNodes) {
       result.addAll(collectRowsAndColsFrom(n, overApproximateTokens));
     }
+
+    RowAndColumn rc = new RowAndColumn(
+        pEdge.getFileLocation().getStartingLineNumber(),
+        pEdge.getFileLocation().getNodeOffset());
+    result.add(rc);
 
     return result;
   }
@@ -346,7 +371,7 @@ public class SourceLocationMapper {
       break;
       }
 
-      while(!astNodes.isEmpty()) {
+      while (!astNodes.isEmpty()) {
         CAstNode node = astNodes.pop();
         result.addAll(collectTokensFrom(node, overApproximateTokens));
       }
@@ -425,7 +450,9 @@ public class SourceLocationMapper {
     }
 
     for (CIdExpression e: idExs) {
-      result.add(e.getDeclaration().getQualifiedName());
+      if (e.getDeclaration() != null) {
+        result.add(e.getDeclaration().getQualifiedName());
+      }
     }
 
     return result;

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -34,11 +34,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
  * This class represents an expression unique to the java cfa.
- * It evauates to true, if the run time type of the expression is the same
+ * It evaluates to true, if the run time type of the expression is the same
  * as the type Definition. Otherwise, it evaluates to false.
  *
  */
-public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
+public class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
   private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JClassOrInterfaceType typeDef;
@@ -74,7 +74,7 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
     StringBuilder astString = new StringBuilder("(");
     astString.append(getRunTimeTypeExpression().toASTString());
     astString.append("_equals(");
-    astString.append(getTypeDef().getName());
+    astString.append(getTypeDef().getName()); // FIXME _class missing? I.e. var_getClass()_equals(typeDef_class)?
     astString.append("))");
     return astString.toString();
   }

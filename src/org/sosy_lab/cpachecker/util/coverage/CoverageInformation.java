@@ -27,7 +27,6 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
@@ -37,7 +36,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -102,14 +100,12 @@ public class CoverageInformation {
       }
     }
 
-    for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
-      Path p = Paths.get(String.format(outputFile.getAbsolutePath(),
-          entry.getKey().replace(File.separator, "--")));
-      try (Writer out = Files.openOutputFile(p)) {
+    try (Writer out = Files.openOutputFile(outputFile)) {
+      for (Map.Entry<String, CoveragePrinter> entry : printers.entrySet()) {
         entry.getValue().print(out, entry.getKey());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
       }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
     }
   }
 

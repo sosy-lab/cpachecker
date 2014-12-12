@@ -25,18 +25,20 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 
 class LocationCPAFactory extends AbstractCPAFactory {
 
-  private final boolean backwards;
+  private final LocationStateType locationType;
 
   private CFA cfa;
 
-  public LocationCPAFactory(boolean pBackwards) {
-    backwards = pBackwards;
+  public LocationCPAFactory(LocationStateType pLocationType) {
+    locationType = pLocationType;
   }
 
   @Override
@@ -50,13 +52,16 @@ class LocationCPAFactory extends AbstractCPAFactory {
   }
 
   @Override
-  public ConfigurableProgramAnalysis createInstance() {
+  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
 
-    if (backwards) {
-      return new LocationCPABackwards(cfa);
-    } else {
-      return new LocationCPA(cfa);
+    switch (locationType) {
+    case BACKWARD:
+      return new LocationCPABackwards(cfa, getConfiguration());
+    case BACKWARDNOTARGET:
+      return new LocationCPABackwardsNoTargets(cfa, getConfiguration());
+    default:
+      return new LocationCPA(cfa, getConfiguration());
     }
   }
 }

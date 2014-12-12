@@ -23,21 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-public class Z3Formula implements Formula {
+abstract class Z3Formula implements Formula {
 
-  public final long z3expr;
-  public final long z3context;
+  private final long z3expr;
+  private final long z3context;
 
-  public Z3Formula(long z3context, long z3expr) {
+  Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
-    Z3NativeApi.inc_ref(z3context, z3expr); // TODO check and delete with garbage collection
+
+    // TODO: find a way to decrease the references automatically.
+    // Why finalizers are bad again?
+    Z3NativeApi.inc_ref(z3context, z3expr);
   }
 
   @Override
@@ -61,6 +66,22 @@ public class Z3Formula implements Formula {
   public long getExpr() {
     return z3expr;
   }
+}
+
+class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
+implements ArrayFormula<TI, TE> {
+
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
+
+  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    super(pZ3context, pZ3expr);
+    indexType = pIndexType;
+    elementType = pElementType;
+  }
+
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
@@ -90,3 +111,4 @@ class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
     super(z3context, z3expr);
   }
 }
+

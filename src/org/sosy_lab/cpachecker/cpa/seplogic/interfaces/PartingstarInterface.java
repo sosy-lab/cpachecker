@@ -79,17 +79,17 @@ public class PartingstarInterface {
   private Timer specAssTimer = new Timer();
   private Timer abstractionTimer = new Timer();
 
-  @Option(name="pspath", required=true,
+  @Option(secure=true, name="pspath", required=true,
       description="path to partingstar command")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path psPath = null;
 
-  @Option(name="logicsfile", required=true,
+  @Option(secure=true, name="logicsfile", required=true,
       description="path to a file with logic rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path logicsFile = null;
 
-  @Option(name="abstractionfile", required=true,
+  @Option(secure=true, name="abstractionfile", required=true,
       description="path to a file with abstraction rules")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path abstractionFile = null;
@@ -120,8 +120,7 @@ public class PartingstarInterface {
     try {
       psProcess.getErrorStream().read(buffer);
     } catch (IOException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
+      throw new RuntimeException(e1);
     }
     return new RuntimeException(msg + "\n\nDetail:\n" + new String(buffer), e);
   }
@@ -139,7 +138,6 @@ public class PartingstarInterface {
 
     @Override
     protected void finalize() throws Throwable {
-      System.err.println("DEL for " + handle);
       StringBuilder sb = new StringBuilder();
       sb.append(DEL);
       sb.append(' ');
@@ -387,7 +385,6 @@ public class PartingstarInterface {
 /*
       if (t.getSumTime() > maxImplicationDuration) {
         maxImplicationDuration = t.getSumTime();
-        System.out.println(t + "::: " + query);
       }
       */
 

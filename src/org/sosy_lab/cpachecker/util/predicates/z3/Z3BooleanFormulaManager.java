@@ -26,14 +26,17 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
+import com.google.common.primitives.Longs;
 
-public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
+class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, Long> {
 
   private final long z3context;
 
-  protected Z3BooleanFormulaManager(Z3FormulaCreator creator) {
+  Z3BooleanFormulaManager(Z3FormulaCreator creator) {
     super(creator);
     this.z3context = creator.getEnv();
   }
@@ -66,6 +69,16 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long,
   @Override
   protected Long or(Long pParam1, Long pParam2) {
     return mk_or(z3context, pParam1, pParam2);
+  }
+
+  @Override
+  protected Long orImpl(List<Long> params) {
+    return mk_or(z3context, params.size(), Longs.toArray(params));
+  }
+
+  @Override
+  protected Long andImpl(List<Long> params) {
+    return mk_and(z3context, params.size(), Longs.toArray(params));
   }
 
   @Override
@@ -115,7 +128,10 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long,
 
   @Override
   protected boolean isEquivalence(Long pParam) {
-    return isOP(z3context, pParam, Z3_OP_EQ);
+    return isOP(z3context, pParam, Z3_OP_EQ)
+        && get_app_num_args(z3context,pParam) == 2
+        && get_sort(z3context, get_app_arg(z3context, pParam, 0)) == Z3_BOOL_SORT
+        && get_sort(z3context, get_app_arg(z3context, pParam, 1)) == Z3_BOOL_SORT;
   }
 
   @Override
@@ -127,4 +143,5 @@ public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long,
   protected boolean isIfThenElse(Long pParam) {
     return isOP(z3context, pParam, Z3_OP_ITE);
   }
+
 }

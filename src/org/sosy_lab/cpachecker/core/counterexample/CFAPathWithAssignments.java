@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +32,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,14 +41,12 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.MultiConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
 
 
 /**
@@ -60,25 +59,29 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
   private final List<CFAEdgeWithAssignments> pathWithAssignments;
 
-  //TODO Erase this
-  private final Multimap<CFAEdge, AssignableTerm> allAssignableTerms;
-
   private CFAPathWithAssignments(
       List<CFAEdgeWithAssignments> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
-    allAssignableTerms = ImmutableListMultimap.of();
+  }
+
+  private CFAPathWithAssignments(
+      CFAPathWithAssignments pPathWithAssignments, CFAPathWithAssignments pPathWithAssignments2) {
+
+    assert pPathWithAssignments.size() == pPathWithAssignments2.size();
+
+    List<CFAEdgeWithAssignments> result = new ArrayList<>(pPathWithAssignments.size());
+    Iterator<CFAEdgeWithAssignments> path2Iterator = pPathWithAssignments2.iterator();
+
+    for (CFAEdgeWithAssignments edge : pPathWithAssignments) {
+      CFAEdgeWithAssignments resultEdge = edge.mergeEdge(path2Iterator.next());
+      result.add(resultEdge);
+    }
+
+    pathWithAssignments = result;
   }
 
   public CFAPathWithAssignments() {
     pathWithAssignments = ImmutableList.of();
-    allAssignableTerms = ImmutableListMultimap.of();
-  }
-
-
-  private CFAPathWithAssignments(List<CFAEdgeWithAssignments> pPathWithAssignments,
-      Multimap<CFAEdge, AssignableTerm> pUsedAssignableTerms) {
-    pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
-    allAssignableTerms = pUsedAssignableTerms;
   }
 
   @Nullable
@@ -119,13 +122,13 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
   private boolean fitsPath(List<CFAEdge> pPath) {
 
+    if (pPath.size() != pathWithAssignments.size()) {
+      return false;
+    }
+
     int index = 0;
 
     for (CFAEdge edge : pPath) {
-
-      if (index > pathWithAssignments.size()) {
-        return false;
-      }
 
       CFAEdgeWithAssignments cfaWithAssignment = pathWithAssignments.get(index);
 
@@ -134,37 +137,35 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
       }
 
       index++;
-
-      return true;
     }
 
-    return false;
+    return true;
   }
 
   @Nullable
   public Map<ARGState, CFAEdgeWithAssignments> getExactVariableValues(ARGPath pPath) {
 
 
-    if (pPath.isEmpty() || pPath.size() != (pathWithAssignments.size() + 1)) {
+    if (pPath.getInnerEdges().size() != (pathWithAssignments.size())) {
       return null;
     }
 
     Map<ARGState, CFAEdgeWithAssignments> result = new HashMap<>();
 
-    int index = 0;
+    PathIterator pathIterator = pPath.pathIterator();
+    while (pathIterator.hasNext()) {
 
-    for (CFAEdgeWithAssignments edgeWithAssignment : pathWithAssignments) {
-
-      Pair<ARGState, CFAEdge> argPair = pPath.get(index);
-
-      if (!edgeWithAssignment.getCFAEdge().equals(argPair.getSecond())) {
+      CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex());
+      CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
+      if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
         // path is not equivalent
         return null;
       }
 
-      result.put(argPair.getFirst(), edgeWithAssignment);
-      index++;
+      result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+      pathIterator.advance();
     }
+    // last state is ignored
 
     return result;
   }
@@ -188,29 +189,6 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     }
 
     return new CFAPathWithAssignments(result);
-  }
-
-  @Deprecated
-  public static CFAPathWithAssignments valueOf(ConcreteStatePath statePath,
-      LogManager pLogger, MachineModel pMachineModel,
-      Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
-
-    List<CFAEdgeWithAssignments> result = new ArrayList<>(statePath.size());
-
-    for (ConcerteStatePathNode node : statePath) {
-      if (node instanceof SingleConcreteState) {
-
-        SingleConcreteState singleState = (SingleConcreteState) node;
-        CFAEdgeWithAssignments edge = createCFAEdgeWithAssignment(singleState, pLogger, pMachineModel);
-        result.add(edge);
-      } else {
-        MultiConcreteState multiState = (MultiConcreteState) node;
-        CFAEdgeWithAssignments edge = createCFAEdgeWithAssignment(multiState, pLogger, pMachineModel);
-        result.add(edge);
-      }
-    }
-
-    return new CFAPathWithAssignments(result, usedAssignableTerms);
   }
 
   private static CFAEdgeWithAssignments createCFAEdgeWithAssignment(MultiConcreteState state,
@@ -259,8 +237,55 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
     return pathWithAssignments.iterator();
   }
 
-  @Deprecated
-  public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
-    return allAssignableTerms.get(pEdge);
+  public void toJSON(Appendable sb, ARGPath argPath) throws IOException {
+    List<Map<?, ?>> path = new ArrayList<>(this.size());
+
+    if (argPath.getInnerEdges().size() != pathWithAssignments.size()) {
+      argPath.toJSON(sb);
+      return;
+    }
+
+    int index = 0;
+
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(argPath.asStatesList(), argPath.asEdgesList())) {
+
+      Map<String, Object> elem = new HashMap<>();
+
+      ARGState argelem = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+
+      if (edge == null) {
+        continue; // in this case we do not need the edge
+      }
+
+      elem.put("argelem", argelem.getStateId());
+      elem.put("source", edge.getPredecessor().getNodeNumber());
+      elem.put("target", edge.getSuccessor().getNodeNumber());
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
+      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("file", edge.getFileLocation().getFileName());
+
+      // cfa path with assignments has no padding (only inner edges of argpath).
+      if (index == pathWithAssignments.size()) {
+        elem.put("val", "");
+      } else {
+        CFAEdgeWithAssignments edgeWithAssignment = pathWithAssignments.get(index);
+        elem.put("val", edgeWithAssignment.printForHTML());
+      }
+
+      path.add(elem);
+      index++;
+    }
+
+    JSON.writeJSONString(path, sb);
+  }
+
+  public CFAPathWithAssignments mergePaths(CFAPathWithAssignments pOtherPath) {
+
+    if (pOtherPath.size() != this.size()) {
+      return this;
+    }
+
+    return new CFAPathWithAssignments(this, pOtherPath);
   }
 }

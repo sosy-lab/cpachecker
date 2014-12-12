@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 
@@ -34,7 +36,7 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
   public Mathsat5IntegerFormulaManager(
           Mathsat5FormulaCreator pCreator,
           Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager, IntegerFormula.class);
+    super(pCreator, functionManager);
   }
 
   @Override
@@ -45,6 +47,16 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
   @Override
   public FormulaType<IntegerFormula> getFormulaType() {
     return FormulaType.IntegerType;
+  }
+
+  @Override
+  protected Long makeNumberImpl(double pNumber) {
+    return makeNumberImpl((long)pNumber);
+  }
+
+  @Override
+  protected Long makeNumberImpl(BigDecimal pNumber) {
+    return decimalAsInteger(pNumber);
   }
 
   @Override
@@ -63,7 +75,7 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
       String[] frac = n.split("/");
       if (frac.length == 1) {
         // cannot multiply with term 1/n because the result will have type rat instead of int
-        return makeUf(divUfDecl, t1, t2);
+        return super.divide(pNumber1, pNumber2);
 
       } else {
         assert (frac.length == 2);
@@ -72,9 +84,18 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
       t2 = msat_make_number(mathsatEnv, n);
       result = msat_make_times(mathsatEnv, t2, t1);
     } else {
-      result = makeUf(divUfDecl, t1, t2);
+      return super.divide(pNumber1, pNumber2);
     }
 
     return result;
+  }
+
+  @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    if (pModulo > 0) {
+      return msat_make_int_modular_congruence(getFormulaCreator().getEnv(),
+          pModulo, pNumber1, pNumber2);
+    }
+    return msat_make_true(getFormulaCreator().getEnv());
   }
 }

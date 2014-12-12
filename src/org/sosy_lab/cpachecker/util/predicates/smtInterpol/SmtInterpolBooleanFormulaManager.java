@@ -103,6 +103,11 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   }
 
   @Override
+  protected Term orImpl(List<Term> pParams) {
+    return theory.or(SmtInterpolUtil.toTermArray(pParams));
+  }
+
+  @Override
   public Term xor(Term pBits1, Term pBits2) {
     return theory.xor(pBits1, pBits2);
   }
@@ -129,7 +134,7 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
 
   @Override
   protected boolean isEquivalence(Term pBits) {
-    return SmtInterpolUtil.isEqual(pBits);
+    return SmtInterpolUtil.isEquivalence(pBits);
   }
 
   @Override
@@ -141,6 +146,5 @@ class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaManager<Ter
   protected boolean isIfThenElse(Term pBits) {
     return SmtInterpolUtil.isIfThenElse(pBits);
   }
-
 
 }

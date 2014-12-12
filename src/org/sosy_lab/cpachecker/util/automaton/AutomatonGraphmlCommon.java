@@ -38,6 +38,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -74,14 +82,17 @@ public class AutomatonGraphmlCommon {
     ASSUMPTION("assumption", "edge", "assumption", "string"),
 
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
-    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string");
+    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
+
+    CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
+    CFASUCCESSORNODE("successor", "edge", "successor", "string");
 
     public final String id;
     public final String keyFor;
     public final String attrName;
     public final String attrType;
 
-    KeyDef(String id, String keyFor, String attrName, String attrType) {
+    private KeyDef(String id, String keyFor, String attrName, String attrType) {
       this.id = id;
       this.keyFor = keyFor;
       this.attrName = attrName;
@@ -126,7 +137,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphType(String text) {
+    private GraphType(String text) {
       this.text = text;
     }
 
@@ -142,7 +153,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    NodeType(String text) {
+    private NodeType(String text) {
       this.text = text;
     }
 
@@ -152,12 +163,7 @@ public class AutomatonGraphmlCommon {
     }
 
     public static NodeType fromString(String nodeTypeString) {
-      for (NodeType t: NodeType.values()) {
-        if (t.text.equalsIgnoreCase(nodeTypeString.trim())) {
-          return t;
-        }
-      }
-      throw new RuntimeException(String.format("String '%s' does not descripe a node type!", nodeTypeString));
+      return valueOf(nodeTypeString.trim().toLowerCase());
     }
   }
 
@@ -173,7 +179,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphMlTag(String text) {
+    private GraphMlTag(String text) {
       this.text = text;
     }
 
@@ -304,6 +310,40 @@ public class AutomatonGraphmlCommon {
       target.append("</graphml>\n");
     }
 
+  }
+
+  public static boolean handleAsEpsilonEdge(CFAEdge edge) {
+    if (handleAsEpsilonEdge0(edge)) {
+      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return true;
+    } else if (edge instanceof CFunctionReturnEdge) {
+      return true;
+    } else if (edge instanceof CDeclarationEdge) {
+      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+      CDeclaration decl = declEdge.getDeclaration();
+      if (decl instanceof CFunctionDeclaration) {
+        return true;
+      } else if (decl instanceof CTypeDeclaration) {
+        return true;
+      } else if (decl instanceof CVariableDeclaration) {
+        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+        if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
+          return true; // Dirty hack; would be better if these edges had no file location
+        }
+        return false;
+      }
+    }
+
+    return false;
   }
 
 

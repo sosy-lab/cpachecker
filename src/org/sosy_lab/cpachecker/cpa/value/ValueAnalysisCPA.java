@@ -43,17 +43,21 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -63,8 +67,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStaticRefiner;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -73,32 +78,17 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.value")
-public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker {
+public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofChecker, ConfigurableProgramAnalysisWithConcreteCex {
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
-  @Option(name="variableBlacklist",
-      description="blacklist regex for variables that won't be tracked by ValueAnalysisCPA")
-  private String variableBlacklist = "";
-
-  @Option(description="enables target checking for value-analysis, needed for predicate-analysis")
-  private boolean doTargetCheck = false;
-
-  @Option(name="inPredicatedAnalysis",
-      description="enable if will be used in predicated analysis but all variables should be tracked, no refinement")
-  private boolean useInPredicatedAnalysisWithoutRefinement = false;
-
-  @Option(name="refiner.performInitialStaticRefinement",
-      description="use heuristic to extract a precision from the CFA statically on first refinement")
-  private boolean performInitialStaticRefinement = false;
-
-  @Option(description="get an initial precison from file")
+  @Option(secure=true, description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
@@ -109,10 +99,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private TransferRelation transferRelation;
-  private ValueAnalysisPrecision precision;
-  private PrecisionAdjustment precisionAdjustment;
-  private final ValueAnalysisStaticRefiner staticRefiner;
+  private ValueAnalysisTransferRelation transferRelation;
+  private VariableTrackingPrecision precision;
+  private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
 
@@ -130,27 +119,23 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     config.inject(this);
 
-    abstractDomain      = new ValueAnalysisDomain();
+    abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
-    staticRefiner       = initializeStaticRefiner(cfa);
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+
+    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, cfa);
+
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
-
-    if (doTargetCheck) {
-      ValueAnalysisState.initChecker(config);
-    }
   }
 
   private MergeOperator initializeMergeOperator() {
     if (mergeType.equals("SEP")) {
       return MergeSepOperator.getInstance();
-    }
 
-    else if (mergeType.equals("JOIN")) {
+    } else if (mergeType.equals("JOIN")) {
       return new MergeJoinOperator(abstractDomain);
     }
 
@@ -160,39 +145,28 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private StopOperator initializeStopOperator() {
     if (stopType.equals("SEP")) {
       return new StopSepOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("JOIN")) {
+    } else if (stopType.equals("JOIN")) {
       return new StopJoinOperator(abstractDomain);
-    }
 
-    else if (stopType.equals("NEVER")) {
+    } else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
     }
 
     return null;
   }
 
-  private ValueAnalysisStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
-    if (performInitialStaticRefinement) {
-      return new ValueAnalysisStaticRefiner(config, logger, precision);
-    }
-
-    return null;
-  }
-
-  private ValueAnalysisPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
-      return new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification(), new ValueAnalysisPrecision.FullPrecision());
-    }
+      return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
-    else {
+    } else {
       // create precision with empty, refinable component precision
-      ValueAnalysisPrecision precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
-
+      VariableTrackingPrecision precision = VariableTrackingPrecision.createRefineablePrecision(config,
+                      VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
       // refine the refinable component precision with increment from file
-      return new ValueAnalysisPrecision(precision, restoreMappingFromFile(cfa));
+      return precision.withIncrement(restoreMappingFromFile(cfa));
     }
   }
 
@@ -214,17 +188,15 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     for (String currentLine : contents) {
       if (currentLine.trim().isEmpty()) {
         continue;
-      }
 
-      else if(currentLine.endsWith(":")) {
+      } else if(currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
-      }
 
-      else {
+      } else {
         mapping.put(location, MemoryLocation.valueOf(currentLine));
       }
     }
@@ -248,7 +220,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null) {
-      precision = new ValueAnalysisPrecision(variableBlacklist, config, cfa.getVarClassification());
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
     }
   }
 
@@ -282,12 +254,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return precision;
   }
 
-  ValueAnalysisPrecision getPrecision() {
+  VariableTrackingPrecision getPrecision() {
     return precision;
-  }
-
-  public ValueAnalysisStaticRefiner getStaticRefiner() {
-    return staticRefiner;
   }
 
   @Override
@@ -319,6 +287,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+
+    precisionAdjustment.collectStatistics(pStatsCollection);
   }
 
   public ValueAnalysisCPAStatistics getStats() {
@@ -329,22 +299,24 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
-      Collection<? extends AbstractState> computedSuccessors = transferRelation.getAbstractSuccessors(pState, null, pCfaEdge);
+      Collection<? extends AbstractState> computedSuccessors =
+          transferRelation.getAbstractSuccessorsForEdge(
+              pState, SingletonPrecision.getInstance(), pCfaEdge);
       boolean found;
-      for(AbstractState comp:computedSuccessors){
+      for (AbstractState comp:computedSuccessors) {
         found = false;
-        for(AbstractState e:pSuccessors){
-          if(isCoveredBy(comp, e)){
+        for (AbstractState e:pSuccessors) {
+          if (isCoveredBy(comp, e)) {
             found = true;
             break;
           }
         }
-        if(!found){
+        if (!found) {
           return false;
         }
       }
     } catch (CPAException e) {
-      e.printStackTrace();
+      throw new CPATransferException("Cannot compare abstract successors", e);
     }
     return true;
   }
@@ -352,5 +324,13 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
      return abstractDomain.isLessOrEqual(pState, pOtherState);
+  }
+
+  @Override
+  public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
+
+    ValueAnalysisConcreteErrorPathAllocator alloc =
+        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier);
+    return alloc.allocateAssignmentsToPath(pPath);
   }
 }

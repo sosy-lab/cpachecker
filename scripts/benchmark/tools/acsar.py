@@ -38,6 +38,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        output = '\n'.join(output)
         if "syntax error" in output:
             status = "SYNTAX ERROR"
 

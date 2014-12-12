@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
@@ -34,17 +36,27 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
   public Mathsat5RationalFormulaManager(
           Mathsat5FormulaCreator pCreator,
           Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager, RationalFormula.class);
+    super(pCreator, functionManager);
   }
 
   @Override
   protected long getNumeralType() {
-    return getFormulaCreator().getRealType();
+    return getFormulaCreator().getRationalType();
   }
 
   @Override
   public FormulaType<RationalFormula> getFormulaType() {
     return FormulaType.RationalType;
+  }
+
+  @Override
+  protected Long makeNumberImpl(double pNumber) {
+    return makeNumberImpl(Double.toString(pNumber));
+  }
+
+  @Override
+  protected Long makeNumberImpl(BigDecimal pNumber) {
+    return makeNumberImpl(pNumber.toPlainString());
   }
 
   @Override
@@ -70,9 +82,14 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
       t2 = msat_make_number(mathsatEnv, n);
       result = msat_make_times(mathsatEnv, t2, t1);
     } else {
-      result = makeUf(divUfDecl, t1, t2);
+      return super.divide(pNumber1, pNumber2);
     }
 
     return result;
+  }
+
+  @Override
+  protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
+    return msat_make_true(getFormulaCreator().getEnv());
   }
 }

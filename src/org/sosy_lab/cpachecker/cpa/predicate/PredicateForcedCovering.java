@@ -273,8 +273,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private ImmutableList<ARGState> getAbstractionPathTo(ARGState argState) {
     ARGPath pathFromRoot = ARGUtils.getOnePathTo(argState);
 
-    return from(pathFromRoot)
-        .transform(Pair.<ARGState>getProjectionToFirst())
+    return from(pathFromRoot.asStatesList())
         .filter(Predicates.compose(
                 PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                 AbstractStates.toState(PredicateAbstractState.class)))

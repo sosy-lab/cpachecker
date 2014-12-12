@@ -31,6 +31,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
@@ -61,14 +62,15 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
+  private Collection<Statistics> pccStats = new ArrayList<>();
 
-  @Option(
+  @Option(secure=true,
       name = "proofFile",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
-  @Option(
+  @Option(secure=true,
       name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
   @IntegerOption(min=1)
@@ -80,6 +82,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
     stats = new PCStrategyStatistics();
+    pccStats.add(stats);
   }
 
   @Override
@@ -111,7 +114,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         o.flush();
         zos.closeEntry();
         index++;
-      }while(continueWriting);
+      }while (continueWriting);
 
       ze = new ZipEntry("Helper");
       zos.putNextEntry(ze);
@@ -217,9 +220,13 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
+  protected void addPCCStatistic(final Statistics pPCCStatistic) {
+    pccStats.add(pPCCStatistic);
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(stats);
+    statsCollection.addAll(pccStats);
   }
 
   public static class PCStrategyStatistics implements Statistics {
@@ -237,23 +244,23 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       return "Proof Checking Strategy Statistics";
     }
 
-    public Timer getPreparationTimer(){
+    public Timer getPreparationTimer() {
       return preparationTimer;
     }
 
-    public Timer getStopTimer(){
+    public Timer getStopTimer() {
       return stopTimer;
     }
 
-    public Timer getTransferTimer(){
+    public Timer getTransferTimer() {
       return transferTimer;
     }
 
-    public Timer getPropertyCheckingTimer(){
+    public Timer getPropertyCheckingTimer() {
       return propertyCheckingTimer;
     }
 
-    public void increaseIteration(){
+    public void increaseIteration() {
       countIterations++;
     }
 

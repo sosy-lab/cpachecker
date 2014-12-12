@@ -64,9 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -75,7 +73,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -86,11 +86,14 @@ class ASTTypeConverter {
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
+  private final Function<String, String> niceFileNameFunction;
 
-  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix) {
+  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix,
+      Function<String, String> pNiceFileNameFunction) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
+    niceFileNameFunction = pNiceFileNameFunction;
     if (!typeConversions.containsKey(filePrefix)) {
       typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
     }
@@ -101,48 +104,6 @@ class ASTTypeConverter {
   private final static Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
 
   /**
-   * This can be used to create (fake) mappings from IType to CType.
-   * Use only if you are absolutely sure that your CType corresponds to the
-   * given IType, and you cannot use the regular type conversion methods
-   * of this class.
-   * @see ASTConverter#convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference) for an example
-   */
-  void registerType(IType cdtType, CType ourType) {
-    CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
-    if (oldType instanceof CComplexType && ourType instanceof CComplexType) {
-      CComplexType t1 = (CComplexType) oldType;
-      CComplexType t2 = (CComplexType) ourType;
-      boolean equalWithoutName = t1.isConst() == t2.isConst() && t1.isVolatile() == t2.isVolatile() && t1.getKind() == t1.getKind();
-      t1 = (CComplexType) t1.getCanonicalType();
-      t2 = (CComplexType) t1.getCanonicalType();
-      if (t1 instanceof CElaboratedType) {
-        t1 = ((CElaboratedType) t1).getRealType();
-      }
-      if (t2 instanceof CElaboratedType) {
-        t2 = ((CElaboratedType) t2).getRealType();
-      }
-      if (equalWithoutName) {
-        switch(t1.getKind()) {
-        case STRUCT:
-        case UNION:
-          List<CCompositeTypeMemberDeclaration> m1 =  ((CCompositeType)t1).getMembers();
-          List<CCompositeTypeMemberDeclaration> m2 =  ((CCompositeType)t2).getMembers();
-          for (int i = 0;  i < m1.size() && equalWithoutName; i++) {
-            equalWithoutName = m1.get(i).equals(m2.get(i));
-          }
-          break;
-        default:
-          equalWithoutName = false;
-          break;
-        }
-      }
-      assert equalWithoutName : "Overwriting type conversion";
-    } else {
-      assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()) : "Overwriting type conversion";
-    }
-  }
-
-  /**
    * This can be used to rename a CType in case of Types with equal names but
    * different fields, from different files.
    */
@@ -151,7 +112,7 @@ class ASTTypeConverter {
   }
 
   static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
       if (ourCType.equals(entry.getValue())) {
         return entry.getKey();
       }
@@ -267,17 +228,25 @@ class ASTTypeConverter {
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
         return new CProblemType(problem.getASTNode().getRawSignature());
       }
-      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode());
+      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode(), niceFileNameFunction);
 
     } else {
       throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
     }
   }
 
-  private CSimpleType conv(final IBasicType t) {
+  private CType conv(final IBasicType t) {
       // The IBasicType has to be an ICBasicType or
       // an IBasicType of type "void" (then it is an ICPPBasicType)
-      if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
+      if (t.getKind() == org.eclipse.cdt.core.dom.ast.IBasicType.Kind.eVoid) {
+        if (t.isComplex() || t.isImaginary()
+            || t.isLong() || t.isLongLong() || t.isShort()
+            || t.isSigned() || t.isUnsigned()) {
+          throw new CFAGenerationRuntimeException("Void type with illegal modifier: " + t);
+        }
+        return CVoidType.VOID;
+
+      } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
         final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
             (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
 
@@ -302,12 +271,13 @@ class ASTTypeConverter {
           type = CBasicType.UNSPECIFIED;
           break;
         case eVoid:
-          type = CBasicType.VOID;
-          break;
+          throw new AssertionError();
         default:
           throw new CFAGenerationRuntimeException("Unknown basic type " + t.getKind());
         }
 
+        // the three values isComplex, isImaginary, isLongLong are initialized
+        // with FALSE, because we do not know about them
         if ((c.isShort() && c.isLong())
             || (c.isShort() && c.isLongLong())
             || (c.isLong() && c.isLongLong())
@@ -317,13 +287,6 @@ class ASTTypeConverter {
         // TODO why is there no isConst() and isVolatile() here?
         return new CSimpleType(false, false, type, c.isLong(), c.isShort(),
             c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
-
-      } else if (t.getKind() == org.eclipse.cdt.core.dom.ast.IBasicType.Kind.eVoid) {
-
-        // the three values isComplex, isImaginary, isLongLong are initialized
-        // with FALSE, because we do not know about them
-        return new CSimpleType(false, false, CBasicType.VOID, t.isLong(), t.isShort(),
-            t.isSigned(), t.isUnsigned(), false, false, false);
 
       } else {
         throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
@@ -351,8 +314,8 @@ class ASTTypeConverter {
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
-    for (int i = 0; i < pFields.length; i++) {
-      list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    for (IField pField : pFields) {
+      list.add(new CCompositeTypeMemberDeclaration(convert(pField.getType()), pField.getName()));
     }
     return list;
   }
@@ -377,40 +340,16 @@ class ASTTypeConverter {
 
   private CType conv(final IQualifierType t) {
     CType i = convert(t.getType());
-    boolean isConst = t.isConst();
-    boolean isVolatile = t.isVolatile();
-
-    if (isConst == i.isConst() && isVolatile == i.isVolatile()) {
-      return i;
-    }
+    final boolean isConst = t.isConst();
+    final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    if (i instanceof CArrayType) {
-      return new CArrayType(isConst, isVolatile, ((CArrayType) i).getType(), ((CArrayType) i).getLength());
-    } else if (i instanceof CCompositeType) {
-      CCompositeType c = (CCompositeType) i;
-      return new CCompositeType(isConst, isVolatile, c.getKind(), c.getMembers(), c.getName());
-    } else if (i instanceof CElaboratedType) {
-      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName(), ((CElaboratedType) i).getRealType());
-    } else if (i instanceof CEnumType) {
-      return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
-    } else if (i instanceof CFunctionType) {
-      CFunctionType p = (CFunctionType) i;
-      return new CFunctionType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
-    } else if (i instanceof CFunctionTypeWithNames) {
-      // TODO what does it mean that a function is qualified with const or volatile?
-      CFunctionTypeWithNames f = (CFunctionTypeWithNames) i;
-      return new CFunctionTypeWithNames(isConst, isVolatile, f.getReturnType(), f.getParameterDeclarations(), f.takesVarArgs());
-    } else if (i instanceof CPointerType) {
-      return new CPointerType(isConst, isVolatile, ((CPointerType) i).getType());
-    } else if (i instanceof CSimpleType) {
-      CSimpleType s = (CSimpleType)i;
-      return new CSimpleType(isConst, isVolatile, s.getType(), s.isLong(), s.isShort(), s.isSigned(), s.isUnsigned(), s.isComplex(), s.isImaginary(), s.isLongLong());
-    } else if (i instanceof CTypedefType) {
-      return new CTypedefType(isConst, isVolatile, ((CTypedefType) i).getName(), ((CTypedefType) i).getRealType());
-    } else {
-      throw new AssertionError();
-    }
+    i = isConst ? CTypes.withConst(i) : CTypes.withoutConst(i);
+    i = isVolatile ? CTypes.withVolatile(i) : CTypes.withoutVolatile(i);
+
+    assert i instanceof CProblemType
+        || (isConst == i.isConst() && isVolatile == i.isVolatile());
+    return i;
   }
 
   private CType conv(final IEnumeration e) {
@@ -446,8 +385,12 @@ class ASTTypeConverter {
       type = CBasicType.UNSPECIFIED;
       break;
     case IASTSimpleDeclSpecifier.t_void:
-      type = CBasicType.VOID;
-      break;
+      if (dd.isComplex() || dd.isImaginary()
+          || dd.isLong() || dd.isLongLong() || dd.isShort()
+          || dd.isSigned() || dd.isUnsigned()) {
+        throw new CFAGenerationRuntimeException("Void type with illegal modifier", dd, niceFileNameFunction);
+      }
+      return CVoidType.create(dd.isConst(), dd.isVolatile());
     case IASTSimpleDeclSpecifier.t_typeof:
       // TODO This might loose some information of dd or dd.getDeclTypeExpression()
       // (the latter should be of type IASTTypeIdExpression)
@@ -464,27 +407,39 @@ class ASTTypeConverter {
       return ctype;
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
-          + dd.getClass().getSimpleName(), dd);
+          + dd.getClass().getSimpleName(), dd, niceFileNameFunction);
     }
 
     if ((dd.isShort() && dd.isLong())
         || (dd.isShort() && dd.isLongLong())
         || (dd.isLong() && dd.isLongLong())
         || (dd.isSigned() && dd.isUnsigned())) { throw new CFAGenerationRuntimeException(
-        "Illegal combination of type identifiers", dd); }
+        "Illegal combination of type identifiers", dd, niceFileNameFunction); }
 
     return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), dd.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
-  CTypedefType convert(final IASTNamedTypeSpecifier d) {
-    org.eclipse.cdt.core.dom.ast.IASTName name = d.getName();
-    org.eclipse.cdt.core.dom.ast.IBinding binding = name.resolveBinding();
+  CType convert(final IASTNamedTypeSpecifier d) {
+    org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
+    String name = ASTConverter.convert(astName);
+    org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
     if (!(binding instanceof IType)) {
-      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d);
+      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d, niceFileNameFunction);
     }
-    return new CTypedefType(d.isConst(), d.isVolatile(), ASTConverter.convert(name), convert((IType)binding));
+    CType type = null;
+    if (binding instanceof IProblemBinding) {
+      type = scope.lookupTypedef(name);
+      if (type == null) {
+        type = scope.lookupType(name);
+      }
+    }
+    if (type == null) {
+      type = convert((IType) binding);
+    }
+
+    return new CTypedefType(d.isConst(), d.isVolatile(), name, type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
@@ -504,7 +459,7 @@ class ASTTypeConverter {
       return CStorageClass.TYPEDEF;
 
     default:
-      throw new CFAGenerationRuntimeException("Unsupported storage class", d);
+      throw new CFAGenerationRuntimeException("Unsupported storage class", d, niceFileNameFunction);
     }
   }
 
@@ -521,7 +476,7 @@ class ASTTypeConverter {
       type = ComplexTypeKind.UNION;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
+      throw new CFAGenerationRuntimeException("Unknown elaborated type", d, niceFileNameFunction);
     }
 
     String name = ASTConverter.convert(d.getName());
@@ -540,7 +495,7 @@ class ASTTypeConverter {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown pointer operator", po);
+      throw new CFAGenerationRuntimeException("Unknown pointer operator", po, niceFileNameFunction);
     }
   }
 

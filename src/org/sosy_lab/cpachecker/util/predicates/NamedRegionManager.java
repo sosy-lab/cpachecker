@@ -35,6 +35,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -195,7 +196,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     return delegate.entails(pF1, pF2);
   }
 
@@ -263,6 +264,11 @@ public class NamedRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);
+  }
+
+  @Override
+  public String getVersion() {
+    return delegate.getVersion();
   }
 
   public Set<String> getPredicates() {

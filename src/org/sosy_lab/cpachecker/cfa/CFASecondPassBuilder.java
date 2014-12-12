@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -33,12 +32,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
@@ -79,11 +78,11 @@ import com.google.common.collect.ImmutableSet;
 @Options
 public class CFASecondPassBuilder {
 
-  @Option(name="analysis.summaryEdges",
+  @Option(secure=true, name="analysis.summaryEdges",
       description="create summary call statement edges")
   private boolean summaryEdges = false;
 
-  @Option(name="cfa.assumeFunctions",
+  @Option(secure=true, name="cfa.assumeFunctions",
       description="Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
@@ -113,7 +112,7 @@ public class CFASecondPassBuilder {
     }
 
     // 2.Step: replace functionCalls with functioncall- and return-edges
-    for (final AStatementEdge functionCall: visitor.functionCalls) {
+    for (final AStatementEdge functionCall: visitor.getFunctionCalls()) {
       insertCallEdges(functionCall);
     }
   }
@@ -213,7 +212,8 @@ public class CFASecondPassBuilder {
       }
 
       calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (CFunctionCall) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (CFunctionCall)functionCall, (CFunctionEntryNode)fDefNode);
 
       callEdge = new CFunctionCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
@@ -222,7 +222,8 @@ public class CFASecondPassBuilder {
 
     case JAVA:
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
-          fileLocation, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
+          fileLocation, predecessorNode, successorNode,
+          (JMethodOrConstructorInvocation)functionCall, (JMethodEntryNode)fDefNode);
 
       callEdge = new JMethodCallEdge(edge.getRawStatement(),
           fileLocation, predecessorNode,
@@ -269,7 +270,7 @@ public class CFASecondPassBuilder {
   private boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {
     //get the parameter expression
-    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
+    List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();
@@ -317,30 +318,5 @@ public class CFASecondPassBuilder {
     cfa.addNode(elseNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
-  }
-
-  /** This Visitor collects all functioncalls.
-   *  It should visit the CFA of each functions before creating super-edges (functioncall- and return-edges). */
-  private static class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
-
-    final List<AStatementEdge> functionCalls = new ArrayList<>();
-
-    @Override
-    public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
-      switch (pEdge.getEdgeType()) {
-        case StatementEdge: {
-          final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            functionCalls.add(edge);
-          }
-          break;
-        }
-
-        case FunctionCallEdge:
-        case CallToReturnEdge:
-          throw new AssertionError("functioncall- and return-edges should not exist at this time.");
-      }
-      return CFATraversal.TraversalProcess.CONTINUE;
-    }
   }
 }

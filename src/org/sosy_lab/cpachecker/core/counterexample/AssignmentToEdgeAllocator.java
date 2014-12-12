@@ -37,10 +37,10 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -98,9 +98,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
@@ -133,7 +134,7 @@ public class AssignmentToEdgeAllocator {
 
   public CFAEdgeWithAssignments allocateAssignmentsToEdge() {
 
-    List<IAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
+    List<AAssignment> assignmentsAtEdge = createAssignmentsAtEdge(cfaEdge);
     String comment = createComment(cfaEdge);
 
     return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
@@ -156,7 +157,7 @@ public class AssignmentToEdgeAllocator {
     if (pCfaEdge.getExpression() instanceof CExpression) {
       CExpression returnExp = (CExpression) pCfaEdge.getExpression();
 
-      if(returnExp instanceof CLiteralExpression) {
+      if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/
         return null;
       }
@@ -167,7 +168,7 @@ public class AssignmentToEdgeAllocator {
 
       Number value = v.evaluateNumericalValue(returnExp);
 
-      if(value == null) {
+      if (value == null) {
         return null;
       }
 
@@ -203,7 +204,7 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<IAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
+  private List<AAssignment> createAssignmentsAtEdge(CFAEdge pCFAEdge) {
 
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
@@ -234,7 +235,7 @@ public class AssignmentToEdgeAllocator {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-    if(pCExpression instanceof CBinaryExpression) {
+    if (pCExpression instanceof CBinaryExpression) {
 
       CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
 
@@ -261,22 +262,22 @@ public class AssignmentToEdgeAllocator {
 
   private String handleAssumeOp(CExpression op, String functionName) {
 
-    if(op instanceof CLiteralExpression) {
+    if (op instanceof CLiteralExpression) {
       /*boring expression*/
       return null;
     }
 
     if (op instanceof CLeftHandSide) {
 
-      List<IAssignment> assignments = handleAssignment((CLeftHandSide) op);
+      List<AAssignment> assignments = handleAssignment((CLeftHandSide) op);
 
-      if(assignments.size() == 0) {
+      if (assignments.size() == 0) {
         return null;
       } else {
 
         List<String> result = new ArrayList<>(assignments.size());
 
-        for (IAssignment assignment : assignments) {
+        for (AAssignment assignment : assignments) {
           result.add(assignment.toASTString());
         }
 
@@ -301,9 +302,9 @@ public class AssignmentToEdgeAllocator {
     return v.evaluateNumericalValue(pOp1);
   }
 
-  private List<IAssignment> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
+  private List<AAssignment> handleFunctionCall(FunctionCallEdge pFunctionCallEdge) {
 
-    if(!(pFunctionCallEdge instanceof CFunctionCallEdge)) {
+    if (!(pFunctionCallEdge instanceof CFunctionCallEdge)) {
       return Collections.emptyList();
     }
 
@@ -313,9 +314,9 @@ public class AssignmentToEdgeAllocator {
 
     List<CParameterDeclaration> dcls = functionEntryNode.getFunctionParameters();
 
-    List<IAssignment> assignments = new ArrayList<>();
+    List<AAssignment> assignments = new ArrayList<>();
 
-    for(CParameterDeclaration dcl : dcls) {
+    for (CParameterDeclaration dcl : dcls) {
       assignments.addAll(handleDeclaration(dcl, pFunctionCallEdge.getSuccessor().getFunctionName()));
     }
 
@@ -323,13 +324,51 @@ public class AssignmentToEdgeAllocator {
   }
 
   @Nullable
-  private List<IAssignment> handleAssignment(CLeftHandSide leftHandSide) {
+  private List<AAssignment> handleAssignment(CLeftHandSide leftHandSide) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     Object value = getValueObject(leftHandSide, functionName);
 
     if (value == null) {
+      return Collections.emptyList();
+    }
+    // FIXME:
+    // We currently incorrectly assign the address of a struct to the struct:
+    // See for example
+    //  ldv-linux-3.4-simple/32_7_cilled_false-unreach-call_const_ok_linux-32_1-drivers--media--video--vivi.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c,
+    // where
+    //   *vfd = vivi_template;
+    // becomes
+    //   *vfd = 8388480;
+    // when actually, we want to express that
+    //   vdf == 8388480;
+    // Expression statements are currently not supported, though:
+    // This whole interface is based on assignments.
+    // So if the left hand side is not a pointer expression
+    // or its operand is not a left hand side, for now, just return no assignments.
+    if (isStructOrUnionType(leftHandSide.getExpressionType())) {
+      if (leftHandSide instanceof CPointerExpression) {
+        CExpression lhs = ((CPointerExpression) leftHandSide).getOperand();
+        if (lhs instanceof CLeftHandSide) {
+          leftHandSide = (CLeftHandSide) lhs;
+        } else {
+          return Collections.emptyList();
+        }
+      } else {
+        return Collections.emptyList();
+      }
+    }
+
+    // FIXME:
+    // Assuming that printing pointer values to the error path
+    // is helpful, it would kind of make sense to express
+    //   &(a[0]) == 50
+    // as
+    //   a = 50;
+    // but it is illegal C code.
+    // For now, just return no assignments
+    if (leftHandSide.getExpressionType().getCanonicalType() instanceof CArrayType) {
       return Collections.emptyList();
     }
 
@@ -339,7 +378,7 @@ public class AssignmentToEdgeAllocator {
     return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
   }
 
-  private List<IAssignment> handleAssignment(CAssignment assignment) {
+  private List<AAssignment> handleAssignment(CAssignment assignment) {
     CLeftHandSide leftHandSide = assignment.getLeftHandSide();
     return handleAssignment(leftHandSide);
   }
@@ -372,7 +411,7 @@ public class AssignmentToEdgeAllocator {
     return new ValueLiterals();
   }
 
-  private List<IAssignment> handleStatement(IAStatement pStatement) {
+  private List<AAssignment> handleStatement(AStatement pStatement) {
 
     if (pStatement instanceof CFunctionCallAssignmentStatement) {
       CAssignment assignmentStatement =
@@ -389,39 +428,69 @@ public class AssignmentToEdgeAllocator {
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleDeclaration(IASimpleDeclaration dcl, String pFunctionName) {
+  private List<AAssignment> handleDeclaration(ASimpleDeclaration dcl, String pFunctionName) {
 
     if (dcl instanceof CSimpleDeclaration) {
 
       CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
+
+      CType dclType = cDcl.getType();
 
       Object value = getValueObject(cDcl, pFunctionName);
 
       if (value == null) {
         return Collections.emptyList();
       }
+      // FIXME:
+      // We currently incorrectly assign the address of a struct to the struct:
+      // See for example ssh/s3_clnt.blast.01_false-unreach-call.i.cil.c,
+      // where
+      //   SSL_METHOD SSLv3_client_data = {  };
+      // becomes
+      //   SSLv3_client_data = 536870813;
+      // when actually, we want to express that
+      //   &(SSLv3_client_data) == 536870813
+      // Expression statements are currently not supported, though:
+      // This whole interface is based on assignments.
+      // For now, just return no assignments.
+      if (isStructOrUnionType(dclType)) {
+        return Collections.emptyList();
+      }
+
+      // FIXME:
+      // Say a is an array declared as
+      //   char a[80U];
+      // Assuming that printing pointer values to the error path
+      // is helpful, it would kind of make sense to express
+      //   &(a[0]) == 50
+      // as
+      //   a = 50;
+      // but it is illegal C code.
+      // For now, just return no assignments
+      if (dclType.getCanonicalType() instanceof CArrayType) {
+        return Collections.emptyList();
+      }
 
       CIdExpression idExpression = new CIdExpression(dcl.getFileLocation(), cDcl);
 
-      Type dclType = cDcl.getType();
       ValueLiterals valueAsCode =  getValueAsCode(value, dclType, idExpression, pFunctionName);
 
-      CIdExpression idExp = new CIdExpression(FileLocation.DUMMY, cDcl);
+      CLeftHandSide leftHandSide = new CIdExpression(FileLocation.DUMMY, cDcl);
 
-      return handleSimpleValueLiteralsAssignments(valueAsCode, idExp);
+      return handleSimpleValueLiteralsAssignments(valueAsCode, leftHandSide);
     }
 
     return Collections.emptyList();
   }
 
-  private List<IAssignment> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
+  private List<AAssignment> handleSimpleValueLiteralsAssignments(ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
 
-    List<IAssignment> statements = new ArrayList<>(subValues.size() + 1);
+    List<AAssignment> statements = new ArrayList<>(subValues.size() + 1);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
-      IAssignment statement =
+      AAssignment statement =
           new CExpressionAssignmentStatement(pLValue.getFileLocation(),
               pLValue, pValueLiterals.getExpressionValueLiteralAsCExpression());
 
@@ -429,7 +498,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     for (SubExpressionValueLiteral subValueLiteral : subValues) {
-      IAssignment statement =
+      AAssignment statement =
           new CExpressionAssignmentStatement(pLValue.getFileLocation(),
               subValueLiteral.getSubExpression(),
               subValueLiteral.getValueLiteralAsCExpression());
@@ -511,7 +580,7 @@ public class AssignmentToEdgeAllocator {
       try {
         ModelExpressionValueVisitor v = new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger));
         addressV = exp.accept(v);
-      } catch(ArithmeticException e) {
+      } catch (ArithmeticException e) {
         logger.logDebugException(e);
         logger.log(Level.WARNING, "The expression " + exp.toASTString() +
             "could not be correctly evaluated while calculating the concrete values "
@@ -571,7 +640,7 @@ public class AssignmentToEdgeAllocator {
 
       Address address = evaluateAddress(pIastFieldReference);
 
-      if(address == null) {
+      if (address == null) {
         return lookupReference(pIastFieldReference);
       }
 
@@ -664,7 +733,7 @@ public class AssignmentToEdgeAllocator {
 
       Address address = evaluateAddress(pCIdExpression);
 
-      if(address == null) {
+      if (address == null) {
         return lookupVariable(dcl);
       }
 
@@ -724,7 +793,7 @@ public class AssignmentToEdgeAllocator {
        * the address of a dereference is the evaluation of its operand*/
       Address address = evaluateAddress(pPointerExpression);
 
-      if(address == null) {
+      if (address == null) {
         return null;
       }
 
@@ -781,7 +850,7 @@ public class AssignmentToEdgeAllocator {
         // This works because arrays and structs evaluate to their addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
-        if(address == null) {
+        if (address == null) {
           return null;
         }
 
@@ -789,7 +858,7 @@ public class AssignmentToEdgeAllocator {
 
         Number subscriptValueNumber = evaluateNumericalValue(subscriptCExpression);
 
-        if(subscriptValueNumber == null) {
+        if (subscriptValueNumber == null) {
           return null;
         }
 
@@ -816,7 +885,7 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
 
-        if(fieldOffset == null) {
+        if (fieldOffset == null) {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
@@ -997,7 +1066,7 @@ public class AssignmentToEdgeAllocator {
 
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
 
-        if(value == null || !(value instanceof Number)) {
+        if (value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
@@ -1013,7 +1082,7 @@ public class AssignmentToEdgeAllocator {
       protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if(value == null || !(value instanceof Number)) {
+        if (value == null || !(value instanceof Number)) {
           return Value.UnknownValue.getInstance();
         }
 
@@ -1060,6 +1129,10 @@ public class AssignmentToEdgeAllocator {
 
       Address address = Address.valueOf(value);
 
+      if(address == null) {
+        return createUnknownValueLiterals();
+      }
+
       ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
@@ -1075,7 +1148,13 @@ public class AssignmentToEdgeAllocator {
     public ValueLiterals visit(CArrayType arrayType) throws RuntimeException {
       Address address = Address.valueOf(value);
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral;
+
+      if (address == null) {
+        return createUnknownValueLiterals();
+      }
+
+      valueLiteral = ExplicitValueLiteral.valueOf(address);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1114,7 +1193,7 @@ public class AssignmentToEdgeAllocator {
 
     @Override
     public ValueLiterals visit(CSimpleType simpleType) throws RuntimeException {
-      return new ValueLiterals(getValueLiteral(simpleType.getType(), value));
+      return new ValueLiterals(getValueLiteral(simpleType, value));
     }
 
     @Override
@@ -1136,6 +1215,10 @@ public class AssignmentToEdgeAllocator {
 
       Address address = Address.valueOf(value);
 
+      if(address == null) {
+        return createUnknownValueLiterals();
+      }
+
       ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
@@ -1147,15 +1230,18 @@ public class AssignmentToEdgeAllocator {
       return valueLiterals;
     }
 
-    protected ValueLiteral getValueLiteral(CBasicType basicType, Object pValue) {
+    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
+      CSimpleType simpleType = pSimpleType.getCanonicalType();
+      CBasicType basicType = simpleType.getType();
 
       switch (basicType) {
       case BOOL:
+      case CHAR:
       case INT:
-        return handleIntegerNumbers(pValue);
+        return handleIntegerNumbers(pValue, simpleType);
       case FLOAT:
       case DOUBLE:
-        return handleFloatingPointNumbers(pValue);
+        return handleFloatingPointNumbers(pValue, simpleType);
       }
 
       return UnknownValueLiteral.getInstance();
@@ -1165,16 +1251,42 @@ public class AssignmentToEdgeAllocator {
       return new ValueLiterals();
     }
 
-    private ValueLiteral handleFloatingPointNumbers(Object pValue) {
+    private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
 
-      String value = pValue.toString();
+      if (pValue instanceof Rational) {
+        double val = ((Rational) pValue).toDouble();
+        return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
-      if (value.matches("((-)?)((\\d*)|(.(\\d*))|((\\d*).)|((\\d*).(\\d*)))")) {
-        BigDecimal val = new BigDecimal(value);
-        return ExplicitValueLiteral.valueOf(val);
+      } else if (pValue instanceof Double) {
+        double doubleValue = ((Double)pValue).doubleValue();
+        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
+        return ExplicitValueLiteral.valueOf(new BigDecimal(doubleValue), pType);
+      } else if (pValue instanceof Float) {
+        float floatValue = ((Float)pValue).floatValue();
+        if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
+        return ExplicitValueLiteral.valueOf(new BigDecimal(floatValue), pType);
       }
 
-      return UnknownValueLiteral.getInstance();
+
+      String value = pValue.toString();
+      BigDecimal val;
+
+      //TODO support rationals
+      try {
+        val = new BigDecimal(value);
+      } catch (NumberFormatException e) {
+
+        logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
+        return UnknownValueLiteral.getInstance();
+      }
+
+      return ExplicitValueLiteral.valueOf(val, pType);
     }
 
     public void resolveStruct(CType type, ValueLiterals pValueLiterals,
@@ -1184,13 +1296,14 @@ public class AssignmentToEdgeAllocator {
       type.accept(v);
     }
 
-    private ValueLiteral handleIntegerNumbers(Object pValue) {
+    private ValueLiteral handleIntegerNumbers(Object pValue, CSimpleType pType) {
 
       String value = pValue.toString();
 
       if (value.matches("((-)?)\\d*")) {
         BigInteger integerValue = new BigInteger(value);
-        return ExplicitValueLiteral.valueOf(integerValue);
+
+        return handlePotentialIntegerOverflow(integerValue, pType);
       } else {
         String[] numberParts = value.split("\\.");
 
@@ -1199,17 +1312,43 @@ public class AssignmentToEdgeAllocator {
             numberParts[0].matches("((-)?)\\d*")) {
 
           BigInteger integerValue = new BigInteger(numberParts[0]);
-          return ExplicitValueLiteral.valueOf(integerValue);
+
+          return handlePotentialIntegerOverflow(integerValue, pType);
         }
       }
 
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue);
+      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType);
 
       if (valueLiteral.isUnknown()) {
         return valueLiteral;
       } else {
-        return valueLiteral.addCast(CNumericTypes.INT);
+        return valueLiteral.addCast(pType);
       }
+    }
+
+    /**
+     * Creates a value literal for the given value and adds a cast if the value
+     * does not fit into the specified type.
+     *
+     * @param pIntegerValue the value.
+     * @param pType the type.
+     *
+     * @return the value literal.
+     */
+    private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
+      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+
+      BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
+      BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
+
+      assert lowerInclusiveBound.compareTo(upperInclusiveBound) < 0;
+
+      if (pIntegerValue.compareTo(lowerInclusiveBound) < 0
+          || pIntegerValue.compareTo(upperInclusiveBound) > 0) {
+        result = result.addCast(pType);
+      }
+
+      return result;
     }
 
     /**
@@ -1280,11 +1419,11 @@ public class AssignmentToEdgeAllocator {
           // TODO Enum
         }
 
-        if(compType.getKind() == ComplexTypeKind.UNION) {
+        if (compType.getKind() == ComplexTypeKind.UNION) {
           //TODO Union
         }
 
-        if(compType.getKind() == ComplexTypeKind.STRUCT) {
+        if (compType.getKind() == ComplexTypeKind.STRUCT) {
           handleStruct(compType);
         }
 
@@ -1327,7 +1466,7 @@ public class AssignmentToEdgeAllocator {
                 expectedType, pType.getName(), subExp, isPointerDeref);
 
         // Arrays and structs are represented as addresses
-        if(expectedType instanceof CArrayType || isStructOrUnionType(expectedType)) {
+        if (expectedType instanceof CArrayType || isStructOrUnionType(expectedType)) {
           ValueLiteralVisitor v =
               new ValueLiteralVisitor(fieldAddress, valueLiterals, fieldReference, visited);
           expectedType.accept(v);
@@ -1336,7 +1475,7 @@ public class AssignmentToEdgeAllocator {
 
         Object fieldValue = modelAtEdge.getValueFromMemory(fieldReference, fieldAddress);
 
-        if(fieldValue == null) {
+        if (fieldValue == null) {
           return;
         }
 
@@ -1344,9 +1483,14 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (expectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) expectedType).getType(), fieldValue);
+          valueLiteral = getValueLiteral(((CSimpleType) expectedType), fieldValue);
         } else {
           valueAddress = Address.valueOf(fieldValue);
+
+          if(valueAddress == null) {
+            return;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1420,9 +1564,14 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (pExpectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType).getType(), value);
+          valueLiteral = getValueLiteral(((CSimpleType) pExpectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
+
+          if(valueAddress == null) {
+            return false;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1462,7 +1611,7 @@ public class AssignmentToEdgeAllocator {
 
         CPointerExpression pointerExp = new CPointerExpression(subExpression.getFileLocation(), expectedType, subExpression);
 
-        if(isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
+        if (isStructOrUnionType(expectedType) || expectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
 
           ValueLiteralVisitor v = new ValueLiteralVisitor(address, valueLiterals, pointerExp, visited);
@@ -1480,9 +1629,14 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (expectedType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) expectedType).getType(), value);
+          valueLiteral = getValueLiteral(((CSimpleType) expectedType), value);
         } else {
           valueAddress = Address.valueOf(value);
+
+          if(valueAddress == null) {
+            return null;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1563,7 +1717,7 @@ public class AssignmentToEdgeAllocator {
           return null;
         }
 
-        for(CCompositeTypeMemberDeclaration memberType : compType.getMembers()) {
+        for (CCompositeTypeMemberDeclaration memberType : compType.getMembers()) {
           handleField(memberType.getName(), memberType.getType());
         }
 
@@ -1598,9 +1752,14 @@ public class AssignmentToEdgeAllocator {
         Address valueAddress = null;
 
         if (realType instanceof CSimpleType) {
-          valueLiteral = getValueLiteral(((CSimpleType) realType).getType(), pFieldValue);
+          valueLiteral = getValueLiteral(((CSimpleType) realType), pFieldValue);
         } else {
           valueAddress = Address.valueOf(pFieldValue);
+
+          if(valueAddress == null) {
+            return;
+          }
+
           valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
         }
 
@@ -1716,6 +1875,12 @@ public class AssignmentToEdgeAllocator {
 
       Number number = address.getAsNumber();
 
+      if (number instanceof Long) {
+        number = BigInteger.valueOf((Long) number);
+      } else if (number instanceof Integer) {
+        number = BigInteger.valueOf((Integer) number);
+      }
+
       if (number instanceof BigInteger) {
         CLiteralExpression lit = new CIntegerLiteralExpression(
             FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, (BigInteger) number);
@@ -1746,14 +1911,14 @@ public class AssignmentToEdgeAllocator {
       return new CastedExplicitValueLiteral(explicitValueLiteral, castExpression);
     }
 
-    public static ValueLiteral valueOf(BigInteger value) {
-      CIntegerLiteralExpression literal = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, value);
+    public static ValueLiteral valueOf(BigInteger value, CSimpleType pType) {
+      CIntegerLiteralExpression literal = new CIntegerLiteralExpression(FileLocation.DUMMY, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(BigDecimal value) {
+    public static ValueLiteral valueOf(BigDecimal value, CSimpleType pType) {
 
-      CFloatLiteralExpression literal = new CFloatLiteralExpression(FileLocation.DUMMY, CNumericTypes.DOUBLE, value);
+      CFloatLiteralExpression literal = new CFloatLiteralExpression(FileLocation.DUMMY, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 
@@ -1814,4 +1979,5 @@ public class AssignmentToEdgeAllocator {
       return subExpression;
     }
   }
+
 }

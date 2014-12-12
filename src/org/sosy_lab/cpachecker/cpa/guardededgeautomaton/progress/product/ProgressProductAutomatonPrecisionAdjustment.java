@@ -44,9 +44,9 @@ public class ProgressProductAutomatonPrecisionAdjustment implements
   private static final ProgressPrecisionAdjustment mSubPrecisionAdjustment = new ProgressPrecisionAdjustment();
 
   @Override
-  public Triple<AbstractState, Precision, Action> prec(
+  public PrecisionAdjustmentResult prec(
       AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements) throws CPAException {
+      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
 
     ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
 
@@ -71,23 +71,22 @@ public class ProgressProductAutomatonPrecisionAdjustment implements
       Precision lSubprecision = lPrecision.get(lIndex);
 
       // TODO make use of reached set? or reimplement such that we adjust precision at this level?
-      Triple<AbstractState, Precision, Action> lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, null);
+      //Triple<AbstractState, Precision, Action> lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, null);
+      PrecisionAdjustmentResult lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, null, fullState);
 
-      if (lAdjustment.getThird().equals(Action.BREAK)) {
+      if (lAdjustment.action().equals(Action.BREAK)) {
         lAction = Action.BREAK;
       }
 
-      lAdjustedElements.add(lAdjustment.getFirst());
-      lAdjustedPrecisions.add(lAdjustment.getSecond());
+      lAdjustedElements.add(lAdjustment.abstractState());
+      lAdjustedPrecisions.add(lAdjustment.precision());
     }
 
     // TODO do we always throw away the wrapper ... can we optimize something?
     ProductAutomatonElement lAdjustedElement = ProductAutomatonElement.createElement(lAdjustedElements);
     CompositePrecision lAdjustedPrecision = new CompositePrecision(lAdjustedPrecisions);
 
-    Triple<AbstractState, Precision, Action> lResult = Triple.<AbstractState, Precision, Action>of(lAdjustedElement, lAdjustedPrecision, lAction);
-
-    return lResult;
+    return PrecisionAdjustmentResult.create(lAdjustedElement, lAdjustedPrecision, lAction);
   }
 
 }

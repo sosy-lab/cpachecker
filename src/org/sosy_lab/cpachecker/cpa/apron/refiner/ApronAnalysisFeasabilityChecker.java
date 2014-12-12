@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -36,22 +35,26 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
-import org.sosy_lab.cpachecker.cpa.apron.precision.RefineableApronPrecision;
-import org.sosy_lab.cpachecker.cpa.apron.precision.StaticFullApronPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.AssumptionUseDefinitionCollector;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import apron.ApronException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Multimap;
 
 public class ApronAnalysisFeasabilityChecker {
 
@@ -59,10 +62,10 @@ public class ApronAnalysisFeasabilityChecker {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final ARGPath checkedPath;
-  private final ARGPath foundPath;
+  private final MutableARGPath checkedPath;
+  private final MutableARGPath foundPath;
 
-  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, ARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
+  public ApronAnalysisFeasabilityChecker(CFA cfa, LogManager log, ShutdownNotifier pShutdownNotifier, MutableARGPath path, ApronCPA cpa) throws InvalidConfigurationException, CPAException, InterruptedException, ApronException {
     logger = log;
     shutdownNotifier = pShutdownNotifier;
 
@@ -70,9 +73,10 @@ public class ApronAnalysisFeasabilityChecker {
     transfer  = new ApronTransferRelation(logger, cfa);
     checkedPath = path;
 
-    // use a new configuration which only has the default values for the precision
-    // we do not want any special options to be set there
-    foundPath = getInfeasiblePrefix(new StaticFullApronPrecision(),
+    // use a new configuration which only has a static precision
+    foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(cpa.getConfiguration(),
+                                                                                    cfa.getVarClassification(),
+                                                                                    ApronCPA.class),
                                     new ApronState(logger, cpa.getManager()));
   }
 
@@ -88,24 +92,33 @@ public class ApronAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Set<String> getPrecisionIncrement(RefineableApronPrecision precision) {
+  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision precision) {
     if (isFeasible()) {
-      return Collections.emptySet();
+      return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
-      Set<String> varNames;
+      Set<MemoryLocation> varNames = new HashSet<>();
       LinkedList<CFAEdge> edgesList = new LinkedList<>(foundPath.asEdgesList());
 
       // search for new trackable variables until we find some
       do {
-        varNames = Sets.difference(new AssumptionUseDefinitionCollector().obtainUseDefInformation(edgesList),
-                                   precision.getTrackedVars());
+        varNames.addAll(FluentIterable.from(new AssumptionUseDefinitionCollector().obtainUseDefInformation(edgesList)).transform(new Function<String, MemoryLocation>() {
+          @Override
+          public MemoryLocation apply(String pInput) {
+            return MemoryLocation.valueOf(pInput);
+          }}).toSet());
         edgesList.removeLast();
         while (!edgesList.isEmpty() && !(edgesList.getLast() instanceof AssumeEdge)) {
           edgesList.removeLast();
         }
       } while (varNames.isEmpty() && !edgesList.isEmpty());
 
-      return varNames;
+      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
+
+      for (MemoryLocation loc : varNames) {
+        increment.put(new CFANode("BOGUS-NODE"), loc);
+      }
+
+      return increment;
     }
   }
 
@@ -120,19 +133,19 @@ public class ApronAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private ARGPath getInfeasiblePrefix(final StaticFullApronPrecision pPrecision, final ApronState pInitial)
+  private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final ApronState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<ApronState> next = Lists.newArrayList(pInitial);
 
-      ARGPath prefix = new ARGPath();
+      MutableARGPath prefix = new MutableARGPath();
 
       Collection<ApronState> successors = new HashSet<>();
 
       for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
         successors.clear();
         for (ApronState st : next) {
-          successors.addAll(transfer.getAbstractSuccessors(
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
               pathElement.getSecond()));
@@ -150,7 +163,7 @@ public class ApronAnalysisFeasabilityChecker {
         prefix.addLast(pathElement);
 
         // no successors => path is infeasible
-        if(successors.isEmpty()) {
+        if (successors.isEmpty()) {
           break;
         }
 

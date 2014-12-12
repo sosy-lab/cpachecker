@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class DefUseTransferRelation implements TransferRelation {
+public class DefUseTransferRelation extends SingleEdgeTransferRelation {
   private DefUseState handleExpression(DefUseState defUseState, CStatement expression, CFAEdge cfaEdge) {
     if (expression instanceof CAssignment) {
       CAssignment assignExpression = (CAssignment) expression;
@@ -68,7 +68,9 @@ public class DefUseTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision prec, CFAEdge cfaEdge)
+          throws CPATransferException {
     DefUseState defUseState = (DefUseState) element;
 
     switch (cfaEdge.getEdgeType()) {
@@ -83,6 +85,9 @@ public class DefUseTransferRelation implements TransferRelation {
       defUseState = handleDeclaration(defUseState, declarationEdge);
       break;
     }
+    default:
+      // not relevant for def-use
+      break;
     }
 
     return Collections.singleton(defUseState);

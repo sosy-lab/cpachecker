@@ -27,12 +27,14 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -44,19 +46,33 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssignments;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssignments;
@@ -75,7 +91,11 @@ import org.w3c.dom.Element;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
@@ -87,22 +107,22 @@ import com.google.common.collect.TreeRangeSet;
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExport {
 
-  @Option(description="Verification witness: Include function calls and function returns?")
+  @Option(secure=true, description="Verification witness: Include function calls and function returns?")
   boolean exportFunctionCallsAndReturns = true;
 
-  @Option(description="Verification witness: Include assumptions (C statements)?")
+  @Option(secure=true, description="Verification witness: Include assumptions (C statements)?")
   boolean exportAssumptions = true;
 
-  @Option(description="Verification witness: Include the considered case of an assume?")
+  @Option(secure=true, description="Verification witness: Include the considered case of an assume?")
   boolean exportAssumeCaseInfo = true;
 
-  @Option(description="Verification witness: Include the token numbers of the operations on the transitions?")
+  @Option(secure=true, description="Verification witness: Include the token numbers of the operations on the transitions?")
   boolean exportTokenNumbers = true;
 
-  @Option(description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
+  @Option(secure=true, description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
   boolean exportLineNumbers = true;
 
-  @Option(description="Verification witness: Include the sourcecode of the operations?")
+  @Option(secure=true, description="Verification witness: Include the sourcecode of the operations?")
   boolean exportSourcecode = true;
 
   public ARGPathExport(Configuration config) throws InvalidConfigurationException {
@@ -142,32 +162,8 @@ public class ARGPathExport {
     return String.format("A%d%s", state.getStateId(), identPostfix);
   }
 
-  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount)
-  {
+  private String getPseudoStateIdent(ARGState state, int subStateNo, int subStateCount) {
     return getStateIdent(state, String.format("_%d_%d", subStateNo, subStateCount));
-  }
-
-  private boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (edge instanceof BlankEdge) {
-      return true;
-    } else if (edge instanceof CFunctionReturnEdge) {
-      return true;
-    } else if (edge instanceof CDeclarationEdge) {
-      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
-      CDeclaration decl = declEdge.getDeclaration();
-      if (decl instanceof CFunctionDeclaration) {
-        return true;
-      } else if (decl instanceof CTypeDeclaration) {
-        return true;
-      } else if (decl instanceof CVariableDeclaration) {
-        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-        if (varDecl.getInitializer() == null) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   private static class TransitionCondition {
@@ -188,7 +184,7 @@ public class ARGPathExport {
       return this.keyValues.equals(oT.keyValues);
     }
 
-    public boolean hasTransitionRestrictions(){
+    public boolean hasTransitionRestrictions() {
       return !keyValues.isEmpty();
     }
 
@@ -198,7 +194,7 @@ public class ARGPathExport {
     }
   }
 
-  private class AggregatedEdge {
+  private static class AggregatedEdge {
     public final String source;
     public final String targetRepresentedBy;
     public final TransitionCondition condition;
@@ -251,6 +247,7 @@ public class ARGPathExport {
     private final Multimap<String, AggregatedEdge> sourceToTargetMap = HashMultimap.create();
     private final Multimap<String, AggregatedEdge> targetToSourceMap = HashMultimap.create();
     private final Map<String, Element> delayedNodes = Maps.newHashMap();
+    private final Map<DelayedAssignmentsKey, CFAEdgeWithAssignments> delayedAssignments = Maps.newHashMap();
 
     private final String defaultSourcefileName;
 
@@ -369,9 +366,12 @@ public class ARGPathExport {
       return false;
     }
 
-    private TransitionCondition constructTransitionCondition(String from, String to, CFAEdge edge, ARGState fromState,
+    private TransitionCondition constructTransitionCondition(String from, String to, final CFAEdge edge, ARGState fromState,
         Map<ARGState, CFAEdgeWithAssignments> valueMap) {
       TransitionCondition desc = new TransitionCondition();
+
+      //desc.put(KeyDef.CFAPREDECESSORNODE, edge.getPredecessor().toString());
+      //desc.put(KeyDef.CFASUCCESSORNODE, edge.getSuccessor().toString());
 
       if (exportFunctionCallsAndReturns) {
         if (edge.getSuccessor() instanceof FunctionEntryNode) {
@@ -384,16 +384,52 @@ public class ARGPathExport {
       }
 
       if (exportAssumptions) {
-        if (fromState != null && valueMap != null && valueMap.containsKey(fromState)) {
-          CFAEdgeWithAssignments cfaEdgeWithAssignments = valueMap.get(fromState);
-          String code = cfaEdgeWithAssignments.getAsCode();
-          if (code != null) {
-            desc.put(KeyDef.ASSUMPTION, code);
+        if (fromState != null) {
+          DelayedAssignmentsKey key = new DelayedAssignmentsKey(from, edge, fromState);
+          CFAEdgeWithAssignments cfaEdgeWithAssignments = delayedAssignments.get(key);
+
+          if (valueMap != null && valueMap.containsKey(fromState)) {
+            CFAEdgeWithAssignments currentEdgeWithAssignments = valueMap.get(fromState);
+            if (cfaEdgeWithAssignments == null) {
+              cfaEdgeWithAssignments = currentEdgeWithAssignments;
+            } else {
+              List<AAssignment> delayedAssignments = cfaEdgeWithAssignments.getAssignments();
+              List<AAssignment> currentAssignments = currentEdgeWithAssignments.getAssignments();
+              List<AAssignment> allAssignments = new ArrayList<>(delayedAssignments.size() + currentAssignments.size());
+              allAssignments.addAll(delayedAssignments);
+              allAssignments.addAll(currentAssignments);
+              cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, allAssignments, currentEdgeWithAssignments.getComment());
+            }
+          }
+
+          if (cfaEdgeWithAssignments != null) {
+            List<AAssignment> assignments = cfaEdgeWithAssignments.getAssignments();
+            Predicate<AAssignment> assignsParameterOfOtherFunction = new AssignsParameterOfOtherFunction(edge);
+            List<AAssignment> functionValidAssignments = FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+            if (functionValidAssignments.size() < assignments.size()) {
+              cfaEdgeWithAssignments = new CFAEdgeWithAssignments(edge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+              FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(edge.getSuccessor());
+              if (nextEdges.size() == 1 && fromState.getChildren().size() == 1) {
+                String keyFrom = to;
+                CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
+                ARGState keyState = Iterables.getOnlyElement(fromState.getChildren());
+                List<AAssignment> valueAssignments = FluentIterable.from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
+                CFAEdgeWithAssignments valueCFAEdgeWithAssignments =
+                    new CFAEdgeWithAssignments(keyEdge, valueAssignments, "");
+                delayedAssignments.put(
+                    new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
+                    valueCFAEdgeWithAssignments);
+              }
+            }
+            String code = cfaEdgeWithAssignments.getAsCode();
+            if (code != null) {
+              desc.put(KeyDef.ASSUMPTION, code);
+            }
           }
         }
       }
 
-      if (!handleAsEpsilonEdge(edge)) {
+      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(edge)) {
         if (exportAssumeCaseInfo) {
           if (edge instanceof AssumeEdge) {
             AssumeEdge a = (AssumeEdge) edge;
@@ -460,12 +496,10 @@ public class ARGPathExport {
       Map<ARGState, CFAEdgeWithAssignments> valueMap = null;
       if (pCounterExample != null) {
         Model model = pCounterExample.getTargetPathModel();
-        if (model != null) {
-          CFAPathWithAssignments cfaPath = model.getAssignedTermsPerEdge();
-          if (cfaPath != null) {
-            ARGPath targetPath = pCounterExample.getTargetPath();
-            valueMap = model.getExactVariableValues(targetPath);
-          }
+        CFAPathWithAssignments cfaPath = model.getCFAPathWithAssignments();
+        if (cfaPath != null) {
+          ARGPath targetPath = pCounterExample.getTargetPath();
+          valueMap = model.getExactVariableValues(targetPath);
         }
       }
 
@@ -549,7 +583,7 @@ public class ARGPathExport {
               CFAEdge innerEdge = edges.get(i);
               String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
 
-              assert(!(innerEdge instanceof AssumeEdge));
+              assert (!(innerEdge instanceof AssumeEdge));
 
               appendNewPathNode(doc, pseudoStateId, EnumSet.noneOf(NodeFlag.class));
               appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);
@@ -566,6 +600,7 @@ public class ARGPathExport {
             if (isEdgeOnPath) {
               // Child belongs to the path!
               appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
+              worklist.add(child);
             } else {
               // Child does not belong to the path --> add a branch to the SINK node!
               if (!sinkNodeWritten) {
@@ -576,13 +611,146 @@ public class ARGPathExport {
               appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
             }
           }
-
-          worklist.add(child);
         }
       }
 
       doc.appendFooter();
     }
+  }
+
+  private static class DelayedAssignmentsKey {
+
+    private final String from;
+
+    private final CFAEdge edge;
+
+    private final ARGState state;
+
+    public DelayedAssignmentsKey(String pFrom, CFAEdge pEdge, ARGState pState) {
+      this.from = pFrom;
+      this.edge = pEdge;
+      this.state = pState;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(from, edge, state);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof DelayedAssignmentsKey) {
+        DelayedAssignmentsKey other = (DelayedAssignmentsKey) pObj;
+        return Objects.equals(from, other.from)
+            && Objects.equals(edge, other.edge)
+            && Objects.equals(state, other.state);
+      }
+      return false;
+    }
+
+  }
+
+  private static class AssignsParameterOfOtherFunction implements Predicate<AAssignment> {
+
+    private final CFAEdge edge;
+
+    private final String qualifier;
+
+    public AssignsParameterOfOtherFunction(CFAEdge pEdge) {
+      edge = pEdge;
+      String currentFunctionName = pEdge.getPredecessor().getFunctionName();
+      qualifier = Strings.isNullOrEmpty(currentFunctionName) ? "" : currentFunctionName + "::";
+    }
+
+    @Override
+    public boolean apply(AAssignment pArg0) {
+      ALeftHandSide leftHandSide = pArg0.getLeftHandSide();
+      if (!(leftHandSide instanceof CLeftHandSide)) {
+        return false;
+      }
+      CLeftHandSide cLeftHandSide = (CLeftHandSide) leftHandSide;
+      return cLeftHandSide.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
+
+        @Override
+        public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
+          return pIastArraySubscriptExpression.getArrayExpression().accept(this)
+              && pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
+          return pIastFieldReference.getFieldOwner().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
+          CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
+          if (declaration instanceof CParameterDeclaration && edge instanceof FunctionCallEdge) {
+            return declaration.getQualifiedName().startsWith(qualifier);
+          }
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CPointerExpression pPointerExpression) throws RuntimeException {
+          return pPointerExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+          return pComplexCastExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+          return pIastBinaryExpression.getOperand1().accept(this)
+              && pIastBinaryExpression.getOperand2().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+          return pIastCastExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws RuntimeException {
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws RuntimeException {
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws RuntimeException {
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+          return true;
+        }
+
+        @Override
+        public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+          return pIastUnaryExpression.getOperand().accept(this);
+        }
+
+        @Override
+        public Boolean visit(CImaginaryLiteralExpression pIastLiteralExpression) throws RuntimeException {
+          return pIastLiteralExpression.getValue().accept(this);
+        }});
+    }
+
   }
 
 }

@@ -28,8 +28,6 @@ import java.util.List;
 
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 
 /**
@@ -41,44 +39,12 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
  * All methods are expected to throw {@link IllegalStateException}s after
  * close was called.
  */
-public interface ProverEnvironment extends AutoCloseable {
+public interface ProverEnvironment extends BasicProverEnvironment {
 
   /**
    * Add a formula to the environment stack, asserting it.
    */
   void push(BooleanFormula f);
-
-  /**
-   * Remove one formula from the environment stack.
-   */
-  void pop();
-
-  /**
-   * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   * @throws InterruptedException
-   */
-  boolean isUnsat() throws InterruptedException;
-
-  /**
-   * Perform the maximization of the variable {@code f}, subject to the
-   * constraints returned by the context.
-   *
-   * Optional operation, may not be supported by all solvers.
-   *
-   * @param f Variable to maximize.
-   * @param maximize Iff true, perform maximization. Minimization otherwise.
-   * @return Status of the optimization problem.
-   * The solution can be obtained from the model.
-   * @throws InterruptedException
-   * @throws UnsupportedOperationException If solver does not support optimization.
-   */
-  OptResult isOpt(Formula f, boolean maximize) throws InterruptedException, UnsupportedOperationException;
-
-  /**
-   * Get a satisfying assignment.
-   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
-   */
-  Model getModel() throws SolverException;
 
   /**
    * Get an unsat core.
@@ -101,9 +67,6 @@ public interface ProverEnvironment extends AutoCloseable {
   AllSatResult allSat(Collection<BooleanFormula> important,
                       RegionCreator mgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException;
 
-  @Override
-  void close();
-
   interface AllSatResult {
 
     /**
@@ -118,13 +81,4 @@ public interface ProverEnvironment extends AutoCloseable {
     public int getCount();
   }
 
-  /**
-   * Optimization result.
-   */
-  enum OptResult {
-    OPT, // All good, the solution was found.
-    UNSAT,  // SMT problem is unsatisfiable.
-    UNDEF, // The result is unknown.
-    UNBOUNDED // The optimization problem is unbounded.
-  }
 }

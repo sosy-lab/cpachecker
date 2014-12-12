@@ -35,14 +35,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -55,10 +53,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -73,16 +70,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState.EdgeBasedAbstractionStrategyFactories;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -102,26 +96,26 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   @Options(prefix="cpa.invariants")
   public static class InvariantsOptions {
 
-    @Option(values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
+    @Option(secure=true, values={"JOIN", "SEP", "PRECISIONDEPENDENT"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "PRECISIONDEPENDENT";
 
-    @Option(description="determine target locations in advance and analyse paths to the target locations only.")
+    @Option(secure=true, description="determine target locations in advance and analyse paths to the target locations only.")
     private boolean analyzeTargetPathsOnly = true;
 
-    @Option(description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
+    @Option(secure=true, description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
+    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
     private volatile int interestingVariableLimit = 2;
 
-    @Option(description="the maximum tree depth of a formula recorded in the environment.")
+    @Option(secure=true, description="the maximum tree depth of a formula recorded in the environment.")
     private int maximumFormulaDepth = 4;
 
-    @Option(description="controls whether to use abstract evaluation always, never, or only on already previously visited edges.")
-    private EdgeBasedAbstractionStrategyFactories edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
+    @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
+    private AbstractionStateFactories abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
 
-    @Option(description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
+    @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
 
   }
@@ -166,11 +160,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private final ConditionAdjuster conditionAdjuster;
 
-  private Map<CFANode, ImmutableSet<CFANode>> reachableTargetLocations = new HashMap<>();
-
   private final Set<String> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
+  private final AbstractDomain abstractDomain;
 
   /**
    * Gets a factory for creating InvariantCPAs.
@@ -202,13 +195,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();
+    abstractDomain = DelegateAbstractDomain.<InvariantsState>getInstance();
     if (pOptions.merge.equalsIgnoreCase("precisiondependent")) {
       mergeOperator = new InvariantsMergeOperator();
     } else if (pOptions.merge.equalsIgnoreCase("sep")) {
       mergeOperator = MergeSepOperator.getInstance();
     } else {
       assert pOptions.merge.equalsIgnoreCase("join");
-      mergeOperator = new MergeJoinOperator(InvariantsDomain.INSTANCE);
+      mergeOperator = new MergeJoinOperator(abstractDomain);
     }
   }
 
@@ -219,7 +213,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return InvariantsDomain.INSTANCE;
+    return abstractDomain;
   }
 
   @Override
@@ -247,14 +241,15 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
-      targetLocations = tryGetTargetLocations(pNode);
+      TargetLocationProvider tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logManager, config, cfa);
+      targetLocations = tlp.tryGetAutomatonTargetLocations(pNode);
       determineTargetLocations = targetLocations != null;
       if (targetLocations == null) {
         targetLocations = ImmutableSet.of();
       }
     }
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.abstractionStateFactory.getAbstractionState());
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -291,7 +286,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(new AcceptAllVariableSelection<CompoundInterval>(), machineModel, options.abstractionStateFactory.getAbstractionState());
     }
 
     // Try to specify all relevant variables
@@ -330,17 +325,17 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
         options.maximumFormulaDepth,
-        options.edgeBasedAbstractionStrategyFactory);
+        options.abstractionStateFactory);
 
     initialPrecisionMap.put(pNode, precision);
 
     InvariantsState invariant = invariants.get(pNode);
     if (invariant != null) {
-      return new InvariantsState(variableSelection, machineModel, invariant, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+      return new InvariantsState(variableSelection, machineModel, invariant, options.abstractionStateFactory.getAbstractionState());
     }
 
     // Create the configured initial state
-    return new InvariantsState(variableSelection, machineModel, options.edgeBasedAbstractionStrategyFactory.getAbstractionStrategy());
+    return new InvariantsState(variableSelection, machineModel, options.abstractionStateFactory.getAbstractionState());
   }
 
   @Override
@@ -350,53 +345,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       return precision;
     }
     getInitialState(pNode);
-    return initialPrecisionMap.get(pNode);
-  }
+    precision = initialPrecisionMap.get(pNode);
 
-  public ImmutableSet<CFANode> tryGetTargetLocations(CFANode pInitialNode) {
-    ImmutableSet<CFANode> targetLocations = this.reachableTargetLocations.get(pInitialNode);
-    if (targetLocations != null) {
-      return targetLocations;
+    // If no precision was mapped to the state, use the empty precision
+    if (precision == null) {
+      return InvariantsPrecision.getEmptyPrecision();
     }
-    try {
-      // Create new configuration based on existing config but with default set of CPAs
-      String specificationPropertyName = "specification";
-      ConfigurationBuilder configurationBuilder = extractOptionFrom(config, specificationPropertyName);
-      configurationBuilder.setOption("output.disable", "true");
-      configurationBuilder.setOption("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA");
-      configurationBuilder.setOption("cpa.callstack.skipRecursion", "true");
-      if (config.getProperty(specificationPropertyName) == null) {
-        String specification = "config/specification/default.spc";
-        configurationBuilder.setOption(specificationPropertyName, specification);
-      }
-      Configuration configuration = configurationBuilder.build();
-      CPABuilder cpaBuilder = new CPABuilder(configuration, logManager, shutdownNotifier, reachedSetFactory);
-      ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAs(cfa);
-
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pInitialNode), cpa.getInitialPrecision(pInitialNode));
-      CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
-
-      Set<CFANode> tmpTargetLocations = new HashSet<>();
-
-      boolean changed = true;
-      while (changed) {
-        targetFindingAlgorithm.run(reached);
-        changed = tmpTargetLocations.addAll(FluentIterable.from(reached).filter(AbstractStates.IS_TARGET_STATE).transform(AbstractStates.EXTRACT_LOCATION).toList());
-      }
-
-      targetLocations = ImmutableSet.copyOf(tmpTargetLocations);
-
-      CPAs.closeCpaIfPossible(cpa, logManager);
-      CPAs.closeIfPossible(targetFindingAlgorithm, logManager);
-      this.reachableTargetLocations.put(pInitialNode, targetLocations);
-      return targetLocations;
-    } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-      if (!shutdownNotifier.shouldShutdown()) {
-        logManager.logException(Level.WARNING, e, "Unable to find target locations. Defaulting to selecting all locations.");
-      }
-      return null;
-    }
+    return precision;
   }
 
   public void injectInvariant(CFANode pLocation, InvariantsState pInvariant) {
@@ -588,7 +543,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
           @Override
           public boolean adjustConditions() {
-            return true;
+            return false;
           }
 
           @Override
@@ -798,14 +753,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Override
     public boolean adjustConditions() {
-      if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.ALWAYS) {
-        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.VISITED_EDGES;
-      } else if (cpa.options.edgeBasedAbstractionStrategyFactory == EdgeBasedAbstractionStrategyFactories.VISITED_EDGES) {
-        cpa.options.edgeBasedAbstractionStrategyFactory = EdgeBasedAbstractionStrategyFactories.NEVER;
+      if (cpa.options.abstractionStateFactory == AbstractionStateFactories.ALWAYS) {
+        cpa.options.abstractionStateFactory = AbstractionStateFactories.ENTERING_EDGES;
+      } else if (cpa.options.abstractionStateFactory == AbstractionStateFactories.ENTERING_EDGES) {
+        cpa.options.abstractionStateFactory = AbstractionStateFactories.NEVER;
       } else {
         return false;
       }
-      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.edgeBasedAbstractionStrategyFactory);
+      cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
       return true;
     }
 
@@ -816,24 +771,5 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-  private static ConfigurationBuilder extractOptionFrom(Configuration pConfiguration, String pKey) {
-    ConfigurationBuilder builder = Configuration.builder().copyFrom(pConfiguration);
-    try (Scanner pairScanner = new Scanner(pConfiguration.asPropertiesString())) {
-      pairScanner.useDelimiter("\\s+");
-      while (pairScanner.hasNext()) {
-        String pair = pairScanner.next();
-        try (Scanner keyScanner = new Scanner(pair)) {
-          keyScanner.useDelimiter("\\s*=\\s*.*");
-          if (keyScanner.hasNext()) {
-            String key = keyScanner.next();
-            if (!key.equals(pKey)) {
-              builder.clearOption(key);
-            }
-          }
-        }
-      }
-    }
-    return builder;
-  }
 
 }

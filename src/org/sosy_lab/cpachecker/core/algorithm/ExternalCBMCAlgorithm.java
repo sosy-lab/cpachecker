@@ -54,27 +54,27 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final Stats stats = new Stats();
 
-  @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
+  @Option(secure=true, name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
       private String mainFunctionName = "main";
 
-  @Option(name="cbmc.timelimit",
+  @Option(secure=true, name="cbmc.timelimit",
       description="maximum time limit for CBMC (0 is infinite)")
       private int timelimit = 0; // milliseconds
 
-  @Option(name="cbmc.options.intWidth",
+  @Option(secure=true, name="cbmc.options.intWidth",
       description="set width of int (16, 32 or 64)")
       private int intWidth = 32;
 
-  @Option(name="cbmc.options.errorLabel",
+  @Option(secure=true, name="cbmc.options.errorLabel",
       description="specify the name of the error label")
       private String errorLabel = "ERROR";
 
-  @Option(name="cbmc.options.unwindings",
+  @Option(secure=true, name="cbmc.options.unwindings",
       description="specify the limit for unwindings (0 is infinite)")
       private int unwind = 0;
 
-  @Option(name="cbmc.options.nuaf",
+  @Option(secure=true, name="cbmc.options.nuaf",
       description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
@@ -182,8 +182,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-      return ViolatedProperty.OTHER;
+    public String getViolatedPropertyDescription() throws IllegalStateException {
+      return "";
     }
   }
 }

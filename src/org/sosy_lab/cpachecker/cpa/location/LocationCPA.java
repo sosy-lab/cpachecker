@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -58,11 +61,11 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final TransferRelation transferRelation;
+  private final LocationTransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPA(CFA pCfa) {
-    stateFactory = new LocationStateFactory(pCfa, false);
+  public LocationCPA(CFA pCfa, Configuration config) throws InvalidConfigurationException {
+    stateFactory = new LocationStateFactory(pCfa, LocationStateType.FORWARD, config);
     transferRelation = new LocationTransferRelation(stateFactory);
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -72,7 +75,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   public static CPAFactory factory() {
-    return new LocationCPAFactory(false);
+    return new LocationCPAFactory(LocationStateType.FORWARD);
   }
 
   @Override
@@ -117,7 +120,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(transferRelation.getAbstractSuccessors(pElement, null, pCfaEdge));
+    return pSuccessors.equals(transferRelation.getAbstractSuccessorsForEdge(
+        pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override

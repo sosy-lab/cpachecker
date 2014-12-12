@@ -24,27 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.TargetableWithPredicatedAnalysis;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-public class IntervalAnalysisState implements AbstractState, TargetableWithPredicatedAnalysis, Serializable {
+import com.google.common.base.Splitter;
+
+public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
+    AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2030700797958100666L;
-  private static IntervalTargetChecker targetChecker;
-  private static boolean ignoreRefInMerge;
 
-  static void init(Configuration config, boolean pIgnoreRefCount) throws InvalidConfigurationException{
-    targetChecker = new IntervalTargetChecker(config);
-    ignoreRefInMerge = pIgnoreRefCount;
-  }
+  private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
   /**
    * the intervals of the element
@@ -132,7 +131,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    */
   // see ExplicitState::assignConstant
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
-    if(interval.isUnbound()){
+    if (interval.isUnbound()) {
       removeInterval(variableName);
       return this;
     }
@@ -168,8 +167,8 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   public void dropFrame(String pCalledFunctionName) {
-    for(String variableName : intervals.keySet()){
-      if(variableName.startsWith(pCalledFunctionName+"::")){
+    for (String variableName : intervals.keySet()) {
+      if (variableName.startsWith(pCalledFunctionName+"::")) {
         removeInterval(variableName);
       }
     }
@@ -181,6 +180,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state to join this element with
    * @return a new state representing the join of this element and the reached state
    */
+  @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
     boolean changed = false;
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
@@ -203,10 +203,14 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
 
         // update the references
         newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (!ignoreRefInMerge && newRefCount > reachedState.getReferenceCount(variableName)) {
+        if (mergedInterval != reachedState.getInterval(variableName)
+            && newRefCount > reachedState.getReferenceCount(variableName)) {
           changed = true;
+          newReferences = newReferences.putAndCopy(variableName, newRefCount);
+        } else {
+          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         }
-        newReferences = newReferences.putAndCopy(variableName, newRefCount);
+
       } else {
         newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
         changed = true;
@@ -226,6 +230,7 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
+  @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
     if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals
@@ -309,20 +314,81 @@ public class IntervalAnalysisState implements AbstractState, TargetableWithPredi
   }
 
   @Override
-  public boolean isTarget() {
-   return targetChecker == null? false: targetChecker.isTarget(this);
+  public String getCPAName() {
+    return "IntervalAnalysis";
   }
 
   @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    if(isTarget()){
-      return ViolatedProperty.OTHER;
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    List<String> parts = propertySplitter.splitToList(pProperty);
+
+    if (parts.size() == 2) {
+
+      // pProperty = value <= varName
+      if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
+        long value = Long.parseLong(parts.get(0));
+        Interval iv = getInterval(parts.get(1));
+        return (value <= iv.getLow());
+      }
+
+      // pProperty = varName <= value
+      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))){
+        long value = Long.parseLong(parts.get(1));
+        Interval iv = getInterval(parts.get(0));
+        return (iv.getHigh() <= value);
+      }
+
+      // pProperty = varName1 <= varName2
+      else {
+        Interval iv1 = getInterval(parts.get(0));
+        Interval iv2 = getInterval(parts.get(1));
+        return (iv1.contains(iv2));
+      }
+
+    // pProperty = value1 <= varName <= value2
+    } else if (parts.size() == 3){
+      if ( CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2)) ) {
+        long value1 = Long.parseLong(parts.get(0));
+        long value2 = Long.parseLong(parts.get(2));
+        Interval iv = getInterval(parts.get(1));
+        return (value1 <= iv.getLow() && iv.getHigh() <= value2);
+      }
     }
-    return null;
+
+    return false;
   }
 
   @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFmgr) {
-    return targetChecker== null? pFmgr.getBooleanFormulaManager().makeBoolean(false):targetChecker.getErrorCondition(this, pFmgr);
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return Boolean.valueOf(checkProperty(pProperty));
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("{");
+    // create a string like: x =  [low; high] (refCount)
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
+      sb.append(entry.getKey());
+      sb.append(" = ");
+      sb.append(entry.getValue());
+      sb.append(" (");
+      sb.append(referenceCounts.get(entry.getKey()));
+      sb.append("), ");
+    }
+    sb.append("}");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }

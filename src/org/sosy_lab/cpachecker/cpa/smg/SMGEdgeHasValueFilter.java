@@ -81,8 +81,7 @@ public class SMGEdgeHasValueFilter {
     if (value != null) {
       if (valueComplement && pEdge.getValue() == value) {
         return false;
-      }
-      else if ( (!valueComplement) && pEdge.getValue() != value) {
+      } else if ( (!valueComplement) && pEdge.getValue() != value) {
         return false;
       }
     }
@@ -106,5 +105,21 @@ public class SMGEdgeHasValueFilter {
       }
     }
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  public boolean edgeContainedIn(Set<SMGEdgeHasValue> pEdges) {
+
+    assert value != null;
+    assert object != null;
+    assert offset != null;
+    assert type != null;
+
+    for (SMGEdgeHasValue edge : pEdges) {
+      if (holdsFor(edge)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

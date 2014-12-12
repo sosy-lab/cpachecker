@@ -33,18 +33,16 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 
 public class CtoFormulaTypeHandler {
 
-  private final MachineModel machineModel;
+  protected final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-
-  private final BitvectorFormulaManagerView efmgr;
 
   private final BaseSizeofVisitor sizeofVisitor;
 
@@ -53,16 +51,16 @@ public class CtoFormulaTypeHandler {
   private final Map<CType, FormulaType<?>> typeCache = new IdentityHashMap<>();
 
   public CtoFormulaTypeHandler(LogManager pLogger,
+      FormulaEncodingOptions pOptions,
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    efmgr = pFmgr.getBitvectorFormulaManager();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
     final int bitsPerByte = machineModel.getSizeofCharInBits();
-    pointerType = efmgr.getFormulaType(pointerSize * bitsPerByte);
+    pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
   }
 
   /**
@@ -92,14 +90,30 @@ public class CtoFormulaTypeHandler {
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
     FormulaType<?> result = typeCache.get(type);
     if (result == null) {
-      int byteSize = getSizeof(type);
-
-      int bitsPerByte = machineModel.getSizeofCharInBits();
-      // byte to bits
-      result = efmgr.getFormulaType(byteSize * bitsPerByte);
+      result = getFormulaTypeFromCType0(type);
       typeCache.put(type, result);
     }
     return result;
+  }
+
+  protected FormulaType<?> getFormulaTypeFromCType0(CType type) {
+    if (type instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType)type;
+      switch (simpleType.getType()) {
+      case FLOAT:
+        return FormulaType.getSinglePrecisionFloatingPointType();
+      case DOUBLE:
+        return FormulaType.getDoublePrecisionFloatingPointType();
+      default:
+        break;
+      }
+    }
+
+    int byteSize = getSizeof(type);
+
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+    // byte to bits
+    return FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
   }
 
   public FormulaType<?> getPointerType() {

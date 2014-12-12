@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,12 +67,24 @@ public class PredicatePersistenceUtils {
   public static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
     StringBuilder fullString = new StringBuilder();
     Appenders.appendTo(fullString, fmgr.dumpFormula(f));
-
     List<String> lines = LINE_SPLITTER.splitToList(fullString);
-    assert !lines.isEmpty();
-    String formulaString = Iterables.getLast(lines);
+
+    String formulaString;
+    List<String> declarations;
+
+    if (lines.isEmpty()) {
+      if (fmgr.getBooleanFormulaManager().isTrue(f)) {
+        declarations = Collections.emptyList();
+        formulaString = "(assert true)";
+      } else {
+        throw new AssertionError();
+      }
+    } else {
+      declarations = lines.subList(0, lines.size()-1);
+      formulaString = Iterables.getLast(lines);
+    }
+
     assert formulaString.startsWith("(assert ") && formulaString.endsWith(")") : "Unexpected formula format: " + formulaString;
-    List<String> declarations = lines.subList(0, lines.size()-1);
 
     return Pair.of(formulaString, declarations);
   }

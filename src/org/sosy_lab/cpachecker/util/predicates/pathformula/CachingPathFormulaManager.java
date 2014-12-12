@@ -164,4 +164,5 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
+
 }

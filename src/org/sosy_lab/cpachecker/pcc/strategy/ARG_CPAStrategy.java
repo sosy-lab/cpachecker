@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="pcc")
 public class ARG_CPAStrategy extends AbstractARGStrategy {
 
-  @Option(
+  @Option(secure=true,
       name = "checkPropertyPerElement",
       description = "Enable if used property checker implements satisfiesProperty(AbstractState) and checked property is violated for a set iff an element in this set exists for which violates the property")
   private boolean singleCheck = false;
@@ -113,12 +113,12 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
   protected boolean checkSuccessors(final ARGState pPredecessor, final Collection<ARGState> pSuccessors,
       final Precision pPrecision) throws InterruptedException, CPAException {
     Collection<AbstractState> wrappedSuccessors = new ArrayList<>(pSuccessors.size());
-    for(ARGState succ: pSuccessors){
+    for (ARGState succ: pSuccessors) {
       wrappedSuccessors.add(succ.getWrappedState());
     }
 
     Collection<? extends AbstractState> computedSuccessors =
-        transfer.getAbstractSuccessors(pPredecessor.getWrappedState(), pPrecision, null);
+        transfer.getAbstractSuccessors(pPredecessor.getWrappedState(), pPrecision);
 
      for (AbstractState succ : computedSuccessors) {
        if (!checkCoverWithStopOp(succ, wrappedSuccessors, pPrecision)) {

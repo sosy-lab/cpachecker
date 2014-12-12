@@ -87,10 +87,10 @@ public abstract class AbstractIterationStrategy implements TestGenIterationStrat
     return model;
   }
 
-  protected ReachedSet getGlobalReached(){
+  protected ReachedSet getGlobalReached() {
     return getModel().getGlobalReached();
   }
-  protected ReachedSet getLocalReached(){
+  protected ReachedSet getLocalReached() {
     return getModel().getLocalReached();
   }
 

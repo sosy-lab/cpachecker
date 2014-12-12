@@ -40,9 +40,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -71,15 +72,12 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reached)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     /*
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    ARGPath newARGPath = new ARGPath();
-    for (Pair<ARGState, CFAEdge> pair : pExecutedPath) {
-      newARGPath.add(pair);
-    }
+    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
     /*
      * only by edge representation of the new path.
      */
@@ -96,8 +94,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
     long branchCounter = 0;
     long nodeCounter = 0;
     Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
-    while (branchingEdges.hasNext())
-    {
+    while (branchingEdges.hasNext()) {
       nodeCounter++;
       currentElement = branchingEdges.next();
       CFAEdge edge = currentElement.getSecond();
@@ -118,7 +115,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       // WARNING: some hack don't know if any good or enough
       // ----->
       final AbstractState currentElementTmp = currentElement.getFirst();
-      if(from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
+      if (from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
 
         @Override
         public boolean apply(AbstractState pInput) {
@@ -138,8 +135,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
         continue;
       }
 //      cpa.getTransferRelation().
-      if(lastElement == null)
-      {
+      if (lastElement == null) {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.FINER, "encountered an executed path that might be spurious.");
         lastElement = currentElement;
@@ -173,14 +169,12 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
       stats.afterPathCheck();
 
-      if (!traceInfo.isSpurious())
-      {
+      if (!traceInfo.isSpurious()) {
         newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
         handledDecisions.add(currentElement.getFirst());
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath);
-      }
-      else {
+        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
+      } else {
         lastElement = currentElement;
         continue;
       }
@@ -191,8 +185,8 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
 
   @Override
-  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPATransferException, InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.asEdgesList());
+  public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException, InterruptedException {
+    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
   }
 
 }

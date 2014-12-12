@@ -35,15 +35,21 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
  */
 public abstract class FormulaType<T extends Formula> {
 
-  FormulaType() {}
+  private FormulaType() {}
 
-  public abstract Class<T> getInterfaceType();
+  public boolean isArrayType() {
+    return false;
+  }
 
   public boolean isBitvectorType() {
     return false;
   }
 
   public boolean isBooleanType() {
+    return false;
+  }
+
+  public boolean isFloatingPointType() {
     return false;
   }
 
@@ -73,11 +79,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<RationalFormula> RationalType = new NumeralType<RationalFormula>() {
 
     @Override
-    public Class<RationalFormula> getInterfaceType() {
-      return RationalFormula.class;
-    }
-
-    @Override
     public boolean isRationalType() {
       return true;
     }
@@ -89,11 +90,6 @@ public abstract class FormulaType<T extends Formula> {
   };
 
   public static final FormulaType<IntegerFormula> IntegerType = new NumeralType<IntegerFormula>() {
-
-    @Override
-    public Class<IntegerFormula> getInterfaceType() {
-      return IntegerFormula.class;
-    }
 
     @Override
     public boolean isIntegerType() {
@@ -109,11 +105,6 @@ public abstract class FormulaType<T extends Formula> {
   public static final FormulaType<BooleanFormula> BooleanType = new FormulaType<BooleanFormula>() {
 
     @Override
-    public Class<BooleanFormula> getInterfaceType() {
-      return BooleanFormula.class;
-    }
-
-    @Override
     public boolean isBooleanType() {
       return true;
     }
@@ -124,22 +115,25 @@ public abstract class FormulaType<T extends Formula> {
     }
   };
 
+  public static BitvectorType getBitvectorTypeWithSize(int size) {
+    return BitvectorType.getBitvectorType(size);
+  }
+
   public static final class BitvectorType extends FormulaType<BitvectorFormula> {
     private final int size;
 
     private BitvectorType(int size) {
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new HashMap<>();
+    private static Map<Integer, BitvectorType> table = new HashMap<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
-     * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.
      * @param size
      * @return
      */
-    public static FormulaType<BitvectorFormula> getBitvectorType(int size) {
+    private static BitvectorType getBitvectorType(int size) {
       int hashValue = size;
-      FormulaType<BitvectorFormula> value = table.get(hashValue);
+      BitvectorType value = table.get(hashValue);
       if (value == null) {
         value = new BitvectorType(size);
         table.put(hashValue, value);
@@ -157,12 +151,7 @@ public abstract class FormulaType<T extends Formula> {
     }
 
     public BitvectorType withSize(int size) {
-      return (BitvectorType) getBitvectorType(size);
-    }
-
-    @Override
-    public Class<BitvectorFormula> getInterfaceType() {
-      return BitvectorFormula.class;
+      return getBitvectorType(size);
     }
 
     @Override
@@ -170,4 +159,102 @@ public abstract class FormulaType<T extends Formula> {
       return "Bitvector<" + getSize() + ">";
     }
   }
+
+  public static FloatingPointType getFloatingPointType(int exponentSize, int mantissaSize) {
+    return new FloatingPointType(exponentSize, mantissaSize);
+  }
+
+  private static final FloatingPointType SINGLE_PRECISION_FP_TYPE = new FloatingPointType(8, 23);
+  private static final FloatingPointType DOUBLE_PRECISION_FP_TYPE = new FloatingPointType(11, 52);
+
+  public static FloatingPointType getSinglePrecisionFloatingPointType() {
+    return SINGLE_PRECISION_FP_TYPE;
+  }
+
+  public static FloatingPointType getDoublePrecisionFloatingPointType() {
+    return DOUBLE_PRECISION_FP_TYPE;
+  }
+
+  public static final class ArrayFormulaType<TI extends Formula, TE extends Formula>
+  extends FormulaType<ArrayFormula<TI,TE>> {
+
+    private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+
+    public ArrayFormulaType(FormulaType<TI> pDomainSort, FormulaType<TE> pRangeSort) {
+      this.indexType = pDomainSort;
+      this.elementType = pRangeSort;
+    }
+
+    public FormulaType<? extends Formula> getElementType() {
+      return elementType;
+    }
+
+    public FormulaType<? extends Formula> getIndexType() {
+      return indexType;
+    }
+
+    @Override
+    public boolean isArrayType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "Array";
+    }
+  }
+
+  public static final class FloatingPointType extends FormulaType<FloatingPointFormula> {
+
+    private final int exponentSize;
+    private final int mantissaSize;
+
+    private FloatingPointType(int pExponentSize, int pMantissaSize) {
+      exponentSize = pExponentSize;
+      mantissaSize = pMantissaSize;
+    }
+
+    @Override
+    public boolean isFloatingPointType() {
+      return true;
+    }
+
+    public int getExponentSize() {
+      return exponentSize;
+    }
+
+    public int getMantissaSize() {
+      return mantissaSize;
+    }
+
+    @Override
+    public int hashCode() {
+      return (31 + exponentSize) * 31 + mantissaSize;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (!(obj instanceof FloatingPointType)) {
+        return false;
+      }
+      FloatingPointType other = (FloatingPointType) obj;
+      return this.exponentSize == other.exponentSize
+          && this.mantissaSize == other.mantissaSize;
+    }
+
+    @Override
+    public String toString() {
+      return "FloatingPoint<exp=" + exponentSize + ",mant=" + mantissaSize + ">";
+    }
+  }
+
+  public static <TD extends Formula, TR extends Formula> ArrayFormulaType<TD, TR>
+  getArrayType(FormulaType<TD> pDomainSort, FormulaType<TR> pRangeSort) {
+    return new ArrayFormulaType<>(pDomainSort, pRangeSort);
+  }
+
 }

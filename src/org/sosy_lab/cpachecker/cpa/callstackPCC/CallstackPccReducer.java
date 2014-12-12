@@ -110,4 +110,8 @@ public class CallstackPccReducer implements Reducer {
     return pStateKey.hashCode();
   }
 
+  @Override
+  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState, AbstractState expandedState, CFANode exitLocation) {
+    return expandedState;
+  }
 }

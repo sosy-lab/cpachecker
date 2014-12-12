@@ -38,8 +38,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smgfork.SMGTransferRelation.SMGExplicitValue;
@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SMGState implements AbstractQueryableState, Targetable {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>{
   static boolean targetMemoryErrors = true;
   static boolean unknownOnUndefined = true;
 
@@ -75,11 +75,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private boolean invalidWrite = false;
   private boolean invalidRead = false;
   private boolean invalidFree = false;
-
-  /*
-   * If a property is violated by this state, this member is set
-   */
-  private ViolatedProperty violatedProperty = null;
 
   private void issueMemoryLeakMessage() {
     issueMemoryError("Memory leak found", false);
@@ -386,7 +381,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       }
     }
 
-    if(heap.isCoveredByNullifiedBlocks(edge)) {
+    if (heap.isCoveredByNullifiedBlocks(edge)) {
       return 0;
     }
 
@@ -445,7 +440,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
   private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
-    if(!containsValue(pValue)) {
+    if (!containsValue(pValue)) {
       heap.addValue(pValue);
     }
 
@@ -587,6 +582,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @param reachedState the abstract state this state will be joined to.
    * @return the join of the two states.
    */
+  @Override
   public SMGState join(SMGState reachedState) {
     // Not necessary if merge_SEP and stop_SEP is used.
     return null;
@@ -603,10 +599,11 @@ public class SMGState implements AbstractQueryableState, Targetable {
    * @return True, if this state is covered by the given state, false otherwise.
    * @throws SMGInconsistentException
    */
+  @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
     SMGJoin join = new SMGJoin(reachedState.heap, heap);
     if (join.isDefined() &&
-        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)){
+        (join.getStatus() == SMGJoinStatus.LEFT_ENTAIL || join.getStatus() == SMGJoinStatus.EQUAL)) {
       return true;
     }
     return false;
@@ -626,7 +623,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-leaks":
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          violatedProperty = ViolatedProperty.VALID_MEMTRACK;
           issueMemoryLeakMessage();
           return true;
         }
@@ -634,7 +630,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-writes":
         if (invalidWrite) {
           //TODO: Give more information
-          violatedProperty = ViolatedProperty.VALID_DEREF;
           issueInvalidWriteMessage();
           return true;
         }
@@ -642,7 +637,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-reads":
         if (invalidRead) {
           //TODO: Give more information
-          violatedProperty = ViolatedProperty.VALID_DEREF;
           issueInvalidReadMessage();
           return true;
         }
@@ -650,7 +644,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
       case "has-invalid-frees":
         if (invalidFree) {
           //TODO: Give more information
-          violatedProperty = ViolatedProperty.VALID_FREE;
           issueInvalidFreeMessage();
           return true;
         }
@@ -756,7 +749,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
       return;
     }
 
-    if(!(offset == 0)) {
+    if (!(offset == 0)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
       setInvalidFree();
@@ -896,7 +889,7 @@ public class SMGState implements AbstractQueryableState, Targetable {
     assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
-    if(copyRange == 0) {
+    if (copyRange == 0) {
       return;
     }
 
@@ -956,16 +949,6 @@ public class SMGState implements AbstractQueryableState, Targetable {
 
   public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
-  }
-
-  @Override
-  public boolean isTarget() {
-    return violatedProperty != null;
-  }
-
-  @Override
-  public ViolatedProperty getViolatedProperty() throws IllegalStateException {
-    return violatedProperty;
   }
 
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {

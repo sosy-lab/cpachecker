@@ -29,12 +29,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CacheTransferRelation implements TransferRelation {
+public class CacheTransferRelation extends SingleEdgeTransferRelation {
 
   private final TransferRelation mCachedTransferRelation;
   //private Map<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>> mSuccessorsCache;
@@ -56,15 +57,9 @@ public class CacheTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-
-    /*if (pCfaEdge.getPredecessor().getNodeNumber() == 1) {
-      System.out.println("##########################");
-      System.out.println(pElement);
-      System.out.println(pPrecision);
-    }*/
 
     /*Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pCfaEdge);
 
@@ -91,10 +86,6 @@ public class CacheTransferRelation implements TransferRelation {
       lCacheHits++;
     }
 
-    if ((lCacheMisses + lCacheHits) % 100 == 0) {
-      System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
-    }
-
     return lSuccessors;*/
 
     Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
@@ -114,7 +105,7 @@ public class CacheTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(pElement);
 
     if (lSuccessors == null) {
-      lSuccessors = mCachedTransferRelation.getAbstractSuccessors(pElement, pPrecision, pCfaEdge);
+      lSuccessors = mCachedTransferRelation.getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
       lLevel2Cache.put(pElement, lSuccessors);
 
       //lCacheMisses++;

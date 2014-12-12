@@ -23,6 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner.DUMMY_STATE_FOR_MISSING_BLOCK;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -32,15 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner.DUMMY_STATE_FOR_MISSING_BLOCK;
 
 public class BAMCEXSubgraphComputer {
 
@@ -138,8 +138,14 @@ public class BAMCEXSubgraphComputer {
           }
           innerTree.removeFromARG();
 
+          assert pathStateToReachedState.containsKey(innerTree) : "root of subgraph was not finished";
+          pathStateToReachedState.remove(innerTree); // not needed any more
+
           // now the complete inner tree (including all successors of the state innerTree on paths to reducedTarget)
           // is inserted between newCurrentState and child.
+
+          assert pathStateToReachedState.containsKey(newChild) : "end of subgraph was not handled";
+          assert pathStateToReachedState.get(newCurrentState) == currentState : "callstate must be from outer reachedset";
 
         } else {
           // child is a normal successor

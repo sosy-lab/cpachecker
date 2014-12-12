@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
@@ -82,7 +83,7 @@ final public class SMGJoin {
     Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -105,9 +106,9 @@ final public class SMGJoin {
       }
     }
 
-    for (String globalVar : globals_in_smg1.keySet()) {
-      SMGObject globalInSMG1 = globals_in_smg1.get(globalVar);
-      SMGObject globalInSMG2 = globals_in_smg2.get(globalVar);
+    for (Entry<String, SMGRegion> entry : globals_in_smg1.entrySet()) {
+      SMGObject globalInSMG1 = entry.getValue();
+      SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
       SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal);
       if (! jss.isDefined()) {
@@ -119,7 +120,7 @@ final public class SMGJoin {
     smg1stackIterator = stack_in_smg1.iterator();
     smg2stackIterator = stack_in_smg2.iterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ){
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -210,7 +211,7 @@ class SMGNodeMapping {
     return object_map.get(o);
   }
 
-  public void map(SMGObject key, SMGObject value){
+  public void map(SMGObject key, SMGObject value) {
     object_map.put(key, value);
   }
 

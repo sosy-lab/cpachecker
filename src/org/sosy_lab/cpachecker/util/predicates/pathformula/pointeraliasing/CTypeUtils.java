@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 /**
  * Utility class with helper methods for CTypes.
  */
-public class CTypeUtils {
+class CTypeUtils {
 
   private CTypeUtils() { }
 

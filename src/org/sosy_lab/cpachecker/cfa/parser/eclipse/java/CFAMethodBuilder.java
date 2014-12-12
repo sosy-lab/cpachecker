@@ -70,7 +70,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -176,7 +176,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (ASTNode.RECOVERED == problem.getFlags()
         || ASTNode.MALFORMED  == problem.getFlags()) {
-      throw new CFAGenerationRuntimeException("Parse Error", problem);
+      throw new CFAGenerationRuntimeException("Parse Error.", problem);
     }
   }
 
@@ -582,7 +582,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       scope.registerDeclarationOfThisClass(newD);
 
-      IAInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
+      AInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
 
       // resolve Boolean Initializer for easier analysis
       // if initializer is boolean. Not necessary for simple boolean literal.
@@ -605,7 +605,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private CFANode resolveBooleanInitializer(JVariableDeclaration newD,
                                                         CFANode prevNode) {
 
-    IAInitializer initializer = newD.getInitializer();
+    AInitializer initializer = newD.getInitializer();
 
     CFANode afterResolvedBooleanExpressionNode =
         new CFANode(cfa.getFunctionName());
@@ -722,6 +722,8 @@ class CFAMethodBuilder extends ASTVisitor {
       break;
     case ALWAYS_FALSE:
       createSuccessfulEdge = false;
+      break;
+    default:
       break;
     }
 
@@ -1593,7 +1595,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (labelMap.containsKey(labelName)) {
       throw new CFAGenerationRuntimeException("Duplicate label " + labelName
-        + " in method " + cfa.getFunctionName(), labelStatement);
+        + " in method " + cfa.getFunctionName() + ".", labelStatement);
     }
 
 

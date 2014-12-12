@@ -26,25 +26,63 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Interface for transfer relations.
- * The instance of the relation is used to calculate the post operation
+ * The transfer relation is used to compute the successors of abstract states
+ * (post operation).
+ *
+ * Most CPAs can use
+ * {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}
+ * as base class.
  */
 public interface TransferRelation {
 
   /**
-   * Gets all successors of the current state. If cfaEdge is null, all edges
-   * of the CFA may be checked if they lead to successors, otherwise only the
-   * specified edge should be handled.
-   * @param state abstract state with current state
-   * @param cfaEdge null or an edge of the CFA
-   * @return list of all successors of the current state (may be empty)
+   * Get all successors of the current abstract state.
+   *
+   * Note that most CPAs do not need this method and should only implement
+   * {@link #getAbstractSuccessorsForEdge(AbstractState, Precision, CFAEdge)}.
+   *
+   * @param state current abstract state
+   * @param precision precision for abstract state
+   * @return collection of all successors of the current state (may be empty)
    */
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState state, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException, InterruptedException;
+  Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state,
+      Precision precision)
+          throws CPATransferException, InterruptedException;
+
+  /**
+   * Get all successors of the current abstract state for a given single CFA edge.
+   *
+   * This is an optimization.
+   * In theory, we could ask all CPAs for all abstract successors
+   * regarding any CFA edge.
+   * One CPA tracks the program counter and would return bottom (no successor)
+   * for all edges that cannot be applied at the current location.
+   * By taking the cross product of the returned states of all CPAs,
+   * the states for the invalid edges would be filtered out.
+   * Of course this is inefficient,
+   * thus we pass the edge we are currently interested in to the other CPAs.
+   *
+   * Most CPAs only need this method and can extend
+   * {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}.
+   *
+   * @param state current abstract state
+   * @param precision precision for abstract state
+   * @param cfaEdge
+   * @return collection of all successors of the current state (may be empty)
+   */
+  Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state,
+      Precision precision,
+      CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract state with information from the abstract states of
@@ -52,14 +90,14 @@ public interface TransferRelation {
    * abstract state of the domain it belongs to.
    * @param state abstract state of the current domain
    * @param otherStates list of abstract states of all domains
-   * @param cfaEdge the current edge of the CFA
+   * @param cfaEdge null or an edge of the CFA
    * @param precision
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractState> strengthen(AbstractState state,
-                                     List<AbstractState> otherStates,
-                                     CFAEdge cfaEdge,
-                                     Precision precision)
-                                     throws CPATransferException,
-                                            InterruptedException;
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException;
 }

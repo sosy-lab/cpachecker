@@ -28,13 +28,13 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class DominatorTransferRelation implements TransferRelation {
+public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -47,14 +47,16 @@ public class DominatorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<DominatorState> getAbstractSuccessors(
+  public Collection<DominatorState> getAbstractSuccessorsForEdge(
     AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
     assert element instanceof DominatorState;
 
     DominatorState dominatorState = (DominatorState)element;
 
-    Collection<? extends AbstractState> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorState.getDominatedState(), prec, cfaEdge);
+    Collection<? extends AbstractState> successorsOfDominatedElement =
+        this.cpa.getTransferRelation().getAbstractSuccessorsForEdge(
+            dominatorState.getDominatedState(), prec, cfaEdge);
 
     Collection<DominatorState> successors = new ArrayList<>(successorsOfDominatedElement.size());
     for (AbstractState successorOfDominatedElement : successorsOfDominatedElement) {

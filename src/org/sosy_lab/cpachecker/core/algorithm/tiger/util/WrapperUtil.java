@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -122,7 +122,8 @@ public class WrapperUtil {
        try {writer.close();} catch (Exception ex) {}
     }
 
-    return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
+    //return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");
+    return new FileToParse(f.getAbsolutePath());
   }
 
   public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
@@ -143,7 +144,7 @@ public class WrapperUtil {
     mergedCFANodes.putAll(tmpParseResult.getCFANodes());
     mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
 
-    List<Pair<IADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
+    List<Pair<ADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
     mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
     mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
 

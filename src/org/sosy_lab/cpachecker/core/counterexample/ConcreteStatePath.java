@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteSta
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is used as a path of {@link CFAEdge} cfa edges
  * and {@link ConcreteState} concrete States.
@@ -134,6 +136,7 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
   }
 
   @Override
+  @SuppressFBWarnings("EQ_UNUSUAL")
   public boolean equals(Object pObj) {
     throw new UnsupportedOperationException();
   }

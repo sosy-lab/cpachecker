@@ -100,7 +100,7 @@ public class SMGTest {
   }
 
   @Test
-  public void replaceHVSetTest(){
+  public void replaceHVSetTest() {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 2, obj1, val1.intValue());
     Set<SMGEdgeHasValue> hvSet = new HashSet<>();
     hvSet.add(hv);

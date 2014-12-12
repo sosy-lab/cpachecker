@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -56,11 +57,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
-  @Option(name = "ignoreReferenceCounts",
-      description = "do not consider number of references to variables during merge in analysis")
-  private boolean ignoreRefCount = false;
-
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
           description="which type of merge operator to use for IntervalAnalysisCPA")
   /**
    * the merge type of the interval analysis
@@ -101,7 +98,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
   private IntervalAnalysisCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
-    abstractDomain      = new IntervalAnalysisDomain();
+    abstractDomain      = DelegateAbstractDomain.<IntervalAnalysisState>getInstance();
 
     mergeOperator       = mergeType.equals("SEP") ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
 
@@ -110,8 +107,6 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysis {
     transferRelation    = new IntervalAnalysisTransferRelation(config);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
-    IntervalAnalysisState.init(config, ignoreRefCount);
   }
 
   /* (non-Javadoc)

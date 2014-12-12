@@ -45,32 +45,29 @@ public class LocationTransferRelationBackwards implements TransferRelation {
     factory = pFactory;
   }
 
-  private Collection<LocationState> getAbstractSuccessor(AbstractState element,
-      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+  @Override
+  public Collection<LocationState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision prec,  CFAEdge cfaEdge) throws CPATransferException {
 
-    LocationState inputElement = (LocationState) element;
-    CFANode node = inputElement.getLocationNode();
+    LocationState predState = (LocationState) state;
+    CFANode predLocation = predState.getLocationNode();
 
-    if (CFAUtils.allEnteringEdges(node).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+    if (CFAUtils.allEnteringEdges(predLocation).contains(cfaEdge)) {
+      return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
     }
 
     return Collections.emptySet();
   }
 
   @Override
-  public Collection<LocationState> getAbstractSuccessors(AbstractState element,
-      Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<LocationState> getAbstractSuccessors(AbstractState state,
+      Precision prec) throws CPATransferException {
 
-    if (cfaEdge != null) {
-      return getAbstractSuccessor(element, cfaEdge, prec);
-    }
+    CFANode predLocation = ((LocationState)state).getLocationNode();
 
-    CFANode node = ((LocationState)element).getLocationNode();
+    List<LocationState> allSuccessors = new ArrayList<>(predLocation.getNumEnteringEdges());
 
-    List<LocationState> allSuccessors = new ArrayList<>(node.getNumEnteringEdges());
-
-    for (CFANode predecessor : CFAUtils.predecessorsOf(node)) {
+    for (CFANode predecessor : CFAUtils.predecessorsOf(predLocation)) {
       allSuccessors.add(factory.getState(predecessor));
     }
 

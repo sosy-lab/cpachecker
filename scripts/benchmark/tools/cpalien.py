@@ -60,7 +60,7 @@ class Tool(benchmark.tools.cpachecker.Tool):
         memory_leak = False
         bad_deref = False
         undef = False
-        for line in output.splitlines():
+        for line in output:
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
             elif isOutOfNativeMemory(line):
@@ -104,8 +104,8 @@ class Tool(benchmark.tools.cpachecker.Tool):
                     newStatus = result.STATUS_TRUE_PROP
                 elif line.startswith('FALSE'):
                   newStatus = result.STATUS_FALSE_REACH
-                  match = re.match('.* Violation of propert[a-z]* (.*) found by chosen configuration.*', line)
-                  if match:
+                  match = re.match('.* Property violation \(([^:]*)(:.*)?\) found by chosen configuration.*', line)
+                  if match and match.group(1) in ['valid-deref', 'valid-free', 'valid-memtrack']:
                       newStatus = result.STR_FALSE + '(' + match.group(1) + ')'
 
                 else:

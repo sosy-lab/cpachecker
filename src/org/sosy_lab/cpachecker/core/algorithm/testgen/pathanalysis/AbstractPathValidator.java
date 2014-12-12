@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSele
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 
@@ -46,12 +47,12 @@ public abstract class AbstractPathValidator implements PathValidator {
 
   @Override
   public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     return validatePath(pNewPath);
   }
 
   @Override
-  public void handleVisitedBranching(ARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
     // no action required
   }
 

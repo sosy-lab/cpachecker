@@ -13,8 +13,7 @@ public class IFE {
     boolean g = false;
     boolean h = true;
 
-    boolean i = a && b | c & d || e && f   | g & h;
-
+    boolean i = a && b | c & d || e && f | g & h;
 
 
   }

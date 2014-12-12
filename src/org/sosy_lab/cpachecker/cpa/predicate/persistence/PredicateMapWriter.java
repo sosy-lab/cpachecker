@@ -54,7 +54,7 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class PredicateMapWriter {
 
-  @Option(name="predmap.predicateFormat",
+  @Option(secure=true, name="predmap.predicateFormat",
       description="Format for exporting predicates from precisions.")
   private PredicateDumpFormat format = PredicateDumpFormat.SMTLIB2;
 

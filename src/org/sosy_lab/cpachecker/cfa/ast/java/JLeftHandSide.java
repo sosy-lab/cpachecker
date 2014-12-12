@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 /**
  * Interface for all possible right-hand sides of an assignment.
  */
-public interface JLeftHandSide extends JExpression, IALeftHandSide {
+public interface JLeftHandSide extends JExpression, ALeftHandSide {
 
   public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> pV) throws X;
 

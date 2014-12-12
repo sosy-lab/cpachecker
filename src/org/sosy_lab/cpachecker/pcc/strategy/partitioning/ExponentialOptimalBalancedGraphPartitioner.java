@@ -109,7 +109,6 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
         currentPartition.add(orderedNodes.get(j));
       }
     }
-
     return result;
   }
 
@@ -136,7 +135,7 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
       final List<Set<Integer>> partitioning) {
     long result = 0;
     for (Set<Integer> partition : partitioning) {
-      result += pGraph.getNumAdjacentNodesOutsideSet(partition);
+      result += pGraph.getNumSuccessorNodesOutsideSet(partition);
     }
     return result;
   }

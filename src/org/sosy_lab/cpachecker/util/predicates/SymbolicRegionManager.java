@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -112,7 +113,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public boolean entails(Region pF1, Region pF2) throws InterruptedException {
+  public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
     SymbolicRegion r1 = (SymbolicRegion)pF1;
     SymbolicRegion r2 = (SymbolicRegion)pF2;
 
@@ -245,4 +246,8 @@ public class SymbolicRegionManager implements RegionManager {
     // do nothing
   }
 
+  @Override
+  public String getVersion() {
+    return fmgr.getVersion();
+  }
 }

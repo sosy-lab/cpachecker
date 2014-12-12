@@ -32,33 +32,29 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula makeBitvector(int length, long pI);
   public BitvectorFormula makeBitvector(int length, BigInteger pI);
-  public BitvectorFormula makeBitvector(int length, String pI);
 
   public BitvectorFormula makeVariable(int length, String pVar);
-
-  public FormulaType<BitvectorFormula> getFormulaType(int length);
 
   public int getLength(BitvectorFormula number);
 
   // Numeric Operations
 
   public BitvectorFormula negate(BitvectorFormula number);
-  public boolean isNegate(BitvectorFormula number);
 
   public BitvectorFormula add(BitvectorFormula number1, BitvectorFormula number2);
-  public boolean isAdd(BitvectorFormula number);
 
   public BitvectorFormula subtract(BitvectorFormula number1, BitvectorFormula number2);
-  public boolean isSubtract(BitvectorFormula number);
 
   public BitvectorFormula divide(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isDivide(BitvectorFormula number, boolean signed);
 
   public BitvectorFormula modulo(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isModulo(BitvectorFormula number, boolean signed);
+
+  /**
+   * @see NumeralFormulaManager#modularCongruence(NumeralFormula, NumeralFormula, long)
+   */
+  public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, long pModulo);
 
   public BitvectorFormula multiply(BitvectorFormula number1, BitvectorFormula number2);
-  public boolean isMultiply(BitvectorFormula number);
 
   // ----------------- Numeric relations -----------------
 
@@ -66,16 +62,12 @@ public interface BitvectorFormulaManager {
   public boolean isEqual(BooleanFormula number);
 
   public BooleanFormula greaterThan(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isGreaterThan(BooleanFormula number, boolean signed);
 
   public BooleanFormula greaterOrEquals(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isGreaterOrEquals(BooleanFormula number, boolean signed);
 
   public BooleanFormula lessThan(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isLessThan(BooleanFormula number, boolean signed);
 
   public BooleanFormula lessOrEquals(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
-  public boolean isLessOrEquals(BooleanFormula number, boolean signed);
 
   // Bitvector operations
 
@@ -103,11 +95,6 @@ public interface BitvectorFormulaManager {
   public BitvectorFormula or(BitvectorFormula bits1, BitvectorFormula bits2);
 
   public BitvectorFormula xor(BitvectorFormula bits1, BitvectorFormula bits2);
-
-  public boolean isNot(BitvectorFormula bits);
-  public boolean isAnd(BitvectorFormula bits);
-  public boolean isOr(BitvectorFormula bits);
-  public boolean isXor(BitvectorFormula bits);
 
   /**
    * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.

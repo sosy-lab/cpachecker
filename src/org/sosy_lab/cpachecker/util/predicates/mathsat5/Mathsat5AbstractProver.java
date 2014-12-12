@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 /**
  * Common base class for {@link Mathsat5TheoremProver}
@@ -50,9 +51,20 @@ abstract class Mathsat5AbstractProver {
     terminationTest = mgr.addTerminationTest(curEnv);
   }
 
-  public boolean isUnsat() throws InterruptedException {
+  public boolean isUnsat() throws InterruptedException, SolverException {
     Preconditions.checkState(curEnv != 0);
-    return !msat_check_sat(curEnv);
+    try {
+      return !msat_check_sat(curEnv);
+    } catch (IllegalStateException e) {
+      String msg = Strings.nullToEmpty(e.getMessage());
+      if (msg.contains("too many iterations")
+          || msg.contains("impossible to build a suitable congruence graph!")
+          || msg.contains("can't produce proofs")) {
+        // This is not a bug in CPAchecker, but a problem of MathSAT which happens during interpolation
+        throw new SolverException(e.getMessage(), e);
+      }
+      throw e;
+    }
   }
 
   public Model getModel() throws SolverException {

@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -49,17 +50,17 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.sign")
 public class SignCPA implements ConfigurableProgramAnalysis {
 
-  private SignDomain domain;
+  private AbstractDomain domain;
 
   private SignTransferRelation transfer;
 
   private LogManager logger;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for SignCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN"},
       description="which stop operator to use for SignCPA")
   private String stopType = "SEP";
 
@@ -69,7 +70,7 @@ public class SignCPA implements ConfigurableProgramAnalysis {
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    domain = new SignDomain();
+    domain = DelegateAbstractDomain.<SignState>getInstance();
     transfer = new SignTransferRelation(logger);
 
     if (stopType.equals("SEP")) {
@@ -82,8 +83,6 @@ public class SignCPA implements ConfigurableProgramAnalysis {
     } else {
       merge = new MergeJoinOperator(domain);
     }
-
-    SignState.init(config);
   }
 
   public static CPAFactory factory() {
