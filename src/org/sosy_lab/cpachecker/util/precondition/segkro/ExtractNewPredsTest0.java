@@ -219,6 +219,43 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
+  @Test(timeout=5000)
+  public void testOnErrorWp2() throws SolverException, InterruptedException {
+    BooleanFormula wpError = bfm.and(Lists.newArrayList(
+        ifm.greaterOrEquals(_1, _al),               // 1 >= al
+        bfm.not(ifm.equal(afm.select(_b, _1), _0)), // b[1] != 0
+        ifm.lessThan(_0, _al),                      // 0 < al
+        bfm.not(ifm.equal(afm.select(_b, _0), _0))  // b[0] != 0
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpError);
+    assertThat(result).isNotEmpty();
+  }
+
+
+  @Test(timeout=5000)
+  public void testOnErrorWp3() throws SolverException, InterruptedException {
+    BooleanFormula wpError = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
+        ifm.lessOrEquals(ifm.add(_i, _1), _al),         // i+1 <= al
+        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)  // b[i+1] = 0
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpError);
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test(timeout=5000)
+  public void testOnErrorWp4() throws SolverException, InterruptedException {
+    BooleanFormula wpError = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _0), _0)), // b[0] != 0
+        ifm.lessOrEquals(_1, _al),                  // 1 <= al
+        ifm.equal(afm.select(_b, _1), _0)           // b[1] = 0
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpError);
+    assertThat(result).isNotEmpty();
+  }
 
 
 }
