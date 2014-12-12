@@ -49,6 +49,10 @@ public class ExistentialRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
+    // ATTENTION:
+    //  This definition is different from the Seghir/Kroenig paper!
+    //  We had to swap i and j in the function application
+
     premises.add(new PatternBasedPremise(or(
         GenericPatterns.f_of_x("f", "j")
         )));
