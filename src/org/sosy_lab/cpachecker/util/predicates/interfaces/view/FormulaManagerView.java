@@ -88,6 +88,14 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
 
+  public static enum FormulaStructure {
+    ATOM,
+    LITERAL,
+    DISJUNCTIVE_CLAUSE,
+    CONJUNCTIVE_CLAUSE,
+    FORMULA
+  }
+
   public static enum Theory {
     INTEGER,
     RATIONAL,
@@ -972,20 +980,42 @@ public class FormulaManagerView {
   }
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Collection<BooleanFormula> unwrapped = myExtractAtoms(f, splitArithEqualities, conjunctionsOnly);
+    return unwrapFormulasOfList(
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM));
+  }
 
+  public Collection<BooleanFormula> extractLiterals(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
+    return unwrapFormulasOfList(
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL));
+  }
+
+  private List<BooleanFormula> unwrapFormulasOfList(Collection<BooleanFormula> unwrapped) {
     List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
     for (BooleanFormula booleanFormula : unwrapped) {
       atoms.add(booleanFormula);
     }
-
     return atoms;
   }
 
+  private FormulaStructure getFormulaStructure(Formula f) {
+    if (unsafeManager.isAtom(f)) {
+      return FormulaStructure.ATOM;
+    } else if (unsafeManager.isLiteral(f)) {
+      return FormulaStructure.LITERAL;
+    } else {
+      return FormulaStructure.FORMULA;
+    }
+  }
+
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
-      boolean conjunctionsOnly) {
+      boolean conjunctionsOnly, FormulaStructure breakdownTo) {
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
+
+    if (breakdownTo != FormulaStructure.ATOM
+        && breakdownTo != FormulaStructure.LITERAL) {
+      throw new UnsupportedOperationException("Formulas cannot be splitted onto the requested level!");
+    }
 
     Deque<BooleanFormula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
@@ -999,7 +1029,12 @@ public class FormulaManagerView {
         continue;
       }
 
-      if (unsafeManager.isAtom(tt)) {
+      final FormulaStructure ttStructure = getFormulaStructure(tt);
+      final boolean isSmallesConsidered = (ttStructure == breakdownTo)
+          || ((breakdownTo == FormulaStructure.LITERAL)
+              && (ttStructure == FormulaStructure.ATOM));
+
+      if (isSmallesConsidered) {
         tt = myUninstantiate(tt);
 
         if (splitArithEqualities
