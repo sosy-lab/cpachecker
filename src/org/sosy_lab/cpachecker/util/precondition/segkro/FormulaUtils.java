@@ -48,6 +48,15 @@ public class FormulaUtils {
     return false;
   }
 
+  public static boolean containsFormulasNotFrom(List<BooleanFormula> pToCheck, Collection<BooleanFormula> pFrom) {
+    for (BooleanFormula f: pToCheck) {
+      if (!pFrom.contains(f)) {
+        return true; // TODO: Test this!!
+      }
+    }
+    return false;
+  }
+
   public static List<BooleanFormula> substractEqualFromulasFrom(Collection<BooleanFormula> pSubstractFrom, Collection<BooleanFormula> pSubstract) {
     // TODO: This might not be the optimal solution!
 

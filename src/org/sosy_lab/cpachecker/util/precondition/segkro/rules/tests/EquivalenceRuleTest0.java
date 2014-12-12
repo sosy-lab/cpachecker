@@ -50,6 +50,12 @@ public class EquivalenceRuleTest0 extends SolverBasedTest0 {
   private FormulaManagerView mgrv;
 
   private EquivalenceRule er;
+  private IntegerFormula _x;
+  private IntegerFormula _e;
+  private IntegerFormula _0;
+  private IntegerFormula _i;
+  private IntegerFormula _al;
+  private IntegerFormula _1;
 
   @Override
   protected Solvers solverToUse() {
@@ -63,13 +69,17 @@ public class EquivalenceRuleTest0 extends SolverBasedTest0 {
 
     matcher = new Z3AstMatcher(logger, mgr, mgrv);
     er = new EquivalenceRule(mgr, mgrv, solver, matcher);
+
+    _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
+    _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _x = mgrv.makeVariable(NumeralType.IntegerType, "x");
+    _e = mgrv.makeVariable(NumeralType.IntegerType, "e");
+    _0 = imgr.makeNumber(0);
+    _1 = imgr.makeNumber(1);
   }
 
   @Test
   public void testEquivalence1() throws SolverException, InterruptedException {
-    IntegerFormula _x = mgrv.makeVariable(NumeralType.IntegerType, "x");
-    IntegerFormula _e = mgrv.makeVariable(NumeralType.IntegerType, "e");
-    IntegerFormula _0 = imgr.makeNumber(0);
 
     // Formulas for the premise
     BooleanFormula _x_minus_e_GEQ_0 = imgr.greaterOrEquals(imgr.subtract(_x, _e), _0);
@@ -86,6 +96,21 @@ public class EquivalenceRuleTest0 extends SolverBasedTest0 {
 
     assertThat(conclusion).isNotEmpty();
     assertThat(conclusion.iterator().next().toString()).isEqualTo(expectedConclusion.toString());
+  }
+
+  @Test
+  public void testEquivalence2() throws SolverException, InterruptedException {
+
+    Set<BooleanFormula> result = er.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            imgr.lessThan(_i, _al),
+            imgr.greaterOrEquals(imgr.add(_i, _1), _al)
+        ));
+
+    BooleanFormula expectedConclusion = imgr.equal(_al, imgr.add(_i, _1));
+
+    assertThat(result).isNotEmpty();
+    assertThat(result.iterator().next().toString()).isEqualTo(expectedConclusion.toString());
   }
 
 }

@@ -100,12 +100,12 @@ public class ExtractNewPreds {
         }
 
         for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
-          final boolean tupleContainsAnyNoneBasePredicate = !containsFormulasFrom(tuple, pBasePredicates);
+          final boolean tupleContainsOnlyBasePredicates = !containsFormulasNotFrom(tuple, pBasePredicates);
 
           // The rules ELIM and EQ are only applied to the base predicates!!
           final boolean isElimOrEq = rule instanceof EliminationRule || rule instanceof EquivalenceRule;
 
-          if ((!isElimOrEq) || tupleContainsAnyNoneBasePredicate) {
+          if ((!isElimOrEq) || tupleContainsOnlyBasePredicates) {
             // Conclude new, general, predicates.
             Collection<BooleanFormula> concluded = rule.applyWithInputRelatingPremises(tuple);
 

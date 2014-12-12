@@ -209,10 +209,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   @Test
   public void testOnErrorWp1() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
-        ifm.greaterOrEquals(ifm.add(_i, _1), _al),
-        bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)),
-        ifm.lessThan(_i, _al),
-        bfm.not(ifm.equal(afm.select(_b, _i), _0))
+        ifm.greaterOrEquals(ifm.add(_i, _1), _al),                // i+1 >= al
+        bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)),  // b[i+1] != 0
+        ifm.lessThan(_i, _al),                                    // i < al
+        bfm.not(ifm.equal(afm.select(_b, _i), _0))                // b[i] != 0
         ));
 
     List<BooleanFormula> result = enp.extractNewPreds(wpError);

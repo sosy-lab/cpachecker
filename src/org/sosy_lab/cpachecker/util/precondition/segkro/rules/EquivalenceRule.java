@@ -52,7 +52,11 @@ public class EquivalenceRule extends PatternBasedRule {
   @Override
   protected void setupPatterns() {
     premises.add(new PatternBasedPremise(
-        and(
+        or(
+          match("<",
+              matchAnyWithAnyArgsBind("i"),
+              matchVariableBind("x")
+              ),
           match(">=",
               match("-",
                   matchNullaryBind("x"),
@@ -61,7 +65,13 @@ public class EquivalenceRule extends PatternBasedRule {
           )));
 
     premises.add(new PatternBasedPremise(
-        and(
+        or(
+          match(">=",
+              matchBind("+", "e",
+                  matchAnyWithAnyArgsBind("i"),
+                  matchNullary("1")),
+              matchVariableBind("x")
+              ),
           match(">=",
               match("+",
                   match("-", matchNullary("0"), matchNullaryBind("x")),
