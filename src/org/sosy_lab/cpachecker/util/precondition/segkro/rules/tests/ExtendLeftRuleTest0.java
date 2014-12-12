@@ -123,28 +123,4 @@ public class ExtendLeftRuleTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test
-  public void testConclusion2() throws SolverException, InterruptedException {
-
-    BooleanFormula _x_range = bfm.and(
-        ifm.greaterOrEquals(_x, _i),
-        ifm.lessOrEquals(_x, _j));
-
-    BooleanFormula _right_ext = ifm.lessOrEquals(_j, _k);
-
-    BooleanFormula _EXISTS_x = qmgr.exists(
-        Lists.newArrayList(_x),
-        bfm.and(Lists.newArrayList(
-            _b_at_x_NOTEQ_0,
-            ifm.equal(_x, _i),
-            _x_range)));
-
-    Set<BooleanFormula> result = elr.applyWithInputRelatingPremises(
-        Lists.newArrayList(
-            _EXISTS_x,
-            _right_ext));
-
-    assertThat(result).isNotEmpty();
-  }
-
 }

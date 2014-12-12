@@ -201,7 +201,7 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(input));
 
-    assertThat(result).isNotEmpty();
+    assertThat(result).isEmpty();
   }
 
 }
