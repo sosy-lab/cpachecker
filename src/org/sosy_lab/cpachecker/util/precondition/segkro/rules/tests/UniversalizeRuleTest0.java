@@ -132,7 +132,7 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
   public void testConclusion3() throws SolverException, InterruptedException {
     //   b[i+1] == 0
     // ==>
-    //  forall x in [i+1] . b[x] != 0
+    //  forall x in [i+1] . b[x] == 0
 
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_b_at_i_plus_1_EQ_0));
@@ -144,13 +144,27 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
   public void testConclusion4() throws SolverException, InterruptedException {
     //     b[i] == 0
     // ==>
-    //   forall x in [i]  . b[x] != 0
+    //   forall x in [i]  . b[x] == 0
 
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_b_at_i_EQ_0));
 
     assertThat(result).isNotEmpty();
   }
+
+  @Test
+  public void testConclusion4rotated() throws SolverException, InterruptedException {
+    //     0 == b[i]
+    // ==>
+    //   forall x in [i]  . 0 == b[x]
+
+    BooleanFormula input = ifm.equal(_0, afm.select(_b, _i));
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(Lists.newArrayList(input));
+
+    assertThat(result).isNotEmpty();
+  }
+
 
   @Test
   public void testConclusion5() throws SolverException, InterruptedException {
@@ -161,7 +175,6 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_NOT_b_at_i_plus_1_NOTEQ_0));
 
-    assertThat(false).isTrue();
     assertThat(result).isNotEmpty();
   }
 
@@ -174,7 +187,6 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_NOT_b_at_i_NOTEQ_0));
 
-    assertThat(false).isTrue();
     assertThat(result).isNotEmpty();
   }
 

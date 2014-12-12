@@ -52,17 +52,20 @@ final class GenericPatterns {
                 match("select",
                     matchAny(),
                     matchInSubtree(
-                        matchAnyBind(pBindArgTo))))),
+                        matchAnyBind(pBindArgTo))),
+                matchAny())),
         matchAnyBind(pBindFunctionTo,
             match("select",
                 matchAny(),
                 matchInSubtree(
-                    matchAnyBind(pBindArgTo)))),
+                    matchAnyBind(pBindArgTo))),
+            matchAny()),
         matchBind("not", pBindFunctionTo,
             matchAny(
                 matchAny(
                     matchInSubtree(
-                        matchAnyBind(pBindArgTo))))),
+                        matchAnyBind(pBindArgTo))),
+                matchAny())),
         matchAnyBind(pBindFunctionTo,
             matchAny(
                 matchInSubtree(

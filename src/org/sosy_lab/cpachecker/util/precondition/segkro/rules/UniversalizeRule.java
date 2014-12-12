@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
-
 import java.util.Collection;
 import java.util.Map;
 
@@ -53,33 +51,14 @@ public class UniversalizeRule extends PatternBasedRule {
     // (not (= (select b (+ i 1)) 0))
     // (bar (+ a c))
     // (= (select b (+ i 1)) 0)
+    // (= 0 (select b (+ i 1)))
 
     // TODO: Nested arrays...
     // TODO: Handling of deeper nestings (implementation of matchInSubtree)
 
     premises.add(new PatternBasedPremise(
-        or(
-          matchBind("not", "f",
-              matchAny(
-                  match("select",
-                      matchAny(),
-                      matchInSubtree(
-                          matchAnyBind("i"))))),
-          matchAnyBind("f",
-              match("select",
-                  matchAny(),
-                  matchInSubtree(
-                      matchAnyBind("i")))),
-          matchBind("not", "f",
-              matchAny(
-                  matchAny(
-                      matchInSubtree(
-                          matchAnyBind("i"))))),
-          matchAnyBind("f",
-              matchAny(
-                  matchInSubtree(
-                      matchAnyBind("i"))))
-          )));
+        GenericPatterns.f_of_x_selection("f", "i")
+          ));
   }
 
   @Override
@@ -92,8 +71,10 @@ public class UniversalizeRule extends PatternBasedRule {
     final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
     final IntegerFormula i = (IntegerFormula) pAssignment.get("i");
 
-    final IntegerFormula x = ifm.makeVariable("x");
+    assert f != null;
+    assert i != null;
 
+    final IntegerFormula x = ifm.makeVariable("x");
     final BooleanFormula xConstraint =  ifm.equal(x, i);
 
     Map<Formula, Formula> transformation = Maps.newHashMap();

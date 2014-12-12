@@ -80,6 +80,10 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   private BooleanFormula _errorTrace;
   private IntegerFormula _0;
   private IntegerFormula _1;
+  private IntegerFormula _i;
+  private IntegerFormula _al;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _b0;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
 
   @Override
@@ -102,12 +106,17 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
   }
 
   public void setupTestdata() {
+    _0 = ifm.makeNumber(0);
+    _1 = ifm.makeNumber(1);
+
+    _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
+    _al = mgrv.makeVariable(NumeralType.IntegerType, "al");
+    _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+
     IntegerFormula _i0 = mgrv.makeVariable(NumeralType.IntegerType, "i0");
     IntegerFormula _i1 = mgrv.makeVariable(NumeralType.IntegerType, "i1");
     IntegerFormula _i2 = mgrv.makeVariable(NumeralType.IntegerType, "i2");
     IntegerFormula _al0 = mgrv.makeVariable(NumeralType.IntegerType, "al0");
-    _0 = ifm.makeNumber(0);
-    _1 = ifm.makeNumber(1);
 
     ArrayFormula<IntegerFormula, IntegerFormula> _a0 = afm.makeArray("a0", NumeralType.IntegerType, NumeralType.IntegerType);
     ArrayFormula<IntegerFormula, IntegerFormula> _a1 = afm.makeArray("a1", NumeralType.IntegerType, NumeralType.IntegerType);
@@ -156,7 +165,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         _i0_LESS_al0));
   }
 
-  @Test
+  @Test(timeout=5000)
   public void testOnSafeTrace1() throws SolverException, InterruptedException {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _i = ifm.makeVariable("i");
@@ -180,17 +189,36 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test
+  @Test(timeout=5000)
   public void testOnErrorTrace() throws SolverException, InterruptedException {
-    //    (and (= i2 0)
+    //   (and (= i2 0)
     //        (not (= (select b0 i2) 0))
     //        (>= i2 al0)
     //        (= (select a1 i2) (select b0 i2))
     //        (= i1 (+ i2 1))
     //        (= (select b0 i1) 0)
     //        (>= i1 al0)
+
+    // This is not supposed to terminate.
+    // The algorithm is designed to work on WPs
+
     List<BooleanFormula> result = enp.extractNewPreds(_errorTrace);
     assertThat(result).isNotEmpty();
   }
+
+  @Test
+  public void testOnErrorWp1() throws SolverException, InterruptedException {
+    BooleanFormula wpError = bfm.and(Lists.newArrayList(
+        ifm.greaterOrEquals(ifm.add(_i, _1), _al),
+        bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)),
+        ifm.lessThan(_i, _al),
+        bfm.not(ifm.equal(afm.select(_b, _i), _0))
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpError);
+    assertThat(result).isNotEmpty();
+  }
+
+
 
 }
