@@ -88,7 +88,7 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void test() throws SolverException, InterruptedException {
+  public void testWpPair1() throws SolverException, InterruptedException {
     BooleanFormula wpUnsafe = bfm.and(Lists.newArrayList(
         ifm.greaterOrEquals(ifm.add(_i, _1), _al),                // i+1 >= al
         bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)),  // b[i+1] != 0
@@ -100,6 +100,30 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
         bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
         ifm.lessOrEquals(ifm.add(_i, _1), _al),         // i+1 <= al
         ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)  // b[i+1] = 0
+        ));
+
+    assertThat(solver.isUnsat(bfm.and(wpUnsafe, wpSafe))).isTrue();
+
+    List<BooleanFormula> interpolantCandidates = enp.extractNewPreds(wpUnsafe); // TODO: Construct static formulas instead.
+
+    BooleanFormula interpolant = mcp.getInterpolant(wpSafe, wpUnsafe, interpolantCandidates);
+
+    assertThat(solver.isUnsat(bfm.and(interpolant, wpSafe))).isTrue();
+  }
+
+  @Test
+  public void testWpPair2() throws SolverException, InterruptedException {
+    BooleanFormula wpUnsafe = bfm.and(Lists.newArrayList(
+        ifm.greaterOrEquals(_1, _al),               // 1 >= al
+        bfm.not(ifm.equal(afm.select(_b, _1), _0)), // b[1] != 0
+        ifm.lessThan(_0, _al),                      // 0 < al
+        bfm.not(ifm.equal(afm.select(_b, _0), _0))  // b[0] != 0
+        ));
+
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _0), _0)), // b[0] != 0
+        ifm.lessOrEquals(_1, _al),                  // 1 <= al
+        ifm.equal(afm.select(_b, _1), _0)           // b[1] = 0
         ));
 
     assertThat(solver.isUnsat(bfm.and(wpUnsafe, wpSafe))).isTrue();
