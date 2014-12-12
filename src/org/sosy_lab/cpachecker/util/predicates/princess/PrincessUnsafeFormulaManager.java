@@ -51,6 +51,11 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   }
 
   @Override
+  public boolean isLiteral(IExpression t) {
+    return PrincessUtil.isNot(t) || isAtom(t);
+  }
+
+  @Override
   public int getArity(IExpression pT) {
     return PrincessUtil.getArity(pT);
   }
