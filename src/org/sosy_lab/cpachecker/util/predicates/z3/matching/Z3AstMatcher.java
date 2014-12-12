@@ -103,14 +103,22 @@ public class Z3AstMatcher implements SmtAstMatcher {
   }
 
   @Override
-  public SmtAstMatchResult perform(SmtAstPattern pP, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
+  public SmtAstMatchResult perform(
+      SmtAstPattern pP,
+      Formula pF,
+      Optional<Multimap<String, Formula>> bBindingRestrictions) {
+
     final SmtAstPatternSelection sel = SmtAstPatternBuilder.and(pP);
     return perform(sel, pF, bBindingRestrictions);
   }
 
   @Override
-  public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions) {
-    return matchSelectionOnOneFormula(pF, new Stack<String>(), pPatternSelection);
+  public SmtAstMatchResult perform(
+      SmtAstPatternSelection pPatternSelection,
+      Formula pF,
+      Optional<Multimap<String, Formula>> bBindingRestrictions) {
+
+    return matchSelectionOnOneFormula(pF, new Stack<String>(), pPatternSelection, bBindingRestrictions);
   }
 
 //  private void debugLogFromUnitTesting(Object... pDescription) {
@@ -136,14 +144,15 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private SmtAstMatchResult matchSelectionOnOneFormula(
       final Formula pF,
       final Stack<String> pQuantifiedVariables,
-      final SmtAstPatternSelection pPatternSelection) {
+      final SmtAstPatternSelection pPatternSelection,
+      final Optional<Multimap<String, Formula>> pBindingRestrictions) {
     // TODO: Cache the match result
 
     int matches = 0;
     SmtAstMatchResultImpl aggregatedResult = new SmtAstMatchResultImpl();
 
     for (SmtAstPattern p: pPatternSelection) {
-      SmtAstMatchResult r = internalPerform(pF, pQuantifiedVariables, p);
+      SmtAstMatchResult r = internalPerform(pF, pQuantifiedVariables, p, pBindingRestrictions);
       matches = matches + (r.matches() ? 1 : 0);
 
       if (r.matches() && pPatternSelection.getRelationship().isNone()) {
@@ -179,7 +188,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
   private SmtAstMatchResult internalPerform(
       final Formula pRootFormula,
       final Stack<String> pQuantifiedVariables,
-      final SmtAstPattern pP) {
+      final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions) {
 
     final SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
     result.setMatchingRootFormula(pRootFormula);
@@ -187,6 +196,16 @@ public class Z3AstMatcher implements SmtAstMatcher {
     if (pP.getBindMatchTo().isPresent()) {
       final String bindMatchTo = pP.getBindMatchTo().get();
       result.putBoundVaribale(bindMatchTo, pRootFormula);
+
+      if (pBindingRestrictions.isPresent()) {
+        Collection<Formula> variableAlreadyBoundTo = pBindingRestrictions.get().get(bindMatchTo);
+        assert variableAlreadyBoundTo.size() <= 1;
+        if (variableAlreadyBoundTo.size() > 0) {
+          if (!variableAlreadyBoundTo.contains(pRootFormula)) {
+            return newMatchFailedResult(String.format("Binding of variable %s does not match!", bindMatchTo));
+          }
+        }
+      }
     }
 
     final long ast = fm.extractInfo(pRootFormula);
@@ -238,7 +257,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
       return handleFunctionApplication(
           pRootFormula, pQuantifiedVariables, result,
-          fp, functionSymbol, functionArguments);
+          fp, functionSymbol, functionArguments, pBindingRestrictions);
 
     case Z3_QUANTIFIER_AST: // -------------------------------------------------
       if (!(pP instanceof SmtQuantificationPattern)) {
@@ -260,7 +279,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       }
       final SmtAstMatchResult r = handleQuantification(
           pRootFormula, pQuantifiedVariables, result,
-          qp, quantifierType, boundVariables, bodyFormula);
+          qp, quantifierType, boundVariables, bodyFormula, pBindingRestrictions);
 
       while (pQuantifiedVariables.size() > stackElementsBeforeRecursion) {
         pQuantifiedVariables.pop();
@@ -313,18 +332,19 @@ public class Z3AstMatcher implements SmtAstMatcher {
       final SmtQuantificationPattern pQp,
       final QuantifierType pQuantifierType,
       final ArrayList<QuantifiedVariable> pBoundVariables,
-      final BooleanFormula pBodyFormula) {
+      final BooleanFormula pBodyFormula,
+      final Optional<Multimap<String, Formula>> bBindingRestrictions) {
 
     final List<BooleanFormula> bodyConjuncts = Lists.newArrayList(fmv.extractAtoms(pBodyFormula, false, true));
 
     SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(
         pRootFormula, pQuantifiedVariables,
-        bodyConjuncts, pQp.quantorBodyMatchers, false);
+        bodyConjuncts, pQp.quantorBodyMatchers, bBindingRestrictions, false);
 
     if (!bodyMatchingResult.matches() && bodyConjuncts.size() > 0) {
       bodyMatchingResult = matchFormulaChildsInSequence(
           pRootFormula, pQuantifiedVariables,
-          bodyConjuncts, pQp.quantorBodyMatchers, true);
+          bodyConjuncts, pQp.quantorBodyMatchers, bBindingRestrictions, true);
     }
 
     if (bodyMatchingResult.matches()) {
@@ -342,7 +362,8 @@ public class Z3AstMatcher implements SmtAstMatcher {
       final SmtAstMatchResultImpl result,
       final SmtFunctionApplicationPattern fp,
       final String functionSymbol,
-      final ArrayList<Formula> pFunctionArguments) {
+      final ArrayList<Formula> pFunctionArguments,
+      final Optional<Multimap<String, Formula>> pBindingRestrictions) {
 
     // ---------------------------------------------
     // We might consider the reversion version of the function
@@ -377,12 +398,14 @@ public class Z3AstMatcher implements SmtAstMatcher {
 
     SmtAstMatchResult argumentMatchingResult = matchFormulaChildsInSequence(
         pFunctionRootFormula, pBoundQuantifiedVariables,
-        pFunctionArguments, fp.argumentPatterns, initialReverseMatching);
+        pFunctionArguments, fp.argumentPatterns,
+        pBindingRestrictions, initialReverseMatching);
 
     if (!argumentMatchingResult.matches() && isCommutative(functionSymbol)) {
       argumentMatchingResult = matchFormulaChildsInSequence(
           pFunctionRootFormula, pBoundQuantifiedVariables,
-          pFunctionArguments, fp.argumentPatterns, !initialReverseMatching);
+          pFunctionArguments, fp.argumentPatterns,
+          pBindingRestrictions, !initialReverseMatching);
     }
 
     if (argumentMatchingResult.matches()) {
@@ -399,6 +422,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
       final Stack<String> pBoundQuantifiedVariables,
       final List<? extends Formula> pChildFormulas,
       final SmtAstPatternSelection pChildPatterns,
+      final Optional<Multimap<String, Formula>> pBindingRestrictions,
       boolean pConsiderPatternsInReverse) {
 
     final LogicalConnection logic = pChildPatterns.getRelationship();
@@ -427,7 +451,8 @@ public class Z3AstMatcher implements SmtAstMatcher {
       final SmtAstMatchResult functionArgumentResult = internalPerform(
             childFormula,
             pBoundQuantifiedVariables,
-            argPattern);
+            argPattern,
+            pBindingRestrictions);
 
       if (functionArgumentResult.matches()) {
         argPatternsMatched.add(argPattern);

@@ -115,11 +115,11 @@ public class ExtractNewPreds {
               //    after the predicates that were used as premise
               //  (the predicate with the highest priority is on the end of the list)
 
-//              System .out.println("++++++++++++++++++++++++++++++++++++++++");
-//              System .out.println(rule.getRuleName());
-//              System .out.println(tuple);
-//              System .out.println("    >    >    >    >   >");
-//              System .out.println(concluded);
+              System .out.println("++++++++++++++++++++++++++++++++++++++++");
+              System .out.println(rule.getRuleName());
+              System .out.println(tuple);
+              System .out.println("    >    >    >    >   >");
+              System .out.println(concluded);
 
               // Maximal position of a predicate from the tuple in 'resultPredicates'
               List<Integer> positions = Lists.newArrayList();

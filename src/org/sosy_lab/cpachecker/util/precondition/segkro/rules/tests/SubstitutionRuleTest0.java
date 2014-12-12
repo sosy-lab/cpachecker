@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.junit.Before;
@@ -68,6 +69,7 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
   private IntegerFormula _x;
   private BooleanFormula _b_at_x_NOTEQ_0;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
+  private IntegerFormula _al;
 
   @Override
   protected Solvers solverToUse() {
@@ -93,6 +95,7 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
     _x = ifm.makeVariable("x");
+    _al = ifm.makeVariable("al");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
     _x_EQ_i_plus_1 = ifm.equal(_x, ifm.add(_i, _1));
@@ -104,18 +107,47 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
   public void testConclusion1() throws SolverException, InterruptedException {
     Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(
         Lists.newArrayList(
-            _x_EQ_i_plus_1,
-            _b_at_x_NOTEQ_0));
+            _b_at_x_NOTEQ_0,
+            _x_EQ_i_plus_1));
     assertThat(result).isNotEmpty();
   }
 
   @Test
-  public void testConclusion2() {
-    // b[i+1] != 0
-    //     al == i+1
-    //==>
-    //  b[al] != 0
+  public void testConclusion2() throws SolverException, InterruptedException {
 
+    //    (= (select b (+ i 1)) 0)
+    //    (= (select b (+ i 1)) 0)
+    //     ----- should not result in -----
+    //    (= 0 0)
+    //    (= (select b 0) 0)
+
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(
+        Lists.newArrayList(
+            ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0),
+            ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)));
+
+    assertThat(result).doesNotContain(ifm.equal(_0, _0));
+    assertThat(result).doesNotContain(ifm.equal(afm.select(_b, _0), _0));
+    assertThat(result).isEmpty(); // would be sufficient
+  }
+
+  @Test
+  public void testConclusion3() throws SolverException, InterruptedException {
+
+    //    (= (select b (+ i 1)) 0)
+    //    (= al (+ i 1))
+    //     ----- should result in -----
+    //    (= (select b al) 0)
+
+    ArrayList<BooleanFormula> input = Lists.newArrayList(
+        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0),
+        ifm.equal(_al, ifm.add(_i, _1))
+        );
+
+    Set<BooleanFormula> result = sr.applyWithInputRelatingPremises(input);
+
+    assertThat(result).isNotEmpty();
+    assertThat(result).contains(ifm.equal(afm.select(_b, _al), _0));
   }
 
 }

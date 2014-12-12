@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import junit.framework.AssertionFailedError;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -35,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelectio
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -260,6 +264,31 @@ public class SmtAstPatternBuilder {
     return new SmtAstPatternSelectionImpl(
         pSelection.getRelationship(),
         pSelection.getPatterns(),
+        defaultBindings);
+  }
+
+  public static SmtAstPatternSelection concat(SmtAstPatternSelection... pSelections) {
+    Map<String,Formula> defaultBindings = Maps.newHashMap();
+    List<SmtAstPattern> patterns = Lists.newArrayList();
+
+    LogicalConnection logicRelation = null;
+
+    for (SmtAstPatternSelection sel: pSelections) {
+      if (logicRelation == null) {
+        logicRelation = sel.getRelationship();
+      }
+
+      if (logicRelation != sel.getRelationship()) {
+        throw new AssertionFailedError("Logic relations do not match!");
+      }
+
+      patterns.addAll(sel.getPatterns());
+      defaultBindings.putAll(sel.getDefaultBindings());
+    }
+
+    return new SmtAstPatternSelectionImpl(
+        logicRelation,
+        patterns,
         defaultBindings);
   }
 

@@ -407,5 +407,13 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     assertThat(result.getVariableBindings("i")).contains(_i);
   }
 
+  @Test
+  public void testCommutativenesOnTopLevel() {
+
+    // Given a SmtAstPatternSelection.
+
+   // Test on a formula al = i+1 if also i+1 = al matches
+  }
+
 
 }

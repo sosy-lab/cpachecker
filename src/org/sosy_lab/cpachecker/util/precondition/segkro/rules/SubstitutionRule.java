@@ -52,14 +52,28 @@ public class SubstitutionRule extends PatternBasedRule {
 
   @Override
   protected void setupPatterns() {
-    premises.add(new PatternBasedPremise(or(
-        match("=",
-            matchVariableBind("x"),
-            matchAnyWithAnyArgsBind("e"))
-        )));
+    //  (= (select b (+ i 1)) 0)
+    //  (= al (+ i 1))
+    //
+    //  e can be either ... or ...:
+    //    al
+    //    (+ i 1)
+    //  x can be either ... or ...:
+    //    al
+    //    (+ i 1)
 
     premises.add(new PatternBasedPremise(
-        GenericPatterns.f_of_x_selection("f", "x")));
+          GenericPatterns.f_of_x_selection("f", "x")
+        ));
+
+    premises.add(new PatternBasedPremise(or(
+        match("=",
+            matchAnyWithAnyArgsBind("x"),
+            matchAnyWithAnyArgsBind("e")),
+        match("=",
+            matchAnyWithAnyArgsBind("e"),
+            matchAnyWithAnyArgsBind("x"))
+    )));
   }
 
   @Override
