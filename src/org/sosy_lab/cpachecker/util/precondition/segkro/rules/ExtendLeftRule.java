@@ -53,17 +53,17 @@ public class ExtendLeftRule extends PatternBasedRule {
             and(
               GenericPatterns.f_of_x("f", "x"),
               match(">=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("i")),
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("i")),
               match("<=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("j"))
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("j"))
     )))));
 
     premises.add(new PatternBasedPremise(or(
         match("<=",
-            matchAnyBind("k"),
-            matchAnyBind("i")))));
+            matchAnyWithAnyArgsBind("k"),
+            matchAnyWithAnyArgsBind("i")))));
   }
 
   @Override

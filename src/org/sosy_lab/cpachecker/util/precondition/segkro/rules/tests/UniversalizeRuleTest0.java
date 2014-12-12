@@ -62,6 +62,7 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
   private IntegerFormula _0;
   private IntegerFormula _1;
   private IntegerFormula _i;
+  private IntegerFormula _al;
   private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
   private BooleanFormula _NOT_b_at_i_NOTEQ_0;
@@ -94,6 +95,7 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
+    _al = ifm.makeVariable("al");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
     _b_at_i_EQ_0 = ifm.equal(afm.select(_b, _i), _0);
@@ -186,6 +188,18 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
 
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(_NOT_b_at_i_NOTEQ_0));
+
+    assertThat(result).isNotEmpty();
+  }
+
+  @Test
+  public void testConclusion7() throws SolverException, InterruptedException {
+    //  i < al
+
+    BooleanFormula input = ifm.lessThan(_i, _al);
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(input));
 
     assertThat(result).isNotEmpty();
   }

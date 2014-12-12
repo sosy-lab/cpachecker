@@ -106,26 +106,32 @@ public class SmtAstPatternBuilder {
         and(argumentMatchers));
   }
 
+  /**
+   * Match any function (and bind its formula to a variable), but with specific arguments.
+   */
   public static SmtAstPattern matchAnyBind(String pBindMatchTo, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.of(pBindMatchTo),
-        or(argumentMatchers));
+        and(argumentMatchers));
   }
 
+  /**
+   * Match any function, but with specific arguments.
+   */
   public static SmtAstPattern matchAny(SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
-        or(argumentMatchers));
+        and(argumentMatchers));
   }
 
   /**
-   * Matches any function application.
+   * Matches any function application, with any arguments.
    *
    * @return  Pattern.
    */
-  public static SmtAstPattern matchAny() {
+  public static SmtAstPattern matchAnyWithAnyArgs() {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>absent(),
@@ -135,7 +141,7 @@ public class SmtAstPatternBuilder {
   /**
    * The same as described in {@link #matchAny}, but binds the matching formula to a variable.
    */
-  public static SmtAstPattern matchAnyBind(String pBindMatchTo) {
+  public static SmtAstPattern matchAnyWithAnyArgsBind(String pBindMatchTo) {
     return new SmtFunctionApplicationPattern(
         Optional.<Comparable<?>>absent(),
         Optional.<String>of(pBindMatchTo),
@@ -251,7 +257,9 @@ public class SmtAstPatternBuilder {
       newFlags.add(SmtAstMatchFlag.IN_SUBTREE_RECURSIVE);
 
       return new SmtFunctionApplicationPattern(
-          ap.function, ap.bindMatchTo, ap.argumentPatterns,
+          ap.function,
+          ap.bindMatchTo,
+          ap.argumentPatterns,
           newFlags.toArray(new SmtAstMatchFlag[newFlags.size()]));
     }
 

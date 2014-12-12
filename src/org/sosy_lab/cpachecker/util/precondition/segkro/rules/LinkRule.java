@@ -53,11 +53,11 @@ public class LinkRule extends PatternBasedRule {
             and(
               GenericPatterns.f_of_x("f", "x"),
               match(">=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("j")),
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("j")),
               match("<=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("i"))
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("i"))
     )))));
 
     premises.add(new PatternBasedPremise(or(
@@ -65,13 +65,13 @@ public class LinkRule extends PatternBasedRule {
             and(
               GenericPatterns.f_of_x("f", "x"),
               match(">=",
-                  matchAnyBind(quantified("x")),
+                  matchAnyWithAnyArgsBind(quantified("x")),
                   match("+",
-                      matchAnyBind("i"),
+                      matchAnyWithAnyArgsBind("i"),
                       matchNullary("1"))),
               match("<=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("k"))
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("k"))
     )))));
   }
 

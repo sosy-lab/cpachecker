@@ -211,6 +211,7 @@ public class Z3AstMatcher implements SmtAstMatcher {
         functionParameterCount = get_app_num_args(ctx, ast);
       }
 
+      // No match if we are on a variable, that was not bound by a quantifier, but it is expected to be so.
       if (functionParameterCount == 0) {
         if (pP.getBindMatchTo().isPresent()) {
           final String bindMatchTo = pP.getBindMatchTo().get();
@@ -438,11 +439,11 @@ public class Z3AstMatcher implements SmtAstMatcher {
       } else if (logic.isAnd()) {
         return newMatchFailedResult("No match but ALL should!");
       }
+    }
 
-      if (argPatternsMatched.isEmpty()
-          && logic.isOr()) {
-        return newMatchFailedResult("No match but ANY should!");
-      }
+    if (argPatternsMatched.isEmpty()
+        && logic.isOr()) {
+      return newMatchFailedResult("No match but ANY should!");
     }
 
     if (argPatternsMatched.size() != pChildPatterns.getPatterns().size()

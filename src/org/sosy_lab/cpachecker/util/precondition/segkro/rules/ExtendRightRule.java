@@ -55,17 +55,17 @@ public class ExtendRightRule extends PatternBasedRule {
             and(
               GenericPatterns.f_of_x("f", "x"),
               match(">=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("i")),
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("i")),
               match("<=",
-                  matchAnyBind(quantified("x")),
-                  matchAnyBind("j"))
+                  matchAnyWithAnyArgsBind(quantified("x")),
+                  matchAnyWithAnyArgsBind("j"))
     )))));
 
     premises.add(new PatternBasedPremise(or(
         match("<=",
-            matchAnyBind("j"),
-            matchAnyBind("k")))));
+            matchAnyWithAnyArgsBind("j"),
+            matchAnyWithAnyArgsBind("k")))));
   }
 
   @Override

@@ -170,11 +170,11 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
                   match("+",
                       match("*",
                           matchNullaryBind("c1"),
-                          matchAnyBind("eX")),
-                      matchAnyBind("e1")),
+                          matchAnyWithAnyArgsBind("eX")),
+                      matchAnyWithAnyArgsBind("e1")),
                   matchNullary("0")),
               match(">=",
-                  matchAnyBind("e1"),
+                  matchAnyWithAnyArgsBind("e1"),
                   matchNullary("0"))));
 
     elimPremisePattern2 =
@@ -186,11 +186,11 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
                           match("-",
                               matchNullary("0"),
                               matchNullaryBind("c2")),
-                          matchAnyBind("eX")),
-                      matchAnyBind("e2")),
+                          matchAnyWithAnyArgsBind("eX")),
+                      matchAnyWithAnyArgsBind("e2")),
                   matchNullary("0")),
               match(">=",
-                  matchAnyBind("e2"),
+                  matchAnyWithAnyArgsBind("e2"),
                   matchNullary("0"))));
 
   }
@@ -219,7 +219,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
 
     SmtAstPattern patternPremise1 =
         match(  // The assumption that the parent function is a logical AND
-            matchIfNot("=", matchAny()), // (= c 1) should not be matched
+            matchIfNot("=", matchAnyWithAnyArgs()), // (= c 1) should not be matched
             match(matchNullaryBind("x"))); // (f c) should be matched
 
     // TODO: What is about (f a b c d)
@@ -227,7 +227,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     SmtAstPattern patternPremise2 =
         match("=",
             matchNullaryBind("x"),
-            matchAnyBind("e"));
+            matchAnyWithAnyArgsBind("e"));
 
     // TODO: There might be multiple valid bindings to a variable ("models")
 
@@ -288,10 +288,10 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   public void t1() {
     SmtAstPatternSelection p1 = or(
         matchBind("f",
-            matchAnyBind("e"),
+            matchAnyWithAnyArgsBind("e"),
             match("select",
-                matchAnyBind("a"),
-                matchAnyBind("i"))));
+                matchAnyWithAnyArgsBind("a"),
+                matchAnyWithAnyArgsBind("i"))));
 
     SmtAstMatchResult r = matcher.perform(p1, _0_EQ_b_at_i_plus_1_);
     assertThat(r.matches()).isTrue();
@@ -302,10 +302,10 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     SmtAstPatternSelection p2 = or(
       matchBind("not", "nf",
           match(
-              matchAnyBind("e"),
+              matchAnyWithAnyArgsBind("e"),
               match("select",
-                  matchAnyBind("a"),
-                  matchAnyBind("j")))));
+                  matchAnyWithAnyArgsBind("a"),
+                  matchAnyWithAnyArgsBind("j")))));
 
     SmtAstMatchResult r = matcher.perform(p2, _b_at_i_NOTEQ_0);
     assertThat(r.matches()).isTrue();
@@ -330,7 +330,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     SmtAstPatternSelection pattern = or(
         matchAnyBind("f",
             matchInSubtree(
-                matchAnyBind("x"))));
+                matchAnyWithAnyArgsBind("x"))));
 
     {
       SmtAstMatchResult r = matcher.perform(pattern, _b_at_i_EQ_0);
@@ -366,5 +366,46 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
     assertThat(result.matches()).isTrue();
     assertThat(result.getVariableBindings("x")).contains(_i);
   }
+
+  @Test
+  public void testSubtreeMatchingBinding1() {
+    SmtAstPatternSelection pattern = or(
+        matchAnyBind("f",
+            matchAny(
+                matchInSubtree(
+                    matchAnyWithAnyArgsBind("i"))))
+        );
+
+    BooleanFormula input = imgr.lessThan(_i, _al);
+
+    SmtAstMatchResult result = matcher.perform(pattern, input);
+
+    assertThat(result.matches()).isTrue();
+    assertThat(result.getVariableBindings("i")).contains(_i);
+  }
+
+  @Test
+  public void testSubtreeMatchingBinding2() {
+
+    BooleanFormula input = imgr.lessThan(_i, _al);
+
+    SmtAstPatternSelection pattern = or(
+        matchAnyBind("f",
+            match("select", // should not match
+                matchAnyWithAnyArgs(),
+                matchInSubtree(
+                    matchAnyWithAnyArgsBind("i"))),
+            matchAnyWithAnyArgs()),
+        matchAnyBind("f",  // <
+            matchAny(      // either i or al
+                matchInSubtree( // does not exist
+                    matchAnyWithAnyArgsBind("i")))));
+
+    SmtAstMatchResult result = matcher.perform(pattern, input);
+
+    assertThat(result.matches()).isTrue();
+    assertThat(result.getVariableBindings("i")).contains(_i);
+  }
+
 
 }

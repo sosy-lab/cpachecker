@@ -55,7 +55,7 @@ public class SubstitutionRule extends PatternBasedRule {
     premises.add(new PatternBasedPremise(or(
         match("=",
             matchNullaryBind("x"),
-            matchAnyBind("e"))
+            matchAnyWithAnyArgsBind("e"))
         )));
 
     premises.add(new PatternBasedPremise(

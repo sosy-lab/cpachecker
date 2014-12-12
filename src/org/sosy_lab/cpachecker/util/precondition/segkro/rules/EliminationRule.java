@@ -57,11 +57,11 @@ public class EliminationRule extends PatternBasedRule {
                   match("+",
                       match("*",
                           matchNullaryBind("c1"),
-                          matchAnyBind("eX")),
-                      matchAnyBind("e1")),
+                          matchAnyWithAnyArgsBind("eX")),
+                      matchAnyWithAnyArgsBind("e1")),
                   matchNullary("0")),
               match(">=",
-                  matchAnyBind("e1"),
+                  matchAnyWithAnyArgsBind("e1"),
                   matchNullary("0"))))));
 
     premises.add(new PatternBasedPremise(
@@ -73,11 +73,11 @@ public class EliminationRule extends PatternBasedRule {
                           match("-",
                               matchNullary("0"),
                               matchNullaryBind("c2")),
-                          matchAnyBind("eX")),
-                      matchAnyBind("e2")),
+                          matchAnyWithAnyArgsBind("eX")),
+                      matchAnyWithAnyArgsBind("e2")),
                   matchNullary("0")),
               match(">=",
-                  matchAnyBind("e2"),
+                  matchAnyWithAnyArgsBind("e2"),
                   matchNullary("0"))))));
   }
 

@@ -34,42 +34,50 @@ final class GenericPatterns {
     return matchBind(pBindFunctionTo,
         or(
           match("select",
-              matchAny(),
+              matchAnyWithAnyArgs(),
               matchInSubtree(
-                  matchAnyBind(pBindArgTo)))
+                  matchAnyWithAnyArgsBind(pBindArgTo)))
                   ,
           matchAny(
               matchAny(
                   matchInSubtree(
-                      matchAnyBind(pBindArgTo))))
+                      matchAnyWithAnyArgsBind(pBindArgTo))))
             ));
   }
 
   public static SmtAstPatternSelection f_of_x_selection (final String pBindFunctionTo, final String pBindArgTo) {
     return or(
         matchBind("not", pBindFunctionTo,
+            match("not",
+              matchAny(
+                  match("select",
+                      matchAnyWithAnyArgs(),
+                      matchInSubtree(
+                          matchAnyWithAnyArgsBind(pBindArgTo))),
+                  matchAnyWithAnyArgs()))),
+        matchBind("not", pBindFunctionTo,
             matchAny(
                 match("select",
-                    matchAny(),
+                    matchAnyWithAnyArgs(),
                     matchInSubtree(
-                        matchAnyBind(pBindArgTo))),
-                matchAny())),
+                        matchAnyWithAnyArgsBind(pBindArgTo))),
+                matchAnyWithAnyArgs())),
         matchAnyBind(pBindFunctionTo,
             match("select",
-                matchAny(),
+                matchAnyWithAnyArgs(),
                 matchInSubtree(
-                    matchAnyBind(pBindArgTo))),
-            matchAny()),
+                    matchAnyWithAnyArgsBind(pBindArgTo))),
+            matchAnyWithAnyArgs()),
         matchBind("not", pBindFunctionTo,
             matchAny(
                 matchAny(
                     matchInSubtree(
-                        matchAnyBind(pBindArgTo))),
-                matchAny())),
+                        matchAnyWithAnyArgsBind(pBindArgTo))),
+                matchAnyWithAnyArgs())),
         matchAnyBind(pBindFunctionTo,
             matchAny(
                 matchInSubtree(
-                    matchAnyBind(pBindArgTo))))
+                    matchAnyWithAnyArgsBind(pBindArgTo))))
         );
   }
 
