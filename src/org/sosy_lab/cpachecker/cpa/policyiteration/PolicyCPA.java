@@ -77,7 +77,7 @@ public class PolicyCPA
 
     statistics = new PolicyIterationStatistics(config);
     TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa, formulaManager);
+        logger, config, cfa, formulaManager, pathFormulaManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
             pathFormulaManager, formulaManager, logger,

@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
@@ -205,15 +207,16 @@ public class FormulaManagerFactory {
     }
   }
 
-  public OptEnvironment newOptEnvironment() {
+  public OptEnvironment newOptEnvironment(FormulaManagerView view) {
     OptEnvironment environment;
     switch (solver) {
-        case Z3:
-            environment = ((Z3FormulaManager) fmgr).newOptProver();
-            break;
-        default:
-            throw new AssertionError("Only Z3 supports the optimization interface");
+      case Z3:
+        environment = ((Z3FormulaManager) fmgr).newOptProver();
+        break;
+      default:
+        throw new AssertionError("Only Z3 supports the optimization interface");
     }
+    environment = new OptEnvironmentView(environment, view);
 
     if (useLogger) {
       return new LoggingOptEnvironment(logger, environment);

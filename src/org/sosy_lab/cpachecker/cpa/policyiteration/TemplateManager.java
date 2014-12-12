@@ -11,14 +11,20 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
@@ -32,6 +38,8 @@ public class TemplateManager {
         NumeralFormula, NumeralFormula.RationalFormula> rfmgr;
   private final NumeralFormulaManagerView<NumeralFormula.IntegerFormula,
       NumeralFormula.IntegerFormula> ifmgr;
+  private final PathFormulaManager pfmgr;
+  private final FormulaManagerView fmgrv;
 
   @Option(secure=true,
       description="Generate templates for the lower bounds of each variable")
@@ -58,13 +66,16 @@ public class TemplateManager {
       LogManager pLogger,
       Configuration pConfig,
       CFA pCfa,
-      FormulaManagerView pFormulaManagerView
-  ) throws InvalidConfigurationException{
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPfmgr
+      ) throws InvalidConfigurationException{
+    pfmgr = pPfmgr;
     pConfig.inject(this, TemplateManager.class);
     cfa = pCfa;
     logger = pLogger;
     rfmgr = pFormulaManagerView.getRationalFormulaManager();
     ifmgr = pFormulaManagerView.getIntegerFormulaManager();
+    fmgrv = pFormulaManagerView;
   }
 
   public ImmutableSet<Template> templatesForNode(CFANode node) {
@@ -78,13 +89,15 @@ public class TemplateManager {
       }
       String varName = s.getQualifiedName();
       CSimpleType type = (CSimpleType) s.getType();
+      CIdExpression idExpression = new CIdExpression(
+          FileLocation.DUMMY, (CSimpleDeclaration)s
+      );
       logger.log(Level.FINEST, "Processing variable", varName);
       if (generateUpperBound) {
-        out.add(new Template(LinearExpression.ofVariable(varName), type));
+        out.add(new Template(LinearExpression.ofVariable(idExpression), type));
       }
       if (generateLowerBound) {
-        out.add(new Template(LinearExpression.ofVariable(varName).negate(),
-            type));
+        out.add(new Template(LinearExpression.ofVariable(idExpression).negate(), type));
       }
     }
 
@@ -105,10 +118,16 @@ public class TemplateManager {
           }
 
           CSimpleType type = (CSimpleType) s1.getType();
-          String varName1 = s1.getQualifiedName();
-          LinearExpression expr1 = LinearExpression.ofVariable(varName1);
-          String varName2 = s2.getQualifiedName();
-          LinearExpression expr2 = LinearExpression.ofVariable(varName2);
+          CIdExpression idExpression1 = new CIdExpression(
+              FileLocation.DUMMY, (CSimpleDeclaration)s1
+          );
+          CIdExpression idExpression2 = new CIdExpression(
+              FileLocation.DUMMY, (CSimpleDeclaration)s2
+          );
+          LinearExpression<CIdExpression> expr1 = LinearExpression.ofVariable(
+              idExpression1);
+          LinearExpression<CIdExpression> expr2 = LinearExpression.ofVariable(
+              idExpression2);
 
           out.add(new Template(expr1.add(expr2), type));
           out.add(new Template(expr1.sub(expr2), type));
@@ -119,61 +138,45 @@ public class TemplateManager {
     return out.build();
   }
 
-  public NumeralFormula toFormula(
-      Template template, PathFormula pPathFormula
+  public Formula toFormula(
+      Template template, PathFormula pPathFormula, CFAEdge edge
   ) {
-    return toFormula(template, pPathFormula, "");
+    return toFormula(template, pPathFormula, "", edge);
   }
 
-  public NumeralFormula toFormula(
-      Template template, PathFormula pPathFormula, String customPrefix
+  public Formula toFormula(
+      Template template, PathFormula pPathFormula, String customPrefix,
+      CFAEdge edge
   ) {
-    SSAMap pSSAMap = pPathFormula.getSsa();
     boolean useRationals = shouldUseRationals(template);
-    NumeralFormula sum = null;
-    for (Map.Entry<String, Rational> entry : template.linearExpression) {
+    Formula sum = null;
+
+    for (Map.Entry<CIdExpression, Rational> entry : template.linearExpression) {
       Rational coeff = entry.getValue();
-      String origVarName = entry.getKey();
+      CIdExpression declaration = entry.getKey();
 
-      // SSA index shouldn't be zero.
-      int idx = Math.max(pSSAMap.getIndex(origVarName), 1);
-
-      NumeralFormula item;
-      if (useRationals) {
-        item = rfmgr.makeVariable(customPrefix + origVarName, idx);
-      } else {
-        item = ifmgr.makeVariable(customPrefix + origVarName, idx);
+      Formula item;
+      try {
+        item = pfmgr.expressionToFormula(
+            pPathFormula, declaration, edge);
+      } catch (UnrecognizedCCodeException e) {
+        throw new UnsupportedOperationException();
       }
 
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        if (useRationals) {
-          item = rfmgr.negate(item);
-        } else {
-          item = ifmgr.negate((NumeralFormula.IntegerFormula)item);
-        }
+        item = fmgrv.makeNegate(item);
       } else if (coeff != Rational.ONE){
-        if (useRationals) {
-          item = rfmgr.multiply(
-              item, rfmgr.makeNumber(entry.getValue().toString()));
-        } else {
-          item = ifmgr.multiply(
-              (NumeralFormula.IntegerFormula)item,
-              ifmgr.makeNumber(entry.getValue().toString()));
-        }
+        item = fmgrv.makeMultiply(
+            item, fmgrv.makeNumber(item, entry.getValue())
+        );
       }
 
       if (sum == null) {
         sum = item;
       } else {
-        if (useRationals) {
-          sum = rfmgr.add(sum, item);
-        } else {
-          sum = ifmgr.add(
-              (NumeralFormula.IntegerFormula)sum,
-              (NumeralFormula.IntegerFormula)item);
-        }
+        sum = fmgrv.makePlus(sum, item);
       }
     }
 
@@ -184,7 +187,11 @@ public class TemplateManager {
         return ifmgr.makeNumber(0);
       }
     } else {
-      return sum;
+      if (customPrefix.equals("")) {
+        return sum;
+      } else {
+        return fmgrv.addPrefixToAllVariables(sum, customPrefix);
+      }
     }
   }
 

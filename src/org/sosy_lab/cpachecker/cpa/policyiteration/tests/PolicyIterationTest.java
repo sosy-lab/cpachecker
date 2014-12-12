@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class PolicyIterationTest {
     check("test/programs/policyiteration/pointers/pointer2_true_assert.c");
   }
 
-  @Test public void checkLoopBounds2() throws Exception {
+  @Test public void loop2_true_assert() throws Exception {
     check("test/programs/policyiteration/loop2_true_assert.c");
   }
 
@@ -68,12 +69,32 @@ public class PolicyIterationTest {
   }
 
   @Test public void checkPointerPastAbstractionFalse() throws Exception {
-    check("test/programs/policyiteration/pointers/pointer_past_abstraction_false_assert.c");
+    check("test/programs/policyiteration/pointers/pointer_past_abstraction_false_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+  }
+
+  @Test public void pointers_loop_true_assert() throws Exception {
+    check("test/programs/policyiteration/pointers/pointers_loop_true_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+  }
+
+  @Test public void octagons_loop_true_assert() throws Exception {
+    check("test/programs/policyiteration/octagons/octagons_loop_true_assert.c",
+       ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+  }
+
+  @Test public void octagons_loop_false_assert() throws Exception {
+    check("test/programs/policyiteration/octagons/octagons_loop_false_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
   }
 
   private void check(String filename) throws Exception {
+    check(filename, new HashMap<String, String>());
+  }
+
+  private void check(String filename, Map<String, String> extra) throws Exception {
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(),
+        getProperties(extra),
         filename
     );
     if (filename.contains("_true_assert")) {
@@ -81,10 +102,9 @@ public class PolicyIterationTest {
     } else if (filename.contains("_false_assert")) {
       results.assertIsUnsafe();
     }
-
   }
 
-  private Map<String, String> getProperties() {
+  private Map<String, String> getProperties(Map<String, String> extra) {
     return (ImmutableMap.<String, String>builder()
         .put("cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
@@ -97,8 +117,9 @@ public class PolicyIterationTest {
                 "cpa.policyiteration.PolicyCPA"
             ))
         )
+        .putAll(extra)
         .put("cpa.predicate.solver", "Z3")
-        .put("log.consoleLevel", "INFO")
+        .put("log.consoleLevel", "FINE")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("parser.usePreprocessor", "true")

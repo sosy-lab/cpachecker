@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -327,10 +328,29 @@ public class FormulaManagerView {
   }
 
   /**
+   * Make a number which type corresponds to the existing formula type.
+   * // TODO: refactor all the {@code makeNumber} methods.
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(T formula, Rational value) {
+    Formula t;
+    FormulaType<T> formulaType = getFormulaType(formula);
+    if (formulaType.isIntegerType() && value.isIntegral()) {
+      t = integerFormulaManager.makeNumber(value.toString());
+    } else if (formulaType.isRationalType()) {
+      t = getRationalFormulaManager().makeNumber(value.toString());
+    } else if (value.isIntegral() && formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType,
+          new BigInteger(value.toString()));
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
+  /**
    * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, BigInteger value) {
@@ -1252,4 +1272,27 @@ public class FormulaManagerView {
   public BooleanFormula simplify(BooleanFormula input) {
     return unsafeManager.simplify(input);
   }
+
+  /**
+   * Adds prefix to all variables present in the formula.
+   * TODO: refactor, combine with the previous substitution API.
+   */
+  public Formula addPrefixToAllVariables(Formula input, String prefix) {
+    Formula formula = unwrap(input);
+    Set<Triple<Formula, String, Integer>> allVars =
+        extractVariables(formula);
+    FormulaType<Formula> t = getFormulaType(formula);
+
+    List<Formula> from = new ArrayList<>(allVars.size());
+    List<Formula> to = new ArrayList<>(allVars.size());
+    for (Triple<Formula, String, Integer> e : allVars) {
+      Formula token = e.getFirst();
+
+      String oldName = unsafeManager.getName(token);
+      from.add(token);
+      to.add(makeVariable(t, prefix + oldName));
+    }
+    return unsafeManager.substitute(formula, from, to);
+
   }
+}

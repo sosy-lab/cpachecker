@@ -21,13 +21,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -42,8 +38,6 @@ public class ValueDeterminationFormulaManager {
   private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final LogManager logger;
   private final TemplateManager templateManager;
 
@@ -52,7 +46,7 @@ public class ValueDeterminationFormulaManager {
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
-  private static final String TEMPLATE_PREFIX = "[%s]_";
+  private static final String EDGE_PREFIX = "[%s]_";
 
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
@@ -65,8 +59,6 @@ public class ValueDeterminationFormulaManager {
 
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
-    this.rfmgr = fmgr.getRationalFormulaManager();
-    ifmgr = fmgr.getIntegerFormulaManager();
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     this.formulaManager = rfmgr;
@@ -105,13 +97,12 @@ public class ValueDeterminationFormulaManager {
 
         // Prefix the constraints by the edges.
         // We encode the whole paths, as things might differ inside the path.
-        String edgePrefix = String.format(
-            TEMPLATE_PREFIX, bound.toPathString());
+        String edgePrefix = String.format(EDGE_PREFIX, bound.toPathString());
 
         if (toNode == focusedNode && !updated.containsKey(template)) {
 
           // Insert the invariant from the previous constraint.
-          NumeralFormula templateFormula = templateManager.toFormula(
+          Formula templateFormula = templateManager.toFormula(
               template,
               new PathFormula(
                   bfmgr.makeBoolean(true),
@@ -119,19 +110,11 @@ public class ValueDeterminationFormulaManager {
                   PointerTargetSet.emptyPointerTargetSet(),
                   0
               ),
-              edgePrefix);
-          BooleanFormula constraint;
-          if (bound.bound.isIntegral() && templateFormula instanceof IntegerFormula) {
-            constraint = ifmgr.lessOrEquals(
-                (IntegerFormula)templateFormula,
-                ifmgr.makeNumber(bound.bound.toString())
-            );
-          } else {
-            constraint = rfmgr.lessOrEquals(
-                templateFormula,
-                rfmgr.makeNumber(bound.bound.toString())
-            );
-          }
+              edgePrefix, bound.trace);
+          BooleanFormula constraint = fmgr.makeLessOrEqual(
+              templateFormula,
+              fmgr.makeNumber(templateFormula, bound.bound), true
+          );
 
           constraints.add(constraint);
         } else {
@@ -141,7 +124,7 @@ public class ValueDeterminationFormulaManager {
           int toNodeNo = toNode.getNodeNumber();
           int toNodePrimeNo = toPrime(toNodeNo);
 
-          PathFormula edgePathFormula = pathFormulaWithCustomIdx(
+          PathFormula edgePathFormula = pathFormulaWithCustomIdxAndPrefix(
               trace,
               toNodeNo,
               toNodePrimeNo,
@@ -161,18 +144,15 @@ public class ValueDeterminationFormulaManager {
             continue;
           }
 
-          NumeralFormula outExpr = templateManager.toFormula(
-              template, edgePathFormula, edgePrefix);
+          Formula outExpr = templateManager.toFormula(
+              template, edgePathFormula, edgePrefix, bound.trace);
           String varName = absDomainVarName(toNode, template);
           BooleanFormula outConstraint;
 
-          if (outExpr instanceof IntegerFormula) {
-            IntegerFormula out = ifmgr.makeVariable(varName);
-            outConstraint = ifmgr.equal((IntegerFormula) outExpr, out);
-          } else {
-            NumeralFormula out = rfmgr.makeVariable(varName);
-            outConstraint = rfmgr.equal(outExpr, out);
-          }
+          outConstraint = fmgr.makeEqual(
+              outExpr,
+              fmgr.makeVariable(fmgr.getFormulaType(outExpr), varName)
+          );
 
           logger.log(Level.FINE, "Output constraint = ", outConstraint);
           constraints.add(outConstraint);
@@ -195,7 +175,7 @@ public class ValueDeterminationFormulaManager {
    *
    *    {@code x@1000 = x@2 + 1}
    */
-  private PathFormula pathFormulaWithCustomIdx(
+  private PathFormula pathFormulaWithCustomIdxAndPrefix(
       CFAEdge edge, int startIdx, int stopIdx, String customPrefix)
       throws CPATransferException, InterruptedException {
 
@@ -250,13 +230,9 @@ public class ValueDeterminationFormulaManager {
         p.getLength());
   }
 
-  private NumeralFormula makeVariable(
+  private Formula makeVariable(
         Formula pFormula, String variable, int idx, String namespace) {
-    if (pFormula instanceof NumeralFormula.IntegerFormula) {
-      return ifmgr.makeVariable(namespace + variable, idx);
-    } else {
-      return rfmgr.makeVariable(namespace + variable, idx);
-    }
+    return fmgr.makeVariable(fmgr.getFormulaType(pFormula), namespace + variable, idx);
   }
 
   /**

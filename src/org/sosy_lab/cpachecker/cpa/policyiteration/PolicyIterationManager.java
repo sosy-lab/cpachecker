@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -69,7 +70,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true,
     description="Perform formula slicing after abstractions to propagate the" +
         " pointer information")
-  private boolean sliceFormulasForPointers = true;
+  private boolean propagateFormulasPastAbstraction = true;
 
   @Option(secure=true, name="epsilon",
       description="Value to substitute for the epsilon")
@@ -178,7 +179,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     if (oldState.isAbstract()) {
       PolicyAbstractedState aOldState = oldState.asAbstracted();
-      prev = abstractStateToPathFormula(aOldState);
+      prev = abstractStateToPathFormula(aOldState, edge);
     } else {
       PolicyIntermediateState iOldState = oldState.asIntermediate();
       prev = oldState.asIntermediate().getPathFormula();
@@ -239,7 +240,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         logger.log(Level.FINE, ">>> Abstraction from formula", iState.getPathFormula());
         logger.log(Level.FINE, "SSA: ", iState.getPathFormula().getSsa());
-        Optional<PolicyAbstractedState> abstraction = performAbstraction(iState);
+        Optional<PolicyAbstractedState> abstraction = performAbstraction(iState, cfaEdge);
         if (!abstraction.isPresent()) {
           return Collections.emptyList();
         }
@@ -410,7 +411,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Maximize for each template subject to the overall constraints.
     statistics.valueDeterminationSolverTimer.start();
     statistics.valueDetCalls++;
-    try (OptEnvironment solver = fmgrF.newOptEnvironment()) {
+    try (OptEnvironment solver = fmgrF.newOptEnvironment(fmgr)) {
       shutdownNotifier.shutdownIfNecessary();
 
       for (BooleanFormula constraint : pValueDeterminationConstraints) {
@@ -516,7 +517,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * otherwise.
    */
   private Optional<PolicyAbstractedState> performAbstraction(
-      PolicyIntermediateState state)
+      PolicyIntermediateState state, CFAEdge edge)
       throws CPATransferException, InterruptedException {
     final CFANode node = state.getNode();
     final PathFormula p = state.getPathFormula();
@@ -524,7 +525,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     ImmutableMap.Builder<Template, PolicyBound> abstraction
         = ImmutableMap.builder();
 
-    try (OptEnvironment solver = fmgrF.newOptEnvironment()) {
+    try (OptEnvironment solver = fmgrF.newOptEnvironment(fmgr)) {
       solver.addConstraint(p.getFormula());
 
       shutdownNotifier.shutdownIfNecessary();
@@ -533,9 +534,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
-        // TODO: this is considerably more complicated for pointers
-        NumeralFormula objective =
-            templateManager.toFormula(template, p);
+        Formula objective =
+            templateManager.toFormula(template, p, edge);
 
         solver.push();
         logger.log(Level.FINE, "Optimizing for ", objective);
@@ -548,8 +548,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             Optional<Rational> bound = solver.upper(handle, EPSILON);
             if (bound.isPresent()) {
               Model model = solver.getModel();
-              MultiEdge edge = traceFromModel(node, model);
-              abstraction.put(template, new PolicyBound(edge, bound.get()));
+              MultiEdge edge2 = traceFromModel(node, model);
+              abstraction.put(template, new PolicyBound(edge2, bound.get()));
             }
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
@@ -578,7 +578,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Representation of an {@code abstractState} as a {@link PathFormula}.
    */
   private PathFormula abstractStateToPathFormula(
-      PolicyAbstractedState abstractState) throws  InterruptedException {
+      PolicyAbstractedState abstractState, CFAEdge edge) throws  InterruptedException {
 
     SSAMap ssa = abstractState.getPathFormula().getSsa();
     List<BooleanFormula> tokens = new ArrayList<>();
@@ -586,21 +586,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      NumeralFormula t = templateManager.toFormula(template,
-          abstractState.getPathFormula());
+      // TODO: do not pass edge around, use a dummy value.
+      Formula t = templateManager.toFormula(template,
+          abstractState.getPathFormula(), edge);
 
       BooleanFormula constraint;
-      if (templateManager.shouldUseRationals(template)) {
-        constraint = rfmgr.lessOrEquals(
-            t, rfmgr.makeNumber(bound.bound.toString())
-        );
-      } else {
-        assert bound.bound.isIntegral();
-        constraint = ifmgr.lessOrEquals(
-            (NumeralFormula.IntegerFormula)t,
-            ifmgr.makeNumber(bound.bound.toString())
-        );
-      }
+      constraint = fmgr.makeLessOrEqual(
+          t,
+          fmgr.makeNumber(t, bound.bound),
+          true
+      );
       tokens.add(constraint);
     }
     BooleanFormula constraint = bfmgr.and(tokens);
@@ -609,7 +604,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // TODO: check that it is correct, that is,
     // pointer information stays invariant under the loop.
-    if (sliceFormulasForPointers) {
+    if (propagateFormulasPastAbstraction) {
       BooleanFormula pointerData = formulaSlicingManager.pointerFormulaSlice(
           extraBit);
       constraint = bfmgr.and(constraint, pointerData);
