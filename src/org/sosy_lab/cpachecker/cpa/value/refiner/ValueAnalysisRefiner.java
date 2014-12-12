@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -103,6 +102,11 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   private final LogManager logger;
 
   private int previousErrorPath = -1;
+
+  /**
+   * keep log of feasible targets that were already found
+   */
+  private final Set<ARGState> feasibleTargets = new HashSet<>();
 
   // statistics
   private int refinementCounter  = 0;
@@ -334,6 +338,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     for (ARGPath currentPath : errorPaths) {
       if (isErrorPathFeasible(currentPath)) {
         feasiblePath = currentPath;
+
+        feasibleTargets.add(currentPath.getLastState());
       }
     }
 
@@ -397,16 +403,13 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    */
   private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) {
 
-    Iterable<? extends AbstractState> candidates = pReached.asReachedSet();
-
-    if(AbstractStates.isTargetState(pReached.asReachedSet().getLastState())) {
-      logger.log(Level.FINEST, "Last state in reached set is a target state, so assuming non-global refinement");
-      candidates = Collections.singleton((ARGState)pReached.asReachedSet().getLastState());
-    }
-
-    Set<ARGState> targets = from(candidates)
+    // obtain all target locations, excluding feasible ones
+    // this filtering is needed to distinguish between multiple targets being available
+    // because of stopAfterError=false (feasible) versus globalRefinement=true (new)
+    Set<ARGState> targets = from(pReached.asReachedSet())
         .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE).toSet();
+        .filter(AbstractStates.IS_TARGET_STATE)
+        .filter(Predicates.not(Predicates.in(feasibleTargets))).toSet();
 
     assert !targets.isEmpty();
 
