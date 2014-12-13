@@ -1113,7 +1113,7 @@ class ASTConverter {
     }
 
     return createInstanceOfDisjunction(pLeftOperand, allPossibleClasses,
-        new JSimpleType(JBasicType.BOOLEAN), pLocation);
+        JSimpleType.getBoolean(), pLocation);
   }
 
   /**
@@ -1467,7 +1467,7 @@ class ASTConverter {
     String name = newFunctionEntryNode.getFunctionName();
 
     JIdExpression methodName =
-        new JIdExpression(oldMethodCall.getFileLocation(), new JSimpleType(JBasicType.UNSPECIFIED), name, declaration);
+        new JIdExpression(oldMethodCall.getFileLocation(), JSimpleType.getUnspecified(), name, declaration);
 
     if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(oldMethodCall.getFileLocation(),
@@ -2149,7 +2149,7 @@ class ASTConverter {
 
     FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
 
-    JType type = new JSimpleType(JBasicType.BOOLEAN);
+    JType type = JSimpleType.getBoolean();
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 

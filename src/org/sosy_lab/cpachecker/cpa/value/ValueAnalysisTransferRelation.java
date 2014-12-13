@@ -514,7 +514,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
 
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
-      return new JSimpleType(JBasicType.BOOLEAN);
+      return JSimpleType.getBoolean();
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
@@ -962,7 +962,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       JIdExpression idExpression = (JIdExpression) arrayExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
 
-      state.assignConstant(memLoc, Value.UnknownValue.getInstance(), new JSimpleType(JBasicType.UNSPECIFIED));
+      state.assignConstant(memLoc, Value.UnknownValue.getInstance(), JSimpleType.getUnspecified());
     } else {
       assignUnknownValueToIdentifier((JArraySubscriptExpression) arrayExpression);
     }
