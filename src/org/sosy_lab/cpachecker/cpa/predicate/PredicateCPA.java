@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -118,7 +117,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final FormulaManager realFormulaManager; // use formulaManager instead!
   private final FormulaManagerView formulaManager;
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
@@ -150,7 +148,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
-    realFormulaManager = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
     String libraries = formulaManager.getVersion();
 
@@ -310,9 +307,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public void close() throws Exception {
-    if (realFormulaManager instanceof AutoCloseable) {
-      ((AutoCloseable)realFormulaManager).close();
-    }
+    formulaManager.close();
   }
 
   @Override

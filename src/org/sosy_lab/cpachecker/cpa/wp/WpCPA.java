@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -93,7 +92,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
   private final AbstractionManager abstractionManager;
   @SuppressWarnings("unused")
   private final PredicateAbstractionManager predicateManager;
-  private final FormulaManager __no_direct_use_fmgr; // use formulaManager instead!
   private final FormulaManagerView formulaManager;
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
@@ -125,7 +123,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     // Create specific instances that are needed to run this analysis.
     formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
-    __no_direct_use_fmgr = formulaManagerFactory.getFormulaManager();
     formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     // TODO: We might use a caching path formula manager
@@ -213,9 +210,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
 
   @Override
   public void close() throws Exception {
-    if (__no_direct_use_fmgr instanceof AutoCloseable) {
-      ((AutoCloseable)__no_direct_use_fmgr).close();
-    }
+    formulaManager.close();
   }
 
   @Override

@@ -1296,4 +1296,10 @@ public class FormulaManagerView {
     return unsafeManager.substitute(formula, from, to);
 
   }
+
+  public void close() throws Exception {
+    if (manager instanceof AutoCloseable) {
+      ((AutoCloseable)manager).close();
+    }
+  }
 }
