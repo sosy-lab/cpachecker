@@ -34,12 +34,14 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
@@ -59,7 +61,9 @@ public final class Solver {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final FormulaManagerFactory factory;
+
+  private final FormulaManager solvingFormulaManager;
+  private final FormulaManager interpolationFormulaManager;
 
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
@@ -81,8 +85,9 @@ public final class Solver {
     config.inject(this);
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    factory = pFactory;
     logger = pLogger;
+    solvingFormulaManager = pFactory.getFormulaManager();
+    interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
   }
 
   /**
@@ -138,7 +143,7 @@ public final class Solver {
   }
 
   private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
-    ProverEnvironment pe = factory.getFormulaManager().newProverEnvironment(generateModels, generateUnsatCore);
+    ProverEnvironment pe = solvingFormulaManager.newProverEnvironment(generateModels, generateUnsatCore);
 
     if (useLogger) {
       return new LoggingProverEnvironment(logger, pe);
@@ -154,7 +159,15 @@ public final class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = factory.newProverEnvironmentWithInterpolation(false);
+    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
+
+    if (solvingFormulaManager != interpolationFormulaManager) {
+      // If interpolationFormulaManager is not the normal solver,
+      // we use SeparateInterpolatingProverEnvironment
+      // which copies formula back and forth using strings.
+      // We don't need this if the solvers are the same anyway.
+      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
+    }
 
     if (useLogger) {
       return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
@@ -170,7 +183,7 @@ public final class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptEnvironment newOptEnvironment() {
-    OptEnvironment environment = factory.getFormulaManager().newOptEnvironment();
+    OptEnvironment environment = solvingFormulaManager.newOptEnvironment();
     environment = new OptEnvironmentView(environment, fmgr);
 
     if (useLogger) {

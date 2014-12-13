@@ -51,8 +51,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
@@ -118,7 +116,7 @@ public class FormulaManagerFactory {
     if (interpolationSolver != null) {
       itpFmgr = instantiateSolver(interpolationSolver, config);
     } else {
-      itpFmgr = null;
+      itpFmgr = fmgr;
     }
   }
 
@@ -164,13 +162,8 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
-    if (itpFmgr != null) {
-      InterpolatingProverEnvironment<?> env = itpFmgr.newProverEnvironmentWithInterpolation(shared);
-      return new SeparateInterpolatingProverEnvironment<>(fmgr, itpFmgr, env);
-    }
-
-    return fmgr.newProverEnvironmentWithInterpolation(shared);
+  public FormulaManager getFormulaManagerForInterpolation() {
+    return itpFmgr;
   }
 
   /**
