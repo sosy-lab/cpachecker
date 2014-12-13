@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 /**
@@ -69,6 +71,11 @@ public final class Solver {
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
+  /**
+   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code.
+   * This constructor is primarily for test code.
+   */
+  @VisibleForTesting
   public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
@@ -76,6 +83,24 @@ public final class Solver {
     bfmgr = fmgr.getBooleanFormulaManager();
     factory = pFactory;
     logger = pLogger;
+  }
+
+  /**
+   * Load and instantiate an SMT solver.
+   */
+  public static Solver create(Configuration config, LogManager logger,
+      ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
+    FormulaManagerView fmgr = new FormulaManagerView(factory, config, logger);
+    return new Solver(fmgr, factory, config, logger);
+  }
+
+  /**
+   * Return the underlying {@link FormulaManagerView}
+   * that can be used for creating and manipulating formulas.
+   */
+  public FormulaManagerView getFormulaManager() {
+    return fmgr;
   }
 
   /**

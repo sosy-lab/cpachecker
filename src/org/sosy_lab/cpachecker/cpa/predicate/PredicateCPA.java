@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -145,9 +144,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     blk.setCFA(cfa);
 
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
-
-    formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
+    solver = Solver.create(config, logger, pShutdownNotifier);
+    formulaManager = solver.getFormulaManager();
     String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
@@ -155,8 +153,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
     pathFormulaManager = pfMgr;
-
-    solver = new Solver(formulaManager, formulaManagerFactory, config, logger);
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {

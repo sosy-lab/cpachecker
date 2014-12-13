@@ -164,17 +164,12 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
-    if (interpolationSolver != null) {
-      InterpolatingProverEnvironment<?> env = newProverEnvironmentWithInterpolation(itpFmgr, shared);
+  InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
+    if (itpFmgr != null) {
+      InterpolatingProverEnvironment<?> env = itpFmgr.newProverEnvironmentWithInterpolation(shared);
       return new SeparateInterpolatingProverEnvironment<>(fmgr, itpFmgr, env);
     }
 
-    return newProverEnvironmentWithInterpolation(fmgr, shared);
-  }
-
-  private InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
-          FormulaManager fmgr, boolean shared) {
     return fmgr.newProverEnvironmentWithInterpolation(shared);
   }
 

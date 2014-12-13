@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -93,7 +92,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
   @SuppressWarnings("unused")
   private final PredicateAbstractionManager predicateManager;
   private final FormulaManagerView formulaManager;
-  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
 
 
@@ -121,14 +119,12 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     //
     //
     // Create specific instances that are needed to run this analysis.
-    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
-
-    formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    formulaManager = solver.getFormulaManager();
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
 
-    solver = new Solver(formulaManager, formulaManagerFactory, config, logger);
 
     regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     // TODO: There are different implementations of the region manager.
