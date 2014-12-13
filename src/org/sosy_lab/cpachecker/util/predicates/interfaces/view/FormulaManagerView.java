@@ -51,6 +51,7 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -133,10 +134,10 @@ public class FormulaManagerView {
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
-  public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
-    manager = checkNotNull(pBaseManager);
+    manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
 
     BitvectorFormulaManager rawBitvectorFormulaManager;

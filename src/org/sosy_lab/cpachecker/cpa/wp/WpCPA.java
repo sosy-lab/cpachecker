@@ -126,7 +126,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
     __no_direct_use_fmgr = formulaManagerFactory.getFormulaManager();
-    formulaManager = new FormulaManagerView(__no_direct_use_fmgr, config, logger);
+    formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);

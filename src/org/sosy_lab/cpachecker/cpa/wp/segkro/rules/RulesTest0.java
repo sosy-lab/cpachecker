@@ -56,7 +56,7 @@ public class RulesTest0 extends SolverBasedTest0 {
 
   @Before
   public void setup() throws InvalidConfigurationException {
-    mgrv = new FormulaManagerView(mgr, config, logger);
+    mgrv = new FormulaManagerView(factory, config, logger);
     solver = new Solver(mgrv, factory);
   }
 

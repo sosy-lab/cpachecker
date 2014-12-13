@@ -121,7 +121,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     MachineModel mm = MachineModel.LINUX64;
-    mgrv = new FormulaManagerView(mgr, config, logger);
+    mgrv = new FormulaManagerView(factory, config, logger);
     FormulaEncodingOptions opts = new FormulaEncodingOptions(Configuration.defaultConfiguration());
     CtoFormulaTypeHandlerWithArrays th = new CtoFormulaTypeHandlerWithArrays(logger, opts, mm, mgrv);
     expressionBuilder = new CBinaryExpressionBuilder(mm, logger);

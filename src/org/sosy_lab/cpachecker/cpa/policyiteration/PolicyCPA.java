@@ -70,7 +70,7 @@ public class PolicyCPA
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
     FormulaManagerView formulaManager = new FormulaManagerView(
-        realFormulaManager, config, logger);
+        formulaManagerFactory, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);

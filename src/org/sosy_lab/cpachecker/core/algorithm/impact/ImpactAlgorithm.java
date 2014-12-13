@@ -138,7 +138,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     cpa = pCpa;
 
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
-    fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
+    fmgr = new FormulaManagerView(factory, config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
     solver = new Solver(fmgr, factory);
