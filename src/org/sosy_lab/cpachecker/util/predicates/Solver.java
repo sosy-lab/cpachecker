@@ -50,7 +50,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 /**
- * Abstraction of an SMT solver that also provides some higher-level methods.
+ * Encapsulation of an SMT solver.
+ * This class is the central entry point to everything related to an SMT solver:
+ * formula creation and manipulation (via the {@link #getFormulaManager()} method),
+ * and checking for satisfiability (via the remaining methods).
+ * In addition to the low-level methods provided by {@link FormulaManager},
+ * this class and {@link FormulaManagerView} provide additional higher-level utility methods,
+ * and additional features such as
+ * replacing one SMT theory transparently with another,
+ * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(prefix="cpa.predicate")
 public final class Solver {

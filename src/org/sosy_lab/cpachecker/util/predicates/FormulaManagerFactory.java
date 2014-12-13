@@ -51,6 +51,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
@@ -58,6 +59,15 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 
+/**
+ * Factory class for loading and instantiating SMT solvers.
+ * Most code should not access {@link FormulaManager} instances directly
+ * and instead use the class {@link Solver} and the classes from
+ * the {@link org.sosy_lab.cpachecker.util.predicates.interfaces.view} package
+ * (most notably {@link FormulaManagerView}).
+ * The preferred way to instantiate all of this is
+ * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
+ */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
@@ -93,6 +103,7 @@ public class FormulaManagerFactory {
 
   private volatile SolverFactory smtInterpolFactory = null;
 
+  @VisibleForTesting
   public FormulaManagerFactory(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);

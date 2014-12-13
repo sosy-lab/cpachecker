@@ -24,11 +24,16 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
- * Represents a Solver.
+ * Represents an SMT solver.
+ * Instances of this interface provide direct low-level access to an SMT solver.
+ * Most code should use this interface directly, but instead use the classes
+ * {@link Solver} and {@link FormulaManagerView} which provide additional features.
  */
 public interface FormulaManager {
 

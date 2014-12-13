@@ -52,6 +52,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -77,14 +78,17 @@ import com.google.common.collect.Sets;
  * and manipulation operations for client code.
  * It delegates to the actual solver package
  * and provides additional utilities.
+ * The preferred way of instantiating this class is via
+ * {@link Solver#create(Configuration, LogManager, org.sosy_lab.cpachecker.core.ShutdownNotifier)}.
  *
- *  This class and some of its related class have supporting operations
- *  for creating and manipulation formulas with SSA indices:
- *  - {@link #makeVariable(FormulaType, String, int)} creates a variable with an SSA index
- *  - {@link #instantiate(Formula, SSAMap)} adds SSA indices to variables in a formula
- *  - {@link #uninstantiate(Formula)} removes all SSA indices from a formula
  *
- *  The method {@link #parseName(String)} is also related to this, but should not be used!
+ * This class and some of its related classes have supporting operations
+ * for creating and manipulation formulas with SSA indices:
+ * - {@link #makeVariable(FormulaType, String, int)} creates a variable with an SSA index
+ * - {@link #instantiate(Formula, SSAMap)} adds SSA indices to variables in a formula
+ * - {@link #uninstantiate(Formula)} removes all SSA indices from a formula
+ *
+ * The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
