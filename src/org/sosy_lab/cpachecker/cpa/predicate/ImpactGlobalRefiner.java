@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
@@ -81,7 +81,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final LogManager logger;
 
   private final FormulaManagerView fmgr;
-  private final FormulaManagerFactory factory;
+  private final Solver solver;
   private final ARGCPA argCpa;
   private final ImpactUtility impact;
 
@@ -129,19 +129,19 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
-                                    predicateCpa.getFormulaManagerFactory(),
+                                    predicateCpa.getSolver(),
                                     predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
       ARGCPA pArgCpa, FormulaManagerView pFmgr,
-      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr)
+      Solver pSolver, PredicateAbstractionManager pPredAbsMgr)
           throws InvalidConfigurationException {
 
     logger = pLogger;
     argCpa = pArgCpa;
     fmgr = pFmgr;
-    factory = pFactory;
+    solver = pSolver;
     impact = new ImpactUtility(config, pFmgr, pPredAbsMgr);
 
     if (impact.requiresPreviousBlockAbstraction()) {
@@ -232,7 +232,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     // We do not descend beyond unreachable states,
     // but instead perform refinement on them.
 
-    try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+    try (InterpolatingProverEnvironment<?> itpProver = solver.newProverEnvironmentWithInterpolation()) {
       return performRefinement0(root, successors, predecessors, pReached, targets, itpProver);
     }
   }

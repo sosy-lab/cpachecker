@@ -129,7 +129,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     InterpolationManager manager = new InterpolationManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           predicateCpa.getShutdownNotifier(),
                                           logger);

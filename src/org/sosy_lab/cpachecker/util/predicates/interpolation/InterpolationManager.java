@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -127,7 +126,6 @@ public final class InterpolationManager {
   private final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final FormulaManagerFactory factory;
   private final Interpolator<?> interpolator;
 
   @Option(secure=true, description="apply deletion-filter to the abstract counterexample, to get "
@@ -188,7 +186,6 @@ public final class InterpolationManager {
       FormulaManagerView pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
-      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -200,7 +197,6 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-    factory = pFmgrFactory;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -339,7 +335,7 @@ public final class InterpolationManager {
         logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = factory.newProverEnvironment(true, false)) {
+        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
@@ -1048,7 +1044,7 @@ public final class InterpolationManager {
     private InterpolatingProverEnvironment<T> newEnvironment() {
       // This is safe because we don't actually care about the value of T,
       // only the InterpolatingProverEnvironment itself cares about it.
-      return (InterpolatingProverEnvironment<T>)factory.newProverEnvironmentWithInterpolation(false);
+      return (InterpolatingProverEnvironment<T>)solver.newProverEnvironmentWithInterpolation();
     }
 
     /**

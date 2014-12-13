@@ -28,6 +28,8 @@ import java.util.Map;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -89,6 +91,26 @@ public class Solver {
    */
   public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
     return factory.newProverEnvironment(false, true);
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for interpolation queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   */
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
+    return factory.newProverEnvironmentWithInterpolation(false);
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for optimization queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link OptEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   */
+  public OptEnvironment newOptEnvironment() {
+    return factory.newOptEnvironment(fmgr);
   }
 
   /**

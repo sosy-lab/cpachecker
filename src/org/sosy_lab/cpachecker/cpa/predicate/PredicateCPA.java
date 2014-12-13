@@ -118,7 +118,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final FormulaManagerView formulaManager;
-  private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
@@ -146,7 +145,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     blk.setCFA(cfa);
 
-    formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
+    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(config, logger, pShutdownNotifier);
 
     formulaManager = new FormulaManagerView(formulaManagerFactory, config, logger);
     String libraries = formulaManager.getVersion();
@@ -277,10 +276,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Nullable
   public PredicateStaticRefiner getStaticRefiner() {
     return staticRefiner;
-  }
-
-  public FormulaManagerFactory getFormulaManagerFactory() {
-    return formulaManagerFactory;
   }
 
   @Override

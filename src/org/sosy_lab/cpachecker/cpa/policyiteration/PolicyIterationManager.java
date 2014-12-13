@@ -22,23 +22,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyIntermediateState;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyIntermediateState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -82,7 +81,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
-  private final FormulaManagerFactory fmgrF;
+  private final Solver solver;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
@@ -99,7 +98,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       FormulaManagerView pFormulaManager,
       CFA pCfa,
       PathFormulaManager pPfmgr,
-      FormulaManagerFactory pFormulaManagerFactory,
+      Solver pSolver,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       TemplateManager pTemplateManager,
@@ -112,7 +111,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     cfa = pCfa;
     pfmgr = pPfmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    fmgrF = pFormulaManagerFactory;
+    solver = pSolver;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     rfmgr = fmgr.getRationalFormulaManager();
@@ -411,7 +410,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Maximize for each template subject to the overall constraints.
     statistics.valueDeterminationSolverTimer.start();
     statistics.valueDetCalls++;
-    try (OptEnvironment solver = fmgrF.newOptEnvironment(fmgr)) {
+    try (OptEnvironment solver = this.solver.newOptEnvironment()) {
       shutdownNotifier.shutdownIfNecessary();
 
       for (BooleanFormula constraint : pValueDeterminationConstraints) {
@@ -495,18 +494,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean checkSatisfiability(PolicyState.PolicyIntermediateState state)
         throws CPATransferException, InterruptedException {
 
-    PathFormula p = state.getPathFormula();
-
-    try (ProverEnvironment solver = fmgrF.newProverEnvironment(false, false)) {
-      solver.push(p.getFormula());
-      if (solver.isUnsat()) {
-        return false;
-      }
+    try {
+      return !solver.isUnsat(state.getPathFormula().getFormula());
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
     }
-
-    return true;
   }
 
   /**
@@ -525,7 +517,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     ImmutableMap.Builder<Template, PolicyBound> abstraction
         = ImmutableMap.builder();
 
-    try (OptEnvironment solver = fmgrF.newOptEnvironment(fmgr)) {
+    try (OptEnvironment solver = this.solver.newOptEnvironment()) {
       solver.addConstraint(p.getFormula());
 
       shutdownNotifier.shutdownIfNecessary();

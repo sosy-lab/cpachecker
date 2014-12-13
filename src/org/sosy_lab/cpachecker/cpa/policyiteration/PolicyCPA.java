@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -71,6 +72,7 @@ public class PolicyCPA
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
     FormulaManagerView formulaManager = new FormulaManagerView(
         formulaManagerFactory, config, logger);
+    Solver solver = new Solver(formulaManager, formulaManagerFactory);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
@@ -95,7 +97,7 @@ public class PolicyCPA
         config,
         formulaManager,
         cfa, pathFormulaManager,
-        formulaManagerFactory, logger, shutdownNotifier,
+        solver, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
         formulaSlicingManager);

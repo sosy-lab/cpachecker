@@ -56,7 +56,6 @@ public abstract class ImpactRefiner implements Refiner {
         fmgr,
         pfmgr,
         solver,
-        predicateCpa.getFormulaManagerFactory(),
         config,
         predicateCpa.getShutdownNotifier(),
         logger);

@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -470,11 +469,7 @@ public class PredicatedAnalysisAlgorithm implements Algorithm, StatisticsProvide
       fMore = predCPA.getFormulaManager().makeAnd(fLess, fMore);
 
       // check if conjunction of less precise does not imply conjunction of more precise
-      ProverEnvironment prover = predCPA.getFormulaManagerFactory().newProverEnvironment(false, false);
-      prover.push(fMore);
-      boolean result = prover.isUnsat();
-      prover.close();
-      return result;
+      return predCPA.getSolver().isUnsat(fMore);
     }
 
     return lessPrecise == null && morePrecise != null;

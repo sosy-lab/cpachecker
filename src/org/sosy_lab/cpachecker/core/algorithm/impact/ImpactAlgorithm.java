@@ -142,7 +142,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
     solver = new Solver(fmgr, factory);
-    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
+    imgr = new InterpolationManager(fmgr, pfmgr, solver, config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {

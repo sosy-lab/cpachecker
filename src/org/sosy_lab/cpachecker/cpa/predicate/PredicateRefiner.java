@@ -57,7 +57,6 @@ public abstract class PredicateRefiner implements Refiner {
         fmgr,
         pfmgr,
         solver,
-        predicateCpa.getFormulaManagerFactory(),
         config,
         predicateCpa.getShutdownNotifier(),
         logger);

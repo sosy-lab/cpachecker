@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -121,7 +120,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return null;
 
     } else {
-        FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
         FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
         Solver solver                               = predicateCpa.getSolver();
         PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
@@ -132,7 +130,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             formulaManager,
             pathFormulaManager,
             solver,
-            factory,
             config,
             predicateCpa.getShutdownNotifier(),
             logger);
