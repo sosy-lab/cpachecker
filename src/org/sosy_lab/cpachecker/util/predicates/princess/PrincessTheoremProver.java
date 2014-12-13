@@ -51,12 +51,12 @@ import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.INot;
 
-public class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvironment {
+class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvironment {
 
   private final List<IExpression> assertedTerms = new ArrayList<>();
-  protected final ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public PrincessTheoremProver(PrincessFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
+  PrincessTheoremProver(PrincessFormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
     super(pMgr, false);
     this.shutdownNotifier = checkNotNull(pShutdownNotifier);
   }

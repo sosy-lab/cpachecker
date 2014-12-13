@@ -43,6 +43,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
@@ -85,12 +88,19 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
             booleanTheory, integerTheory, rationalTheory);
   }
 
-  public SmtInterpolInterpolatingProver createInterpolator() {
+  @Override
+  public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
+    return getEnvironment().createProver(this);
+  }
+
+  @Override
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
     return getEnvironment().getInterpolator(this);
   }
 
-  SmtInterpolTheoremProver createProver() {
-    return getEnvironment().createProver(this);
+  @Override
+  public OptEnvironment newOptEnvironment() {
+    throw new UnsupportedOperationException("SMTInterpol does not support optimization");
   }
 
   BooleanFormula encapsulateBooleanFormula(Term t) {

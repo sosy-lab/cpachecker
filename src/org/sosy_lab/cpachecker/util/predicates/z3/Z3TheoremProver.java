@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
 
-public class Z3TheoremProver implements ProverEnvironment {
+class Z3TheoremProver implements ProverEnvironment {
 
   private final Z3FormulaManager mgr;
   private long z3context;
@@ -60,7 +60,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
   private final Map<String, BooleanFormula> storedConstraints;
 
-  public Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
+  Z3TheoremProver(Z3FormulaManager pMgr, boolean generateUnsatCore) {
     mgr = pMgr;
     z3context = mgr.getEnvironment();
     z3solver = mk_solver(z3context);

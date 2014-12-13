@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBu
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
+class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
 
   private static final boolean USE_SHARED_ENV = true;
 
-  public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
+  Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
       boolean generateModels, boolean generateUnsatCore) {
     super(pMgr, createConfig(pMgr, generateModels, generateUnsatCore), USE_SHARED_ENV, true);
   }

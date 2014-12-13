@@ -40,6 +40,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
@@ -138,6 +141,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   }
 
   @Override
+  public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
+    return new Z3TheoremProver(this, pGenerateUnsatCore);
+  }
+
+  @Override
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
+    return new Z3InterpolatingProver(this);
+  }
+
+  @Override
+  public OptEnvironment newOptEnvironment() {
+    Z3OptProver out = new Z3OptProver(this);
+    out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
+    out.setParam(OPT_PRIORITY_CONFIG_KEY, this.objectivePrioritizationMode);
+    return out;
+  }
+
+  @Override
   public BooleanFormula parse(String str) throws IllegalArgumentException {
 
     // TODO do we need sorts or decls?
@@ -195,13 +216,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
           .trim());
       }
     };
-  }
-
-  public Z3OptProver newOptProver() {
-    Z3OptProver out = new Z3OptProver(this);
-    out.setParam(OPT_ENGINE_CONFIG_KEY, optimizationEngine);
-    out.setParam(OPT_PRIORITY_CONFIG_KEY, objectivePrioritizationMode);
-    return out;
   }
 
   protected BooleanFormula encapsulateBooleanFormula(long t) {

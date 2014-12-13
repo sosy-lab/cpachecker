@@ -36,14 +36,14 @@ import org.sosy_lab.cpachecker.util.rationals.Rational;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
-public class Z3OptProver implements OptEnvironment {
+class Z3OptProver implements OptEnvironment {
 
   private final Z3FormulaManager mgr;
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
 
-  public Z3OptProver(Z3FormulaManager mgr) {
+  Z3OptProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);

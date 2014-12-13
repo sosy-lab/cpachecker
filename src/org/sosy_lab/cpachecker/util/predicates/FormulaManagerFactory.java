@@ -61,14 +61,8 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.princess.PrincessInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.princess.PrincessTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
@@ -182,23 +176,7 @@ public class FormulaManagerFactory {
   }
 
   public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
-    ProverEnvironment pe;
-    switch (solver) {
-    case SMTINTERPOL:
-      pe = loadSmtInterpol().createProver(fmgr);
-      break;
-    case MATHSAT5:
-      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels, generateUnsatCore);
-      break;
-    case Z3:
-      pe = new Z3TheoremProver((Z3FormulaManager) fmgr, generateUnsatCore);
-      break;
-    case PRINCESS:
-      pe = new PrincessTheoremProver((PrincessFormulaManager) fmgr, shutdownNotifier);
-      break;
-    default:
-      throw new AssertionError("no solver selected");
-    }
+    ProverEnvironment pe = fmgr.newProverEnvironment(generateModels, generateUnsatCore);
 
     if (useLogger) {
       return new LoggingProverEnvironment(logger, pe);
@@ -208,14 +186,7 @@ public class FormulaManagerFactory {
   }
 
   public OptEnvironment newOptEnvironment(FormulaManagerView view) {
-    OptEnvironment environment;
-    switch (solver) {
-      case Z3:
-        environment = ((Z3FormulaManager) fmgr).newOptProver();
-        break;
-      default:
-        throw new AssertionError("Only Z3 supports the optimization interface");
-    }
+    OptEnvironment environment = fmgr.newOptEnvironment();
     environment = new OptEnvironmentView(environment, view);
 
     if (useLogger) {
@@ -236,24 +207,7 @@ public class FormulaManagerFactory {
 
   private InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
           Solvers solver, FormulaManager fmgr, boolean shared) {
-
-    InterpolatingProverEnvironment<?> ipe;
-    switch (solver) {
-    case SMTINTERPOL:
-      ipe = loadSmtInterpol().createInterpolatingProver(fmgr);
-      break;
-    case MATHSAT5:
-      ipe = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
-      break;
-    case Z3:
-      ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
-      break;
-    case PRINCESS:
-      ipe = new PrincessInterpolatingProver((PrincessFormulaManager) fmgr);
-      break;
-    default:
-      throw new AssertionError("no solver selected");
-    }
+    InterpolatingProverEnvironment<?> ipe = fmgr.newProverEnvironmentWithInterpolation(shared);
 
     if (useLogger) {
       return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
@@ -273,10 +227,6 @@ public class FormulaManagerFactory {
     FormulaManager create(Configuration config, LogManager logger,
         ShutdownNotifier pShutdownNotifier,
         @Nullable PathCounterTemplate solverLogfile) throws InvalidConfigurationException;
-
-    ProverEnvironment createProver(FormulaManager mgr);
-
-    InterpolatingProverEnvironment<?> createInterpolatingProver(FormulaManager mgr);
   }
 
   // ------------------------- SmtInterpol -------------------------

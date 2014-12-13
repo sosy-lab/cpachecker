@@ -84,6 +84,27 @@ public interface FormulaManager {
   QuantifiedFormulaManager getQuantifiedFormulaManager();
 
   /**
+   * Create a fresh new {@link ProverEnvironment} which encapsulates an assertion stack
+   * and can be used to check formulas for unsatisfiability.
+   * @param generateModels Whether the solver should generate models (i.e., satisfying assignments) for satisfiable formulas.
+   * @param generateUnsatCore Whether the solver should generate an unsat core for unsatisfiable formulas.
+   */
+  ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore);
+
+  /**
+   * Create a fresh new {@link InterpolatingProverEnvironment} which encapsulates an assertion stack
+   * and allows to generate and retrieve interpolants for unsatisfiable formulas.
+   * @param shared Whether the solver should share as much as possible with other environments.
+   */
+  InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared);
+
+  /**
+   * Create a fresh new {@link OptEnvironment} which encapsulates an assertion stack
+   * and allows to solve optimization queries.
+   */
+  OptEnvironment newOptEnvironment();
+
+  /**
    * Returns the type of the given Formula.
    * Undefined behavior when an untyped Formula from UnsafeFormulaManager is given.
    */
