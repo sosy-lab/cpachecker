@@ -52,14 +52,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.princess.PrincessFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
@@ -78,10 +71,6 @@ public class FormulaManagerFactory {
     PRINCESS
     ;
   }
-
-  @Option(secure=true, name="solver.useLogger",
-      description="log some solver actions, this may be slow!")
-  private boolean useLogger = false;
 
   @Option(secure=true, name="solver.logAllQueries",
       description = "Export solver queries in Smtlib format into a file.")
@@ -175,45 +164,18 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
-    ProverEnvironment pe = fmgr.newProverEnvironment(generateModels, generateUnsatCore);
-
-    if (useLogger) {
-      return new LoggingProverEnvironment(logger, pe);
-    } else {
-      return pe;
-    }
-  }
-
-  public OptEnvironment newOptEnvironment(FormulaManagerView view) {
-    OptEnvironment environment = fmgr.newOptEnvironment();
-    environment = new OptEnvironmentView(environment, view);
-
-    if (useLogger) {
-      return new LoggingOptEnvironment(logger, environment);
-    } else {
-      return environment;
-    }
-  }
-
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
     if (interpolationSolver != null) {
-      InterpolatingProverEnvironment<?> env = newProverEnvironmentWithInterpolation(interpolationSolver, itpFmgr, shared);
+      InterpolatingProverEnvironment<?> env = newProverEnvironmentWithInterpolation(itpFmgr, shared);
       return new SeparateInterpolatingProverEnvironment<>(fmgr, itpFmgr, env);
     }
 
-    return newProverEnvironmentWithInterpolation(solver, fmgr, shared);
+    return newProverEnvironmentWithInterpolation(fmgr, shared);
   }
 
   private InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
-          Solvers solver, FormulaManager fmgr, boolean shared) {
-    InterpolatingProverEnvironment<?> ipe = fmgr.newProverEnvironmentWithInterpolation(shared);
-
-    if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
-    } else {
-      return ipe;
-    }
+          FormulaManager fmgr, boolean shared) {
+    return fmgr.newProverEnvironmentWithInterpolation(shared);
   }
 
   /**

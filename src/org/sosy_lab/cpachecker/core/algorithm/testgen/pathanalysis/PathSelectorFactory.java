@@ -99,7 +99,7 @@ public class PathSelectorFactory {
     FormulaManagerView formulaManager =
         new FormulaManagerView(formulaManagerFactory, startupConfig.getConfig(), startupConfig.getLog());
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa, AnalysisDirection.FORWARD);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory);
+    Solver solver = new Solver(formulaManager, formulaManagerFactory, startupConfig.getConfig(), startupConfig.getLog());
     PathChecker pathChecker = new PathChecker(startupConfig.getLog(), startupConfig.getShutdownNotifier(), pfMgr, solver, pCfa.getMachineModel());
     return pathChecker;
   }

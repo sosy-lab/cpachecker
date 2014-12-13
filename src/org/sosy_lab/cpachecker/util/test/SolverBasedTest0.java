@@ -182,7 +182,7 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormula())")
   protected final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormula() {
-    return BooleanFormulaOfSolver(factory);
+    return BooleanFormulaOfSolver(mgr);
   }
 
   /**
@@ -193,11 +193,11 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
   public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
-      final FormulaManagerFactory factory) {
+      final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
           public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
-            return new BooleanFormulaSubject(pFs, pFormula, factory);
+            return new BooleanFormulaSubject(pFs, pFormula, mgr);
           }
         };
   }

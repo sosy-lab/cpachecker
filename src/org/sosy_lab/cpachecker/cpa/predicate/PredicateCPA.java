@@ -156,7 +156,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    solver = new Solver(formulaManager, formulaManagerFactory);
+    solver = new Solver(formulaManager, formulaManagerFactory, config, logger);
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {

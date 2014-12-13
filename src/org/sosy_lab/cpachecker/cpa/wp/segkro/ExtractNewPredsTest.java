@@ -52,7 +52,7 @@ public class ExtractNewPredsTest extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     mgrv = new FormulaManagerView(factory, config, logger);
-    Solver solver = new Solver(mgrv, factory);
+    Solver solver = new Solver(mgrv, factory, config, logger);
     List<Rule> rules = Lists.newArrayList();
     rules = RulesetFactory.createRuleset(mgr, solver);
     enp = new ExtractNewPreds(rules);

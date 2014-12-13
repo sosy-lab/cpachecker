@@ -25,6 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -33,13 +38,22 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 
 import com.google.common.collect.Maps;
 
 /**
  * Abstraction of an SMT solver that also provides some higher-level methods.
  */
-public class Solver {
+@Options(prefix="cpa.predicate")
+public final class Solver {
+
+  @Option(secure=true, name="solver.useLogger",
+      description="log some solver actions, this may be slow!")
+  private boolean useLogger = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -47,16 +61,21 @@ public class Solver {
 
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
+  private final LogManager logger;
+
   // stats
   public final Timer solverTime = new Timer();
   public int satChecks = 0;
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
-  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory) {
+  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this);
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     factory = pFactory;
+    logger = pLogger;
   }
 
   /**
@@ -66,7 +85,7 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment() {
-    return factory.newProverEnvironment(false, false);
+    return newProverEnvironment(false, false);
   }
 
   /**
@@ -78,7 +97,7 @@ public class Solver {
    * The solver is told to enable model generation.
    */
   public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return factory.newProverEnvironment(true, false);
+    return newProverEnvironment(true, false);
   }
 
   /**
@@ -90,7 +109,17 @@ public class Solver {
    * The solver is told to enable unsat-core generation.
    */
   public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return factory.newProverEnvironment(false, true);
+    return newProverEnvironment(false, true);
+  }
+
+  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
+    ProverEnvironment pe = factory.getFormulaManager().newProverEnvironment(generateModels, generateUnsatCore);
+
+    if (useLogger) {
+      return new LoggingProverEnvironment(logger, pe);
+    } else {
+      return pe;
+    }
   }
 
   /**
@@ -100,7 +129,13 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    return factory.newProverEnvironmentWithInterpolation(false);
+    InterpolatingProverEnvironment<?> ipe = factory.newProverEnvironmentWithInterpolation(false);
+
+    if (useLogger) {
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
+    } else {
+      return ipe;
+    }
   }
 
   /**
@@ -110,7 +145,14 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptEnvironment newOptEnvironment() {
-    return factory.newOptEnvironment(fmgr);
+    OptEnvironment environment = factory.getFormulaManager().newOptEnvironment();
+    environment = new OptEnvironmentView(environment, fmgr);
+
+    if (useLogger) {
+      return new LoggingOptEnvironment(logger, environment);
+    } else {
+      return environment;
+    }
   }
 
   /**

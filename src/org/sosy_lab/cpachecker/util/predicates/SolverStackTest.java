@@ -72,7 +72,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void simpleStackTestBool() throws SolverException, InterruptedException {
-    ProverEnvironment stack = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack = mgr.newProverEnvironment(true, true);
 
     int i = index.getFreshId();
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
@@ -118,7 +118,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void singleStackTestInteger() throws Exception {
-    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    ProverEnvironment env = mgr.newProverEnvironment(true, true);
     simpleStackTestNum(imgr, env);
   }
 
@@ -126,7 +126,7 @@ public class SolverStackTest extends SolverBasedTest0 {
   public void singleStackTestRational() throws Exception {
     requireRationals();
 
-    ProverEnvironment env = factory.newProverEnvironment(true, true);
+    ProverEnvironment env = mgr.newProverEnvironment(true, true);
     simpleStackTestNum(rmgr, env);
   }
 
@@ -175,14 +175,14 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void stackTest() throws Exception {
-    ProverEnvironment stack = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack = mgr.newProverEnvironment(true, true);
     thrown.expect(RuntimeException.class);
     stack.pop();
   }
 
   @Test
   public void stackTestItp() throws Exception {
-    InterpolatingProverEnvironment<?> stack = factory.newProverEnvironmentWithInterpolation(true);
+    InterpolatingProverEnvironment<?> stack = mgr.newProverEnvironmentWithInterpolation(true);
     thrown.expect(RuntimeException.class);
     stack.pop();
   }
@@ -194,10 +194,10 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
     stack1.push(a); // L1
     stack1.push(a); // L2
-    ProverEnvironment stack2 = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack2 = mgr.newProverEnvironment(true, true);
     stack1.pop(); // L1
     stack1.pop(); // L0
 
@@ -218,8 +218,8 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
-    ProverEnvironment stack2 = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
+    ProverEnvironment stack2 = mgr.newProverEnvironment(true, true);
     stack1.push(a); // L1
     stack1.push(bmgr.makeBoolean(true)); // L2
     assertFalse(stack1.isUnsat());
@@ -248,7 +248,7 @@ public class SolverStackTest extends SolverBasedTest0 {
     requireMultipleStackSupport();
 
     // Create non-empty stack
-    ProverEnvironment stack1 = factory.newProverEnvironment(true, true);
+    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
     stack1.push(bmgr.makeVariable("bool_a"));
 
     // Declare b while non-empty stack exists

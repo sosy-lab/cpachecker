@@ -128,7 +128,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
 
-    solver = new Solver(formulaManager, formulaManagerFactory);
+    solver = new Solver(formulaManager, formulaManagerFactory, config, logger);
 
     regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     // TODO: There are different implementations of the region manager.
