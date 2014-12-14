@@ -71,6 +71,18 @@ Spelling:
 - Try to avoid typos.
 - Names are spelled camel-like, whereEachNewWordStartsWithCapital.
 - Type names start with a capital.
+- Interfaces are not named with a leading 'I'.
+  In general, client code should not need to know whether
+  it is using an interface or a concrete class,
+  thus there should not be a naming difference.
+  Furthermore, a good API should always make sure that
+  the best way to do something is also the easiest way.
+  When both an interface and a similarly-named class exist,
+  the interface is the one that should primarily be used,
+  and thus the interface gets the normal/clean/beautiful name,
+  and the class the internal/ugly name.
+  It is better to have one place using "FooImpl" and hundreds of places using "Foo"
+  instead of one place using "Foo" and hundreds of places using "IFoo".
 - Method names start lower case and begin with a verb.
 - Variable names start lower case.
   Parameters should start with 'p' to avoid confusion with
@@ -95,7 +107,7 @@ Design:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
 - Avoid boolean parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
-  (cf. http://martinfowler.com/bliki/FlagArgument.h.tml)
+  (cf. http://martinfowler.com/bliki/FlagArgument.html)
 
 Configuration options:
 - Only use the @Option scheme so your options are automatically type-checked
