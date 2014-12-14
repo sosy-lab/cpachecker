@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.junit.Assert.*;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -84,38 +83,38 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula or = bmgr.or(a, b);
 
     stack.push(or); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
     BooleanFormula c = bmgr.makeVariable("bool_c"+i);
     BooleanFormula d = bmgr.makeVariable("bool_d"+i);
     BooleanFormula and = bmgr.and(c, d);
 
     stack.push(and); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     BooleanFormula notOr = bmgr.not(or);
 
     stack.push(notOr); //L3
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     // we are lower than before creating c and d.
     // however we assume that they are usable now (this violates SMTlib).
     stack.push(and); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.push(notOr); //L2
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L0 empty stack
   }
@@ -141,38 +140,38 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula leqAB = nmgr.lessOrEquals(a, b);
 
     stack.push(leqAB); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
     X c = nmgr.makeVariable("num_c"+i);
     X d = nmgr.makeVariable("num_d"+i);
     BooleanFormula eqCD = nmgr.lessOrEquals(c, d);
 
     stack.push(eqCD); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     BooleanFormula gtAB = nmgr.greaterThan(a, b);
 
     stack.push(gtAB); //L3
-    assertTrue(stack.isUnsat()); // "<=" AND ">" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "<=" AND ">" --> UNSAT
 
     stack.pop(); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     // we are lower than before creating c and d.
     // however we assume that they are usable now (this violates SMTlib).
     stack.push(eqCD); //L2
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.push(gtAB); //L2
-    assertTrue(stack.isUnsat()); // "or" AND "not or" --> UNSAT
+    assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable(); // "or" AND "not or" --> UNSAT
 
     stack.pop(); //L1
-    assertFalse(stack.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
     stack.pop(); //L0 empty stack
   }
@@ -206,10 +205,10 @@ public class SolverStackTest extends SolverBasedTest0 {
     stack1.pop(); // L0
 
     stack1.push(a); //L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
 
     stack2.push(not); //L1
-    assertFalse(stack2.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
 
     stack1.pop(); // L0
     stack2.pop(); // L0
@@ -226,16 +225,16 @@ public class SolverStackTest extends SolverBasedTest0 {
     ProverEnvironment stack2 = mgr.newProverEnvironment(true, true);
     stack1.push(a); // L1
     stack1.push(bmgr.makeBoolean(true)); // L2
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack2.push(not); // L1
-    assertFalse(stack2.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
     stack1.pop(); // L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack1.pop(); // L1
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack2.pop(); // L1
-    assertFalse(stack2.isUnsat());
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack2).isSatisfiable();
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
   }
 
   /**
@@ -261,7 +260,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
     // Clear stack (without global declarations b gets deleted)
     stack1.push(b);
-    assertFalse(stack1.isUnsat());
+    assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
     stack1.pop();
     stack1.pop();
     stack1.close();
@@ -274,10 +273,10 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void modelForUnsatFormula() throws Exception {
-    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+    try (ProverEnvironment stack = mgr.newProverEnvironment(true, true)) {
       stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
       stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
-      assertTrue(stack.isUnsat());
+      assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
 
       thrown.expect(Exception.class);
       stack.getModel();
@@ -289,7 +288,7 @@ public class SolverStackTest extends SolverBasedTest0 {
     try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
       stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
       stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(2)));
-      assertFalse(stack.isUnsat());
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
 
       Model model = stack.getModel();
       Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);

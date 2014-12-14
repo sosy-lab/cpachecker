@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 import com.google.common.truth.FailureStrategy;
@@ -198,6 +199,21 @@ public abstract class SolverBasedTest0 {
           @Override
           public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
             return new BooleanFormulaSubject(pFs, pFormula, mgr);
+          }
+        };
+  }
+
+  /**
+   * Use this for checking assertions about ProverEnvironments with Truth:
+   * <code>assert_().about(ProverEnvironment()).that(stack).is...()</code>.
+   */
+  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
+      justification="fits better when called as about(ProverEnvironment())")
+  public static final SubjectFactory<ProverEnvironmentSubject, ProverEnvironment> ProverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, ProverEnvironment>() {
+          @Override
+          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, ProverEnvironment pFormula) {
+            return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
   }
