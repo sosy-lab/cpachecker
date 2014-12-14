@@ -301,19 +301,8 @@ class ASTConverter {
     return forInitDeclarations.size();
   }
 
-  // Returns a fully qualified name for the given variable using the current scope information
   private String getQualifiedName(String var) {
-
-    /* Old way of creating qualified names - this includes the class name twice.
-     * But ValueAnalysisState.MemoryLocation uses names equal to the uncommented code below.
-     * As long as no need for the upper format exists, the lower one should be used to prevent
-     * the need of workarounds.
-     */
-    // return scope.getCurrentClassType().getName()
-    //    + "_" + scope.getCurrentMethodName()
-    //    + "::" + var;
-
-    return scope.getCurrentMethodName() + "::" + var;
+    return scope.createQualifiedName(var);
   }
 
   private JType convert(ITypeBinding pTypeBinding) {
