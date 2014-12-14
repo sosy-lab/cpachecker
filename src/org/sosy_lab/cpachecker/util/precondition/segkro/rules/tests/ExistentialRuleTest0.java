@@ -127,7 +127,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
             _b_at_i_plus_1_EQ_0,
             _b_at_i_NOTEQ_0));
 
-    assertThat(result).isEmpty();
+    assertThat(result).isNotEmpty();
   }
 
   @Test
@@ -136,7 +136,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
         Lists.newArrayList(
             _b_at_i_EQ_0,
             _b_at_i_plus_1_NOTEQ_0));
-    assertThat(result).isNotEmpty();
+    assertThat(result).isEmpty();
   }
 
 }
