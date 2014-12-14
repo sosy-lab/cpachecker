@@ -113,9 +113,8 @@ analysis.functionPointerEdgesForUnknownPointer = true
 # potential targets for call edges created for function pointer calls
 analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE}
 
-# What different types of CFA nodes should be the starting point of the
-# analysis?
-analysis.initialStatesFor = EnumSet.of(CFANodeType.ENTRY)
+# What CFA nodes should be the starting point of the analysis?
+analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -124,8 +123,9 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
-# Partition the set reached based of the type the initial states?
-analysis.partitionBasedOnInitialType = false
+# Partition the initial states based on the type of location they were
+# created for (see 'initialStatesFor')
+analysis.partitionInitialStates = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -228,6 +228,18 @@ bdd.javabdd.initTableSize = 10000
 bdd.package = "JAVA"
   allowed values: [JAVA, SYLVAN, CUDD, MICRO, BUDDY, CAL, JDD]
 
+# Granularity of the Sylvan BDD operations cache (recommended values 4-8).
+bdd.sylvan.cacheGranularity = 4
+
+# Log2 size of the BDD cache.
+bdd.sylvan.cacheSize = 24
+
+# Log2 size of the BDD node table.
+bdd.sylvan.tableSize = 26
+
+# Number of worker threads, 0 for automatic.
+bdd.sylvan.threads = 0
+
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
@@ -291,11 +303,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-cbmc.timelimit = 0
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
+cbmc.timelimit = 0
 
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
