@@ -31,7 +31,14 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
  * that provides only the common operations.
  * In most cases, just use one of the two sub-interfaces
  */
-public interface BasicProverEnvironment extends AutoCloseable {
+public interface BasicProverEnvironment<T> extends AutoCloseable {
+
+  /**
+   * Add a formula to the environment stack, asserting it.
+   * The return value may be used to identify this formula later on
+   * in a query (this depends on the sub-type of the environment).
+   */
+  T push(BooleanFormula f);
 
   /**
    * Remove one formula from the environment stack.

@@ -906,36 +906,6 @@ public final class InterpolationManager {
    * have been proved to be satisfiable.
    *
    * @param f The list of formulas on the path.
-   * @param pItpProver The solver.
-   * @param elementsOnPath The ARGElements of the paths represented by f.
-   * @return Information about the error path, including a satisfying assignment.
-   * @throws CPATransferException
-   * @throws InterruptedException
-   */
-  private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      InterpolatingProverEnvironment<T> pItpProver, Set<ARGState> elementsOnPath)
-      throws CPATransferException, SolverException, InterruptedException {
-
-    // get the branchingFormula
-    // this formula contains predicates for all branches we took
-    // this way we can figure out which branches make a feasible path
-    BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
-
-    if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, getModel(pItpProver), ImmutableMap.<Integer, Boolean>of());
-    }
-
-    // add formula to solver environment
-    pItpProver.push(branchingFormula);
-
-    return getErrorPath0(f, pItpProver, branchingFormula);
-  }
-
-  /**
-   * Get information about the error path from the solver after the formulas
-   * have been proved to be satisfiable.
-   *
-   * @param f The list of formulas on the path.
    * @param pProver The solver.
    * @param elementsOnPath The ARGElements of the paths represented by f.
    * @return Information about the error path, including a satisfying assignment.
@@ -943,7 +913,7 @@ public final class InterpolationManager {
    * @throws InterruptedException
    */
   private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      ProverEnvironment pProver, Set<ARGState> elementsOnPath)
+      BasicProverEnvironment<?> pProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, SolverException, InterruptedException {
 
     // get the branchingFormula
@@ -958,23 +928,12 @@ public final class InterpolationManager {
     // add formula to solver environment
     pProver.push(branchingFormula);
 
-    return getErrorPath0(f, pProver, branchingFormula);
-  }
-
-  /**
-   * Call {@link #getErrorPath(List, InterpolatingProverEnvironment, Set)}
-   * or {@link #getErrorPath(List, ProverEnvironment, Set)} instead.
-   */
-  private CounterexampleTraceInfo getErrorPath0(List<BooleanFormula> f,
-      BasicProverEnvironment pItpProver, BooleanFormula branchingFormula)
-      throws CPATransferException, SolverException, InterruptedException {
-
     // need to ask solver for satisfiability again,
     // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !pItpProver.isUnsat();
+    boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = getModel(pItpProver);
+      Model model = getModel(pProver);
       return CounterexampleTraceInfo.feasible(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
@@ -988,7 +947,7 @@ public final class InterpolationManager {
     }
   }
 
-  private Model getModel(BasicProverEnvironment pItpProver) {
+  private Model getModel(BasicProverEnvironment<?> pItpProver) {
     try {
       return pItpProver.getModel();
     } catch (SolverException e) {

@@ -74,7 +74,7 @@ class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     track_no++;
     level++;
 
@@ -102,6 +102,7 @@ class Z3TheoremProver implements ProverEnvironment {
 
     smtLogger.logPush(1);
     smtLogger.logAssert(e);
+    return null;
   }
 
   @Override

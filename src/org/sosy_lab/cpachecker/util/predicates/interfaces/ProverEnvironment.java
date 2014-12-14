@@ -39,12 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
  * All methods are expected to throw {@link IllegalStateException}s after
  * close was called.
  */
-public interface ProverEnvironment extends BasicProverEnvironment {
-
-  /**
-   * Add a formula to the environment stack, asserting it.
-   */
-  void push(BooleanFormula f);
+public interface ProverEnvironment extends BasicProverEnvironment<Void> {
 
   /**
    * Get an unsat core.

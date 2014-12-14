@@ -64,10 +64,11 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
   }
 
   @Override
-  public void push(BooleanFormula f) {
+  public Void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
+    return null;
   }
 
   @Override
