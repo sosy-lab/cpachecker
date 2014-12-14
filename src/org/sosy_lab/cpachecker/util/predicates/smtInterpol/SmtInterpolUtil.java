@@ -253,10 +253,12 @@ class SmtInterpolUtil {
     }
   }
 
-  /** this function returns all variables in the terms.
-   * Doubles are removed. */
-  public static Term[] getVars(Collection<Term> termList) {
-    Set<Term> vars = new HashSet<>();
+  /**
+   * This function returns all variables and applications of uninterpreted functions
+   * in the terms without duplicates.
+   */
+  public static Term[] getVarsAndUIFs(Collection<Term> termList) {
+    Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
     Deque<Term> todo = new ArrayDeque<>(termList);
 
@@ -266,14 +268,14 @@ class SmtInterpolUtil {
         continue;
       }
 
-      if (isVariable(t)) {
-        vars.add(t);
+      if (isVariable(t) || isUIF(t)) {
+        result.add(t);
       } else if (t instanceof ApplicationTerm) {
         Term[] params = ((ApplicationTerm) t).getParameters();
         Collections.addAll(todo, params);
       }
     }
-    return toTermArray(vars);
+    return toTermArray(result);
   }
 
   static Term[] toTermArray(Collection<? extends Term> terms) {

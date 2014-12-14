@@ -75,7 +75,7 @@ class SmtInterpolModel {
   }
 
 
-  private static Function toFunction(Term t) {
+  private static Function toFunction(Term t, Map<Term, Term> values) {
     if (SmtInterpolUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no function! (" + t.toString() + ")");
     }
@@ -86,32 +86,19 @@ class SmtInterpolModel {
 
     int lArity = SmtInterpolUtil.getArity(appTerm);
 
-    // TODO we assume only constants (reals) as parameters for now
     Object[] lArguments = new Object[lArity];
 
     for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
       Term lArgument = SmtInterpolUtil.getArg(appTerm, lArgumentIndex);
-
-      String lTermRepresentation = lArgument.toString();
+      while (values.containsKey(lArgument)) {
+        lArgument = values.get(lArgument);
+      }
 
       Object lValue;
-
-      try {
-        lValue = Double.valueOf(lTermRepresentation);
-      }
-      catch (NumberFormatException e) {
-        // TODO this part is copied from mathsat, can we use it for smtInterpol, too?
-        // lets try special case for mathsat
-        String[] lNumbers = lTermRepresentation.split("/");
-
-        if (lNumbers.length != 2) {
-          throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-        }
-
-        double lNumerator = Double.valueOf(lNumbers[0]);
-        double lDenominator = Double.valueOf(lNumbers[1]);
-
-        lValue = lNumerator/lDenominator;
+      if (SmtInterpolUtil.isNumber(lArgument)) {
+        lValue = SmtInterpolUtil.toNumber(lArgument);
+      } else {
+        lValue = SmtInterpolUnsafeFormulaManager.dequote(lArgument.toString());
       }
       lArguments[lArgumentIndex] = lValue;
     }
@@ -120,20 +107,20 @@ class SmtInterpolModel {
   }
 
 
-  private static AssignableTerm toAssignable(Term t) {
+  private static AssignableTerm toAssignable(Term t, Map<Term, Term> values) {
 
     assert t instanceof ApplicationTerm : "This is no ApplicationTerm: " + t.toString();
 
     if (SmtInterpolUtil.isVariable(t)) {
       return toVariable(t);
     } else {
-      return toFunction(t);
+      return toFunction(t, values);
     }
   }
 
   static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
     // model can only return values for keys, not for terms
-    Term[] keys = SmtInterpolUtil.getVars(terms);
+    Term[] keys = SmtInterpolUtil.getVarsAndUIFs(terms);
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
@@ -147,7 +134,7 @@ class SmtInterpolModel {
     for (Term lKeyTerm : keys) {
       Term lValueTerm = val.get(lKeyTerm);
 
-      AssignableTerm lAssignable = toAssignable(lKeyTerm);
+      AssignableTerm lAssignable = toAssignable(lKeyTerm, val);
 
       // TODO maybe we have to convert to SMTLIB format and
       // then read in values in a controlled way, e.g., size of bitvector
