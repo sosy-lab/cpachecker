@@ -27,27 +27,16 @@ import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
-import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
-public class EquivalenceRuleTest0 extends SolverBasedTest0 {
-
-  private SmtAstMatcher matcher;
-  private Solver solver;
-  private FormulaManagerView mgrv;
+public class EquivalenceRuleTest0 extends AbstractRuleTest0 {
 
   private EquivalenceRule er;
   private IntegerFormula _x;
@@ -58,16 +47,9 @@ public class EquivalenceRuleTest0 extends SolverBasedTest0 {
   private IntegerFormula _1;
 
   @Override
-  protected Solvers solverToUse() {
-    return Solvers.Z3;
-  }
-
-  @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    solver = new Solver(mgrv, factory);
+    super.setUp();
 
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     er = new EquivalenceRule(mgr, mgrv, solver, matcher);
 
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");

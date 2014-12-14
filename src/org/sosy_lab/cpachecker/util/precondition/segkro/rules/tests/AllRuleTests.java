@@ -36,7 +36,6 @@ import org.junit.runners.Suite.SuiteClasses;
   ExtendRightRuleTest0.class,
   ExtendLeftRuleTest0.class,
   LinkRuleTest0.class,
-  RulesTest0.class,
   SubstitutionRuleTest0.class,
   UniversalizeRuleTest0.class })
 

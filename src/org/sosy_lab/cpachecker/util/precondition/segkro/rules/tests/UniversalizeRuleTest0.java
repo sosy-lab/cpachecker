@@ -27,35 +27,18 @@ import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.UniversalizeRule;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
-import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
 
-public class UniversalizeRuleTest0 extends SolverBasedTest0 {
-
-  private Solver solver;
-  private SmtAstMatcher matcher;
-  private FormulaManagerView mgrv;
-  private ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
 
   private UniversalizeRule ur;
 
@@ -73,25 +56,11 @@ public class UniversalizeRuleTest0 extends SolverBasedTest0 {
   private BooleanFormula _b_at_i_plus_1_EQ_0;
 
   @Override
-  protected Solvers solverToUse() {
-    return Solvers.Z3;
-  }
-
-  @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    afm = mgrv.getArrayFormulaManager();
-    bfm = mgrv.getBooleanFormulaManager();
-    ifm = mgrv.getIntegerFormulaManager();
-    solver = new Solver(mgrv, factory);
+    super.setUp();
 
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     ur = new UniversalizeRule(mgr, mgrv, solver, matcher);
 
-    setupTestData();
-  }
-
-  private void setupTestData() {
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");

@@ -28,38 +28,21 @@ import static com.google.common.truth.Truth.assertThat;
 import java.io.IOException;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.ExistentialRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.PatternBasedPremise;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatchResult;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
-import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
 
-public class ExistentialRuleTest0 extends SolverBasedTest0 {
-
-  private SmtAstMatcher matcher;
-  private Solver solver;
-  private FormulaManagerView mgrv;
-  private ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+public class ExistentialRuleTest0 extends AbstractRuleTest0 {
 
   private ExistentialRule er;
 
@@ -74,21 +57,10 @@ public class ExistentialRuleTest0 extends SolverBasedTest0 {
   private BooleanFormula _0_EQ_b_at_i_plus_1;
 
   @Override
-  protected Solvers solverToUse() {
-    return Solvers.Z3;
-  }
-
-  @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    afm = mgrv.getArrayFormulaManager();
-    bfm = mgrv.getBooleanFormulaManager();
-    ifm = mgrv.getIntegerFormulaManager();
-    solver = new Solver(mgrv, factory);
+    super.setUp();
 
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     er = new ExistentialRule(mgr, mgrv, solver, matcher);
-
     setupTestData();
   }
 

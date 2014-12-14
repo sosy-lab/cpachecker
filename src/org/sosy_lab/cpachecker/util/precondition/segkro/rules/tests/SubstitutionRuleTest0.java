@@ -28,35 +28,18 @@ import static com.google.common.truth.Truth.assertThat;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.SubstitutionRule;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
-import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
 
 
-public class SubstitutionRuleTest0 extends SolverBasedTest0 {
-
-  private SmtAstMatcher matcher;
-  private Solver solver;
-  private FormulaManagerView mgrv;
-  private ArrayFormulaManagerView afm;
-  private BooleanFormulaManagerView bfm;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
 
   private SubstitutionRule sr;
 
@@ -68,29 +51,14 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
   private BooleanFormula _x_EQ_i_plus_1;
   private IntegerFormula _x;
   private BooleanFormula _b_at_x_NOTEQ_0;
-  private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
   private IntegerFormula _al;
 
   @Override
-  protected Solvers solverToUse() {
-    return Solvers.Z3;
-  }
-
-  @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    afm = mgrv.getArrayFormulaManager();
-    bfm = mgrv.getBooleanFormulaManager();
-    ifm = mgrv.getIntegerFormulaManager();
-    solver = new Solver(mgrv, factory);
+    super.setUp();
 
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     sr = new SubstitutionRule(mgr, mgrv, solver, matcher);
 
-    setupTestData();
-  }
-
-  private void setupTestData() {
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);
     _i = ifm.makeVariable("i");
@@ -100,7 +68,6 @@ public class SubstitutionRuleTest0 extends SolverBasedTest0 {
 
     _x_EQ_i_plus_1 = ifm.equal(_x, ifm.add(_i, _1));
     _b_at_x_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _x), _0));
-    _b_at_i_plus_1_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0));
   }
 
   @Test

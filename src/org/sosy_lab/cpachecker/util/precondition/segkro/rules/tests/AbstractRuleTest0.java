@@ -23,54 +23,51 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
+import static org.junit.Assert.fail;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 
-public class RulesTest0 extends SolverBasedTest0 {
+public class AbstractRuleTest0 extends SolverBasedTest0 {
+
+  protected ArrayFormulaManagerView afm;
+  protected BooleanFormulaManagerView bfm;
+  protected NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+
+  protected FormulaManagerView mgrv;
+  protected SmtAstMatcher matcher;
+  protected Solver solver;
 
   @Override
   protected Solvers solverToUse() {
     return Solvers.Z3;
   }
 
-  private Solver solver;
-  private FormulaManagerView mgrv;
-  private Z3AstMatcher matcher;
-
   @Before
-  public void setup() throws InvalidConfigurationException {
+  public void setUp() throws Exception {
     mgrv = new FormulaManagerView(mgr, config, logger);
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
     solver = new Solver(mgrv, factory);
+    matcher = new Z3AstMatcher(logger, mgr, mgrv);
+
+    afm = mgrv.getArrayFormulaManager();
+    bfm = mgrv.getBooleanFormulaManager();
+    ifm = mgrv.getIntegerFormulaManager();
   }
 
   @Test
-  public void testSubstitution1() {
-    IntegerFormula _x = mgrv.makeVariable(NumeralType.IntegerType, "x");
-    IntegerFormula _e = mgrv.makeVariable(NumeralType.IntegerType, "e");
-    IntegerFormula _0 = imgr.makeNumber(0);
-
-    // Formulas for the premise
-    BooleanFormula _x_EQ_e = imgr.equal(_x, _e);
-    ArrayFormula<IntegerFormula, IntegerFormula> _a = amgr.makeArray("a", NumeralType.IntegerType, NumeralType.IntegerType);
-    ArrayFormula<IntegerFormula, IntegerFormula> _a_store_0_at_x = amgr.store(_a, _x, _0);
-
-    // The conclusion
-    BooleanFormula _a_at_e_EQ_0 = imgr.equal(amgr.select(_a, _e), _0);
-
-    // Check
-
+  public void test() {
+    fail("Not yet implemented");
   }
 
 }
