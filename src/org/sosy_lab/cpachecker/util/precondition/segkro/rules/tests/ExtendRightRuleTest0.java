@@ -54,6 +54,8 @@ public class ExtendRightRuleTest0 extends AbstractRuleTest0 {
 
   @Override
   public void setUp() throws Exception {
+    super.setUp();
+
     err = new ExtendRightRule(mgr, mgrv, solver, matcher);
 
     _0 = ifm.makeNumber(0);

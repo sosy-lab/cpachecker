@@ -48,13 +48,13 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
 
   private IntegerFormula _0;
   private IntegerFormula _1;
-  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
   private IntegerFormula _i;
   private BooleanFormula _b_at_i_plus_1_EQ_0;
   private BooleanFormula _b_at_i_NOTEQ_0;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
   private BooleanFormula _b_at_i_EQ_0;
   private BooleanFormula _0_EQ_b_at_i_plus_1;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _b;
 
   @Override
   public void setUp() throws Exception {
@@ -119,8 +119,6 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
       assertThat(result.matches()).isTrue();
     }
   }
-
-
 
   @Test
   public void testConclusion1() throws SolverException, InterruptedException {
