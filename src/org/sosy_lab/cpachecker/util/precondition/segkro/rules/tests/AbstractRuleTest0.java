@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
-import static org.junit.Assert.fail;
-
 import org.junit.Before;
-import org.junit.Test;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
@@ -39,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 
-public class AbstractRuleTest0 extends SolverBasedTest0 {
+public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
 
   protected ArrayFormulaManagerView afm;
   protected BooleanFormulaManagerView bfm;
@@ -63,11 +60,6 @@ public class AbstractRuleTest0 extends SolverBasedTest0 {
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();
     ifm = mgrv.getIntegerFormulaManager();
-  }
-
-  @Test
-  public void test() {
-    fail("Not yet implemented");
   }
 
 }
