@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -260,24 +261,24 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialStates.add(sp.getInitialState(node));
+      initialStates.add(sp.getInitialState(pNode, pPartition));
     }
 
     return new CompositeState(initialStates.build());
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
-    Preconditions.checkNotNull(node);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
+    Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
-      initialPrecisions.add(sp.getInitialPrecision(node));
+      initialPrecisions.add(sp.getInitialPrecision(pNode, partition));
     }
     return new CompositePrecision(initialPrecisions.build());
   }

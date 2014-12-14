@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
@@ -69,8 +70,8 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    return new MonitorState(getWrappedCpa().getInitialState(pNode), 0L);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return new MonitorState(getWrappedCpa().getInitialState(pNode, pPartition), 0L);
   }
 
   @Override

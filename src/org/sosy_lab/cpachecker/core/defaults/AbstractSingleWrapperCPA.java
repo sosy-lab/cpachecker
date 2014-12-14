@@ -28,6 +28,7 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -53,8 +54,8 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
-    return wrappedCpa.getInitialPrecision(pNode);
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return wrappedCpa.getInitialPrecision(pNode, pPartition);
   }
 
   @Override

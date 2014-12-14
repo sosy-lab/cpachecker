@@ -38,6 +38,6 @@ public interface ConfigurableProgramAnalysis {
   public MergeOperator getMergeOperator();
   public StopOperator getStopOperator();
   public PrecisionAdjustment getPrecisionAdjustment();
-  public AbstractState getInitialState(CFANode node);
-  public Precision getInitialPrecision(CFANode node);
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition);
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition);
 }

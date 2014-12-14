@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositi
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -165,7 +166,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null, SpecAutomatonCompositionType.TARGET_SPEC);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
       ReachedSet lReached = factory.createReachedSet();
-      lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
+      lReached.add(
+          lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
+          lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));
 
       lAlgorithm.run(lReached);
 

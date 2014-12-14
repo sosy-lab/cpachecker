@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -258,8 +259,8 @@ public class LiveVariables {
     for (FunctionEntryNode node : functionHeads) {
       FunctionExitNode exitNode = node.getExitNode();
       if (pCfa.getAllNodes().contains(exitNode)) {
-        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode),
-                                     analysisParts.cpa.getInitialPrecision(exitNode));
+        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode, StateSpacePartition.getDefaultPartition()),
+                                     analysisParts.cpa.getInitialPrecision(exitNode, StateSpacePartition.getDefaultPartition()));
       }
     }
 
@@ -277,8 +278,8 @@ public class LiveVariables {
         // function calls inside have no outgoing edges
         if (from(l.getOutgoingEdges()).filter(not(instanceOf(FunctionCallEdge.class))).isEmpty()) {
           CFANode functionHead = l.getLoopHeads().iterator().next();
-          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead),
-                                       analysisParts.cpa.getInitialPrecision(functionHead));
+          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead, StateSpacePartition.getDefaultPartition()),
+                                       analysisParts.cpa.getInitialPrecision(functionHead, StateSpacePartition.getDefaultPartition()));
         }
       }
     }

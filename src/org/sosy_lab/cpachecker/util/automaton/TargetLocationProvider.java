@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -85,7 +86,9 @@ public class TargetLocationProvider {
       ConfigurableProgramAnalysis cpa = cpaBuilder.buildCPAWithSpecAutomatas(cfa);
 
       ReachedSet reached = reachedSetFactory.create();
-      reached.add(cpa.getInitialState(pRootNode), cpa.getInitialPrecision(pRootNode));
+      reached.add(
+          cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
 
       Set<CFANode> result = new HashSet<>();

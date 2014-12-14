@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -77,7 +78,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
       );
     }
   }
-  
+
   public static class DelegateTransferRelation extends SingleEdgeTransferRelation {
     private final IPolicyIterationManager policyIterationManager;
 
@@ -142,7 +143,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
             shutdownNotifier,
             statistics
         );
-    
+
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
@@ -160,8 +161,8 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node) {
-    return policyIterationManager.getInitialState(node);
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return policyIterationManager.getInitialState(pNode);
   }
 
   @Override
@@ -190,7 +191,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
 
