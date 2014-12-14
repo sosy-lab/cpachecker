@@ -257,7 +257,7 @@ class SmtInterpolUtil {
    * This function returns all variables and applications of uninterpreted functions
    * in the terms without duplicates.
    */
-  public static Term[] getVarsAndUIFs(Collection<Term> termList) {
+  public static Set<Term> getVarsAndUIFs(Collection<Term> termList) {
     Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
     Deque<Term> todo = new ArrayDeque<>(termList);
@@ -275,7 +275,7 @@ class SmtInterpolUtil {
         Collections.addAll(todo, params);
       }
     }
-    return toTermArray(result);
+    return result;
   }
 
   static Term[] toTermArray(Collection<? extends Term> terms) {

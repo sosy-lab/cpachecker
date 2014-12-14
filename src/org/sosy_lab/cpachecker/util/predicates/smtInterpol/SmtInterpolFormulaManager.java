@@ -41,7 +41,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
@@ -73,9 +72,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
           throws InvalidConfigurationException {
 
     SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logger, pShutdownNotifier, smtLogfile);
-
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env,
-        env.sort(TermType.Boolean), env.sort(TermType.Integer), env.sort(TermType.Real));
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);

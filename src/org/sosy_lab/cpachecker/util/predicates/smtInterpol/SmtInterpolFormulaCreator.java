@@ -31,12 +31,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-  SmtInterpolFormulaCreator(
-      SmtInterpolEnvironment pMathsatEnv,
-      Sort pBoolType,
-      Sort pIntegerType,
-      Sort pRealType) {
-    super(pMathsatEnv, pBoolType, pIntegerType, pRealType);
+  SmtInterpolFormulaCreator(SmtInterpolEnvironment env) {
+    super(env, env.getBooleanSort(), env.getIntegerSort(), env.getRealSort());
   }
 
   @Override

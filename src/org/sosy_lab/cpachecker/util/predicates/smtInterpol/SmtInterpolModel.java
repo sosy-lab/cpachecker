@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.Collection;
-import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -75,7 +74,7 @@ class SmtInterpolModel {
   }
 
 
-  private static Function toFunction(Term t, Map<Term, Term> values) {
+  private static Function toFunction(Term t, de.uni_freiburg.informatik.ultimate.logic.Model values) {
     if (SmtInterpolUtil.isVariable(t)) {
       throw new IllegalArgumentException("Given term is no function! (" + t.toString() + ")");
     }
@@ -90,9 +89,7 @@ class SmtInterpolModel {
 
     for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
       Term lArgument = SmtInterpolUtil.getArg(appTerm, lArgumentIndex);
-      while (values.containsKey(lArgument)) {
-        lArgument = values.get(lArgument);
-      }
+      lArgument = values.evaluate(lArgument);
 
       Object lValue;
       if (SmtInterpolUtil.isNumber(lArgument)) {
@@ -107,7 +104,7 @@ class SmtInterpolModel {
   }
 
 
-  private static AssignableTerm toAssignable(Term t, Map<Term, Term> values) {
+  private static AssignableTerm toAssignable(Term t, de.uni_freiburg.informatik.ultimate.logic.Model values) {
 
     assert t instanceof ApplicationTerm : "This is no ApplicationTerm: " + t.toString();
 
@@ -118,23 +115,14 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> terms) {
-    // model can only return values for keys, not for terms
-    Term[] keys = SmtInterpolUtil.getVarsAndUIFs(terms);
+  static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> assertedFormulas) {
+    de.uni_freiburg.informatik.ultimate.logic.Model values = env.getModel();
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
+    for (Term lKeyTerm : SmtInterpolUtil.getVarsAndUIFs(assertedFormulas)) {
+      Term lValueTerm = values.evaluate(lKeyTerm);
 
-    try {
-      assert env.checkSat() : "model is only available for SAT environments";
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-    Map<Term, Term> val = env.getValue(keys);
-
-    for (Term lKeyTerm : keys) {
-      Term lValueTerm = val.get(lKeyTerm);
-
-      AssignableTerm lAssignable = toAssignable(lKeyTerm, val);
+      AssignableTerm lAssignable = toAssignable(lKeyTerm, values);
 
       // TODO maybe we have to convert to SMTLIB format and
       // then read in values in a controlled way, e.g., size of bitvector

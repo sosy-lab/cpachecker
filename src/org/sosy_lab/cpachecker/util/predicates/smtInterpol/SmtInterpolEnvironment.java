@@ -32,7 +32,6 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -46,7 +45,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -55,6 +53,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.Model;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script;
@@ -364,9 +363,9 @@ class SmtInterpolEnvironment {
 
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
-  public Map<Term, Term> getValue(Term[] terms) {
+  public Model getModel() {
     try {
-      return script.getValue(terms);
+      return script.getModel();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
@@ -376,18 +375,16 @@ class SmtInterpolEnvironment {
     return script.getInfo(info);
   }
 
-  /** This function returns the Sort for a Type. */
-  public Sort sort(Model.TermType type) {
-    switch (type) {
-      case Boolean:
-        return sort("Bool");
-      case Integer:
-        return sort("Int");
-      case Real:
-        return sort("Real");
-      default:
-        throw new AssertionError("SmtInterpol does not support this theory: " + type);
-    }
+  public Sort getBooleanSort() {
+    return theory.getBooleanSort();
+  }
+
+  public Sort getIntegerSort() {
+    return theory.getNumericSort();
+  }
+
+  public Sort getRealSort() {
+    return theory.getRealSort();
   }
 
   /** This function returns an n-ary sort with given parameters. */
