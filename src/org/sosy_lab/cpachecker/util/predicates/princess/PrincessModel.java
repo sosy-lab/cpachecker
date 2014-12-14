@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collection;
 import java.util.Set;
 
@@ -110,7 +112,7 @@ class PrincessModel {
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    assert stack.checkSat() : "model is only available for SAT environments";
+    checkArgument(stack.checkSat(), "model is only available for SAT environments");
 
     SimpleAPI.PartialModel partialModel = stack.getPartialModel();
 

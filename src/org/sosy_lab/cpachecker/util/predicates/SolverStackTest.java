@@ -34,6 +34,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -43,6 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
+
+import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
 public class SolverStackTest extends SolverBasedTest0 {
@@ -266,5 +270,31 @@ public class SolverStackTest extends SolverBasedTest0 {
     // is equivalent to a new formula with the same variable
     assert_().about(BooleanFormula())
              .that(b).isEquivalentTo(bmgr.makeVariable(varName));
+  }
+
+  @Test
+  public void modelForUnsatFormula() throws Exception {
+    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+      stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      assertTrue(stack.isUnsat());
+
+      thrown.expect(Exception.class);
+      stack.getModel();
+    }
+  }
+
+  @Test
+  public void modelForSatFormula() throws Exception {
+    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+      stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
+      stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(2)));
+      assertFalse(stack.isUnsat());
+
+      Model model = stack.getModel();
+      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      Truth.assertThat(model.keySet()).containsExactly(expectedVar);
+      Truth.assertThat(model.get(expectedVar).toString()).isEqualTo("1"); // actual type of object is not defined
+    }
   }
 }

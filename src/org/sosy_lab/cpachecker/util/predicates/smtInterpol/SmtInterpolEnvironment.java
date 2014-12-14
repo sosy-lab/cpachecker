@@ -364,11 +364,7 @@ class SmtInterpolEnvironment {
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
   public Model getModel() {
-    try {
-      return script.getModel();
-    } catch (SMTLIBException e) {
-      throw new AssertionError(e);
-    }
+    return script.getModel();
   }
 
   public Object getInfo(String info) {

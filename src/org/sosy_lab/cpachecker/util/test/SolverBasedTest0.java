@@ -155,7 +155,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support rationals.
    */
   protected final void requireRationals() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of rationals")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of rationals")
             .that(rmgr).isNotNull();
   }
 
@@ -163,7 +163,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support quantifiers.
    */
   protected final void requireQuantifiers() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support quantifiers")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support quantifiers")
             .that(qmgr).isNotNull();
   }
 
@@ -171,7 +171,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support arrays.
    */
   protected final void requireArrays() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of arrays")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of arrays")
             .that(amgr).isNotNull();
   }
 
