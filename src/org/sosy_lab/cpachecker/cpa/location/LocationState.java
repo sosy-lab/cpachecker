@@ -115,22 +115,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     @Override
-    public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      String[] parts = pProperty.split("==");
-      if (parts.length == 2) {
-        if (parts[0].equalsIgnoreCase("locationClass")) {
-          final String queriedClass = parts[1].trim();
-          if (!cfa.getNodeClassification().isPresent()) {
-            throw new InvalidQueryException("Location class not available. Please enable the configuration option cfa.classifyNodes!");
-          }
-
-          return cfa.getNodeClassification().get().isClassifiedAs(this.getLocationNode(), queriedClass);
-        }
-      }
-      return super.checkProperty(pProperty);
-    }
-
-    @Override
     public boolean isTarget() {
       return cfa.getMainFunction() == getLocationNode();
     }
@@ -139,7 +123,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     public String getViolatedPropertyDescription() throws IllegalStateException {
       return "Entry node reached backwards.";
     }
-
 
   }
 

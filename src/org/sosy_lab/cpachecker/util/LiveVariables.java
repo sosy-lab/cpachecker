@@ -179,7 +179,7 @@ public class LiveVariables {
     }
 
     // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(variableClassification, Optional.<CFANodeClassification>absent());
+    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on

@@ -88,18 +88,15 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.CFANodeClassification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -268,17 +265,15 @@ private boolean classifyNodes = false;
 
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
-  private final ReachedSetFactory rsf;
 
-  public CFACreator(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, ReachedSetFactory pReachedSetFactory)
-          throws InvalidConfigurationException {
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
     config.inject(this);
 
     this.config = config;
     this.logger = logger;
     this.shutdownNotifier = pShutdownNotifier;
-    this.rsf = pReachedSetFactory;
 
     stats.parserInstantiationTime.start();
 
@@ -440,14 +435,6 @@ private boolean classifyNodes = false;
         varClassification = Optional.<VariableClassification>absent();
       }
 
-      // compute a classification of the CFA nodes
-      final Optional<CFANodeClassification> nodeClassification;
-      // TODO: This is not always required!!
-      final TargetLocationProvider tlp = new TargetLocationProvider(
-          rsf, shutdownNotifier, logger, config, cfa);
-      nodeClassification = Optional.of(
-          CFANodeClassification.build(logger, cfa.getMainFunction(), tlp, cfa));
-
       // create the live variables if the variable classification is present
       if (findLiveVariables &&
           (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
@@ -459,7 +446,7 @@ private boolean classifyNodes = false;
 
       stats.processingTime.stop();
 
-      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, nodeClassification);
+      final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
       // check the super CFA starting at the main function
       stats.checkTime.start();
