@@ -61,6 +61,10 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
       this.partition = pPartition;
     }
 
+    public Object getStateSpacePartition() {
+      return partition;
+    }
+
     @Override
     public String toString() {
       if (partition == null) {
@@ -80,7 +84,9 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public boolean equals(Object pObj) {
-      return ((PartitionState) pObj).partition.equals(this.partition);
+      Object thisPartition = this.partition;
+      Object otherPartition = ((PartitionState) pObj).partition;
+      return thisPartition.equals(otherPartition);
     }
   }
 
