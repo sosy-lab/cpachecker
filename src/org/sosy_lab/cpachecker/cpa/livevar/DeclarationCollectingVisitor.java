@@ -93,7 +93,11 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
 
   @Override
   public Set<ASimpleDeclaration> visit(JArrayCreationExpression exp) throws RuntimeException {
+    if (exp.getInitializer() != null) {
       return exp.getInitializer().accept(this);
+    } else {
+      return Collections.emptySet();
+    }
   }
 
   @Override
