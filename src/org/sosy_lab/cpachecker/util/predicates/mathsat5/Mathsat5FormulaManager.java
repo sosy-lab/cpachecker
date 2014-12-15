@@ -62,7 +62,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
     @Option(secure=true, description = "List of further options which will be passed to Mathsat in addition to the default options. "
         + "Format is 'key1=value1,key2=value2'")
-    private String furtherOptions = "";
+    private String furtherOptions = "random_seed=42";
 
     private final @Nullable PathCounterTemplate logfile;
 
