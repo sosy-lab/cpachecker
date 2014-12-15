@@ -30,11 +30,14 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -61,6 +64,32 @@ public final class PreconditionHelper {
     this.bmgr = pMgrv.getBooleanFormulaManager();
   }
 
+  public static PreconditionPartition spacePartitionToPreconditionPartition(StateSpacePartition pPartition) {
+    return pPartition.getPartitionKey().equals(CPAchecker.InitialStatesFor.TARGET)
+        ? PreconditionPartition.VIOLATING
+        : PreconditionPartition.VALID;
+  }
+
+  public static boolean isStateFromPartition(AbstractState pState, PreconditionPartition pP) {
+    PartitionState state = AbstractStates.extractStateByType(pState, PartitionState.class);
+    StateSpacePartition partition = state.getStateSpacePartition();
+    return spacePartitionToPreconditionPartition(partition).equals(pP);
+  }
+
+  public static final Predicate<AbstractState> IS_FROM_VIOLATING_PARTITION = new Predicate<AbstractState>() {
+    @Override
+    public boolean apply(AbstractState pArg0) {
+      return isStateFromPartition(pArg0, PreconditionPartition.VIOLATING);
+    }
+  };
+
+  public static final Predicate<AbstractState> IS_FROM_VALID_PARTITION = new Predicate<AbstractState>() {
+    @Override
+    public boolean apply(AbstractState pArg0) {
+      return isStateFromPartition(pArg0, PreconditionPartition.VALID);
+    }
+  };
+
   static final Function<PredicateAbstractState, PathFormula> GET_BLOCK_FORMULA
     = new Function<PredicateAbstractState, PathFormula>() {
       @Override
@@ -77,14 +106,14 @@ public final class PreconditionHelper {
                                  toState(PredicateAbstractState.class)))
       .toList();
 
-    assert from(result).allMatch(new Predicate<ARGState>() {
-      @Override
-      public boolean apply(ARGState pInput) {
-        boolean correct = pInput.getParents().size() <= 1;
-        assert correct : "PreconditionWriter expects abstraction states to have only one parent, but this state has more:" + pInput;
-        return correct;
-      }
-    });
+//    assert from(result).allMatch(new Predicate<ARGState>() {
+//      @Override
+//      public boolean apply(ARGState pInput) {
+//        boolean correct = pInput.getChildren().size() <= 1;
+//        assert correct : "PreconditionWriter expects abstraction states to have only one children, but this state has more:" + pInput;
+//        return correct;
+//      }
+//    });
 
     assert pPath.getLastState() == result.get(result.size()-1);
     return result;

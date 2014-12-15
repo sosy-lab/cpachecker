@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -39,6 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -61,7 +65,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="precondition")
@@ -90,6 +96,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
   private final Refine refiner;
   private final RuleEngine ruleEngine;
   private final PreconditionHelper helper;
+  private final Optional<PreconditionWriter> writer;
 
   public PreconditionRefinerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, CFA pCfa,
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
@@ -116,6 +123,10 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
           new ExtractNewPreds(mgr, mgrv, ruleEngine),
           new MinCorePrio(mgr, mgrv, solver),
           mgr, mgrv);
+
+    writer = exportPreciditionsAs == PreconditionExportType.SMTLIB
+        ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(pCfa, pConfig, pLogger, mgrv))
+        : Optional.<PreconditionWriter>absent();
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet) {
@@ -126,24 +137,21 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID);
   }
 
-  private ARGPath getTrace(ReachedSet pReachedSet, PreconditionPartition pFromPartition) {
+  private @Nullable ARGPath getTrace(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate) {
     ImmutableSet<AbstractState> targetStates = from(pReachedSet)
         .filter(AbstractStates.IS_TARGET_STATE)
+        .filter(pPartitionFilterPredicate)
         .toSet();
 
-    // get one state from the partition
-    ARGState argState = AbstractStates.extractStateByType(
-        targetStates.iterator().next(), ARGState.class);
+    if (targetStates.isEmpty()) {
+      return null;
+    }
 
-    return ARGUtils.getOnePathTo(argState);
-  }
-
-  private ARGPath getValidTrace(ReachedSet pReachedSet) {
-    return null;
+    ARGState arbitraryTargetState = AbstractStates.extractStateByType(targetStates.iterator().next(), ARGState.class);
+    return ARGUtils.getOnePathTo(arbitraryTargetState);
   }
 
   private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) {
-
     return false;
   }
 
@@ -165,15 +173,25 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
 
       if (isDisjoint(pcViolation, pcValid)) {
-        // TODO: Provide the result somehow
+        // We have found a valid, weakest, precondition
+
+        // Write the precondition.
+        if (writer.isPresent()) {
+          try {
+            writer.get().writePrecondition(exportPreciditionsTo, pcValid);
+          } catch (IOException e) {
+            logger.log(Level.WARNING, "Writing the precondition failed!", e);
+          }
+        }
+
         return true && result;
       }
 
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification
       // ... and one to the location that represents the exit location
-      final ARGPath traceViolation = getTrace(pReachedSet, PreconditionPartition.VIOLATING);
-      final ARGPath traceValid = getTrace(pReachedSet, PreconditionPartition.VALID);
+      final ARGPath traceViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
+      final ARGPath traceValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
 
       // Check the disjointness of the WP for the two traces...
       final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceViolation);

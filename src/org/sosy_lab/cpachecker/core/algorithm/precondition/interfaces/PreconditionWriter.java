@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces;
 import java.io.IOException;
 
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface PreconditionWriter {
-  public void writePrecondition(Path pWriteTo, ReachedSet pReached) throws IOException;
+
+  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException;
+
 }

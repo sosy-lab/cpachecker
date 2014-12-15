@@ -56,7 +56,7 @@ public abstract class StateSpacePartition implements Partitionable {
 
   @Override
   public boolean equals(Object pObj) {
-    return ((Partitionable) pObj).getPartitionKey().equals(this.getPartitionKey());
+    return ((StateSpacePartition) pObj).getPartitionKey().equals(this.getPartitionKey());
   }
 
   @Override

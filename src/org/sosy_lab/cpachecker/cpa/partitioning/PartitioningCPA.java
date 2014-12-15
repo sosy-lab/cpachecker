@@ -55,13 +55,13 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
   }
 
   public static class PartitionState implements AbstractState {
-    private final Object partition;
+    private final StateSpacePartition partition;
 
-    public PartitionState(Object pPartition) {
+    public PartitionState(StateSpacePartition pPartition) {
       this.partition = pPartition;
     }
 
-    public Object getStateSpacePartition() {
+    public StateSpacePartition getStateSpacePartition() {
       return partition;
     }
 
@@ -84,8 +84,8 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public boolean equals(Object pObj) {
-      Object thisPartition = this.partition;
-      Object otherPartition = ((PartitionState) pObj).partition;
+      StateSpacePartition thisPartition = this.partition;
+      StateSpacePartition otherPartition = ((PartitionState) pObj).partition;
       return thisPartition.equals(otherPartition);
     }
   }

@@ -37,7 +37,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -48,43 +47,39 @@ import com.google.common.base.Preconditions;
 public class PreconditionToSmtlibWriter implements PreconditionWriter {
 
   private final FormulaManagerView fmgr;
-  private final PreconditionHelper helper;
 
   public PreconditionToSmtlibWriter(CFA pCfa, Configuration pConfig, LogManager pLogger, FormulaManagerView pFormulaManager)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
     fmgr = pFormulaManager;
-    helper = new PreconditionHelper(fmgr);
   }
 
-  public void writePrecondition(@Nonnull Appendable pWriteTo, @Nonnull ReachedSet pReached) throws IOException, CPATransferException, InterruptedException {
+  public void writePrecondition(@Nonnull Appendable pWriteTo, @Nonnull BooleanFormula pPrecondition)
+      throws IOException, CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pWriteTo);
 
-    BooleanFormula precondition = fmgr.simplify(
-        fmgr.makeNot(helper.getPreconditionFromReached(
-            pReached, PreconditionPartition.VIOLATING)));
+    final BooleanFormula precondition = fmgr.simplify(pPrecondition);
 
     // Write the formula in the SMT-LIB2 format to the target stream
     fmgr.dumpFormula(precondition).appendTo(pWriteTo);
   }
 
-  @Override
-  public void writePrecondition(Path pWriteTo, ReachedSet pReached) throws IOException {
-
-    try (Writer w = Files.openOutputFile(pWriteTo)) {
-      writePrecondition(pWriteTo, pReached);
-    }
-  }
-
-  public void writePrecondition(Path pWriteTo, ReachedSet pReached, @Nonnull LogManager pCatchExceptionsTo) {
+  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition, @Nonnull LogManager pCatchExceptionsTo) {
     Preconditions.checkNotNull(pCatchExceptionsTo);
 
     try {
-      writePrecondition(pWriteTo, pReached);
+      writePrecondition(pWriteTo, pPrecondition);
 
     } catch (Exception e) {
       pCatchExceptionsTo.logException(Level.WARNING, e, "Writing reaching paths failed!");
+    }
+  }
+
+  @Override
+  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException {
+    try (Writer w = Files.openOutputFile(pWriteTo)) {
+      writePrecondition(pWriteTo, pPrecondition);
     }
   }
 
