@@ -273,7 +273,9 @@ class SmtInterpolUtil {
 
       if (isVariable(t) || isUIF(t)) {
         result.add(t);
-      } else if (t instanceof ApplicationTerm) {
+      }
+
+      if (t instanceof ApplicationTerm) {
         Term[] params = ((ApplicationTerm) t).getParameters();
         Collections.addAll(todo, params);
       }

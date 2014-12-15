@@ -39,23 +39,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Verify;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class SmtInterpolModel {
 
-  private static TermType toSmtInterpolType(Sort sort) {
-
-    switch (sort.getName()) {
-      case "Bool":
-        return TermType.Boolean;
-      case "Int":
-        return TermType.Integer;
-      case "Real":
-        return TermType.Real;
-      default:
-        throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + sort);
+  private static TermType getType(Term t) {
+    if (SmtInterpolUtil.isBoolean(t)) {
+      return TermType.Boolean;
+    } else if (SmtInterpolUtil.hasIntegerType(t)) {
+      return TermType.Integer;
+    } else if (SmtInterpolUtil.hasRationalType(t)) {
+      return TermType.Real;
     }
+
+    throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + t.getSort());
   }
 
   private static AssignableTerm toVariable(Term t) {
@@ -65,7 +62,7 @@ class SmtInterpolModel {
 
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
-    TermType lType = toSmtInterpolType(appTerm.getSort());
+    TermType lType = getType(appTerm);
 
     Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
     if (lSplitName.getSecond() != null) {
@@ -83,7 +80,7 @@ class SmtInterpolModel {
 
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
-    TermType lType = toSmtInterpolType(appTerm.getSort());
+    TermType lType = getType(appTerm);
 
     int lArity = SmtInterpolUtil.getArity(appTerm);
 
@@ -92,14 +89,7 @@ class SmtInterpolModel {
     for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
       Term lArgument = SmtInterpolUtil.getArg(appTerm, lArgumentIndex);
       lArgument = values.evaluate(lArgument);
-
-      Object lValue;
-      if (SmtInterpolUtil.isNumber(lArgument)) {
-        lValue = SmtInterpolUtil.toNumber(lArgument);
-      } else {
-        lValue = SmtInterpolUnsafeFormulaManager.dequote(lArgument.toString());
-      }
-      lArguments[lArgumentIndex] = lValue;
+      lArguments[lArgumentIndex] = getValue(lArgument);
     }
 
     return new Function(lName, lType, lArguments);
@@ -117,6 +107,18 @@ class SmtInterpolModel {
     }
   }
 
+  private static Object getValue(Term value) {
+    if (SmtInterpolUtil.isTrue(value)) {
+      return true;
+    } else if (SmtInterpolUtil.isFalse(value)) {
+      return false;
+    } else if (SmtInterpolUtil.isNumber(value)) {
+      return SmtInterpolUtil.toNumber(value);
+    }
+
+    throw new IllegalArgumentException("SmtInterpol model term with expected value " + value);
+  }
+
   static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> assertedFormulas) {
     de.uni_freiburg.informatik.ultimate.logic.Model values = env.getModel();
 
@@ -125,42 +127,7 @@ class SmtInterpolModel {
       Term lValueTerm = values.evaluate(lKeyTerm);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm, values);
-
-      // TODO maybe we have to convert to SMTLIB format and
-      // then read in values in a controlled way, e.g., size of bitvector
-      // TODO we are assuming numbers as values
-      if (!(SmtInterpolUtil.isNumber(lValueTerm)
-            || SmtInterpolUtil.isBoolean(lValueTerm))) {
-        // TODO is there a bug in SmtInterpol??
-        // with new version from 2012.04.09 there can be ApplicationTerms in the model
-        // we put the Term into the model
-        model.put(lAssignable, SmtInterpolUnsafeFormulaManager.dequote(lValueTerm.toStringDirect()));
-      } else {
-
-      String lTermRepresentation = lValueTerm.toString();
-
-      Object lValue;
-
-      switch (lAssignable.getType()) {
-      case Boolean:
-        lValue = Boolean.valueOf(lTermRepresentation);
-        break;
-
-      case Real:
-        lValue = SmtInterpolUtil.toNumber(lValueTerm);
-        break;
-
-      case Integer:
-        lValue = SmtInterpolUtil.toNumber(lValueTerm);
-        break;
-
-//      case Bitvector:
-//        lValue = fmgr.interpreteBitvector(lValueTerm);
-//        break;
-
-      default:
-        throw new IllegalArgumentException("SmtInterpol term with unhandled type " + lAssignable.getType());
-      }
+      Object lValue = getValue(lValueTerm);
 
       // Duplicate entries may occur if "uf(a)" and "uf(b)" occur in the formulas
       // and "a" and "b" have the same value, because "a" and "b" will both be resolved,
@@ -171,9 +138,7 @@ class SmtInterpolModel {
           );
       model.put(lAssignable, lValue);
     }
-    }
 
     return new Model(model);
   }
-
 }
