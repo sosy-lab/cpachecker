@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.truth.Truth.*;
 import static com.google.common.truth.TruthJUnit.assume;
 
+import java.math.BigInteger;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -49,9 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionD
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.truth.Truth;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @RunWith(Parameterized.class)
 public class SolverStackTest extends SolverBasedTest0 {
@@ -77,6 +76,13 @@ public class SolverStackTest extends SolverBasedTest0 {
   private void requireMultipleStackSupport() {
     assume().withFailureMessage("Solver does not support multiple stacks yet")
             .that(solver).isNotEqualTo(Solvers.SMTINTERPOL);
+  }
+
+  protected final void requireUfValuesInModel() {
+    assume().withFailureMessage("Integration of solver does not support retrieving values for UFs from a model")
+            .that(solver).isNotEqualTo(Solvers.Z3);
+    assume().withFailureMessage("Integration of solver does not support retrieving values for UFs from a model")
+            .that(solver).isNotEqualTo(Solvers.PRINCESS);
   }
 
   @Test
@@ -298,13 +304,12 @@ public class SolverStackTest extends SolverBasedTest0 {
 
       Model model = stack.getModel();
       Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
-      Truth.assertThat(model.keySet()).containsExactly(expectedVar);
-      Truth.assertThat(model.get(expectedVar).toString()).isEqualTo("1"); // actual type of object is not defined
+      assertThat(model.keySet()).containsExactly(expectedVar);
+      assertThat(model).containsEntry(expectedVar, BigInteger.ONE);
     }
   }
 
   @Test
-  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   public void modelForSatFormulaWithUF() throws Exception {
     try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
       IntegerFormula zero = imgr.makeNumber(0);
@@ -322,15 +327,14 @@ public class SolverStackTest extends SolverBasedTest0 {
       Model.Constant expectedVarB = new Model.Constant("b", TermType.Integer);
       assertThat(model.keySet()).containsAllOf(expectedVarA, expectedVarB);
       // actual type of object is not defined, thus do string matching:
-      assertThat(model.get(expectedVarA).toString()).isEqualTo("0");
-      assertThat(model.get(expectedVarB).toString()).isEqualTo("0");
+      assertThat(model).containsEntry(expectedVarA, BigInteger.ZERO);
+      assertThat(model).containsEntry(expectedVarB, BigInteger.ZERO);
 
-      // model should also contain an entry for this key,
-      // but the type of the value of the argument is not defined,
-      // thus it may not match because of Integer != BigInteger != Rational:
-      // TODO: Add some assert for this.
-      @SuppressWarnings("unused")
-      Model.Function expectedFunc = new Model.Function("uf", TermType.Integer, new Object[]{0});
+      requireUfValuesInModel();
+
+      Model.Function expectedFunc = new Model.Function("uf", TermType.Integer, new Object[]{BigInteger.ZERO});
+      assertThat(model.keySet()).containsExactly(expectedVarA, expectedVarB, expectedFunc);
+      assertThat(model).containsEntry(expectedFunc, BigInteger.ZERO);
     }
   }
 }

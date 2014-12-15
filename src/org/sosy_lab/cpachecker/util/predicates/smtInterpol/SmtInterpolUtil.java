@@ -114,6 +114,9 @@ class SmtInterpolUtil {
         return value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational)value;
+        if (t.getSort().getName().equals("Int") && rat.isIntegral()) {
+          return rat.numerator();
+        }
         return org.sosy_lab.cpachecker.util.rationals.Rational.of(
             rat.numerator(), rat.denominator());
       }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Set;
 
@@ -90,7 +91,7 @@ class PrincessModel {
     for (int lArgumentIndex = 0; lArgumentIndex < lArity; lArgumentIndex++) {
       IExpression lArgument = PrincessUtil.getArg(appTerm, lArgumentIndex);
       String lTermRepresentation = lArgument.toString();
-      Object lValue = Integer.valueOf(lTermRepresentation);
+      Object lValue = new BigInteger(lTermRepresentation);
       lArguments[lArgumentIndex] = lValue;
     }
 
@@ -135,7 +136,7 @@ class PrincessModel {
         break;
 
       case Integer:
-        lValue = ((SimpleAPI.IntValue)lValueTerm).v().longValue();
+        lValue = BigInteger.valueOf(((SimpleAPI.IntValue)lValueTerm).v().longValue());
         break;
 
       default:
