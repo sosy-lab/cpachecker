@@ -79,7 +79,7 @@ public final class AbstractionManager {
       .newHashMap();
   private final Map<Region, BooleanFormula> toConcreteCache;
   private volatile int numberOfPredicates = 0;
-  @Option(secure=true, name = "abs.useCache", description = "use caching of region to formula conversions")
+  @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
 
@@ -128,61 +128,154 @@ public final class AbstractionManager {
       varIDToPredicate.put(numberOfPredicates, result);
       numberOfPredicates++;
 
-      int[][] similarities =
-          new int[numberOfPredicates][numberOfPredicates];
-      for (int i = 0; i < similarities.length; i++) {
-        for (int j = 0; j < similarities[i].length; j++) {
-          Set<String> firstPredVars =
-              fmgr.extractVariableNames(varIDToPredicate.get(i)
-                  .getSymbolicAtom());
-          Set<String> secondPredVars =
-              fmgr.extractVariableNames(varIDToPredicate.get(j)
-                  .getSymbolicAtom());
-          firstPredVars.retainAll(secondPredVars);
-          similarities[i][j] = firstPredVars.size();
-        }
-      }
+      sortVarsByFrequency();
+      //sortVarsBySimilarity();
+    }
 
-      List<ArrayList<Integer>> partitions = new ArrayList<>();
-      int[] setIds = new int[numberOfPredicates];
-      int nextSetId = 1;
-      for (int i = 0; i < setIds.length; i++) {
-        int thisSetID;
-        ArrayList<Integer> thisPartition = new ArrayList<>();
-        if (setIds[i] == 0) {
-          setIds[i] = nextSetId;
-          thisSetID = nextSetId++;
-          thisPartition = new ArrayList<>();
-          partitions.add(thisPartition);
-          thisPartition.add(i);
-        } else {
-          thisSetID = setIds[i];
-        }
-        for (int j = i + 1; j < similarities[i].length; j++) {
-          if (similarities[i][j] > 0) {
-            setIds[j] = thisSetID;
-            thisPartition.add(j);
+    return result;
+  }
+
+  private void sortVarsByFrequency() {
+    final Map<String, Integer> varToFrequency = new HashMap<>();
+
+    // calculate overall variable frequencies
+    ArrayList<Integer> predicates = new ArrayList<>();
+    for (int i = 0; i < numberOfPredicates; i++) {
+      predicates.add(i);
+      Set<String> varNames = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
+      for (String varName : varNames) {
+        Integer currentCount = varToFrequency.get(varName);
+        varToFrequency.put(varName, (currentCount == null ? 1 : ++currentCount)); // increase var entry by 1
+      }
+    }
+
+    // sort predicates by variable frequencies
+    Collections.sort(predicates, new Comparator<Integer>() {
+
+      @Override
+      public int compare(Integer pred1, Integer pred2) {
+        Set<String> firstPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(pred1).getSymbolicAtom());
+        Set<String> secondPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(pred2).getSymbolicAtom());
+        int maxFirst = 0;
+        for (String var : firstPredVars) {
+          int currentVarFreq = varToFrequency.get(var);
+          if (currentVarFreq > maxFirst) {
+            maxFirst = currentVarFreq;
           }
         }
+        int maxSecond = 0;
+        for (String var : secondPredVars) {
+          int currentVarFreq = varToFrequency.get(var);
+          if (currentVarFreq > maxFirst) {
+          return -1; // can break the loop as the second predicate has a higher rating
+          }
+          maxSecond = currentVarFreq;
+        }
+
+        return maxFirst - maxSecond;
+      }});
+
+    rmgr.setVarOrder(predicates);
+  }
+
+  private void sortVarsBySimilarity() {
+    int[][] similarities =
+        new int[numberOfPredicates][numberOfPredicates];
+    final Map<String, Integer> varToFrequency = new HashMap<>();
+    for (int i = 0; i < similarities.length; i++) {
+      for (int j = 0; j < similarities[i].length; j++) {
+        Set<String> firstPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(i)
+                .getSymbolicAtom());
+        Set<String> secondPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(j)
+                .getSymbolicAtom());
+
+        // count variables
+        for (String varName : firstPredVars) {
+          Integer countEntry = varToFrequency.get(varName);
+          int count = countEntry == null ? 0 : countEntry;
+          varToFrequency.put(varName, ++count);
+        }
+        for (String varName : secondPredVars) {
+          Integer countEntry = varToFrequency.get(varName);
+          int count = countEntry == null ? 0 : countEntry;
+          varToFrequency.put(varName, ++count);
+        }
+
+        firstPredVars.retainAll(secondPredVars);
+        similarities[i][j] = firstPredVars.size();
       }
-      Collections.sort(partitions, new Comparator<ArrayList<Integer>>() {
+    }
+
+    List<ArrayList<Integer>> partitions = new ArrayList<>();
+    int[] setIds = new int[numberOfPredicates];
+    int nextSetId = 1;
+    for (int i = 0; i < setIds.length; i++) {
+      int thisSetID;
+      ArrayList<Integer> thisPartition = new ArrayList<>();
+      if (setIds[i] == 0) {
+        setIds[i] = nextSetId;
+        thisSetID = nextSetId++;
+        thisPartition = new ArrayList<>();
+        partitions.add(thisPartition);
+        thisPartition.add(i);
+      } else {
+        thisSetID = setIds[i];
+      }
+      for (int j = i + 1; j < similarities[i].length; j++) {
+        if (similarities[i][j] > 0) {
+          setIds[j] = thisSetID;
+          thisPartition.add(j);
+        }
+      }
+    }
+    Collections.sort(partitions, new Comparator<ArrayList<Integer>>() {
+
+      @Override
+      public int compare(ArrayList<Integer> pArg0,
+          ArrayList<Integer> pArg1) {
+        return pArg0.size() - pArg1.size();
+      }
+
+    });
+
+    ArrayList<Integer> order = new ArrayList<>(numberOfPredicates);
+    for (ArrayList<Integer> list : partitions) {
+      Collections.sort(list, new Comparator<Integer>() {
 
         @Override
-        public int compare(ArrayList<Integer> pArg0,
-            ArrayList<Integer> pArg1) {
-          return pArg0.size() - pArg1.size();
+        public int compare(Integer pred1, Integer pred2) {
+          Set<String> firstPredVars =
+              fmgr.extractVariableNames(varIDToPredicate.get(pred1).getSymbolicAtom());
+          Set<String> secondPredVars =
+              fmgr.extractVariableNames(varIDToPredicate.get(pred2).getSymbolicAtom());
+          int maxFirst = 0;
+          for (String var : firstPredVars) {
+            int currentVarFreq = varToFrequency.get(var);
+            if (currentVarFreq > maxFirst) {
+              maxFirst = currentVarFreq;
+            }
+          }
+          int maxSecond = 0;
+          for (String var : secondPredVars) {
+            int currentVarFreq = varToFrequency.get(var);
+            if (currentVarFreq > maxFirst) {
+            return -1; // can break the loop as the second predicate has a higher rating
+            }
+            maxSecond = currentVarFreq;
+          }
+
+          return maxFirst - maxSecond;
         }
 
       });
-
-      ArrayList<Integer> order = new ArrayList<>(numberOfPredicates);
-      for (ArrayList<Integer> list : partitions) {
-        order.addAll(list);
-      }
-
-      rmgr.setVarOrder(order);
+      order.addAll(list);
     }
-    return result;
+
+    rmgr.setVarOrder(order);
   }
 
   /**
@@ -201,11 +294,9 @@ public final class AbstractionManager {
    */
   private AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
-    if (result == null) {
-      throw new IllegalArgumentException(
-          var
-              + " seems not to be a formula corresponding to a single predicate variable.");
-    }
+    if (result == null) { throw new IllegalArgumentException(
+        var
+            + " seems not to be a formula corresponding to a single predicate variable."); }
     return result;
   }
 
@@ -217,7 +308,7 @@ public final class AbstractionManager {
   public BooleanFormula toConcrete(Region af) {
     if (rmgr instanceof SymbolicRegionManager) {
       // optimization shortcut
-      return ((SymbolicRegionManager)rmgr).toFormula(af);
+      return ((SymbolicRegionManager) rmgr).toFormula(af);
     }
 
     Map<Region, BooleanFormula> cache;
@@ -356,6 +447,7 @@ public final class AbstractionManager {
   public Region buildRegionFromFormula(BooleanFormula pF) {
     return rmgr.fromFormula(pF, fmgr,
         Functions.compose(new Function<AbstractionPredicate, Region>() {
+
           @Override
           public Region apply(AbstractionPredicate pInput) {
             return pInput.getAbstractVariable();
