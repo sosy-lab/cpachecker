@@ -165,29 +165,29 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
         _i0_LESS_al0));
   }
 
-  @Test(timeout=2000)
-  public void testOnSafeTrace1() throws SolverException, InterruptedException {
-    ArrayFormula<IntegerFormula, IntegerFormula> _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-    IntegerFormula _i = ifm.makeVariable("i");
-    BooleanFormula _b_at_i_NOTEQ_0 = bfm.not(ifm.equal(afm.select(_b, _i), _0));
-    BooleanFormula _i_plus_1_LESSEQ_al = ifm.lessOrEquals(ifm.add(_i, _1), _0);
-    BooleanFormula _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
-
+  @Test(timeout=500)
+  public void testOnTraceX() throws SolverException, InterruptedException {
     BooleanFormula _safeWp1 = bfm.and(Lists.newArrayList(
-        _b_at_i_NOTEQ_0,        // b[i] != 0
-        _i_plus_1_LESSEQ_al,    // i+1 <= al
-        _b_at_i_plus_1_EQ_0));  // b[i+1] == 0
-
-    //  (and
-    //      (not (= (select b i) 0))
-    //      (<= (+ i 1) 0)
-    //      (= (select b (+ i 1)) 0))
-
-    // Application of rules EXISTS and EXTEND_RIGHT?
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),        // b[i] != 0
+        ifm.lessOrEquals(ifm.add(_i, _1), _0),    // i+1 <= 0
+        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)));  // b[i+1] == 0
 
     List<BooleanFormula> result = enp.extractNewPreds(_safeWp1);
     assertThat(result).isNotEmpty();
   }
+
+  @Test(timeout=2000)
+  public void testOnSafeWp3() throws SolverException, InterruptedException {
+    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
+        bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
+        ifm.lessOrEquals(ifm.add(_i, _1), _al),         // i+1 <= al
+        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)  // b[i+1] = 0
+        ));
+
+    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
+    assertThat(result).isNotEmpty();
+  }
+
 
   @Test(timeout=2000)
   public void testOnErrorTrace() throws SolverException, InterruptedException {
@@ -232,20 +232,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-
-  @Test(timeout=2000)
-  public void testOnSafeWp3() throws SolverException, InterruptedException {
-    BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
-        bfm.not(ifm.equal(afm.select(_b, _i), _0)),     // b[i] != 0
-        ifm.lessOrEquals(ifm.add(_i, _1), _al),         // i+1 <= al
-        ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0)  // b[i+1] = 0
-        ));
-
-    List<BooleanFormula> result = enp.extractNewPreds(wpSafe);
-    assertThat(result).isNotEmpty();
-  }
-
-  @Test(timeout=2000)
+  @Test
   public void testOnSafeWp4() throws SolverException, InterruptedException {
     BooleanFormula wpSafe = bfm.and(Lists.newArrayList(
         bfm.not(ifm.equal(afm.select(_b, _0), _0)), // b[0] != 0
