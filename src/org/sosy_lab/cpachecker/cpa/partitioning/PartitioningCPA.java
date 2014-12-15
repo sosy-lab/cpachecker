@@ -62,6 +62,15 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
+    public String toString() {
+      if (partition == null) {
+        return "PARTITION [NULL]";
+      } else {
+        return "PARTITION " + partition.toString();
+      }
+    }
+
+    @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;

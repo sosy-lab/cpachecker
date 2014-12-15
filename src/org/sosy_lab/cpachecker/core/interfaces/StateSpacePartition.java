@@ -40,6 +40,15 @@ public abstract class StateSpacePartition implements Partitionable {
       public Object getPartitionKey() {
         return pPartitionKey;
       }
+
+      @Override
+      public String toString() {
+        if (pPartitionKey == null) {
+          return "[NULL]";
+        } else {
+          return pPartitionKey.toString();
+        }
+      }
     };
   }
 
