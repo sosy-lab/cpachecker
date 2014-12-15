@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
@@ -34,7 +36,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Verify;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -118,7 +120,7 @@ class SmtInterpolModel {
   static Model createSmtInterpolModel(SmtInterpolEnvironment env, Collection<Term> assertedFormulas) {
     de.uni_freiburg.informatik.ultimate.logic.Model values = env.getModel();
 
-    ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
+    Map<AssignableTerm, Object> model = new LinkedHashMap<>();
     for (Term lKeyTerm : SmtInterpolUtil.getVarsAndUIFs(assertedFormulas)) {
       Term lValueTerm = values.evaluate(lKeyTerm);
 
@@ -160,11 +162,18 @@ class SmtInterpolModel {
         throw new IllegalArgumentException("SmtInterpol term with unhandled type " + lAssignable.getType());
       }
 
+      // Duplicate entries may occur if "uf(a)" and "uf(b)" occur in the formulas
+      // and "a" and "b" have the same value, because "a" and "b" will both be resolved,
+      // leading to two entries for "uf(1)" (if value is 1).
+      Object existingValue = model.get(lAssignable);
+      Verify.verify(existingValue == null || lValue.equals(existingValue),
+          "Duplicate values for model entry %s: %s and %s", lAssignable, existingValue, lValue
+          );
       model.put(lAssignable, lValue);
     }
     }
 
-    return new Model(model.build());
+    return new Model(model);
   }
 
 }

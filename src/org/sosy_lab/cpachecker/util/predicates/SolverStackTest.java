@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.truth.Truth.assert_;
+import static com.google.common.truth.Truth.*;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import org.junit.Rule;
@@ -39,12 +39,16 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
@@ -294,6 +298,36 @@ public class SolverStackTest extends SolverBasedTest0 {
       Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
       Truth.assertThat(model.keySet()).containsExactly(expectedVar);
       Truth.assertThat(model.get(expectedVar).toString()).isEqualTo("1"); // actual type of object is not defined
+    }
+  }
+
+  @Test
+  public void modelForSatFormulaWithUF() throws Exception {
+    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+      IntegerFormula zero = imgr.makeNumber(0);
+      IntegerFormula varA = imgr.makeVariable("a");
+      IntegerFormula varB = imgr.makeVariable("b");
+      stack.push(imgr.equal(varA, zero));
+      stack.push(imgr.equal(varB, zero));
+      UninterpretedFunctionDeclaration<IntegerFormula> uf = fmgr.declareUninterpretedFunction("uf", FormulaType.IntegerType, FormulaType.IntegerType);
+      stack.push(imgr.equal(fmgr.callUninterpretedFunction(uf, ImmutableList.of(varA)), zero));
+      stack.push(imgr.equal(fmgr.callUninterpretedFunction(uf, ImmutableList.of(varB)), zero));
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
+
+      Model model = stack.getModel();
+      Model.Constant expectedVarA = new Model.Constant("a", TermType.Integer);
+      Model.Constant expectedVarB = new Model.Constant("b", TermType.Integer);
+      assertThat(model.keySet()).containsAllOf(expectedVarA, expectedVarB);
+      // actual type of object is not defined, thus do string matching:
+      assertThat(model.get(expectedVarA).toString()).isEqualTo("0");
+      assertThat(model.get(expectedVarB).toString()).isEqualTo("0");
+
+      // model should also contain an entry for this key,
+      // but the type of the value of the argument is not defined,
+      // thus it may not match because of Integer != BigInteger != Rational:
+      // TODO: Add some assert for this.
+      @SuppressWarnings("unused")
+      Model.Function expectedFunc = new Model.Function("uf", TermType.Integer, new Object[]{0});
     }
   }
 }
