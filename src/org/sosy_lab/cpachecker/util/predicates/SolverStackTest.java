@@ -81,8 +81,6 @@ public class SolverStackTest extends SolverBasedTest0 {
   protected final void requireUfValuesInModel() {
     assume().withFailureMessage("Integration of solver does not support retrieving values for UFs from a model")
             .that(solver).isNotEqualTo(Solvers.Z3);
-    assume().withFailureMessage("Integration of solver does not support retrieving values for UFs from a model")
-            .that(solver).isNotEqualTo(Solvers.PRINCESS);
   }
 
   @Test
