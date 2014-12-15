@@ -223,7 +223,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     public Set<MemoryLocation> getMemoryLocationsExceedingHardThreshold() {
       Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();
       for (MemoryLocation memoryLocation : mapping.keys()) {
-        if(mapping.size() > hardThreshold) {
+        if(mapping.get(memoryLocation).size() > hardThreshold) {
           exceedingMemoryLocations.add(memoryLocation);
         }
       }
