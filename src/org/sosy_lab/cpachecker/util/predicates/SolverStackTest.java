@@ -310,6 +310,20 @@ public class SolverStackTest extends SolverBasedTest0 {
   }
 
   @Test
+  public void modelForSatFormulaWithLargeValue() throws Exception {
+    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+      BigInteger val = BigInteger.TEN.pow(1000);
+      stack.push(imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(val)));
+      assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
+
+      Model model = stack.getModel();
+      Model.Constant expectedVar = new Model.Constant("a", TermType.Integer);
+      assertThat(model.keySet()).containsExactly(expectedVar);
+      assertThat(model).containsEntry(expectedVar, val);
+    }
+  }
+
+  @Test
   public void modelForSatFormulaWithUF() throws Exception {
     try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
       IntegerFormula zero = imgr.makeNumber(0);

@@ -136,7 +136,7 @@ class PrincessModel {
         break;
 
       case Integer:
-        lValue = BigInteger.valueOf(((SimpleAPI.IntValue)lValueTerm).v().longValue());
+        lValue = ((SimpleAPI.IntValue)lValueTerm).v().bigIntValue();
         break;
 
       default:
