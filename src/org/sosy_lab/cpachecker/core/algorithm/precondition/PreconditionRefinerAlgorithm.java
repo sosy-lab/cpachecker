@@ -174,8 +174,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       if (isDisjoint(pcViolation, pcValid)) {
         // We have found a valid, weakest, precondition
-
-        // Write the precondition.
+        // -- > write the precondition.
         if (writer.isPresent()) {
           try {
             writer.get().writePrecondition(exportPreciditionsTo, pcValid);

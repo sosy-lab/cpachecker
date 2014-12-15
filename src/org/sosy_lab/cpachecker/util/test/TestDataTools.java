@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
@@ -30,20 +34,26 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import com.google.common.collect.ImmutableList;
 
 public class TestDataTools {
 
@@ -53,9 +63,23 @@ public class TestDataTools {
       FileLocation.DUMMY,
       CIntegerLiteralExpression.ZERO);
 
+  public static Triple<CDeclarationEdge, CFunctionDeclaration, CFunctionType> makeFunctionDeclaration(
+      String pFunctionName,
+      CType pFunctionReturnType,
+      List<CParameterDeclaration> pParameters) {
+
+    CFunctionType functionType = new CFunctionType(
+        false, false, checkNotNull(pFunctionReturnType), ImmutableList.<CType>of(), false);
+    CFunctionDeclaration fd = new CFunctionDeclaration(
+        FileLocation.DUMMY, functionType, pFunctionName, pParameters);
+    CDeclarationEdge declEdge = new CDeclarationEdge(
+        "", FileLocation.DUMMY, DUMMY_CFA_NODE, DUMMY_CFA_NODE, fd);
+
+    return Triple.of(declEdge, fd, functionType);
+  }
+
   public static Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> makeDeclaration(
       String varName, CType varType, @Nullable CInitializer initializer) {
-
     final FileLocation loc = FileLocation.DUMMY;
     final CVariableDeclaration decl = new CVariableDeclaration(
         loc, true, CStorageClass.AUTO, varType, varName, varName, varName, initializer);
@@ -73,8 +97,11 @@ public class TestDataTools {
             decl));
   }
 
-  public static Pair<CFAEdge, CExpressionAssignmentStatement> makeAssignment(CLeftHandSide pLhs, CExpression pRhs) {
+  public static CFAEdge makeBlankEdge(String pDescription) {
+    return new BlankEdge("", FileLocation.DUMMY, DUMMY_CFA_NODE, DUMMY_CFA_NODE, pDescription);
+  }
 
+  public static Pair<CFAEdge, CExpressionAssignmentStatement> makeAssignment(CLeftHandSide pLhs, CExpression pRhs) {
     CExpressionAssignmentStatement stmt = new CExpressionAssignmentStatement(
         FileLocation.DUMMY,
         pLhs,

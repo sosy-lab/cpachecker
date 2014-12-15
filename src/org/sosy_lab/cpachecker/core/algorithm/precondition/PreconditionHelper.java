@@ -142,8 +142,13 @@ public final class PreconditionHelper {
     return null;
   }
 
-
+  /**
+   *
+   * @param pPath
+   * @return
+   */
   public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath) {
+
     return null;
   }
 
