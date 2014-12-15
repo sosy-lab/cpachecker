@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.partitioning;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,6 +49,10 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
   private final MergeOperator mergeOperator = new MergeJoinOperator(abstractDomain);
   private final TransferRelation transferRelation = IdentityTransferRelation.INSTANCE;
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(PartitioningCPA.class);
+  }
 
   public static class PartitionState implements AbstractState {
     private final Object partition;
