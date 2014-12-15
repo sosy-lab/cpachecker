@@ -109,9 +109,9 @@ public class ARGUtils {
   /**
    * Get all abstract states without parents.
    */
-  public static Set<AbstractState> getRootStates(ReachedSet pReached) {
+  public static Set<ARGState> getRootStates(ReachedSet pReached) {
 
-    Set<AbstractState> result = new HashSet<>();
+    Set<ARGState> result = new HashSet<>();
 
     Iterator<AbstractState> it = pReached.iterator();
     while (it.hasNext()) {

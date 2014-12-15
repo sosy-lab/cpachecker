@@ -28,6 +28,7 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAchecker.InitialStatesFor;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -58,6 +59,21 @@ public class PartitioningCPATest {
     assertThat(p1).isEqualTo(p2);
 
     assertThat(domain.isLessOrEqual(p1, p2)).isTrue();
+  }
+
+  @Test
+  public void testMerge_EqualPartition() throws CPAException, InterruptedException {
+    AbstractState p1 = cpa.getInitialState(
+        TestDataTools.DUMMY_CFA_NODE,
+        StateSpacePartition.getNewPartition(InitialStatesFor.ENTRY));
+
+    AbstractState p2 = cpa.getInitialState(
+        TestDataTools.DUMMY_CFA_NODE,
+        StateSpacePartition.getNewPartition(InitialStatesFor.ENTRY));
+
+    AbstractState mergeResult = cpa.getMergeOperator().merge(p1, p2, SingletonPrecision.getInstance());
+
+    assertThat(mergeResult).isEqualTo(p2); // MERGE-SEP
   }
 
   @Test

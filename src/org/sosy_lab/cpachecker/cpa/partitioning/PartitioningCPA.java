@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
+  private final StopOperator stopOperator = new StopJoinOperator(abstractDomain);
   private final MergeOperator mergeOperator = new MergeJoinOperator(abstractDomain);
   private final TransferRelation transferRelation = IdentityTransferRelation.INSTANCE;
 
