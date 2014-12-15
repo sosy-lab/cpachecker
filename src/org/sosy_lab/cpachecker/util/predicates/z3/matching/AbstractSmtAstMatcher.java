@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
   protected final FormulaManagerView fmv;
 
   protected final Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
+  protected final Multimap<Comparable<?>, Comparable<?>> functionImpliedBy = HashMultimap.create();
   protected final Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   protected final Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
@@ -63,6 +65,9 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
+
+    defineOperatorImplications(">=", Sets.newHashSet("=", ">"));
+    defineOperatorImplications("<=", Sets.newHashSet("=", "<"));
 
     defineCommutative("=");
     defineCommutative("and"); // used in the arguments of a quantified predicate
@@ -91,7 +96,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     logger.log(Level.ALL, ObjectArrays.concat("MATCH SUCCESS", pDescription));
     return pResult;
   }
-
 
   @Override
   public SmtAstMatchResult perform(
@@ -292,7 +296,10 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
   }
 
   protected boolean isExpectedFunctionSymbol(Comparable<?> pExpectedSymbol, Comparable<?> pFound) {
+    // Either it is equivalent...
     boolean result = pExpectedSymbol.equals(pFound);
+
+    // Or there is a symmetric alias...
     if (!result) {
       Collection<Comparable<?>> definedAliase = functionAliases.get(pExpectedSymbol);
       for (Comparable<?> alias: definedAliase) {
@@ -301,7 +308,27 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
         }
       }
     }
+
+    // Or the operator implies (or is implied by) another operator...
+    if (!result) {
+      // Example:
+      //  pExpectedSymbol == "="
+      //      pFound == ">="
+      //  or  pFound == "<="
+      //
+      if (functionImpliedBy.get(pExpectedSymbol).contains(pFound)) {
+        return true;
+      }
+    }
+
     return result;
+  }
+
+  @Override
+  public void defineOperatorImplications(String pImpliedBy, HashSet<String> pImplies) {
+    for (String implied: pImplies) {
+      functionImpliedBy.put(implied, pImpliedBy);
+    }
   }
 
   protected boolean isCommutative(final String pFunctionName) {

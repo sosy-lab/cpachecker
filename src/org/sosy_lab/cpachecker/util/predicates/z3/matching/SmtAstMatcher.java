@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3.matching;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -45,4 +46,7 @@ public interface SmtAstMatcher {
   public void defineRotations(String pFunctionName, String pRotationFunctionName);
 
   public void defineFunctionAliases(String pFunctionName, Set<String> pAliases);
+
+  // a >= b  --> a > b || a = b
+  public void defineOperatorImplications(String pString, HashSet<String> pNewHashSet);
 }
