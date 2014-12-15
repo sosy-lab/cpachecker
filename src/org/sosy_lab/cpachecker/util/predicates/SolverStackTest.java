@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @RunWith(Parameterized.class)
 public class SolverStackTest extends SolverBasedTest0 {
 
@@ -302,6 +304,7 @@ public class SolverStackTest extends SolverBasedTest0 {
   }
 
   @Test
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   public void modelForSatFormulaWithUF() throws Exception {
     try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
       IntegerFormula zero = imgr.makeNumber(0);
