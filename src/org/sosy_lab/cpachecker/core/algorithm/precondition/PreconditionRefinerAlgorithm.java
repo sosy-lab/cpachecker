@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,7 +78,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 @Options(prefix="precondition")
 public class PreconditionRefinerAlgorithm implements Algorithm {
@@ -279,24 +283,31 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // Restart with the initial set of reached states
       // with the new precision!
-      ARGReachedSet argReached = new ARGReachedSet(pReachedSet, argcpa, refinementNumber++);
-      refinePrecisionForNextIteration(initialReachedSet, argReached, newPrecision);
+      refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
 
     } while (true);
   }
 
   private void refinePrecisionForNextIteration(
       ReachedSet pInitialStates,
-      ARGReachedSet pTo,
+      ReachedSet pTo,
       PredicatePrecision pPredPrecision) {
 
-//    pTo.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
-//    pTo.reAddToWaitlist(ae);
-//
-//    for (AbstractState e: pInitialStates.getWaitlist()) {
-//      pTo.add(e, pPrec);
-//    }
+    ARGReachedSet argReachedSetTo = new ARGReachedSet(pTo, argcpa);
 
+    Iterator<AbstractState> rootStatesIterator = pInitialStates.iterator();
+
+    while (rootStatesIterator.hasNext()) {
+      AbstractState rootState = rootStatesIterator.next();
+      ARGState as = AbstractStates.extractStateByType(rootState, ARGState.class);
+
+      Collection<ARGState> childsToRemove = Lists.newArrayList(as.getChildren());
+      for (ARGState childWithSubTreeToRemove: childsToRemove) {
+        argReachedSetTo.removeSubtree(childWithSubTreeToRemove, pPredPrecision, Predicates.instanceOf(PredicatePrecision.class));
+      }
+    }
+
+    // pTo.updatePrecisionGlobally(pPredPrecision, Predicates.instanceOf(PredicatePrecision.class));
   }
 
 }
