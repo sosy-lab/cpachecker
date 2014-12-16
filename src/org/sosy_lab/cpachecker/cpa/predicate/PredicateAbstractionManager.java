@@ -102,32 +102,32 @@ public class PredicateAbstractionManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionsStorage abstractionStorage;
   private int counter = 0;
-  @Option(secure=true, name = "abstraction.cartesian",
+  @Option(secure = true, name = "abstraction.cartesian",
       description = "whether to use Boolean (false) or Cartesian (true) abstraction")
   @Deprecated
   private boolean cartesianAbstraction = false;
-  @Option(secure=true, name = "abstraction.computation",
+  @Option(secure = true, name = "abstraction.computation",
       description = "whether to use Boolean or Cartesian abstraction or both")
   private AbstractionType abstractionType = AbstractionType.BOOLEAN;
-  @Option(secure=true, name = "abstraction.dumpHardQueries",
+  @Option(secure = true, name = "abstraction.dumpHardQueries",
       description = "dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
-  @Option(secure=true, name = "abstraction.reuseAbstractionsFrom",
-      description="An initial set of comptued abstractions that might be reusable")
+  @Option(secure = true, name = "abstraction.reuseAbstractionsFrom",
+      description = "An initial set of comptued abstractions that might be reusable")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path reuseAbstractionsFrom;
-  @Option(secure=true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
+  @Option(secure = true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
   private int maxAbstractionReusePrescan = 1;
-  @Option(secure=true, name = "abs.useCache", description = "use caching of abstractions")
+  @Option(secure = true, name = "abs.useCache", description = "use caching of abstractions")
   private boolean useCache = true;
-  @Option(secure=true, name="refinement.splitItpAtoms",
-      description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
+  @Option(secure = true, name = "refinement.splitItpAtoms",
+      description = "split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
-  @Option(secure=true, name = "abstraction.identifyTrivialPredicates",
-      description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
+  @Option(secure = true, name = "abstraction.identifyTrivialPredicates",
+      description = "Identify those predicates where the result is trivially known before abstraction computation and omit them.")
   private boolean identifyTrivialPredicates = false;
-  @Option(secure=true, name = "abstraction.simplify",
-      description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
+  @Option(secure = true, name = "abstraction.simplify",
+      description = "Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
   private boolean warnedOfCartesianAbstraction = false;
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
@@ -483,11 +483,11 @@ public class PredicateAbstractionManager {
   /**
    * Extract all relevant predicates (with respect to a given formula)
    * from a given set of predicates.
-   *
+   * <p/>
    * Currently the check is syntactically, i.e.,
    * a predicate is relevant if it refers to at least one variable
    * that also occurs in f.
-   *
+   * <p/>
    * A predicate that is just "false" or "true" is also filtered out.
    *
    * @param pPredicates The set of predicates.
@@ -590,13 +590,14 @@ public class PredicateAbstractionManager {
 
   /**
    * Compute an abstraction of a single boolean formula.
+   *
    * @param f The formula to be abstracted. Needs to be instantiated
-   *         with the indices from <code>blockFormula.getSssa()</code>.
+   * with the indices from <code>blockFormula.getSssa()</code>.
    * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   * but will be used as the block formula in the resulting AbstractionFormula instance.
    * @param predicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of f
-   *          with blockFormula as the block formula.
+   * with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
@@ -622,12 +623,13 @@ public class PredicateAbstractionManager {
    * region, but the result is equivalent to the input.
    * This can be used to simply view the formula as a region.
    * If BDDs are used, the result of this method is a minimized form of the input.
+   *
    * @param f The formula to be converted to a region. Must NOT be instantiated!
    * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
-   *         Also it's SSAMap will be used for instantiating the result.
+   * but will be used as the block formula in the resulting AbstractionFormula instance.
+   * Also it's SSAMap will be used for instantiating the result.
    * @return An AbstractionFormula instance representing f
-   *          with blockFormula as the block formula.
+   * with blockFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(final BooleanFormula f,
       final PathFormula blockFormula) {
@@ -816,6 +818,7 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
+   *
    * @param pAbstractionFormula the abstraction formula
    * @param pPathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
@@ -870,6 +873,7 @@ public class PredicateAbstractionManager {
 
   /**
    * Remove a set of predicates from an abstraction.
+   *
    * @param oldAbstraction The abstraction to start from.
    * @param removePredicates The predicate to remove.
    * @param ssaMap The SSAMap to use for instantiating the new abstraction.
@@ -904,6 +908,7 @@ public class PredicateAbstractionManager {
 
   /**
    * Extend an abstraction by a set of predicates.
+   *
    * @param reducedAbstraction The abstraction to extend.
    * @param sourceAbstraction The abstraction where to take the predicates from.
    * @param relevantPredicates The predicates to add.
@@ -927,6 +932,7 @@ public class PredicateAbstractionManager {
 
   /**
    * Extract all atoms from a formula and create predicates for them.
+   *
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates.
    */
@@ -942,18 +948,15 @@ public class PredicateAbstractionManager {
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(atom));
     }
-    if (counter == 50) {
-      long time = System.currentTimeMillis();
-      //amgr.orderPredicates();
-      counter = 0;
-    } else {
-      counter++;
-    }
+
+    amgr.orderPredicates();
+
     return preds;
   }
 
   /**
    * Create a single AbstractionPredicate representing a formula.
+   *
    * @param pFormula The formula to use (without SSA indices!), may not simply be "true".
    * @return A single abstraction predicate.
    */

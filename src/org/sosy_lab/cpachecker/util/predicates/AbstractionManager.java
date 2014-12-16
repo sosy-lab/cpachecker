@@ -133,11 +133,40 @@ public final class AbstractionManager {
     return result;
   }
 
-  public void orderPredicates() {
-    // sortVarsByFrequency(); // only order by variable frequency
-    // sortVarsBySimilarity1(); // first attempt
-    // sortVarsBySimilarity2(); // first attempt with order by variable frequency
-    sortVarsBySimilarity3();
+  public void reorderPredicates(int reorderMethod) {
+    switch (reorderMethod) {
+      case 1:
+        // only order by variable frequency
+        sortVarsByFrequency();
+        break;
+      case 2:
+        // first attempt
+        sortVarsBySimilarity1();
+        break;
+      case 3:
+        // first attempt with order by variable frequency
+        sortVarsBySimilarity2();
+        break;
+      case 4:
+        sortVarsBySimilarity3();
+        break;
+      default:
+        rmgr.reorder();
+    }
+  }
+
+  // not ready and not finished.
+  private void orderPredicates() {
+    ArrayList<ArrayList<Integer>> partitions = new ArrayList<>();
+    HashMap<Integer, HashSet<Integer>> partitionsToVariables = new HashMap<>();
+
+    for (Integer varID : varIDToPredicate.keySet()) {
+      if (partitions.isEmpty()) {
+        ArrayList<Integer> firstPartition = new ArrayList<>();
+        firstPartition.add(varID);
+        partitions.add(firstPartition);
+      }
+    }
   }
 
   /**
@@ -353,14 +382,15 @@ public final class AbstractionManager {
    * Creates partitions for similar predicates and tries to order them by their dependencies.
    */
   private void sortVarsBySimilarity3() {
-
     ArrayList<ArrayList<Integer>> partitions = new ArrayList<>();
     Map<Integer, Set<String>> varsOfPartition = new HashMap<>();
+
     for (int i = 0; i < numberOfPredicates; i++) {
-      if (partitions.size() == 0) {
+      if (partitions.isEmpty()) {
         ArrayList<Integer> newPartition = new ArrayList<>();
         newPartition.add(i);
-        varsOfPartition.put(0, fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom()));
+        varsOfPartition
+            .put(varsOfPartition.size(), fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom()));
         partitions.add(newPartition);
       } else {
         // check for similarities with partitions
@@ -377,7 +407,7 @@ public final class AbstractionManager {
         }
 
         // add predicate to similar partition or merge partitions if it is similar to several partitions
-        if (similarPartitions.size() == 0) {
+        if (similarPartitions.isEmpty()) {
           ArrayList<Integer> newPartition = new ArrayList<>();
           newPartition.add(i);
           varsOfPartition.put(partitions.size(), fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom()));
@@ -389,7 +419,7 @@ public final class AbstractionManager {
           Set<String> previousVars = varsOfPartition.get(partitionNumber);
           previousVars.addAll(newVars);
         } else {
-          // merge
+          // merge partitions similar to the current predicate
           Iterator<Integer> it = similarPartitions.iterator();
           int resultingPartitionNumber = it.next();
           ArrayList<Integer> resultingPartition = partitions.get(resultingPartitionNumber);

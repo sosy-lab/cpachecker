@@ -77,6 +77,7 @@ class SylvanBDDRegionManager implements RegionManager {
   static {
     NativeLibraries.loadLibrary("sylvan");
   }
+
   // Statistics
   @GuardedBy("itself")
   private final StatTimer cleanupTimer = new StatTimer("Time for BDD cleanup after GC");
@@ -212,7 +213,7 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   private long unwrap(Region region) {
-    return ((SylvanBDDRegion) region).getBDD();
+    return ((SylvanBDDRegion)region).getBDD();
   }
 
   @Override
@@ -304,6 +305,11 @@ class SylvanBDDRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ArrayList<Integer> pOrder) {
+
+  }
+
+  @Override
+  public void reorder() {
 
   }
 

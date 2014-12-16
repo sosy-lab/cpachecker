@@ -170,6 +170,11 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
+  public void reorder() {
+
+  }
+
+  @Override
   public void printStatistics(PrintStream out) {
     // do nothing
   }

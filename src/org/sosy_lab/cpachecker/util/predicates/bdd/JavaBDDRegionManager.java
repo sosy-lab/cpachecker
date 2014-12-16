@@ -71,7 +71,6 @@ import net.sf.javabdd.BDDFactory;
  */
 @Options(prefix = "bdd.javabdd")
 class JavaBDDRegionManager implements RegionManager {
-
   private static final Level LOG_LEVEL = Level.FINE;
   // Statistics
   private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
@@ -443,6 +442,11 @@ class JavaBDDRegionManager implements RegionManager {
       }
     }
     factory.setVarOrder(order);
+  }
+
+  @Override
+  public void reorder() {
+    factory.reorder(BDDFactory.REORDER_WIN3ITE);
   }
 
   private class BDDRegionBuilder implements RegionBuilder {

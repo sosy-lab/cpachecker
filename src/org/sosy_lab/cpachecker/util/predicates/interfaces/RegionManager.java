@@ -166,6 +166,8 @@ public interface RegionManager {
 
   public void setVarOrder(ArrayList<Integer> pOrder);
 
+  public void reorder();
+
   /**
    * A stateful region builder for regions that are disjunctions
    * of conjunctive literals.
