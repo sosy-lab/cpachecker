@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -154,10 +155,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  protected final LogManager logger;
+  private final LogManager logger;
 
   protected final PathFormulaManager pfmgr;
-  protected FormulaManagerView fmgr;
+  private final FormulaManagerView fmgr;
   private final InterpolationManager formulaManager;
   private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
@@ -168,7 +169,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathChecker pPathChecker,
-      final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
       final RefinementStrategy pStrategy,
       final Solver pSolver,
@@ -185,7 +185,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pathChecker = pPathChecker;
     pfmgr = pPathFormulaManager;
-    fmgr = pFormulaManager;
+    fmgr = solver.getFormulaManager();
     strategy = pStrategy;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
@@ -328,7 +328,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         List<BooleanFormula> result = Lists.newArrayList();
         UnmodifiableIterator<ARGState> abstractionIt = predicateStates.iterator();
 
-        BooleanFormula traceFormula = fmgr.getBooleanFormulaManager().makeBoolean(true);
+        final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+        BooleanFormula traceFormula = bfmgr.makeBoolean(true);
 
         // each abstraction location has a corresponding block formula
 
@@ -344,7 +345,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
           final BooleanFormula blockFormula = predState.getAbstractionFormula().getBlockFormula().getFormula();
           final SSAMap blockSsaMap = predState.getAbstractionFormula().getBlockFormula().getSsa();
 
-          traceFormula = fmgr.getBooleanFormulaManager().and(traceFormula, blockFormula);
+          traceFormula = bfmgr.and(traceFormula, blockFormula);
 
           if (!BlockOperator.isFirstLocationInFunctionBody(loc) || solver.isUnsat(traceFormula)) { // Add the precondition only if the trace formula is SAT!!
             result.add(blockFormula);
@@ -353,7 +354,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
             final BooleanFormula eliminationResult = PredicateVariableElimination.eliminateDeadVariables(fmgr, traceFormula, blockSsaMap);
             final BooleanFormula blockPrecondition = assumesStore.conjunctAssumeToLocation(loc, fmgr.makeNot(eliminationResult));
 
-            result.add(fmgr.makeAnd(blockFormula, blockPrecondition));
+            result.add(bfmgr.and(blockFormula, blockPrecondition));
           }
 
         }

@@ -119,7 +119,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
-    fmgr = pCpa.getFormulaManager();
+    fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     assumeStore = pCpa.getAssumesStore();
     blk = pBlk;

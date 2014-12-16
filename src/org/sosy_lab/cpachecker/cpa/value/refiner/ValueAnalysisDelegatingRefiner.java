@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 /**
@@ -120,14 +119,12 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return null;
 
     } else {
-        FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
         Solver solver                               = predicateCpa.getSolver();
         PathFormulaManager pathFormulaManager       = predicateCpa.getPathFormulaManager();
         PredicateStaticRefiner extractor            = predicateCpa.getStaticRefiner();
         MachineModel machineModel                   = predicateCpa.getMachineModel();
 
         InterpolationManager manager = new InterpolationManager(
-            formulaManager,
             pathFormulaManager,
             solver,
             config,
@@ -140,7 +137,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             config,
             logger,
             predicateCpa.getShutdownNotifier(),
-            formulaManager,
             predicateCpa.getPredicateManager(),
             extractor,
             solver);
@@ -151,7 +147,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
             cpa,
             manager,
             pathChecker,
-            formulaManager,
             pathFormulaManager,
             backupRefinementStrategy,
             solver,

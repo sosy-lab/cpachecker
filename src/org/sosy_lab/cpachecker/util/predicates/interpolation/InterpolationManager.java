@@ -183,7 +183,6 @@ public final class InterpolationManager {
 
 
   public InterpolationManager(
-      FormulaManagerView pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
       Configuration config,
@@ -193,7 +192,7 @@ public final class InterpolationManager {
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
