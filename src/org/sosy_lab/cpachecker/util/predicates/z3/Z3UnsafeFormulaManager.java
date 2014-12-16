@@ -53,8 +53,14 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   public boolean isAtom(Long t) {
-    long decl = get_app_decl(z3context, t);
-    return !nonAtomicOpTypes.contains(get_decl_kind(z3context, decl));
+    int astKind = get_ast_kind(z3context, t);
+    switch (astKind) {
+    case Z3_APP_AST:
+      long decl = get_app_decl(z3context, t);
+      return !nonAtomicOpTypes.contains(get_decl_kind(z3context, decl));
+    default:
+      return true;
+    }
   }
 
   @Override
