@@ -198,7 +198,7 @@ public class ConstraintsTransferRelation
 
   private BooleanFormula getConjunction(ConstraintsState pState) {
     final Set<Constraint> constraints = pState.getConstraints();
-    final ConstraintVisitor<Formula> formulaCreator = new BitvectorFormulaCreator(formulaManager);
+    final ConstraintVisitor<Formula> formulaCreator = new IntegerFormulaCreator(formulaManager);
     Formula completeFormula = null;
     Formula currFormula;
 
