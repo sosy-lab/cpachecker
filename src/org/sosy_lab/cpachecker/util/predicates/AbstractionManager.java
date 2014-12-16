@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -127,15 +128,71 @@ public final class AbstractionManager {
       atomToPredicate.put(atom, result);
       varIDToPredicate.put(numberOfPredicates, result);
       numberOfPredicates++;
-
-      sortVarsByFrequency();
-      //sortVarsBySimilarity();
     }
 
     return result;
   }
 
   public void orderPredicates() {
+    // sortVarsByFrequency(); // only order by variable frequency
+    // sortVarsBySimilarity1(); // first attempt
+    // sortVarsBySimilarity2(); // first attempt with order by variable frequency
+    sortVarsBySimilarity3();
+  }
+
+  /**
+   * Sort predicates descending by the frequency of variables
+   */
+  private void sortVarsByFrequency() {
+    final Map<String, Integer> varToFrequency = new HashMap<>();
+
+    // calculate overall variable frequencies
+    ArrayList<Integer> predicates = new ArrayList<>();
+    for (int i = 0; i < numberOfPredicates; i++) {
+      predicates.add(i);
+      Set<String> varNames = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
+      for (String varName : varNames) {
+        Integer currentCount = varToFrequency.get(varName);
+        varToFrequency.put(varName, (currentCount == null ? 1 : ++currentCount)); // increase var entry by 1
+      }
+    }
+
+    // sort predicates by variable frequencies
+    Collections.sort(predicates, new Comparator<Integer>() {
+
+      @Override
+      public int compare(Integer pred1, Integer pred2) {
+        Set<String> firstPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(pred1).getSymbolicAtom());
+        Set<String> secondPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(pred2).getSymbolicAtom());
+        int maxFirst = 0;
+        for (String var : firstPredVars) {
+          int currentVarFreq = varToFrequency.get(var);
+          if (currentVarFreq > maxFirst) {
+            maxFirst = currentVarFreq;
+          }
+        }
+        int maxSecond = 0;
+        for (String var : secondPredVars) {
+          int currentVarFreq = varToFrequency.get(var);
+          if (currentVarFreq > maxFirst) {
+          return -1; // can break the loop as the second predicate has a higher rating
+          }
+          maxSecond = currentVarFreq;
+        }
+
+        return maxFirst - maxSecond;
+      }
+    });
+
+    rmgr.setVarOrder(predicates);
+  }
+
+  /**
+   * Sort by partitions with similar variables and the partitions by number of common variables
+   */
+  private void sortVarsBySimilarity1() {
     int[][] similarities =
         new int[numberOfPredicates][numberOfPredicates];
     for (int i = 0; i < similarities.length; i++) {
@@ -191,52 +248,10 @@ public final class AbstractionManager {
     rmgr.setVarOrder(order);
   }
 
-  private void sortVarsByFrequency() {
-    final Map<String, Integer> varToFrequency = new HashMap<>();
-
-    // calculate overall variable frequencies
-    ArrayList<Integer> predicates = new ArrayList<>();
-    for (int i = 0; i < numberOfPredicates; i++) {
-      predicates.add(i);
-      Set<String> varNames = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
-      for (String varName : varNames) {
-        Integer currentCount = varToFrequency.get(varName);
-        varToFrequency.put(varName, (currentCount == null ? 1 : ++currentCount)); // increase var entry by 1
-      }
-    }
-
-    // sort predicates by variable frequencies
-    Collections.sort(predicates, new Comparator<Integer>() {
-
-      @Override
-      public int compare(Integer pred1, Integer pred2) {
-        Set<String> firstPredVars =
-            fmgr.extractVariableNames(varIDToPredicate.get(pred1).getSymbolicAtom());
-        Set<String> secondPredVars =
-            fmgr.extractVariableNames(varIDToPredicate.get(pred2).getSymbolicAtom());
-        int maxFirst = 0;
-        for (String var : firstPredVars) {
-          int currentVarFreq = varToFrequency.get(var);
-          if (currentVarFreq > maxFirst) {
-            maxFirst = currentVarFreq;
-          }
-        }
-        int maxSecond = 0;
-        for (String var : secondPredVars) {
-          int currentVarFreq = varToFrequency.get(var);
-          if (currentVarFreq > maxFirst) {
-          return -1; // can break the loop as the second predicate has a higher rating
-          }
-          maxSecond = currentVarFreq;
-        }
-
-        return maxFirst - maxSecond;
-      }});
-
-    rmgr.setVarOrder(predicates);
-  }
-
-  private void sortVarsBySimilarity() {
+  /**
+   * Sort by partitions with similar variables and sort partitions descending by the use of variable frequency
+   */
+  private void sortVarsBySimilarity2() {
     int[][] similarities =
         new int[numberOfPredicates][numberOfPredicates];
     final Map<String, Integer> varToFrequency = new HashMap<>();
@@ -328,6 +343,90 @@ public final class AbstractionManager {
         }
 
       });
+      order.addAll(list);
+    }
+
+    rmgr.setVarOrder(order);
+  }
+
+  /**
+   * Creates partitions for similar predicates and tries to order them by their dependencies.
+   */
+  private void sortVarsBySimilarity3() {
+
+    ArrayList<ArrayList<Integer>> partitions = new ArrayList<>();
+    Map<Integer, Set<String>> varsOfPartition = new HashMap<>();
+    for (int i = 0; i < numberOfPredicates; i++) {
+      if (partitions.size() == 0) {
+        ArrayList<Integer> newPartition = new ArrayList<>();
+        newPartition.add(i);
+        varsOfPartition.put(0, fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom()));
+        partitions.add(newPartition);
+      } else {
+        // check for similarities with partitions
+        Set<String> varsOfPred = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
+        Set<Integer> similarPartitions = new HashSet<>();
+        for (int j = 0; j < partitions.size(); j++) {
+          Set<String> partitionVars = varsOfPartition.get(j);
+          for (String predVar : varsOfPred) {
+            if (partitionVars.contains(predVar)) {
+              similarPartitions.add(j);
+              continue; // continue with next partition
+            }
+          }
+        }
+
+        // add predicate to similar partition or merge partitions if it is similar to several partitions
+        if (similarPartitions.size() == 0) {
+          ArrayList<Integer> newPartition = new ArrayList<>();
+          newPartition.add(i);
+          varsOfPartition.put(partitions.size(), fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom()));
+          partitions.add(newPartition);
+        } else if (similarPartitions.size() == 1) {
+          int partitionNumber = similarPartitions.iterator().next();
+          partitions.get(partitionNumber).add(i);
+          Set<String> newVars = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
+          Set<String> previousVars = varsOfPartition.get(partitionNumber);
+          previousVars.addAll(newVars);
+        } else {
+          // merge
+          Iterator<Integer> it = similarPartitions.iterator();
+          int resultingPartitionNumber = it.next();
+          ArrayList<Integer> resultingPartition = partitions.get(resultingPartitionNumber);
+          while (it.hasNext()) {
+            int partitionNumber = similarPartitions.iterator().next();
+            resultingPartition.addAll(partitions.remove(partitionNumber));
+            resultingPartition.add(0, i); // set merging predicate as first predicate
+            Set<String> newVarsFromI = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
+            Set<String> newVarsFromPart = varsOfPartition.get(partitionNumber);
+
+            // remove entry for deleted partition and decrease higher partition numbers in mapping
+            for (int j = partitionNumber; j < partitions.size(); j++) {
+              varsOfPartition.put(j, varsOfPartition.get(j + 1));
+            }
+            varsOfPartition.remove(partitions.size());
+
+            Set<String> resultingVars = varsOfPartition.get(resultingPartitionNumber);
+            resultingVars.addAll(newVarsFromPart);
+            resultingVars.addAll(newVarsFromI);
+          }
+        }
+      }
+    }
+
+    // sort partitions descending by size
+    Collections.sort(partitions, new Comparator<ArrayList<Integer>>() {
+
+      @Override
+      public int compare(ArrayList<Integer> part1,
+          ArrayList<Integer> part2) {
+        return part2.size() - part1.size();
+      }
+
+    });
+
+    ArrayList<Integer> order = new ArrayList<>(numberOfPredicates);
+    for (ArrayList<Integer> list : partitions) {
       order.addAll(list);
     }
 
