@@ -40,6 +40,11 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
@@ -92,6 +97,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
   private final PredicateCPA predcpa;
   private final LogManager logger;
   private final Solver solver;
+  private final CFA cfa;
 
   private final Refine refiner;
   private final RuleEngine ruleEngine;
@@ -104,6 +110,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
     Preconditions.checkNotNull(pConfig).inject(this);
 
+    cfa = pCfa;
     logger = Preconditions.checkNotNull(pLogger);
     wrappedAlgorithm = Preconditions.checkNotNull(pAlgorithm);
     reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
@@ -155,6 +162,32 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     return false;
   }
 
+  private CFANode getFirstNodeInEntryFunctionBody() {
+    CFANode next = cfa.getMainFunction();
+    boolean isEntryFunctionDeclEdge = false;
+    do {
+      if (next.getNumLeavingEdges() > 1) {
+        throw new AssertionError("getFirstNodeInEntryFunctionBody: More than one leaving edge!");
+      }
+
+      if (next.getNumLeavingEdges() == 0) {
+        next = null;
+      } else {
+        CFAEdge edge = next.getLeavingEdge(0);
+        next = edge.getSuccessor();
+
+        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          ADeclarationEdge declEdge = (ADeclarationEdge) edge;
+          if (declEdge.getDeclaration() instanceof AFunctionDeclaration) {
+            AFunctionDeclaration fnDecl = (AFunctionDeclaration) declEdge.getDeclaration();
+            isEntryFunctionDeclEdge = fnDecl.getName().equals(cfa.getMainFunction().getFunctionName());
+          }
+        }
+      }
+    } while ((!isEntryFunctionDeclEdge) && (next != null));
+    return next;
+  }
+
   @Override
   public boolean run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       PredicatedAnalysisPropertyViolationException {
@@ -186,6 +219,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         return true && result;
       }
 
+      CFANode wpLoc = getFirstNodeInEntryFunctionBody();
+
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification
       // ... and one to the location that represents the exit location
@@ -193,8 +228,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       final ARGPath traceValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
 
       // Check the disjointness of the WP for the two traces...
-      final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceViolation);
-      final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceValid);
+      final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceViolation, Optional.of(wpLoc));
+      final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceValid, Optional.of(wpLoc));
 
       if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
         logger.log(Level.WARNING, "non-determinism in program."); // This warning is taken 1:1 from the Seghir/Kroening paper

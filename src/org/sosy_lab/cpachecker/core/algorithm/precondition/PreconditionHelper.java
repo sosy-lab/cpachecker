@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -171,13 +173,19 @@ public final class PreconditionHelper {
    * @throws CPATransferException
    * @throws SolverException
    */
-  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath)
+  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath, Optional<? extends CFANode> pStopAtNode)
       throws CPATransferException, InterruptedException, SolverException {
 
     PathFormula pf = pfmBwd.makeEmptyPathFormula();
 
     for (CFAEdge edge : pPath.asEdgesList()) {
      pf = pfmBwd.makeAnd(pf, edge);
+
+     if (pStopAtNode.isPresent()) {
+       if (pStopAtNode.get().equals(edge.getSuccessor())) {
+         break;
+       }
+     }
     }
 
     return uninstanciatePathFormula(pf);

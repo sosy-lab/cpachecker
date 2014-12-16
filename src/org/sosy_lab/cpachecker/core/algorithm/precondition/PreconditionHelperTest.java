@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -161,12 +162,12 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
         _while,
         _stmt_i_assign_0,
         _stmt_declare_i,
-        _dummy
-//        _function_declaration,
+        _dummy,
+        _function_declaration
 //        _stmt_al_assign_0 // TODO: This SHOULD NOT BE RELEVANT!
         ));
 
-    BooleanFormula pc = helper.getPreconditionOfPath(pathMock);
+    BooleanFormula pc = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
 
     assertThat(pc).isNotNull();
   }
@@ -180,7 +181,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
         _stmt_declare_i
         ));
 
-    BooleanFormula pc = helper.getPreconditionOfPath(pathMock);
+    BooleanFormula pc = helper.getPreconditionOfPath(pathMock, Optional.<CFANode>absent());
 
     assertThat(pc).isNotNull();
     assertThat(pc.toString()).isEqualTo(
