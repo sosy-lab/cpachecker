@@ -116,7 +116,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     mgr = predcpa.getRealFormulaManager();
     solver = predcpa.getSolver();
 
-    helper = new PreconditionHelper(mgrv);
+    helper = new PreconditionHelper(mgrv, pConfig, logger, pShutdownNotifier, pCfa);
     ruleEngine = new RuleEngine(logger, mgr, mgrv, solver);
     refiner = new Refine(
           pConfig, pLogger, pShutdownNotifier, pCfa,

@@ -30,7 +30,10 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -47,12 +50,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 
@@ -71,10 +80,27 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
   private CFAEdge _function_declaration;
   private CFAEdge _stmt_al_assign_0;
 
+  @Override
+  protected Solvers solverToUse() {
+    return Solvers.Z3;
+  }
+
+  @Override
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
+    ConfigurationBuilder result = super.createTestConfigBuilder();
+    result.setOption("cpa.predicate.handlePointerAliasing", "false");
+
+    return result;
+  }
+
   @Before
   public void setUp() throws Exception {
+    CFA cfa = mock(CFA.class);
+    when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
+    when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
+
     mgrv = new FormulaManagerView(mgr, config, logger);
-    helper = new PreconditionHelper(mgrv);
+    helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier.create(), cfa);
 
     // Test CFA elements...
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, TestLogManager.getInstance());
@@ -99,7 +125,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
     CArraySubscriptExpression _b_at_i = new CArraySubscriptExpression(
         FileLocation.DUMMY,
         unlimitedIntArrayType,
-        _a.getThird(),
+        _b.getThird(),
         _i);
 
     _label_error = TestDataTools.makeBlankEdge("ERROR");
@@ -114,7 +140,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testGetPreconditionOfPath() {
+  public void testGetPreconditionOfPath1() throws CPATransferException, SolverException, InterruptedException {
     //  line 8: N9 -{Label: ERROR}-> N10
     //  line 7: N6 -{[i >= al]}-> N9
     //  line 6: N5 -{[(b[i]) != 0]}-> N6
@@ -135,14 +161,32 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
         _while,
         _stmt_i_assign_0,
         _stmt_declare_i,
-        _dummy,
-        _function_declaration,
-        _stmt_al_assign_0 // TODO: This SHOULD NOT BE RELEVANT!
+        _dummy
+//        _function_declaration,
+//        _stmt_al_assign_0 // TODO: This SHOULD NOT BE RELEVANT!
         ));
 
     BooleanFormula pc = helper.getPreconditionOfPath(pathMock);
 
     assertThat(pc).isNotNull();
   }
+
+  @Test
+  public void testGetPreconditionOfPath2() throws CPATransferException, SolverException, InterruptedException {
+    ARGPath pathMock = mock(ARGPath.class);
+    when(pathMock.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
+        _assume_i_geq_al,
+        _stmt_i_assign_0,
+        _stmt_declare_i
+        ));
+
+    BooleanFormula pc = helper.getPreconditionOfPath(pathMock);
+
+    assertThat(pc).isNotNull();
+    assertThat(pc.toString()).isEqualTo(
+              imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")
+            ).toString());
+  }
+
 
 }

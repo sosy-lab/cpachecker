@@ -30,7 +30,14 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -40,12 +47,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateVariableElimination;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -58,10 +68,15 @@ public final class PreconditionHelper {
 
   private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
+  private final PathFormulaManager pfmBwd;
 
-  public PreconditionHelper(FormulaManagerView pMgrv) {
+  public PreconditionHelper(FormulaManagerView pMgrv, Configuration pConfig,
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+          throws InvalidConfigurationException {
+
     this.mgrv = pMgrv;
     this.bmgr = pMgrv.getBooleanFormulaManager();
+    this.pfmBwd = new PathFormulaManagerImpl(mgrv, pConfig, pLogger, pShutdownNotifier, pCfa, AnalysisDirection.BACKWARD);
   }
 
   public static PreconditionPartition spacePartitionToPreconditionPartition(StateSpacePartition pPartition) {
@@ -143,13 +158,29 @@ public final class PreconditionHelper {
   }
 
   /**
+   * Compute the precondition for a given path.
+   *
+   * ASSUMPTION:
+   *    The first element of ARGPath.asEdgesList() is the edge on the error location.
+   *
+   * This code can later also be used to compute postconditions.
    *
    * @param pPath
    * @return
+   * @throws InterruptedException
+   * @throws CPATransferException
+   * @throws SolverException
    */
-  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath) {
+  public BooleanFormula getPreconditionOfPath(@Nonnull ARGPath pPath)
+      throws CPATransferException, InterruptedException, SolverException {
 
-    return null;
+    PathFormula pf = pfmBwd.makeEmptyPathFormula();
+
+    for (CFAEdge edge : pPath.asEdgesList()) {
+     pf = pfmBwd.makeAnd(pf, edge);
+    }
+
+    return uninstanciatePathFormula(pf);
   }
 
   public BooleanFormula getPathStatePrecondition(ARGPath pPath, ARGState pStateInPath) {

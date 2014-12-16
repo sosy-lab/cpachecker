@@ -74,7 +74,7 @@ public class Refine {
     pmgrFwd = new PathFormulaManagerImpl(
         pMgrv, pConfig, pLogger, pShutdown,
         pCfa, AnalysisDirection.FORWARD);
-    helper = new PreconditionHelper(pMgrv);
+    helper = new PreconditionHelper(pMgrv, pConfig, pLogger, pShutdown, pCfa);
   }
 
   private Collection<BooleanFormula> atoms(BooleanFormula pF) {
