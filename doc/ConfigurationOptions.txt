@@ -667,6 +667,11 @@ cpa.composite.inPredicatedAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# Split MultiEdges and pass each inner edge to the component CPAs to allow
+# strengthen calls after each single edge. Does not work with backwards
+# analysis!
+cpa.composite.splitMultiEdges = false
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
