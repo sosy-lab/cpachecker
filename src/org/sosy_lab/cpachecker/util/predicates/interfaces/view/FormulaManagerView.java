@@ -51,6 +51,8 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -67,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -76,14 +79,17 @@ import com.google.common.collect.Sets;
  * and manipulation operations for client code.
  * It delegates to the actual solver package
  * and provides additional utilities.
+ * The preferred way of instantiating this class is via
+ * {@link Solver#create(Configuration, LogManager, org.sosy_lab.cpachecker.core.ShutdownNotifier)}.
  *
- *  This class and some of its related class have supporting operations
- *  for creating and manipulation formulas with SSA indices:
- *  - {@link #makeVariable(FormulaType, String, int)} creates a variable with an SSA index
- *  - {@link #instantiate(Formula, SSAMap)} adds SSA indices to variables in a formula
- *  - {@link #uninstantiate(Formula)} removes all SSA indices from a formula
  *
- *  The method {@link #parseName(String)} is also related to this, but should not be used!
+ * This class and some of its related classes have supporting operations
+ * for creating and manipulation formulas with SSA indices:
+ * - {@link #makeVariable(FormulaType, String, int)} creates a variable with an SSA index
+ * - {@link #instantiate(Formula, SSAMap)} adds SSA indices to variables in a formula
+ * - {@link #uninstantiate(Formula)} removes all SSA indices from a formula
+ *
+ * The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
@@ -141,10 +147,10 @@ public class FormulaManagerView {
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
-  public FormulaManagerView(FormulaManager pBaseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
-    manager = checkNotNull(pBaseManager);
+    manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
 
     BitvectorFormulaManager rawBitvectorFormulaManager;
@@ -353,10 +359,29 @@ public class FormulaManagerView {
   }
 
   /**
+   * Make a number which type corresponds to the existing formula type.
+   * // TODO: refactor all the {@code makeNumber} methods.
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T makeNumber(T formula, Rational value) {
+    Formula t;
+    FormulaType<T> formulaType = getFormulaType(formula);
+    if (formulaType.isIntegerType() && value.isIntegral()) {
+      t = integerFormulaManager.makeNumber(value.toString());
+    } else if (formulaType.isRationalType()) {
+      t = getRationalFormulaManager().makeNumber(value.toString());
+    } else if (value.isIntegral() && formulaType.isBitvectorType()) {
+      t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType,
+          new BigInteger(value.toString()));
+    } else {
+      throw new IllegalArgumentException("Not supported interface");
+    }
+
+    return (T) t;
+  }
+
+  /**
    * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, BigInteger value) {
@@ -1305,4 +1330,33 @@ public class FormulaManagerView {
   public BooleanFormula simplify(BooleanFormula input) {
     return unsafeManager.simplify(input);
   }
+
+  /**
+   * Adds prefix to all variables present in the formula.
+   * TODO: refactor, combine with the previous substitution API.
+   */
+  public Formula addPrefixToAllVariables(Formula input, String prefix) {
+    Formula formula = unwrap(input);
+    Set<Triple<Formula, String, Integer>> allVars =
+        extractVariables(formula);
+    FormulaType<Formula> t = getFormulaType(formula);
+
+    List<Formula> from = new ArrayList<>(allVars.size());
+    List<Formula> to = new ArrayList<>(allVars.size());
+    for (Triple<Formula, String, Integer> e : allVars) {
+      Formula token = e.getFirst();
+
+      String oldName = unsafeManager.getName(token);
+      from.add(token);
+      to.add(makeVariable(t, prefix + oldName));
+    }
+    return unsafeManager.substitute(formula, from, to);
+
   }
+
+  public void close() throws Exception {
+    if (manager instanceof AutoCloseable) {
+      ((AutoCloseable)manager).close();
+    }
+  }
+}

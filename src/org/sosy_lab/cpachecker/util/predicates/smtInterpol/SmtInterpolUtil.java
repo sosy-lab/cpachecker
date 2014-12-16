@@ -114,6 +114,9 @@ class SmtInterpolUtil {
         return value;
       } else if (value instanceof Rational) {
         Rational rat = (Rational)value;
+        if (t.getSort().getName().equals("Int") && rat.isIntegral()) {
+          return rat.numerator();
+        }
         return org.sosy_lab.cpachecker.util.rationals.Rational.of(
             rat.numerator(), rat.denominator());
       }
@@ -253,10 +256,12 @@ class SmtInterpolUtil {
     }
   }
 
-  /** this function returns all variables in the terms.
-   * Doubles are removed. */
-  public static Term[] getVars(Collection<Term> termList) {
-    Set<Term> vars = new HashSet<>();
+  /**
+   * This function returns all variables and applications of uninterpreted functions
+   * in the terms without duplicates.
+   */
+  public static Set<Term> getVarsAndUIFs(Collection<Term> termList) {
+    Set<Term> result = new HashSet<>();
     Set<Term> seen = new HashSet<>();
     Deque<Term> todo = new ArrayDeque<>(termList);
 
@@ -266,14 +271,16 @@ class SmtInterpolUtil {
         continue;
       }
 
-      if (isVariable(t)) {
-        vars.add(t);
-      } else if (t instanceof ApplicationTerm) {
+      if (isVariable(t) || isUIF(t)) {
+        result.add(t);
+      }
+
+      if (t instanceof ApplicationTerm) {
         Term[] params = ((ApplicationTerm) t).getParameters();
         Collections.addAll(todo, params);
       }
     }
-    return toTermArray(vars);
+    return result;
   }
 
   static Term[] toTermArray(Collection<? extends Term> terms) {

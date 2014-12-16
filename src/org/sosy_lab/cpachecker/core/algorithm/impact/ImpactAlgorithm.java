@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -138,12 +137,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     logger = pLogger;
     cpa = pCpa;
 
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger, pShutdownNotifier);
-    fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
+    solver = Solver.create(config, pLogger, pShutdownNotifier);
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, pShutdownNotifier, cfa, AnalysisDirection.FORWARD));
-    solver = new Solver(fmgr, factory);
-    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, pShutdownNotifier, logger);
+    imgr = new InterpolationManager(pfmgr, solver, config, pShutdownNotifier, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {

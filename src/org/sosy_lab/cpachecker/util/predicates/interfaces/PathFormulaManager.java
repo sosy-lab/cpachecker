@@ -28,10 +28,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -97,4 +99,18 @@ public interface PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
+
+  /**
+   * Convert a simple C expression to a formula consistent with the
+   * current state of the {@code pFormula}.
+   *
+   * @param pFormula Current {@link PathFormula}.
+   * @param expr Expression to convert.
+   * @param edge Reference edge, used for log messages only.
+   * @return Created formula.
+   * @throws UnrecognizedCCodeException
+   */
+  public Formula expressionToFormula(PathFormula pFormula,
+      CIdExpression expr,
+      CFAEdge edge) throws UnrecognizedCCodeException;
 }

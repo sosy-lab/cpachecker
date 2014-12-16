@@ -1,24 +1,39 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Objects;
 
 public class PolicyBound {
-  final CFAEdge trace;
+  final MultiEdge trace;
 
   // NOTE: might make more sense to use normal Rational, because we are no longer
   // storing infinities or negative infinities.
   final Rational bound;
 
-  PolicyBound(CFAEdge trace, Rational bound) {
+  PolicyBound(MultiEdge trace, Rational bound) {
     this.trace = trace;
     this.bound = bound;
   }
 
-  public static PolicyBound of(CFAEdge edge, Rational bound) {
+  public static PolicyBound of(MultiEdge edge, Rational bound) {
     return new PolicyBound(edge, bound);
+  }
+
+  public String toPathString() {
+    // NOTE: in future might simplify by only adding
+    // paths with disjunctions.
+    StringBuilder b = new StringBuilder();
+    for (CFAEdge e : trace) {
+      b
+          .append(e.getPredecessor().toString())
+          .append(",")
+          .append(e.getSuccessor().toString());
+
+    }
+    return b.toString();
   }
 
   @Override

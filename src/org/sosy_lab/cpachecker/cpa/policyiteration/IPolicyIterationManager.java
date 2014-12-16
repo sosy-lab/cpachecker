@@ -20,11 +20,6 @@ public interface IPolicyIterationManager {
       PolicyState newState
   ) throws CPAException, InterruptedException;
 
-  boolean isLessOrEqual(
-      PolicyState state1,
-      PolicyState state2
-  ) throws CPAException, InterruptedException;
-
   Collection<PolicyState> getAbstractSuccessors(
       PolicyState state, CFAEdge edge
   ) throws CPATransferException, InterruptedException;

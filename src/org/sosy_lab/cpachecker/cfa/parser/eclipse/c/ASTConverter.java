@@ -304,7 +304,7 @@ class ASTConverter {
    * returns a tmp-variable, that has the value of x before the operation.
    *
    * @param exp the "x" of x=x+1
-   * @param loc location of the expression
+   * @param fileLoc location of the expression
    * @param type result-typeof the operation
    * @param op binary operator, should be PLUS or MINUS */
   private CIdExpression addSideAssignmentsForUnaryExpressions(

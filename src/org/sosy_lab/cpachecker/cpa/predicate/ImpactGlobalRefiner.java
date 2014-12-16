@@ -55,12 +55,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -80,8 +79,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private final FormulaManagerView fmgr;
-  private final FormulaManagerFactory factory;
+  private final BooleanFormulaManagerView bfmgr;
+  private final Solver solver;
   private final ARGCPA argCpa;
   private final ImpactUtility impact;
 
@@ -128,21 +127,20 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     return new ImpactGlobalRefiner(predicateCpa.getConfiguration(),
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
-                                    predicateCpa.getFormulaManager(),
-                                    predicateCpa.getFormulaManagerFactory(),
+                                    predicateCpa.getSolver(),
                                     predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManagerView pFmgr,
-      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr)
+      ARGCPA pArgCpa,
+      Solver pSolver, PredicateAbstractionManager pPredAbsMgr)
           throws InvalidConfigurationException {
 
     logger = pLogger;
     argCpa = pArgCpa;
-    fmgr = pFmgr;
-    factory = pFactory;
-    impact = new ImpactUtility(config, pFmgr, pPredAbsMgr);
+    solver = pSolver;
+    bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    impact = new ImpactUtility(config, solver.getFormulaManager(), pPredAbsMgr);
 
     if (impact.requiresPreviousBlockAbstraction()) {
       // With global refinements, we go backwards through the trace,
@@ -232,7 +230,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     // We do not descend beyond unreachable states,
     // but instead perform refinement on them.
 
-    try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+    try (InterpolatingProverEnvironment<?> itpProver = solver.newProverEnvironmentWithInterpolation()) {
       return performRefinement0(root, successors, predecessors, pReached, targets, itpProver);
     }
   }
@@ -340,7 +338,6 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       Map<ARGState, ARGState> predecessors, ReachedSet reached,
       InterpolatingProverEnvironment<T> itpProver) throws CPAException, InterruptedException {
     assert !itpStack.isEmpty();
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 
     pathsRefined++;

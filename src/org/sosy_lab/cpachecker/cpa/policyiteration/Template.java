@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
@@ -9,10 +10,10 @@ import com.google.common.base.Objects;
  * Wrapper for a template.
  */
 public final class Template {
-  final LinearExpression linearExpression;
+  final LinearExpression<CIdExpression> linearExpression;
   final CSimpleType type;
 
-  public Template(LinearExpression pLinearExpression,
+  public Template(LinearExpression<CIdExpression> pLinearExpression,
       CSimpleType pType) {
     linearExpression = pLinearExpression;
     type = pType;
@@ -41,6 +42,6 @@ public final class Template {
 
   @Override
   public String toString() {
-    return String.format("%s (%s)", linearExpression.toString(), type);
+    return String.format("%s", linearExpression.toString());
   }
 }

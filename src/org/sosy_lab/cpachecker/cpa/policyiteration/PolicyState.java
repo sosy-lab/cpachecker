@@ -9,13 +9,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 /**
  * Abstract state for policy iteration: bounds on each expression (from the
@@ -36,21 +37,26 @@ public abstract class PolicyState implements AbstractState, Graphable {
      * Finite bounds for templates.
      */
     private final ImmutableMap<Template, PolicyBound> abstraction;
-    private final PointerTargetSet pointerTargetSet;
+
+    /**
+     * Non-abstracted section of the formula.
+     */
+    private final PathFormula formula;
 
     private PolicyAbstractedState(CFANode pNode,
         Set<Template> pTemplates,
         Map<Template, PolicyBound> pAbstraction,
-        PointerTargetSet pPointerTargetSet) {
+        PathFormula pFormula) {
       super(pNode, pTemplates);
       abstraction = ImmutableMap.copyOf(pAbstraction);
-      pointerTargetSet = pPointerTargetSet;
+      formula = pFormula;
     }
 
     public PolicyAbstractedState withUpdates(
         Map<Template, PolicyBound> updates,
         Set<Template> unbounded,
-        Set<Template> newTemplates) {
+        Set<Template> newTemplates,
+        PathFormula newPathFormula) {
 
       ImmutableMap.Builder<Template, PolicyBound> builder =
           ImmutableMap.builder();
@@ -69,11 +75,12 @@ public abstract class PolicyState implements AbstractState, Graphable {
         }
       }
       return new PolicyAbstractedState(
-          node, newTemplates, builder.build(), pointerTargetSet);
+          node, newTemplates, builder.build(),  newPathFormula
+      );
     }
 
-    public PointerTargetSet getPointerTargetSet() {
-      return pointerTargetSet;
+    public PathFormula getPathFormula() {
+      return formula;
     }
 
     /**
@@ -92,16 +99,16 @@ public abstract class PolicyState implements AbstractState, Graphable {
     @Override
     public String toDOTLabel() {
       return String.format(
-          "%s%n%s%n%s",
+          "%s%n%s%n %n %s",
           (new PolicyDotWriter()).toDOTLabel(abstraction),
-          pointerTargetSet,
-          templates
+          templates,
+          formula
       );
     }
 
     @Override
     public String toString() {
-      return String.format("%s: %s, %s", node, abstraction, pointerTargetSet);
+      return String.format("%s: %s", node, abstraction);
     }
 
     @Override
@@ -111,7 +118,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(pointerTargetSet, abstraction, super.hashCode());
+      return Objects.hashCode(formula, abstraction, super.hashCode());
     }
 
     @Override
@@ -124,31 +131,31 @@ public abstract class PolicyState implements AbstractState, Graphable {
       }
       PolicyAbstractedState other = (PolicyAbstractedState)o;
       return (
-          pointerTargetSet.equals(other.pointerTargetSet) &&
+          formula.equals(other.formula) &&
           abstraction.equals(other.abstraction) && super.equals(o));
     }
   }
 
   public static final class PolicyIntermediateState extends PolicyState {
     private final PathFormula pathFormula;
-    private final ImmutableMap<CFANode, PolicyAbstractedState> leafs;
+    private final ImmutableMultimap<CFANode, CFANode> trace;
 
     private PolicyIntermediateState(
         CFANode pNode,
         Set<Template> pTemplates,
         PathFormula pPathFormula,
-        Map<CFANode, PolicyAbstractedState> pLeafs) {
+        Multimap<CFANode, CFANode> pTrace) {
       super(pNode, pTemplates);
       pathFormula = pPathFormula;
-      leafs = ImmutableMap.copyOf(pLeafs);
+      trace = ImmutableMultimap.copyOf(pTrace);
     }
 
     public PathFormula getPathFormula() {
       return pathFormula;
     }
 
-    public ImmutableMap<CFANode, PolicyAbstractedState> getLeafs() {
-      return leafs;
+    public ImmutableMultimap<CFANode, CFANode> getTrace() {
+      return trace;
     }
 
     @Override
@@ -158,7 +165,7 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
     @Override
     public String toDOTLabel() {
-      return pathFormula.toString();
+      return pathFormula.toString() + "\n" + pathFormula.getSsa().toString();
     }
 
     @Override
@@ -196,22 +203,23 @@ public abstract class PolicyState implements AbstractState, Graphable {
       Map<Template, PolicyBound> data,
       Set<Template> templates,
       CFANode node,
-      PointerTargetSet pPointerTargetSet
+      PathFormula pFormula
   ) {
-    return new PolicyAbstractedState(node, templates, data, pPointerTargetSet);
+    return new PolicyAbstractedState(
+            node, templates, data, pFormula);
   }
 
   public static PolicyState ofIntermediate(
       CFANode node,
       Set<Template> pTemplates,
       PathFormula pPathFormula,
-      Map<CFANode, PolicyAbstractedState> pLeafs
+      Multimap<CFANode, CFANode> pTrace
   ) {
     return new PolicyIntermediateState(
         node,
         pTemplates,
         pPathFormula,
-        pLeafs);
+        pTrace);
   }
 
   /**
@@ -229,12 +237,12 @@ public abstract class PolicyState implements AbstractState, Graphable {
   /**
    * @return Empty abstracted state associated with {@code node}.
    */
-  public static PolicyState empty(CFANode node) {
+  public static PolicyState empty(CFANode node, PathFormula initial) {
     return ofAbstraction(
         ImmutableMap.<Template, PolicyBound>of(),
         ImmutableSet.<Template>of(), // templates
         node, // node
-        PointerTargetSet.emptyPointerTargetSet()
+        initial
     );
   }
 

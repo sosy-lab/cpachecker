@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
@@ -61,7 +61,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
 
   private final LogManager logger;
 
-  private final FormulaManagerFactory solverFactory;
+  private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
 
   public InterpolantPredicatesCounterexampleFilter(Configuration pConfig, LogManager pLogger,
@@ -74,7 +74,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
       throw new InvalidConfigurationException(InterpolantPredicatesCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    solverFactory = predicateCpa.getFormulaManagerFactory();
+    solver = predicateCpa.getSolver();
     predAbsMgr = predicateCpa.getPredicateManager();
   }
 
@@ -88,7 +88,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
 
     try (@SuppressWarnings("unchecked")
          InterpolatingProverEnvironment<T> itpProver =
-           (InterpolatingProverEnvironment<T>) solverFactory.newProverEnvironmentWithInterpolation(false)) {
+           (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
 
       List<T> itpGroupIds = new ArrayList<>(formulas.size());
       for (BooleanFormula f : formulas) {

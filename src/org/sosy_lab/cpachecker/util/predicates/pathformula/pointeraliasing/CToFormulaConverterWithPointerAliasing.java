@@ -582,11 +582,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    // Constraint is only necessary for correct error conditions,
-    // but seems to give better performance even without error conditions.
-    final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
-                                         CTypeUtils.getBaseType(declarationType));
-    constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
+    if (errorConditions.isEnabled()) {
+      final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
+                                           CTypeUtils.getBaseType(declarationType));
+      constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
+    }
 
     // if there is an initializer associated to this variable,
     // take it into account

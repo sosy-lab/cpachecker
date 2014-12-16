@@ -27,7 +27,6 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -51,7 +50,7 @@ public class JFieldDeclaration extends JVariableDeclaration {
   private static final boolean IS_FIELD = true;
   private static final JDeclaration UNRESOLVED_DECLARATION = new JFieldDeclaration(
       FileLocation.DUMMY,
-      new JSimpleType(JBasicType.UNSPECIFIED), "_unresolved_", "_unresolved_", false,
+      JSimpleType.getUnspecified(), "_unresolved_", "_unresolved_", false,
       false, false, false, VisibilityModifier.NONE);
 
   private final VisibilityModifier visibility;

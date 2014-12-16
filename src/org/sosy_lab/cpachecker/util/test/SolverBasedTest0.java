@@ -25,14 +25,10 @@ package org.sosy_lab.cpachecker.util.test;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -53,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 import com.google.common.truth.FailureStrategy;
@@ -90,18 +87,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification="test code")
 public abstract class SolverBasedTest0 {
-
-  /**
-   * Return a list of all solvers in a format suitable for a
-   * {@link Parameters} method.
-   */
-  protected static List<Object[]> allSolversAsParameters() {
-    List<Object[]> result = new ArrayList<>();
-    for (Solvers solver : Solvers.values()) {
-      result.add(new Object[] { solver });
-    }
-    return result;
-  }
 
   protected Configuration config;
   protected final LogManager logger = TestLogManager.getInstance();
@@ -177,7 +162,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support rationals.
    */
   protected final void requireRationals() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of rationals")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of rationals")
             .that(rmgr).isNotNull();
   }
 
@@ -185,7 +170,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support quantifiers.
    */
   protected final void requireQuantifiers() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support quantifiers")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support quantifiers")
             .that(qmgr).isNotNull();
   }
 
@@ -193,7 +178,7 @@ public abstract class SolverBasedTest0 {
    * Skip test if the solver does not support arrays.
    */
   protected final void requireArrays() {
-    assume().withFailureMessage("Solver " + solverToUse() + "does not support the theory of arrays")
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the theory of arrays")
             .that(amgr).isNotNull();
   }
 
@@ -204,7 +189,7 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormula())")
   protected final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormula() {
-    return BooleanFormulaOfSolver(factory);
+    return BooleanFormulaOfSolver(mgr);
   }
 
   /**
@@ -215,11 +200,26 @@ public abstract class SolverBasedTest0 {
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(BooleanFormulaOfSolver())")
   public static final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
-      final FormulaManagerFactory factory) {
+      final FormulaManager mgr) {
     return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
           @Override
           public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
-            return new BooleanFormulaSubject(pFs, pFormula, factory);
+            return new BooleanFormulaSubject(pFs, pFormula, mgr);
+          }
+        };
+  }
+
+  /**
+   * Use this for checking assertions about ProverEnvironments with Truth:
+   * <code>assert_().about(ProverEnvironment()).that(stack).is...()</code>.
+   */
+  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
+      justification="fits better when called as about(ProverEnvironment())")
+  public static final SubjectFactory<ProverEnvironmentSubject, ProverEnvironment> ProverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, ProverEnvironment>() {
+          @Override
+          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, ProverEnvironment pFormula) {
+            return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
   }

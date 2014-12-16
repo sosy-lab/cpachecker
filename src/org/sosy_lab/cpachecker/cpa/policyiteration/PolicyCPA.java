@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -44,68 +44,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
  * New version of policy iteration, now with path focusing.
  */
 @Options(prefix="cpa.policy")
-public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
-  private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
+public class PolicyCPA
+    extends SingleEdgeTransferRelation
+    implements ConfigurableProgramAnalysis, StatisticsProvider, AbstractDomain {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final PolicyIterationStatistics statistics;
   private final IPolicyIterationManager policyIterationManager;
-
-  public static class DelegateAbstractDomain implements AbstractDomain {
-    private final IPolicyIterationManager policyIterationManager;
-
-    public DelegateAbstractDomain(IPolicyIterationManager pPolicyIterationManager) {
-      policyIterationManager = pPolicyIterationManager;
-    }
-
-    @Override
-    public AbstractState join(AbstractState state1, AbstractState state2)
-        throws CPAException, InterruptedException {
-     return policyIterationManager.join(
-         (PolicyState) state1,
-         (PolicyState) state2
-     );
-    }
-
-    @Override
-    public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
-        throws CPAException, InterruptedException {
-      return policyIterationManager.isLessOrEqual(
-          (PolicyState) state1,
-          (PolicyState) state2
-      );
-    }
-  }
-
-  public static class DelegateTransferRelation extends SingleEdgeTransferRelation {
-    private final IPolicyIterationManager policyIterationManager;
-
-    public DelegateTransferRelation(
-        IPolicyIterationManager pPolicyIterationManager) {
-      policyIterationManager = pPolicyIterationManager;
-
-    }
-
-
-    @Override
-    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-        AbstractState state, Precision precision, CFAEdge cfaEdge)
-        throws CPATransferException, InterruptedException {
-      return policyIterationManager.getAbstractSuccessors(
-          (PolicyState) state, cfaEdge
-      );
-    }
-
-    @Override
-    public Collection<? extends AbstractState> strengthen(AbstractState state,
-        List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
-        Precision precision) throws CPATransferException, InterruptedException {
-      return policyIterationManager.strengthen(
-          (PolicyState) state, otherStates, cfaEdge);
-    }
-  }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -125,54 +71,92 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
     FormulaManagerView formulaManager = new FormulaManagerView(
-        realFormulaManager, config, logger);
+        formulaManagerFactory, config, logger);
+    Solver solver = new Solver(formulaManager, formulaManagerFactory, config, logger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, config, logger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-    TemplateManager templateManager = new TemplateManager(
-        logger, config, cfa, formulaManager);
 
     statistics = new PolicyIterationStatistics(config);
+    TemplateManager templateManager = new TemplateManager(
+        logger, config, cfa, formulaManager, pathFormulaManager);
     ValueDeterminationFormulaManager valueDeterminationFormulaManager =
         new ValueDeterminationFormulaManager(
-            pathFormulaManager, formulaManager, config, logger,
+            pathFormulaManager, formulaManager, logger,
             cfa,
             realFormulaManager,
-            templateManager,
-            formulaManagerFactory,
-            shutdownNotifier,
-            statistics
+            templateManager
         );
+    FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
+        logger, formulaManager,
+        realFormulaManager.getUnsafeFormulaManager(),
+        realFormulaManager.getBooleanFormulaManager(),
+        shutdownNotifier);
 
     policyIterationManager = new PolicyIterationManager(
         config,
         formulaManager,
         cfa, pathFormulaManager,
-        formulaManagerFactory, logger, shutdownNotifier,
+        solver, logger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
-        statistics);
-
-    abstractDomain = new DelegateAbstractDomain(policyIterationManager);
-    transferRelation = new DelegateTransferRelation(policyIterationManager);
-
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopSepOperator(abstractDomain);
+        statistics,
+        formulaSlicingManager);
+    mergeOperator = new MergeJoinOperator(this);
+    stopOperator = new StopSepOperator(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return policyIterationManager.getInitialState(pNode);
+  public AbstractState getInitialState(CFANode node) {
+    return policyIterationManager.getInitialState(node);
+  }
+
+  @Override
+  public AbstractState join(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return policyIterationManager.join(
+        (PolicyState) state1,
+        (PolicyState) state2
+    );
+  }
+
+  /**
+   * We only keep one abstract state per node.
+   * {@code #isLessOrEqual} is called after the merge, but as our
+   * merge is always joining two states {@code #isLessOrEqual} should
+   * always return {@code true}.
+   */
+  @Override
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return true;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    return policyIterationManager.getAbstractSuccessors(
+        (PolicyState) state, cfaEdge
+    );
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(AbstractState state,
+      List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
+      Precision precision) throws CPATransferException, InterruptedException {
+    return policyIterationManager.strengthen(
+        (PolicyState)state, otherStates, cfaEdge);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return this;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return this;
   }
 
   @Override
@@ -191,7 +175,7 @@ public class PolicyCPA implements ConfigurableProgramAnalysis, StatisticsProvide
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+  public Precision getInitialPrecision(CFANode node) {
     return SingletonPrecision.getInstance();
   }
 

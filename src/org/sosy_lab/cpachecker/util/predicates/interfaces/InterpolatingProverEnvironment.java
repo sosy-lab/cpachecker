@@ -41,12 +41,13 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 
  * @param <T> The type of the objects which can be used to select formulas for interpolant creation.
  */
-public interface InterpolatingProverEnvironment<T> extends BasicProverEnvironment {
+public interface InterpolatingProverEnvironment<T> extends BasicProverEnvironment<T> {
 
   /**
    * Add a formula to the environment stack, asserting it.
    * The returned value can be used when selecting the formulas for interpolant generation.
    */
+  @Override
   T push(BooleanFormula f);
 
   /**

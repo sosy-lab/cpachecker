@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
-public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
+class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
 
   private final Z3FormulaManager mgr;
   private long z3context;
@@ -49,7 +49,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   private int level = 0;
   private List<Long> assertedFormulas = new LinkedList<>();
 
-  public Z3InterpolatingProver(Z3FormulaManager mgr) {
+  Z3InterpolatingProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     this.z3context = mgr.getEnvironment();
     this.z3solver = mk_solver(z3context);

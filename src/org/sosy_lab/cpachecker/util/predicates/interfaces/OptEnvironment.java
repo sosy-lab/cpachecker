@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
+import com.google.common.base.Optional;
+
 public interface OptEnvironment extends AutoCloseable {
 
   /**
@@ -35,18 +37,22 @@ public interface OptEnvironment extends AutoCloseable {
   void addConstraint(BooleanFormula constraint);
 
   /**
-   * Add maximization <code>objective</code>.
+   * Add the maximization <code>objective</code>.
    *
-   * <b>Note: {@code push/pop} should be used for switching objectives</b>
+   * <b>Note: {@code push/pop} may be used for switching objectives</b>
+   *
+   * @return Objective handle, to be used for retrieving the value.
    */
-  void maximize(Formula objective);
+  int maximize(Formula objective);
 
   /**
    * Add minimization <code>objective</code>.
    *
-   * <b>Note: {@code push/pop} should be used for switching objectives</b>
+   * <b>Note: {@code push/pop} may be used for switching objectives</b>
+   *
+   * @return Objective handle, to be used for retrieving the value.
    */
-  void minimize(Formula objective);
+  int minimize(Formula objective);
 
   /**
    * Optimize the objective function subject to the previously
@@ -68,26 +74,17 @@ public interface OptEnvironment extends AutoCloseable {
 
   /**
    * @param epsilon Value to substitute for the {@code epsilon}.
-   * @return Upper approximation of the optimized value.
+   * @return Upper approximation of the optimized value, or
+   *  absent optional if the objective is unbounded.
    */
-  Rational upper(int epsilon);
+  Optional<Rational> upper(int handle, int epsilon);
 
   /**
    * @param epsilon Value to substitute for the {@code epsilon}.
-   * @return Lower approximation of the optimized value.
+   * @return Lower approximation of the optimized value, or
+   *  absent optional if the objective is unbounded.
    */
-  Rational lower(int epsilon);
-
-  /**
-   * @param epsilon Value to substitute for the {@code epsilon}.
-   * @return Value of the approximation objective:
-   * equivalent to {@link #upper(int epsilon)} for the maximization problem
-   * and {@link #lower(int epsilon)} for the minimization problem.
-   *
-   * TODO: The value of the epsilon is integral because currently Z3 gives
-   * epsilon integral sort, see https://z3.codeplex.com/workitem/145
-   * */
-  Rational value(int epsilon);
+  Optional<Rational> lower(int handle, int epsilon);
 
   Model getModel() throws SolverException;
 
@@ -95,10 +92,9 @@ public interface OptEnvironment extends AutoCloseable {
    * Status of the optimization problem.
    */
   public enum OptStatus {
-    OPT, // All good, the solution was found.
+    OPT, // All good, the solution was found (may be unbounded).
     UNSAT,  // SMT problem is unsatisfiable.
-    UNDEF, // The result is unknown.
-    UNBOUNDED // The optimization problem is unbounded.
+    UNDEF // The result is unknown.
   }
 
   @Override

@@ -32,8 +32,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.SolverFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 
 /**
  * Entry point for loading SmtInterpol.
@@ -60,15 +58,4 @@ public class SmtInterpolSolverFactory implements SolverFactory {
       currentThread.setContextClassLoader(contextClassLoader);
     }
   }
-
-  @Override
-  public ProverEnvironment createProver(FormulaManager pMgr) {
-    return ((SmtInterpolFormulaManager)pMgr).createProver();
-  }
-
-  @Override
-  public InterpolatingProverEnvironment<?> createInterpolatingProver(FormulaManager pMgr) {
-    return ((SmtInterpolFormulaManager)pMgr).createInterpolator();
-  }
-
 }

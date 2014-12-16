@@ -683,6 +683,11 @@ cpa.composite.inPredicatedAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
+# Split MultiEdges and pass each inner edge to the component CPAs to allow
+# strengthen calls after each single edge. Does not work with backwards
+# analysis!
+cpa.composite.splitMultiEdges = false
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -716,6 +721,11 @@ cpa.conditions.global.time.wall.hardlimit = -1
 # variable reaching this assignment threshold is not tracked anymore, even if
 # it is contained in the precision.
 cpa.conditions.path.assignments.hardThreshold = -1
+
+# This option determines if there should be a single assignment state per
+# transition (more precise) or per path segment between assume edges (more
+# efficient).
+cpa.conditions.path.assignments.precise = true
 
 # This option sets the soft threshold for assignments (-1 for infinite). The
 # semantics are that variables are tracked up to this threshold, even if not
@@ -1254,7 +1264,7 @@ cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
 
 # List of further options which will be passed to Mathsat in addition to the
 # default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.solver.mathsat5.furtherOptions = ""
+cpa.predicate.solver.mathsat5.furtherOptions = "random_seed=42"
 
 # Double check generated results like interpolants and models whether they
 # are correct
@@ -1271,6 +1281,14 @@ cpa.predicate.solver.useLogger = false
 # different solvers, choose target-solver.
 cpa.predicate.solver.z3.logger.target = Z3
   allowed values: [Z3, MATHSAT5]
+
+# Ordering for objectives in the optimization context
+cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+cpa.predicate.solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
 
 # simplify formulas when they are asserted in a solver.
 cpa.predicate.solver.z3.simplifyFormulas = false
@@ -1500,6 +1518,10 @@ cpa.stator.policy.generateUpperBound = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
+
+# Perform formula slicing after abstractions to propagate the pointer
+# information
+cpa.stator.policy.propagateFormulasPastAbstraction = true
 
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true

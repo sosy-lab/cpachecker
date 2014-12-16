@@ -187,6 +187,9 @@ public class CFASecondPassBuilder {
         throw new CParserException("Method " + functionName + " takes "
             + declaredParameters + " parameter(s) but is called with "
             + actualParameters + " parameter(s)", edge);
+
+      default:
+        throw new AssertionError("Unhandled language " + language);
       }
     }
 

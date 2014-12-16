@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -18,71 +17,52 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyState.PolicyAbstractedState;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 
-// TODO: don't perform namespacing if the node has only one incoming edge.
-// why don't we namespace on edges instead of namespacing on templates?
 public class ValueDeterminationFormulaManager {
+
+  /** Dependencies */
   private final PathFormulaManager pfmgr;
   private final FormulaManager formulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final LogManager logger;
-  private final FormulaManagerFactory formulaManagerFactory;
-  private final PolicyIterationStatistics statistics;
-  private final int threshold;
-
-  private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
-  private static final String TEMPLATE_PREFIX = "[%s]_";
-  private final ShutdownNotifier shutdownNotifier;
   private final TemplateManager templateManager;
 
-  @SuppressWarnings("unused")
+  /** Private variables. */
+  private final int threshold;
+
+  /** Constants */
+  private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
+  private static final String EDGE_PREFIX = "[%s]_";
+
   public ValueDeterminationFormulaManager(
       PathFormulaManager pfmgr,
       FormulaManagerView fmgr,
-      Configuration config,
       LogManager logger,
       CFA cfa,
       FormulaManager rfmgr,
-      TemplateManager pTemplateManager,
-      FormulaManagerFactory pFormulaManagerFactory,
-      ShutdownNotifier pShutdownNotifier,
-      PolicyIterationStatistics pStatistics) throws InvalidConfigurationException{
+      TemplateManager pTemplateManager
+  ) throws InvalidConfigurationException{
 
     this.pfmgr = pfmgr;
     this.fmgr = fmgr;
-    this.rfmgr = fmgr.getRationalFormulaManager();
-    ifmgr = fmgr.getIntegerFormulaManager();
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     this.formulaManager = rfmgr;
     templateManager = pTemplateManager;
-    formulaManagerFactory = pFormulaManagerFactory;
-    shutdownNotifier = pShutdownNotifier;
-    statistics = pStatistics;
 
     threshold = getThreshold(cfa);
   }
@@ -109,33 +89,32 @@ public class ValueDeterminationFormulaManager {
       CFANode toNode = entry.getKey();
       PolicyState state = entry.getValue();
       Preconditions.checkState(state.isAbstract());
+      Set<String> visitedEdges = new HashSet<>();
 
-      // Type is lost at that point...
-      // Can we have a mapping from templates to policy bound?
       for (Entry<Template, PolicyBound> incoming : state.asAbstracted()) {
         Template template = incoming.getKey();
-        String templatePrefix = String.format(TEMPLATE_PREFIX, template);
+        PolicyBound bound = incoming.getValue();
+
+        // Prefix the constraints by the edges.
+        // We encode the whole paths, as things might differ inside the path.
+        String edgePrefix = String.format(EDGE_PREFIX, bound.toPathString());
 
         if (toNode == focusedNode && !updated.containsKey(template)) {
 
-          // Insert the invariant from the previous constraints.
-          // Do not follow the trace.
-          PolicyBound bound = incoming.getValue();
-
-          NumeralFormula templateFormula = templateManager.toFormula(
-              template, SSAMap.emptySSAMap(), templatePrefix);
-          BooleanFormula constraint;
-          if (bound.bound.isIntegral() && templateFormula instanceof IntegerFormula) {
-            constraint = ifmgr.lessOrEquals(
-                (IntegerFormula)templateFormula,
-                ifmgr.makeNumber(bound.bound.toString())
-            );
-          } else {
-            constraint = rfmgr.lessOrEquals(
-                templateFormula,
-                rfmgr.makeNumber(bound.bound.toString())
-            );
-          }
+          // Insert the invariant from the previous constraint.
+          Formula templateFormula = templateManager.toFormula(
+              template,
+              new PathFormula(
+                  bfmgr.makeBoolean(true),
+                  SSAMap.emptySSAMap(),
+                  PointerTargetSet.emptyPointerTargetSet(),
+                  0
+              ),
+              edgePrefix, bound.trace);
+          BooleanFormula constraint = fmgr.makeLessOrEqual(
+              templateFormula,
+              fmgr.makeNumber(templateFormula, bound.bound), true
+          );
 
           constraints.add(constraint);
         } else {
@@ -145,15 +124,19 @@ public class ValueDeterminationFormulaManager {
           int toNodeNo = toNode.getNodeNumber();
           int toNodePrimeNo = toPrime(toNodeNo);
 
-          PathFormula edgePathFormula = pathFormulaWithCustomIdx(
+          PathFormula edgePathFormula = pathFormulaWithCustomIdxAndPrefix(
               trace,
               toNodeNo,
               toNodePrimeNo,
-              templatePrefix
+              edgePrefix
           );
           BooleanFormula edgeFormula = edgePathFormula.getFormula();
 
-          if (!edgeFormula.equals(bfmgr.makeBoolean(true))) {
+          // Optimization.
+          if (!(edgeFormula.equals(bfmgr.makeBoolean(true))
+                || visitedEdges.contains(edgePrefix))) {
+
+            // Check for visited.
             constraints.add(edgeFormula);
           }
           if (policy.get(fromNode) == null) {
@@ -161,44 +144,20 @@ public class ValueDeterminationFormulaManager {
             continue;
           }
 
-          for (Entry<Template, PolicyBound> fromEntry : policy.get(fromNode)) {
-            Template fromTemplate = fromEntry.getKey();
-
-            // Add input constraints on the edge variables.
-            NumeralFormula edgeInput = templateManager.toFormula(
-                fromTemplate,
-                SSAMap.emptySSAMap().withDefault(toNodeNo),
-                templatePrefix
-            );
-
-            BooleanFormula f;
-            String varName = absDomainVarName(fromNode, fromTemplate);
-            if (edgeInput instanceof IntegerFormula) {
-              f = ifmgr.lessOrEquals((IntegerFormula)edgeInput,
-                  ifmgr.makeVariable(varName));
-            } else {
-              f = rfmgr.lessOrEquals(edgeInput, rfmgr.makeVariable(varName));
-            }
-
-            constraints.add(f);
-          }
-
-          NumeralFormula outExpr = templateManager.toFormula(
-              template, edgePathFormula.getSsa(), templatePrefix);
+          Formula outExpr = templateManager.toFormula(
+              template, edgePathFormula, edgePrefix, bound.trace);
           String varName = absDomainVarName(toNode, template);
           BooleanFormula outConstraint;
 
-          if (outExpr instanceof IntegerFormula) {
-            IntegerFormula out = ifmgr.makeVariable(varName);
-            outConstraint = ifmgr.equal((IntegerFormula) outExpr, out);
-          } else {
-            NumeralFormula out = rfmgr.makeVariable(varName);
-            outConstraint = rfmgr.equal(outExpr, out);
-          }
+          outConstraint = fmgr.makeEqual(
+              outExpr,
+              fmgr.makeVariable(fmgr.getFormulaType(outExpr), varName)
+          );
 
           logger.log(Level.FINE, "Output constraint = ", outConstraint);
           constraints.add(outConstraint);
         }
+        visitedEdges.add(edgePrefix);
       }
     }
     return constraints;
@@ -207,72 +166,6 @@ public class ValueDeterminationFormulaManager {
   /**
    * Perform the associated maximization.
    */
-  PolicyAbstractedState valueDeterminationMaximization(
-      PolicyAbstractedState prevState,
-      Set<Template> templates,
-      Map<Template, PolicyBound> updated,
-      CFANode node,
-      List<BooleanFormula> pValueDeterminationConstraints,
-      int epsilon
-  )
-      throws InterruptedException, CPATransferException {
-
-    ImmutableMap.Builder<Template, PolicyBound> builder = ImmutableMap.builder();
-    Set<Template> unbounded = new HashSet<>();
-
-    // Maximize for each template subject to the overall constraints.
-    statistics.valueDeterminationSolverTimer.start();
-    statistics.valueDetCalls++;
-    try (OptEnvironment solver = formulaManagerFactory.newOptEnvironment()) {
-      shutdownNotifier.shutdownIfNecessary();
-
-      for (BooleanFormula constraint : pValueDeterminationConstraints) {
-        solver.addConstraint(constraint);
-      }
-
-      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
-        Template template = policyValue.getKey();
-        CFAEdge policyEdge = policyValue.getValue().trace;
-        logger.log(Level.FINE,
-            "# Value determination: optimizing for template" , template);
-
-        NumeralFormula objective;
-        String varName = absDomainVarName(node, template);
-        if (templateManager.shouldUseRationals(template)) {
-          objective = rfmgr.makeVariable(varName);
-        } else {
-          objective = ifmgr.makeVariable(varName);
-        }
-
-        solver.push();
-        solver.maximize(objective);
-
-        OptEnvironment.OptStatus result = solver.check();
-        switch (result) {
-          case OPT:
-            builder.put(
-                template, PolicyBound.of(policyEdge, solver.value(epsilon)));
-            break;
-          case UNBOUNDED:
-            unbounded.add(template);
-            break;
-          case UNSAT:
-            throw new SolverException("" +
-                "Unexpected solver state, value determination problem" +
-                " should be feasible");
-          case UNDEF:
-            throw new SolverException("Unexpected solver status");
-        }
-        solver.pop();
-      }
-    } catch (SolverException e) {
-      throw new CPATransferException("Failed maximization", e);
-    } finally {
-      statistics.valueDeterminationSolverTimer.stop();
-    }
-
-    return prevState.withUpdates(builder.build(), unbounded, templates);
-  }
 
   /**
    * Create a path formula for the edge, specifying <i>both</i> custom
@@ -282,7 +175,7 @@ public class ValueDeterminationFormulaManager {
    *
    *    {@code x@1000 = x@2 + 1}
    */
-  private PathFormula pathFormulaWithCustomIdx(
+  private PathFormula pathFormulaWithCustomIdxAndPrefix(
       CFAEdge edge, int startIdx, int stopIdx, String customPrefix)
       throws CPATransferException, InterruptedException {
 
@@ -337,13 +230,9 @@ public class ValueDeterminationFormulaManager {
         p.getLength());
   }
 
-  private NumeralFormula makeVariable(
+  private Formula makeVariable(
         Formula pFormula, String variable, int idx, String namespace) {
-    if (pFormula instanceof NumeralFormula.IntegerFormula) {
-      return ifmgr.makeVariable(namespace + variable, idx);
-    } else {
-      return rfmgr.makeVariable(namespace + variable, idx);
-    }
+    return fmgr.makeVariable(fmgr.getFormulaType(pFormula), namespace + variable, idx);
   }
 
   /**
