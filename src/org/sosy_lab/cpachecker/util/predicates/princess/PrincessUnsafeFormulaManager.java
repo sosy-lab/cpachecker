@@ -133,4 +133,9 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
     return PartialEvaluator.apply(f);
   }
 
+  @Override
+  protected boolean isQuantified(IExpression pT) {
+    return false;
+  }
+
 }

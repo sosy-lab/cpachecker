@@ -139,4 +139,10 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   protected Long simplify(Long pF) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  protected boolean isQuantified(Long pT) {
+    return false;
+  }
+
 }

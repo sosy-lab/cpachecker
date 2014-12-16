@@ -138,5 +138,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     return getFormulaCreator().getEnv().simplify(pF);
   }
 
+  @Override
+  protected boolean isQuantified(Term pT) {
+    return false;
+  }
 
 }

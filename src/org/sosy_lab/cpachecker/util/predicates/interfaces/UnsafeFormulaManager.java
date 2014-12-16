@@ -90,6 +90,13 @@ public interface UnsafeFormulaManager {
   boolean isUF(Formula f);
 
   /**
+   * Checks if the given Formula is quantified (either FORALL ..., or EXISTS ...).
+   * @param f
+   * @return
+   */
+  boolean isQuantification(Formula f);
+
+  /**
    * Returns the name of the formula (or function)
    * @param f
    * @return
