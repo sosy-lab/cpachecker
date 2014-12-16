@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -49,4 +50,6 @@ public interface SmtAstMatcher {
 
   // a >= b  --> a > b || a = b
   public void defineOperatorImplications(String pString, HashSet<String> pNewHashSet);
+
+  public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 f, Map<T2, T2> fromToMapping);
 }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import org.junit.Before;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 
@@ -53,9 +53,9 @@ public abstract class AbstractRuleTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    solver = new Solver(mgrv, factory);
-    matcher = new Z3AstMatcher(logger, mgr, mgrv);
+    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+    matcher = solver.getSmtAstMatcher();
 
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.matching;
+package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import org.sosy_lab.common.log.LogManager;
@@ -38,10 +39,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.matching.AbstractSmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResultImpl;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtFunctionApplicationPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaCreator;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -69,10 +73,10 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
     }
   }
 
-  public Z3AstMatcher(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv) {
-    super(pLogger, pFm, pFmv);
+  public Z3AstMatcher(LogManager pLogger, FormulaManagerView pView, FormulaManager pMgr) {
+    super(pLogger, pView);
 
-    this.fm = (Z3FormulaManager) pFm;
+    this.fm = (Z3FormulaManager) pMgr;
     this.ctx = fm.getEnvironment();
     this.fmc = fm.getFormulaCreator();
   }
@@ -247,6 +251,11 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
       // Encodes the reason for the failure
       return bodyMatchingResult;
     }
+  }
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 pF, Map<T2, T2> pFromToMapping) {
+    return fm.getUnsafeFormulaManager().substitute(pF, pFromToMapping);
   }
 
 

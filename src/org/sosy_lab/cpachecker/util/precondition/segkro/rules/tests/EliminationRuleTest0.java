@@ -45,7 +45,7 @@ public class EliminationRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    er = new EliminationRule(mgr, mgrv, solver, matcher);
+    er = new EliminationRule(solver, matcher);
   }
 
   @Test

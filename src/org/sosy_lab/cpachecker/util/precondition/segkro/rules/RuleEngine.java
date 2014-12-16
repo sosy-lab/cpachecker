@@ -30,10 +30,7 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.matching.Z3AstMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -42,18 +39,18 @@ public class RuleEngine implements Concluding {
 
   private final List<Rule> rules;
 
-  public RuleEngine(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver) {
-    final SmtAstMatcher matcher = new Z3AstMatcher(pLogger, pFm, pFmv);
+  public RuleEngine(LogManager pLogger, Solver pSolver) {
+    final SmtAstMatcher matcher = pSolver.getSmtAstMatcher();
 
     rules = Lists.newArrayList();
-    rules.add(new EliminationRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new EquivalenceRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new UniversalizeRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new SubstitutionRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new LinkRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new ExistentialRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new ExtendLeftRule(pFm, pFmv, pSolver, matcher));
-    rules.add(new ExtendRightRule(pFm, pFmv, pSolver, matcher));
+    rules.add(new EliminationRule(pSolver, matcher));
+    rules.add(new EquivalenceRule(pSolver, matcher));
+    rules.add(new UniversalizeRule(pSolver, matcher));
+    rules.add(new SubstitutionRule(pSolver, matcher));
+    rules.add(new LinkRule(pSolver, matcher));
+    rules.add(new ExistentialRule(pSolver, matcher));
+    rules.add(new ExtendLeftRule(pSolver, matcher));
+    rules.add(new ExtendRightRule(pSolver, matcher));
   }
 
   public ImmutableList<Rule> getRules() {

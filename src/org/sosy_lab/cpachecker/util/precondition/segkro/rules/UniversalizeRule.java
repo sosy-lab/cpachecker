@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
@@ -41,8 +39,8 @@ import com.google.common.collect.Maps;
 
 public class UniversalizeRule extends PatternBasedRule {
 
-  public UniversalizeRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
-    super(pFm, pFmv, pSolver, pMatcher);
+  public UniversalizeRule(Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pSolver, pMatcher);
   }
 
   @Override
@@ -80,7 +78,7 @@ public class UniversalizeRule extends PatternBasedRule {
     Map<Formula, Formula> transformation = Maps.newHashMap();
     transformation.put(i, x);
 
-    final BooleanFormula fPrime = fm.getUnsafeFormulaManager().substitute(f, transformation);
+    final BooleanFormula fPrime = matcher.substitute(f, transformation);
 
     return Lists.newArrayList(
         qfm.forall(Lists.newArrayList(x), bfm.and(fPrime, xConstraint)));

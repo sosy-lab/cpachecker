@@ -59,7 +59,7 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    ur = new UniversalizeRule(mgr, mgrv, solver, matcher);
+    ur = new UniversalizeRule(solver, matcher);
 
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);

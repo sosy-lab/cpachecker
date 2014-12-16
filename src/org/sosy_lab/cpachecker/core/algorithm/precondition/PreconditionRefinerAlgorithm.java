@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -108,7 +107,6 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
   private final Algorithm wrappedAlgorithm;
   private final AbstractionManager amgr;
   private final FormulaManagerView mgrv;
-  private final FormulaManager mgr;
   private final LogManager logger;
   private final Solver solver;
   private final CFA cfa;
@@ -145,17 +143,16 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
 
     amgr = predcpa.getAbstractionManager();
-    mgrv = predcpa.getFormulaManager();
-    mgr = predcpa.getRealFormulaManager();
+    mgrv = predcpa.getSolver().getFormulaManager();
     solver = predcpa.getSolver();
 
     helper = new PreconditionHelper(mgrv, pConfig, logger, pShutdownNotifier, pCfa);
-    ruleEngine = new RuleEngine(logger, mgr, mgrv, solver);
+    ruleEngine = new RuleEngine(logger, solver);
     refiner = new Refine(
           pConfig, pLogger, pShutdownNotifier, pCfa,
-          new ExtractNewPreds(mgr, mgrv, ruleEngine),
-          new MinCorePrio(mgr, mgrv, solver),
-          mgr, mgrv, amgr);
+          solver, amgr,
+          new ExtractNewPreds(solver, ruleEngine),
+          new MinCorePrio(solver));
 
     writer = exportPreciditionsAs == PreconditionExportType.SMTLIB
         ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(pCfa, pConfig, pLogger, mgrv))

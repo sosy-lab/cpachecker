@@ -56,7 +56,7 @@ public class ExtendLeftRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    elr = new ExtendLeftRule(mgr, mgrv, solver, matcher);
+    elr = new ExtendLeftRule(solver, matcher);
 
     setupTestData();
   }

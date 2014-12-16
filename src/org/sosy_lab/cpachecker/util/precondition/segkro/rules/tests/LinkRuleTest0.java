@@ -57,7 +57,7 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    lr = new LinkRule(mgr, mgrv, solver, matcher);
+    lr = new LinkRule(solver, matcher);
 
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);

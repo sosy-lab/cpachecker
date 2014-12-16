@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -62,29 +62,25 @@ public class Refine {
 
   private final ExtractNewPreds enp;
   private final InterpolationWithCandidates ipc;
-  private final FormulaManager mgr;
   private final FormulaManagerView mgrv;
   private final BooleanFormulaManagerView bmgr;
   private final PathFormulaManager pmgrFwd;
   private final PreconditionHelper helper;
   private final AbstractionManager amgr;
 
-  public Refine(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdown, CFA pCfa,
-      ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr,
-      FormulaManagerView pMgrv, AbstractionManager pAmgr)
+  public Refine(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa,
+      Solver pSolver, AbstractionManager pAmgr, ExtractNewPreds pExtractNewPreds, InterpolationWithCandidates pMinCorePrio)
           throws InvalidConfigurationException {
 
     amgr = pAmgr;
-    enp = pEnp;
-    ipc = pIpc;
-    mgr = pMgr;
-    mgrv = pMgrv;
+    enp = pExtractNewPreds;
+    ipc = pMinCorePrio;
+    mgrv = pSolver.getFormulaManager();
     bmgr = mgrv.getBooleanFormulaManager();
     pmgrFwd = new PathFormulaManagerImpl(
-        pMgrv, pConfig, pLogger, pShutdown,
+        mgrv, pConfig, pLogger, pShutdownNotifier,
         pCfa, AnalysisDirection.FORWARD);
-    helper = new PreconditionHelper(pMgrv, pConfig, pLogger, pShutdown, pCfa);
+    helper = new PreconditionHelper(mgrv, pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
   private Collection<BooleanFormula> literals(BooleanFormula pF) {

@@ -32,9 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
@@ -43,8 +41,8 @@ import com.google.common.collect.Maps;
 
 public class ExistentialRule extends PatternBasedRule {
 
-  public ExistentialRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
-    super(pFm, pFmv, pSolver, pMatcher);
+  public ExistentialRule(Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pSolver, pMatcher);
   }
 
   @Override
@@ -92,8 +90,8 @@ public class ExistentialRule extends PatternBasedRule {
     transformation.put(i, x);
     transformation.put(j, x);
 
-    final BooleanFormula fPrime = fm.getUnsafeFormulaManager().substitute(f, transformation);
-    final BooleanFormula nfPrime = fm.getUnsafeFormulaManager().substitute(nf, transformation);
+    final BooleanFormula fPrime = matcher.substitute(f, transformation);
+    final BooleanFormula nfPrime = matcher.substitute(nf, transformation);
 
     final BooleanFormula xConstraint =  bfm.and(
         ifm.greaterOrEquals(x, i),

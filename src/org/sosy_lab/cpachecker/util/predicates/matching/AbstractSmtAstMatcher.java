@@ -35,7 +35,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
 
@@ -59,7 +58,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
   protected final Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   protected final Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
-  public AbstractSmtAstMatcher(LogManager pLogger, FormulaManager pFm, FormulaManagerView pFmv) {
+  public AbstractSmtAstMatcher(LogManager pLogger, FormulaManagerView pFmv) {
     this.logger = pLogger;
     this.fmv = pFmv;
 

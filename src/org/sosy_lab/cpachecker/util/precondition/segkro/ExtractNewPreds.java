@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
@@ -50,7 +50,6 @@ import com.google.common.primitives.Ints;
  */
 public class ExtractNewPreds {
 
-  private final FormulaManager mgr;
   private final FormulaManagerView mgrv;
   private final RuleEngine ruleEngine;
 
@@ -61,10 +60,9 @@ public class ExtractNewPreds {
     }
   };
 
-  public ExtractNewPreds(FormulaManager pMgr, FormulaManagerView pMgrv, RuleEngine ruleEngine) {
+  public ExtractNewPreds(Solver pSolver, RuleEngine ruleEngine) {
     this.ruleEngine = Preconditions.checkNotNull(ruleEngine);
-    this.mgr = Preconditions.checkNotNull(pMgr);
-    this.mgrv = Preconditions.checkNotNull(pMgrv);
+    this.mgrv = pSolver.getFormulaManager();
   }
 
   private Collection<BooleanFormula> extractLiterals(BooleanFormula pInputFormula) {

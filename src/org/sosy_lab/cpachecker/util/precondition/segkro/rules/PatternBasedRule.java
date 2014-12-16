@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -62,14 +61,16 @@ public abstract class PatternBasedRule extends AbstractRule {
   protected final QuantifiedFormulaManagerView qfm;
   protected final ArrayFormulaManagerView afm;
   protected final BooleanFormulaManagerView bfm;
+  protected final FormulaManagerView fmv;
 
-  public PatternBasedRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
-    super(pFm, pFmv, pSolver, pMatcher);
+  public PatternBasedRule(Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pSolver, pMatcher);
 
-    bfm = pFmv.getBooleanFormulaManager();
-    ifm = pFmv.getIntegerFormulaManager();
-    qfm = pFmv.getQuantifiedFormulaManager();
-    afm = pFmv.getArrayFormulaManager();
+    fmv = pSolver.getFormulaManager();
+    bfm = fmv.getBooleanFormulaManager();
+    ifm = fmv.getIntegerFormulaManager();
+    qfm = fmv.getQuantifiedFormulaManager();
+    afm = fmv.getArrayFormulaManager();
 
     setupPatterns();
   }

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.matching;
+package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
@@ -32,14 +32,19 @@ import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.Lists;
@@ -60,7 +65,8 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   private BooleanFormula _c1_times_ex_plus_e1_GEQ_0;
   private BooleanFormula _minus_c2_times_ex_plus_e2_GEQ_0;
 
-  private Z3AstMatcher matcher;
+  private SmtAstMatcher matcher;
+
   private IntegerFormula _i1;
   private IntegerFormula _j1;
   private IntegerFormula _j2;
@@ -84,7 +90,7 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   private BooleanFormula _0_EQ_b_at_i_plus_1_;
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
   private IntegerFormula _i_plus_1;
-  private org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula _b_at_i_EQ_0;
+  private BooleanFormula _b_at_i_EQ_0;
   private IntegerFormula _b_at_i;
 
   @Override
@@ -100,9 +106,12 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
   }
 
   public void setupMatcher() throws InvalidConfigurationException {
-    FormulaManagerView fmv = new FormulaManagerView(mgr, config, logger);
+
+    FormulaManagerView fmv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    Solver solver = new Solver(fmv, factory, config, TestLogManager.getInstance());
     Z3FormulaManager zfm =(Z3FormulaManager) mgr;
-    matcher = new Z3AstMatcher(logger, zfm, fmv);
+
+    matcher = solver.getSmtAstMatcher();
   }
 
   public void setupTestFormulas() throws Exception {

@@ -57,7 +57,7 @@ public class SubstitutionRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    sr = new SubstitutionRule(mgr, mgrv, solver, matcher);
+    sr = new SubstitutionRule(solver, matcher);
 
     _0 = ifm.makeNumber(0);
     _1 = ifm.makeNumber(1);

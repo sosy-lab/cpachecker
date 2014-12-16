@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -93,14 +94,15 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(mgr, config, logger);
+    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    Solver solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();
     ifm = mgrv.getIntegerFormulaManager();
 
-    Solver solver = new Solver(mgrv, factory);
-    rulesEngine = new RuleEngine(logger, mgr, mgrv, solver);
-    enp = new ExtractNewPreds(mgr, mgrv, rulesEngine);
+    rulesEngine = new RuleEngine(logger, solver);
+    enp = new ExtractNewPreds(solver, rulesEngine);
 
     setupTestdata();
   }

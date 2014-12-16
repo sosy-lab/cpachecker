@@ -60,7 +60,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    er = new ExistentialRule(mgr, mgrv, solver, matcher);
+    er = new ExistentialRule(solver, matcher);
     setupTestData();
   }
 

@@ -32,9 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
@@ -42,13 +40,13 @@ import com.google.common.collect.Lists;
 
 public class EliminationRule extends PatternBasedRule {
 
-  public EliminationRule(FormulaManager pFm, FormulaManagerView pFmv, Solver pSolver, SmtAstMatcher pMatcher) {
-    super(pFm, pFmv, pSolver, pMatcher);
+  public EliminationRule(Solver pSolver, SmtAstMatcher pMatcher) {
+    super(pSolver, pMatcher);
   }
 
   @Override
   protected void setupPatterns() {
-    final IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
+    final IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
 
     premises.add(new PatternBasedPremise(
         withDefaultBinding("c1",  zero,
@@ -89,7 +87,7 @@ public class EliminationRule extends PatternBasedRule {
 
   @Override
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
-    final IntegerFormula zero = fm.getIntegerFormulaManager().makeNumber(0);
+    final IntegerFormula zero = fmv.getIntegerFormulaManager().makeNumber(0);
     final IntegerFormula c1 = (IntegerFormula) pAssignment.get("c1");
     final IntegerFormula c2 = (IntegerFormula) pAssignment.get("c2");
     final IntegerFormula e1 = (IntegerFormula) pAssignment.get("e1");

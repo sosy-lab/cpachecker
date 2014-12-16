@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -45,16 +44,13 @@ import com.google.common.collect.Lists;
  */
 public class MinCorePrio implements InterpolationWithCandidates {
 
-  private final FormulaManager mgr;
   private final FormulaManagerView mgrv;
   private final Solver solver;
   private final BooleanFormulaManagerView bmgr;
 
-  public MinCorePrio(FormulaManager pMgr, FormulaManagerView pMgrv, Solver pSolver) {
-    super();
-    mgr = pMgr;
-    mgrv = pMgrv;
+  public MinCorePrio(Solver pSolver) {
     solver = pSolver;
+    mgrv = pSolver.getFormulaManager();
     bmgr = mgrv.getBooleanFormulaManager();
   }
 

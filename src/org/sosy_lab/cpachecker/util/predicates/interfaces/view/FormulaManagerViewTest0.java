@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -46,8 +45,8 @@ import com.google.common.collect.Lists;
 public class FormulaManagerViewTest0 extends SolverBasedTest0 {
 
   @Parameters(name="{0}")
-  public static List<Object[]> getAllSolvers() {
-    return allSolversAsParameters();
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
   }
 
   @Parameter(0)
@@ -72,7 +71,8 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mv = new FormulaManagerView(mgr, config, logger);
+    mv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+
     imv = mv.getIntegerFormulaManager();
     amv = mv.getArrayFormulaManager();
     qmv = mv.getQuantifiedFormulaManager();

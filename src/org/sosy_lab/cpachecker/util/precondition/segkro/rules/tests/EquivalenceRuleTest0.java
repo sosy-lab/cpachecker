@@ -50,7 +50,7 @@ public class EquivalenceRuleTest0 extends AbstractRuleTest0 {
   public void setUp() throws Exception {
     super.setUp();
 
-    er = new EquivalenceRule(mgr, mgrv, solver, matcher);
+    er = new EquivalenceRule(solver, matcher);
 
     _i = mgrv.makeVariable(NumeralType.IntegerType, "i");
     _al = mgrv.makeVariable(NumeralType.IntegerType, "al");

@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -126,7 +127,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
   private final PredicateAssumeStore assumesStore;
-  private final PreconditionWriter preconditions;
+  private final AbstractionManager abstractionManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
@@ -164,7 +165,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 
@@ -204,10 +205,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    preconditions = new PreconditionWriter(cfa, config, logger, formulaManager);
-
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
-        cfa, preconditions, invariantGenerator.getTimeOfExecution(), config);
+        cfa, invariantGenerator.getTimeOfExecution(), config);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
 
@@ -271,13 +270,13 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public PredicateAbstractState getInitialState(CFANode node) {
+  public PredicateAbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     prec.setInitialLocation(node);
     return topState;
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return initialPrecision;
   }
 
@@ -322,5 +321,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    return null;
   }
 }

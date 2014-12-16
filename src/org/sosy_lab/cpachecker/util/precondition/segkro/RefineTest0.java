@@ -108,14 +108,15 @@ public class RefineTest0 extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(mgr, config, logger);
-    Solver solver = new Solver(mgrv, factory);
-    RuleEngine ruleEngine = new RuleEngine(logger, mgr, mgrv, solver);
-    ExtractNewPreds enp = new ExtractNewPreds(mgr, mgrv, ruleEngine);
-    InterpolationWithCandidates ipc = new MinCorePrio(mgr, mgrv, solver);
+    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    Solver solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+
+    RuleEngine ruleEngine = new RuleEngine(logger, solver);
+    ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);
+    InterpolationWithCandidates ipc = new MinCorePrio(solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger);
-    refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, enp, ipc, mgr, mgrv, amgr);
+    refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, solver, amgr, enp, ipc);
 
     // Test CFA elements...
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, TestLogManager.getInstance());
