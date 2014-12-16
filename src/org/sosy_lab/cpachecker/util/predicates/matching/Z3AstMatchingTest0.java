@@ -21,10 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import java.util.Collection;
 import java.util.Collections;

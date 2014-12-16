@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatchResult;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;

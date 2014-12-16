@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 
 
 public class PatternBasedPremise implements Premise {

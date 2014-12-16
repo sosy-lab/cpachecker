@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPattern;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 
 final class GenericPatterns {
 

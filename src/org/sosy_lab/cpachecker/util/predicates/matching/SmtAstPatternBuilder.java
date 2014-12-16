@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,9 +33,9 @@ import junit.framework.AssertionFailedError;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPattern.SmtAstMatchFlag;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternSelection.LogicalConnection;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;

@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;

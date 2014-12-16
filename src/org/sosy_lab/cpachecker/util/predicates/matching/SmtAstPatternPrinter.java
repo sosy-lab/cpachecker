@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.io.IOException;
 

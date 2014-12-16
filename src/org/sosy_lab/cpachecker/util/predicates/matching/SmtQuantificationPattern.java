@@ -21,15 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import com.google.common.base.Optional;
 
 
-public interface SmtAstPattern {
+public class SmtQuantificationPattern implements SmtAstPattern {
 
-  public static enum SmtAstMatchFlag { IN_SUBTREE_RECURSIVE, ALL_SATISFYING }
+  public static enum QuantifierType { FORALL, EXISTS }
 
-  public Optional<String> getBindMatchTo();
+  public final Optional<QuantifierType> matchQuantificationWithType;
+  public final Optional<String> bindMatchTo;
+  public final SmtAstPatternSelection quantorBodyMatchers;
+
+  public SmtQuantificationPattern(
+      Optional<QuantifierType> pMatchQuantificationWithType,
+      Optional<String> pBindMatchTo,
+      SmtAstPatternSelection pQuantorBodyPatterns) {
+
+    this.bindMatchTo = pBindMatchTo;
+
+    this.quantorBodyMatchers = pQuantorBodyPatterns;
+    this.matchQuantificationWithType = pMatchQuantificationWithType;
+  }
+
+  @Override
+  public Optional<String> getBindMatchTo() {
+    return bindMatchTo;
+  }
 
 }

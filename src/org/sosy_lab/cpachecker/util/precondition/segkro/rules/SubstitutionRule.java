@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstPatternBuilder.*;
+import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import java.util.Collection;
 import java.util.Map;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

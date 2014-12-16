@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatchResult;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 
 import com.google.common.collect.Lists;
 

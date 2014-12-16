@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

@@ -21,32 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
-
-import java.util.List;
-import java.util.Map;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-/**
- * A collection of SmtAstPattern that is connected
- *  using a logical operator.
- */
-public interface SmtAstPatternSelection extends Iterable<SmtAstPattern> {
-
-  public static enum LogicalConnection {
-    AND, OR, NONE, DONTCARE;
-
-    public boolean isAnd() { return this == AND; }
-    public boolean isOr() { return this == OR; }
-    public boolean isNone() { return this == NONE; }
-    public boolean isDontCare() { return this == DONTCARE; }
-  }
-
-  public List<SmtAstPattern> getPatterns();
-
-  public LogicalConnection getRelationship();
-
-  public Map<String, Formula> getDefaultBindings();
-
+public interface SmtFormulaMatcher {
+  public boolean formulaMatches(final FormulaManager pMgr, final Formula pF);
 }

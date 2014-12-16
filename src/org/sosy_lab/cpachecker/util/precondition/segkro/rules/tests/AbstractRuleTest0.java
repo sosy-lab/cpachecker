@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManag
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.Z3AstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.Z3AstMatcher;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 

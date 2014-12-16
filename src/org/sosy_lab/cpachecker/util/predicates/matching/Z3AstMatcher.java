@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.z3.matching;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiHelpers;
-import org.sosy_lab.cpachecker.util.predicates.z3.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
