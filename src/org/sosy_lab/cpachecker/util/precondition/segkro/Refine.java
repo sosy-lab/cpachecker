@@ -27,20 +27,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionHelper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -50,7 +53,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 public class Refine {
 
@@ -61,11 +67,15 @@ public class Refine {
   private final BooleanFormulaManagerView bmgr;
   private final PathFormulaManager pmgrFwd;
   private final PreconditionHelper helper;
+  private final AbstractionManager amgr;
 
-  public Refine(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdown, CFA pCfa,
-      ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr, FormulaManagerView pMgrv)
+  public Refine(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdown, CFA pCfa,
+      ExtractNewPreds pEnp, InterpolationWithCandidates pIpc, FormulaManager pMgr,
+      FormulaManagerView pMgrv, AbstractionManager pAmgr)
           throws InvalidConfigurationException {
 
+    amgr = pAmgr;
     enp = pEnp;
     ipc = pIpc;
     mgr = pMgr;
@@ -77,8 +87,8 @@ public class Refine {
     helper = new PreconditionHelper(pMgrv, pConfig, pLogger, pShutdown, pCfa);
   }
 
-  private Collection<BooleanFormula> atoms(BooleanFormula pF) {
-    return mgrv.extractAtoms(pF, false, false);
+  private Collection<BooleanFormula> literals(BooleanFormula pF) {
+    return mgrv.extractLiterals(pF, false, false);
   }
 
   private BooleanFormula interpolate(BooleanFormula pF, BooleanFormula pCounterF) throws SolverException, InterruptedException {
@@ -89,7 +99,7 @@ public class Refine {
 
 
   private BooleanFormula subst(BooleanFormula pF) {
-    return null;
+    return pF;
   }
 
   private List<BooleanFormula> subst(List<BooleanFormula> pFormulas) {
@@ -101,7 +111,7 @@ public class Refine {
   }
 
 
-  private List<BooleanFormula> predsFromTrace(ARGPath pPath, BooleanFormula pPrecond) throws SolverException, InterruptedException, CPATransferException {
+  private List<BooleanFormula> predsFromTrace(ARGPath pPath, BooleanFormula pPrecond, Optional<CFANode> pEntryWpLocation) throws SolverException, InterruptedException, CPATransferException {
     List<BooleanFormula> result = Lists.newArrayList();
 
     // TODO: It might be possible to use this code to also derive the predicate for the first sate.
@@ -109,22 +119,29 @@ public class Refine {
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...
 
-    final PathIterator it = pPath.pathIterator();
-    BooleanFormula counterStatePrecond = pPrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
+    BooleanFormula beforeTransCond = pPrecond; // FIXME: The paper might be wrong here... or hard to understand... (we should start with the negation)
 
-    while (it.hasNext()) {
-      it.advance();
-      final CFAEdge transition = it.getIncomingEdge(); // TODO: Depends on the direction of the analysis. Check this
-      final ARGState state = it.getAbstractState();
+    boolean skippedUntilEntryWpLocation = !pEntryWpLocation.isPresent();
 
-      BooleanFormula statePrecond = helper.getPathStatePrecondition(pPath, state);
-      List<BooleanFormula> p = enp.extractNewPreds(statePrecond);
-      statePrecond = bmgr.and(statePrecond, bmgr.and(p));
+    for (CFAEdge transition: pPath.asEdgesList()) {
+      if (!skippedUntilEntryWpLocation) {
+        if (transition.getPredecessor().equals(pEntryWpLocation.get())) {
+          skippedUntilEntryWpLocation = true;
+        } else {
+          continue;
+        }
+      }
 
-      counterStatePrecond = computeCounterPrecondition(transition, counterStatePrecond);
-      pPrecond = ipc.getInterpolant(subst(statePrecond), counterStatePrecond, subst(p));
+      // afterTransCond === varphi_{k+1}
+      BooleanFormula afterTransCond = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
+      List<BooleanFormula> p = enp.extractNewPreds(afterTransCond);
+      afterTransCond = bmgr.and(afterTransCond, bmgr.and(p));
 
-      result.addAll(atoms(pPrecond));
+      // Compute an interpolant, use a set of candidate predicates
+      BooleanFormula counterAfterTransCond = computeCounterCondition(transition, bmgr.not(beforeTransCond));
+      beforeTransCond = ipc.getInterpolant(afterTransCond, counterAfterTransCond, p);
+
+      result.addAll(literals(pPrecond));
     }
 
     return result;
@@ -138,7 +155,7 @@ public class Refine {
    * @throws SolverException
    */
   @VisibleForTesting
-  private BooleanFormula computeCounterPrecondition(CFAEdge pTransition, BooleanFormula pCounterStatePrecond)
+  private BooleanFormula computeCounterCondition(CFAEdge pTransition, BooleanFormula pCounterStatePrecond)
       throws CPATransferException, InterruptedException, SolverException {
 
     final PathFormula pf = pmgrFwd.makeAnd(
@@ -150,10 +167,12 @@ public class Refine {
     return helper.uninstanciatePathFormula(transferPf);
   }
 
-  public Collection<BooleanFormula> refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination) throws SolverException, InterruptedException, CPATransferException {
+  public PredicatePrecision refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination, Optional<CFANode> pWpLocation)
+      throws SolverException, InterruptedException, CPATransferException {
+
     // Compute the WP for both traces
-    BooleanFormula pcViolation = helper.getPathPrecond(pTraceToViolation);
-    BooleanFormula pcValid = helper.getPathPrecond(pTraceToValidTermination);
+    BooleanFormula pcViolation = helper.getPreconditionOfPath(pTraceToViolation, pWpLocation);
+    BooleanFormula pcValid = helper.getPreconditionOfPath(pTraceToValidTermination, pWpLocation);
 
     // "Enrich" the WPs with more general predicates
     pcViolation = interpolate(pcViolation, pcValid);
@@ -161,18 +180,36 @@ public class Refine {
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
     List<BooleanFormula> preds = Lists.newArrayList();
-    preds.addAll(atoms(pcViolation));
-    preds.addAll(atoms(pcValid));
+    preds.addAll(literals(pcViolation));
+    preds.addAll(literals(pcValid));
 
     // Get additional predicates from the states along the trace
     //    (or the WPs along the trace)...
     //
     // -- along the trace to the violating state...
-    preds.addAll(predsFromTrace(pTraceToViolation, pcViolation));
+    preds.addAll(predsFromTrace(pTraceToViolation, pcViolation, pWpLocation));
     // -- along the trace to the termination state...
-    preds.addAll(predsFromTrace(pTraceToValidTermination, pcValid));
+    preds.addAll(predsFromTrace(pTraceToValidTermination, pcValid, pWpLocation));
 
-    return preds;
+    return predicatesAsGlobalPrecision(preds);
+  }
+
+  private PredicatePrecision predicatesAsGlobalPrecision(Collection<BooleanFormula> pPreds) {
+    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates = HashMultimap.create();
+    Multimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
+    Multimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
+    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
+
+    for (BooleanFormula f: pPreds) {
+      AbstractionPredicate ap = amgr.makePredicate(f);
+      globalPredicates.add(ap);
+    }
+
+    return new PredicatePrecision(
+        locationInstancePredicates,
+        localPredicates,
+        functionPredicates,
+        globalPredicates);
   }
 
 }

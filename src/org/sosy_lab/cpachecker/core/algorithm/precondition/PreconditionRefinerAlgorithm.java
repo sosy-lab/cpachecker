@@ -26,10 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -53,18 +50,24 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
 import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
 import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -77,6 +80,13 @@ import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="precondition")
 public class PreconditionRefinerAlgorithm implements Algorithm {
+
+  private static class NoTraceFoundException extends Exception {
+    private static final long serialVersionUID = 1L;
+    public NoTraceFoundException(final String pMessage) {
+      super(pMessage);
+    }
+  }
 
   public static enum PreconditionExportType { NONE, SMTLIB }
   @Option(secure=true,
@@ -92,12 +102,15 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
   private final ReachedSetFactory reachedSetFactory;
   private final Algorithm wrappedAlgorithm;
+  private final AbstractionManager amgr;
   private final FormulaManagerView mgrv;
   private final FormulaManager mgr;
-  private final PredicateCPA predcpa;
   private final LogManager logger;
   private final Solver solver;
   private final CFA cfa;
+
+  private final PredicateCPA predcpa;
+  private final ARGCPA argcpa;
 
   private final Refine refiner;
   private final RuleEngine ruleEngine;
@@ -110,15 +123,24 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
     Preconditions.checkNotNull(pConfig).inject(this);
 
-    cfa = pCfa;
-    logger = Preconditions.checkNotNull(pLogger);
-    wrappedAlgorithm = Preconditions.checkNotNull(pAlgorithm);
-    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
+    Preconditions.checkNotNull(
+        CPAs.retrieveCPA(pCpa, PartitioningCPA.class),
+        "The CPA must be composed of a PartitioningCPA in order to provide a precondition!");
+
+    argcpa = Preconditions.checkNotNull(
+        CPAs.retrieveCPA(pCpa, ARGCPA.class),
+        "The CPA must be composed of an ARG CPA in order to provide a precondition!");
 
     predcpa = Preconditions.checkNotNull(
         CPAs.retrieveCPA(pCpa, PredicateCPA.class),
         "The CPA must be composed of a predicate analysis in order to provide a precondition!");
 
+    cfa = pCfa;
+    logger = Preconditions.checkNotNull(pLogger);
+    wrappedAlgorithm = Preconditions.checkNotNull(pAlgorithm);
+    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
+
+    amgr = predcpa.getAbstractionManager();
     mgrv = predcpa.getFormulaManager();
     mgr = predcpa.getRealFormulaManager();
     solver = predcpa.getSolver();
@@ -129,7 +151,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
           pConfig, pLogger, pShutdownNotifier, pCfa,
           new ExtractNewPreds(mgr, mgrv, ruleEngine),
           new MinCorePrio(mgr, mgrv, solver),
-          mgr, mgrv);
+          mgr, mgrv, amgr);
 
     writer = exportPreciditionsAs == PreconditionExportType.SMTLIB
         ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(pCfa, pConfig, pLogger, mgrv))
@@ -144,22 +166,24 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID);
   }
 
-  private @Nullable ARGPath getTrace(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate) {
+  private ARGPath getTrace(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate)
+      throws NoTraceFoundException {
+
     ImmutableSet<AbstractState> targetStates = from(pReachedSet)
         .filter(AbstractStates.IS_TARGET_STATE)
         .filter(pPartitionFilterPredicate)
         .toSet();
 
     if (targetStates.isEmpty()) {
-      return null;
+      throw new NoTraceFoundException("No trace to the target location found!");
     }
 
     ARGState arbitraryTargetState = AbstractStates.extractStateByType(targetStates.iterator().next(), ARGState.class);
     return ARGUtils.getOnePathTo(arbitraryTargetState);
   }
 
-  private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) {
-    return false;
+  private boolean isDisjoint(BooleanFormula pP1, BooleanFormula pP2) throws SolverException, InterruptedException {
+    return solver.isUnsat(mgrv.getBooleanFormulaManager().and(pP1, pP2));
   }
 
   private CFANode getFirstNodeInEntryFunctionBody() {
@@ -196,6 +220,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     final ReachedSet initialReachedSet = reachedSetFactory.create();
     ReachedSetUtils.addReachedStatesToOtherReached(pReachedSet, initialReachedSet);
 
+    int refinementNumber = 0;
+
     do {
       // Run the CPA algorithm
       final boolean result = wrappedAlgorithm.run(pReachedSet);
@@ -205,7 +231,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
 
-      if (isDisjoint(pcViolation, pcValid)) {
+      //if (isDisjoint(pcViolation, pcValid)) {
+      if (false) {
         // We have found a valid, weakest, precondition
         // -- > write the precondition.
         if (writer.isPresent()) {
@@ -224,8 +251,15 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification
       // ... and one to the location that represents the exit location
-      final ARGPath traceViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
-      final ARGPath traceValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+      final ARGPath traceViolation;
+      final ARGPath traceValid;
+      try {
+        traceViolation = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VIOLATING_PARTITION);
+        traceValid = getTrace(pReachedSet, PreconditionHelper.IS_FROM_VALID_PARTITION);
+      } catch (NoTraceFoundException e) {
+        logger.log(Level.WARNING, e.getMessage());
+        return false;
+      }
 
       // Check the disjointness of the WP for the two traces...
       final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceViolation, Optional.of(wpLoc));
@@ -238,18 +272,31 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // Refine the precision so that the
       // abstraction on the two traces is disjoint
-      Collection<BooleanFormula> newPredicates = refiner.refine(traceViolation, traceValid);
+      PredicatePrecision newPrecision = refiner.refine(traceViolation, traceValid, Optional.of(wpLoc));
 
       // Add the predicates to the precision
       // TODO: Location-specific?
 
-
       // Restart with the initial set of reached states
       // with the new precision!
-      pReachedSet.clear();
-      ReachedSetUtils.addReachedStatesToOtherReached(initialReachedSet, pReachedSet);
+      ARGReachedSet argReached = new ARGReachedSet(pReachedSet, argcpa, refinementNumber++);
+      refinePrecisionForNextIteration(initialReachedSet, argReached, newPrecision);
 
     } while (true);
+  }
+
+  private void refinePrecisionForNextIteration(
+      ReachedSet pInitialStates,
+      ARGReachedSet pTo,
+      PredicatePrecision pPredPrecision) {
+
+//    pTo.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
+//    pTo.reAddToWaitlist(ae);
+//
+//    for (AbstractState e: pInitialStates.getWaitlist()) {
+//      pTo.add(e, pPrec);
+//    }
+
   }
 
 }

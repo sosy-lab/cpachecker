@@ -143,14 +143,6 @@ public final class PreconditionHelper {
         PredicateVariableElimination.eliminateDeadVariables(mgrv, pPf.getFormula(), pPf.getSsa()));
   }
 
-  public BooleanFormula getPathPrecond(ARGPath pPath) {
-    ImmutableList<PathFormula> r = from(pPath.asStatesList())
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
-    return null;
-  }
-
   public List<BooleanFormula> getPrecondsAlongPath(ARGPath pPath) {
     ImmutableList<PathFormula> r = from(pPath.asStatesList())
         .transform(toState(PredicateAbstractState.class))

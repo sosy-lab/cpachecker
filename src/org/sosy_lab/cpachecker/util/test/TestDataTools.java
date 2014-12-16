@@ -125,6 +125,19 @@ public class TestDataTools {
     return new CIdExpression(loc, decl);
   }
 
+  public static Pair<CAssumeEdge, CExpression> makeNegatedAssume(CExpression pAssumeExr) {
+    CAssumeEdge assumeEdge = new CAssumeEdge(
+        "dummyassume",
+        FileLocation.DUMMY,
+        DUMMY_CFA_NODE,
+        DUMMY_CFA_NODE,
+        pAssumeExr,
+        false);
+
+    return Pair.of(assumeEdge, pAssumeExr);
+  }
+
+
   public static Pair<CAssumeEdge, CExpression> makeAssume(CExpression pAssumeExr) {
     CAssumeEdge assumeEdge = new CAssumeEdge(
         "dummyassume",

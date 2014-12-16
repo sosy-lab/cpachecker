@@ -131,6 +131,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateStaticRefiner staticRefiner;
   private final MachineModel machineModel;
   private final PredicateAssumeStore assumesStore;
+  private final AbstractionManager abstractionManager;
 
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory,
@@ -172,7 +173,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 
@@ -249,6 +250,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public PredicateAbstractionManager getPredicateManager() {
     return predicateManager;
+  }
+
+  public AbstractionManager getAbstractionManager() {
+    return abstractionManager;
   }
 
   public FormulaManagerView getFormulaManager() {
