@@ -182,4 +182,8 @@ public class BDDState implements AbstractQueryableState,
     }
     return new BDDState(manager, bvmgr, manager.makeExists(currentState, toForget));
   }
+
+  public NamedRegionManager getNamedRegionManager() {
+    return manager;
+  }
 }

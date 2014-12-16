@@ -486,7 +486,7 @@ public class CFACreator {
       }
 
       // switch main functions
-      TigerAlgorithm.originalMainFunction = mainFunctionName;
+      TigerAlgorithm.originalMainFunction = mainFunctionName; // the field is also used by TigerAlgorithm_with_pc
       mainFunctionName = WrapperUtil.CPAtiger_MAIN;
 
       CParser cParser = (CParser)parser;
