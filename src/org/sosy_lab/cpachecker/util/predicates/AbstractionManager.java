@@ -135,6 +135,62 @@ public final class AbstractionManager {
     return result;
   }
 
+  public void orderPredicates() {
+    int[][] similarities =
+        new int[numberOfPredicates][numberOfPredicates];
+    for (int i = 0; i < similarities.length; i++) {
+      for (int j = 0; j < similarities[i].length; j++) {
+        Set<String> firstPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(i)
+                .getSymbolicAtom());
+        Set<String> secondPredVars =
+            fmgr.extractVariableNames(varIDToPredicate.get(j)
+                .getSymbolicAtom());
+        firstPredVars.retainAll(secondPredVars);
+        similarities[i][j] = firstPredVars.size();
+      }
+    }
+
+    List<ArrayList<Integer>> partitions = new ArrayList<>();
+    int[] setIds = new int[numberOfPredicates];
+    int nextSetId = 1;
+    for (int i = 0; i < setIds.length; i++) {
+      int thisSetID;
+      ArrayList<Integer> thisPartition = new ArrayList<>();
+      if (setIds[i] == 0) {
+        setIds[i] = nextSetId;
+        thisSetID = nextSetId++;
+        thisPartition = new ArrayList<>();
+        partitions.add(thisPartition);
+        thisPartition.add(i);
+      } else {
+        thisSetID = setIds[i];
+      }
+      for (int j = i + 1; j < similarities[i].length; j++) {
+        if (similarities[i][j] > 0) {
+          setIds[j] = thisSetID;
+          thisPartition.add(j);
+        }
+      }
+    }
+    Collections.sort(partitions, new Comparator<ArrayList<Integer>>() {
+
+      @Override
+      public int compare(ArrayList<Integer> pArg0,
+          ArrayList<Integer> pArg1) {
+        return pArg0.size() - pArg1.size();
+      }
+
+    });
+
+    ArrayList<Integer> order = new ArrayList<>(numberOfPredicates);
+    for (ArrayList<Integer> list : partitions) {
+      order.addAll(list);
+    }
+
+    rmgr.setVarOrder(order);
+  }
+
   private void sortVarsByFrequency() {
     final Map<String, Integer> varToFrequency = new HashMap<>();
 
