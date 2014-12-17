@@ -450,10 +450,6 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return path.toString().hashCode();
   }
 
-  void setPreviousErrorPathId(final ARGPath pErrorPath) {
-    previousErrorPathId = obtainErrorPathId(pErrorPath);
-  }
-
   /**
    * The strategy to determine where to restart the analysis after a successful refinement.
    * {@link #TOP} means that the analysis is restarted from the root of the ARG

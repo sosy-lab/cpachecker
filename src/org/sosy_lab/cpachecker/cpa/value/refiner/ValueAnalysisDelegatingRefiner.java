@@ -199,32 +199,21 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    // if infeasible, refine with the optional static refiner or the value refiner
-    if (!isPathFeasable(pErrorPath)) {
+    boolean isRefined = staticRefiner.performRefinement(reached, pErrorPath)
+        || valueRefiner.performRefinement(reached);
 
-      if(!staticRefiner.performRefinement(reached, pErrorPath)) {
-        valueRefiner.performRefinement(reached);
-      }
-
+    if(isRefined) {
       return CounterexampleInfo.spurious();
     }
 
-    // if feasible, refine with the optional predicate refiner or return CEX
-    else {
+    else if(predicatingRefiner != null) {
+      return predicatingRefiner.performRefinement(reached, pErrorPath);
+    }
 
-      if (predicatingRefiner != null) {
-        // just notify the value refiner about this error path
-        valueRefiner.setPreviousErrorPathId(pErrorPath);
-
-        // let the predicate refiner do the actual refining
-        return predicatingRefiner.performRefinement(reached, pErrorPath);
-      }
-
-      try {
-        return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Failed to configure feasbility checker", e);
-      }
+    try {
+      return CounterexampleInfo.feasible(pErrorPath, createModel(pErrorPath));
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Failed to configure feasbility checker", e);
     }
   }
 
