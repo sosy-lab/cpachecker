@@ -248,7 +248,7 @@ class SmtInterpolUtil {
       }
 
       FunctionSymbol funcSymb = at.getFunction();
-      return env.term(funcSymb.getName(), newParams);
+      return env.term(funcSymb.getName(), funcSymb.getIndices(), null, newParams);
     } else {
       // ConstantTerm:            numeral, nothing to replace
       // AnnotatedTerm, LetTerm:  should not happen here
