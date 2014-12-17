@@ -5,7 +5,7 @@ Changes since CPAchecker 1.3.4
   that allows to choose better interpolants
   and thus increases the performance of the analysis.
 
-* Continuosly-Refined Invariants for k-Induction
+* Continuously-Refined Invariants for k-Induction
   The k-induction-based analysis can now be supplied
   with a sequence of increasingly precise invariants throughout the analysis,
   leading to a more efficient and effective combination
