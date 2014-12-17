@@ -35,7 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -55,17 +57,18 @@ public class BDDCompressExpressionVisitor
   private static final Map<Partition, Map<BigInteger, Region[]>> INT_REGIONS_MAP = new HashMap<>();
 
   private final PredicateManager predMgr;
-  private final BDDPrecision precision;
+  private final VariableTrackingPrecision precision;
   private final BitvectorManager bvmgr;
   private final Map<BigInteger, Region[]> intToRegions;
   private final int size;
+  private final CFANode location;
 
   /** This Visitor returns a representation for an expression.
    * @param size length of compressed bitvector
    * @param pPartition info about variables and numbers
    */
-  public BDDCompressExpressionVisitor(final PredicateManager pPredMgr, final BDDPrecision pPrecision,
-                                      final int size,
+  public BDDCompressExpressionVisitor(final PredicateManager pPredMgr, final VariableTrackingPrecision pPrecision,
+                                      final int size, final CFANode pLocation,
                                       final BitvectorManager pBVmgr, final Partition pPartition) {
     Preconditions.checkNotNull(pPartition);
     this.predMgr = pPredMgr;
@@ -73,6 +76,7 @@ public class BDDCompressExpressionVisitor
     this.bvmgr = pBVmgr;
     this.size = size;
     this.intToRegions = initMappingIntToRegions(pPartition);
+    this.location = pLocation;
   }
 
   /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
@@ -169,7 +173,7 @@ public class BDDCompressExpressionVisitor
         return null;
       }
     }
-    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), size, precision);
+    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, size, precision);
   }
 
   @Override

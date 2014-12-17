@@ -2,22 +2,39 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="500" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-stator"/>
+    <option name="-noout"/>
+    <option name="-policy"/>
+    <option name="-setprop">log.consoleLevel=INFO</option>
 
-  <rundefinition>
-    <!-- Integer Tests -->
     <sourcefiles>
-        <include>../programs/stator/*.c</include>
+        <include>../programs/policyiteration/*.c</include>
     </sourcefiles>
-</rundefinition>
 
-<columns>
-    <column title="total">Total time for CPA algorithm</column>
-    <column title="policy propagation time">Time spent in policy propagation</column>
-    <column title="value determination time">Time spent in value determination solver</column>
-    <column title="value determination solver calls">Number of calls to the value determination solver</column>
-    <column title="merge time">Time for merge operator</column>
-    <column title="memory analysis time">Time spent in memory analysis</column>
-</columns>
+    <rundefinition name="vanilla">
+        <sourcefiles>
+            <include>../programs/policyiteration/pointers/*.c</include>
+        </sourcefiles>
+    </rundefinition>
+
+    <rundefinition name="noPointerAliasing">
+        <option name ="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    </rundefinition>
+
+    <rundefinition name="noPathFocusing">
+        <option name ="-setprop">cpa.stator.policy.pathFocusing=false</option>
+    </rundefinition>
+
+    <rundefinition name="octagons">
+        <sourcefiles>
+            <include>../programs/policyiteration/octagons/*.c</include>
+        </sourcefiles>
+        <option name ="-setprop">cpa.stator.policy.generateOctagons=true</option>
+    </rundefinition>
+
+
+    <columns>
+        <column title="total">Total time for CPA algorithm</column>
+        <column title="abstraction">Time spent in abstraction</column>
+        <column title="value determination">Time spent in merge-step</column>
+    </columns>
 </benchmark>

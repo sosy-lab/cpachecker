@@ -391,7 +391,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
     while (consider.size() > 0) {
       if (size == consider.size()) {
-        System.out.println("Cannot topology sort ARGs for blocks due to recursion.");
+        logger.log(Level.WARNING, "Cannot topology sort ARGs for blocks due to recursion.");
         return new ARGState[1];
       }
       size = consider.size();

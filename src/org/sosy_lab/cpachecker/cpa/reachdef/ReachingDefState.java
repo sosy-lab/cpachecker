@@ -462,36 +462,49 @@ public class ReachingDefState implements AbstractState, Serializable,
     StringBuilder sb = new StringBuilder();
 
     sb.append("{");
+    sb.append("\\n");
 
     sb.append(System.identityHashCode(this));
     sb.append("\\n");
 
-    sb.append("global: [");
-    //this part may be seperated into an util class
-    Map<String, String> map = new HashMap<>();
-    // to merge varName & list of globalReachDefs to one String
-    // create a new HashMap with varName as key and [Interval] (refCount) as value
-    for (Entry<String, Set<DefinitionPoint>> entry : globalReachDefs.entrySet()) {
-      map.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
-    }
-    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, map);
-    sb.append("]\\n");
+    // create a string like: global:  [varName1; varName2; ... ; ...]
+    sb.append("global:");
+    sb.append(createStringOfMap(globalReachDefs));
+    sb.append("\\n");
 
-    sb.append("local: [");
-    //this part may be seperated into an util class
-    Map<String, String> m = new HashMap<>();
-    // to merge varName & list of globalReachDefs to one String
-    // create a new HashMap with varName as key and [Interval] (refCount) as value
-    for (Entry<String, Set<DefinitionPoint>> entry : localReachDefs.entrySet()) {
-      m.put("("+entry.getKey(), entry.getValue().toArray().toString().replace(",", ";")+")");
-    }
-    Joiner.on(", ").withKeyValueSeparator(": ").appendTo(sb, localReachDefs);
-    sb.append("]\\n");
+    // create a string like: local:  [varName1; varName2; ... ; ...]
+    sb.append("local:");
+    sb.append(createStringOfMap(localReachDefs));
+    sb.append("\\n");
 
-    sb.append(stateOnLastFunctionCall);
+    sb.append(System.identityHashCode(stateOnLastFunctionCall));
+    sb.append("\\n");
 
     sb.append("}");
 
+    return sb.toString();
+  }
+
+  private String createStringOfMap(Map<String, Set<DefinitionPoint>> map) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(" [");
+
+    boolean first=true;
+
+    for (Entry<String, Set<DefinitionPoint>> entry : map.entrySet()) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+
+      sb.append(" (");
+      sb.append(entry.getKey());
+      sb.append(": [");
+      Joiner.on("; ").appendTo(sb, entry.getValue());
+      sb.append("])");
+    }
+    sb.append("]");
     return sb.toString();
   }
 

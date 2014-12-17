@@ -14,8 +14,7 @@
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_false-unreach-call.i.cil.c</exclude>
-      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.04_false-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/*</exclude><!-- only timeouts anyway -->
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -35,6 +34,10 @@
       <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
+    </sourcefiles>
+    <sourcefiles>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     </sourcefiles>
     <option name="-predicateAnalysis-bitprecise"/>
   </rundefinition>

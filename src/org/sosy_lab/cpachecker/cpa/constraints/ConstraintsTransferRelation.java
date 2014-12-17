@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
@@ -101,10 +100,9 @@ public class ConstraintsTransferRelation
 
     final FormulaManagerFactory factory = new FormulaManagerFactory(pConfig, pLogger, pShutdownNotifier);
 
-    final FormulaManager baseManager = factory.getFormulaManager();
-    formulaManager = new FormulaManagerView(baseManager, pConfig, pLogger);
+    formulaManager = new FormulaManagerView(factory, pConfig, pLogger);
 
-    solver = new Solver(formulaManager, factory);
+    solver = new Solver(formulaManager, factory, pConfig, pLogger);
   }
 
   @Override

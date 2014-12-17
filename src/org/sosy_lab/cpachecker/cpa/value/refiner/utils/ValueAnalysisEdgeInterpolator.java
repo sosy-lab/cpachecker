@@ -27,7 +27,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -40,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public class ValueAnalysisEdgeInterpolator {
   /**
@@ -114,7 +114,8 @@ public class ValueAnalysisEdgeInterpolator {
    * @throws InterruptedException
    */
   public ValueAnalysisInterpolant deriveInterpolant(
-      final List<CFAEdge> pErrorPath,
+      final ARGPath pErrorPath,
+      final CFAEdge pCurrentEdge,
       final int pOffset,
       final ValueAnalysisInterpolant pInputInterpolant,
       final Set<MemoryLocation> useDefRelation) throws CPAException, InterruptedException {
@@ -122,7 +123,8 @@ public class ValueAnalysisEdgeInterpolator {
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ValueAnalysisState initialState      = pInputInterpolant.createValueAnalysisState();
-    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pErrorPath.get(pOffset));
+
+    ValueAnalysisState initialSuccessor  = getInitialSuccessor(initialState, pCurrentEdge);
 
     if (initialSuccessor == NO_SUCCESSOR) {
       return ValueAnalysisInterpolant.FALSE;
@@ -137,7 +139,7 @@ public class ValueAnalysisEdgeInterpolator {
 
     // if the current edge just changes the names of variables (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
-    if (isOnlyVariableRenamingEdge(pErrorPath.get(pOffset))) {
+    if (isOnlyVariableRenamingEdge(pCurrentEdge)) {
       return initialSuccessor.createInterpolant();
     }
 
@@ -146,7 +148,9 @@ public class ValueAnalysisEdgeInterpolator {
       initialSuccessor.retainAll(useDefRelation);
     }
 
-    Iterable<CFAEdge> remainingErrorPath = skip(pErrorPath, pOffset + 1);
+    MutableARGPath remainingErrorPathM = new MutableARGPath();
+    remainingErrorPathM.addAll(Lists.newArrayList(skip(ErrorPathClassifier.pathToList(pErrorPath), pOffset + 1)));
+    ARGPath remainingErrorPath = remainingErrorPathM.immutableCopy();
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE interpolant
     if (initialSuccessor.getSize() > 1 && isSuffixContradicting(remainingErrorPath)) {
@@ -176,7 +180,7 @@ public class ValueAnalysisEdgeInterpolator {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private boolean isSuffixContradicting(Iterable<CFAEdge> errorPath) throws CPAException, InterruptedException {
+  private boolean isSuffixContradicting(ARGPath errorPath) throws CPAException, InterruptedException {
     return !isRemainingPathFeasible(errorPath, new ValueAnalysisState());
   }
 
@@ -217,17 +221,10 @@ public class ValueAnalysisEdgeInterpolator {
    * @throws InterruptedException
    * @throws CPAException
    */
-  private boolean isRemainingPathFeasible(Iterable<CFAEdge> remainingErrorPath, ValueAnalysisState state)
+  private boolean isRemainingPathFeasible(ARGPath remainingErrorPath, ValueAnalysisState state)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
-
-    MutableARGPath argErrorPath = new MutableARGPath();
-
-    for (CFAEdge edge : remainingErrorPath) {
-      argErrorPath.add(Pair.<ARGState, CFAEdge>of(null, edge));
-    }
-
-    return checker.isFeasible(argErrorPath, state);
+    return checker.isFeasible(remainingErrorPath, state);
   }
 
 

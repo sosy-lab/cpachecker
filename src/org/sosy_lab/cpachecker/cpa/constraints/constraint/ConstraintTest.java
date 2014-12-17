@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValue;
@@ -40,9 +39,9 @@ public class ConstraintTest {
   private final static NumericValue GREATER_NUM_VAL = new NumericValue(NUMBER + 1000);
 
   private final static SymbolicValue SYMBOLIC_ID =
-      SymbolicValueFactory.getInstance().createIdentifier(new JSimpleType(JBasicType.INT));
+      SymbolicValueFactory.getInstance().createIdentifier(JSimpleType.getInt());
   private final static SymbolicValue OTHER_SYMBOLIC_ID =
-      SymbolicValueFactory.getInstance().createIdentifier(new JSimpleType(JBasicType.INT));
+      SymbolicValueFactory.getInstance().createIdentifier(JSimpleType.getInt());
 
   private Constraint constraint;
 /*

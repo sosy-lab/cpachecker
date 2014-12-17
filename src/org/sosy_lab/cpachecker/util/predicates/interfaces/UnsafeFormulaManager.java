@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * This interface represents some formula traverse methods which should not be used on higher levels.
@@ -129,5 +130,18 @@ public interface UnsafeFormulaManager {
   <T1 extends Formula, T2 extends Formula> T1
       substitute(T1 f, List<T2> changeFrom, List<T2> changeTo);
 
+  <T1 extends Formula, T2 extends Formula> T1
+      substitute(T1 f, Map<T2, T2> fromToMapping);
+
+  /**
+   * Simplify a given formula (as good as possible).
+   *    Equivalence must be ensured!
+   *
+   * A solver that does not provide a simplify method
+   *  might just return the original formula.
+   *
+   * @param   The input formula
+   * @return  Simplified version of the formula
+   */
   <T extends Formula> T simplify(T f);
 }

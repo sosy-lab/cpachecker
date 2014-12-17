@@ -39,12 +39,15 @@ import resource
 import threading
 import time
 
+from .benchmarkDataStructures import CORELIMIT, MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT
 from .runexecutor import RunExecutor
 from . import util as Util
 
 
 WORKER_THREADS = []
 STOPPED_BY_INTERRUPT = False
+
+_BYTE_FACTOR = 1000 # byte in kilobyte
 
 
 def executeBenchmarkLocaly(benchmark, outputHandler):
@@ -158,15 +161,42 @@ class _Worker(threading.Thread):
         It also calls functions for output before and after the run.
         """
         self.outputHandler.outputBeforeRun(run)
-
         benchmark = run.runSet.benchmark
-        (run.wallTime, run.cpuTime, memUsage, returnvalue, energy) = \
+
+        # calculate cores to use
+        myCpus = None
+        if CORELIMIT in benchmark.rlimits:
+            allCpus = self.runExecutor.cpus
+            if not allCpus:
+                sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
+            myCpuCount = benchmark.rlimits[CORELIMIT]
+            totalCpuCount = len(allCpus)
+            if myCpuCount > totalCpuCount:
+                sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, totalCpuCount))
+            myCpusStart = (self.numberOfThread * myCpuCount) % totalCpuCount
+            myCpusEnd = (myCpusStart + myCpuCount - 1) % totalCpuCount
+            myCpus = map(lambda i: allCpus[i], range(myCpusStart, myCpusEnd + 1))
+
+        memlimit = None
+        if MEMLIMIT in benchmark.rlimits:
+            memlimit = benchmark.rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
+
+        maxLogfileSize = benchmark.config.maxLogfileSize
+        if maxLogfileSize:
+            maxLogfileSize *= _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
+        elif maxLogfileSize == -1:
+            maxLogfileSize = None
+
+        (run.wallTime, run.cpuTime, memUsage, returnvalue, terminationReason, energy) = \
             self.runExecutor.executeRun(
-                run.getCmdline(), benchmark.rlimits, run.logFile,
-                myCpuIndex=self.numberOfThread,
+                run.getCmdline(), run.logFile,
+                hardtimelimit=benchmark.rlimits.get(TIMELIMIT),
+                softtimelimit=benchmark.rlimits.get(SOFTTIMELIMIT),
+                myCpus=myCpus,
+                memlimit=memlimit,
                 environments=benchmark.getEnvironments(),
-                runningDir=benchmark.workingDirectory(),
-                maxLogfileSize=benchmark.config.maxLogfileSize)
+                workingDir=benchmark.workingDirectory(),
+                maxLogfileSize=maxLogfileSize)
         run.values['memUsage'] = memUsage
         run.values['energy'] = energy
 

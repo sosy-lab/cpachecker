@@ -37,6 +37,10 @@ public abstract class FormulaType<T extends Formula> {
 
   private FormulaType() {}
 
+  public boolean isArrayType() {
+    return false;
+  }
+
   public boolean isBitvectorType() {
     return false;
   }
@@ -171,6 +175,36 @@ public abstract class FormulaType<T extends Formula> {
     return DOUBLE_PRECISION_FP_TYPE;
   }
 
+  public static final class ArrayFormulaType<TI extends Formula, TE extends Formula>
+  extends FormulaType<ArrayFormula<TI,TE>> {
+
+    private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+
+    public ArrayFormulaType(FormulaType<TI> pDomainSort, FormulaType<TE> pRangeSort) {
+      this.indexType = pDomainSort;
+      this.elementType = pRangeSort;
+    }
+
+    public FormulaType<? extends Formula> getElementType() {
+      return elementType;
+    }
+
+    public FormulaType<? extends Formula> getIndexType() {
+      return indexType;
+    }
+
+    @Override
+    public boolean isArrayType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "Array";
+    }
+  }
+
   public static final class FloatingPointType extends FormulaType<FloatingPointFormula> {
 
     private final int exponentSize;
@@ -217,4 +251,10 @@ public abstract class FormulaType<T extends Formula> {
       return "FloatingPoint<exp=" + exponentSize + ",mant=" + mantissaSize + ">";
     }
   }
+
+  public static <TD extends Formula, TR extends Formula> ArrayFormulaType<TD, TR>
+  getArrayType(FormulaType<TD> pDomainSort, FormulaType<TR> pRangeSort) {
+    return new ArrayFormulaType<>(pDomainSort, pRangeSort);
+  }
+
 }

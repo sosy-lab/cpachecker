@@ -23,9 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 
 public interface UnsoundRefiner extends Refiner {
-  public Precision getGlobalPrecision();
+
+  /**
+   * Any unsound refiner, like, e.g., the {@link ValueAnalysisImpactRefiner}
+   * whose refinement procedure leaves the coverage relation in an inconsistent
+   * state, must ensure that a complete re-exploration of the state-space must
+   * be performed before finishing the analysis.
+   *
+   * To this end, all states except the root state must be removed from the
+   * reached set, and a valid precision must be put in place, e.g. by calling
+   * the respective {@link ARGReachedSet#removeSubtree()} method.
+   *
+   * @param reached
+   */
+  public void forceRestart(ReachedSet reached);
 }

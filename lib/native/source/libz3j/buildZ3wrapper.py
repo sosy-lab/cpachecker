@@ -81,7 +81,7 @@ if DEBUG: open("out3","w").write(tmp3)
 def getType(typ):
     return typ.replace("Z3","J")
 
-HEADER = '''// this file is build automatically, do not change
+HEADER = '''// THIS FILE IS BUILD AUTOMATICALLY, DO NOT CHANGE
 #include<jni.h>
 #include<stdlib.h>
 #include"z3.h"
@@ -91,6 +91,7 @@ HEADER = '''// this file is build automatically, do not change
 #include"includes/arguments.h"
 #include"includes/types.h"
 #include"includes/interpolation.h"
+#include"includes/error_handling.h"
 '''
 
 out4=[HEADER]

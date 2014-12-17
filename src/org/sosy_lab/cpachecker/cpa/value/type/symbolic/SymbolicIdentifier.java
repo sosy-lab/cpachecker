@@ -55,6 +55,7 @@ public class SymbolicIdentifier implements SymbolicValue {
 
   // this objects unique id for identifying it
   private final long id;
+  @SuppressWarnings("unused")
   private final Type type;
 
   protected SymbolicIdentifier(long pId, Type pType) {

@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 public class JMethodType extends AFunctionType implements JType {
 
   private static final JMethodType UNRESOLVABLE_TYPE = new JMethodType(
-     new JSimpleType(JBasicType.UNSPECIFIED), new ArrayList<JType>(), false);
+      JSimpleType.getUnspecified(), new ArrayList<JType>(), false);
 
   /**
    * Creates a new <code>JMethodType</code> object that stores the given information.

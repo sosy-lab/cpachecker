@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.util.List;
 
 import org.junit.Assert;
@@ -36,9 +38,12 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 /**
@@ -60,6 +65,7 @@ public class Z3MaximizationTest {
     bfmgr = (Z3BooleanFormulaManager) mgr.getBooleanFormulaManager();
   }
 
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnbounded() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, obj;
@@ -70,12 +76,14 @@ public class Z3MaximizationTest {
         rfmgr.equal(x, obj)
       );
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(obj);
+      int handle = prover.maximize(obj);
+      @SuppressWarnings("unused")
       OptEnvironment.OptStatus response = prover.check();
-      Assert.assertEquals(OptEnvironment.OptStatus.UNBOUNDED, response);
+      Assert.assertTrue(!prover.upper(handle, 0).isPresent());
     }
   }
 
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Test public void testUnfeasible() throws Exception {
     try (OptEnvironment prover = new Z3OptProver(mgr)) {
       RationalFormula x, y;
@@ -86,7 +94,8 @@ public class Z3MaximizationTest {
           rfmgr.greaterThan(x, y)
       );
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(x);
+      @SuppressWarnings("unused")
+      int handle = prover.maximize(x);
       OptEnvironment.OptStatus response = prover.check();
       Assert.assertEquals(OptEnvironment.OptStatus.UNSAT,
           response);
@@ -109,14 +118,14 @@ public class Z3MaximizationTest {
         x - y >= 1
        */
       List<BooleanFormula> constraints = ImmutableList.of(
-          rfmgr.lessOrEquals(x, rfmgr.makeNumber("10")),
-          rfmgr.lessOrEquals(y, rfmgr.makeNumber("15")),
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
           rfmgr.equal(obj, rfmgr.add(x, y)),
-          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber("1"))
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
       );
 
       prover.addConstraint(bfmgr.and(constraints));
-      prover.maximize(obj);
+      int handle = prover.maximize(obj);
 
       // Maximize for x.
       OptEnvironment.OptStatus response = prover.check();
@@ -124,12 +133,62 @@ public class Z3MaximizationTest {
       Assert.assertEquals(OptEnvironment.OptStatus.OPT, response);
 
       Model model = prover.getModel();
-      System.out.println("Model = " + model);
+      Assert.assertEquals("obj : Real: 19\nx : Real: 10\ny : Real: 9",
+          model.toString());
 
       // Check the value.
-      Assert.assertEquals(Rational.ofString("19"), prover.value());
+      Assert.assertEquals(Rational.ofString("19"), prover.upper(handle, 0).get());
     }
+  }
 
+  @Test public void testSwitchingObjectives() throws Exception {
+    try (OptEnvironment prover = new Z3OptProver(mgr)) {
+      RationalFormula x, y, obj;
+      x = rfmgr.makeVariable("x");
+      y = rfmgr.makeVariable("y");
+      obj = rfmgr.makeVariable("obj");
+
+      /*
+        real x, y, obj
+        x <= 10
+        y <= 15
+        obj = x + y
+        x - y >= 1
+       */
+      List<BooleanFormula> constraints = ImmutableList.of(
+          rfmgr.lessOrEquals(x, rfmgr.makeNumber(10)),
+          rfmgr.lessOrEquals(y, rfmgr.makeNumber(15)),
+          rfmgr.equal(obj, rfmgr.add(x, y)),
+          rfmgr.greaterOrEquals(rfmgr.subtract(x, y), rfmgr.makeNumber(1))
+      );
+      prover.addConstraint(bfmgr.and(constraints));
+      OptStatus response;
+
+      prover.push();
+
+      int handle = prover.maximize(obj);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("19"));
+
+      prover.pop();
+      prover.push();
+
+      handle = prover.maximize(x);
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("10"));
+
+      prover.pop();
+      prover.push();
+
+      handle = prover.maximize(rfmgr.makeVariable("y"));
+      response = prover.check();
+      assertThat(response).isEqualTo(OptStatus.OPT);
+      assertThat(prover.upper(handle, 0).get()).isEqualTo(Rational.ofString("9"));
+
+      prover.pop();
+    }
   }
 
 }

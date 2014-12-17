@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,13 +40,14 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.MemoryLocation;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisGlobalRefiner.RestartStrategy;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -65,6 +67,11 @@ class ValueAnalysisInterpolationTree {
    * the logger in use
    */
   private final LogManager logger;
+
+  /**
+   * the counter to count interpolation queries
+   */
+  private int interpolationCounter = 0;
 
   /**
    * the predecessor relation of the states contained in this tree
@@ -129,6 +136,7 @@ class ValueAnalysisInterpolationTree {
    * @return true if there are more paths left for interpolation, else false
    */
   public boolean hasNextPathForInterpolation() {
+    interpolationCounter++;
     return strategy.hasNextPathForInterpolation();
   }
 
@@ -161,12 +169,11 @@ class ValueAnalysisInterpolationTree {
   }
 
   /**
-   * This method exports the current representation to a *.dot file.
+   * This method exports the current representation in dot format to the given file.
    *
-   * @param refinementCnt the current refinement counter
-   * @param iteration the current iteration of the current refinement
+   * @param Path file the file to write to
    */
-  void exportToDot(int refinementCnt, int iteration) {
+  void exportToDot(PathTemplate file, int refinementCounter) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
@@ -190,11 +197,10 @@ class ValueAnalysisInterpolationTree {
     }
     result.append("}");
 
-    try {
-      Files.writeFile(Paths.get("itpTree_" + refinementCnt + "_" + iteration + ".dot"), result.toString());
+    try (Writer w = Files.openOutputFile(file.getPath(refinementCounter, interpolationCounter))) {
+      w.write(result.toString());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e,
-          "Could not write interpolation tree to file");
+      logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");
     }
   }
 
@@ -205,7 +211,7 @@ class ValueAnalysisInterpolationTree {
    * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
    * @return the next error path for a subsequent interpolation
    */
-  MutableARGPath getNextPathForInterpolation() {
+  ARGPath getNextPathForInterpolation() {
     return strategy.getNextPathForInterpolation();
   }
 
@@ -215,8 +221,8 @@ class ValueAnalysisInterpolationTree {
    * @param errorPath the path for which to obtain the initial interpolant
    * @return the initial interpolant for the given path
    */
-  ValueAnalysisInterpolant getInitialInterpolantForPath(MutableARGPath errorPath) {
-    return strategy.getInitialInterpolantForRoot(errorPath.getFirst().getFirst());
+  ValueAnalysisInterpolant getInitialInterpolantForPath(ARGPath errorPath) {
+    return strategy.getInitialInterpolantForRoot(errorPath.getFirstState());
   }
 
   /**
@@ -406,7 +412,7 @@ class ValueAnalysisInterpolationTree {
 
   private interface InterpolationStrategy {
 
-    public MutableARGPath getNextPathForInterpolation();
+    public ARGPath getNextPathForInterpolation();
 
     public boolean hasNextPathForInterpolation();
 
@@ -421,14 +427,14 @@ class ValueAnalysisInterpolationTree {
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
     @Override
-    public MutableARGPath getNextPathForInterpolation() {
+    public ARGPath getNextPathForInterpolation() {
       MutableARGPath errorPath = new MutableARGPath();
 
       ARGState current = sources.pop();
 
       if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
         logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false ... return empty path");
-        return errorPath;
+        return null;
       }
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
@@ -457,7 +463,7 @@ class ValueAnalysisInterpolationTree {
         }
       }
 
-      return errorPath;
+      return errorPath.immutableCopy();
     }
 
     /**
@@ -502,7 +508,7 @@ class ValueAnalysisInterpolationTree {
     private List<ARGState> sources = new ArrayList<>(targets);
 
     @Override
-    public MutableARGPath getNextPathForInterpolation() {
+    public ARGPath getNextPathForInterpolation() {
       ARGState current = sources.remove(0);
 
       assert current.isTarget() : "current element is not a target";
@@ -520,7 +526,7 @@ class ValueAnalysisInterpolationTree {
         current = parent;
       }
 
-      return errorPath;
+      return errorPath.immutableCopy();
     }
 
     @Override

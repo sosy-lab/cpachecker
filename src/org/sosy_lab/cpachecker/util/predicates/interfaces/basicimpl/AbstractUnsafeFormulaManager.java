@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -170,6 +171,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
       TFormulaInfo expr,
       List<TFormulaInfo> substituteFrom,
       List<TFormulaInfo> substituteTo);
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 pF, Map<T2, T2> pFromToMapping) {
+    List<T2> fromList = Lists.newArrayList(pFromToMapping.keySet());
+    List<T2> toList = Lists.newArrayList(pFromToMapping.values());
+
+    return substitute(pF, fromList, toList);
+  }
 
   @Override
   public <T extends Formula> T simplify(T f) {

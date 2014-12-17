@@ -245,10 +245,10 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (predCpa == null) {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
-    fmgr = predCpa.getFormulaManager();
+    solver = predCpa.getSolver();
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    solver = predCpa.getSolver();
     shutdownNotifier = pShutdownNotifier;
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
     machineModel = predCpa.getMachineModel();

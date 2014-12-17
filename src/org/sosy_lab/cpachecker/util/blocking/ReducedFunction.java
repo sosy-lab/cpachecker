@@ -69,8 +69,6 @@ class ReducedFunction {
     activeNodes.add(pFrom);
     activeNodes.add(pTo);
 
-    //System.out.println(String.format("add: %d --> %d", pFrom.getWrapped().getLineNumber(), pTo.getWrapped().getLineNumber()));
-
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
   }
@@ -80,8 +78,6 @@ class ReducedFunction {
     assert (activeNodes.count(pFrom) > 0);
     assert (activeNodes.count(pTo) > 0);
     assert (pEdge.getPointsTo() == pTo);
-
-    //System.out.println(String.format("remove: %d --> %d", pFrom.getWrapped().getLineNumber(), pTo.getWrapped().getLineNumber()));
 
     Set<ReducedEdge> edges = cfaEdges.get(pFrom, pTo);
     if (edges != null) {

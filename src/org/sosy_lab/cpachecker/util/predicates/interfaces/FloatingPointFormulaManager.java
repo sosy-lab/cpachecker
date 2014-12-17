@@ -31,7 +31,6 @@ import java.math.BigDecimal;
 public interface FloatingPointFormulaManager {
   public FloatingPointFormula makeNumber(double n, FormulaType.FloatingPointType type);
   public FloatingPointFormula makeNumber(BigDecimal n, FormulaType.FloatingPointType type);
-  public FloatingPointFormula makeNumber(String n, FormulaType.FloatingPointType type);
 
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType type);
 

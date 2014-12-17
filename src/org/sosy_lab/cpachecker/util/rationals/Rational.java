@@ -104,7 +104,7 @@ public class Rational implements Comparable<Rational>{
 
   /**
    * Wrapper around the constructor, returns cached constants if possible.
-   * Assumes that {@param num} and {@param den} are in the normal form.
+   * Assumes that <code>num</code> and <code>den</code> are in the normal form.
    */
   private static Rational ofNormalForm(BigInteger num, BigInteger den) {
     if (num.equals(b_zero)) {
@@ -123,9 +123,15 @@ public class Rational implements Comparable<Rational>{
 
   public Rational times(Rational b) {
     Rational a = this;
-    if (a == ZERO || b == ZERO) return ZERO;
-    if (a == ONE) return b;
-    if (b == ONE) return a;
+    if (a == ZERO || b == ZERO) {
+      return ZERO;
+    }
+    if (a == ONE) {
+      return b;
+    }
+    if (b == ONE) {
+      return a;
+    }
 
     // reduce p1/q2 and p2/q1, then multiply, where a = p1/q1 and b = p2/q2
     Rational c = of(a.num, b.den);
@@ -135,16 +141,19 @@ public class Rational implements Comparable<Rational>{
 
   public Rational plus(Rational b) {
     Rational a = this;
-    if (a == ZERO) return b;
-    if (b == ZERO) return a;
+    if (a == ZERO) {
+      return b;
+    }
+    if (b == ZERO) {
+      return a;
+    }
 
     return of((a.num.multiply(b.den).add(b.num.multiply(a.den))),
         a.den.multiply(b.den));
   }
 
   public Rational minus(Rational b) {
-    Rational a = this;
-    return a.plus(b.negate());
+    return plus(b.negate());
   }
 
   public Rational divides(Rational b) {
@@ -172,6 +181,17 @@ public class Rational implements Comparable<Rational>{
     return num.doubleValue() / den.doubleValue();
   }
 
+  public boolean isIntegral() {
+    return den.equals(b_one);
+  }
+
+  /**
+   * @return -1, 0 or 1, representing the sign of the rational number.
+   */
+  public int signum() {
+    return num.signum();
+  }
+
   /**
    * @return  String of the form num/den.
    */
@@ -185,17 +205,22 @@ public class Rational implements Comparable<Rational>{
 
   @Override
   public int compareTo(Rational b) {
-    Rational a = this;
-    BigInteger lhs = a.num.multiply(b.den);
-    BigInteger rhs = a.den.multiply(b.num);
+    BigInteger lhs = num.multiply(b.den);
+    BigInteger rhs = den.multiply(b.num);
     return lhs.subtract(rhs).signum();
   }
 
   @Override
   public boolean equals(Object y) {
-    if (this == y) return true;
-    if (y == null) return false;
-    if (y.getClass() != this.getClass()) return false;
+    if (this == y) {
+      return true;
+    }
+    if (y == null) {
+      return false;
+    }
+    if (y.getClass() != this.getClass()) {
+      return false;
+    }
     Rational b = (Rational) y;
     return (num.equals(b.num) && den.equals(b.den));
   }

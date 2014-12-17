@@ -97,8 +97,9 @@ def executeBenchmarkInCloud(benchmark, outputHandler):
                 runIDs = _submitRunsPrallel(runSet, webclient, benchmark)
             except ImportError:
                 runIDs = _submitRuns(runSet, webclient, benchmark)
-        _getResults(runIDs, outputHandler, webclient, benchmark)
-        outputHandler.outputAfterRunSet(runSet)
+                
+            _getResults(runIDs, outputHandler, webclient, benchmark)
+            outputHandler.outputAfterRunSet(runSet)
 
     except KeyboardInterrupt as e:
         STOPPED_BY_INTERRUPT = True
@@ -257,6 +258,9 @@ def _handleOptions(run, params):
                     options.append("analysis.entryFunction=" + next(i))
                 elif option == "-timelimit":
                      options.append("limits.time.cpu =" + next(i)) 
+                elif option == "-skipRecursion":
+                     options.append("cpa.callstack.skipRecursion=true")
+                     options.append("analysis.summaryEdges=true")
 
                 elif option == "-spec":
                      spec  = next(i)[-1].split('.')[0]
@@ -364,11 +368,11 @@ def _getAndHandleResult(runID, run, outputHandler, webclient, benchmark):
        # move logfile and stderr
        with open(run.logFile, 'w') as logFile:
            logFile.write(" ".join(run.getCmdline()) + "\n\n\n\n\n------------------------------------------\n")
-           stdout = resultDir + "/stdout"
-           if os.path.isfile(stdout):
-               for line in open(stdout):
+           toolLog = resultDir + "/output.log"
+           if os.path.isfile(toolLog):
+               for line in open(toolLog):
                    logFile.write(line)
-               os.remove(stdout)
+               os.remove(toolLog)
        stderr = resultDir + "/stderr"
        if os.path.isfile(stderr):
            shutil.move(stderr, run.logFile + ".stdError")
@@ -423,6 +427,7 @@ def _parseCloudResultFile(filePath):
     returnValue = int(values["@vcloud-exitcode"])
     wallTime = float(values["walltime"].strip('s'))
     cpuTime = float(values["cputime"].strip('s'))
+    values["energy"] = eval(values["energy"])  
     values["memUsage"] = int(values["@vcloud-memory"].strip('B'))     
     
     return (wallTime, cpuTime, returnValue, values)

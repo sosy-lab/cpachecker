@@ -74,12 +74,6 @@ public abstract class AbstractFloatingPointFormulaManager<TFormulaInfo, TType, T
   protected abstract TFormulaInfo makeNumberImpl(BigDecimal n, FormulaType.FloatingPointType type);
 
   @Override
-  public FloatingPointFormula makeNumber(String n, FormulaType.FloatingPointType type) {
-    return wrap(makeNumberImpl(n, type));
-  }
-  protected abstract TFormulaInfo makeNumberImpl(String n, FormulaType.FloatingPointType type);
-
-  @Override
   public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
     return wrap(makeVariableImpl(pVar, pType));
   }

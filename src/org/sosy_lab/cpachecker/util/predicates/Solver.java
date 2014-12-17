@@ -25,25 +25,57 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 /**
- * Abstraction of an SMT solver that also provides some higher-level methods.
+ * Encapsulation of an SMT solver.
+ * This class is the central entry point to everything related to an SMT solver:
+ * formula creation and manipulation (via the {@link #getFormulaManager()} method),
+ * and checking for satisfiability (via the remaining methods).
+ * In addition to the low-level methods provided by {@link FormulaManager},
+ * this class and {@link FormulaManagerView} provide additional higher-level utility methods,
+ * and additional features such as
+ * replacing one SMT theory transparently with another,
+ * or using different SMT solvers for different tasks such as solving and interpolation.
  */
-public class Solver {
+@Options(prefix="cpa.predicate")
+public final class Solver {
+
+  @Option(secure=true, name="solver.useLogger",
+      description="log some solver actions, this may be slow!")
+  private boolean useLogger = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final FormulaManagerFactory factory;
+
+  private final FormulaManager solvingFormulaManager;
+  private final FormulaManager interpolationFormulaManager;
 
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
+
+  private final LogManager logger;
 
   // stats
   public final Timer solverTime = new Timer();
@@ -51,10 +83,37 @@ public class Solver {
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
-  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory) {
+  /**
+   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code.
+   * This constructor is primarily for test code.
+   */
+  @VisibleForTesting
+  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this);
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    factory = pFactory;
+    logger = pLogger;
+    solvingFormulaManager = pFactory.getFormulaManager();
+    interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
+  }
+
+  /**
+   * Load and instantiate an SMT solver.
+   */
+  public static Solver create(Configuration config, LogManager logger,
+      ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
+    FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
+    FormulaManagerView fmgr = new FormulaManagerView(factory, config, logger);
+    return new Solver(fmgr, factory, config, logger);
+  }
+
+  /**
+   * Return the underlying {@link FormulaManagerView}
+   * that can be used for creating and manipulating formulas.
+   */
+  public FormulaManagerView getFormulaManager() {
+    return fmgr;
   }
 
   /**
@@ -64,7 +123,7 @@ public class Solver {
    * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment() {
-    return factory.newProverEnvironment(false, false);
+    return newProverEnvironment(false, false);
   }
 
   /**
@@ -76,7 +135,7 @@ public class Solver {
    * The solver is told to enable model generation.
    */
   public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return factory.newProverEnvironment(true, false);
+    return newProverEnvironment(true, false);
   }
 
   /**
@@ -88,7 +147,58 @@ public class Solver {
    * The solver is told to enable unsat-core generation.
    */
   public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return factory.newProverEnvironment(false, true);
+    return newProverEnvironment(false, true);
+  }
+
+  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
+    ProverEnvironment pe = solvingFormulaManager.newProverEnvironment(generateModels, generateUnsatCore);
+
+    if (useLogger) {
+      return new LoggingProverEnvironment(logger, pe);
+    } else {
+      return pe;
+    }
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for interpolation queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   */
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
+    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
+
+    if (solvingFormulaManager != interpolationFormulaManager) {
+      // If interpolationFormulaManager is not the normal solver,
+      // we use SeparateInterpolatingProverEnvironment
+      // which copies formula back and forth using strings.
+      // We don't need this if the solvers are the same anyway.
+      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipe);
+    }
+
+    if (useLogger) {
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
+    } else {
+      return ipe;
+    }
+  }
+
+  /**
+   * Direct reference to the underlying SMT solver for optimization queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link OptEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
+   */
+  public OptEnvironment newOptEnvironment() {
+    OptEnvironment environment = solvingFormulaManager.newOptEnvironment();
+    environment = new OptEnvironmentView(environment, fmgr);
+
+    if (useLogger) {
+      return new LoggingOptEnvironment(logger, environment);
+    } else {
+      return environment;
+    }
   }
 
   /**

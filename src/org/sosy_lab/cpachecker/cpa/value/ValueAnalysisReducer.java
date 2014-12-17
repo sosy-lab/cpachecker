@@ -85,10 +85,6 @@ public class ValueAnalysisReducer implements Reducer {
       }
     }
 
-    // set difference to avoid null pointer exception due to precision adaption of omniscient composite precision adjustment
-    // to avoid that due to precision adaption in BAM ART which is not yet propagated tracked variable information is deleted
-    diffElement.addToDelta(diffElement);
-
     return diffElement;
   }
 

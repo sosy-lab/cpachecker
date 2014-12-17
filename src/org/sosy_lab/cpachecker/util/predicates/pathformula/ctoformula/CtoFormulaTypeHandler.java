@@ -41,10 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 public class CtoFormulaTypeHandler {
 
-  private final MachineModel machineModel;
+  protected final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-
-  private final boolean useFloats;
 
   private final BaseSizeofVisitor sizeofVisitor;
 
@@ -57,7 +55,6 @@ public class CtoFormulaTypeHandler {
       MachineModel pMachineModel, FormulaManagerView pFmgr) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    useFloats = pOptions.useFloatingPointArithmetic();
 
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
@@ -99,8 +96,8 @@ public class CtoFormulaTypeHandler {
     return result;
   }
 
-  private FormulaType<?> getFormulaTypeFromCType0(CType type) {
-    if (useFloats && type instanceof CSimpleType) {
+  protected FormulaType<?> getFormulaTypeFromCType0(CType type) {
+    if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {
       case FLOAT:

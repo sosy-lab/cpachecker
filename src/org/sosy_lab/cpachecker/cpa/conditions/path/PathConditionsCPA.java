@@ -73,13 +73,13 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
   private final TransferRelation transfer = new SingleEdgeTransferRelation() {
       @Override
       public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-          AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) {
-        return Collections.singleton(condition.getAbstractSuccessor(pElement, pCfaEdge));
+          AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+        return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
       }
 
       @Override
-      public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-          List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+      public Collection<? extends AbstractState> strengthen(AbstractState pState,
+          List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
         return null;
       }
     };

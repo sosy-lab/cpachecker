@@ -43,7 +43,7 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public PrecisionAdjustmentResult prec(AbstractState successor, Precision precision,
-      UnmodifiableReachedSet states) throws CPAException {
+      UnmodifiableReachedSet states, AbstractState fullState) throws CPAException {
 
     CHCState candidateState = (CHCState)successor;
 

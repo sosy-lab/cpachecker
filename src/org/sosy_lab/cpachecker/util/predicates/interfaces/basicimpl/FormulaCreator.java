@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
@@ -98,8 +99,14 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return new FloatingPointFormulaImpl<>(pTerm);
   }
 
+  protected <TI extends Formula, TE extends Formula>
+  ArrayFormula<TI, TE>
+  encapsulateArray(TFormulaInfo pTerm, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    return new ArrayFormulaImpl<>(pTerm, pIndexType, pElementType);
+  }
+
   @SuppressWarnings("unchecked")
-  protected <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
+  public <T extends Formula> T encapsulate(FormulaType<T> pType, TFormulaInfo pTerm) {
     if (pType.isBooleanType()) {
       return (T)new BooleanFormulaImpl<>(pTerm);
     } else if (pType.isIntegerType()) {
@@ -111,7 +118,7 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     } else if (pType.isFloatingPointType()) {
       return (T)new FloatingPointFormulaImpl<>(pTerm);
     }
-    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in MathSAT");
+    throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in the Solver!");
   }
 
   @SuppressWarnings("unchecked")
@@ -119,6 +126,17 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
   }
 
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TE> getArrayFormulaElementType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getElementType();
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula>
+  FormulaType<TI> getArrayFormulaIndexType(ArrayFormula<TI, TE> pArray) {
+    return ((ArrayFormulaImpl<TI, TE, TFormulaInfo>)pArray).getIndexType();
+  }
 
   /**
    * Returns the type of the given Formula.
@@ -133,6 +151,8 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
       t = FormulaType.IntegerType;
     } else if (formula instanceof RationalFormula) {
       t = FormulaType.RationalType;
+    } else if (formula instanceof ArrayFormula) {
+      throw new UnsupportedOperationException("SMT solvers with support for arrays needs to overwrite FormulaCreator.getFormulaType()");
     } else if (formula instanceof BitvectorFormula) {
       throw new UnsupportedOperationException("SMT solvers with support for bitvectors needs to overwrite FormulaCreator.getFormulaType()");
     } else {
@@ -142,4 +162,5 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
   }
 
   public abstract FormulaType<?> getFormulaType(TFormulaInfo formula);
+
 }

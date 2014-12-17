@@ -26,15 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.io.Serializable;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
 /**
- *
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
  */
@@ -69,6 +70,24 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
   public String toString() {
     return formulaInfo.toString();
   }
+}
+
+/**
+ * Simple ArrayFormula implementation.
+ */
+@SuppressWarnings("serial")
+class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
+extends AbstractFormula<TFormulaInfo>
+implements ArrayFormula<TI, TE> {
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
+  public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    super(info);
+    this.indexType = pIndexType;
+    this.elementType = pElementType;
+  }
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 /**

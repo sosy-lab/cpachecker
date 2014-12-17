@@ -75,8 +75,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -126,7 +126,6 @@ public final class InterpolationManager {
   private final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final FormulaManagerFactory factory;
   private final Interpolator<?> interpolator;
 
   @Option(secure=true, description="apply deletion-filter to the abstract counterexample, to get "
@@ -184,10 +183,8 @@ public final class InterpolationManager {
 
 
   public InterpolationManager(
-      FormulaManagerView pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
-      FormulaManagerFactory pFmgrFactory,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -195,11 +192,10 @@ public final class InterpolationManager {
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    fmgr = pFmgr;
+    fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-    factory = pFmgrFactory;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -327,13 +323,29 @@ public final class InterpolationManager {
       }
 
       try {
-        return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
-      } catch (SolverException e) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
-      } finally {
-        if (!reuseInterpolationEnvironment) {
-          currentInterpolator.close();
+        try {
+          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+        } finally {
+          if (!reuseInterpolationEnvironment) {
+            currentInterpolator.close();
+          }
         }
+      } catch (SolverException e) {
+        logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
+
+        // Maybe the solver can handle the formulas if we do not attempt to interpolate
+        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+          for (BooleanFormula block : f) {
+            prover.push(block);
+          }
+          if (!prover.isUnsat()) {
+            return getErrorPath(f, prover, elementsOnPath);
+          }
+        } catch (SolverException e2) {
+          // in case of exception throw original one below
+          logger.logDebugException(e2, "Solving trace failed even without interpolation");
+        }
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
     } finally {
@@ -893,14 +905,14 @@ public final class InterpolationManager {
    * have been proved to be satisfiable.
    *
    * @param f The list of formulas on the path.
-   * @param pItpProver The solver.
+   * @param pProver The solver.
    * @param elementsOnPath The ARGElements of the paths represented by f.
    * @return Information about the error path, including a satisfying assignment.
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      InterpolatingProverEnvironment<T> pItpProver, Set<ARGState> elementsOnPath)
+  private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
+      BasicProverEnvironment<?> pProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, SolverException, InterruptedException {
 
     // get the branchingFormula
@@ -909,18 +921,18 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, getModel(pItpProver), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
-    pItpProver.push(branchingFormula);
+    pProver.push(branchingFormula);
 
     // need to ask solver for satisfiability again,
     // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !pItpProver.isUnsat();
+    boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = getModel(pItpProver);
+      Model model = getModel(pProver);
       return CounterexampleTraceInfo.feasible(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
@@ -934,7 +946,7 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> Model getModel(InterpolatingProverEnvironment<T> pItpProver) {
+  private Model getModel(BasicProverEnvironment<?> pItpProver) {
     try {
       return pItpProver.getModel();
     } catch (SolverException e) {
@@ -990,7 +1002,7 @@ public final class InterpolationManager {
     private InterpolatingProverEnvironment<T> newEnvironment() {
       // This is safe because we don't actually care about the value of T,
       // only the InterpolatingProverEnvironment itself cares about it.
-      return (InterpolatingProverEnvironment<T>)factory.newProverEnvironmentWithInterpolation(false);
+      return (InterpolatingProverEnvironment<T>)solver.newProverEnvironmentWithInterpolation();
     }
 
     /**

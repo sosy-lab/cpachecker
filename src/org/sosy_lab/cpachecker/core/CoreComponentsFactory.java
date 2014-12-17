@@ -236,7 +236,7 @@ public class CoreComponentsFactory {
 
       if (useRestartingAlgorithm) {
         // hard-coded dummy CPA
-        return LocationCPA.factory().set(cfa, CFA.class).createInstance();
+        return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
       }
 
       ConfigurableProgramAnalysis cpa

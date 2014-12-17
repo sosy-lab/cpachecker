@@ -56,11 +56,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return makeBitvector(t.getSize(), pI);
   }
 
-  public BitvectorFormula makeBitvector(FormulaType<BitvectorFormula> pType, String pI) {
-    BitvectorType t = (BitvectorType)pType;
-    return makeBitvector(t.getSize(), pI);
-  }
-
   public BitvectorFormula makeVariable(int pLength, String pVar, int idx) {
     return makeVariable(pLength, FormulaManagerView.makeName(pVar, idx));
   }
@@ -156,11 +151,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    return manager.makeBitvector(pLength, pI);
-  }
-
-  @Override
-  public BitvectorFormula makeBitvector(int pLength, String pI) {
     return manager.makeBitvector(pLength, pI);
   }
 

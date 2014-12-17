@@ -31,6 +31,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -78,12 +81,19 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
   }
 
-  private LiveVariablesCPA(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private LiveVariablesCPA(final Configuration pConfig,
+                           final LogManager pLogger,
+                           final ShutdownNotifier pShutdownNotifier,
+                           final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
     logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
-    transfer = new LiveVariablesTransferRelation();
+
+    if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
+      throw new AssertionError("Without information of the variable classification"
+          + " the live variables analysis cannot be used.");
+    }
+    transfer = new LiveVariablesTransferRelation(cfa.getVarClassification(), pConfig, cfa.getLanguage());
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
@@ -135,9 +145,8 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
 
       // all other function types
       } else {
-        String functionReturnVariable = returnVarName.get().getQualifiedName();
-        transfer.putInitialLiveVariables(pNode, Collections.singleton(functionReturnVariable));
-        return new LiveVariablesState(ImmutableSet.of(functionReturnVariable));
+        transfer.putInitialLiveVariables(pNode, Collections.singleton((ASimpleDeclaration)returnVarName.get()));
+        return new LiveVariablesState(ImmutableSet.of((ASimpleDeclaration)returnVarName.get()));
       }
 
     } else {
@@ -156,7 +165,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, String> getLiveVariables() {
+  public Multimap<CFANode, ASimpleDeclaration> getLiveVariables() {
     return transfer.getLiveVariables();
   }
 

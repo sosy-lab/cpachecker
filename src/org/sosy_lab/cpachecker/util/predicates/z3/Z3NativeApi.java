@@ -33,7 +33,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * If the user wants to use the object several times, he has to increment
  * the reference (only once!), so that the object remains valid. */
 @SuppressWarnings("unused")
-final class Z3NativeApi {
+public final class Z3NativeApi {
 
   // Helper Classes,
   // they are used during the native operations
@@ -138,6 +138,26 @@ final class Z3NativeApi {
       long context, long optimize, long ast);
 
   /**
+   * Create a backtracking point.
+   *
+   * The optimize solver contains a set of rules, added facts and assertions.
+   * The set of rules, facts and assertions are restored upon calling {#link #optimize_pop}
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_push(long c, long d);
+
+  /**
+   * Backtrack one level.
+   * The number of calls to pop cannot exceed calls to push.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native void optimize_pop(long c, long d);
+
+  /**
    * Set parameters on optimization context.
    *
    * @param c Z3_context context
@@ -212,7 +232,7 @@ final class Z3NativeApi {
 
   // CREATE CONTEXT
   public static native long mk_context(long config);
-  public static native long mk_context_rc(long context);
+  public static native long mk_context_rc(long config);
   public static native void del_context(long context);
   public static native void inc_ref(long context, long ast);
   public static native void dec_ref(long context, long ast);
@@ -536,9 +556,44 @@ final class Z3NativeApi {
 
   // MODIFIERS
   public static native long update_term(long context, long a1, int a2, long[] a3);
-  public static native long substitute(long context, long a1, int a2, long[] a3, long[] a4);
-  public static native long substitute_vars(long context, long a1, int a2, long[] a3);
-  public static native long translate(long context, long a1, long a2);
+
+  /**
+   * Substitute every occurrence of <code>from[i]</code> in <code>a</code>
+   * with <code>to[i]</code>, for <code>i</code> smaller than
+   * <code>num_exprs</code>.
+   * The result is the new AST. The arrays <code>from</code> and <code>to</code>
+   * must have size <code>num_exprs</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, we must have
+   * that sort of <code>from[i]</code> must be equal to sort of
+   * <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param from Change from
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute(long context, long a, int num_exprs,
+        long[] from, long[] to);
+
+  /**
+   * Substitute the free variables in <code>a</code> with the expressions in
+   * <code>to</code>.
+   * For every <code>i</code> smaller than <code>num_exprs</code>, the variable
+   * with de-Bruijn
+   * index <code>i</code> is replaced with term <code>to[i]</code>.
+   *
+   * @param context Z3_context
+   * @param a Z3_ast Input formula
+   * @param num_exprs Number of expressions to substitute
+   * @param to Change to
+   * @return Formula with substitutions applied.
+   */
+  public static native long substitute_vars(long context, long a, int num_exprs,
+      long[] to);
+  public static native long translate(long contextSource, long a,
+      long contextTarget);
 
 
   // MODELS
@@ -621,9 +676,8 @@ final class Z3NativeApi {
 
     public static native String get_smtlib_error(long context);
 
+    public static native void setInternalErrorHandler(long ctx);
 
-    // ERROR HANDLING
-    // TODO set_error_handler()
     public static native int get_error_code(long context);
     public static native void set_error(long context, int error_code);
     public static native String get_error_msg(int error_code);

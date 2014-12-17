@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 /**
@@ -42,23 +41,14 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 
  * @param <T> The type of the objects which can be used to select formulas for interpolant creation.
  */
-public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
+public interface InterpolatingProverEnvironment<T> extends BasicProverEnvironment<T> {
 
   /**
    * Add a formula to the environment stack, asserting it.
    * The returned value can be used when selecting the formulas for interpolant generation.
    */
+  @Override
   T push(BooleanFormula f);
-
-  /**
-   * Remove one formula from the environment stack.
-   */
-  void pop();
-
-  /**
-   * Check whether the conjunction of all formulas on the stack is unsatisfiable.
-   */
-  boolean isUnsat() throws InterruptedException, SolverException;
 
   /**
    * Get an interpolant for two groups of formulas.
@@ -86,13 +76,4 @@ public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
    *         where P_i is the conjunction of all formulas in partition i.
    */
   List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas);
-
-  /**
-   * Get a satisfying assignment.
-   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
-   */
-  Model getModel() throws SolverException;
-
-  @Override
-  void close();
 }

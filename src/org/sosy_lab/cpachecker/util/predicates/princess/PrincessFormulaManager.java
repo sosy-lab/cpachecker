@@ -36,19 +36,26 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
 
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
+  private final ShutdownNotifier shutdownNotifier;
+
   private PrincessFormulaManager(
           PrincessFormulaCreator pCreator,
           PrincessUnsafeFormulaManager pUnsafeManager,
           PrincessFunctionFormulaManager pFunctionManager,
           PrincessBooleanFormulaManager pBooleanManager,
-          PrincessIntegerFormulaManager pIntegerManager) {
-    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null, null, null);
+          PrincessIntegerFormulaManager pIntegerManager,
+          ShutdownNotifier pShutdownNotifier) {
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, null, null, null, null, null);
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public static PrincessFormulaManager create(Configuration config, LogManager logger,
@@ -66,11 +73,26 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
     PrincessIntegerFormulaManager integerTheory = new PrincessIntegerFormulaManager(creator, functionTheory);
 
     return new PrincessFormulaManager(creator, unsafeManager, functionTheory,
-            booleanTheory, integerTheory);
+            booleanTheory, integerTheory, pShutdownNotifier);
   }
 
   BooleanFormula encapsulateBooleanFormula(IExpression t) {
     return getFormulaCreator().encapsulateBoolean(t);
+  }
+
+  @Override
+  public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
+    return new PrincessTheoremProver(this, shutdownNotifier);
+  }
+
+  @Override
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
+    return new PrincessInterpolatingProver(this);
+  }
+
+  @Override
+  public OptEnvironment newOptEnvironment() {
+    throw new UnsupportedOperationException("Princess does not support optimization");
   }
 
   @Override

@@ -85,7 +85,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -178,28 +177,9 @@ public class BlockFormulaSlicer {
       pfs.add(pf);
     }
 
-    final ImmutableList<BooleanFormula> list = from(pfs)
+    return from(pfs)
         .transform(GET_BOOLEAN_FORMULA)
         .toList();
-
-    //    System.out.println("\n\nFORMULA::");
-    //    for (BooleanFormula formula : list) {
-    //      System.out.println(formula);
-    //      //System.out.println(printFormula(formula.toString()));
-    //    }
-    //
-    //    ImmutableList<BooleanFormula> origlist = from(path)
-    //        .transform(toState(PredicateAbstractState.class))
-    //        .transform(GET_BLOCK_FORMULA)
-    //        .toList();
-    //
-    //    System.out.println("\n\nORIG FORMULA::");
-    //    for (BooleanFormula formula : origlist) {
-    //      System.out.println(formula);
-    //      //System.out.println(printFormula(formula.toString()));
-    //    }
-
-    return list;
   }
 
   /** This function returns all states, that are contained in a block.
@@ -285,20 +265,6 @@ public class BlockFormulaSlicer {
         }
       }
     }
-
-    // logging
-    //    System.out.println("START::  " + (start == null ? null : start.getStateId()));
-    //    System.out.println("END::    " + end.getStateId());
-    //    System.out.print("BLOCK::  ");
-    //    for (ARGState current : block) {
-    //      System.out.print(current.getStateId() + ", ");
-    //    }
-    //    System.out.println();
-    //    System.out.print("VISITED::  ");
-    //    for (ARGState current : s2v.keySet()) {
-    //      System.out.print(current.getStateId() + ", ");
-    //    }
-    //    System.out.println("\n\n");
 
     return s2v.get(start);
   }
@@ -859,8 +825,6 @@ public class BlockFormulaSlicer {
     while (pos != -1) {
       int open = formula.indexOf('(', pos + 1);
       int close = formula.indexOf(')', pos + 1);
-
-      //  System.out.println(open + "   " + close + "    " + pos + "\n" + str.toString());
 
       if (open != -1 && open < close) { // new child
 
