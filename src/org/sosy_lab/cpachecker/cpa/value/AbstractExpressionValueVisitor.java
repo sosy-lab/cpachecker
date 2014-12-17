@@ -298,16 +298,10 @@ public abstract class AbstractExpressionValueVisitor
 
     final BinaryOperator operator = pExpression.getOperator();
 
-      if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        boolean expressionIsTrue = operator == BinaryOperator.NOT_EQUALS ^ pLValue.equals(pRValue);
+    final CType leftOperandType = pExpression.getOperand1().getExpressionType();
+    final CType rightOperandType = pExpression.getOperand2().getExpressionType();
 
-        return expressionIsTrue ? new NumericValue(1) : new NumericValue(0);
-      } else {
-        final CType leftOperandType = pExpression.getOperand1().getExpressionType();
-        final CType rightOperandType = pExpression.getOperand2().getExpressionType();
-
-        return createSymbolicFormula(pLValue, leftOperandType, pRValue, rightOperandType, operator, pLocation);
-      }
+    return createSymbolicFormula(pLValue, leftOperandType, pRValue, rightOperandType, operator, pLocation);
   }
 
   private static SymbolicValue createSymbolicFormula(Value pLeftValue, CType pLeftType, Value pRightValue,
