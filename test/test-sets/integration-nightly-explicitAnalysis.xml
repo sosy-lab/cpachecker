@@ -36,6 +36,6 @@
   </sourcefiles>
 
   <rundefinition>
-    <option name="-explicitAnalysis"/>
+    <option name="-valueAnalysis"/>
   </rundefinition>
 </benchmark>
