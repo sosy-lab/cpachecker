@@ -165,7 +165,7 @@ public abstract class Constraint implements Value {
     StringBuilder sb = new StringBuilder();
 
     if (!positiveConstraint) {
-      sb.append("not (");
+      sb.append("!(");
     }
 
     sb.append(leftOperand).append(" " + getOperatorAsString() + " ").append(rightOperand);
