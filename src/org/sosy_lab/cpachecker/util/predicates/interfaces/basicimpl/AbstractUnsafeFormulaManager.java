@@ -36,6 +36,22 @@ import com.google.common.collect.Lists;
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
 
+  protected static class QuantifiedVariable {
+    final FormulaType<?> variableType;
+    final String nameInFormula;
+    final int deBruijnIndex;
+
+    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula, int pDeBruijnIndex) {
+      variableType = pVariableType;
+      nameInFormula = pNameInFormula;
+      deBruijnIndex = pDeBruijnIndex;
+    }
+
+    public String getDeBruijnName() {
+      return "?" + deBruijnIndex;
+    }
+  }
+
   protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
   }

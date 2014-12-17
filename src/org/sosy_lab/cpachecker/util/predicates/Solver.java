@@ -283,7 +283,7 @@ public final class Solver {
   }
 
   public SmtAstMatcher getSmtAstMatcher() {
-    throw new UnsupportedOperationException("Not yet implemented");
+    return solvingFormulaManager.getSmtAstMatcher();
   }
 
 }

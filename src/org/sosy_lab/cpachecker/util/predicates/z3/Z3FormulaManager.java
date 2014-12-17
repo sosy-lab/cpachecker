@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 @Options(prefix = "cpa.predicate.solver.z3")
@@ -62,6 +63,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   String objectivePrioritizationMode = "box";
 
   private final Z3SmtLogger z3smtLogger;
+  private Z3AstMatcher z3astMatcher;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
@@ -77,10 +79,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
       Z3QuantifiedFormulaManager pQuantifiedManager,
       Z3ArrayFormulaManager pArrayManager,
       Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
+
     super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
         pIntegerManager, pRationalManager, pBitpreciseManager, null, pQuantifiedManager, pArrayManager);
+
     config.inject(this);
     this.z3smtLogger = smtLogger;
+    this.z3astMatcher = new Z3AstMatcher(this);
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
@@ -148,6 +153,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> {
   @Override
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean pShared) {
     return new Z3InterpolatingProver(this);
+  }
+
+  @Override
+  public SmtAstMatcher getSmtAstMatcher() {
+    return z3astMatcher;
   }
 
   @Override

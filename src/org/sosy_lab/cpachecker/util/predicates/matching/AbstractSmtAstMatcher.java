@@ -31,11 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.logging.Level;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
 
 import com.google.common.base.Optional;
@@ -43,24 +40,17 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 
 
-
 public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
-
-  protected final LogManager logger;
-  protected final FormulaManagerView fmv;
 
   protected final Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
   protected final Multimap<Comparable<?>, Comparable<?>> functionImpliedBy = HashMultimap.create();
   protected final Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   protected final Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
-  public AbstractSmtAstMatcher(LogManager pLogger, FormulaManagerView pFmv) {
-    this.logger = pLogger;
-    this.fmv = pFmv;
+  public AbstractSmtAstMatcher() {
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
@@ -86,13 +76,11 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
   protected SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
     //debugLogFromUnitTesting(ObjectArrays.concat("FAILED MATCH", pDescription));
-    logger.log(Level.ALL, ObjectArrays.concat("FAILED MATCH", pDescription));
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
   protected SmtAstMatchResult wrapPositiveMatchResult(SmtAstMatchResult pResult, Object... pDescription) {
     //debugLogFromUnitTesting(ObjectArrays.concat("MATCH SUCCESS", pDescription));
-    logger.log(Level.ALL, ObjectArrays.concat("MATCH SUCCESS", pDescription));
     return pResult;
   }
 

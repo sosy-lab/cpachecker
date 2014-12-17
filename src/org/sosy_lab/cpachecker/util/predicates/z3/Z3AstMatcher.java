@@ -32,13 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.AbstractSmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResultImpl;
@@ -73,8 +71,8 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
     }
   }
 
-  public Z3AstMatcher(LogManager pLogger, FormulaManagerView pView, FormulaManager pMgr) {
-    super(pLogger, pView);
+  public Z3AstMatcher(FormulaManager pMgr) {
+    super();
 
     this.fm = (Z3FormulaManager) pMgr;
     this.ctx = fm.getEnvironment();
@@ -222,6 +220,7 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
     return f;
   }
 
+
   private SmtAstMatchResult handleQuantification(
       final Formula pRootFormula,
       final Stack<String> pQuantifiedVariables,
@@ -232,7 +231,7 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
       final BooleanFormula pBodyFormula,
       final Optional<Multimap<String, Formula>> bBindingRestrictions) {
 
-    final List<BooleanFormula> bodyConjuncts = Lists.newArrayList(fmv.extractAtoms(pBodyFormula, false, true));
+    final List<BooleanFormula> bodyConjuncts = extractConjuncts(pBodyFormula);
 
     SmtAstMatchResult bodyMatchingResult = matchFormulaChildsInSequence(
         pRootFormula, pQuantifiedVariables,
@@ -251,6 +250,32 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
       // Encodes the reason for the failure
       return bodyMatchingResult;
     }
+  }
+
+  private List<BooleanFormula> extractConjuncts(BooleanFormula pFormula) {
+    List<BooleanFormula> result = Lists.newArrayList();
+
+    final long ast = fm.extractInfo(pFormula);
+    final int astKind = get_ast_kind(ctx, ast);
+
+    if (astKind == Z3_APP_AST) {
+      final long decl = get_app_decl(ctx, ast);
+      final long declKind = get_decl_kind(ctx, decl);
+
+      if (declKind == Z3_OP_AND) {
+        final int args = get_app_num_args(ctx, ast);
+        for (int i=0; i<args; i++) {
+          final long argAst = get_app_arg(ctx, ast, i);
+          final BooleanFormula argFormula = (BooleanFormula) encapsulateAstAsFormula(argAst);
+          List<BooleanFormula> argFormulaChildConjuncts = extractConjuncts(argFormula);
+          result.addAll(argFormulaChildConjuncts);
+        }
+      } else {
+        result.add(pFormula);
+      }
+    }
+
+    return result;
   }
 
   @Override
