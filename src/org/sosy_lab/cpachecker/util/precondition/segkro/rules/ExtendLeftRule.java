@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Integer
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 public class ExtendLeftRule extends PatternBasedRule {
@@ -49,7 +51,7 @@ public class ExtendLeftRule extends PatternBasedRule {
     premises.add(new PatternBasedPremise(or(
         matchExistsQuant(
             and(
-              GenericPatterns.f_of_x("f", quantified("x")),
+              GenericPatterns.f_of_x_selection("f", quantified("x")),
               match(">=",
                   matchAnyWithAnyArgsBind(quantified("x")),
                   matchAnyWithAnyArgsBind("i")),
@@ -74,13 +76,20 @@ public class ExtendLeftRule extends PatternBasedRule {
     final BooleanFormula f = (BooleanFormula) pAssignment.get("f");
     final IntegerFormula j = (IntegerFormula) pAssignment.get("j");
     final IntegerFormula k = (IntegerFormula) pAssignment.get("k");
-    final IntegerFormula x = (IntegerFormula) pAssignment.get(quantified("x"));
+
+    final IntegerFormula xBound = (IntegerFormula) pAssignment.get(quantified("x"));
+
+    final IntegerFormula xNew = ifm.makeVariable("x");
+
+    HashMap<Formula, Formula> mapping = Maps.newHashMap();
+    mapping.put(xBound, xNew);
+    final BooleanFormula fNew = matcher.substitute(f, mapping);
 
     final BooleanFormula xConstraint =  bfm.and(
-        ifm.greaterOrEquals(x, k),
-        ifm.lessOrEquals(x, j));
+        ifm.greaterOrEquals(xNew, k),
+        ifm.lessOrEquals(xNew, j));
 
     return Lists.newArrayList(
-        qfm.exists(Lists.newArrayList(x), bfm.and(f, xConstraint)));
+        qfm.exists(Lists.newArrayList(xNew), bfm.and(fNew, xConstraint)));
   }
 }

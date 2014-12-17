@@ -108,6 +108,7 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
 
     switch (astKind) {
     case Z3_NUMERAL_AST: // handle this as an unary function
+    case Z3_VAR_AST: // handle bound variables as unary function
     case Z3_APP_AST:  // k-nary function // -------------------------------------------------
       if (!(pP instanceof SmtFunctionApplicationPattern)) {
         return newMatchFailedResult("No function application!");
@@ -123,7 +124,11 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
       final String functionSymbol;
       final int functionParameterCount;
 
-      if (astKind == Z3_NUMERAL_AST) {
+      if (astKind == Z3_VAR_AST) {
+        final long index = get_index_value(ctx, ast);
+        functionSymbol = "?" + index;
+        functionParameterCount = 0;
+      } else if (astKind == Z3_NUMERAL_AST) {
         functionSymbol = ast_to_string(ctx, ast);
         functionParameterCount = 0;
       } else {
@@ -182,7 +187,6 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
 
       return r;
 
-    case Z3_VAR_AST: // -------------------------------------------------
     case Z3_SORT_AST:
     case Z3_FUNC_DECL_AST:
     default:

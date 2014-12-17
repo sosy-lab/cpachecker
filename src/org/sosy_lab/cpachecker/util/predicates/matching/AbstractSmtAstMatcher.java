@@ -251,7 +251,11 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
             (SmtAstPattern) argPattern,
             pBindingRestrictions);
       } else {
-        throw new UnsupportedOperationException("Unsupported SmtAstPatternSelectionElement. Implement this?");
+        functionArgumentResult = matchSelectionOnOneFormula(
+            childFormula,
+            pBoundQuantifiedVariables,
+            (SmtAstPatternSelection) argPattern,
+            pBindingRestrictions);
       }
 
       if (functionArgumentResult.matches()) {
