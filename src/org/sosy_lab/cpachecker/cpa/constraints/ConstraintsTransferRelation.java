@@ -87,12 +87,16 @@ public class ConstraintsTransferRelation
   private Solver solver;
   private FormulaManagerView formulaManager;
 
+  private final BooleanFormula trueFormula;
+
   public ConstraintsTransferRelation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     logger = pLogger;
 
     initializeSolver(pLogger, pConfig, pShutdownNotifier);
+
+    trueFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
   }
 
   private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
@@ -172,7 +176,7 @@ public class ConstraintsTransferRelation
         assert !newConstraint.isPresent();
       }
 
-      if (newConstraint.isPresent()) {
+      if (newConstraint.isPresent() && !isAlwaysTrue(newConstraint.get())) {
         newState.addConstraint(newConstraint.get());
       }
 
@@ -186,6 +190,15 @@ public class ConstraintsTransferRelation
     } else {
       return newState;
     }
+  }
+
+  private boolean isAlwaysTrue(Constraint pConstraint) throws SolverException, InterruptedException {
+    final ConstraintVisitor<Formula> formulaCreator = new IntegerFormulaCreator(formulaManager);
+
+    // each constraint has to be a boolean formula, so we can cast without problems
+    BooleanFormula formula = (BooleanFormula) pConstraint.accept(formulaCreator);
+
+    return solver.implies(trueFormula, formula);
   }
 
   private boolean isSolvable(ConstraintsState pState) throws SolverException, InterruptedException {
