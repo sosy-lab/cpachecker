@@ -949,7 +949,7 @@ public class PredicateAbstractionManager {
       preds.add(amgr.makePredicate(atom));
     }
 
-    amgr.orderPredicates();
+    amgr.reorderPredicates();
 
     return preds;
   }
