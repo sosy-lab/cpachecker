@@ -264,9 +264,11 @@ public class Z3AstMatcher extends AbstractSmtAstMatcher {
 
       if (declKind == Z3_OP_AND) {
         final int args = get_app_num_args(ctx, ast);
+
         for (int i=0; i<args; i++) {
           final long argAst = get_app_arg(ctx, ast, i);
           final BooleanFormula argFormula = (BooleanFormula) encapsulateAstAsFormula(argAst);
+
           List<BooleanFormula> argFormulaChildConjuncts = extractConjuncts(argFormula);
           result.addAll(argFormulaChildConjuncts);
         }

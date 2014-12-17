@@ -86,16 +86,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
   @Override
   public SmtAstMatchResult perform(
-      SmtAstPattern pP,
-      Formula pF,
-      Optional<Multimap<String, Formula>> bBindingRestrictions) {
-
-    final SmtAstPatternSelection sel = SmtAstPatternBuilder.and(pP);
-    return perform(sel, pF, bBindingRestrictions);
-  }
-
-  @Override
-  public SmtAstMatchResult perform(
       SmtAstPatternSelection pPatternSelection,
       Formula pF,
       Optional<Multimap<String, Formula>> bBindingRestrictions) {
@@ -336,11 +326,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
   @Override
   public void defineFunctionAliases(String pFunctionName, Set<String> pAliases) {
     functionAliases.putAll(pFunctionName, pAliases);
-  }
-
-  @Override
-  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF) {
-    return perform(pPattern, pF, Optional.<Multimap<String, Formula>>absent());
   }
 
   @Override

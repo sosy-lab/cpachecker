@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,13 +34,11 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
@@ -202,60 +197,6 @@ public class Z3AstMatchingTest0 extends SolverBasedTest0 {
                   matchAnyWithAnyArgsBind("e2"),
                   matchNullary("0"))));
 
-  }
-
-  @Test
-  public void testSimple1() {
-    SmtAstPattern patternA = match(">=",
-        matchNullaryBind("z"),
-        matchNullaryBind("al"));
-
-    SmtAstPattern patternB = match(">",
-        matchNullaryBind("z"),
-        matchNullaryBind("al"));
-
-    SmtAstMatchResult resultA = matcher.perform(patternA, _0_GEQ_al);
-    assertThat(resultA.matches()).isTrue();
-    assertThat(resultA.getVariableBindings("z")).containsExactly(_0);
-    assertThat(resultA.getVariableBindings("al")).containsExactly(_al);
-
-    SmtAstMatchResult resultB = matcher.perform(patternB, _0_GEQ_al);
-    assertThat(resultB.matches()).isFalse();
-  }
-
-  @Test
-  public void testAstMatchingSubstitute() {
-
-    SmtAstPattern patternPremise1 =
-        match(  // The assumption that the parent function is a logical AND
-            matchIfNot("=", matchAnyWithAnyArgs()), // (= c 1) should not be matched
-            match(matchNullaryBind("x"))); // (f c) should be matched
-
-    // TODO: What is about (f a b c d)
-
-    SmtAstPattern patternPremise2 =
-        match("=",
-            matchNullaryBind("x"),
-            matchAnyWithAnyArgsBind("e"));
-
-    // TODO: There might be multiple valid bindings to a variable ("models")
-
-    SmtAstMatchResult result1 = matcher.perform(patternPremise1, _f_and_of_foo);
-    SmtAstMatchResult result2 = matcher.perform(patternPremise2, _f_and_of_foo);
-
-    // A (sub-)formula represents the root of the matching AST
-    Collection<Formula> f1 = result1.getMatchingArgumentFormula(patternPremise1);
-    Collection<Formula> f2 = result2.getMatchingArgumentFormula(patternPremise2);
-
-    assertThat(f1).containsNoneIn(Collections.singleton(_i1));
-    assertThat(f1).contains(_j1);
-    assertThat(f2).contains(_i1_EQUALS_1_plus_a1);
-    assertThat(f2).contains(_j1_EQUALS_j2_plus_a1);
-
-    // Every bound formula can be accessed in the result
-    Collection<Formula> x = result1.getVariableBindings("x");
-    assertThat(x).contains(_j1);
-    assertThat(x).containsNoneIn(Collections.singleton(_i1));
   }
 
   @Test

@@ -35,9 +35,7 @@ import com.google.common.collect.Multimap;
 
 public interface SmtAstMatcher {
 
-  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF);
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF);
-  public SmtAstMatchResult perform(SmtAstPattern pPattern, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
 
   // a+b  <-->  b+a

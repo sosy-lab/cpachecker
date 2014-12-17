@@ -36,8 +36,7 @@ final class GenericPatterns {
           match("select",
               matchAnyWithAnyArgs(),
               matchInSubtree(
-                  matchAnyWithAnyArgsBind(pBindArgTo)))
-                  ,
+                  matchAnyWithAnyArgsBind(pBindArgTo))),
           matchAny(
               matchAny(
                   matchInSubtree(
