@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -275,8 +274,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     final FinalFormulaCreator creator = new FinalFormulaCreator() {
 
       @Override
-      public BooleanFormula create(IntegerFormula pLeft, IntegerFormula pRight) {
-        return numeralFormulaManager.lessThan(pLeft, pRight);
+      public BooleanFormula create(Formula pLeft, Formula pRight) {
+        return numeralFormulaManager.lessThan((IntegerFormula) pLeft, (IntegerFormula) pRight);
       }
     };
 
@@ -295,10 +294,10 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
    *
    * @return a formula based on the given parameters.
    */
-  // This is done so everything around the concrete formula creation does not have to be redundant
+  // We use a pCreator so everything around the concrete formula creation does not have to be redundant
   private Formula transformConstraint(Constraint pConstraint, FinalFormulaCreator pCreator) {
-    final IntegerFormula op1 = (IntegerFormula) pConstraint.getLeftOperand().accept(this);
-    final IntegerFormula op2 = (IntegerFormula) pConstraint.getRightOperand().accept(this);
+    final Formula op1 = pConstraint.getLeftOperand().accept(this);
+    final Formula op2 = pConstraint.getRightOperand().accept(this);
 
     Formula finalFormula = pCreator.create(op1, op2);
 
@@ -318,8 +317,8 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     final FinalFormulaCreator creator = new FinalFormulaCreator() {
 
       @Override
-      public BooleanFormula create(IntegerFormula pLeft, IntegerFormula pRight) {
-        return numeralFormulaManager.lessOrEquals(pLeft, pRight);
+      public BooleanFormula create(Formula pLeft, Formula pRight) {
+        return formulaManager.makeLessOrEqual(pLeft, pRight, false);
       }
     };
 
@@ -331,12 +330,33 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
     final FinalFormulaCreator creator = new FinalFormulaCreator() {
 
       @Override
-      public BooleanFormula create(IntegerFormula pLeft, IntegerFormula pRight) {
-        return numeralFormulaManager.equal(pLeft, pRight);
+      public BooleanFormula create(Formula pLeft, Formula pRight) {
+        Formula leftFormula = pLeft;
+        Formula rightFormula = pRight;
+
+        if (pLeft instanceof BooleanFormula) {
+          rightFormula = createBooleanFormula(pRight);
+        } else if (pRight instanceof BooleanFormula) {
+          leftFormula = createBooleanFormula(pLeft);
+        }
+
+        return formulaManager.makeEqual(leftFormula, rightFormula);
       }
     };
 
     return (BooleanFormula) transformConstraint(pConstraint, creator);
+  }
+
+  private BooleanFormula createBooleanFormula(Formula pFormula) {
+    IntegerFormula zeroFormula = numeralFormulaManager.makeNumber(0);
+
+    if (pFormula instanceof IntegerFormula) {
+      return formulaManager.makeNot(
+          numeralFormulaManager.equal((IntegerFormula)pFormula, zeroFormula));
+
+    } else {
+      return (BooleanFormula) pFormula;
+    }
   }
 
   @Override
@@ -351,6 +371,6 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
    * This interface is used for creating anonymous classes that are given to {@link #transformConstraint}.
    */
   private interface FinalFormulaCreator {
-    Formula create(IntegerFormula pLeft, IntegerFormula pRight);
+    Formula create(Formula pLeft, Formula pRight);
   }
 }
