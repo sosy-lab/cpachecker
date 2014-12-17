@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintOperand;
@@ -170,19 +170,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
         default:
           throw new AssertionError("Unhandled type " + pType);
       }
-    } else if (pType instanceof CSimpleType) {
-      switch (((CSimpleType) pType).getType()) {
-        case BOOL:
-        case CHAR:
-        case INT:
-        case FLOAT:
-        case DOUBLE:
-        case UNSPECIFIED:
-          return FormulaType.IntegerType;
-        default:
-          throw new AssertionError("Unhandled type " + pType);
-      }
-    } else if (pType instanceof CPointerType) {
+    } else if (pType instanceof CType) {
       return FormulaType.IntegerType;
     } else {
       throw new AssertionError("Unhandled type " + pType);
@@ -352,7 +340,7 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
 
     if (pFormula instanceof IntegerFormula) {
       return formulaManager.makeNot(
-          numeralFormulaManager.equal((IntegerFormula)pFormula, zeroFormula));
+          numeralFormulaManager.equal((IntegerFormula) pFormula, zeroFormula));
 
     } else {
       return (BooleanFormula) pFormula;
