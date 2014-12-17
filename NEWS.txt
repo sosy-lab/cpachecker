@@ -1,5 +1,5 @@
-Changes from CPAchecker 1.3.4 to CPAchecker 1.4
------------------------------------------------
+Changes since CPAchecker 1.3.4
+------------------------------
 * The default configuration of the predicate analysis is now more precise:
   it uses integers to approximate int variables instead of rationals,
   and counterexamples found by it are double-checked with the value analysis.
