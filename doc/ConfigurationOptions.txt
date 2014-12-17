@@ -89,6 +89,10 @@ analysis.algorithm.testGen = false
 # Reachability Analyses, ESOP'13)
 analysis.algorithm.tiger = false
 
+# Use Test Input GEneRator algorithm with an extension using the BDDCPA to
+# model product line presence conditions
+analysis.algorithm.tiger_with_presenceConditions = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false

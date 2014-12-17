@@ -221,6 +221,9 @@ public class CFACreator {
 
   @Option(name="analysis.algorithm.tiger", description="")
   private boolean useTigerAlgorithm = false;
+  @Option(name="analysis.algorithm.tiger_with_presenceConditions",
+  description = "Use Test Input GEneRator algorithm with an extension using the BDDCPA to model product line presence conditions")
+  private boolean useTigerAlgorithm_with_pc = false;
 
   private final LogManager logger;
   private final Parser parser;
@@ -480,7 +483,7 @@ public class CFACreator {
 
     final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
-    if (useTigerAlgorithm) {
+    if (useTigerAlgorithm || useTigerAlgorithm_with_pc) {
       if (language != Language.C) {
         throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }

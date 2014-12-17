@@ -368,7 +368,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
       wasSound = false;
     }
 
-    assert(goalPatterns.isEmpty());
+    assert(goalsToCover.isEmpty());
     // write generated test suite and mapping to file system
     try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
       writer.write(testsuite.toString());
@@ -428,12 +428,7 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
     boolean isFullyCovered=false;
     for (TestCase_with_pc testcase : testsuite.getTestCases()) {
       ThreeValuedAnswer isCovered = TigerAlgorithm_with_pc.accepts(lGoal.getAutomaton(), testcase.getPath());
-      if (isCovered.equals(ThreeValuedAnswer.ACCEPT)) {
-        // test goal is already covered by an existing test case
-        logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
-        testsuite.addTestCase(testcase, lGoal);
-        return true;
-      } else if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
         logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
         continue;
       }
