@@ -409,6 +409,18 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * This method is a hook for classes that inherit from CtoFormulaConverter that
+   * might handle specific types in a specific way -- see {@link #makeCast}.
+   *
+   * @param pFromType
+   * @param pToType
+   * @return
+   */
+  protected Pair<CType, CType> retypeCanonicalTypesOfCast(final CType pFromType, final CType pToType) {
+    return Pair.of(pFromType, pToType);
+  }
+
+  /**
    * Used for implicit and explicit type casts between CTypes.
    * @param fromType the origin Type of the expression.
    * @param toType the type to cast into.
@@ -419,13 +431,12 @@ public class CtoFormulaConverter {
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
-    CType fromType = pFromType.getCanonicalType();
-    CType toType = pToType.getCanonicalType();
+    final Pair<CType, CType> retyped = retypeCanonicalTypesOfCast(
+        pFromType.getCanonicalType(),
+        pToType.getCanonicalType());
 
-    if (fromType instanceof CArrayType) {
-      // In case of an array, we are interested in the type of values that it stores.
-      fromType = ((CArrayType) fromType).getType();
-    }
+    CType fromType = retyped.getFirst();
+    CType toType = retyped.getSecond();
 
     if (fromType.equals(toType)) {
       return formula; // No cast required;

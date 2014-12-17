@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
@@ -111,6 +113,15 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   Formula makeCastForMe(CType pFromType, CType pToType, Formula pFormula, Constraints pConstraints, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
     return makeCast(pFromType, pToType, pFormula, pConstraints, pEdge);
+  }
+
+  @Override
+  protected Pair<CType, CType> retypeCanonicalTypesOfCast(CType pFromType, CType pToType) {
+    if (pFromType instanceof CArrayType) {
+      // In case of an array, we are interested in the type of values that it stores.
+      pFromType = ((CArrayType) pFromType).getType();
+    }
+    return super.retypeCanonicalTypesOfCast(pFromType, pToType);
   }
 
 }
