@@ -61,9 +61,6 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, CtoFormulaTypeHandler pTypeHandler, AnalysisDirection pDirection) {
     super(pOptions, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, pTypeHandler, pDirection);
-
-    // makeCastFromArrayToPointerIfNecessary
-    // makeCastFromArrayToPointer
   }
 
   @Override
