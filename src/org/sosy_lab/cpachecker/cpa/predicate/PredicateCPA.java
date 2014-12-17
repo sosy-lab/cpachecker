@@ -324,6 +324,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   public AbstractionManager getAbstractionManager() {
-    return null;
+    return abstractionManager;
   }
 }
