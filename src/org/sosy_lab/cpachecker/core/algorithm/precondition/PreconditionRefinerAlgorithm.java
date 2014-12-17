@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
 import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
 import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -114,7 +115,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
   private final PredicateCPA predcpa;
   private final ARGCPA argcpa;
 
-  private final Refine refiner;
+  private final PreconditionRefiner refiner;
   private final RuleEngine ruleEngine;
   private final PreconditionHelper helper;
   private final Optional<PreconditionWriter> writer;
@@ -148,15 +149,20 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
     helper = new PreconditionHelper(mgrv, pConfig, logger, pShutdownNotifier, pCfa);
     ruleEngine = new RuleEngine(logger, solver);
-    refiner = new Refine(
-          pConfig, pLogger, pShutdownNotifier, pCfa,
-          solver, amgr,
-          new ExtractNewPreds(solver, ruleEngine),
-          new MinCorePrio(solver));
+
+    refiner = createRefiner(pConfig, pShutdownNotifier);
 
     writer = exportPreciditionsAs == PreconditionExportType.SMTLIB
         ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(pCfa, pConfig, pLogger, mgrv))
         : Optional.<PreconditionWriter>absent();
+  }
+
+  private Refine createRefiner(Configuration pConfig, ShutdownNotifier pShutdown) throws InvalidConfigurationException {
+    return new Refine(
+        pConfig, logger, pShutdown, cfa,
+        solver, amgr,
+        new ExtractNewPreds(solver, ruleEngine),
+        new MinCorePrio(solver));
   }
 
   private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet) {
@@ -221,7 +227,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
     final ReachedSet initialReachedSet = reachedSetFactory.create();
     ReachedSetUtils.addReachedStatesToOtherReached(pReachedSet, initialReachedSet);
 
-    int refinementNumber = 0;
+    final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 
     do {
       // Run the CPA algorithm
@@ -232,8 +238,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
       final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
       final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
 
-      //if (isDisjoint(pcViolation, pcValid)) {
-      if (false) {
+      if (isDisjoint(pcViolation, pcValid)) {
         // We have found a valid, weakest, precondition
         // -- > write the precondition.
         if (writer.isPresent()) {
@@ -246,8 +251,6 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
         return true && result;
       }
-
-      CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 
       // Get arbitrary traces...(without disjunctions)
       // ... one to the location that violates the specification

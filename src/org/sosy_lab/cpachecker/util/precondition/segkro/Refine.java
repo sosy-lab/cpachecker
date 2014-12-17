@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -58,7 +59,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-public class Refine {
+public class Refine implements PreconditionRefiner {
 
   private final ExtractNewPreds enp;
   private final InterpolationWithCandidates ipc;
@@ -128,19 +129,29 @@ public class Refine {
         }
       }
 
-      // afterTransCond === varphi_{k+1}
-      BooleanFormula afterTransCond = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
-      List<BooleanFormula> p = enp.extractNewPreds(afterTransCond);
-      afterTransCond = bmgr.and(afterTransCond, bmgr.and(p));
+      beforeTransCond = interpolateX(pPath, transition, beforeTransCond);
 
-      // Compute an interpolant, use a set of candidate predicates
-      BooleanFormula counterAfterTransCond = computeCounterCondition(transition, bmgr.not(beforeTransCond));
-      beforeTransCond = ipc.getInterpolant(afterTransCond, counterAfterTransCond, p);
-
-      result.addAll(literals(pPrecond));
+      result.addAll(literals(beforeTransCond));
     }
 
     return result;
+  }
+
+  private BooleanFormula interpolateX(final ARGPath pPath, final CFAEdge transition, final BooleanFormula beforeTransCond) throws CPATransferException, SolverException, InterruptedException {
+    // 1. Compute the two formulas (A/B) that are needed to compute a Craig interpolant
+    //      afterTransCond === varphi_{k+1}
+    // Formula A
+    BooleanFormula afterTransCond = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
+    List<BooleanFormula> p = enp.extractNewPreds(afterTransCond);
+    afterTransCond = bmgr.and(afterTransCond, bmgr.and(p));
+
+    // Formula B
+    BooleanFormula counterAfterTransCond = computeCounterCondition(transition, bmgr.not(beforeTransCond));
+
+    // Compute an interpolant; use a set of candidate predicates.
+    //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
+    return ipc.getInterpolant(afterTransCond, counterAfterTransCond, p);
+    // TODO: Substitution X/X` and back
   }
 
   /**
@@ -163,6 +174,7 @@ public class Refine {
     return helper.uninstanciatePathFormula(transferPf);
   }
 
+  @Override
   public PredicatePrecision refine(ARGPath pTraceToViolation, ARGPath pTraceToValidTermination, Optional<CFANode> pWpLocation)
       throws SolverException, InterruptedException, CPATransferException {
 

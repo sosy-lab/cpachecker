@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
+import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
@@ -75,7 +76,7 @@ import com.google.common.collect.Lists;
 
 public class RefineTest0 extends SolverBasedTest0 {
 
-  private Refine refine;
+  private PreconditionRefiner refine;
   private FormulaManagerView mgrv;
 
   private CFAEdge _label_error;
