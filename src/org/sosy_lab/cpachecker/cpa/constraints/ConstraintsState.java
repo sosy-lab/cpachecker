@@ -43,11 +43,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
   private Set<Constraint> constraints;
 
   /**
-   * Stores whether this state's constraints are solvable.
-   */
-  private boolean isSolvable = true;
-
-  /**
    * Creates a new <code>ConstraintsState</code> object with the given constraints.
    *
    * @param pConstraints the constraints to use for the newly created <code>ConstraintsState</code> object
@@ -84,22 +79,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
     return ImmutableSet.copyOf(constraints);
   }
 
-  /**
-   * Returns whether the conjunction of constraints stored in this state are solvable.
-   * If it is not known whether the constraints are solvable, <code>true</code> is assumed.
-   *
-   * @return <code>false</code> if this state's constraints are unsolvable, <code>true</code> otherwise.
-   */
-  public boolean isSolvable() {
-    return isSolvable;
-  }
-
-  /**
-   * Sets this state's constraints to unsolvable.
-   */
-  public void setUnsolvable() {
-    isSolvable = false;
-  }
 
   @Override
   public ConstraintsState join(ConstraintsState other) throws CPAException {
@@ -115,24 +94,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState> 
    */
   @Override
   public boolean isLessOrEqual(ConstraintsState other) {
-    boolean lessOrEqual = false;
-
-    for (Constraint otherConstraint : other.constraints) {
-      for (Constraint currConstraint : constraints) {
-        if (otherConstraint.equals(currConstraint) || otherConstraint.includes(currConstraint)) {
-          lessOrEqual = true;
-          break;
-        }
-      }
-
-      if (!lessOrEqual) {
-        break;
-      }
-
-      lessOrEqual = false;
-    }
-
-    return lessOrEqual;
+    return false;
   }
 
   /**
