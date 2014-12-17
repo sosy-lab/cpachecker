@@ -101,7 +101,7 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private int previousErrorPath = -1;
+  private int previousErrorPathId = -1;
 
   /**
    * keep log of feasible targets that were already found
@@ -144,9 +144,9 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
   }
 
   private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPath == -1 || previousErrorPath != path.toString().hashCode());
+    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
 
-    previousErrorPath = path.toString().hashCode();
+    previousErrorPathId = obtainErrorPathId(path);
 
     return progress;
   }
@@ -444,6 +444,14 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
       pathInterpolator.printStatistics(out, pResult, pReached);
     }
+  }
+
+  private int obtainErrorPathId(ARGPath path) {
+    return path.toString().hashCode();
+  }
+
+  void setPreviousErrorPathId(final ARGPath pErrorPath) {
+    previousErrorPathId = obtainErrorPathId(pErrorPath);
   }
 
   /**

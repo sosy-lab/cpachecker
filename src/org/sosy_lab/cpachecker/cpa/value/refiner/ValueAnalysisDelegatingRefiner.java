@@ -213,6 +213,10 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     else {
 
       if (predicatingRefiner != null) {
+        // just notify the value refiner about this error path
+        valueRefiner.setPreviousErrorPathId(pErrorPath);
+
+        // let the predicate refiner do the actual refining
         return predicatingRefiner.performRefinement(reached, pErrorPath);
       }
 
