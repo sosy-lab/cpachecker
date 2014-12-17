@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.matching;
 import com.google.common.base.Optional;
 
 
-public interface SmtAstPattern {
+public interface SmtAstPattern extends SmtAstPatternSelectionElement {
 
   public static enum SmtAstMatchFlag { IN_SUBTREE_RECURSIVE, ALL_SATISFYING }
 

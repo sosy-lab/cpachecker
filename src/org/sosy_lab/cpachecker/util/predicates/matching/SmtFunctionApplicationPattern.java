@@ -67,11 +67,11 @@ public class SmtFunctionApplicationPattern implements SmtAstPattern {
     return argumentPatterns.getPatterns().size();
   }
 
-  public Iterator<SmtAstPattern> getArgumentPatternIterator(boolean reversed) {
+  public Iterator<SmtAstPatternSelectionElement> getArgumentPatternIterator(boolean reversed) {
     return getArgumentPatterns(reversed).iterator();
   }
 
-  public List<SmtAstPattern> getArgumentPatterns(boolean reversed) {
+  public List<SmtAstPatternSelectionElement> getArgumentPatterns(boolean reversed) {
     if (reversed) {
       return Lists.reverse(argumentPatterns.getPatterns());
     }

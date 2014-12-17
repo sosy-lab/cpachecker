@@ -228,14 +228,14 @@ public class SmtAstPatternBuilder {
         and());
   }
 
-  public static SmtAstPatternSelection or(SmtAstPattern... pDisjuncts) {
+  public static SmtAstPatternSelection or(SmtAstPatternSelectionElement... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
         LogicalConnection.OR,
         Arrays.asList(pDisjuncts),
         Collections.<String,Formula>emptyMap());
   }
 
-  public static SmtAstPatternSelection and(SmtAstPattern... pDisjuncts) {
+  public static SmtAstPatternSelection and(SmtAstPatternSelectionElement... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
         LogicalConnection.AND,
         Arrays.asList(pDisjuncts),
@@ -245,12 +245,12 @@ public class SmtAstPatternBuilder {
   public static SmtAstPatternSelection dontcare() {
     return new SmtAstPatternSelectionImpl(
         LogicalConnection.DONTCARE,
-        Collections.<SmtAstPattern>emptyList(),
+        Collections.<SmtAstPatternSelectionElement>emptyList(),
         Collections.<String,Formula>emptyMap());
   }
 
 
-  public static SmtAstPatternSelection none(SmtAstPattern... pDisjuncts) {
+  public static SmtAstPatternSelection none(SmtAstPatternSelectionElement... pDisjuncts) {
     return new SmtAstPatternSelectionImpl(
         LogicalConnection.NONE,
         Arrays.asList(pDisjuncts),
@@ -269,7 +269,7 @@ public class SmtAstPatternBuilder {
 
   public static SmtAstPatternSelection concat(SmtAstPatternSelection... pSelections) {
     Map<String,Formula> defaultBindings = Maps.newHashMap();
-    List<SmtAstPattern> patterns = Lists.newArrayList();
+    List<SmtAstPatternSelectionElement> patterns = Lists.newArrayList();
 
     LogicalConnection logicRelation = null;
 

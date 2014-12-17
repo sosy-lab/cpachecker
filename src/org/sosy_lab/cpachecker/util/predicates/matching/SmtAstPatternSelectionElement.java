@@ -23,30 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.matching;
 
-import java.util.List;
-import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-
-/**
- * A collection of SmtAstPattern that is connected
- *  using a logical operator.
- */
-public interface SmtAstPatternSelection extends Iterable<SmtAstPatternSelectionElement>, SmtAstPatternSelectionElement {
-
-  public static enum LogicalConnection {
-    AND, OR, NONE, DONTCARE;
-
-    public boolean isAnd() { return this == AND; }
-    public boolean isOr() { return this == OR; }
-    public boolean isNone() { return this == NONE; }
-    public boolean isDontCare() { return this == DONTCARE; }
-  }
-
-  public List<SmtAstPatternSelectionElement> getPatterns();
-
-  public LogicalConnection getRelationship();
-
-  public Map<String, Formula> getDefaultBindings();
+public interface SmtAstPatternSelectionElement {
 
 }

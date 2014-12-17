@@ -45,7 +45,7 @@ public interface SmtAstMatchResult {
 
   public Collection<String> getFormulaBindings(Formula pFormula);
 
-  public ImmutableMultimap<SmtAstPattern, Formula> getMatchings();
+  public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings();
 
   public void appendBindingsTo(Multimap<String, Formula> pTarget);
 
@@ -67,7 +67,7 @@ public interface SmtAstMatchResult {
     @Override
     public Collection<String> getFormulaBindings(Formula pFormula) { return Collections.emptySet(); }
     @Override
-    public ImmutableMultimap<SmtAstPattern, Formula> getMatchings() {return ImmutableMultimap.of(); }
+    public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings() {return ImmutableMultimap.of(); }
   };
 
 }

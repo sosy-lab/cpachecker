@@ -36,13 +36,13 @@ import com.google.common.collect.ImmutableMap;
 
 public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
 
-  private final ImmutableList<SmtAstPattern> patterns;
+  private final ImmutableList<SmtAstPatternSelectionElement> patterns;
   private final LogicalConnection relation;
   private final ImmutableMap<String, Formula> defaultBindings;
 
   public SmtAstPatternSelectionImpl(
       LogicalConnection pRelation,
-      Iterable<SmtAstPattern> pDisjuncts,
+      Iterable<SmtAstPatternSelectionElement> pDisjuncts,
       Map<String,Formula> pDefaultBindings) {
     this.relation = pRelation;
     this.patterns = ImmutableList.copyOf(pDisjuncts);
@@ -50,7 +50,7 @@ public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
   }
 
   @Override
-  public List<SmtAstPattern> getPatterns() {
+  public List<SmtAstPatternSelectionElement> getPatterns() {
     return patterns;
   }
 
@@ -60,7 +60,7 @@ public class SmtAstPatternSelectionImpl implements SmtAstPatternSelection {
   }
 
   @Override
-  public Iterator<SmtAstPattern> iterator() {
+  public Iterator<SmtAstPatternSelectionElement> iterator() {
     return getPatterns().iterator();
   }
 

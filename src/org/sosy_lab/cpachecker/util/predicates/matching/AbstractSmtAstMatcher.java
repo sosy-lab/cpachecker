@@ -108,8 +108,15 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     int matches = 0;
     SmtAstMatchResultImpl aggregatedResult = new SmtAstMatchResultImpl();
 
-    for (SmtAstPattern p: pPatternSelection) {
-      SmtAstMatchResult r = internalPerform(pF, pQuantifiedVariables, p, pBindingRestrictions);
+    for (SmtAstPatternSelectionElement p: pPatternSelection) {
+      final SmtAstMatchResult r;
+      if (p instanceof SmtAstPattern) {
+        SmtAstPattern asp = (SmtAstPattern) p;
+        r = internalPerform(pF, pQuantifiedVariables, asp, pBindingRestrictions);
+      } else {
+        r = matchSelectionOnOneFormula(pF, pQuantifiedVariables, pPatternSelection, pBindingRestrictions);
+      }
+
       matches = matches + (r.matches() ? 1 : 0);
 
       if (r.matches() && pPatternSelection.getRelationship().isNone()) {
@@ -212,7 +219,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       boolean pConsiderPatternsInReverse) {
 
     final LogicalConnection logic = pChildPatterns.getRelationship();
-    final Iterator<SmtAstPattern> pItPatternsInSequence;
+    final Iterator<SmtAstPatternSelectionElement> pItPatternsInSequence;
     if (pConsiderPatternsInReverse) {
       pItPatternsInSequence = Lists.reverse(pChildPatterns.getPatterns()).iterator();
     } else {
@@ -227,18 +234,25 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     }
 
     // Perform the matching recursively on the arguments
-    Set<SmtAstPattern> argPatternsMatched = Sets.newHashSet();
+    Set<SmtAstPatternSelectionElement> argPatternsMatched = Sets.newHashSet();
 
     for (Formula childFormula: pChildFormulas) {
       if (!pItPatternsInSequence.hasNext()) {
         break;
       }
-      final SmtAstPattern argPattern = pItPatternsInSequence.next();
-      final SmtAstMatchResult functionArgumentResult = internalPerform(
+
+      final SmtAstPatternSelectionElement argPattern = pItPatternsInSequence.next();
+      final SmtAstMatchResult functionArgumentResult;
+
+      if (argPattern instanceof SmtAstPattern) {
+        functionArgumentResult = internalPerform(
             childFormula,
             pBoundQuantifiedVariables,
-            argPattern,
+            (SmtAstPattern) argPattern,
             pBindingRestrictions);
+      } else {
+        throw new UnsupportedOperationException("Unsupported SmtAstPatternSelectionElement. Implement this?");
+      }
 
       if (functionArgumentResult.matches()) {
         argPatternsMatched.add(argPattern);

@@ -35,7 +35,7 @@ import com.google.common.collect.Multimap;
 
 public class SmtAstMatchResultImpl implements SmtAstMatchResult {
 
-  private final Multimap<SmtAstPattern, Formula> argumentPatternMatches;
+  private final Multimap<SmtAstPatternSelectionElement, Formula> argumentPatternMatches;
   private final Multimap<String, Formula> variableBindings;
   private final Multimap<Formula, String> variableBindingsReverse;
   private Formula matchingRootFormula;
@@ -46,7 +46,7 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
     this.variableBindingsReverse = HashMultimap.create();
   }
 
-  public void putMatchingArgumentFormula(SmtAstPattern pArgumentPattern, Formula pMatchingFormula) {
+  public void putMatchingArgumentFormula(SmtAstPatternSelectionElement pArgumentPattern, Formula pMatchingFormula) {
     argumentPatternMatches.put(pArgumentPattern, pMatchingFormula);
   }
 
@@ -109,7 +109,7 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
   }
 
   @Override
-  public ImmutableMultimap<SmtAstPattern, Formula> getMatchings() {
+  public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings() {
     return ImmutableMultimap.copyOf(argumentPatternMatches);
   }
 
