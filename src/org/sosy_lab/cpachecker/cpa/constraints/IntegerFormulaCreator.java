@@ -164,11 +164,10 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
         case SHORT:
         case INT:
         case LONG:
-          return FormulaType.IntegerType;
         case FLOAT:
-          return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          return FormulaType.getDoublePrecisionFloatingPointType();
+        case UNSPECIFIED:
+          return FormulaType.IntegerType;
         default:
           throw new AssertionError("Unhandled type " + pType);
       }
@@ -177,11 +176,10 @@ public class IntegerFormulaCreator implements FormulaCreator<Formula> {
         case BOOL:
         case CHAR:
         case INT:
-          return FormulaType.IntegerType;
         case FLOAT:
-          return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
-          return FormulaType.getDoublePrecisionFloatingPointType();
+        case UNSPECIFIED:
+          return FormulaType.IntegerType;
         default:
           throw new AssertionError("Unhandled type " + pType);
       }

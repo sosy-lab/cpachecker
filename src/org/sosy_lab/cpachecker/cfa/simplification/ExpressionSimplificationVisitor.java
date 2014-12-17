@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -151,11 +152,16 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that it's not a CSimpleType or that it's not a number
-    Value result = AbstractExpressionValueVisitor.calculateBinaryOperation(
-        value1, value2,
-        expr, machineModel, logger);
+    try {
+      Value result = AbstractExpressionValueVisitor.calculateBinaryOperation(
+          value1, value2,
+          expr, machineModel, logger);
 
-    return convertExplicitValueToExpression(expr, result);
+      return convertExplicitValueToExpression(expr, result);
+    } catch (SymbolicBoundReachedException e) {
+      // will not happen at this point
+      throw new AssertionError(e);
+    }
   }
 
   @Override

@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +47,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -124,6 +126,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula;
 import org.sosy_lab.cpachecker.cpa.value.type.SymbolicValueFormula.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicBoundReachedException;
 import org.sosy_lab.cpachecker.cpa.value.type.symbolic.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -228,7 +231,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
-    oldState = ValueAnalysisState.copyOf((ValueAnalysisState) pAbstractState);
+    oldState = ValueAnalysisState.copyOf((ValueAnalysisState)pAbstractState);
   }
 
   @Override
@@ -327,14 +330,20 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       functionReturnVar = MemoryLocation.valueOf(functionEntryNode.getReturnVariable().get().getQualifiedName());
     }
 
-    if (expression != null && functionReturnVar != null) {
+    try {
+      if (expression != null && functionReturnVar != null) {
 
-      return handleAssignmentToVariable(functionReturnVar,
-          functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
-          expression,
-          evv);
-    } else {
-      return state;
+        return handleAssignmentToVariable(functionReturnVar,
+            functionEntryNode.getFunctionDefinition().getType().getReturnType(), // TODO easier way to get type?
+            expression,
+            evv);
+      } else {
+        return state;
+      }
+
+    } catch (SymbolicBoundReachedException e) {
+      logger.logUserException(Level.WARNING, e, null);
+      return null;
     }
   }
 
@@ -595,7 +604,11 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
     }
 
     if (initialValue.isUnknown() && useSymbolicValues) {
-      initialValue = getSymbolicIdentifier(declarationType);
+      try {
+        initialValue = getSymbolicIdentifier(declarationType, declaration);
+      } catch (SymbolicBoundReachedException e) {
+        initialValue = UnknownValue.getInstance();
+      }
     }
 
     if (isTrackedField(decl, initialValue)) {
@@ -671,9 +684,9 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
         || pType instanceof JArrayType;
   }
 
-  private Value getSymbolicIdentifier(Type pType) {
+  private Value getSymbolicIdentifier(Type pType, AAstNode pLocation) throws SymbolicBoundReachedException {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return factory.createIdentifier(pType);
+    return factory.createIdentifier(pType, pLocation);
   }
 
   @Override
@@ -826,7 +839,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ValueAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, SymbolicBoundReachedException {
 
     Value value;
     if (exp instanceof JRightHandSide) {
@@ -876,7 +889,7 @@ public class ValueAnalysisTransferRelation extends ForwardingTransferRelation<Va
       // identifier to keep track of the variable.
       if (value.isUnknown() && missingInformationRightJExpression == null) {
         if (useSymbolicValues) {
-          value = getSymbolicIdentifier(lType);
+          value = getSymbolicIdentifier(lType, exp);
         } else {
           newElement.forget(assignedVar);
         }
