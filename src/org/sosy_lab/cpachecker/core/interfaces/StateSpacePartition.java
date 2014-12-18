@@ -26,15 +26,17 @@ package org.sosy_lab.cpachecker.core.interfaces;
 /**
  * Interface that describes a partition of the state space.
  *
- *  (a class is more flexible than an enum:
- *    own instances of StateSpacePartition can be created in the project-specific code.
+ * Two partitions are equivalent if their partition key is equivalent (see interface {@link Partitionable}).
+ *
+ * (A class is more flexible than an enum:
+ *    own instances of StateSpacePartition can be created in the project-specific code.)
  *
  */
 public abstract class StateSpacePartition implements Partitionable {
 
-  private static final StateSpacePartition defaultPartition = getNewPartition(Integer.valueOf(0));
+  private static final StateSpacePartition defaultPartition = getPartitionWithKey(Integer.valueOf(0));
 
-  public static synchronized StateSpacePartition getNewPartition(final Object pPartitionKey) {
+  public static synchronized StateSpacePartition getPartitionWithKey(final Object pPartitionKey) {
     return new StateSpacePartition() {
       @Override
       public Object getPartitionKey() {

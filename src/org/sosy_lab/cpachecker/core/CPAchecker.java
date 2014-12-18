@@ -441,7 +441,7 @@ public class CPAchecker {
 
     for (CFANode loc: pLocations) {
       StateSpacePartition putIntoPartition = partitionInitialStates
-          ? StateSpacePartition.getNewPartition(pPartitionKey)
+          ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
           : StateSpacePartition.getDefaultPartition();
 
       AbstractState initialState = pCpa.getInitialState(loc, putIntoPartition);
