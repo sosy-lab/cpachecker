@@ -29,6 +29,8 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Represents a type of a formula.
  * @param <T> the static type of the FormulaType.
@@ -181,9 +183,9 @@ public abstract class FormulaType<T extends Formula> {
     private final FormulaType<TE> elementType;
     private final FormulaType<TI> indexType;
 
-    public ArrayFormulaType(FormulaType<TI> pDomainSort, FormulaType<TE> pRangeSort) {
-      this.indexType = pDomainSort;
-      this.elementType = pRangeSort;
+    public ArrayFormulaType(FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+      this.indexType = Preconditions.checkNotNull(pIndexType);
+      this.elementType = Preconditions.checkNotNull(pElementType);
     }
 
     public FormulaType<? extends Formula> getElementType() {
@@ -208,25 +210,30 @@ public abstract class FormulaType<T extends Formula> {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((elementType == null) ? 0 : elementType.hashCode());
-      result = prime * result + ((indexType == null) ? 0 : indexType.hashCode());
+      result = prime * result + elementType.hashCode();
+      result = prime * result + indexType.hashCode();
       return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) { return true; }
-      if (obj == null) { return false; }
-      if (getClass() != obj.getClass()) { return false; }
+      if (this == obj) {
+        return true;
+      }
 
-      ArrayFormulaType<?,?> other = (ArrayFormulaType<?,?>) obj;
-      if (elementType == null) {
-        if (other.elementType != null) { return false; }
-      } else if (!elementType.equals(other.elementType)) { return false; }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
 
-      if (indexType == null) {
-        if (other.indexType != null) { return false; }
-      } else if (!indexType.equals(other.indexType)) { return false; }
+      ArrayFormulaType<?, ?> other = (ArrayFormulaType<?, ?>) obj;
+
+      if (!elementType.equals(other.elementType)) {
+        return false;
+      }
+
+      if (!indexType.equals(other.indexType)) {
+        return false;
+      }
 
       return true;
     }
