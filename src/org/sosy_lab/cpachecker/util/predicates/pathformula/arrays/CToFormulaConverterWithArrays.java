@@ -68,12 +68,13 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, Constraints pConstraints, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
 
-    CType fromType = pFromType.getCanonicalType();
-    if (fromType instanceof CArrayType) {
-      fromType = ((CArrayType) fromType).getType();
-    }
+// The following code is not needed (feedback from Philipp)
+//    CType fromType = pFromType.getCanonicalType();
+//    if (fromType instanceof CArrayType) {
+//      fromType = ((CArrayType) fromType).getType();
+//    }
 
-    return super.makeCast(fromType, pToType, pFormula, pConstraints, pEdge);
+    return super.makeCast(pFromType, pToType, pFormula, pConstraints, pEdge);
   }
 
   @Override
