@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -330,7 +331,33 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   @Test
   public void testSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
-    // a[2] = 0;
+    // a[2] = 1;
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
+    CExpression rhs = CIntegerLiteralExpression.ONE;
+    Pair<CFAEdge, CExpressionAssignmentStatement> assign = TestDataTools.makeAssignment(lhs, rhs);
+    BooleanFormula result = ctfBwd.makeAssignment(
+        lhs,
+        lhs,
+        rhs,
+        assign.getFirst(),
+        "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo(amgr.store(_smt_a, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
+
+  }
+
+  @Test
+  public void testNestedArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
+    // a[a[2]] = 0;
+
+    CArraySubscriptExpression _a_at__a_at_2 = new CArraySubscriptExpression(
+        FileLocation.DUMMY,
+        unlimitedIntArrayType,
+        _a.getThird(),
+        _a_at_2);
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
