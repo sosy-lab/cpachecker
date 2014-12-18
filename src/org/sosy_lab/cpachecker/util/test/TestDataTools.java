@@ -59,6 +59,12 @@ public class TestDataTools {
 
   public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
 
+  private static int dummyNodeCounter = 0;
+
+  private static CFANode newDummyNode() {
+    return new CFANode("DUMMY" + dummyNodeCounter++);
+  }
+
   public static final CInitializer INT_ZERO_INITIALIZER = new CInitializerExpression(
       FileLocation.DUMMY,
       CIntegerLiteralExpression.ZERO);
@@ -73,7 +79,7 @@ public class TestDataTools {
     CFunctionDeclaration fd = new CFunctionDeclaration(
         FileLocation.DUMMY, functionType, pFunctionName, pParameters);
     CDeclarationEdge declEdge = new CDeclarationEdge(
-        "", FileLocation.DUMMY, DUMMY_CFA_NODE, DUMMY_CFA_NODE, fd);
+        "", FileLocation.DUMMY, newDummyNode(), newDummyNode(), fd);
 
     return Triple.of(declEdge, fd, functionType);
   }
@@ -88,8 +94,8 @@ public class TestDataTools {
         new CDeclarationEdge(
             String.format("%s %s", "dummy", varName),
             FileLocation.DUMMY,
-            DUMMY_CFA_NODE,
-            DUMMY_CFA_NODE,
+            newDummyNode(),
+            newDummyNode(),
             decl),
         decl,
         new CIdExpression(
@@ -98,7 +104,7 @@ public class TestDataTools {
   }
 
   public static CFAEdge makeBlankEdge(String pDescription) {
-    return new BlankEdge("", FileLocation.DUMMY, DUMMY_CFA_NODE, DUMMY_CFA_NODE, pDescription);
+    return new BlankEdge("", FileLocation.DUMMY, newDummyNode(), newDummyNode(), pDescription);
   }
 
   public static Pair<CFAEdge, CExpressionAssignmentStatement> makeAssignment(CLeftHandSide pLhs, CExpression pRhs) {
@@ -111,8 +117,8 @@ public class TestDataTools {
         "dummy := rhs",
         stmt,
         FileLocation.DUMMY,
-        DUMMY_CFA_NODE,
-        DUMMY_CFA_NODE);
+        newDummyNode(),
+        newDummyNode());
 
     return Pair.of(edge, stmt);
   }
@@ -129,8 +135,8 @@ public class TestDataTools {
     CAssumeEdge assumeEdge = new CAssumeEdge(
         "dummyassume",
         FileLocation.DUMMY,
-        DUMMY_CFA_NODE,
-        DUMMY_CFA_NODE,
+        newDummyNode(),
+        newDummyNode(),
         pAssumeExr,
         false);
 
@@ -142,8 +148,8 @@ public class TestDataTools {
     CAssumeEdge assumeEdge = new CAssumeEdge(
         "dummyassume",
         FileLocation.DUMMY,
-        DUMMY_CFA_NODE,
-        DUMMY_CFA_NODE,
+        newDummyNode(),
+        newDummyNode(),
         pAssumeExr,
         true);
 

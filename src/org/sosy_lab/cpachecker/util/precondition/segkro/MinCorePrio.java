@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -73,7 +72,9 @@ public class MinCorePrio implements InterpolationWithCandidates {
   public BooleanFormula getInterpolant(BooleanFormula pConjunction, BooleanFormula pArbitraryFormula, List<BooleanFormula> pCandidates)
       throws SolverException, InterruptedException {
 
-    Preconditions.checkArgument(isInconsistent(pConjunction, pArbitraryFormula));
+    if (!isInconsistent(pConjunction, pArbitraryFormula)) {
+      throw new AssertionError("MinCorePrio: Formulas not inconsistent!");
+    }
 
     // ATTENTION: the following line might be different from the paper! Literals vs. atoms!
     Collection<BooleanFormula> resultPredicates = mgrv.extractLiterals(pConjunction, false, false);

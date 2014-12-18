@@ -99,6 +99,7 @@ public class RefineTest0 extends SolverBasedTest0 {
   protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     ConfigurationBuilder result = super.createTestConfigBuilder();
     result.setOption("cpa.predicate.handlePointerAliasing", "false");
+    result.setOption("cpa.predicate.handleArrays", "true");
 
     return result;
   }
