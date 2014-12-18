@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -114,6 +116,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private Pair<CAssumeEdge, CExpression> _a_at_i_equal_b_at_i;
   private Pair<CFAEdge, CExpressionAssignmentStatement> _a_at_i_assign_b_at_i;
   private Pair<CAssumeEdge, CExpression> _a_at_2_notequal_0;
+  private Pair<CFAEdge, CExpressionAssignmentStatement> _a_assign_0_at_2;
   private Pair<CAssumeEdge, CExpression> _i_notequal_0;
 
   private CArraySubscriptExpression _b_at_i;
@@ -210,6 +213,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         CIntegerLiteralExpression.ZERO,
         BinaryOperator.NOT_EQUALS));
 
+    _a_assign_0_at_2 = makeAssignment(_a_at_2, CIntegerLiteralExpression.ZERO);
+
     _i_notequal_0 = makeAssume(expressionBuilder.buildBinaryExpression(
         _i.getThird(),
         CIntegerLiteralExpression.ZERO,
@@ -276,7 +281,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testMakePredicate1() throws UnrecognizedCCodeException, InterruptedException {
+  public void testSimpleArrayAssume() throws UnrecognizedCCodeException, InterruptedException {
     // a[2] != 0
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
@@ -294,7 +299,26 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testMakePredicate2() throws UnrecognizedCCodeException, InterruptedException {
+  public void testSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
+    // a[2] = 0;
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
+    CRightHandSide rhs = _a_assign_0_at_2.getSecond().getRightHandSide();
+    BooleanFormula result = ctfBwd.makeAssignment(
+        lhs,
+        lhs,
+        rhs,
+        _a_assign_0_at_2.getFirst(),
+        "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo(amgr.store(_smt_a, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
+
+  }
+
+  @Test
+  public void testNestedArrayAssume() throws UnrecognizedCCodeException, InterruptedException {
     // a[a[2]] != 0
 
     CArraySubscriptExpression _a_at__a_at_2 = new CArraySubscriptExpression(
@@ -424,9 +448,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testMultiDimensional2() throws UnrecognizedCCodeException, InterruptedException {
+  public void testMultiDimensionalAssume() throws UnrecognizedCCodeException, InterruptedException {
     // a2d[3][7] == 23;
-    // a2d[3][7] = 23;
 
     final CArrayType arrayWith10 = new CArrayType(
         false,
