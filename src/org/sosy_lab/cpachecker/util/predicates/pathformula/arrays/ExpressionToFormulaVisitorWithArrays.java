@@ -102,7 +102,8 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
     final Formula indexExprFormula = pE.getSubscriptExpression().accept(this);
     final Formula castedIndexExprFormula = ctfa.makeCast(
         pE.getSubscriptExpression().getExpressionType(),
-          machine.getArrayIndexType(), indexExprFormula, null, null);
+          machine.getPointerEquivalentSimpleType(), // TODO: Is this correct?
+          indexExprFormula, null, null);
 
     // SELECT! ---------------------------------------------------------------
     return amgr.select(selectFrom, castedIndexExprFormula);
