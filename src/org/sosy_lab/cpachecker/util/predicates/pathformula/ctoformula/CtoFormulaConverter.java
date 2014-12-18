@@ -1088,6 +1088,7 @@ public class CtoFormulaConverter {
 
     if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
+      //  ... and lhs that are not supported by this implementation (example: arrays)
       return bfmgr.makeBoolean(true);
     }
 
