@@ -407,13 +407,13 @@ public class CPAchecker {
     return Joiner.on(", ").join(descriptions);
   }
 
-  private Result analyzeResult(final ReachedSet reached, boolean isComplete) {
+  private Result analyzeResult(final ReachedSet reached, boolean isSound) {
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
     }
 
-    if (!isComplete) {
+    if (!isSound) {
       logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
