@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -86,6 +87,11 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
   private Solver solver;
 
   private CExpression _0;
+
+  @Override
+  protected Solvers solverToUse() {
+    return Solvers.Z3;
+  }
 
   @Before
   public void setUp() throws Exception {

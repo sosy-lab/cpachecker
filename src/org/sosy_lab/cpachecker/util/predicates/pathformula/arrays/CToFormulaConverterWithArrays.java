@@ -65,6 +65,14 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   }
 
   @Override
+  protected Formula buildLvalueTerm(CLeftHandSide pExp, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions)
+      throws UnrecognizedCCodeException {
+
+    return pExp.accept(new LvalueVisitorWithArrays(this, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions));
+  }
+
+  @Override
   protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, Constraints pConstraints, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
 
