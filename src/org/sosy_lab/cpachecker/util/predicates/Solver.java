@@ -34,6 +34,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
@@ -61,7 +62,7 @@ import com.google.common.collect.Maps;
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(prefix="cpa.predicate")
-public final class Solver {
+public final class Solver implements AutoCloseable {
 
   @Option(secure=true, name="solver.useLogger",
       description="log some solver actions, this may be slow!")
@@ -86,6 +87,9 @@ public final class Solver {
   /**
    * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code.
    * This constructor is primarily for test code.
+   *
+   * Please note that calling {@link #close()} on the returned instance
+   * will also close the formula managers created by the passed {@link FormulaManagerFactory}.
    */
   @VisibleForTesting
   public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
@@ -100,6 +104,8 @@ public final class Solver {
 
   /**
    * Load and instantiate an SMT solver.
+   * The returned instance should be closed by calling {@link close}
+   * when it is not used anymore.
    */
   public static Solver create(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
@@ -259,6 +265,42 @@ public final class Solver {
     BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
 
     return isUnsat(f);
+  }
+
+  /**
+   * Close this solver instance and all underlying formula managers.
+   * This instance and any instance retrieved from it (including all {@link Formula}s)
+   * may not be used anymore after closing.
+   */
+  @Override
+  public void close() throws Exception {
+    // Reliably close both formula managers and re-throw exceptions,
+    // such that no exception gets lost and both managers get closed.
+    // Taken from https://stackoverflow.com/questions/24705055/wrapping-multiple-autocloseables
+    // Guava has Closer, but it does not yet support AutoCloseables.
+    Throwable t = null;
+    try {
+      if (solvingFormulaManager instanceof AutoCloseable) {
+        ((AutoCloseable)solvingFormulaManager).close();
+      }
+    } catch (Throwable t1) {
+      t = t1;
+      throw t1;
+    } finally {
+      if (solvingFormulaManager != interpolationFormulaManager
+          && interpolationFormulaManager instanceof AutoCloseable) {
+
+        if (t != null) {
+          try {
+            ((AutoCloseable)interpolationFormulaManager).close();
+          } catch (Throwable t2) {
+            t.addSuppressed(t2);
+          }
+        } else {
+          ((AutoCloseable)interpolationFormulaManager).close();
+        }
+      }
+    }
   }
 
   /**

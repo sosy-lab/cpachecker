@@ -91,7 +91,6 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
   private final AbstractionManager abstractionManager;
   @SuppressWarnings("unused")
   private final PredicateAbstractionManager predicateManager;
-  private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
 
 
@@ -120,7 +119,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
     //
     // Create specific instances that are needed to run this analysis.
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    formulaManager = solver.getFormulaManager();
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     pathFormulaManager = new PathFormulaManagerImpl(formulaManager, config, logger, pShutdownNotifier, cfa, AnalysisDirection.BACKWARD);
     // TODO: We might use a caching path formula manager
     //    pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
@@ -206,7 +205,7 @@ public class WpCPA implements ConfigurableProgramAnalysis, StatisticsProvider, A
 
   @Override
   public void close() throws Exception {
-    formulaManager.close();
+    solver.close();
   }
 
   @Override

@@ -116,7 +116,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
@@ -145,7 +144,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     blk.setCFA(cfa);
 
     solver = Solver.create(config, logger, pShutdownNotifier);
-    formulaManager = solver.getFormulaManager();
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
@@ -294,7 +293,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public void close() throws Exception {
-    formulaManager.close();
+    solver.close();
   }
 
   @Override
