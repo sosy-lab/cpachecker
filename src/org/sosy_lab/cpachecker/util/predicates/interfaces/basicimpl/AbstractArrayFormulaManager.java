@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
@@ -91,5 +92,12 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
     return (FTE) getFormulaCreator().getArrayFormulaElementType(pArray);
   }
+
+  @Override
+  public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(ArrayFormula<TI, TE> pArray1,
+      ArrayFormula<TI, TE> pArray2) {
+    return getFormulaCreator().encapsulateBoolean(equivalence(extractInfo(pArray1), extractInfo(pArray2)));
+  }
+  protected abstract TFormulaInfo equivalence(TFormulaInfo pArray1, TFormulaInfo pArray2);
 
 }

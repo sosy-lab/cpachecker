@@ -55,4 +55,9 @@ class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long
     throw new UnsupportedOperationException("Please implement me!");
   }
 
+  @Override
+  protected Long equivalence(Long pArray1, Long pArray2) {
+    throw new UnsupportedOperationException("Please implement me!");
+  }
+
 }

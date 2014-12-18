@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
@@ -75,7 +76,7 @@ public class ArrayFormulaManagerView
 
     final ArrayFormula<TI, TE> result = manager.makeArray(pName, unwrappedIndexType, unwrappedElementType);
 
-    return wrap(inputArrayType, result); // new UnwrappedArrayFormula<>(resultWithUnwrappedTypes, pIndexType, pElementType);
+    return wrap(inputArrayType, result);
   }
 
   @Override
@@ -94,6 +95,19 @@ public class ArrayFormulaManagerView
       return (FTE) t.getElementType();
     }
     return manager.getElementType(pArray);
+  }
+
+  @Override
+  public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(ArrayFormula<TI, TE> pArray1,
+      ArrayFormula<TI, TE> pArray2) {
+
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray1 = (ArrayFormula<TI, TE>) unwrap(pArray1);
+    @SuppressWarnings("unchecked")
+    final ArrayFormula<TI, TE> declaredArray2 = (ArrayFormula<TI, TE>) unwrap(pArray2);
+
+    BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
+    return wrap(FormulaType.BooleanType, result);
   }
 
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.mk_eq;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
@@ -73,6 +75,13 @@ class Z3ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long
     Z3NativeApi.inc_ref(z3context, arrayTerm);
 
     return arrayTerm;
+  }
+
+  @Override
+  protected Long equivalence(Long pArray1, Long pArray2) {
+    final long term = mk_eq(z3context, pArray1, pArray2);
+    Z3NativeApi.inc_ref(z3context, term);
+    return term;
   }
 
 }
