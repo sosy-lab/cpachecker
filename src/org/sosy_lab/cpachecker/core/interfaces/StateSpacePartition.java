@@ -38,6 +38,7 @@ public abstract class StateSpacePartition implements Partitionable {
 
   public static synchronized StateSpacePartition getPartitionWithKey(final Object pPartitionKey) {
     return new StateSpacePartition() {
+
       @Override
       public Object getPartitionKey() {
         return pPartitionKey;
@@ -54,7 +55,9 @@ public abstract class StateSpacePartition implements Partitionable {
     };
   }
 
-  public static StateSpacePartition getDefaultPartition() { return defaultPartition; }
+  public static StateSpacePartition getDefaultPartition() {
+    return defaultPartition;
+  }
 
   @Override
   public boolean equals(Object pObj) {
@@ -62,6 +65,8 @@ public abstract class StateSpacePartition implements Partitionable {
   }
 
   @Override
-  public int hashCode() { return getPartitionKey().hashCode(); }
+  public int hashCode() {
+    return getPartitionKey().hashCode();
+  }
 
 }
