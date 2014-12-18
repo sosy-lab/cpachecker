@@ -60,7 +60,7 @@ public class SmtAstMatchResultImpl implements SmtAstMatchResult {
   }
 
   @Override
-  public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pArgumentPattern) {
+  public Collection<Formula> getMatchingArgumentFormula(SmtAstPatternSelectionElement pArgumentPattern) {
     return argumentPatternMatches.get(pArgumentPattern);
   }
 

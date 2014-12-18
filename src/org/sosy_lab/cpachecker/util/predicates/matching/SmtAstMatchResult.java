@@ -32,24 +32,55 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-
+/**
+ * The result of a pattern matching call -- see {@link SmtAstMatcher}.
+ */
 public interface SmtAstMatchResult {
 
-  public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pForArgumentPattern);
+  // TODO: Reduce this interface to functions that are really used
 
-  public Optional<Formula> getMatchingRootFormula();
+  /**
+   * @return  Was there a match for the pattern?
+   */
+  public boolean matches();
 
+  /**
+   * @return  Collection of variables that were bound to a Formula.
+   */
   public Collection<String> getBoundVariables();
 
+  /**
+   * @param pVariableName   Name of a variable.
+   * @return  Collection of {@link Formula} were bound during the matching process to pVariableName.
+   */
   public Collection<Formula> getVariableBindings(String pVariableName);
 
+  /**
+   * @return  Get the Formula that represents the root of the AST of the matching formula.
+   */
+  public Optional<Formula> getMatchingRootFormula();
+
+  /**
+   * @param pForArgumentPattern   (Sub-)pattern that was used for the matching process.
+   * @return  Collection of {@link Formula} for that pForArgumentPattern matched.
+   */
+  public Collection<Formula> getMatchingArgumentFormula(SmtAstPatternSelectionElement pForArgumentPattern);
+
+  /**
+   * @param pFormula  A SMT Formula.
+   * @return  Get the collection of variables that were bound to the Formula pFormula.
+   */
   public Collection<String> getFormulaBindings(Formula pFormula);
 
+  /**
+   * @return A MultiMap that describes what SmtAstPatternSelectionElement matched to which Formulas.
+   */
   public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings();
 
+  /**
+   * Append the bindings from variable names to formula to the Multimap pTarget.
+   */
   public void appendBindingsTo(Multimap<String, Formula> pTarget);
-
-  public boolean matches();
 
   public final static SmtAstMatchResult NOMATCH_RESULT = new SmtAstMatchResult() {
 
@@ -64,7 +95,7 @@ public interface SmtAstMatchResult {
     }
 
     @Override
-    public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pMatcher) {
+    public Collection<Formula> getMatchingArgumentFormula(SmtAstPatternSelectionElement pMatcher) {
       return Collections.emptySet();
     }
 
