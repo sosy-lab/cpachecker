@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreat
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
-public class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
+class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   private final Z3SmtLogger smtLogger;
 

@@ -49,7 +49,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-public class Z3AstMatcher extends AbstractSmtAstMatcher {
+class Z3AstMatcher extends AbstractSmtAstMatcher {
 
   private final long ctx;
   private final Z3FormulaManager fm;
