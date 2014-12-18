@@ -100,12 +100,12 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
     // Handling of the index expression --------------------------------------
     // Make a cast of the subscript expression to the type of the array index
     final Formula indexExprFormula = pE.getSubscriptExpression().accept(this);
-    final Formula catedIndexExprFormula = ctfa.makeCastForMe(
+    final Formula castedIndexExprFormula = ctfa.visibleMakeCast(
         pE.getSubscriptExpression().getExpressionType(),
           machine.getArrayIndexType(), indexExprFormula, null, null);
 
     // SELECT! ---------------------------------------------------------------
-    return amgr.select(selectFrom, catedIndexExprFormula);
+    return amgr.select(selectFrom, castedIndexExprFormula);
   }
 
   @Override
