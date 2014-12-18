@@ -245,6 +245,22 @@ def commonBaseDir(l):
     return os.path.dirname(os.path.commonprefix(l))
 
 
+def writeFile(content, *path):
+    """
+    Simply write some content to a file, overriding the file if necessary.
+    """
+    with open(os.path.join(*path), "w") as file:
+        return file.write(content)
+
+
+def readFile(*path):
+    """
+    Read the full content of a file.
+    """
+    with open(os.path.join(*path)) as f:
+        return f.read().strip()
+
+
 def addFilesToGitRepository(baseDir, files, description):
     """
     Add and commit all files given in a list into a git repository in the

@@ -30,7 +30,6 @@ import os
 import signal
 import threading
 
-from . import filewriter
 from . import util
 
 _BYTE_FACTOR = 1000 # byte in kilobyte
@@ -78,7 +77,7 @@ class KillProcessOnOomThread(threading.Thread):
             self._efd = libc.eventfd(0, EFD_CLOEXEC)
 
             try:
-                filewriter.writeFile('{} {}'.format(self._efd, ofd),
+                util.writeFile('{} {}'.format(self._efd, ofd),
                                      cgroup, 'cgroup.event_control')
 
                 # If everything worked, disable Kernel-side process killing.
@@ -121,7 +120,7 @@ class KillProcessOnOomThread(threading.Thread):
         if os.path.exists(os.path.join(self._cgroup, limitFile)):
             try:
                 # Write a high value (1 PB) as the limit
-                filewriter.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
+                util.writeFile(str(1 * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR * _BYTE_FACTOR),
                                      self._cgroup, limitFile)
             except IOError as e:
                 logging.warning('Failed to increase {0} after OOM: error {1} ({2})'.format(limitFile, e.errno, e.strerror))
