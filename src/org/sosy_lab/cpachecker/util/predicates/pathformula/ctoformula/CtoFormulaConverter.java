@@ -231,6 +231,12 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+    if (lhs.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      // Probably a (string) initializer, ignore assignments to arrays
+      // as they cannot behandled precisely anyway.
+      return false;
+    }
+
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
     } else {
@@ -1086,12 +1092,6 @@ public class CtoFormulaConverter {
     }
 
     CType lhsType = lhs.getExpressionType().getCanonicalType();
-
-    if (lhsType instanceof CArrayType) {
-      // Probably a (string) initializer, ignore assignments to arrays
-      // as they cannot behandled precisely anyway.
-      return bfmgr.makeBoolean(true);
-    }
 
     if (rhs instanceof CExpression) {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
