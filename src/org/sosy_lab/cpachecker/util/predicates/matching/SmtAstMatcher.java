@@ -93,5 +93,6 @@ public interface SmtAstMatcher {
    * USING THIS METHOD IS UNSAFE: IT DOES NOT GUARANTEE ANYTHING!
    *  IT WILL BE (hopefully) REMOVED WITHIN THE NEXT FEW MONTHS.
    */
+  @Deprecated
   public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 f, Map<T2, T2> fromToMapping);
 }
