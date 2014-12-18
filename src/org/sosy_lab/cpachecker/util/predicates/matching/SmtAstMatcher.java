@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
@@ -35,19 +36,62 @@ import com.google.common.collect.Multimap;
 
 public interface SmtAstMatcher {
 
+  /**
+   * Check whether the Formula matches the pattern that
+   * is described in the SmtAstPatternSelection.
+   *
+   * @param pPatternSelection   The pattern.
+   * @param pF                  The SMT formula.
+   *
+   * @return  Resulting {@link SmtAstMatchResult}} of the matching process.
+   */
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF);
+
+  /**
+   * Similar to {@link SmtAstMatcher#perform(SmtAstPatternSelection, Formula)}}
+   * but it takes an additional map of <variable name to bound formula> that is
+   * used to restrict the possible matches.
+   *
+   * Patterns can describe a binding of formulas to variables; these provided
+   * bindings are used to further restrict possible matches.
+   *
+   */
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF, Optional<Multimap<String, Formula>> bBindingRestrictions);
 
-  // a+b  <-->  b+a
+  /**
+   * Define that a specific function (represented by its name/function symbol)
+   * is commutative, for example,
+   *
+   *    a+b  <-->  b+a
+   */
   public void defineCommutative(String pFunctionName);
 
-  // a >= b  <-->  b <= a
+  /**
+   * Define that a specific binary function is equivalent to another function,
+   * but with swapped operators, for example,
+   *
+   *    a >= b  <-->  b <= a
+   */
   public void defineRotations(String pFunctionName, String pRotationFunctionName);
 
+  /**
+   * Define aliases for a given function.
+   */
   public void defineFunctionAliases(String pFunctionName, Set<String> pAliases);
 
-  // a >= b  --> a > b || a = b
+  /**
+   * Define the implications that can be derived from a given function, for example,
+   *
+   *    a >= b  --> a > b || a = b
+   */
   public void defineOperatorImplications(String pString, HashSet<String> pNewHashSet);
 
+  /**
+   * This function should only be used to provide conclusions of formulas.
+   *    Such a method could be provided by {@link FormulaManagerView}} in the future.
+   *
+   * USING THIS METHOD IS UNSAFE: IT DOES NOT GUARANTEE ANYTHING!
+   *  IT WILL BE (hopefully) REMOVED WITHIN THE NEXT FEW MONTHS.
+   */
   public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 f, Map<T2, T2> fromToMapping);
 }
