@@ -121,6 +121,9 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private CArraySubscriptExpression _a_at_1;
   private CArraySubscriptExpression _a_at_2;
 
+  private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a;
+  private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>> _smt_a2d;
+
   @Override
   protected Solvers solverToUse() {
     return Solvers.Z3;
@@ -157,6 +160,9 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   @Before
   public void setupCfaTestData() throws UnrecognizedCCodeException {
+
+    _smt_a = amgr.makeArray("a@1", NumeralType.IntegerType, NumeralType.IntegerType);
+    _smt_a2d = amgr.makeArray("a2d@1", NumeralType.IntegerType, FormulaType.getArrayType(NumeralType.IntegerType, NumeralType.IntegerType));
 
     _a = makeDeclaration("a", unlimitedIntArrayType, null);
     _b = makeDeclaration("b", unlimitedIntArrayType, null);
@@ -279,8 +285,12 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a_at_2_notequal_0.getFirst(),
         "foo", ssa);
 
-    assertThat(result.toString())
-      .isEqualTo("(and (not (= (select a@1 2.0) 0.0)) true)");
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+    .comparesEqualTo(bmgr.not(
+        imgr.equal(
+            amgr.select(_smt_a, imgr.makeNumber(2)),
+            imgr.makeNumber(0))).toString());
+
   }
 
   @Test
@@ -304,7 +314,11 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo("(not (= (select a@1 (select a@1 2.0)) 0.0))");
+      .comparesEqualTo(bmgr.not(
+          imgr.equal(
+              amgr.select(_smt_a, amgr.select(_smt_a, imgr.makeNumber(2))),
+              imgr.makeNumber(0))).toString());
+
   }
 
   @Test
@@ -343,7 +357,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString()
         .replaceAll("\n", " ").replaceAll("  ", " "))
-        .isEqualTo("(and (= |foo::x[0]@1| 1.0) (= |foo::x[1]@1| 3.0) (= |foo::x[2]@1| 5.0) (= |foo::x[3]@1| 7.0))");
+        .isEqualTo("TODO");
   }
 
   @Test
@@ -411,8 +425,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   @Test
   public void testMultiDimensional2() throws UnrecognizedCCodeException, InterruptedException {
-    // arr2d[3][7] == 23;
-    // arr2d[3][7] = 23;
+    // a2d[3][7] == 23;
+    // a2d[3][7] = 23;
 
     final CArrayType arrayWith10 = new CArrayType(
         false,
@@ -428,7 +442,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
        );
 
     final Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _arr2d
-      = makeDeclaration("arr2d", typeOf_arr2d, null);
+      = makeDeclaration("a2d", typeOf_arr2d, null);
 
     CArraySubscriptExpression _arr2d_at_3_7 = new CArraySubscriptExpression(
         FileLocation.DUMMY,
@@ -453,7 +467,13 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .isEqualTo("(= (select (select arr2d@1 3.0) 7.0) 23.0)");
+    .comparesEqualTo(
+        imgr.equal(
+            amgr.select(
+                amgr.select(
+                    _smt_a2d, imgr.makeNumber(3)),
+                    imgr.makeNumber(7)),
+            imgr.makeNumber(23)).toString());
   }
 
   @Test
