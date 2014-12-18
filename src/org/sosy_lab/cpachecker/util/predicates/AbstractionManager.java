@@ -34,7 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
@@ -70,6 +69,7 @@ public final class AbstractionManager {
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
+  private final Solver solver;
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate = Maps.newHashMap();
   // and the mapping symbolic variable -> predicate
@@ -81,26 +81,23 @@ public final class AbstractionManager {
 
   // Properties for BDD variable ordering:
   // how much variables have two predicates in common?
-  private final ArrayList<ArrayList<Integer>> predicateSimilarities = new ArrayList<>();
-  // mapping partition id -> concrete partition
-  private final HashMap<Integer, ArrayList<Integer>> predicatePartitions = new HashMap<>();
-  // mapping partition id -> predicate variables in this partition
-  private final HashMap<Integer, Set<String>> partitionsToVariables = new HashMap<>();
+  private final HashMap<String, PredicatePartition> predVarToPartition = new HashMap<>();
+
   private final Map<Region, BooleanFormula> toConcreteCache;
-  private int nextPartitionID = 0;
   private volatile int numberOfPredicates = 0;
   @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
   private boolean useCache = true;
   private BooleanFormulaManagerView bfmgr;
 
   public AbstractionManager(RegionManager pRmgr, FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger)
+      Configuration config, LogManager pLogger, Solver pSolver)
       throws InvalidConfigurationException {
     config.inject(this, AbstractionManager.class);
     logger = pLogger;
     rmgr = pRmgr;
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    solver = pSolver;
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
@@ -132,37 +129,11 @@ public final class AbstractionManager {
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
       varIDToPredicate.put(numberOfPredicates, result);
-      updatePredicateSimilarities(atom);
-      updatePartitions(numberOfPredicates, atom);
+      updatePartitions(result);
       numberOfPredicates++;
     }
 
     return result;
-  }
-
-  /**
-   * Calculates the similarity of the new predicate and old predicates and updates the similarity relationship.
-   *
-   * @param newPredicate the new predicated that arrived.
-   */
-  private void updatePredicateSimilarities(BooleanFormula newPredicate) {
-    ArrayList<Integer> similarities = new ArrayList<>(numberOfPredicates);
-    // get the variables contained in the new predicate
-    Set<String> varsInNewPred = fmgr.extractVariableNames(newPredicate);
-
-    // calculate for each of the old predicates the number of variables the old and the new predicate have in common
-    for (int i = 0; i < numberOfPredicates; i++) {
-      Set<String> varsInPrevPred = fmgr.extractVariableNames(varIDToPredicate.get(i).getSymbolicAtom());
-      // the similarity is equal to the number of variables the predicates have in common
-      varsInPrevPred.retainAll(varsInNewPred);
-      Integer similarity = varsInPrevPred.size();
-      ArrayList<Integer> similaritiesPrevPred = predicateSimilarities.get(i);
-      similaritiesPrevPred.add(similarity);
-      similarities.add(i, similarity);
-    }
-
-    similarities.add(0);
-    predicateSimilarities.add(similarities);
   }
 
   /**
@@ -171,98 +142,34 @@ public final class AbstractionManager {
    * If there is more than one partition similar to the new predicate, the similar partitions are merged together and
    * the new predicate is inserted between the partitions that are most similar to it.
    *
-   * @param varIDNewPredicate the id of the new predicate that should be inserted in a partition.
    * @param newPredicate the new predicate as symbolic atom.
    */
-  private void updatePartitions(int varIDNewPredicate, BooleanFormula newPredicate) {
-    Set<String> predVars = fmgr.extractVariableNames(newPredicate);
+  private void updatePartitions(AbstractionPredicate newPredicate) {
+    Set<String> predVars = fmgr.extractVariableNames(newPredicate.getSymbolicAtom());
 
-    if (predicatePartitions.isEmpty()) {
-      createNewPredicatePartition(varIDNewPredicate, predVars);
+    // check which variables of the predicate are covered by the partitions.
+    Set<String> varIntersection = new HashSet<>(predVars);
+    varIntersection.retainAll(predVarToPartition.keySet());
+    PredicatePartition firstPartition;
+
+    if (varIntersection.isEmpty()) {
+      // merge partitions that are similar to the new predicate
+      Iterator<String> varIterator = varIntersection.iterator();
+      firstPartition = predVarToPartition.get(varIterator.next());
+
+      while (varIterator.hasNext()) {
+        firstPartition = firstPartition.merge(predVarToPartition.get(varIterator.next()));
+      }
     } else {
-      // the similarity of a partition and the new predicate is number of variables in the predicate covered by the partition
-      HashMap<Integer, Integer> partitionToSimilarity = new HashMap<>();
-      TreeMap<Integer, Integer> similarityToPartition = new TreeMap<>(Collections.reverseOrder());
-      // a partition is similar to the new predicate if at least one variable of the predicate is covered by the partition
-      int numberOfSimilarPartitions = 0;
-
-      // walk through the partitions and check which one is similar to the new predicate
-      for (Integer partitionID : predicatePartitions.keySet()) {
-        Set<String> predVarsCoveredByPartition = partitionsToVariables.get(partitionID);
-        Set<String> intersection = new HashSet<>(predVarsCoveredByPartition);
-
-        if (intersection.retainAll(predVars)) {
-          partitionToSimilarity.put(partitionID, intersection.size());
-          similarityToPartition.put(intersection.size(), partitionID);
-          numberOfSimilarPartitions++;
-        }
-      }
-
-      if (numberOfSimilarPartitions == 0) {
-        createNewPredicatePartition(varIDNewPredicate, predVars);
-      } else {
-        if (numberOfSimilarPartitions == 1) {
-          addPredicateToPartition(predVars, varIDNewPredicate, partitionToSimilarity);
-        } else {
-          // insert predicate between first two partitions, and merge intersecting partitions together.
-          Iterator<Integer> iterator = similarityToPartition.descendingKeySet().iterator();
-          Integer firstPartitionID = similarityToPartition.get(iterator.next());
-          ArrayList<Integer> firstPartition = predicatePartitions.get(firstPartitionID);
-          firstPartition.add(varIDNewPredicate);
-          HashSet<Integer> partitionsToRemove = new HashSet<>();
-          Set<String> predVarsFirstPartition = partitionsToVariables.get(firstPartitionID);
-
-          while (iterator.hasNext()) {
-            Integer partitionID = similarityToPartition.get(iterator.next());
-            ArrayList<Integer> nextPartition = predicatePartitions.get(partitionID);
-            firstPartition.addAll(nextPartition);
-            partitionsToRemove.add(partitionID);
-            predVarsFirstPartition.addAll(partitionsToVariables.get(partitionID));
-          }
-
-          predicatePartitions.keySet().removeAll(partitionsToRemove);
-        }
-      }
+      firstPartition = new PredicatePartition(fmgr, solver);
     }
-  }
 
-  /**
-   * Inserts a new predicate to an existing partition next to the predicate of the partition that is most similar to
-   * the
-   * new one.
-   */
-  private void addPredicateToPartition(Set<String> predVars, int varIDNewPredicate,
-      HashMap<Integer, Integer> partitionToSimilarity) {
-    ArrayList<Integer> partition = predicatePartitions.get(partitionToSimilarity.keySet().iterator().next());
-    ArrayList<Integer> similarities = predicateSimilarities.get(varIDNewPredicate);
-    ArrayList<Integer> similaritiesSortedHighLow = new ArrayList<>(similarities);
-    Collections.sort(similaritiesSortedHighLow, Collections.reverseOrder());
+    firstPartition.insertPredicate(newPredicate);
 
-    for (Integer similarity : similaritiesSortedHighLow) {
-      int varIDSimilarPred = similarities.indexOf(similarity);
-
-      if (partition.contains(varIDSimilarPred)) {
-        int indexSimilarPred = partition.indexOf(varIDSimilarPred);
-
-        if (fmgr.extractVariableNames(varIDToPredicate.get(varIDSimilarPred).getSymbolicAtom())
-            .size() < predVars.size()) {
-          partition.add(indexSimilarPred, varIDNewPredicate);
-        } else {
-          partition.add(indexSimilarPred + 1, varIDNewPredicate);
-        }
-        break;
-      }
+    // update keys such that they point to the result partition of the merging
+    for (String predVar : predVars) {
+      predVarToPartition.put(predVar, firstPartition);
     }
-  }
-
-  /**
-   * Create a new partition and update map of partitions.
-   */
-  private void createNewPredicatePartition(Integer varID, Set<String> predVars) {
-    ArrayList<Integer> newPartition = new ArrayList<>();
-    newPartition.add(varID);
-    predicatePartitions.put(nextPartitionID, newPartition);
-    partitionsToVariables.put(nextPartitionID++, predVars);
   }
 
   /**
@@ -271,8 +178,12 @@ public final class AbstractionManager {
   public void reorderPredicates() {
     ArrayList<Integer> predicateOrdering = new ArrayList<>();
 
-    for (Integer partitionID : predicatePartitions.keySet()) {
-      predicateOrdering.addAll(predicatePartitions.get(partitionID));
+    for (PredicatePartition partition : predVarToPartition.values()) {
+      ArrayList<AbstractionPredicate> predicates = partition.getPredicates();
+
+      for (AbstractionPredicate predicate : predicates) {
+        predicateOrdering.add(predicate.getVariableNumber());
+      }
     }
 
     rmgr.setVarOrder(predicateOrdering);
