@@ -102,8 +102,9 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
     return super.makeReturn(pAssignment, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
   }
 
-  Formula makeVariableForMe(String pName, CType pType, SSAMapBuilder pSsa) {
-    return makeVariable(pName, pType, pSsa);
+  @Override
+  protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeVariable(pName, pType, pSsa);
   }
 
   @Override
@@ -117,12 +118,4 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
     return super.makeCast(fromType, pToType, pFormula, pConstraints, pEdge);
   }
-
-  Formula visibleMakeCast(CType pFromType, CType pToType, Formula pFormula, Constraints pConstraints, CFAEdge pEdge)
-      throws UnrecognizedCCodeException {
-    return makeCast(pFromType, pToType, pFormula, pConstraints, pEdge);
-  }
-
-
-
 }

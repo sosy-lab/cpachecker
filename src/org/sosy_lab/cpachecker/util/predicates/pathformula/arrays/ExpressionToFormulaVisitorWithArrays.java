@@ -86,7 +86,7 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
       final String arrayVarName = idExpr.getDeclaration().getQualifiedName();
       final CType arrayType = pE.getArrayExpression().getExpressionType();
 
-      selectFrom = (ArrayFormula<?, ?>) ctfa.makeVariableForMe(arrayVarName, arrayType, ssa);
+      selectFrom = (ArrayFormula<?, ?>) ctfa.makeVariable(arrayVarName, arrayType, ssa);
 
     } else if (pE.getArrayExpression() instanceof CArraySubscriptExpression) {
       final CArraySubscriptExpression subExpr = (CArraySubscriptExpression) pE.getArrayExpression();
@@ -100,7 +100,7 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
     // Handling of the index expression --------------------------------------
     // Make a cast of the subscript expression to the type of the array index
     final Formula indexExprFormula = pE.getSubscriptExpression().accept(this);
-    final Formula castedIndexExprFormula = ctfa.visibleMakeCast(
+    final Formula castedIndexExprFormula = ctfa.makeCast(
         pE.getSubscriptExpression().getExpressionType(),
           machine.getArrayIndexType(), indexExprFormula, null, null);
 
