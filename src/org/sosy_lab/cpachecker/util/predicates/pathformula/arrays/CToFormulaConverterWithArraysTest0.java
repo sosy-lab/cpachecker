@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -67,11 +68,16 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
@@ -98,10 +104,34 @@ import com.google.common.collect.Lists;
 @SuppressWarnings("unused")
 public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
+  @VisibleForTesting
+  private static class CToFormulaConverterWithArraysUnderTest extends CToFormulaConverterWithArrays {
+    public CToFormulaConverterWithArraysUnderTest(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
+        MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification, LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier, CtoFormulaTypeHandler pTypeHandler, AnalysisDirection pDirection) {
+      super(pOptions, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, pTypeHandler, pDirection);
+    }
+
+    @Override
+    protected org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula makeDeclaration(CDeclarationEdge pEdge,
+        String pFunction, SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints,
+        ErrorConditions pErrorConditions) throws CPATransferException, InterruptedException {
+      return super.makeDeclaration(pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
+    }
+
+    @Override
+    protected org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula makeAssignment(CLeftHandSide pLhs,
+        CLeftHandSide pLhsForChecking, CRightHandSide pRhs, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+        PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions)
+        throws UnrecognizedCCodeException, InterruptedException {
+      return super.makeAssignment(pLhs, pLhsForChecking, pRhs, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
+    }
+  }
+
   private static final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);
 
-  private CToFormulaConverterWithArrays ctfBwd;
-  private CToFormulaConverterWithArrays ctfFwd;
+  private CToFormulaConverterWithArraysUnderTest ctfBwd;
+  private CToFormulaConverterWithArraysUnderTest ctfFwd;
 
   private CBinaryExpressionBuilder expressionBuilder;
   private FormulaManagerView mgrv;
@@ -140,7 +170,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     CtoFormulaTypeHandlerWithArrays th = new CtoFormulaTypeHandlerWithArrays(logger, opts, mm, mgrv);
     expressionBuilder = new CBinaryExpressionBuilder(mm, logger);
 
-    ctfBwd = new CToFormulaConverterWithArrays(
+    ctfBwd = new CToFormulaConverterWithArraysUnderTest(
         opts,
         mgrv,
         mm,
@@ -150,7 +180,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         th,
         AnalysisDirection.BACKWARD);
 
-    ctfFwd = new CToFormulaConverterWithArrays(
+    ctfFwd = new CToFormulaConverterWithArraysUnderTest(
         opts,
         mgrv,
         mm,

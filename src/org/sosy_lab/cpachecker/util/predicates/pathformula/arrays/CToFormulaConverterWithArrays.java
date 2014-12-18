@@ -24,32 +24,22 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
 
@@ -63,51 +53,6 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   }
 
   @Override
-  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
-      CFAEdge pEdge, String pFunction,
-      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
-      Constraints constraints, ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitorWithArrays(this, fmgr, machineModel, pEdge, pFunction, ssa, constraints);
-  }
-
-  @Override
-  protected BooleanFormula makeDeclaration(CDeclarationEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions)
-      throws CPATransferException, InterruptedException {
-
-    return super.makeDeclaration(pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
-  }
-
-  @Override
-  protected BooleanFormula makeAssignment(CLeftHandSide pLhs, CLeftHandSide pLhsForChecking, CRightHandSide pRhs,
-      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints,
-      ErrorConditions pErrorConditions) throws UnrecognizedCCodeException, InterruptedException {
-
-    return super.makeAssignment(pLhs, pLhsForChecking, pRhs, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
-  }
-
-  @Override
-  protected BooleanFormula makePredicate(CExpression pExp, boolean pIsTrue, CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions)
-      throws UnrecognizedCCodeException, InterruptedException {
-
-    return super.makePredicate(pExp, pIsTrue, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
-  }
-
-  @Override
-  protected BooleanFormula makeReturn(Optional<CAssignment> pAssignment, CReturnStatementEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions)
-      throws CPATransferException, InterruptedException {
-
-    return super.makeReturn(pAssignment, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
-  }
-
-  @Override
-  protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeVariable(pName, pType, pSsa);
-  }
-
-  @Override
   protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, Constraints pConstraints, CFAEdge pEdge)
       throws UnrecognizedCCodeException {
 
@@ -117,5 +62,22 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
     }
 
     return super.makeCast(fromType, pToType, pFormula, pConstraints, pEdge);
+  }
+
+  @Override
+  protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeVariable(pName, pType, pSsa);
+  }
+
+  @Override
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
+    if (pLhs.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      // TODO: isRelevantLeftHandSide is also used to determine
+      // whether variables are relevant for specific analysis runs/traces
+      //    Returning always true for arrays might have a negative impact on the performance!
+      return true;
+    }
+
+    return super.isRelevantLeftHandSide(pLhs);
   }
 }
