@@ -34,11 +34,15 @@ import com.google.common.collect.Lists;
 
 public class FormulaUtils {
 
+  // TODO: Try to solve this using the standard libraries! Caching might be the only reason th have this class.
+
+  @Deprecated
   public static boolean equalFormula(BooleanFormula f1, BooleanFormula f2) {
     // TODO: Implement a cache!
     return f1.equals(f2); // TODO: Test this!!
   }
 
+  @Deprecated
   public static boolean containsFormulasFrom(List<BooleanFormula> pToCheck, Collection<BooleanFormula> pFrom) {
     for (BooleanFormula f: pFrom) {
       if (pToCheck.contains(f)) {
@@ -48,6 +52,7 @@ public class FormulaUtils {
     return false;
   }
 
+  @Deprecated
   public static boolean containsFormulasNotFrom(List<BooleanFormula> pToCheck, Collection<BooleanFormula> pFrom) {
     for (BooleanFormula f: pToCheck) {
       if (!pFrom.contains(f)) {
@@ -57,6 +62,7 @@ public class FormulaUtils {
     return false;
   }
 
+  @Deprecated
   public static List<BooleanFormula> substractEqualFromulasFrom(Collection<BooleanFormula> pSubstractFrom, Collection<BooleanFormula> pSubstract) {
     // TODO: This might not be the optimal solution!
 
