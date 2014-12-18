@@ -42,18 +42,36 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-
+/**
+ * CPA for partitioning the state space of an analysis;
+ * one set of reached states can be used to analyze
+ * disjoint partitions of the state space.
+ */
 public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
+  /**
+   * The abstract domain of the PartitioningCPA is a flat lattice.
+   * The elements of the lattice are the partitions.
+   */
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
   private final StopOperator stopOperator = new StopJoinOperator(abstractDomain);
   private final MergeOperator mergeOperator = new MergeJoinOperator(abstractDomain);
+
+  /**
+   * The transfer relation keeps the partition of the predecessor state.
+   * (the successor state is the predecessor state).
+   *
+   * The partition is determined by the initial state.
+   */
   private final TransferRelation transferRelation = IdentityTransferRelation.INSTANCE;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PartitioningCPA.class);
   }
 
+  /**
+   * The abstract state of the PartitioningCPA
+   */
   public static class PartitionState implements AbstractState {
     private final StateSpacePartition partition;
 

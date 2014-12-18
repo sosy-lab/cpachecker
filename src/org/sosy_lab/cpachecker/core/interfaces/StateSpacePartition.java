@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Preconditions;
+
 /**
  * Interface that describes a partition of the state space.
  *
@@ -32,41 +36,43 @@ package org.sosy_lab.cpachecker.core.interfaces;
  *    own instances of StateSpacePartition can be created in the project-specific code.)
  *
  */
-public abstract class StateSpacePartition implements Partitionable {
+public class StateSpacePartition implements Partitionable {
 
   private static final StateSpacePartition defaultPartition = getPartitionWithKey(Integer.valueOf(0));
-
-  public static synchronized StateSpacePartition getPartitionWithKey(final Object pPartitionKey) {
-    return new StateSpacePartition() {
-
-      @Override
-      public Object getPartitionKey() {
-        return pPartitionKey;
-      }
-
-      @Override
-      public String toString() {
-        if (pPartitionKey == null) {
-          return "[NULL]";
-        } else {
-          return pPartitionKey.toString();
-        }
-      }
-    };
-  }
 
   public static StateSpacePartition getDefaultPartition() {
     return defaultPartition;
   }
 
+  public static synchronized StateSpacePartition getPartitionWithKey(final Object pPartitionKey) {
+    return new StateSpacePartition(pPartitionKey);
+  }
+
+  private final @Nonnull Object partitionKey;
+
+  private StateSpacePartition(Object pPartitionKey) {
+    Preconditions.checkNotNull(pPartitionKey);
+    this.partitionKey = pPartitionKey;
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    return partitionKey;
+  }
+
   @Override
   public boolean equals(Object pObj) {
-    return ((StateSpacePartition) pObj).getPartitionKey().equals(this.getPartitionKey());
+    return ((StateSpacePartition) pObj).getPartitionKey().equals(partitionKey);
+  }
+
+  @Override
+  public String toString() {
+    return partitionKey.toString();
   }
 
   @Override
   public int hashCode() {
-    return getPartitionKey().hashCode();
+    return partitionKey.hashCode();
   }
 
 }
