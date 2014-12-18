@@ -445,7 +445,9 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
   }
 
-  // ----------------------------- BACK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >
+  // B A C K W A R D
+  // > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >
 
   @Test
   public void testBackwardArrayPathSat1() throws CPATransferException, InterruptedException, SolverException {
@@ -460,9 +462,9 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op2
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_0, _1, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op2.getFirst()
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op2.getFirst(),
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isFalse();
@@ -481,9 +483,9 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op2
       = TestDataTools.makeNegatedAssume(eb.buildBinaryExpression(_a_at_0, _1, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op2.getFirst()
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op2.getFirst(),
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
@@ -506,10 +508,10 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op3
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_0, _1, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op3.getFirst(),
         _op2.getFirst(),
-        _op3.getFirst()
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isFalse();
@@ -532,10 +534,10 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op3
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_0, _2, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op3.getFirst(),
         _op2.getFirst(),
-        _op3.getFirst()
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
@@ -558,10 +560,10 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op3
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_0, _1, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op3.getFirst(),
         _op2.getFirst(),
-        _op3.getFirst()
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
@@ -584,10 +586,10 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op3
       = TestDataTools.makeNegatedAssume(eb.buildBinaryExpression(_a_at_0, _1, BinaryOperator.EQUALS));
 
-    PathFormula result = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
+    PathFormula result = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op3.getFirst(),
         _op2.getFirst(),
-        _op3.getFirst()
+        _op1.getFirst()
         ));
 
     assertThat(solver.isUnsat(result.getFormula())).isFalse();
@@ -628,34 +630,34 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op8
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_2, _100, BinaryOperator.GREATER_THAN));
 
-    PathFormula branch1 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op2.getFirst(),
+    PathFormula branch1 = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op8.getFirst(),
+        _op4.getFirst(),
         _op3.getFirst(),
-        _op4.getFirst()
+        _op2.getFirst()
         ));
-    PathFormula branch2 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op5.getFirst(),
+    PathFormula branch2 = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op8.getFirst(),
+        _op7.getFirst(),
         _op6.getFirst(),
-        _op7.getFirst()
+        _op5.getFirst()
         ));
-    PathFormula result = pfmgrFwd.makeOr(branch1, branch2);
-    result = pfmgrFwd.makeAnd(result, _op8.getFirst());
+    PathFormula result = pfmgrBwd.makeOr(branch1, branch2);
+    result = pfmgrBwd.makeAnd(result, _op1.getFirst());
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
   }
 
   @Test
   public void testBackwardArrayBranchingUnsat2() throws CPATransferException, InterruptedException, SolverException {
-    // a[0] = 0;
-    // if (a[1] == 10) {
-    //    a[2] = 20;
-    //    a[3] = 30;
-    // } else {
-    //    a[2] = 0;
-    // }
-    // if (a[2] > 100) {
+    //1: a[0] = 0;
+    //2: if (a[1] == 10) {
+    //3:    a[2] = 20;
+    //4:    a[3] = 30;
+    //5: } else {
+    //6:    a[2] = 0;
+    //   }
+    //8: if (a[2] > 100) {
     //  ERROR: ...
     // }
 
@@ -678,19 +680,19 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op8
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_2, _100, BinaryOperator.GREATER_THAN));
 
-    PathFormula branch1 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op2.getFirst(),
+    PathFormula branch1 = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op8.getFirst(),
+        _op4.getFirst(),
         _op3.getFirst(),
-        _op4.getFirst()
+        _op2.getFirst()
         ));
-    PathFormula branch2 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op5.getFirst(),
-        _op6.getFirst()
+    PathFormula branch2 = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op8.getFirst(),
+        _op6.getFirst(),
+        _op5.getFirst()
         ));
-    PathFormula result = pfmgrFwd.makeOr(branch1, branch2);
-    result = pfmgrFwd.makeAnd(result, _op8.getFirst());
+    PathFormula result = pfmgrBwd.makeOr(branch1, branch2);
+    result = pfmgrBwd.makeAnd(result, _op1.getFirst());
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
   }
@@ -722,19 +724,19 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     Pair<CAssumeEdge, CExpression> _op8
       = TestDataTools.makeAssume(eb.buildBinaryExpression(_a_at_2, _100, BinaryOperator.GREATER_THAN));
 
-    PathFormula branch1 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
-        _op2.getFirst(),
+    PathFormula branch1 = pfmgrBwd.makeFormulaForPath(Lists.newArrayList(
+        _op8.getFirst(),
+        _op4.getFirst(),
         _op3.getFirst(),
-        _op4.getFirst()
+        _op2.getFirst()
         ));
-    PathFormula branch2 = pfmgrFwd.makeFormulaForPath(Lists.newArrayList(
-        _op1.getFirst(),
+    PathFormula branch2 = pfmgrBwd.makeFormulaForPath(Lists.<CFAEdge>newArrayList(
+        _op8.getFirst(),
         _op5.getFirst()
         ));
 
-    PathFormula result = pfmgrFwd.makeOr(branch1, branch2);
-    result = pfmgrFwd.makeAnd(result, _op8.getFirst());
+    PathFormula result = pfmgrBwd.makeOr(branch1, branch2);
+    result = pfmgrBwd.makeAnd(result, _op1.getFirst());
 
     assertThat(solver.isUnsat(result.getFormula())).isTrue();
   }
