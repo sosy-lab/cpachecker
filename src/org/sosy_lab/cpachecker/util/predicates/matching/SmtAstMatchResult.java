@@ -52,22 +52,44 @@ public interface SmtAstMatchResult {
   public boolean matches();
 
   public final static SmtAstMatchResult NOMATCH_RESULT = new SmtAstMatchResult() {
+
     @Override
-    public boolean matches() { return false; }
+    public boolean matches() {
+      return false;
+    }
+
     @Override
-    public Optional<Formula> getMatchingRootFormula() { return Optional.absent(); }
+    public Optional<Formula> getMatchingRootFormula() {
+      return Optional.absent();
+    }
+
     @Override
-    public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pMatcher) { return Collections.emptySet(); }
+    public Collection<Formula> getMatchingArgumentFormula(SmtAstPattern pMatcher) {
+      return Collections.emptySet();
+    }
+
     @Override
-    public Collection<Formula> getVariableBindings(String pString) { return Collections.emptySet(); }
+    public Collection<Formula> getVariableBindings(String pString) {
+      return Collections.emptySet();
+    }
+
     @Override
-    public Collection<String> getBoundVariables() { return Collections.emptySet(); }
+    public Collection<String> getBoundVariables() {
+      return Collections.emptySet();
+    }
+
     @Override
-    public void appendBindingsTo(Multimap<String, Formula> pTarget) { }
+    public void appendBindingsTo(Multimap<String, Formula> pTarget) {}
+
     @Override
-    public Collection<String> getFormulaBindings(Formula pFormula) { return Collections.emptySet(); }
+    public Collection<String> getFormulaBindings(Formula pFormula) {
+      return Collections.emptySet();
+    }
+
     @Override
-    public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings() {return ImmutableMultimap.of(); }
+    public ImmutableMultimap<SmtAstPatternSelectionElement, Formula> getMatchings() {
+      return ImmutableMultimap.of();
+    }
   };
 
 }
