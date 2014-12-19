@@ -333,7 +333,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testForwardSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
+  public void testSimpleArrayAssignForward() throws UnrecognizedCCodeException, InterruptedException {
     // a[2] = 1;
     // ----->
     // (= a@2 (store a@1 2 1))
@@ -341,13 +341,14 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     ssa = ssa.setIndex("a", unlimitedIntArrayType , 1);
 
-    CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
-    CExpression rhs = CIntegerLiteralExpression.ONE;
-    Pair<CFAEdge, CExpressionAssignmentStatement> assign = TestDataTools.makeAssignment(lhs, rhs);
+    Pair<CFAEdge, CExpressionAssignmentStatement> assign = TestDataTools.makeAssignment(
+        _a_assign_0_at_2.getSecond().getLeftHandSide(),
+        CIntegerLiteralExpression.ONE);
+
     BooleanFormula result = ctfFwd.makeAssignment(
-        lhs,
-        lhs,
-        rhs,
+        assign.getSecond().getLeftHandSide(),
+        assign.getSecond().getLeftHandSide(),
+        assign.getSecond().getRightHandSide(),
         assign.getFirst(),
         "foo", ssa, null, null, null);
 
@@ -357,6 +358,36 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
               _smt_a_ssa2,
               amgr.store(
                   _smt_a_ssa1,
+                  imgr.makeNumber(2),
+                  imgr.makeNumber(1))).toString());
+  }
+
+  @Test
+  public void testSimpleArrayAssignBackward() throws UnrecognizedCCodeException, InterruptedException {
+    // a[2] = 1;
+    // ----->
+    // (= a@1 (store a@2 2 1))
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    ssa = ssa.setIndex("a", unlimitedIntArrayType , 1);
+
+    Pair<CFAEdge, CExpressionAssignmentStatement> assign = TestDataTools.makeAssignment(
+        _a_assign_0_at_2.getSecond().getLeftHandSide(),
+        CIntegerLiteralExpression.ONE);
+
+    BooleanFormula result = ctfBwd.makeAssignment(
+        assign.getSecond().getLeftHandSide(),
+        assign.getSecond().getLeftHandSide(),
+        assign.getSecond().getRightHandSide(),
+        assign.getFirst(),
+        "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo(
+          amgr.equivalence(
+              _smt_a_ssa1,
+              amgr.store(
+                  _smt_a_ssa2,
                   imgr.makeNumber(2),
                   imgr.makeNumber(1))).toString());
   }
