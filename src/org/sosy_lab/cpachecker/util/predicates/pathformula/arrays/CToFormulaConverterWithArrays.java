@@ -117,6 +117,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
       if (((CArrayType) lhsType).getType() instanceof CArrayType) {
         logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!");
+        return bfmgr.makeBoolean(true);
       }
 
       // 1. Get the (array) formula A1 that represents the LHS (destination of 'store').
