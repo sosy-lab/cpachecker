@@ -968,7 +968,7 @@ public class FormulaManagerView {
 
       } else {
 
-        boolean childrenDone = true;
+        boolean allArgumentsUninstanciated = true;
 
         // Construct a new argument list for the function application.
         // ATTENTION: also boolean operators, like AND, OR, ...
@@ -983,7 +983,7 @@ public class FormulaManagerView {
             newargs.add(newC);
           } else {
             toProcess.push(c);
-            childrenDone = false;
+            allArgumentsUninstanciated = false;
           }
         }
 
@@ -991,7 +991,7 @@ public class FormulaManagerView {
         // of the function were already uninstanciated, i.e., the
         // uninstanciated formula of all arguments is in the cache.
 
-        if (childrenDone) {
+        if (allArgumentsUninstanciated) {
           // Create an uninstanciated version of the
           // function application.
 
