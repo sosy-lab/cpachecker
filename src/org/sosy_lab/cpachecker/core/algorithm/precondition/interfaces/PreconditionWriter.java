@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces;
 import java.io.IOException;
 
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public interface PreconditionWriter {
 
-  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException;
+  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException, CPATransferException, InterruptedException;
 
 }

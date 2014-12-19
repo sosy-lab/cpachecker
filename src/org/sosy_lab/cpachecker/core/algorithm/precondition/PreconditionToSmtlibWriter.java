@@ -77,9 +77,9 @@ public class PreconditionToSmtlibWriter implements PreconditionWriter {
   }
 
   @Override
-  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException {
+  public void writePrecondition(Path pWriteTo, BooleanFormula pPrecondition) throws IOException, CPATransferException, InterruptedException {
     try (Writer w = Files.openOutputFile(pWriteTo)) {
-      writePrecondition(pWriteTo, pPrecondition);
+      writePrecondition(w, pPrecondition);
     }
   }
 
