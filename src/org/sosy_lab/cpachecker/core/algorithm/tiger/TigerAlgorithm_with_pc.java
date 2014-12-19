@@ -490,6 +490,13 @@ public class TigerAlgorithm_with_pc implements Algorithm, PrecisionCallback<Pred
 
       Boolean stop = false;
 
+      /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
+       * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
+       * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
+       * Keyword: overapproximation
+       */
+      reachedSet = null;
+
       while (!stop && !remainingPCforGoalCoverage.isFalse()) {
         logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goalIndex, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
 
