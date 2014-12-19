@@ -956,7 +956,7 @@ public class FormulaManagerView {
         continue;
       }
 
-      if (unsafeManager.isVariable(tt)) {
+      if (unsafeManager.isFreeVariable(tt)) {
         String name = parseName(unsafeManager.getName(tt)).getFirst();
 
         // Uninstanciate the variable (by renaming it)
