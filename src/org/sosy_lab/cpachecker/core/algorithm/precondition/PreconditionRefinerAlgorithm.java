@@ -165,12 +165,12 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
         new MinCorePrio(solver));
   }
 
-  private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet) {
-    return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VIOLATING);
+  private BooleanFormula getPreconditionForViolation(ReachedSet pReachedSet, CFANode pWpLoc) {
+    return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VIOLATING, pWpLoc);
   }
 
-  private BooleanFormula getPreconditionForValidity(ReachedSet pReachedSet) {
-    return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID);
+  private BooleanFormula getPreconditionForValidity(ReachedSet pReachedSet, CFANode pWpLoc) {
+    return helper.getPreconditionFromReached(pReachedSet, PreconditionPartition.VALID, pWpLoc);
   }
 
   private ARGPath getTrace(ReachedSet pReachedSet, Predicate<AbstractState> pPartitionFilterPredicate)
@@ -235,8 +235,8 @@ public class PreconditionRefinerAlgorithm implements Algorithm {
 
       // We use one set of reached states
       //    ... and separate the state space using an automaton!
-      final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet);
-      final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet);
+      final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet, wpLoc);
+      final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet, wpLoc);
 
       if (isDisjoint(pcViolation, pcValid)) {
         // We have found a valid, weakest, precondition

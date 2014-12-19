@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.precondition;
 
+import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
@@ -63,8 +64,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public final class PreconditionHelper {
 
@@ -187,34 +190,64 @@ public final class PreconditionHelper {
     return null;
   }
 
-  public BooleanFormula getPreconditionFromReached(@Nonnull ReachedSet pReached, PreconditionPartition pPartition) {
+  public BooleanFormula getPreconditionFromReached(ReachedSet pReached,
+      PreconditionPartition pPartition, CFANode pSpecificTargetLocation) {
+
+    Preconditions.checkNotNull(pReached);
+    Preconditions.checkNotNull(pPartition);
+
+    List<BooleanFormula> abstractions = getTargetStateAbstractionsFromReached(
+        pReached, pPartition, pSpecificTargetLocation);
+
+    return mgrv.simplify(bmgr.or(abstractions));
+  }
+
+  private PredicateAbstractState getTargetAbstractionState(ARGPath pPathToTarget,
+      CFANode pTargetLocation) {
+
+    Preconditions.checkNotNull(pTargetLocation);
+    Preconditions.checkNotNull(pPathToTarget);
+
+    final List<ARGState> relevantStates = from(pPathToTarget.asStatesList())
+        .skip(1)
+        .filter(Predicates.compose(
+            PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+            toState(PredicateAbstractState.class)))
+        .filter(Predicates.compose(
+            equalTo(pTargetLocation),
+            AbstractStates.EXTRACT_LOCATION))
+        .toList();
+
+    Verify.verify(relevantStates.size() == 1);
+
+    return AbstractStates.extractStateByType(relevantStates.get(0), PredicateAbstractState.class);
+  }
+
+  private List<BooleanFormula> getTargetStateAbstractionsFromReached(ReachedSet pReached,
+      PreconditionPartition pPartition, CFANode pTargetLocation) {
+
+    Preconditions.checkNotNull(pTargetLocation);
+    Preconditions.checkNotNull(pPartition);
     Preconditions.checkNotNull(pReached);
 
-    BooleanFormula conjunctiveWp = bmgr.makeBoolean(true);
+    List<BooleanFormula> result = Lists.newArrayList();
 
     // Also for backwards analysis can exist multiple target states (for the same CFA location)
     FluentIterable<AbstractState> targetStates = from(pReached).filter(AbstractStates.IS_TARGET_STATE);
+
     for (AbstractState s: targetStates) {
       final ARGState target = (ARGState) s;
       final ARGPath pathToTarget = ARGUtils.getOnePathTo(target);
-      assert pathToTarget != null : "The abstract target-state must be on an abstract path!";
 
-      // create path with all abstraction location elements (excluding the initial element)
-      // the last element is the element corresponding to the target location (which is the entry location of a backwards analysis)
-      final List<ARGState> abstractionStatesTrace = transformPath(pathToTarget);
-      assert abstractionStatesTrace.size() > 1;
-      PredicateAbstractState stateWithAbstraction = AbstractStates.extractStateByType(
-          abstractionStatesTrace.get(abstractionStatesTrace.size()-2),
-          PredicateAbstractState.class);
+      Verify.verify(pathToTarget != null, "The abstract target-state must be on an abstract path!");
+
+      final PredicateAbstractState state = getTargetAbstractionState(pathToTarget, pTargetLocation);
 
       // The last abstraction state before the target location contains the negation of the WP
-      conjunctiveWp = mgrv.makeAnd(conjunctiveWp, mgrv.makeNot(mgrv.uninstantiate(stateWithAbstraction.getAbstractionFormula().asFormula())));
+      result.add(mgrv.uninstantiate(state.getAbstractionFormula().asFormula()));
     }
 
-    // The WP is the negation of targetAbstraction
-    BooleanFormula wp = mgrv.simplify(conjunctiveWp);
-
-    return wp;
+    return result;
   }
 
 }
