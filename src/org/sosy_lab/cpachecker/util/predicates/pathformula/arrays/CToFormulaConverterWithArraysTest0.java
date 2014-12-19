@@ -27,6 +27,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -485,6 +486,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     //  Solvers support this by allowing to specify a default value for arrays
 
     // This test is important because it also tests the initialization of arrays with a default value!
+    assertThat(true).isFalse();
   }
 
   private CInitializerExpression createIntInitExpr(int pValue) {
@@ -547,6 +549,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testMultiDimensional1() throws InterruptedException, CPATransferException {
     // int arr2d[3][7];
 
@@ -581,6 +584,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testMultiDimensionalAssign() throws UnrecognizedCCodeException, InterruptedException {
     // a2d[3][7] = 23;
 
@@ -588,6 +592,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testMultiDimensionalAssume() throws UnrecognizedCCodeException, InterruptedException {
     // a2d[3][7] == 23;
 
