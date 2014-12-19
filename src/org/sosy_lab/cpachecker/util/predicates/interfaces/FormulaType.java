@@ -221,7 +221,7 @@ public abstract class FormulaType<T extends Formula> {
         return true;
       }
 
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof ArrayFormulaType)) {
         return false;
       }
 
