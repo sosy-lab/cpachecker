@@ -433,7 +433,7 @@ counterexample.checker = "CBMC"
   allowed values: [CBMC, CPACHECKER]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "config/explicitAnalysis-no-cbmc.properties"
+counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is

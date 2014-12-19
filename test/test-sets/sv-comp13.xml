@@ -45,7 +45,7 @@
     <option name="-sv-comp13--combinations"/>
   </rundefinition>
 
-  <rundefinition name="explitp-pred">
-    <option name="-sv-comp13--explitp-pred"/>
+  <rundefinition name="valueItp-pred">
+    <option name="-sv-comp13--valueItp-pred"/>
   </rundefinition>
 </benchmark>

@@ -53,7 +53,6 @@ except:
     pass
 
 from .benchmarkDataStructures import MEMLIMIT, TIMELIMIT, CORELIMIT
-from . import filewriter as filewriter
 from . import util as Util
 
 RESULT_KEYS = ["cputime", "walltime", "energy" ]

@@ -400,6 +400,15 @@ class SmtInterpolEnvironment {
     }
   }
 
+  public Term term(String funcname, BigInteger[] indices,
+      Sort returnSort, Term... params) {
+    try {
+      return script.term(funcname, indices, returnSort, params);
+    } catch (SMTLIBException e) {
+      throw new AssertionError(e);
+    }
+  }
+
   public TermVariable variable(String varname, Sort sort) {
     try {
       return script.variable(varname, sort);

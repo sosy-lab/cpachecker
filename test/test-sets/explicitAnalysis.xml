@@ -20,11 +20,11 @@
   </sourcefiles>
 
   <rundefinition name="without-cbmc">
-    <option name="-explicitAnalysis-no-cbmc"/>
+    <option name="-valueAnalysis-no-cbmc"/>
   </rundefinition>
 
   <rundefinition name="with-cbmc">
-    <option name="-explicitAnalysis"/>
+    <option name="-valueAnalysis"/>
   </rundefinition>
 
   <columns>

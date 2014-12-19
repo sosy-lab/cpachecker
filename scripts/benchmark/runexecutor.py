@@ -36,11 +36,10 @@ import time
 
 from . import util as Util
 from .cgroups import *
-from . import filewriter
 from . import oomhandler
 
-readFile = filewriter.readFile
-writeFile = filewriter.writeFile
+readFile = Util.readFile
+writeFile = Util.writeFile
 
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'

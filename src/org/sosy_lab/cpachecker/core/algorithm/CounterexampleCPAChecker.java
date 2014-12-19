@@ -86,7 +86,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @Option(secure=true, name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path configFile = Paths.get("config/explicitAnalysis-no-cbmc.properties");
+  private Path configFile = Paths.get("config/valueAnalysis-no-cbmc.properties");
 
   public CounterexampleCPAChecker(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
