@@ -134,7 +134,17 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   }
 
   @Override
-  protected boolean isQuantified(IExpression pT) {
+  protected boolean isQuantification(IExpression pT) {
+    return false;
+  }
+
+  @Override
+  protected boolean isFreeVariable(IExpression pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(IExpression pT) {
     return false;
   }
 

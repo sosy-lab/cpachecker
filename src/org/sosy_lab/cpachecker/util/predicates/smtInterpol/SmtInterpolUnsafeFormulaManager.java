@@ -139,7 +139,17 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   }
 
   @Override
-  protected boolean isQuantified(Term pT) {
+  protected boolean isQuantification(Term pT) {
+    return false;
+  }
+
+  @Override
+  protected boolean isFreeVariable(Term pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(Term pT) {
     return false;
   }
 

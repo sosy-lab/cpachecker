@@ -72,10 +72,26 @@ public interface UnsafeFormulaManager {
 
   /**
    * Checks if the given Formula is a variable.
+   * (either free or quantified)
    * @param f
    * @return
    */
   boolean isVariable(Formula f);
+
+  /**
+   * Checks if the given Formula is a free (not quantified) variable.
+   * @param f
+   * @return
+   */
+  boolean isFreeVariable(Formula f);
+
+  /**
+   * Checks if the given Formula is a bound (by a quantifier) variable.
+   * @param f
+   * @return
+   */
+  boolean isBoundVariable(Formula f);
+
   /**
    * Checks if the given Formula is a Number.
    * @param pTt

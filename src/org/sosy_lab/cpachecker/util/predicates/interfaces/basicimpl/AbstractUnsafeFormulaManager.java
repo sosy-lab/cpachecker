@@ -121,12 +121,28 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   protected abstract boolean isVariable(TFormulaInfo pT);
 
   @Override
-  public boolean isQuantification(Formula pF) {
+  public boolean isFreeVariable(Formula pF) {
     TFormulaInfo t = extractInfo(pF);
-    return isQuantified(t);
+    return isFreeVariable(t);
   }
 
-  protected abstract boolean isQuantified(TFormulaInfo pT);
+  protected abstract boolean isFreeVariable(TFormulaInfo pT);
+
+  @Override
+  public boolean isBoundVariable(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isBoundVariable(t);
+  }
+
+  protected abstract boolean isBoundVariable(TFormulaInfo pT);
+
+  @Override
+  public boolean isQuantification(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isQuantification(t);
+  }
+
+  protected abstract boolean isQuantification(TFormulaInfo pT);
 
   @Override
   public boolean isNumber(Formula pF) {

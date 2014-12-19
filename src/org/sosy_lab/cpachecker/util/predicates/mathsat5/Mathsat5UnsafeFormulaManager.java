@@ -141,7 +141,17 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
   }
 
   @Override
-  protected boolean isQuantified(Long pT) {
+  protected boolean isQuantification(Long pT) {
+    return false;
+  }
+
+  @Override
+  protected boolean isFreeVariable(Long pT) {
+    return isVariable(pT);
+  }
+
+  @Override
+  protected boolean isBoundVariable(Long pT) {
     return false;
   }
 

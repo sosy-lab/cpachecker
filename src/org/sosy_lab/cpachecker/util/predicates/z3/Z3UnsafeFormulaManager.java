@@ -92,6 +92,22 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
+  protected boolean isFreeVariable(Long pT) {
+    if (isOP(z3context, pT, Z3_OP_TRUE) || isOP(z3context, pT, Z3_OP_FALSE)) {
+      return false;
+    }
+
+    int astKind = get_ast_kind(z3context, pT);
+    return ((astKind == Z3_APP_AST) && (getArity(pT) == 0));
+  }
+
+  @Override
+  protected boolean isBoundVariable(Long pT) {
+    int astKind = get_ast_kind(z3context, pT);
+    return (astKind == Z3_VAR_AST);
+  }
+
+  @Override
   public boolean isUF(Long t) {
     return is_app(z3context, t) && uifs.contains(get_app_decl(z3context, t));
   }
@@ -191,7 +207,8 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
-  protected boolean isQuantified(Long pT) {
+  protected boolean isQuantification(Long pT) {
     return Z3_QUANTIFIER_AST == get_ast_kind(z3context, pT);
   }
+
 }
