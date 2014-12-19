@@ -982,7 +982,10 @@ public class FormulaManagerView {
 
         if (uninstatiatedBody != null) {
           // make a new quantified formula
-          BooleanFormula newTt = unsafeManager.replaceQuantifiedBody(q, uninstatiatedBody);
+          BooleanFormula newTt = unsafeManager.substitute(q,
+              Lists.newArrayList(ttBody),
+              Lists.newArrayList(uninstatiatedBody));
+
           cache.put(tt, newTt);
         } else {
           toProcess.push(ttBody);
