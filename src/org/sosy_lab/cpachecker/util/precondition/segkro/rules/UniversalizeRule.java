@@ -55,7 +55,7 @@ public class UniversalizeRule extends PatternBasedRule {
     // TODO: Handling of deeper nestings (implementation of matchInSubtree)
 
     premises.add(new PatternBasedPremise(
-        GenericPatterns.f_of_x_selection("f", "i")
+        GenericPatterns.f_of_x_variable("f", "i")
           ));
   }
 

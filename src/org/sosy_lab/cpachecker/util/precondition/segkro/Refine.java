@@ -88,12 +88,12 @@ public class Refine implements PreconditionRefiner {
     return mgrv.extractLiterals(pF, false, false);
   }
 
-  private BooleanFormula interpolate(BooleanFormula pF, BooleanFormula pCounterF) throws SolverException, InterruptedException {
-    List<BooleanFormula> p = enp.extractNewPreds(pF);
-    BooleanFormula f = bmgr.and(pF, bmgr.and(p));
-    return ipc.getInterpolant(f, pCounterF, p);
+  @VisibleForTesting
+  BooleanFormula interpolate(BooleanFormula pPreconditionA, BooleanFormula pPreconditionB) throws SolverException, InterruptedException {
+    List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
+    BooleanFormula f = bmgr.and(pPreconditionA, bmgr.and(p));
+    return ipc.getInterpolant(f, pPreconditionB, p);
   }
-
 
   private BooleanFormula subst(BooleanFormula pF) {
     return pF;
@@ -141,16 +141,16 @@ public class Refine implements PreconditionRefiner {
     // 1. Compute the two formulas (A/B) that are needed to compute a Craig interpolant
     //      afterTransCond === varphi_{k+1}
     // Formula A
-    BooleanFormula afterTransCond = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
-    List<BooleanFormula> p = enp.extractNewPreds(afterTransCond);
-    afterTransCond = bmgr.and(afterTransCond, bmgr.and(p));
+    BooleanFormula precondOneAfterTrans = helper.getPreconditionOfPath(pPath, Optional.of(transition.getSuccessor()));
+    List<BooleanFormula> p = enp.extractNewPreds(precondOneAfterTrans);
+    precondOneAfterTrans = bmgr.and(precondOneAfterTrans, bmgr.and(p));
 
     // Formula B
-    BooleanFormula counterAfterTransCond = computeCounterCondition(transition, bmgr.not(beforeTransCond));
+    BooleanFormula precondTwoAfterTrans = computeCounterCondition(transition, bmgr.not(beforeTransCond));
 
     // Compute an interpolant; use a set of candidate predicates.
     //    The candidates for the interpolant are taken from Formula A (since that formula should get over-approximated)
-    return ipc.getInterpolant(afterTransCond, counterAfterTransCond, p);
+    return ipc.getInterpolant(precondOneAfterTrans, precondTwoAfterTrans, p);
     // TODO: Substitution X/X` and back
   }
 

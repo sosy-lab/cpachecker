@@ -61,7 +61,7 @@ public class SubstitutionRule extends PatternBasedRule {
     //    (+ i 1)
 
     premises.add(new PatternBasedPremise(
-          GenericPatterns.f_of_x_selection("f", "x")
+          GenericPatterns.f_of_x_expression("f", "x")
         ));
 
     premises.add(new PatternBasedPremise(or(

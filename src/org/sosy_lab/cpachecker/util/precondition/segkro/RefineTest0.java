@@ -59,12 +59,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
-import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
@@ -76,7 +79,8 @@ import com.google.common.collect.Lists;
 
 public class RefineTest0 extends SolverBasedTest0 {
 
-  private PreconditionRefiner refine;
+  private Refine refine;
+
   private FormulaManagerView mgrv;
 
   private CFAEdge _label_error;
@@ -158,13 +162,13 @@ public class RefineTest0 extends SolverBasedTest0 {
     _stmt_al_assign_0 = makeAssignment(_al, _0).getFirst();
   }
 
-  @Test
-  public void testCase1() throws CPATransferException, SolverException, InterruptedException {
+  @Test(timeout=5000)
+  public void testRefineCase1() throws CPATransferException, SolverException, InterruptedException {
 
     ARGPath traceError = mock(ARGPath.class);
     when(traceError.asEdgesList()).thenReturn(Lists.<CFAEdge>newArrayList(
         _label_error,
-        _assume_i_geq_al,
+          _assume_i_geq_al,
         _assume_b_at_i_neq_0,
         _while,
         _stmt_i_assign_0,
@@ -182,6 +186,27 @@ public class RefineTest0 extends SolverBasedTest0 {
 
     assertThat(result).isNotNull();
     assertThat(result.getGlobalPredicates()).isNotEmpty();
+  }
+
+  @Test
+  public void testInterpolateCase1() throws SolverException, InterruptedException {
+
+    // (= (select |copy::b| 0) 0)
+    // (and (>= 0 al) (not (= (select |copy::b| 0) 0)))
+
+    ArrayFormula<IntegerFormula, IntegerFormula> _b
+      = amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);
+
+    BooleanFormula preconditionA = imgr.equal(
+        amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0));
+
+    BooleanFormula pPreconditionB = bmgr.and(Lists.newArrayList(
+        imgr.greaterOrEquals(imgr.makeNumber(0), imgr.makeVariable("al")),
+        bmgr.not(imgr.equal(amgr.select(_b, imgr.makeNumber(0)), imgr.makeNumber(0)))));
+
+    BooleanFormula result = refine.interpolate(preconditionA, pPreconditionB);
+
+    assertThat(result.toString()).isEqualTo("");
   }
 
 

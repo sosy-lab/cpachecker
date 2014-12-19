@@ -54,6 +54,7 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
   private BooleanFormula _b_at_i_plus_1_NOTEQ_0;
   private BooleanFormula _b_at_i_EQ_0;
   private BooleanFormula _b_at_i_plus_1_EQ_0;
+  private BooleanFormula _b_at_0_EQ_0;
 
   @Override
   public void setUp() throws Exception {
@@ -67,6 +68,7 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
     _al = ifm.makeVariable("al");
     _b = afm.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
 
+    _b_at_0_EQ_0 = ifm.equal(afm.select(_b, _0), _0);
     _b_at_i_EQ_0 = ifm.equal(afm.select(_b, _i), _0);
     _b_at_i_plus_1_EQ_0 = ifm.equal(afm.select(_b, ifm.add(_i, _1)), _0);
     _b_at_i_NOTEQ_0 = bfm.not(_b_at_i_EQ_0);
@@ -169,6 +171,16 @@ public class UniversalizeRuleTest0 extends AbstractRuleTest0 {
 
     Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
         Lists.newArrayList(input));
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  public void testConclusion8() throws SolverException, InterruptedException {
+    //  (= (select b 0) 0)
+
+    Set<BooleanFormula> result = ur.applyWithInputRelatingPremises(
+        Lists.newArrayList(_b_at_0_EQ_0));
 
     assertThat(result).isEmpty();
   }

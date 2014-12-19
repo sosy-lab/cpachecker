@@ -44,7 +44,15 @@ final class GenericPatterns {
             ));
   }
 
-  public static SmtAstPatternSelection f_of_x_selection (final String pBindFunctionTo, final String pBindArgTo) {
+  public static SmtAstPatternSelection f_of_x_variable (final String pBindFunctionTo, final String pBindArgTo) {
+    return f_of_x_matcher(pBindFunctionTo, matchVariableBind(pBindArgTo));
+  }
+
+  public static SmtAstPatternSelection f_of_x_expression (final String pBindFunctionTo, final String pBindArgTo) {
+    return f_of_x_matcher(pBindFunctionTo, matchAnyWithAnyArgsBind(pBindArgTo));
+  }
+
+  public static SmtAstPatternSelection f_of_x_matcher (final String pBindFunctionTo, final SmtAstPattern pLeaveMatcher) {
     return or(
         matchBind("not", pBindFunctionTo,
             match("not",
@@ -52,31 +60,31 @@ final class GenericPatterns {
                   match("select",
                       matchAnyWithAnyArgs(),
                       matchInSubtree(
-                          matchAnyWithAnyArgsBind(pBindArgTo))),
+                          pLeaveMatcher)),
                   matchAnyWithAnyArgs()))),
         matchBind("not", pBindFunctionTo,
             matchAny(
                 match("select",
                     matchAnyWithAnyArgs(),
                     matchInSubtree(
-                        matchAnyWithAnyArgsBind(pBindArgTo))),
+                        pLeaveMatcher)),
                 matchAnyWithAnyArgs())),
         matchAnyBind(pBindFunctionTo,
             match("select",
                 matchAnyWithAnyArgs(),
                 matchInSubtree(
-                    matchAnyWithAnyArgsBind(pBindArgTo))),
+                    pLeaveMatcher)),
             matchAnyWithAnyArgs()),
         matchBind("not", pBindFunctionTo,
             matchAny(
                 matchAny(
                     matchInSubtree(
-                        matchAnyWithAnyArgsBind(pBindArgTo))),
+                        pLeaveMatcher)),
                 matchAnyWithAnyArgs())),
         matchAnyBind(pBindFunctionTo,
             matchAny(
                 matchInSubtree(
-                    matchAnyWithAnyArgsBind(pBindArgTo))))
+                    pLeaveMatcher)))
         );
   }
 
