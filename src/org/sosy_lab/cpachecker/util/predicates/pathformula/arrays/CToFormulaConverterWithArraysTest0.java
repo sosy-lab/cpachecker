@@ -333,16 +333,18 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
-  public void testSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
+  public void testForwardSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
     // a[2] = 1;
     // ----->
     // (= a@2 (store a@1 2 1))
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    ssa = ssa.setIndex("a", unlimitedIntArrayType , 1);
+
     CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
     CExpression rhs = CIntegerLiteralExpression.ONE;
     Pair<CFAEdge, CExpressionAssignmentStatement> assign = TestDataTools.makeAssignment(lhs, rhs);
-    BooleanFormula result = ctfBwd.makeAssignment(
+    BooleanFormula result = ctfFwd.makeAssignment(
         lhs,
         lhs,
         rhs,
@@ -350,7 +352,13 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(amgr.equivalence(_smt_a_ssa2, amgr.store(_smt_a_ssa1, imgr.makeNumber(2), imgr.makeNumber(0))).toString());
+      .comparesEqualTo(
+          amgr.equivalence(
+              _smt_a_ssa2,
+              amgr.store(
+                  _smt_a_ssa1,
+                  imgr.makeNumber(2),
+                  imgr.makeNumber(1))).toString());
   }
 
   @Test

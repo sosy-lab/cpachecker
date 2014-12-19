@@ -176,7 +176,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
       // 5. Make a new array variable A2 with a new SSA index. Set this formula equivalent to FS.
       //    (= A2 (store A1 IX FR))
-      ArrayFormula<Formula, Formula> changedArrayFormula = makeFreshArrayVariable(
+      final ArrayFormula<Formula, Formula> changedArrayFormula = makeFreshArrayVariable(
           lhsArrExpr.getDeclaration().getQualifiedName(),
           lhsArrExpr.getExpressionType(),
           pSsa);
