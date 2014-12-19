@@ -426,10 +426,12 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a.getThird(),
         _a_at_2);
 
-    Pair<CFAEdge, CExpressionAssignmentStatement> op = TestDataTools.makeAssignment(_a_at__a_at_2, CIntegerLiteralExpression.ONE);
+    Pair<CFAEdge, CExpressionAssignmentStatement> op = TestDataTools.makeAssignment(
+        _a_at__a_at_2,
+        CIntegerLiteralExpression.ONE);
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
-    BooleanFormula result = ctfBwd.makeAssignment(
+    BooleanFormula result = ctfFwd.makeAssignment(
         op.getSecond().getLeftHandSide(),
         op.getSecond().getLeftHandSide(),
         op.getSecond().getRightHandSide(),
@@ -437,7 +439,14 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(amgr.store(_smt_a_ssa1, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
+      .comparesEqualTo(amgr.equivalence(
+          _smt_a_ssa2,
+          amgr.store(
+              _smt_a_ssa1,
+              amgr.select(
+                  _smt_a_ssa1,
+                  imgr.makeNumber(2)),
+              imgr.makeNumber(1))) .toString());
 
   }
 
