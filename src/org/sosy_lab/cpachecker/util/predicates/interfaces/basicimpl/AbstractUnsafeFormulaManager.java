@@ -148,8 +148,11 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public BooleanFormula getQuantifiedBody(Formula pQuantifiedFormula) {
+    Preconditions.checkArgument(isQuantification(pQuantifiedFormula));
+
     TFormulaInfo t = extractInfo(pQuantifiedFormula);
     TFormulaInfo result = getQuantifiedBody(t);
+
     return getFormulaCreator().encapsulateBoolean(result);
   }
 
