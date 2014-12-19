@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -108,18 +109,30 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   }
 
   @SuppressWarnings("unchecked")
-  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArrayVariable (String pName,
-      CType pType, SSAMapBuilder pSsa) {
+  private <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArrayVariable(String pName,
+      CType pType, SSAMapBuilder pSsa, boolean bMakeFresh) {
 
-    int useIndex = getIndex(pName, pType, pSsa);
-    return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, useIndex);
+    if (bMakeFresh) {
+      int freshIndex = makeFreshIndex(pName, pType, pSsa);
+      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, freshIndex);
+    } else {
+      int useIndex = getIndex(pName, pType, pSsa);
+      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, useIndex);
+    }
   }
 
   @SuppressWarnings("unchecked")
-  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeFreshArrayVariable(String pName,
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeAssignedArrayVariableForStore (String pName,
       CType pType, SSAMapBuilder pSsa) {
 
-    return (ArrayFormula<TI, TE>) makeFreshVariable(pName, pType, pSsa);
+    return makeArrayVariable(pName, pType, pSsa, direction == AnalysisDirection.BACKWARD);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeAssignedArrayVariableForEquivalence(String pName,
+      CType pType, SSAMapBuilder pSsa) {
+
+    return makeArrayVariable(pName, pType, pSsa, direction == AnalysisDirection.FORWARD);
   }
 
   @Override
@@ -139,9 +152,12 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions) throws UnrecognizedCCodeException, InterruptedException {
 
+    final SSAMap pSsaBeforeStatement = pSsa.build();
+    final SSAMapBuilder lhsSsaBuilder = pSsaBeforeStatement.builder();
+    final SSAMapBuilder rhsSsaBuilder = pSsaBeforeStatement.builder();
+
     CType lhsType = pLhs.getExpressionType().getCanonicalType();
     if (lhsType instanceof CArrayType) {
-
       // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
       if (((CArrayType) lhsType).getType() instanceof CArrayType) {
         logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!");
@@ -155,12 +171,14 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       Verify.verify(lhsExpr.getArrayExpression() instanceof CIdExpression);
       final CIdExpression lhsArrExpr = (CIdExpression) lhsExpr.getArrayExpression();
 
+      final String arrayVariableName = lhsArrExpr.getDeclaration().getQualifiedName();
+
       // 1. Get the (array) formula A1 that represents the LHS (destination of 'store').
       //    The SSA index of this formula stays the same.
-      final ArrayFormula<Formula, Formula> unchangedArrayFormula = makeArrayVariable( //Overwrite makeVariable so that it uses a cache of formulas??
-          lhsArrExpr.getDeclaration().getQualifiedName(),
+      final ArrayFormula<Formula, Formula> unchangedArrayFormula = makeAssignedArrayVariableForStore( //Overwrite makeVariable so that it uses a cache of formulas??
+          arrayVariableName,
           lhsArrExpr.getExpressionType(),
-          pSsa);
+          lhsSsaBuilder);
 
       // 2. Get the target index IX. Use a RHS visitor on the subscript expression.
       final Formula subscriptFormula = buildTerm(lhsExpr.getSubscriptExpression(), pEdge,
@@ -177,13 +195,21 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
           subscriptFormula,
           rhsFormula);
 
-      // 5. Make a new array variable A2 with a new SSA index. Set this formula equivalent to FS.
+      // 5. Make a new array variable A2 with a new SSA index
       //    (= A2 (store A1 IX FR))
-      final ArrayFormula<Formula, Formula> changedArrayFormula = makeFreshArrayVariable(
-          lhsArrExpr.getDeclaration().getQualifiedName(),
+      final ArrayFormula<Formula, Formula> changedArrayFormula = makeAssignedArrayVariableForEquivalence(
+          arrayVariableName,
           lhsArrExpr.getExpressionType(),
-          pSsa);
+          rhsSsaBuilder);
 
+      // 6. Synchronize the SSA-Map of the LHS and the RHS
+      //  (this makes the code for handling a backwards and a forwards analysis simpler)
+      final int arrayVariableNewIndex = Math.max(
+          lhsSsaBuilder.getIndex(arrayVariableName),
+          rhsSsaBuilder.getIndex(arrayVariableName));
+      pSsa.setIndex(arrayVariableName, lhsArrExpr.getExpressionType(), arrayVariableNewIndex);
+
+      // 7. Set A2 equivalent to FS (this results in a BooleanFormula)
       return afmgr.equivalence(changedArrayFormula, storeArrayFormula);
     } else {
       return super.makeAssignment(pLhs, pLhsForChecking, pRhs, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
