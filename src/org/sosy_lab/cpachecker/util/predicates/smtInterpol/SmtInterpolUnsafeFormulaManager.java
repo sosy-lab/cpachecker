@@ -149,6 +149,11 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   }
 
   @Override
+  protected Term replaceQuantifiedBody(Term pF, Term pBody) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   protected boolean isFreeVariable(Term pT) {
     return isVariable(pT);
   }

@@ -216,4 +216,9 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
     return get_quantifier_body(z3context, pT);
   }
 
+  @Override
+  protected Long replaceQuantifiedBody(Long pF, Long pBody) {
+    throw new UnsupportedOperationException();
+  }
+
 }

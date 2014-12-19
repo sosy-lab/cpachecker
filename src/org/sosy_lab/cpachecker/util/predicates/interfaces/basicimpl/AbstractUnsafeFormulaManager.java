@@ -160,6 +160,16 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     return isNumber(t);
   }
 
+  @Override
+  public BooleanFormula replaceQuantifiedBody(BooleanFormula pF, BooleanFormula pNewBody) {
+    TFormulaInfo f = extractInfo(pF);
+    TFormulaInfo body = extractInfo(pNewBody);
+    TFormulaInfo result = replaceQuantifiedBody(f, body);
+    return getFormulaCreator().encapsulateBoolean(result);
+  }
+
+  protected abstract TFormulaInfo replaceQuantifiedBody(TFormulaInfo pF, TFormulaInfo pBody);
+
   protected abstract boolean isNumber(TFormulaInfo pT);
 
   @Override

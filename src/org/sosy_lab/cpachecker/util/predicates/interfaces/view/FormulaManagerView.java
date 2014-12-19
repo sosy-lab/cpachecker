@@ -976,7 +976,17 @@ public class FormulaManagerView {
         // Quantifications are no function applications,
         //  i.e., they do not have an arity!
 
-        boolean quantifiedBodyUninstanciated = true;
+        BooleanFormula q = (BooleanFormula) tt;
+        BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
+        BooleanFormula uninstatiatedBody = (BooleanFormula) cache.get(ttBody);
+
+        if (uninstatiatedBody != null) {
+          // make a new quantified formula
+          BooleanFormula newTt = unsafeManager.replaceQuantifiedBody(q, uninstatiatedBody);
+          cache.put(tt, newTt);
+        } else {
+          toProcess.push(ttBody);
+        }
 
       } else {
 
