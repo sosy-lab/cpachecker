@@ -172,7 +172,10 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
       // 4. Compute a new array formula FS using 'store' (this variable has not yet a name in the solver)
       //    (store A1 IX FR)
-      final ArrayFormula<Formula, Formula> storeArrayFormula = afmgr.store(unchangedArrayFormula, subscriptFormula, rhsFormula);
+      final ArrayFormula<Formula, Formula> storeArrayFormula = afmgr.store(
+          unchangedArrayFormula,
+          subscriptFormula,
+          rhsFormula);
 
       // 5. Make a new array variable A2 with a new SSA index. Set this formula equivalent to FS.
       //    (= A2 (store A1 IX FR))
