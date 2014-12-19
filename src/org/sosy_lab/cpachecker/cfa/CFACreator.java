@@ -214,6 +214,10 @@ public class CFACreator {
               + " is read later on.")
   private boolean findLiveVariables = false;
 
+  @Option(secure=true, name="cfa.classifyNodes",
+      description="This option enables the computation of a classification of CFA nodes.")
+private boolean classifyNodes = false;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -262,9 +266,9 @@ public class CFACreator {
   private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier)
-          throws InvalidConfigurationException {
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
     config.inject(this);
 
     this.config = config;

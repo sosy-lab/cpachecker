@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Builder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
@@ -108,13 +109,18 @@ public abstract class SolverBasedTest0 {
     return Solvers.SMTINTERPOL;
   }
 
-  @Before
-  public final void initSolver() throws Exception {
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     ConfigurationBuilder builder = new Builder();
     builder.setOption("cpa.predicate.solver", solverToUse().toString());
     // FileOption-Converter for correct output-paths, otherwise files are written in current working directory.
     builder.addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()));
-    config = builder.build();
+
+    return builder;
+  }
+
+  @Before
+  public final void initSolver() throws Exception {
+    config = createTestConfigBuilder().build();
 
     try {
       factory = new FormulaManagerFactory(config, logger,

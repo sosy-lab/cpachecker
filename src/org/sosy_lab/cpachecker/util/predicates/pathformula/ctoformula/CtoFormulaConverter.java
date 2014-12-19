@@ -1144,7 +1144,7 @@ public class CtoFormulaConverter {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  Formula buildLvalueTerm(CLeftHandSide exp,
+  protected Formula buildLvalueTerm(CLeftHandSide exp,
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {

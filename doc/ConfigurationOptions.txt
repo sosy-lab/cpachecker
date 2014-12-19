@@ -114,8 +114,7 @@ analysis.functionPointerEdgesForUnknownPointer = true
 analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE}
 
 # What CFA nodes should be the starting point of the analysis?
-analysis.initialStatesFor = ENTRY
-  enum:     [ENTRY, FUNCTION_ENTRIES, TARGET, EXIT, FUNCTION_SINKS, PROGRAM_SINKS]
+analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -123,6 +122,10 @@ analysis.interprocedural = true
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
+
+# Partition the initial states based on the type of location they were
+# created for (see 'initialStatesFor')
+analysis.partitionInitialStates = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = no default value
@@ -134,6 +137,10 @@ analysis.programNames = no default value
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
+
+# Refine the preconditions until the set of unsafe and safe states are
+# disjoint.
+analysis.refinePreconditions = false
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
@@ -192,6 +199,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # write collected assumptions to file
 assumptions.export = true
 assumptions.file = "assumptions.txt"
+
+# comma-separated list of files with specifications that should be used 
+# in a backwards analysis; used if the full analysis consists of a forward
+# AND a backward part!
+# (see config/specification/ for examples)
+backwardSpecification = no default value
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -321,6 +334,9 @@ cfa.checkNullPointers = false
 # Whether to have a single target node per function for all invalid null
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
+
+# This option enables the computation of a classification of CFA nodes.
+cfa.classifyNodes = false
 
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
@@ -1804,6 +1820,13 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
+
+# Where should the precondition be exported to?
+precondition.export.target = "precondition.txt"
+
+# (How) should the precondition be exported?
+precondition.export.type = NONE
+  enum:     [NONE, SMTLIB]
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"

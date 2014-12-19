@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 /**
  * Simplifies building a solver from the specific theories.
@@ -81,6 +82,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
       AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
       AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
+
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
@@ -201,5 +203,10 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   public final TFormulaInfo extractInfo(Formula f) {
     return formulaCreator.extractInfo(f);
+  }
+
+  @Override
+  public SmtAstMatcher getSmtAstMatcher() {
+    throw new UnsupportedOperationException("There is not yet an implementation for formula-ast matching for this solver!");
   }
 }

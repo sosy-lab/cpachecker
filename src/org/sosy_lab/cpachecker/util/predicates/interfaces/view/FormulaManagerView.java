@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
@@ -92,6 +93,14 @@ import com.google.common.collect.Sets;
  */
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
+
+  public static enum FormulaStructure {
+    ATOM,
+    LITERAL,
+    DISJUNCTIVE_CLAUSE,
+    CONJUNCTIVE_CLAUSE,
+    FORMULA
+  }
 
   public static enum Theory {
     INTEGER,
@@ -217,10 +226,19 @@ public class FormulaManagerView {
 
     if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
       return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
+
     } else if (targetType.isFloatingPointType() && (encodeFloatAs != Theory.FLOAT)) {
       return (T1) new WrappingFloatingPointFormula<>((FloatingPointType)targetType, toWrap);
+
+    } else if (targetType.isArrayType()) {
+      final ArrayFormulaType<?, ?> targetArrayType = (ArrayFormulaType<?, ?>) targetType;
+//      final FormulaType<? extends Formula> targetIndexType = targetArrayType.getIndexType();
+//      final FormulaType<? extends Formula> targetElementType = targetArrayType.getElementType();
+      return (T1) new WrappingArrayFormula<>(targetArrayType, toWrap);
+
     } else if (targetType.equals(manager.getFormulaType(toWrap))) {
       return (T1) toWrap;
+
     } else {
       throw new IllegalArgumentException("invalid wrap call");
     }
@@ -235,6 +253,13 @@ public class FormulaManagerView {
   }
 
   FormulaType<?> unwrapType(FormulaType<?> type) {
+    if (type.isArrayType()) {
+      ArrayFormulaType<?, ?> arrayType = (ArrayFormulaType<?, ?>) type;
+      return FormulaType.getArrayType(
+          unwrapType(arrayType.getIndexType()),
+          unwrapType(arrayType.getElementType()));
+    }
+
     if (type.isBitvectorType()) {
       switch (encodeBitvectorAs) {
       case BITVECTOR:
@@ -245,6 +270,7 @@ public class FormulaManagerView {
         return FormulaType.RationalType;
       }
     }
+
     if (type.isFloatingPointType()) {
       switch (encodeFloatAs) {
       case FLOAT:
@@ -979,20 +1005,42 @@ public class FormulaManagerView {
   }
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Collection<BooleanFormula> unwrapped = myExtractAtoms(f, splitArithEqualities, conjunctionsOnly);
+    return unwrapFormulasOfList(
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.ATOM));
+  }
 
+  public Collection<BooleanFormula> extractLiterals(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
+    return unwrapFormulasOfList(
+        myExtractAtoms(f, splitArithEqualities, conjunctionsOnly, FormulaStructure.LITERAL));
+  }
+
+  private List<BooleanFormula> unwrapFormulasOfList(Collection<BooleanFormula> unwrapped) {
     List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
     for (BooleanFormula booleanFormula : unwrapped) {
       atoms.add(booleanFormula);
     }
-
     return atoms;
   }
 
+  private FormulaStructure getFormulaStructure(Formula f) {
+    if (unsafeManager.isAtom(f)) {
+      return FormulaStructure.ATOM;
+    } else if (unsafeManager.isLiteral(f)) {
+      return FormulaStructure.LITERAL;
+    } else {
+      return FormulaStructure.FORMULA;
+    }
+  }
+
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula f, boolean splitArithEqualities,
-      boolean conjunctionsOnly) {
+      boolean conjunctionsOnly, FormulaStructure breakdownTo) {
     Set<BooleanFormula> handled = new HashSet<>();
     List<BooleanFormula> atoms = new ArrayList<>();
+
+    if (breakdownTo != FormulaStructure.ATOM
+        && breakdownTo != FormulaStructure.LITERAL) {
+      throw new UnsupportedOperationException("Formulas cannot be splitted onto the requested level!");
+    }
 
     Deque<BooleanFormula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
@@ -1006,7 +1054,12 @@ public class FormulaManagerView {
         continue;
       }
 
-      if (unsafeManager.isAtom(tt)) {
+      final FormulaStructure ttStructure = getFormulaStructure(tt);
+      final boolean isSmallesConsidered = (ttStructure == breakdownTo)
+          || ((breakdownTo == FormulaStructure.LITERAL)
+              && (ttStructure == FormulaStructure.ATOM));
+
+      if (isSmallesConsidered) {
         tt = myUninstantiate(tt);
 
         if (splitArithEqualities

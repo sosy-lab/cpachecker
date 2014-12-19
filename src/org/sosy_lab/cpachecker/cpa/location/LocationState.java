@@ -117,7 +117,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-  private static class BackwardsLocationState extends LocationState implements Targetable {
+  private static class BackwardsLocationState extends LocationState implements AbstractQueryableState, Targetable {
 
     private final CFA cfa;
     private boolean followFunctionCalls;
@@ -147,6 +147,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     public String getViolatedPropertyDescription() throws IllegalStateException {
       return "Entry node reached backwards.";
     }
+
   }
 
   private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {

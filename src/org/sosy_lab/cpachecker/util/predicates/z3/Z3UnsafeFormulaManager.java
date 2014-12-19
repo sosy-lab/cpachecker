@@ -53,8 +53,25 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   public boolean isAtom(Long t) {
+    int astKind = get_ast_kind(z3context, t);
+    switch (astKind) {
+    case Z3_APP_AST:
+      long decl = get_app_decl(z3context, t);
+      return !nonAtomicOpTypes.contains(get_decl_kind(z3context, decl));
+    default:
+      return true;
+    }
+  }
+
+  @Override
+  public boolean isLiteral(Long t) {
     long decl = get_app_decl(z3context, t);
-    return !nonAtomicOpTypes.contains(get_decl_kind(z3context, decl));
+    int declKind = get_decl_kind(z3context, decl);
+    if (declKind == Z3_OP_NOT) {
+      return true;
+    } else {
+      return !nonAtomicOpTypes.contains(declKind);
+    }
   }
 
   @Override
@@ -71,7 +88,7 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   public boolean isVariable(Long t) {
     if (isOP(z3context, t, Z3_OP_TRUE) || isOP(z3context, t, Z3_OP_FALSE)) { return false; }
     int astKind = get_ast_kind(z3context, t);
-    return (astKind == Z3_APP_AST) && (getArity(t) == 0);
+    return (astKind == Z3_VAR_AST) || ((astKind == Z3_APP_AST) && (getArity(t) == 0));
   }
 
   @Override
@@ -81,15 +98,20 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
   @Override
   public String getName(Long t) {
-    long funcDecl = get_app_decl(z3context, t);
-    long symbol = get_decl_name(z3context, funcDecl);
-    switch (get_symbol_kind(z3context, symbol)) {
-    case Z3_INT_SYMBOL:
-      return Integer.toString(get_symbol_int(z3context, symbol));
-    case Z3_STRING_SYMBOL:
-      return get_symbol_string(z3context, symbol);
-    default:
-      throw new AssertionError();
+    int astKind = get_ast_kind(z3context, t);
+    if (astKind == Z3_VAR_AST) {
+      return "?" + get_index_value(z3context, t);
+    } else {
+      long funcDecl = get_app_decl(z3context, t);
+      long symbol = get_decl_name(z3context, funcDecl);
+      switch (get_symbol_kind(z3context, symbol)) {
+      case Z3_INT_SYMBOL:
+        return Integer.toString(get_symbol_int(z3context, symbol));
+      case Z3_STRING_SYMBOL:
+        return get_symbol_string(z3context, symbol);
+      default:
+        throw new AssertionError();
+      }
     }
   }
 
@@ -166,5 +188,10 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   @Override
   protected Long simplify(Long pF) {
     return Z3NativeApi.simplify(z3context, pF);
+  }
+
+  @Override
+  protected boolean isQuantified(Long pT) {
+    return Z3_QUANTIFIER_AST == get_ast_kind(z3context, pT);
   }
 }

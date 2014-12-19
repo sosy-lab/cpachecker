@@ -36,6 +36,22 @@ import com.google.common.collect.Lists;
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> extends AbstractBaseFormulaManager<TFormulaInfo, TType, TEnv> implements UnsafeFormulaManager {
 
+  protected static class QuantifiedVariable {
+    final FormulaType<?> variableType;
+    final String nameInFormula;
+    final int deBruijnIndex;
+
+    public QuantifiedVariable(FormulaType<?> pVariableType, String pNameInFormula, int pDeBruijnIndex) {
+      variableType = pVariableType;
+      nameInFormula = pNameInFormula;
+      deBruijnIndex = pDeBruijnIndex;
+    }
+
+    public String getDeBruijnName() {
+      return "?" + deBruijnIndex;
+    }
+  }
+
   protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo, TType, TEnv> creator) {
     super(creator);
   }
@@ -70,8 +86,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
     TFormulaInfo t = extractInfo(pF);
     return isAtom(t);
   }
-
   protected abstract boolean isAtom(TFormulaInfo pT) ;
+
+  @Override
+  public boolean isLiteral(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isLiteral(t);
+  }
+  protected abstract boolean isLiteral(TFormulaInfo pT) ;
 
   @Override
   public int getArity(Formula pF) {
@@ -97,6 +119,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   protected abstract boolean isVariable(TFormulaInfo pT);
+
+  @Override
+  public boolean isQuantification(Formula pF) {
+    TFormulaInfo t = extractInfo(pF);
+    return isQuantified(t);
+  }
+
+  protected abstract boolean isQuantified(TFormulaInfo pT);
 
   @Override
   public boolean isNumber(Formula pF) {

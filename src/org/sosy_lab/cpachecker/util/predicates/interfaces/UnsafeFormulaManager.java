@@ -62,6 +62,14 @@ public interface UnsafeFormulaManager {
    * @return
    */
   boolean isAtom(Formula f);
+
+  /**
+   * Checks if the given Formula is a literal (atom or the negation of an atom).
+   * @param f
+   * @return
+   */
+  boolean isLiteral(Formula pF);
+
   /**
    * Checks if the given Formula is a variable.
    * @param f
@@ -80,6 +88,13 @@ public interface UnsafeFormulaManager {
    * @return
    */
   boolean isUF(Formula f);
+
+  /**
+   * Checks if the given Formula is quantified (either FORALL ..., or EXISTS ...).
+   * @param f
+   * @return
+   */
+  boolean isQuantification(Formula f);
 
   /**
    * Returns the name of the formula (or function)
@@ -144,4 +159,5 @@ public interface UnsafeFormulaManager {
    * @return  Simplified version of the formula
    */
   <T extends Formula> T simplify(T f);
+
 }

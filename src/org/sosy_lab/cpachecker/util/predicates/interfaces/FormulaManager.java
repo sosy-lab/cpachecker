@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 /**
  * Represents an SMT solver.
@@ -142,4 +143,9 @@ public interface FormulaManager {
    * Get some version information of the solver.
    */
   public String getVersion();
+
+  /**
+   * @return Returns an instance of SmtAstMatcher if implemented for the specific solver; otherwise 'null'.
+   */
+  public SmtAstMatcher getSmtAstMatcher();
 }

@@ -53,21 +53,21 @@ class Z3OptProver implements OptEnvironment {
   @Override
   public void addConstraint(BooleanFormula constraint) {
     Z3BooleanFormula z3Constraint = (Z3BooleanFormula) constraint;
-    optimize_assert(z3context, z3optContext, z3Constraint.getExpr());
+    optimize_assert(z3context, z3optContext, z3Constraint.getFormulaInfo());
   }
 
   @Override
   public int maximize(Formula objective) {
     Z3Formula z3Objective = (Z3Formula)objective;
     return optimize_maximize(
-        z3context, z3optContext, z3Objective.getExpr());
+        z3context, z3optContext, z3Objective.getFormulaInfo());
   }
 
   @Override
   public int minimize(Formula objective) {
     Z3Formula z3Objective = (Z3Formula) objective;
     return optimize_minimize(
-        z3context, z3optContext, z3Objective.getExpr());
+        z3context, z3optContext, z3Objective.getFormulaInfo());
   }
 
   @Override
@@ -150,7 +150,7 @@ class Z3OptProver implements OptEnvironment {
         ImmutableList.of(
             (Z3Formula)mgr.getIntegerFormulaManager().makeNumber(newValue))
     );
-    return simplify(z3context, out.getExpr());
+    return simplify(z3context, out.getFormulaInfo());
 
   }
 

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolati
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -322,4 +323,9 @@ public final class Solver implements AutoCloseable {
 
     unsatCache.put(unsat, true);
   }
+
+  public SmtAstMatcher getSmtAstMatcher() {
+    return solvingFormulaManager.getSmtAstMatcher();
+  }
+
 }

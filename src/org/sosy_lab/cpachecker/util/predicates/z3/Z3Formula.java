@@ -63,7 +63,7 @@ abstract class Z3Formula implements Formula {
     return Z3NativeApi.get_ast_hash(z3context, z3expr);
   }
 
-  public long getExpr() {
+  public Long getFormulaInfo() {
     return z3expr;
   }
 }

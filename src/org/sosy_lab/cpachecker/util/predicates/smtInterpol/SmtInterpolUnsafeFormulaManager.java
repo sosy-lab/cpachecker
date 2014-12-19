@@ -57,6 +57,12 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   }
 
   @Override
+  public boolean isLiteral(Term t) {
+    return SmtInterpolUtil.isNot(t) || SmtInterpolUtil.isAtom(t);
+  }
+
+
+  @Override
   public int getArity(Term pT) {
     return SmtInterpolUtil.getArity(pT);
   }
@@ -132,5 +138,9 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
     return getFormulaCreator().getEnv().simplify(pF);
   }
 
+  @Override
+  protected boolean isQuantified(Term pT) {
+    return false;
+  }
 
 }

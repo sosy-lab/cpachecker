@@ -63,4 +63,9 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
     throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
   }
+
+  @Override
+  public Sort getArrayType(Sort pIndexType, Sort pElementType) {
+    throw new IllegalArgumentException("SmtInterpol.getArrayType(): Implement me!");
+  }
 }
