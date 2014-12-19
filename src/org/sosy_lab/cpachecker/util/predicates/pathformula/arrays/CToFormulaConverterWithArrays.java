@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -37,8 +39,10 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -49,14 +53,22 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 
 
 public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
+  protected final ArrayFormulaManagerView afmgr;
+
   public CToFormulaConverterWithArrays(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, CtoFormulaTypeHandler pTypeHandler, AnalysisDirection pDirection) {
+
     super(pOptions, pFmgr, pMachineModel, pVariableClassification, pLogger, pShutdownNotifier, pTypeHandler, pDirection);
+
+    Preconditions.checkNotNull(pFmgr.getArrayFormulaManager());
+    this.afmgr = pFmgr.getArrayFormulaManager();
   }
 
   @Override
@@ -91,7 +103,23 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    // Overwritten to make it visible for ExpressionToFormulaVisitorWithArrays
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArrayVariable (String pName,
+      CType pType, SSAMapBuilder pSsa) {
+
+    int useIndex = getIndex(pName, pType, pSsa);
+    return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, useIndex);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeFreshArrayVariable(String pName,
+      CType pType, SSAMapBuilder pSsa) {
+
+    return (ArrayFormula<TI, TE>) makeFreshVariable(pName, pType, pSsa);
   }
 
   @Override
@@ -120,20 +148,40 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
         return bfmgr.makeBoolean(true);
       }
 
+      Verify.verify(pLhs instanceof CArraySubscriptExpression);
+      final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs; // a[e]
+      // .getArrayExpression() provides a CIdExpression
+      //    with type CArrayType; this would be different for multi-dimensional arrays!!
+      Verify.verify(lhsExpr.getArrayExpression() instanceof CIdExpression);
+      final CIdExpression lhsArrExpr = (CIdExpression) lhsExpr.getArrayExpression();
+
       // 1. Get the (array) formula A1 that represents the LHS (destination of 'store').
       //    The SSA index of this formula stays the same.
+      final ArrayFormula<Formula, Formula> unchangedArrayFormula = makeArrayVariable( //Overwrite makeVariable so that it uses a cache of formulas??
+          lhsArrExpr.getDeclaration().getQualifiedName(),
+          lhsArrExpr.getExpressionType(),
+          pSsa);
 
       // 2. Get the target index IX. Use a RHS visitor on the subscript expression.
+      final Formula subscriptFormula = buildTerm(lhsExpr.getSubscriptExpression(), pEdge,
+          pFunction, pSsa, pPts, pConstraints, pErrorConditions);
 
       // 3. Create the formula FR for the RHS (visitor).
+      final Formula rhsFormula = buildTerm(pRhs, pEdge,
+          pFunction, pSsa, pPts, pConstraints, pErrorConditions);
 
       // 4. Compute a new array formula FS using 'store' (this variable has not yet a name in the solver)
       //    (store A1 IX FR)
+      final ArrayFormula<Formula, Formula> storeArrayFormula = afmgr.store(unchangedArrayFormula, subscriptFormula, rhsFormula);
 
       // 5. Make a new array variable A2 with a new SSA index. Set this formula equivalent to FS.
       //    (= A2 (store A1 IX FR))
+      ArrayFormula<Formula, Formula> changedArrayFormula = makeFreshArrayVariable(
+          lhsArrExpr.getDeclaration().getQualifiedName(),
+          lhsArrExpr.getExpressionType(),
+          pSsa);
 
-      return bfmgr.makeBoolean(true);
+      return afmgr.equivalence(changedArrayFormula, storeArrayFormula);
     } else {
       return super.makeAssignment(pLhs, pLhsForChecking, pRhs, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
     }
