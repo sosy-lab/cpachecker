@@ -155,4 +155,9 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
     return false;
   }
 
+  @Override
+  protected Long getQuantifiedBody(Long pT) {
+    throw new UnsupportedOperationException();
+  }
+
 }

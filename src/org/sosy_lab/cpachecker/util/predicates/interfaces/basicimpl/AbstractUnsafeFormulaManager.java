@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
@@ -143,6 +144,15 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
   }
 
   protected abstract boolean isQuantification(TFormulaInfo pT);
+
+  @Override
+  public BooleanFormula getQuantifiedBody(Formula pQuantifiedFormula) {
+    TFormulaInfo t = extractInfo(pQuantifiedFormula);
+    TFormulaInfo result = getQuantifiedBody(t);
+    return getFormulaCreator().encapsulateBoolean(result);
+  }
+
+  protected abstract TFormulaInfo getQuantifiedBody(TFormulaInfo pT);
 
   @Override
   public boolean isNumber(Formula pF) {

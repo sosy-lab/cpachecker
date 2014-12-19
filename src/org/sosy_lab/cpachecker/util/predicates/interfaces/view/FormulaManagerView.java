@@ -971,6 +971,13 @@ public class FormulaManagerView {
         // There is no need for un-instantiating bound variables.
         cache.put(tt, tt);
 
+      } else if (unsafeManager.isQuantification(tt)) {
+
+        // Quantifications are no function applications,
+        //  i.e., they do not have an arity!
+
+        boolean quantifiedBodyUninstanciated = true;
+
       } else {
 
         boolean allArgumentsUninstanciated = true;

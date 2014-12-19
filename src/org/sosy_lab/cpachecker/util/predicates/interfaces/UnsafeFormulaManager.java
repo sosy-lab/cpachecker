@@ -113,6 +113,17 @@ public interface UnsafeFormulaManager {
   boolean isQuantification(Formula f);
 
   /**
+   * Get the body of the given, quantified, formula.
+   *
+   * Precondition:
+   *  isQuantification(f) == true
+   *
+   * @param f
+   * @return
+   */
+  BooleanFormula getQuantifiedBody(Formula pQuantifiedFormula);
+
+  /**
    * Returns the name of the formula (or function)
    * @param f
    * @return

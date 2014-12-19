@@ -211,4 +211,9 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
     return Z3_QUANTIFIER_AST == get_ast_kind(z3context, pT);
   }
 
+  @Override
+  protected Long getQuantifiedBody(Long pT) {
+    return get_quantifier_body(z3context, pT);
+  }
+
 }
