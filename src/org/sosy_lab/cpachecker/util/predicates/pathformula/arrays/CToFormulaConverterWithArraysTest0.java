@@ -156,9 +156,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private CArraySubscriptExpression _a_at_2;
 
   private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa1;
-  private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>> _smt_a2d;
-
   private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa2;
+  private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>> _smt_a2d;
 
   @Override
   protected Solvers solverToUse() {
@@ -408,9 +407,9 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
       .comparesEqualTo( imgr.equal(
-          imgr.makeVariable("i"),
+          imgr.makeVariable("i@1"),
           amgr.select(
-              amgr.makeArray("a", FormulaType.IntegerType, FormulaType.IntegerType),
+              _smt_a_ssa1,
               imgr.makeNumber(2))) .toString());
 
   }
