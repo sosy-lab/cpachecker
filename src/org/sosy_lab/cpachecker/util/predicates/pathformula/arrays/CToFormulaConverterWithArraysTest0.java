@@ -155,8 +155,10 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private CArraySubscriptExpression _a_at_1;
   private CArraySubscriptExpression _a_at_2;
 
-  private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa1;
   private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>> _smt_a2d;
+
+  private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa2;
 
   @Override
   protected Solvers solverToUse() {
@@ -195,7 +197,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   @Before
   public void setupCfaTestData() throws UnrecognizedCCodeException {
 
-    _smt_a = amgr.makeArray("a@1", NumeralType.IntegerType, NumeralType.IntegerType);
+    _smt_a_ssa1 = amgr.makeArray("a@1", NumeralType.IntegerType, NumeralType.IntegerType);
+    _smt_a_ssa2 = amgr.makeArray("a@2", NumeralType.IntegerType, NumeralType.IntegerType);
     _smt_a2d = amgr.makeArray("a2d@1", NumeralType.IntegerType, FormulaType.getArrayType(NumeralType.IntegerType, NumeralType.IntegerType));
 
     _a = makeDeclaration("a", unlimitedIntArrayType, null);
@@ -324,7 +327,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
     .comparesEqualTo(bmgr.not(
         imgr.equal(
-            amgr.select(_smt_a, imgr.makeNumber(2)),
+            amgr.select(_smt_a_ssa1, imgr.makeNumber(2)),
             imgr.makeNumber(0))).toString());
 
   }
@@ -332,6 +335,8 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   @Test
   public void testSimpleArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
     // a[2] = 1;
+    // ----->
+    // (= a@2 (store a@1 2 1))
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
@@ -345,13 +350,37 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(amgr.store(_smt_a, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
+      .comparesEqualTo(amgr.equivalence(_smt_a_ssa2, amgr.store(_smt_a_ssa1, imgr.makeNumber(2), imgr.makeNumber(0))).toString());
+  }
+
+  @Test
+  public void testSimpleRhsArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
+    // i = a[2];
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    Pair<CFAEdge, CExpressionAssignmentStatement> op = TestDataTools.makeAssignment(_i.getThird(), _a_at_2);
+
+    BooleanFormula result = ctfBwd.makeAssignment(
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getRightHandSide(),
+        op.getFirst(),
+        "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
+      .comparesEqualTo( imgr.equal(
+          imgr.makeVariable("i"),
+          amgr.select(
+              amgr.makeArray("a", FormulaType.IntegerType, FormulaType.IntegerType),
+              imgr.makeNumber(2))) .toString());
 
   }
 
   @Test
   public void testNestedArrayAssign() throws UnrecognizedCCodeException, InterruptedException {
-    // a[a[2]] = 0;
+    // a[a[2]] = 1;
+    // ----->
+    // (= a@2 (store a@1 (select a@1 2) 1))
 
     CArraySubscriptExpression _a_at__a_at_2 = new CArraySubscriptExpression(
         FileLocation.DUMMY,
@@ -359,18 +388,18 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a.getThird(),
         _a_at_2);
 
+    Pair<CFAEdge, CExpressionAssignmentStatement> op = TestDataTools.makeAssignment(_a_at__a_at_2, CIntegerLiteralExpression.ONE);
+
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
-    CLeftHandSide lhs = _a_assign_0_at_2.getSecond().getLeftHandSide();
-    CRightHandSide rhs = _a_assign_0_at_2.getSecond().getRightHandSide();
     BooleanFormula result = ctfBwd.makeAssignment(
-        lhs,
-        lhs,
-        rhs,
-        _a_assign_0_at_2.getFirst(),
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getRightHandSide(),
+        op.getFirst(),
         "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(amgr.store(_smt_a, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
+      .comparesEqualTo(amgr.store(_smt_a_ssa1, imgr.makeNumber(2), imgr.makeNumber(0)).toString());
 
   }
 
@@ -397,7 +426,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
       .comparesEqualTo(bmgr.not(
           imgr.equal(
-              amgr.select(_smt_a, amgr.select(_smt_a, imgr.makeNumber(2))),
+              amgr.select(_smt_a_ssa1, amgr.select(_smt_a_ssa1, imgr.makeNumber(2))),
               imgr.makeNumber(0))).toString());
 
   }
@@ -502,6 +531,13 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
       .isEqualTo("The result should be an initialized array"); //TODO
+  }
+
+  @Test
+  public void testMultiDimensionalAssign() throws UnrecognizedCCodeException, InterruptedException {
+    // a2d[3][7] = 23;
+
+    assertThat(true).isFalse();
   }
 
   @Test

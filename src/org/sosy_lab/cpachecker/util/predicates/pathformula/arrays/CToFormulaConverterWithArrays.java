@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -34,6 +37,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -100,5 +104,37 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
     }
 
     return super.isRelevantLeftHandSide(pLhs);
+  }
+
+  @Override
+  protected BooleanFormula makeAssignment(CLeftHandSide pLhs, CLeftHandSide pLhsForChecking, CRightHandSide pRhs,
+      CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, PointerTargetSetBuilder pPts, Constraints pConstraints,
+      ErrorConditions pErrorConditions) throws UnrecognizedCCodeException, InterruptedException {
+
+    CType lhsType = pLhs.getExpressionType().getCanonicalType();
+    if (lhsType instanceof CArrayType) {
+
+      // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
+      if (((CArrayType) lhsType).getType() instanceof CArrayType) {
+        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!");
+      }
+
+      // 1. Get the (array) formula A1 that represents the LHS (destination of 'store').
+      //    The SSA index of this formula stays the same.
+
+      // 2. Get the target index IX. Use a RHS visitor on the subscript expression.
+
+      // 3. Create the formula FR for the RHS (visitor).
+
+      // 4. Compute a new array formula FS using 'store' (this variable has not yet a name in the solver)
+      //    (store A1 IX FR)
+
+      // 5. Make a new array variable A2 with a new SSA index. Set this formula equivalent to FS.
+      //    (= A2 (store A1 IX FR))
+
+      return bfmgr.makeBoolean(true);
+    } else {
+      return super.makeAssignment(pLhs, pLhsForChecking, pRhs, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
+    }
   }
 }
