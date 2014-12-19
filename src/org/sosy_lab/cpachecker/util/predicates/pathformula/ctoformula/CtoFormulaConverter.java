@@ -1093,7 +1093,9 @@ public class CtoFormulaConverter {
 
     Formula l = null, r = null;
     if (direction == AnalysisDirection.BACKWARD) {
+      // buildLvalueTerm does not change the SSA indices!
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+      // buildTerm for the RHS causes the increment of the SSA index!
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     } else {
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
