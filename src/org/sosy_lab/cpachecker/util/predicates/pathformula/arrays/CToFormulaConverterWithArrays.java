@@ -156,15 +156,23 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
     final SSAMapBuilder lhsSsaBuilder = pSsaBeforeStatement.builder();
     final SSAMapBuilder rhsSsaBuilder = pSsaBeforeStatement.builder();
 
-    CType lhsType = pLhs.getExpressionType().getCanonicalType();
-    if (lhsType instanceof CArrayType) {
+    if (pLhs instanceof CIdExpression
+        && ((CIdExpression) pLhs).getExpressionType() instanceof CArrayType) {
+
+      // TODO: How can we handle this case better?
+      logger.logOnce(Level.WARNING, "Result might be unsound. Aliasing of array variables detected!", pEdge.getRawStatement());
+      return bfmgr.makeBoolean(true);
+
+    } else if (pLhs instanceof CArraySubscriptExpression) {
+
       // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
-      if (((CArrayType) lhsType).getType() instanceof CArrayType) {
-        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!");
+      if (pLhs.getExpressionType() instanceof CArrayType
+          && ((CArrayType) pLhs.getExpressionType()).getType() instanceof CArrayType) {
+
+        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!", pEdge.getRawStatement());
         return bfmgr.makeBoolean(true);
       }
 
-      Verify.verify(pLhs instanceof CArraySubscriptExpression);
       final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs; // a[e]
       // .getArrayExpression() provides a CIdExpression
       //    with type CArrayType; this would be different for multi-dimensional arrays!!

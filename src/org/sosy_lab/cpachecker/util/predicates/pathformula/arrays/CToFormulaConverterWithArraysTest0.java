@@ -157,6 +157,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   private CArraySubscriptExpression _a_at_2;
 
   private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa1;
+  private ArrayFormula<IntegerFormula, IntegerFormula> _smt_b_ssa1;
   private ArrayFormula<IntegerFormula, IntegerFormula> _smt_a_ssa2;
   private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>> _smt_a2d;
 
@@ -197,6 +198,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   @Before
   public void setupCfaTestData() throws UnrecognizedCCodeException {
 
+    _smt_b_ssa1 = amgr.makeArray("b@1", NumeralType.IntegerType, NumeralType.IntegerType);
     _smt_a_ssa1 = amgr.makeArray("a@1", NumeralType.IntegerType, NumeralType.IntegerType);
     _smt_a_ssa2 = amgr.makeArray("a@2", NumeralType.IntegerType, NumeralType.IntegerType);
     _smt_a2d = amgr.makeArray("a2d@1", NumeralType.IntegerType, FormulaType.getArrayType(NumeralType.IntegerType, NumeralType.IntegerType));
@@ -546,6 +548,26 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
       .isEqualTo("The result should be an initialized array"); //TODO
+  }
+
+  @Test
+  public void testArrayAssignment() throws UnrecognizedCCodeException, InterruptedException {
+    // int a[];
+    // int b[];
+    // a = b;
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    Pair<CFAEdge, CExpressionAssignmentStatement> _assing = TestDataTools.makeAssignment(_a.getThird(), _b.getThird());
+
+    BooleanFormula result = ctfFwd.makeAssignment(
+        _assing.getSecond().getLeftHandSide(),
+        _assing.getSecond().getLeftHandSide(),
+        _assing.getSecond().getRightHandSide(),
+        _assing.getFirst(),
+        "foo", ssa, null, null, null);
+
+    // TODO: Aliasing not handled!!!!!!!!!!
+    assertThat(result.toString()).isEqualTo(amgr.equivalence(_smt_a_ssa1, _smt_b_ssa1));
   }
 
   @Test
