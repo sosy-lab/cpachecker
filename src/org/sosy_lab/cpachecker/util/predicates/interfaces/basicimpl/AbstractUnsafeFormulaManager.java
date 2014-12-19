@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 
@@ -162,9 +163,12 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> ex
 
   @Override
   public BooleanFormula replaceQuantifiedBody(BooleanFormula pF, BooleanFormula pNewBody) {
+    Preconditions.checkArgument(isQuantification(pF));
+
     TFormulaInfo f = extractInfo(pF);
     TFormulaInfo body = extractInfo(pNewBody);
     TFormulaInfo result = replaceQuantifiedBody(f, body);
+
     return getFormulaCreator().encapsulateBoolean(result);
   }
 
