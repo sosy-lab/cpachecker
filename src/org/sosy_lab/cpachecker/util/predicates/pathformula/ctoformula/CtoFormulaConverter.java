@@ -1137,7 +1137,7 @@ public class CtoFormulaConverter {
     );
   }
 
-  Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
+  protected Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions)
           throws UnrecognizedCCodeException {
