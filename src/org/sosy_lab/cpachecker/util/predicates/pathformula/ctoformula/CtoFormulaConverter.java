@@ -154,9 +154,9 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
-  protected final FormulaEncodingOptions options;
+  final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
-  protected final Optional<VariableClassification> variableClassification;
+  private final Optional<VariableClassification> variableClassification;
   final CtoFormulaTypeHandler typeHandler;
 
   protected final FormulaManagerView fmgr;
@@ -231,12 +231,6 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
-    if (lhs.getExpressionType().getCanonicalType() instanceof CArrayType) {
-      // Probably a (string) initializer, ignore assignments to arrays
-      // as they cannot behandled precisely anyway.
-      return false;
-    }
-
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
     } else {
@@ -884,16 +878,10 @@ public class CtoFormulaConverter {
       int size = machineModel.getSizeof(decl.getType());
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
-        CType declaredType = decl.getType();
-
-        if (declaredType instanceof CArrayType) {
-          declaredType = ((CArrayType) declaredType).getType();
-          // TODO: Initialize the array with default values!
-        } else {
-          FormulaType<?> elementFormulaType = getFormulaTypeFromCType(declaredType);
-          Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
-          result = bfmgr.and(result, fmgr.assignment(var, zero));
-        }
+        CType elementCType = decl.getType();
+        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
+        Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
+        result = bfmgr.and(result, fmgr.assignment(var, zero));
       }
     }
 
@@ -1088,11 +1076,16 @@ public class CtoFormulaConverter {
 
     if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      //  ... and lhs that are not supported by this implementation (example: arrays)
       return bfmgr.makeBoolean(true);
     }
 
     CType lhsType = lhs.getExpressionType().getCanonicalType();
+
+    if (lhsType instanceof CArrayType) {
+      // Probably a (string) initializer, ignore assignments to arrays
+      // as they cannot behandled precisely anyway.
+      return bfmgr.makeBoolean(true);
+    }
 
     if (rhs instanceof CExpression) {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
@@ -1151,7 +1144,7 @@ public class CtoFormulaConverter {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
-  protected Formula buildLvalueTerm(CLeftHandSide exp,
+  Formula buildLvalueTerm(CLeftHandSide exp,
       CFAEdge edge, String function,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException {
