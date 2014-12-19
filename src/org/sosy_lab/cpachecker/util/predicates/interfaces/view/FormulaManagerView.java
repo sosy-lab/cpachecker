@@ -959,12 +959,17 @@ public class FormulaManagerView {
       if (unsafeManager.isFreeVariable(tt)) {
         String name = parseName(unsafeManager.getName(tt)).getFirst();
 
-        // Uninstanciate the variable (by renaming it)
+        // Un-instantiated the variable (by renaming it)
         Formula newt = unsafeManager.replaceName(tt, name);
 
-        // Put the mapping between the instanciated formula (variable)
-        // and its uninstanciated version into the cache
+        // Put the mapping between the instantiated formula (variable)
+        // and its un-instantiated version into the cache
         cache.put(tt, newt);
+
+      } else if (unsafeManager.isBoundVariable(tt)) {
+
+        // There is no need for un-instantiating bound variables.
+        cache.put(tt, tt);
 
       } else {
 
@@ -988,11 +993,11 @@ public class FormulaManagerView {
         }
 
         // The Flag childrenDone indicates whether all arguments
-        // of the function were already uninstanciated, i.e., the
-        // uninstanciated formula of all arguments is in the cache.
+        // of the function were already un-instantiated, i.e., the
+        // un-instantiated formula of all arguments is in the cache.
 
         if (allArgumentsUninstanciated) {
-          // Create an uninstanciated version of the
+          // Create an un-instantiated version of the
           // function application.
 
           toProcess.pop();
