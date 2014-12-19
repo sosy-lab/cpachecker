@@ -945,7 +945,10 @@ public class FormulaManagerView {
     Map<Formula, Formula> cache = uninstantiateCache;
     Deque<Formula> toProcess = new ArrayDeque<>();
 
+    // Add the formula to the work queue
     toProcess.push(f);
+
+    // Process the work queue
     while (!toProcess.isEmpty()) {
       final Formula tt = toProcess.peek();
       if (cache.containsKey(tt)) {
@@ -956,13 +959,23 @@ public class FormulaManagerView {
       if (unsafeManager.isVariable(tt)) {
         String name = parseName(unsafeManager.getName(tt)).getFirst();
 
+        // Uninstanciate the variable (by renaming it)
         Formula newt = unsafeManager.replaceName(tt, name);
+
+        // Put the mapping between the instanciated formula (variable)
+        // and its uninstanciated version into the cache
         cache.put(tt, newt);
 
       } else {
+
         boolean childrenDone = true;
+
+        // Construct a new argument list for the function application.
+        // ATTENTION: also boolean operators, like AND, OR, ...
+        //             are function applications!
         int arity = unsafeManager.getArity(tt);
         List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
+
         for (int i = 0; i < arity; ++i) {
           Formula c = unsafeManager.getArg(tt, i);
           Formula newC = cache.get(c);
@@ -974,7 +987,14 @@ public class FormulaManagerView {
           }
         }
 
+        // The Flag childrenDone indicates whether all arguments
+        // of the function were already uninstanciated, i.e., the
+        // uninstanciated formula of all arguments is in the cache.
+
         if (childrenDone) {
+          // Create an uninstanciated version of the
+          // function application.
+
           toProcess.pop();
           Formula newt;
           if (unsafeManager.isUF(tt)) {
