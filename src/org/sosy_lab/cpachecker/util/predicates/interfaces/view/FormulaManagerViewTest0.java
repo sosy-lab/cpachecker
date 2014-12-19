@@ -66,8 +66,11 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
   private IntegerFormula _0;
   private IntegerFormula _1;
   private IntegerFormula _i;
+  private IntegerFormula _i1;
   private IntegerFormula _j;
+  private IntegerFormula _j1;
   private IntegerFormula _x;
+  private IntegerFormula _x1;
 
   @Before
   public void setUp() throws Exception {
@@ -81,8 +84,11 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
     _0 = imv.makeNumber(0);
     _1 = imv.makeNumber(1);
     _i = imv.makeVariable("i");
+    _i1 = imv.makeVariable("i@1");
     _j = imv.makeVariable("j");
+    _j1 = imv.makeVariable("j@1");
     _x = imv.makeVariable("x");
+    _x1 = imv.makeVariable("x@1");
   }
 
   @Test
@@ -124,16 +130,16 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
 
     ArrayFormula<IntegerFormula, IntegerFormula> _b = amv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     BooleanFormula _b_at_x_NOTEQ_0 = bmv.not(imv.equal(amv.select(_b, _x), _0));
-    BooleanFormula _FORALL_i = qmgr.forall(
+    BooleanFormula _FORALL_x = qmgr.forall(
         Lists.newArrayList(_x),
         bmv.and(
             Lists.newArrayList(
               _b_at_x_NOTEQ_0,
-              imv.greaterOrEquals(_x, _j),
-              imv.lessOrEquals(_x, _i)
+              imv.greaterOrEquals(_x, _j1),
+              imv.lessOrEquals(_x, _i1)
             )));
 
-    BooleanFormula result = mv.uninstantiate(_FORALL_i);
+    BooleanFormula result = mv.uninstantiate(_FORALL_x);
     assertThat(result.toString()).isEqualTo("");
   }
 

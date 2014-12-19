@@ -208,7 +208,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     assertThat(result).isNotEmpty();
   }
 
-  @Test(timeout=2000)
+  @Test
   public void testOnErrorWp1() throws SolverException, InterruptedException {
     BooleanFormula wpError = bfm.and(Lists.newArrayList(
         ifm.greaterOrEquals(ifm.add(_i, _1), _al),                // i+1 >= al

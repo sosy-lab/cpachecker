@@ -511,7 +511,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
                 )));
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
-    BooleanFormula result = ctfBwd.makeDeclaration(
+    BooleanFormula result = ctfFwd.makeDeclaration(
         _x.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString()
@@ -645,6 +645,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testArrayAsPointer1() throws UnrecognizedCCodeException, InterruptedException {
     // Equivalence of
     //    array[0]
@@ -653,6 +654,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testArrayAsPointer2() throws UnrecognizedCCodeException, InterruptedException {
     // Equivalence of
     //    array[2]
@@ -661,6 +663,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testArrayAsPointer3() throws UnrecognizedCCodeException, InterruptedException {
     // Equivalence of
     //    array[n - 1]
@@ -669,6 +672,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testArrayAsPointer4() throws UnrecognizedCCodeException, InterruptedException {
     // Equivalence of
     //    array[i - 1][j - 1]
@@ -677,12 +681,9 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
   }
 
   @Test
+  @Ignore
   public void testArrayMalloc() throws UnrecognizedCCodeException, InterruptedException {
     // int* a = malloc(100 * sizeof(int));
   }
-
-
-
-
 
 }
