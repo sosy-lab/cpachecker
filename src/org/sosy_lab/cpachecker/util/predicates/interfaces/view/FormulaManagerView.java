@@ -918,6 +918,7 @@ public class FormulaManagerView {
     // Process the work queue
     while (!toProcess.isEmpty()) {
       final Formula tt = toProcess.peek();
+
       if (pCache.containsKey(tt)) {
         toProcess.pop();
         continue;
@@ -947,8 +948,8 @@ public class FormulaManagerView {
           BooleanFormula newTt = unsafeManager.substitute(q,
               Lists.newArrayList(ttBody),
               Lists.newArrayList(uninstatiatedBody));
-
           pCache.put(tt, newTt);
+
         } else {
           toProcess.push(ttBody);
         }
@@ -966,8 +967,10 @@ public class FormulaManagerView {
         for (int i = 0; i < arity; ++i) {
           Formula c = unsafeManager.getArg(tt, i);
           Formula newC = pCache.get(c);
+
           if (newC != null) {
             newargs.add(newC);
+
           } else {
             toProcess.push(c);
             allArgumentsUninstanciated = false;
@@ -984,14 +987,15 @@ public class FormulaManagerView {
 
           toProcess.pop();
           Formula newt;
+
           if (unsafeManager.isUF(tt)) {
             String name = unsafeManager.getName(tt);
             assert name != null;
 
             if (ufCanBeLvalue(name)) {
               name = parseName(name).getFirst();
-
               newt = unsafeManager.replaceArgsAndName(tt, name, newargs);
+
             } else {
               newt = unsafeManager.replaceArgs(tt, newargs);
             }
