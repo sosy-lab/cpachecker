@@ -87,7 +87,7 @@ public interface SmtAstMatcher {
   public void defineOperatorImplications(String pString, HashSet<String> pNewHashSet);
 
   /**
-   * This function should only be used to provide conclusions of formulas.
+   * This function should only be used to provide conclusions of inference rules.
    *    Such a method could be provided by {@link FormulaManagerView}} in the future.
    *
    * USING THIS METHOD IS UNSAFE: IT DOES NOT GUARANTEE ANYTHING!
