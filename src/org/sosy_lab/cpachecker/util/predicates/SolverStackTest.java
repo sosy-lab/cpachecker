@@ -40,13 +40,12 @@ import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
@@ -85,7 +84,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void simpleStackTestBool() throws SolverException, InterruptedException {
-    ProverEnvironment stack = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, true);
 
     int i = index.getFreshId();
     BooleanFormula a = bmgr.makeVariable("bool_a"+i);
@@ -131,7 +130,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void singleStackTestInteger() throws Exception {
-    ProverEnvironment env = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> env = mgr.newProverEnvironment(true, true);
     simpleStackTestNum(imgr, env);
   }
 
@@ -139,11 +138,11 @@ public class SolverStackTest extends SolverBasedTest0 {
   public void singleStackTestRational() throws Exception {
     requireRationals();
 
-    ProverEnvironment env = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> env = mgr.newProverEnvironment(true, true);
     simpleStackTestNum(rmgr, env);
   }
 
-  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, ProverEnvironment stack) throws Exception {
+  private <X extends NumeralFormula, Y extends X> void simpleStackTestNum(NumeralFormulaManager<X, Y> nmgr, BasicProverEnvironment<?> stack) throws Exception {
     int i = index.getFreshId();
     X a = nmgr.makeVariable("num_a"+i);
     X b = nmgr.makeVariable("num_b"+i);
@@ -188,14 +187,14 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void stackTest() throws Exception {
-    ProverEnvironment stack = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, true);
     thrown.expect(RuntimeException.class);
     stack.pop();
   }
 
   @Test
   public void stackTestItp() throws Exception {
-    InterpolatingProverEnvironment<?> stack = mgr.newProverEnvironmentWithInterpolation(true);
+    BasicProverEnvironment<?> stack = mgr.newProverEnvironmentWithInterpolation(true);
     thrown.expect(RuntimeException.class);
     stack.pop();
   }
@@ -207,10 +206,10 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = mgr.newProverEnvironment(true, true);
     stack1.push(a); // L1
     stack1.push(a); // L2
-    ProverEnvironment stack2 = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack2 = mgr.newProverEnvironment(true, true);
     stack1.pop(); // L1
     stack1.pop(); // L0
 
@@ -231,8 +230,8 @@ public class SolverStackTest extends SolverBasedTest0 {
     BooleanFormula a = bmgr.makeVariable("bool_a");
     BooleanFormula not = bmgr.not(a);
 
-    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
-    ProverEnvironment stack2 = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack2 = mgr.newProverEnvironment(true, true);
     stack1.push(a); // L1
     stack1.push(bmgr.makeBoolean(true)); // L2
     assert_().about(ProverEnvironment()).that(stack1).isSatisfiable();
@@ -261,7 +260,7 @@ public class SolverStackTest extends SolverBasedTest0 {
     requireMultipleStackSupport();
 
     // Create non-empty stack
-    ProverEnvironment stack1 = mgr.newProverEnvironment(true, true);
+    BasicProverEnvironment<?> stack1 = mgr.newProverEnvironment(true, true);
     stack1.push(bmgr.makeVariable("bool_a"));
 
     // Declare b while non-empty stack exists
@@ -283,7 +282,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void modelForUnsatFormula() throws Exception {
-    try (ProverEnvironment stack = mgr.newProverEnvironment(true, true)) {
+    try (BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, true)) {
       stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
       stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
       assert_().about(ProverEnvironment()).that(stack).isUnsatisfiable();
@@ -295,7 +294,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void modelForSatFormula() throws Exception {
-    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+    try (BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, false)) {
       stack.push(imgr.greaterThan(imgr.makeVariable("a"), imgr.makeNumber(0)));
       stack.push(imgr.lessThan(imgr.makeVariable("a"), imgr.makeNumber(2)));
       assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
@@ -309,7 +308,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void modelForSatFormulaWithLargeValue() throws Exception {
-    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+    try (BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, false)) {
       BigInteger val = BigInteger.TEN.pow(1000);
       stack.push(imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(val)));
       assert_().about(ProverEnvironment()).that(stack).isSatisfiable();
@@ -323,7 +322,7 @@ public class SolverStackTest extends SolverBasedTest0 {
 
   @Test
   public void modelForSatFormulaWithUF() throws Exception {
-    try (ProverEnvironment stack = mgr.newProverEnvironment(true, false)) {
+    try (BasicProverEnvironment<?> stack = mgr.newProverEnvironment(true, false)) {
       IntegerFormula zero = imgr.makeNumber(0);
       IntegerFormula varA = imgr.makeVariable("a");
       IntegerFormula varB = imgr.makeVariable("b");

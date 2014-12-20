@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -49,7 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
 
 import com.google.common.truth.FailureStrategy;
@@ -215,10 +215,10 @@ public abstract class SolverBasedTest0 {
    */
   @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
       justification="fits better when called as about(ProverEnvironment())")
-  public static final SubjectFactory<ProverEnvironmentSubject, ProverEnvironment> ProverEnvironment() {
-    return new SubjectFactory<ProverEnvironmentSubject, ProverEnvironment>() {
+  public static final SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
           @Override
-          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, ProverEnvironment pFormula) {
+          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
             return new ProverEnvironmentSubject(pFs, pFormula);
           }
         };
